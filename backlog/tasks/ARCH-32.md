@@ -1,11 +1,9 @@
 ---
 id: "ARCH-32"
 title: "e2e selected by file-level reachability: a src/editor/ change runs the pages that import it"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 5
 depends_on: ["ARCH-31"]
 ---
 
@@ -37,3 +35,26 @@ of the suite's test time, so the estimate is 30-40s saved on about a quarter of 
 ## 2026-10-01 board cleanup
 
 - depends_on: dropped DEBT-07 (merged into this ticket).
+
+## Done (2026-10-01)
+
+- `scripts/import-graph.mjs` holds the import scan, extracted from `check-module-boundaries.mjs` (which
+  imports it back; its output is unchanged). `buildReachGraph()` adds test files, specs, `<script src>`
+  edges, `api/` and `middleware.ts`; a full scan is about 0.1s.
+- `affected-scope.mjs`: when a core project is affected, `narrowByReachability` walks reverse imports
+  from each changed `src/` file. Only a tool file or a top-level tool page is a safe end of the walk and
+  selects that tool; unit tests end it silently. Everything else widens with a reason naming the file:
+  any other page (tool specs also visit `/` and `/he/<tool>/`), an `e2e/` file outside the site-wide
+  set, a file nothing live imports, anything the scan did not see (CSS, YAML, a deleted file), a diff
+  with no `src/` file. Output shape unchanged, so CI and `check:push` needed no edit.
+- Fresh review found two wrong narrowings in the first version (home-page code and the localized tool
+  page treated as covered by site-wide specs, while Sign, Redact and Merge specs visit them). Fixed by the
+  rule above and pinned by tests on the real graph.
+- Replay of the last 79 pushes: 46 ran every spec before, 39 after. The gain is smaller than this
+  ticket estimated: the "23 pushes through `src/editor/`" did not reproduce in this window, and code that
+  reaches the home page must widen. Biggest remaining wide reasons: unowned files (19, unchanged rule) and
+  `src/editor/text/liveFontCoverage.js`, which the shaping harness loads by path string, so nothing
+  imports it (9; importing it instead would let those narrow).
+- DEBT-07's `SignMessages` cut is not needed: a core verdict no longer decides e2e by the Nx graph.
+- `check:push` on the branch: full suite (the oracle changed), 295 passed and 1 failed in
+  `e2e/demo/workspace-flow.spec.js` with no product diff; that spec passed 15/15 alone. Filed as QUAL-20.

@@ -40,6 +40,8 @@ export const GUARD_STEPS = [
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:gesture-golden-rule',
+  'test:swallowed-errors',
+  'test:navigating-away',
   'test:detection-purity',
   'check-class-resolution',
 ];

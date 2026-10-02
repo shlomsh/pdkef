@@ -63,7 +63,7 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
 
 ## Catching errors
 
-Ask what threw. If it is the environment or the person's file (blocked or full storage, a missing optional API, a cancelled picker, a stored value that will not parse, an encrypted or damaged PDF), fall back quietly and say why in a comment. If it is our code or a library we ship (a detector, a renderer, a parser, an export step, a draft write after the database opened), call `reportError(area, err)` (`src/lib/errorReport.ts`) before the fallback, even when the UI or console already shows it. Keep the `try` narrow so one block never mixes both, and never report from best-effort cleanup or from telemetry itself. `docs/debt-17-catch-triage.md` is the worked classification.
+Ask what threw. If it is the environment or the person's file (blocked or full storage, a missing optional API, a cancelled picker, a stored value that will not parse, an encrypted or damaged PDF), fall back quietly and say why in a comment. If it is our code or a library we ship (a detector, a renderer, a parser, an export step, a draft write after the database opened), call `reportError(area, err, step)` (`src/lib/errorReport.ts`) before the fallback, even when the UI or console already shows it. Every call passes a step label naming the operation in code terms (`export`, `render_thumbnail`), never a filename or anything from a document. Keep the `try` narrow so one block never mixes both, and never report from best-effort cleanup or from telemetry itself. `docs/debt-17-catch-triage.md` is the worked classification. `npm run test:swallowed-errors` enforces this with zero tolerance: a catch (or `.catch` / `.then` handler) that neither reports, rethrows at the top level of its body, nor carries a `// expected: <why>` comment inside it or on the line above is a finding. Run `npm run test:swallowed-errors -- --list` to see findings.
 
 ## Cross-tool hand-offs, and the reverse
 
@@ -83,7 +83,7 @@ document could never be opened (reported 2026-09-22 on iOS); Merge's "Compress" 
 Split's and Redact's "Compress" came back greyed out the same way. The hook clears the flag on a
 `pageshow` whose `persisted` is true, and only that one: an ordinary load fires `pageshow` after
 `load`, long after a `client:load` island is interactive, and clearing there would drop the flag out
-from under a hand-off still reading its file. No check enforces this yet (DEBT-21). **Two Playwright
+from under a hand-off still reading its file. `npm run test:navigating-away` enforces it (DEBT-21). **Two Playwright
 defaults hide the whole class, and each one on its own makes a guard pass against the bug**: the
 default headless `chromium` is chrome-headless-shell, which has no back/forward cache at all, and
 Playwright launches Chromium with `--disable-back-forward-cache` among its default switches (an

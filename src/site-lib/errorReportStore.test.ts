@@ -1,19 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import {
   DAILY_CAP,
+  USAGE_DAILY_CAP,
   capCommands,
   countCommands,
   dayKey,
   engineBucket,
+  eventCommands,
   readEnv,
   reportCommands,
+  usageCapCommands,
+  withDayExpiry,
+  usageCommands,
 } from './errorReportStore.js';
 
-const report = { area: 'drafts', name: 'TypeError', frame: 'Tool.abc123.js:10:5' } as const;
+const report = {
+  area: 'drafts',
+  name: 'TypeError',
+  stack: ['Tool.abc123.js:10:5', 'Base.def456.js:3:9'],
+  step: 'export',
+  tool: '/sign/',
+  installed: false,
+  sw: true,
+  age: 'under_1m',
+} as const;
 
 describe('engineBucket', () => {
   it.each([
     ['Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Version/26.6 Mobile/15E148 Safari/604.1', 'ios-26'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Mobile/15E148 Safari/604.1', 'ios-26'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', 'ios-17'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1', 'ios-18+'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 16_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1', 'ios-16'],
     ['Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 CriOS/126.0.0.0 Mobile/15E148', 'ios-17'],
     ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.1 Safari/605.1.15', 'safari-18'],
     ['Mozilla/5.0 (Windows NT 10.0; rv:130.0) Gecko/20100101 Firefox/130.0', 'firefox-130'],
@@ -31,13 +49,20 @@ describe('dayKey', () => {
 
 describe('commands', () => {
   it('splits the cap step from the count step and joins them', () => {
-    expect(capCommands('2026-10-01')[0]).toEqual(['INCR', 'errors:total:2026-10-01']);
+    expect(capCommands('2026-10-01')).toEqual([['INCR', 'errors:total:2026-10-01']]);
     expect(countCommands(report, 'ios-26', '2026-10-01')).toEqual([
-      ['HINCRBY', 'errors:2026-10-01', 'drafts|TypeError|Tool.abc123.js:10:5|ios-26', 1],
+      ['HINCRBY', 'errors:2026-10-01', 'drafts|TypeError|Tool.abc123.js:10:5|export|ios-26', 1],
       ['EXPIRE', 'errors:2026-10-01', 7776000],
+      [
+        'HSET',
+        'errors:sample:2026-10-01',
+        'drafts|TypeError|Tool.abc123.js:10:5|export|ios-26',
+        JSON.stringify({ stack: report.stack, step: 'export', tool: '/sign/', installed: false, sw: true, age: 'under_1m', engine: 'ios-26' }),
+      ],
+      ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
     ]);
-    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(4);
-    expect(DAILY_CAP).toBe(5000);
+    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(5);
+    expect(DAILY_CAP).toBe(1000);
   });
 });
 
@@ -47,5 +72,35 @@ describe('readEnv', () => {
     expect(readEnv({ UPSTASH_REDIS_REST_URL: 'https://b', UPSTASH_REDIS_REST_TOKEN: 'u' })).toEqual({ url: 'https://b', token: 'u' });
     expect(readEnv({ KV_REST_API_URL: 'https://a' })).toBeNull();
     expect(readEnv({})).toBeNull();
+  });
+});
+
+describe('eventCommands', () => {
+  it('counts one field under the day, with no sample', () => {
+    const event = { name: 'sign_form_detection', properties: { outcome: 'failure', error_code: 'not_started' } } as const;
+    expect(eventCommands(event, 'ios-17', '2026-10-01')).toEqual([
+      ['HINCRBY', 'events:2026-10-01', 'sign_form_detection|failure|not_started|ios-17', 1],
+      ['EXPIRE', 'events:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+  });
+});
+
+describe('usage commands', () => {
+  it('counts a day total apart from errors, then one field under the day', () => {
+    expect(USAGE_DAILY_CAP).toBe(3000);
+    expect(usageCapCommands('2026-10-01')).toEqual([['INCR', 'usage:total:2026-10-01']]);
+    const event = { name: 'tool_result_ready', properties: { tool: 'merge' } } as const;
+    expect(usageCommands(event, '2026-10-01')).toEqual([
+      ['HINCRBY', 'usage:2026-10-01', 'tool_result_ready|merge', 1],
+      ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+  });
+});
+
+describe('withDayExpiry', () => {
+  const counting = [['HINCRBY', 'k', 'f', 1]] as const;
+  it('puts the total expiry first on the first count of the day only', () => {
+    expect(withDayExpiry('errors:total:d', 1, [...counting])).toEqual([['EXPIRE', 'errors:total:d', 7776000], ...counting]);
+    expect(withDayExpiry('errors:total:d', 7, [...counting])).toEqual(counting);
   });
 });

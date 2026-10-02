@@ -1,15 +1,15 @@
 ---
 id: "DEBT-24"
 title: "Sign's maintenance events have probably never arrived: Hobby has no custom events"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 2
 depends_on: ["DEBT-17"]
 ---
 
 # DEBT-24 · Sign's maintenance events have probably never arrived: Hobby has no custom events
+
+*Retired 2026-10-01: folded back into DEBT-27, which owns the outcome. Split off, it let DEBT-27 close with a gap in "track, reproduce, fix". The work and its evidence are recorded there.*
 
 *Filed 2026-10-01, out of DEBT-17.* `sign_export` and `sign_form_detection` go out through
 `window.va('event', ...)`. Vercel's limits page lists custom events from Pro upward only, and the

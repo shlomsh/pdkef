@@ -133,7 +133,7 @@ async function unusedPlaces(doc: any, bytes: Uint8Array | undefined): Promise<Sa
     const text = unusedPartsText(lib);
     return isNonBlank(text) ? [{ kind: 'unused', text, removable: true }] : [];
   } catch (err) {
-    reportError('redact', err);
+    reportError('redact', err, 'read_unused_parts');
     return [];
   }
 }

@@ -59,9 +59,10 @@ if (!worker.includes('__BUILD_ID__')) {
 // Minified on the way into dist/, source stays readable in public/.
 fs.writeFileSync(workerPath, minifyServiceWorker(worker.replaceAll('__BUILD_ID__', buildId)));
 
-// The same id, rendered where a person can read it (FORM-11). `sw.js` has no
-// `skipWaiting()` on purpose, so a browser can be serving a previous build for
-// a while and "which one am I on?" needs an answer that is not the console.
+// The same id, rendered where a person can read it (FORM-11). `sw.js` calls
+// `skipWaiting()` only on the MEM-10 message, never on install, so a browser
+// can be serving a previous build for a while and "which one am I on?" needs
+// an answer that is not the console.
 // Substituted here rather than computed in the page because the id is a hash
 // of dist/ and the page is part of dist/ - it cannot exist before the build it
 // names. Both substitutions happen after the hash, exactly like sw.js's, so

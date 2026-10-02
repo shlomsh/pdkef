@@ -19,9 +19,15 @@
 // object, or runs the exact npm script ci.yml's `checks`/`build` jobs run -
 // never a second narrowing decision.
 //
-// Usage: npm run check:push
+// Usage: npm run check:push          guards + unit + typecheck + build + dist
+//                                     guards, concurrently where independent;
+//                                     no Playwright
+//        npm run check:e2e [-- --perf]  the build and the Playwright projects
+//                                     the diff selects, chromium only; perf
+//                                     (wall-clock budgets) only with --perf
 
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { availableParallelism } from 'node:os';
 import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve as resolvePath } from 'node:path';
@@ -154,6 +160,8 @@ export const ALWAYS_GUARD_STEPS = [
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:gesture-golden-rule',
+  'test:swallowed-errors',
+  'test:navigating-away',
   'test:detection-purity',
   'check-class-resolution',
   'test:fonts',
@@ -174,24 +182,44 @@ export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test
 // A docs-only diff runs what ci.yml's `scope` job runs for one, nothing more.
 export const DOCS_ONLY_STEPS = ['check:backlog', 'check:guidance'];
 
-export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build }) {
-  if (docsOnly) return [...DOCS_ONLY_STEPS];
-  const steps = [...ALWAYS_GUARD_STEPS];
-
-  steps.push('unit', 'typecheck');
-
+// Two modes. 'gate' (the default, `check:push`) is everything but Playwright:
+// guards, unit, typecheck, build and the dist guards. 'e2e' (`check:e2e`) is
+// the build Playwright needs plus the scoped Playwright projects, nothing
+// else. CI runs the full Playwright suite either way; locally it is opt-in so
+// a pre-push gate stays short enough for any agent. `perf` is opt-in too: it
+// runs alone on one worker and asserts wall-clock budgets.
+export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build }, { mode = 'gate', perf = false } = {}) {
+  if (docsOnly) return mode === 'gate' ? [...DOCS_ONLY_STEPS] : [];
   const e2eProductSelected = Boolean(everything) || Boolean(e2e_paths && e2e_paths.trim());
-  // Playwright needs a build regardless of whether the diff reaches dist/ on
-  // its own merits (ARCH-29 requirement 3) - so "build" is gated on either
-  // reason, while the dist guards below stay gated on `build` (reachesDist)
-  // alone, since they exist to check what a *source* change did to dist/.
-  const buildNeeded = Boolean(build) || e2eProductSelected || Boolean(fonts) || Boolean(export_guards);
-  if (buildNeeded) steps.push('build');
-  if (build) steps.push(...DIST_GUARD_STEPS);
-  if (e2eProductSelected) steps.push('e2e:product', 'e2e:perf');
-  if (fonts) steps.push('e2e:fonts');
-  if (export_guards) steps.push('e2e:export-guards');
+  const e2eSelected = e2eProductSelected || Boolean(fonts) || Boolean(export_guards);
+
+  if (mode === 'e2e') {
+    if (!e2eSelected) return [];
+    const steps = ['build'];
+    if (e2eProductSelected) steps.push('e2e:product');
+    if (e2eProductSelected && perf) steps.push('e2e:perf');
+    if (fonts) steps.push('e2e:fonts');
+    if (export_guards) steps.push('e2e:export-guards');
+    return steps;
+  }
+
+  const steps = [...ALWAYS_GUARD_STEPS, 'unit', 'typecheck'];
+  if (build) steps.push('build', ...DIST_GUARD_STEPS);
   return steps;
+}
+
+// Which stages run together. Everything in a stage is independent of the rest
+// of it: guards, unit, typecheck and build all read the tree and write nothing
+// the others read; the dist guards need the build; Playwright steps share one
+// preview port and one dist/, so they run one after another.
+export function stageSteps(steps) {
+  const dist = new Set(DIST_GUARD_STEPS);
+  const stages = [
+    steps.filter((id) => !dist.has(id) && !id.startsWith('e2e:')),
+    steps.filter((id) => dist.has(id)),
+    ...steps.filter((id) => id.startsWith('e2e:')).map((id) => [id]),
+  ];
+  return stages.filter((stage) => stage.length > 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -272,58 +300,118 @@ function previewOwnerCwd() {
   }
 }
 
-function main() {
-  const startAll = Date.now();
+// One step, run synchronously with inherited stdio. The parent spawns this
+// script once per step (`--step <id>`) so a stage can run steps concurrently
+// without any runner needing an async twin.
+function runStep(id, { scope, unitScope, typecheck }) {
+  if (id === 'unit') return runUnitByImpact(unitScope);
+  if (id === 'typecheck') return runTypecheck(typecheck.tool);
+  // Locally Playwright runs chromium only; webkit is CI's.
+  if (id === 'e2e:product') return runE2eProduct(scope, ['chromium']);
+  if (id === 'e2e:perf') return runE2ePerf(scope);
+  if (id === 'e2e:fonts') return runFonts(scope);
+  if (id === 'e2e:export-guards') return runExportGuards(scope);
+  return STEP_RUNNERS[id]();
+}
+
+function computeScope() {
   const base = resolveBase(undefined);
   const dirty = isTreeDirty();
   const files = base ? changedFiles(base) : [];
   const docsOnly = classify(files).docs_only;
   const nxScope = resolveScope({ explicitBase: base ?? undefined });
   const unitScope = resolveUnitScope({ explicitBase: base ?? undefined });
-  const build = reachesDist(files);
-
-  const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: build }, files);
+  const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: reachesDist(files) }, files);
   const typecheck = chooseTypecheck({ files: base ? files : null, astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
+  return { base, dirty, scope, unitScope, typecheck };
+}
+
+// Run one stage's steps concurrently (bounded by the CPU count), buffering each
+// step's output and printing it only for a failure. The first failure kills
+// the rest of the stage.
+function runStage(ids, passthroughArgs) {
+  return new Promise((resolve) => {
+    const queue = [...ids];
+    const results = [];
+    const running = new Set();
+    let failed = false;
+    const limit = Math.max(2, availableParallelism());
+    const pump = () => {
+      while (!failed && running.size < limit && queue.length > 0) {
+        const id = queue.shift();
+        const t0 = Date.now();
+        const child = spawn('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+        let out = '';
+        child.stdout.on('data', (d) => (out += d));
+        child.stderr.on('data', (d) => (out += d));
+        running.add(child);
+        child.on('close', (code, signal) => {
+          running.delete(child);
+          if (signal && failed) return;
+          const seconds = (Date.now() - t0) / 1000;
+          results.push({ id, seconds, status: code ?? 1 });
+          console.error(`[check:push] ${id}: ${seconds.toFixed(1)}s${code === 0 ? '' : ` (exit ${code})`}`);
+          if (code !== 0 && !failed) {
+            failed = true;
+            console.error(`\n--- ${id} output ---\n${out}`);
+            for (const other of running) other.kill();
+          }
+          if (running.size === 0 && (queue.length === 0 || failed)) resolve({ results, failed });
+          else pump();
+        });
+      }
+    };
+    pump();
+  });
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  const mode = argv.includes('--e2e') ? 'e2e' : 'gate';
+  const perf = argv.includes('--perf');
+  const passthrough = argv.filter((a) => a === '--e2e' || a === '--perf');
+  const ctx = computeScope();
+
+  const stepIndex = argv.indexOf('--step');
+  if (stepIndex !== -1) process.exit(runStep(argv[stepIndex + 1], ctx));
+
+  const startAll = Date.now();
+  const { base, dirty, scope, unitScope, typecheck } = ctx;
   printScope({ base, dirty, scope, unitScope });
   console.error(`  typecheck:      ${typecheck.tool} (${typecheck.reason}; CI always runs astro check)`);
 
-  const steps = planSteps(scope);
-  const timings = [];
-  let failed = null;
+  const steps = planSteps(scope, { mode, perf });
+  if (steps.length === 0) {
+    console.error(mode === 'e2e' ? 'check:e2e: this diff selects no Playwright project; nothing to run.' : 'check:push: nothing to run.');
+    process.exit(0);
+  }
 
   if (steps.some((id) => id.startsWith('e2e:'))) {
     const ownerCwd = previewOwnerCwd();
     const verdict = portOwnerVerdict({ ownerCwd, root: realpathSync(ROOT) });
     if (verdict === 'foreign' || verdict === 'unknown') {
-      console.error(`check:push: port ${PREVIEW_PORT} is held by ${verdict === 'foreign' ? ownerCwd : 'a process whose directory could not be read'}. Playwright would reuse it and test that build, not this worktree's. Run again once it is free.`);
+      console.error(`check:e2e: port ${PREVIEW_PORT} is held by ${verdict === 'foreign' ? ownerCwd : 'a process whose directory could not be read'}. Playwright would reuse it and test that build, not this worktree's. Run again once it is free.`);
       process.exit(1);
     }
     if (verdict === 'own') {
-      console.error(`check:push: this worktree's own preview is already on ${PREVIEW_PORT}; Playwright reuses it and it serves the dist/ the build step writes.`);
+      console.error(`check:e2e: this worktree's own preview is already on ${PREVIEW_PORT}; Playwright reuses it and it serves the dist/ the build step writes.`);
     }
   }
 
-  for (const id of steps) {
-    const t0 = Date.now();
-    let status;
-    if (id === 'unit') status = runUnitByImpact(unitScope);
-    else if (id === 'typecheck') status = runTypecheck(typecheck.tool);
-    else if (id === 'e2e:product') status = runE2eProduct(scope);
-    else if (id === 'e2e:perf') status = runE2ePerf(scope);
-    else if (id === 'e2e:fonts') status = runFonts(scope);
-    else if (id === 'e2e:export-guards') status = runExportGuards(scope);
-    else status = STEP_RUNNERS[id]();
-    const seconds = (Date.now() - t0) / 1000;
-    timings.push({ id, seconds, status });
-    console.error(`[check:push] ${id}: ${seconds.toFixed(1)}s${status === 0 ? '' : ` (exit ${status})`}`);
-    if (status !== 0) {
-      failed = id;
+  const timings = [];
+  let failed = null;
+  for (const stage of stageSteps(steps)) {
+    const r = await runStage(stage, passthrough);
+    timings.push(...r.results);
+    if (r.failed) {
+      failed = r.results.find((t) => t.status !== 0)?.id ?? stage[0];
       break;
     }
   }
 
   const totalSeconds = (Date.now() - startAll) / 1000;
   console.error(`[check:push] total: ${totalSeconds.toFixed(1)}s across ${timings.length} step(s)${failed ? `, stopped at "${failed}"` : ''}`);
+  if (!failed && mode === 'gate') console.error('[check:push] Playwright is not part of this gate; run `npm run check:e2e` when the diff touches rendering (CI runs it all).');
   process.exit(failed ? 1 : 0);
 }
 

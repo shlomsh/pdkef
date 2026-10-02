@@ -51,7 +51,7 @@ export default function useSavedFileCheck({
         const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, boxes, extraTerms: findTerms, picturePages, measure });
         if (current) setState({ status: 'done', outcome, typed: [] });
       } catch (error) {
-        reportError('redact', error);
+        reportError('redact', error, 'check_saved_file');
         console.error('Redact could not check the saved file', error);
         if (current) setState({ status: 'failed' });
       }

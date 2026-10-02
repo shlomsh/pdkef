@@ -318,8 +318,7 @@ export default function SignatureDialog({
         try {
           await document.fonts.load(referenceFontSpec, typedName);
         } catch {
-          // Offline or a slow connection: draw with whatever is already
-          // loaded rather than fail the save entirely.
+          // expected: offline or slow font, draw with what is already loaded
         }
       }
 

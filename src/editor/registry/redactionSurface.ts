@@ -9,11 +9,9 @@ import type { BlurStrokeElement, WhiteoutStrokeElement } from '../model/editorMo
  * type (E7.4 - this is the sole paint owner for fill/blur/border, so a host
  * component must never re-derive these from `element.type` itself).
  *
- * Whiteout's border is intentionally omitted here: unlike blackout/blur's
- * static border, whiteout's border color is selection/hover-state-dependent
- * (highlighted while selected or hovered, transparent at rest) - that's
- * workspace-interaction chrome, not a redaction-surface visual, so it's owned
- * by the host's own CSS Module via `.active`/`.selected` classes instead.
+ * Whiteout has no border at all (RED-51): its selection outline is workspace
+ * chrome owned by PdfRedactTool.module.css's `.redact-box--whiteout.selected`
+ * (an outline, so it takes no space), not a redaction-surface visual.
  *
  * Blur's radius is a fraction of the box's own height, from blurStrength.ts.
  * Applying it in container query units (`cqh`, against a `containerType:

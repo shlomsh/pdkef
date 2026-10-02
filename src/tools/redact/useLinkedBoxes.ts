@@ -23,6 +23,9 @@ export interface UseLinkedBoxesDeps<T extends LinkedElement> {
   commands: RedactCommands<T>;
   /** Sets selectedBoxId and activeBoxId, as duplicateElement does today. */
   select: (id: string) => void;
+  /** What an edit brings with it (Redact's auto colour), applied to every box an
+   * edit reaches and to every box Duplicate and Every page add. */
+  derive?: (element: T, changes: Partial<T>) => Partial<T>;
 }
 
 export interface UseLinkedBoxesResult<T> {
@@ -45,7 +48,8 @@ export interface UseLinkedBoxesResult<T> {
 export default function useLinkedBoxes<T extends LinkedElement>(
   deps: UseLinkedBoxesDeps<T>,
 ): UseLinkedBoxesResult<T> {
-  const { elements, numPages, uniqueId, commands, select } = deps;
+  const { elements, numPages, uniqueId, commands, select, derive } = deps;
+  const withDerived = (element: T): T => (derive ? { ...element, ...derive(element, element) } : element);
 
   // RED-03: a linked box's edit reaches every member of its repeat group.
   // links.ts's `linkedChanges` turns `changes` into the per-box changes the
@@ -61,7 +65,18 @@ export default function useLinkedBoxes<T extends LinkedElement>(
   // only), merging both link kinds by id so a box in both contributes one
   // update, not two.
   const updateElement = (id: string, changes: Partial<T>) => {
-    commands.update(id, linkedChanges(elements, id, changes));
+    const linked = linkedChanges(elements, id, changes);
+    if (!derive) {
+      commands.update(id, linked);
+      return;
+    }
+    const perBox = linked.map(({ id: boxId, changes: c }) => {
+      const element = elements.find((el) => el.id === boxId);
+      return { id: boxId, changes: element ? { ...c, ...derive(element, c) } : c };
+    });
+    const own = perBox.find((box) => box.id === id)?.changes ?? changes;
+    if (Object.keys(own).length > Object.keys(changes).length) commands.update(id, perBox, { primary: changes });
+    else commands.update(id, perBox);
   };
 
   // RED-03: duplicating a linked box duplicates its whole group into a new
@@ -74,7 +89,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     const members = groupMembers(elements, id);
     // RED-11: a duplicate never joins the source's find set (same
     // reasoning as duplicateElement above).
-    const additions = duplicateGroup(elements, id, uniqueId).map(withoutFindSet);
+    const additions = duplicateGroup(elements, id, uniqueId).map(withoutFindSet).map(withDerived);
     if (additions.length === 0) return;
     const pressedIndex = members.findIndex((member) => member.id === id);
     const duplicateId = additions[pressedIndex]?.id ?? additions[0].id;
@@ -144,7 +159,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     if (!source) return;
     // RED-11: a repeated copy never joins the source's find set (same
     // reasoning as duplicateElement above).
-    const additions = repeatCopies(source, elements, numPages, uniqueId).map(withoutFindSet);
+    const additions = repeatCopies(source, elements, numPages, uniqueId).map(withoutFindSet).map(withDerived);
     if (additions.length === 0) return;
     const description = `Added the box to ${additions.length} more page${additions.length === 1 ? '' : 's'}`;
     commands.add(additions, { type: 'REPEAT_ON_EVERY_PAGE', description, undoChip: true });

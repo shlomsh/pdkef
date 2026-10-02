@@ -129,7 +129,7 @@ function positionalLines(glyphs: PageGlyph[]): { along: number; glyph: PageGlyph
     try {
       lines.push({ inverse: invertAffineTransform(glyph.matrix), first: glyph, glyphs: [{ along: 0, glyph }] });
     } catch {
-      // A degenerate text matrix shows nothing.
+      // expected: A degenerate text matrix shows nothing.
     }
   }
   for (const glyph of glyphs) {

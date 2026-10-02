@@ -297,7 +297,7 @@ export default function useFormFieldRegions(
         // Feedback report and what an engineer reads in the console are the
         // same string; the error object after it, because a console stays on
         // the device and a stack is worth having there.
-        if (detectorLoaded) reportError('sign_form_detection', error);
+        if (detectorLoaded) reportError('sign_form_detection', error, 'detect_fields');
         const outcome = detectorLoaded ? FAILED : UNAVAILABLE;
         issueRef.current.issue = describeFormDetectionFailure(error);
         console.warn(

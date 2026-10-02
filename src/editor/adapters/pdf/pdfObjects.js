@@ -926,7 +926,7 @@ export function extractPageObjects(page, pageIndex = 0) {
         [...parentPath, ref.tag],
       );
     } catch (err) {
-      reportError('redact', err);
+      reportError('redact', err, 'walk_form_stream');
       objects.length = before;
       console.error(`Could not read Form XObject ${ref.tag} on page ${pageIndex + 1}`, err);
     }

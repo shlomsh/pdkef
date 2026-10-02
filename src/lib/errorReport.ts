@@ -1,10 +1,19 @@
 /**
- * The browser side of anonymous error reports (DEBT-17). The schema, and why
- * it is only area, name and frame, is `errorReportSchema.ts`.
+ * The browser side of anonymous error reports (DEBT-17, DEBT-27). The schema,
+ * and why it holds only positions, identifiers, flags and a bucket, is
+ * `errorReportSchema.ts`.
  */
 
-import { errorName, topFrame } from './errorIdentity.ts';
-import { ERROR_REPORT_PATH, parseErrorReport, type ErrorArea, type ErrorReport } from './errorReportSchema.ts';
+import { errorName, stackFrames } from './errorIdentity.ts';
+import {
+  ERROR_REPORT_PATH,
+  pageAge,
+  parseErrorReport,
+  type ErrorArea,
+  type ErrorReport,
+  type PageContext,
+  MAX_FRAMES,
+} from './errorReportSchema.ts';
 
 export * from './errorReportSchema.ts';
 
@@ -33,15 +42,45 @@ export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set([
 /**
  * The report for this error, or null when it should not travel: an ignored
  * name, or no frame inside our own built output (an extension's error, or a
- * dev build).
+ * dev build). Pure: the page facts come in as `context`.
  */
-export function toErrorReport(area: ErrorArea, error: unknown): ErrorReport | null {
+export function toErrorReport(
+  area: ErrorArea,
+  error: unknown,
+  step: string,
+  context: PageContext,
+): ErrorReport | null {
   if (!(error instanceof Error)) return null;
   const name = errorName(error);
   if (IGNORED_ERROR_NAMES.has(name)) return null;
-  const frame = topFrame(error);
-  if (!frame) return null;
-  return parseErrorReport({ area, name, frame });
+  const stack = stackFrames(error, MAX_FRAMES);
+  if (stack.length === 0) return null;
+  return parseErrorReport({ area, name, stack, step, ...context });
+}
+
+/**
+ * The page facts, read at report time. Never throws; any fact it cannot read
+ * falls back to the plainest value (`/`, false, false).
+ */
+export function readPageContext(): PageContext {
+  // One fact per guard: a browser missing one API keeps the other three.
+  const path = safely(() => location.pathname, '/');
+  return {
+    // Same shape as the schema's TOOL; a path outside it must not kill the report.
+    tool: /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/.test(path) ? path : '/',
+    installed: safely(() => matchMedia('(display-mode: standalone)').matches === true, false),
+    sw: safely(() => Boolean(navigator.serviceWorker?.controller), false),
+    age: safely(() => pageAge(performance.now()), 'under_10s' as const),
+  };
+}
+
+function safely<T>(read: () => T, fallback: T): T {
+  try {
+    return read();
+  } catch {
+    // expected: reporting code must never throw, an unreadable value falls back
+    return fallback;
+  }
 }
 
 /**
@@ -49,26 +88,49 @@ export function toErrorReport(area: ErrorArea, error: unknown): ErrorReport | nu
  * each distinct report at most once per page load and at most
  * `MAX_REPORTS_PER_PAGE` in total; sent with `navigator.sendBeacon` to
  * `ERROR_REPORT_PATH`. Never throws, never awaits, never changes what the
- * caller does next.
+ * caller does next. `step` names what the call site was doing; every call site
+ * passes one (DEBT-27).
  */
-export function reportError(area: ErrorArea, error: unknown): void {
+export function reportError(area: ErrorArea, error: unknown, step: string): void {
   try {
-    if (!enabled) return;
-    if (navigator.onLine === false || typeof navigator.sendBeacon !== 'function') return;
+    if (!canSend()) return;
     if (sent.size >= MAX_REPORTS_PER_PAGE) return;
-    const report = toErrorReport(area, error);
+    const report = toErrorReport(area, error, step, readPageContext());
     if (!report) return;
-    // Not keyed on area: a defect reported at its catch site that also escapes
-    // as an unhandled rejection is one defect, not two.
-    const key = `${report.name}|${report.frame}`;
-    if (sent.has(key)) return;
+    // Keyed on the step, so two call sites over one shared throw site stay two.
+    // An uncaught error is the exception: if its throw site was already
+    // reported from a catch, the escape is the same defect, not a new one.
+    const site = `${report.name}|${report.stack[0]}`;
+    const key = `${site}|${report.step}`;
+    if (sent.has(key) || (report.area === 'uncaught' && sentSites.has(site))) return;
     sent.add(key);
-    navigator.sendBeacon(
+    sentSites.add(site);
+    sendBeacon(report);
+  } catch {
+    // expected: Reporting must never change what the caller does next.
+  }
+}
+
+function canSend(): boolean {
+  return enabled && navigator.onLine !== false && typeof navigator.sendBeacon === 'function';
+}
+
+/**
+ * Hands one JSON payload to `ERROR_REPORT_PATH` with `navigator.sendBeacon`:
+ * production builds only, nothing when offline. Never throws. Returns whether
+ * the browser accepted it; callers must not change their flow on the answer.
+ * Shared by error reports and maintenance events (DEBT-27).
+ */
+export function sendBeacon(payload: object): boolean {
+  try {
+    if (!canSend()) return false;
+    return navigator.sendBeacon(
       ERROR_REPORT_PATH,
-      new Blob([JSON.stringify(report)], { type: 'application/json' }),
+      new Blob([JSON.stringify(payload)], { type: 'application/json' }),
     );
   } catch {
-    // Reporting must never change what the caller does next.
+    // expected: reporting code must never throw, a failed beacon is simply not sent
+    return false;
   }
 }
 
@@ -76,6 +138,7 @@ export const MAX_REPORTS_PER_PAGE = 10;
 
 // Module state, so a page load is the unit of "once" and of the cap.
 const sent = new Set<string>();
+const sentSites = new Set<string>();
 // `import.meta.env` exists only under Vite; Playwright specs and scripts import
 // modules that reach this one under plain Node, where reading it would throw at
 // import time.
@@ -87,6 +150,7 @@ export function setReportingEnabledForTests(value: boolean): void {
 
 export function resetErrorReportingForTests(): void {
   sent.clear();
+  sentSites.clear();
 }
 
 let installed = false;
@@ -95,8 +159,8 @@ let installed = false;
 export function installUncaughtErrorReporting(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
-  window.addEventListener('error', (event) => reportError('uncaught', event.error));
+  window.addEventListener('error', (event) => reportError('uncaught', event.error, 'window_error'));
   window.addEventListener('unhandledrejection', (event) =>
-    reportError('uncaught', event.reason),
+    reportError('uncaught', event.reason, 'unhandled_rejection'),
   );
 }

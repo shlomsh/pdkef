@@ -1,10 +1,22 @@
 // Pure pieces of the error-report endpoint (api/report.ts, DEBT-17): what is
-// counted, under which keys, and how much of a user agent survives. Nothing
-// here does I/O.
+// counted (error reports and Sign's maintenance events), under which keys, and
+// how much of a user agent survives. Nothing here does I/O.
 import type { ErrorReport } from '../lib/errorReportSchema.js';
+import { maintenanceEventField, type MaintenanceEvent } from '../lib/maintenanceEventSchema.js';
+import { usageEventField, type UsageEvent } from '../lib/usageEventSchema.js';
 
-/** Reports counted per UTC day; past it the day is full and nothing more is stored. */
-export const DAILY_CAP = 5000;
+/**
+ * Reports and Sign events counted per UTC day; past it the day is full. Budget: the cap step is one
+ * INCR, and the day's first count adds one EXPIRE on the total. A report then costs 5 commands, a
+ * Sign event 3, a usage event 3, and anything past the cap 1. Counted traffic tops out near
+ * 1000 x 5 + 3000 x 3 = 14K commands a day (about 420K a month), inside Upstash Free's 500K with
+ * room for reads. Raise either cap only with that sum in view. Past the cap each request still costs 1 command until an instance caches the cap; the
+ * firewall's per-IP limit of 10 per minute is what bounds that, so a flood from many IPs can still
+ * spend the month.
+ */
+export const DAILY_CAP = 1000;
+/** Usage events counted per UTC day, apart from the cap above. */
+export const USAGE_DAILY_CAP = 3000;
 const TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export type Command = readonly (string | number)[];
@@ -15,10 +27,14 @@ export type Command = readonly (string | number)[];
  */
 export function engineBucket(userAgent: string): string {
   const major = (re: RegExp) => re.exec(userAgent)?.[1];
-  // Every iOS browser is WebKit, so any iPhone/iPad UA is bucketed as iOS.
+  // Every iOS browser is WebKit, so any iPhone/iPad UA is bucketed as iOS. From iOS 26 the OS token is frozen
+  // at 18_x (measured: iOS 26.2 Safari says "iPhone OS 18_7"), so Version/ names the real major and a bare 18 means 18+.
   if (/iPhone|iPad|iPod/.test(userAgent)) {
+    const safari = major(/Version\/(\d{1,3})/);
+    if (safari) return `ios-${safari}`;
     const v = major(/OS (\d{1,3})[_.]/);
-    return v ? `ios-${v}` : 'ios';
+    if (!v) return 'ios';
+    return Number(v) >= 18 ? 'ios-18+' : `ios-${v}`;
   }
   const firefox = major(/Firefox\/(\d{1,4})/);
   if (firefox) return `firefox-${firefox}`;
@@ -33,19 +49,55 @@ export function dayKey(now: Date): string {
   return now.toISOString().slice(0, 10);
 }
 
+export const errorTotalKey = (day: string) => `errors:total:${day}`;
+export const usageTotalKey = (day: string) => `usage:total:${day}`;
+
 /** First step: count the report against the day's cap. The INCR result is the count. */
 export function capCommands(day: string): Command[] {
+  return [['INCR', errorTotalKey(day)]];
+}
+
+/** The day's first count (INCR returned 1) also sets the total's expiry, once; later counts add nothing. */
+export function withDayExpiry(totalKey: string, total: number, commands: Command[]): Command[] {
+  return total === 1 ? [['EXPIRE', totalKey, TTL_SECONDS], ...commands] : commands;
+}
+
+/** The count field and the sample field are one string: the fingerprint, `stack[0]` last of the report's own parts. */
+export function fingerprintField(report: ErrorReport, engine: string): string {
+  return `${report.area}|${report.name}|${report.stack[0]}|${report.step}|${engine}`;
+}
+
+/** Second step, only when the day is under its cap. The latest sample per fingerprint wins. */
+export function countCommands(report: ErrorReport, engine: string, day: string): Command[] {
+  const field = fingerprintField(report, engine);
+  const { stack, step, tool, installed, sw, age } = report;
+  const sample = JSON.stringify({ stack, step, tool, installed, sw, age, engine });
   return [
-    ['INCR', `errors:total:${day}`],
-    ['EXPIRE', `errors:total:${day}`, TTL_SECONDS],
+    ['HINCRBY', `errors:${day}`, field, 1],
+    ['EXPIRE', `errors:${day}`, TTL_SECONDS],
+    ['HSET', `errors:sample:${day}`, field, sample],
+    ['EXPIRE', `errors:sample:${day}`, TTL_SECONDS],
   ];
 }
 
-/** Second step, only when the day is under its cap. */
-export function countCommands(report: ErrorReport, engine: string, day: string): Command[] {
+/** Second step for a maintenance event: a count per day and field, no sample. */
+export function eventCommands(event: MaintenanceEvent, engine: string, day: string): Command[] {
   return [
-    ['HINCRBY', `errors:${day}`, `${report.area}|${report.name}|${report.frame}|${engine}`, 1],
-    ['EXPIRE', `errors:${day}`, TTL_SECONDS],
+    ['HINCRBY', `events:${day}`, maintenanceEventField(event, engine), 1],
+    ['EXPIRE', `events:${day}`, TTL_SECONDS],
+  ];
+}
+
+/** First step for a usage event: its own day total, apart from errors. */
+export function usageCapCommands(day: string): Command[] {
+  return [['INCR', usageTotalKey(day)]];
+}
+
+/** Second step for a usage event: a count per day and tool event, no sample. */
+export function usageCommands(event: UsageEvent, day: string): Command[] {
+  return [
+    ['HINCRBY', `usage:${day}`, usageEventField(event), 1],
+    ['EXPIRE', `usage:${day}`, TTL_SECONDS],
   ];
 }
 

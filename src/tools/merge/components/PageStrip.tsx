@@ -165,6 +165,7 @@ export default function PageStrip({
     const held = sources.current.get(fileId);
     if (held) {
       held.controller.abort();
+      // expected: best-effort cleanup of a released pdf.js source
       Promise.resolve(held.source).then((s) => s?.destroy()).catch(() => {});
       sources.current.delete(fileId);
     }
@@ -213,7 +214,7 @@ export default function PageStrip({
           bump((n) => n + 1);
           reportRenderedCount();
         } catch (err) {
-          reportError('pdf_render', err);
+          reportError('pdf_render', err, 'render_thumbnail');
           // A page that will not render stays a placeholder; the merge itself
           // reports a broken file through inspectPdf, not through here.
         }
@@ -378,7 +379,7 @@ export default function PageStrip({
   const openPreview = useCallback((index: number) => {
     setPreviewIndex(index);
     if (!PreviewDialog) {
-      import('./PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err); });
+      import('./PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
     }
   }, [PreviewDialog]);
 

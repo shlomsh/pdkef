@@ -22,6 +22,7 @@ import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize } from '../../lib/format.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -62,6 +63,7 @@ function detectPlaintextOnlyContentEditable(): boolean {
     probe.contentEditable = 'plaintext-only';
     return probe.contentEditable === 'plaintext-only';
   } catch {
+    // expected: feature detect, no plaintext-only support means false
     return false;
   }
 }
@@ -175,6 +177,7 @@ function readRememberedOptions(): { addPageNumbers: boolean } {
     const parsed = JSON.parse(raw);
     return { addPageNumbers: parsed?.addPageNumbers === true };
   } catch {
+    // expected: a stored preference that cannot be read falls back to the default
     return { addPageNumbers: false };
   }
 }
@@ -183,7 +186,7 @@ function rememberOptions(options: { addPageNumbers: boolean }) {
   try {
     localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
   } catch {
-    // Remembering is a convenience; a blocked localStorage must not stop a merge.
+    // expected: blocked localStorage, remembering is a convenience
   }
 }
 
@@ -220,6 +223,7 @@ function firstResultSeen(): boolean {
   try {
     return localStorage.getItem(FIRST_RESULT_KEY) === '1';
   } catch {
+    // expected: blocked localStorage, treated as already seen
     return true;
   }
 }
@@ -228,7 +232,7 @@ function markFirstResultSeen() {
   try {
     localStorage.setItem(FIRST_RESULT_KEY, '1');
   } catch {
-    // A blocked localStorage just means the line shows again next time.
+    // expected: blocked localStorage, the line just shows again next time
   }
 }
 
@@ -353,6 +357,8 @@ export default function PdfMergeTool({
      what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
   const [tap, setTap] = useState<'idle' | 'merging' | 'done'>('idle');
   const [pendingDownload, setPendingDownload] = useState(false);
+  // Only the person's Download tap, not usePreparedMerge's speculative build.
+  useHoldUpdate(tap === 'merging');
   const [downloadedOnce, setDownloadedOnce] = useState(false);
   const { shareReady, prepare, clearPrepared, sharePrepared, download } = usePdfShare();
   const listRef = useRef<HTMLUListElement | null>(null);
@@ -494,7 +500,13 @@ export default function PdfMergeTool({
         applyFileReorder(evt.oldIndex, evt.newIndex);
       },
     });
-    return () => sortableRef.current?.destroy();
+    return () => {
+      // Clear the ref: Sortable's destroy() nulls its element, so a second
+      // destroy() on the same instance throws (a production report from
+      // Firefox caught it).
+      sortableRef.current?.destroy();
+      sortableRef.current = null;
+    };
   }, [entries.length > 0, applyFileReorder]);
 
   // The phone chip row: the same whole-file reorder, but a short press-and-hold
@@ -517,7 +529,10 @@ export default function PdfMergeTool({
         applyFileReorder(evt.oldIndex, evt.newIndex);
       },
     });
-    return () => chipSortableRef.current?.destroy();
+    return () => {
+      chipSortableRef.current?.destroy();
+      chipSortableRef.current = null;
+    };
   }, [entries.length > 0, applyFileReorder]);
 
   // ToolPageLayout's pre-paint script sets `html[data-draft-hint]` when a
@@ -554,7 +569,7 @@ export default function PdfMergeTool({
     let cancelled = false;
     import('./components/MergeDraftPersistence.tsx')
       .then((module) => { if (!cancelled) setDraftPersistence(() => module.default); })
-      .catch((err) => { reportError('chunk_load', err); if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
+      .catch((err) => { reportError('chunk_load', err, 'import_draft_persistence'); if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
     return () => { cancelled = true; };
   }, []);
 
@@ -583,7 +598,7 @@ export default function PdfMergeTool({
     let cancelled = false;
     import('./components/PageStrip.tsx')
       .then((module) => { if (!cancelled) setPageStrip(() => module.default); })
-      .catch((err) => { reportError('chunk_load', err); });
+      .catch((err) => { reportError('chunk_load', err, 'import_page_strip'); });
     return () => { cancelled = true; };
   }, [entries.length > 0, PageStrip]);
 
@@ -619,6 +634,7 @@ export default function PdfMergeTool({
           return { entries: nextEntries, plan: insertPages(current.plan, planForFile(entry.id, pageCount), at) };
         });
       })
+      // expected: an unreadable user file maps to the dedicated unreadable-file card (entry.error)
       .catch(() => {
         setModel((current) => ({
           ...current,
@@ -634,6 +650,7 @@ export default function PdfMergeTool({
           entries: current.entries.map((e) => (e.id === entry.id ? { ...e, thumbnail } : e)),
         }));
       })
+      // expected: the thumbnail is decoration, encrypted or malformed user PDFs fail pdf.js by design
       .catch(() => {});
     return Promise.all([inspection, thumbnail]).then(() => undefined);
   }, []);
@@ -1063,6 +1080,7 @@ export default function PdfMergeTool({
   const requestInstall = useCallback(() => {
     const prompt = installPrompt;
     setInstallPrompt(null);
+    // expected: the install prompt is an optional browser API and the person may dismiss it
     prompt?.prompt().catch(() => {});
   }, [installPrompt]);
 
@@ -1094,6 +1112,7 @@ export default function PdfMergeTool({
       if (!saved) throw new Error('handoff');
       navigate(hrefs[tool]);
     } catch {
+      // expected: saveHandoff reports its own failure, this shows the handoffFailed state
       setHandoffFailed(true);
       setHandoffBusy(false);
     }

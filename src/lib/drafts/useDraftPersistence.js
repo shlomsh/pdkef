@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
+import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
+import { useHoldUpdate } from '../useHoldUpdate.ts';
 import { reportError } from '../errorReport.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
@@ -23,6 +25,7 @@ function isInstalledStandalone() {
     // exposes this legacy boolean on `navigator` instead.
     return typeof navigator !== 'undefined' && navigator.standalone === true;
   } catch {
+    // expected: feature detect, no standalone mode available
     return false;
   }
 }
@@ -170,7 +173,7 @@ export function useDraftPersistence({
     const write = Promise.resolve()
       .then(() => saveDraft(tool, record))
       .then((saved) => saved === true)
-      .catch((e) => { reportError('drafts', e); return false; })
+      .catch((e) => { reportError('drafts', e, 'autosave_draft'); return false; })
       .then((saved) => {
         // A prior file or edit may have completed after this write started.
         // It remains stored as a best-effort older revision, but must not make
@@ -297,7 +300,7 @@ export function useDraftPersistence({
         attachDraftPreview(tool, dataUrl);
       })
       .catch(() => {
-        // A preview is decoration. An encrypted or malformed PDF that pdf.js
+        // expected: A preview is decoration. An encrypted or malformed PDF that pdf.js
         // refuses must not take the draft down with it.
       });
     return () => {
@@ -345,7 +348,14 @@ export function useDraftPersistence({
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', flush);
+    // An update reload (src/lib/appUpdate/updateHolds.ts, MEM-10) must not
+    // outrun the write: flush first, then await every in-flight save.
+    const unregister = registerBeforeUpdateReload(async () => {
+      flush();
+      await Promise.allSettled([...writePromisesRef.current.values()]);
+    });
     return () => {
+      unregister();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flush);
     };
@@ -386,6 +396,12 @@ export function useDraftPersistence({
     : saveState.revision === currentRevision
     ? (saveState.state === 'saved' && notPersisted ? 'unpersisted' : saveState.state)
     : (canPersist ? 'pending' : 'idle');
+
+  // Work whose save failed (no IndexedDB, quota) lives only in memory, so
+  // like a tool without drafts it holds an update back (MEM-10).
+  // 'open' holds ordinary updates but not a force: a failed save cannot
+  // resolve within a force's wait.
+  useHoldUpdate(draftSaveState === 'error', 'open');
 
   return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }

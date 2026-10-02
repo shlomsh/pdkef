@@ -21,7 +21,7 @@ import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
-import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
+import useCoarsePointer from './useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
 import { viewportContent, zoomsOnFocus } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';
@@ -44,6 +44,7 @@ import {
 } from '../../editor/model/actionHistory.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { getSignExportReadiness } from './signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import {
@@ -54,7 +55,7 @@ import {
   signFormDetectionFailed,
   signFormDetectionNotStarted,
   signFormDetectionUnavailable,
-  vercelMaintenanceTransport,
+  beaconMaintenanceTransport,
 } from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
@@ -125,6 +126,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   } = useSignTool();
   const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
+  useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
   // Export errors are recoverable without unmounting the editor. A failed
   // document load still uses status='error' with the workspace's load copy.
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
@@ -338,6 +340,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
+        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
         promise.catch(() => setIsPseudoFullscreen(true));
       }
     } else {
@@ -552,7 +555,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // starts over for a different file.
   useEffect(() => {
     if (formRegions.detection === 'pending') return;
-    const transport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    const transport = beaconMaintenanceTransport;
     const detectionEvent = () => {
       // Four outcomes, four signals. A run that never started, a detector
       // that never loaded (a stale cached shell after a deploy) and a
@@ -617,6 +620,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         const selected: File = await launchParams.files[0].getFile();
         await loadFreshFile(selected);
       } catch (error) {
+        // expected: loadFreshFile has its own failure UI, the launch-queue file is external
         console.error(error);
       }
     });
@@ -864,9 +868,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       reportToolLifecycleEvent('tool_operation_started', 'sign');
     }
     const exportStartedAt = performance.now();
-    // Development/test exports never contact the production analytics adapter.
-    // In production it remains optional: no injected Vercel queue means no send.
-    const telemetryTransport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    // beaconMaintenanceTransport sends only in production builds (the gate is in sendBeacon).
+    const telemetryTransport = beaconMaintenanceTransport;
 
     try {
       const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
@@ -889,7 +892,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         console.error(err);
         return;
       }
-      reportError('sign_export', err);
+      reportError('sign_export', err, 'export');
       reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);

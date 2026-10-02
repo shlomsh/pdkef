@@ -10,6 +10,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { useDraftPersistence } from './useDraftPersistence.js';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
+import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.ts';
 
 // A storage write can fail (quota, private browsing, a closed IndexedDB
 // connection) without throwing - draftStore.saveDraft resolves `false` rather
@@ -152,6 +153,35 @@ describe('useDraftPersistence - save outcome reporting', () => {
     expect(apiRef.current.result.draftSaveState).toBe('error');
   });
 
+  it('holds an update only while a save has failed (MEM-10)', async () => {
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    expect(isUpdateHeld()).toBe(false);
+    renderFirstEdit(apiRef, props, container);
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    expect(isUpdateHeld()).toBe(false);
+
+    saveDraft.mockResolvedValue(false);
+    act(() => {
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit' }] }} />, container);
+    });
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
+    expect(isUpdateHeld()).toBe(true);
+
+    saveDraft.mockResolvedValue(true);
+    act(() => {
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'third-edit' }] }} />, container);
+    });
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    expect(isUpdateHeld()).toBe(false);
+  });
+
   it('never persists or claims "saved" outside editing status', async () => {
     saveDraft.mockResolvedValue(true);
     act(() => {
@@ -253,6 +283,40 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
     expect(saveDraft).toHaveBeenCalledTimes(1);
     expect(apiRef.current.result.draftSaveState).toBe('saved');
+  });
+
+  // MEM-10: an update reload must verify the pending save is written first.
+  it('flushBeforeUpdateReload writes the pending edit and waits for the save to settle', async () => {
+    let resolveSave;
+    saveDraft.mockImplementation(() => new Promise((resolve) => { resolveSave = resolve; }));
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    expect(saveDraft).not.toHaveBeenCalled();
+
+    let done = false;
+    const reload = flushBeforeUpdateReload().then(() => { done = true; });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(saveDraft.mock.calls[0][1].elements).toEqual([{ id: 'first-edit' }]);
+    expect(done).toBe(false);
+
+    await act(async () => { resolveSave(true); await reload; });
+    expect(done).toBe(true);
+  });
+
+  it('flushBeforeUpdateReload does nothing after unmount', async () => {
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    act(() => render(null, container));
+    await flushBeforeUpdateReload();
+    expect(saveDraft).not.toHaveBeenCalled();
   });
 });
 

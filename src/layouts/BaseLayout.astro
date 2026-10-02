@@ -2,6 +2,7 @@
 import { getImage } from 'astro:assets';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import OrganizationSchema from '../components/OrganizationSchema.astro';
+import AppUpdateLine from '../components/AppUpdateLine.astro';
 import ogImageSrc from '../assets/og-image.jpg';
 
 interface Props {
@@ -85,6 +86,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
   </head>
   <body>
     <slot />
+    <AppUpdateLine lang={lang} />
     {import.meta.env.PROD && <SpeedInsights />}
     <script>
       import { inject } from '@vercel/analytics';
@@ -111,9 +113,28 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       // cache-first alongside the dev server's own — the page ends up with
       // modules from two Vite optimize passes and hydration dies on an undefined
       // internal. Dev actively uninstalls it instead of leaving it to rot.
+      import { startAppUpdates } from '../site-lib/appUpdate.ts';
       if ('serviceWorker' in navigator) {
         if (import.meta.env.PROD) {
-          window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+          // MEM-10: registration (after load), the answer to the worker's
+          // busy query (from the start), and the update line, which shows only
+          // when another tab holds an update back.
+          startAppUpdates({
+            loaded: new Promise((resolve) => {
+              if (document.readyState === 'complete') resolve();
+              else window.addEventListener('load', () => resolve(), { once: true });
+            }),
+            serviceWorker: navigator.serviceWorker,
+            line: document.querySelector('[data-app-update]'),
+            createChannel: (name) => ('BroadcastChannel' in window ? new BroadcastChannel(name) : null),
+            reload: () => location.reload(),
+            document,
+            window,
+            setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+            clearTimeout: (id) => window.clearTimeout(id as number),
+            setInterval: (fn, ms) => window.setInterval(fn, ms),
+            now: () => Date.now(),
+          });
         } else {
           navigator.serviceWorker.getRegistrations()
             .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))

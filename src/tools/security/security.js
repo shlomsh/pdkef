@@ -76,7 +76,7 @@ export async function protectPdf(file, password) {
     const protectedBytes = await pdfDoc.save();
     return new Blob([protectedBytes], { type: 'application/pdf' });
   } catch (err) {
-    reportError('pdf_tool_run', err);
+    reportError('pdf_tool_run', err, 'protect');
     throw new SecurityError('Failed to protect the PDF.');
   }
 }

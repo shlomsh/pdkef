@@ -1,15 +1,15 @@
 ---
 id: "DEBT-26"
 title: "Rate-limit /api/report at the firewall, so a forged flood cannot spend the day's cap"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 4
 depends_on: ["DEBT-17"]
 ---
 
 # DEBT-26 · Rate-limit /api/report at the firewall, so a forged flood cannot spend the day's cap
+
+*Retired 2026-10-01: folded back into DEBT-27, which owns the outcome. Split off, it let DEBT-27 close with a gap in "track, reproduce, fix". The work and its evidence are recorded there.*
 
 *Filed 2026-10-01, from DEBT-17's review.* `/api/report` is anonymous by design, so a valid report is
 trivial to forge. The endpoint caps itself at 5,000 counted reports a day and stops calling the store

@@ -57,7 +57,7 @@ export default function usePageTexts(
         finished = true;
         if (current) setState({ status: 'ready', pages });
       } catch (error) {
-        reportError('redact', error);
+        reportError('redact', error, 'read_page_text');
         console.error('Find could not read the page text', error);
         if (current) setState({ status: 'failed', pages });
       }

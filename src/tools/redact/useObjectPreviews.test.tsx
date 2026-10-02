@@ -83,7 +83,7 @@ describe('useObjectPreviews', () => {
     readGlyphsMock.mockRejectedValue(boom);
     mount(pdfDocument, [run('a', 0)]);
     await settle();
-    expect(report).toHaveBeenCalledWith('redact', boom);
+    expect(report).toHaveBeenCalledWith('redact', boom, 'read_object_previews');
     vi.restoreAllMocks();
   });
 });

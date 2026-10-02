@@ -91,7 +91,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
         setStale(false);
       },
       { pageIndices: [target.pageIndex], width, type: 'image/jpeg', quality: 0.85, signal: controller.signal },
-    ).catch((err) => { reportError('pdf_render', err); });
+    ).catch((err) => { reportError('pdf_render', err, 'render_preview_page'); });
     return () => controller.abort();
   }, [target?.file, target?.pageIndex]);
 

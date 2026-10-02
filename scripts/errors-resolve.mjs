@@ -5,7 +5,9 @@
 // rebuild each commit with hidden sourcemaps, stop at the one that emits the
 // chunk, and decode the position. Decoder: @jridgewell/trace-mapping.
 //
-//   npm run errors:resolve -- PdfSignTool.Ab12Cd.js:12:345 [--max 40]
+//   npm run errors:resolve -- PdfSignTool.Ab12Cd.js:12:345 [more frames, top first] [--max 40]
+// A build is the one only if it emitted EVERY frame's chunk. A shared vendor chunk (Sortable, Preact)
+// keeps its hash across builds, so matching on one frame names a newer build than the report's own.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -38,6 +40,13 @@ export function wrapperConfigText() {
   ].join('\n');
 }
 
+// Which of a report's chunks a build emitted. `all` is the only thing that makes it the report's build.
+export function matchChunks(frames, emitted) {
+  const have = new Set(emitted);
+  const missing = [...new Set(frames.map((f) => f.chunk))].filter((chunk) => !have.has(chunk));
+  return { all: missing.length === 0, missing };
+}
+
 // Browser columns are 1-based; trace-mapping's are 0-based. Lines are 1-based in both.
 export function mapFrame(mapJson, line, col) {
   const map = new TraceMap(typeof mapJson === 'string' ? JSON.parse(mapJson) : mapJson);
@@ -46,27 +55,53 @@ export function mapFrame(mapJson, line, col) {
   return { source: pos.source, line: pos.line, column: pos.column + 1, name: pos.name };
 }
 
+// A minified dependency's "line" is the whole file. Show ~width chars centred on the 1-based column.
+export function clipLine(text, col, width = 160) {
+  if (text.length <= width) return text;
+  const start = Math.max(0, Math.min(col - 1 - Math.floor(width / 2), text.length - width));
+  const end = Math.min(text.length, start + width);
+  return `${start > 0 ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}`;
+}
+
 export function parseArgs(argv) {
   let max = 40;
-  let frame = null;
+  // Deployed builds come from main; --from walks another ref, like a local
+  // branch carrying a build that was never deployed.
+  let from = 'origin/main';
+  const frames = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--max') max = Number(argv[++i]);
-    else frame = frame ?? argv[i];
+    else if (argv[i] === '--from') from = argv[++i] ?? from;
+    else frames.push(argv[i]);
   }
-  return { frame, max: Number.isInteger(max) && max > 0 ? max : 40 };
+  return { frames, max: Number.isInteger(max) && max > 0 ? max : 40, from };
+}
+
+// Parses every raw frame; one bad frame fails the lot with a one-line message.
+export function parseFrames(raws) {
+  if (!raws.length) return { error: 'no frames given' };
+  const frames = [];
+  for (let i = 0; i < raws.length; i++) {
+    const f = parseFrame(raws[i]);
+    if (!f) return { error: `frame #${i + 1} is not chunk.js:line:col: ${raws[i]}` };
+    frames.push(f);
+  }
+  return { frames };
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
 function main() {
-  const { frame: raw, max } = parseArgs(process.argv.slice(2));
-  const frame = parseFrame(raw);
-  if (!frame) {
-    console.error('usage: npm run errors:resolve -- <chunk.js:line:col> [--max 40]');
+  const { frames: raws, max, from } = parseArgs(process.argv.slice(2));
+  const parsed = parseFrames(raws);
+  if (parsed.error) {
+    console.error(`errors:resolve: ${parsed.error} (usage: npm run errors:resolve -- <chunk.js:line:col>... [--max 40] [--from origin/main])`);
     process.exit(2);
   }
-  const shas = git(root, 'rev-list', '--first-parent', '-n', String(max), 'origin/main').split('\n').filter(Boolean);
+  const frames = parsed.frames;
+  let nearest = null; // the first build that emitted any chunk, for the failure message
+  const shas = git(root, 'rev-list', '--first-parent', '-n', String(max), from).split('\n').filter(Boolean);
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'errors-resolve-')), 'wt');
   let added = false;
   const cleanup = () => {
@@ -92,22 +127,28 @@ function main() {
       writeFileSync(path.join(tmp, 'astro.sourcemap.config.mjs'), wrapperConfigText());
       const b = spawnSync('node', ['node_modules/astro/bin/astro.mjs', 'build', '--config', 'astro.sourcemap.config.mjs'], { cwd: tmp, encoding: 'utf8' });
       const astroDir = path.join(tmp, 'dist', '_astro');
-      const hit = b.status === 0 && existsSync(astroDir) && readdirSync(astroDir).includes(frame.chunk);
-      console.error(`[${i + 1}/${shas.length}] ${sha.slice(0, 8)} ${hit ? 'HIT' : b.status === 0 ? 'no match' : 'build failed'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
+      const built = b.status === 0 && existsSync(astroDir);
+      const match = built ? matchChunks(frames, readdirSync(astroDir)) : null;
+      const hit = match?.all === true;
+      const partial = match && !hit && match.missing.length < new Set(frames.map((f) => f.chunk)).size;
+      if (partial && !nearest) nearest = { sha, missing: match.missing };
+      console.error(`[${i + 1}/${shas.length}] ${sha.slice(0, 8)} ${hit ? 'HIT' : partial ? `partial (missing ${match.missing.length})` : b.status === 0 ? 'no match' : 'build failed'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
       if (!hit) continue;
-      const mapFile = path.join(astroDir, `${frame.chunk}.map`);
-      const mapJson = JSON.parse(readFileSync(mapFile, 'utf8'));
-      const pos = mapFrame(mapJson, frame.line, frame.col);
       console.log(`${sha.slice(0, 8)} ${git(root, 'log', '-1', '--format=%s', sha)}`);
-      if (!pos) { console.log('no source mapping for that position'); found = true; break; }
-      console.log(`${pos.source}:${pos.line}:${pos.column}${pos.name ? ` (${pos.name})` : ''}`);
-      const file = path.resolve(path.dirname(mapFile), pos.source);
-      if (existsSync(file)) {
-        const lines = readFileSync(file, 'utf8').split('\n');
-        for (let n = Math.max(1, pos.line - 1); n <= Math.min(lines.length, pos.line + 1); n++) {
-          console.log(`${n === pos.line ? '>' : ' '} ${String(n).padStart(5)}  ${lines[n - 1]}`);
+      frames.forEach((fr, k) => {
+        const mapFile = path.join(astroDir, `${fr.chunk}.map`);
+        if (!existsSync(mapFile)) { console.log(`#${k + 1} ${fr.chunk}:${fr.line}:${fr.col}\n  (chunk not in this build)`); return; }
+        const pos = mapFrame(JSON.parse(readFileSync(mapFile, 'utf8')), fr.line, fr.col);
+        if (!pos) { console.log(`#${k + 1} ${fr.chunk}:${fr.line}:${fr.col}\n  no source mapping for that position`); return; }
+        console.log(`#${k + 1} ${pos.source}:${pos.line}:${pos.column}${pos.name ? ` (${pos.name})` : ''}`);
+        const file = path.resolve(path.dirname(mapFile), pos.source);
+        if (existsSync(file)) {
+          const lines = readFileSync(file, 'utf8').split('\n');
+          for (let n = Math.max(1, pos.line - 1); n <= Math.min(lines.length, pos.line + 1); n++) {
+            console.log(`${n === pos.line ? '>' : ' '} ${String(n).padStart(5)}  ${clipLine(lines[n - 1], pos.column)}`);
+          }
         }
-      }
+      });
       found = true;
       break;
     }
@@ -115,7 +156,8 @@ function main() {
     cleanup();
   }
   if (!found) {
-    console.error(`no build in the last ${shas.length} first-parent commits of origin/main emitted ${frame.chunk}`);
+    console.error(`no build in the last ${shas.length} first-parent commits of ${from} emitted every chunk of this report`);
+    if (nearest) console.error(`nearest: ${nearest.sha.slice(0, 8)} had some of them but not ${nearest.missing.join(', ')}. The report likely came from a build older than the window; try --max higher.`);
     process.exit(1);
   }
 }

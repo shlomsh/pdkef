@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fileCannotReachDist, reachesDist, planSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
 import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
@@ -112,7 +112,7 @@ describe('planSteps', () => {
   it('no resolvable base (empty file list) fails open: build and every dist guard run', () => {
     const files = [];
     const steps = planSteps({ ...wide([], 'no usable base'), docsOnly: classify(files).docs_only, reachesDist: reachesDist(files) });
-    expect(steps).toEqual(expect.arrayContaining(['unit', 'typecheck', 'build', ...DIST_GUARD_STEPS, 'e2e:product']));
+    expect(steps).toEqual(expect.arrayContaining(['unit', 'typecheck', 'build', ...DIST_GUARD_STEPS]));
   });
 
   it('a scripts-only diff (tooling, no build script touched): unit + typecheck, no build, no e2e', () => {
@@ -135,9 +135,6 @@ describe('planSteps', () => {
       'typecheck',
       'build',
       ...DIST_GUARD_STEPS,
-      'e2e:product',
-      'e2e:perf',
-      'e2e:export-guards',
     ]);
   });
 
@@ -164,9 +161,6 @@ describe('planSteps', () => {
       'typecheck',
       'build',
       ...DIST_GUARD_STEPS,
-      'e2e:product',
-      'e2e:perf',
-      'e2e:export-guards',
     ]);
   });
 
@@ -182,10 +176,6 @@ describe('planSteps', () => {
       'typecheck',
       'build',
       ...DIST_GUARD_STEPS,
-      'e2e:product',
-      'e2e:perf',
-      'e2e:fonts',
-      'e2e:export-guards',
     ]);
   });
 
@@ -196,8 +186,8 @@ describe('planSteps', () => {
     const scope = narrowTestOnlyChange({ ...nx, docsOnly: false, reachesDist: false }, files);
     expect(scope.e2e_paths).toBe('e2e/home/handoff.spec.js');
     const steps = planSteps(scope);
-    expect(steps).toEqual([...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build', 'e2e:product', 'e2e:perf']);
-    expect(steps).not.toEqual(expect.arrayContaining(['test:csp', 'e2e:fonts', 'e2e:export-guards']));
+    expect(steps).toEqual([...ALWAYS_GUARD_STEPS, 'unit', 'typecheck']);
+    expect(planSteps(scope, { mode: 'e2e' })).toEqual(['build', 'e2e:product']);
   });
 
   it('an unknown root file: unowned, everything runs, and it reaches dist', () => {
@@ -212,10 +202,6 @@ describe('planSteps', () => {
       'typecheck',
       'build',
       ...DIST_GUARD_STEPS,
-      'e2e:product',
-      'e2e:perf',
-      'e2e:fonts',
-      'e2e:export-guards',
     ]);
   });
 });
@@ -266,5 +252,29 @@ describe('portOwnerVerdict (ARCH-31)', () => {
     expect(portOwnerVerdict({ ownerCwd: root, root })).toBe('own');
     expect(portOwnerVerdict({ ownerCwd: '/w/sng15-land', root })).toBe('foreign');
     expect(portOwnerVerdict({ ownerCwd: undefined, root })).toBe('unknown');
+  });
+});
+
+describe('check:e2e mode and stages', () => {
+  const wideScope = { docsOnly: false, everything: true, e2e_paths: '', fonts: true, export_guards: true, reachesDist: true };
+
+  it('e2e mode is the build plus the selected Playwright projects, no guards, perf only on request', () => {
+    expect(planSteps(wideScope, { mode: 'e2e' })).toEqual(['build', 'e2e:product', 'e2e:fonts', 'e2e:export-guards']);
+    expect(planSteps(wideScope, { mode: 'e2e', perf: true })).toEqual(['build', 'e2e:product', 'e2e:perf', 'e2e:fonts', 'e2e:export-guards']);
+  });
+
+  it('e2e mode runs nothing when no Playwright project is selected, or for a docs-only diff', () => {
+    expect(planSteps({ ...wideScope, everything: false, fonts: false, export_guards: false }, { mode: 'e2e' })).toEqual([]);
+    expect(planSteps({ ...wideScope, docsOnly: true }, { mode: 'e2e' })).toEqual([]);
+  });
+
+  it('the gate never includes Playwright', () => {
+    expect(planSteps(wideScope).some((id) => id.startsWith('e2e:'))).toBe(false);
+  });
+
+  it('stages: independent steps together, dist guards after the build, each Playwright step alone', () => {
+    const stages = stageSteps(planSteps(wideScope));
+    expect(stages).toEqual([[...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build'], DIST_GUARD_STEPS]);
+    expect(stageSteps(planSteps(wideScope, { mode: 'e2e' }))).toEqual([['build'], ['e2e:product'], ['e2e:fonts'], ['e2e:export-guards']]);
   });
 });
