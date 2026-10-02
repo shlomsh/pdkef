@@ -1,22 +1,21 @@
 ---
 id: "ENC-08"
-title: "Split stops writing blank pages from a protected PDF, and shows when a file did not load"
+title: "Compress, Compress Image and PDF to Image meet a protected PDF at the door"
 status: "open"
-priority: "P1"
+priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 1
-depends_on: ["ENC-01", "ENC-02"]
+horizon: "later"
+order: 2
+depends_on: ["ENC-06"]
 ---
 
-# ENC-08 · Split stops writing blank pages from a protected PDF, and shows when a file did not load
+# ENC-08 · Compress, Compress Image and PDF to Image meet a protected PDF at the door
 
-*Found 2026-10-02 while planning the protected-PDF work; run against real fixtures, plan section 4. Wave 2, first in it: it stops wrong files being written.* On an owner-only file, `splitPdf` (`split.js:56`) loads with `ignoreEncryption: true`, copies the page streams without decrypting them and saves a valid, unencrypted PDF whose pages are blank (reloaded in pdf.js: no text, 0 dark pixels). The person gets a successful download. This is the silent one, which is why it leads.
+*Plan section 4.* Both parse the file only on the main button (`compress.js:59`, `:200`; `toImage.js:95`), so a needs-password file is accepted and rejected later with generic copy. An owner-only file works in both (pdf.js only, output intact, run), so only `needs-password` is gated.
 
 ## Brief
-- Classify in `loadDocumentAndThumbnails` (`PdfSplitTool.tsx:229-236`), which already runs pdf.js on every file, and show `NeedsUnlock` for both kinds. Split already has a receiver (`useHandoffIntake`).
-- Fix the status overwrite found in the same read: after a pdf.js load failure the prepare effect (`:164-169`) sets 'ready' on an empty page list, so a failure shows an empty grid and no message (read, high confidence, not run). A damaged file gets its alert back.
-- Defense in depth: `splitPdf` throws when `doc.isEncrypted`, as `mergePdfs` already does (`merge.js:214`).
+- Probe at intake in `handleFilesAdded`; show the shared state. Compress Image is the same component (`/compress-image/`). PDF to Image has no hand-off receiver, so add one.
+- Compress: a file already under the target size is returned untouched at `compress.js:192-194`, before any parse, so a small needs-password file "compresses" to itself. Probe before that return.
 
 ## Acceptance
-- Unit: `splitPdf` cannot return a file for an encrypted input. Island tests: both kinds reach the state; a damaged file reaches the alert.
+- Island tests per route: needs-password shows the state before the button exists; owner-only proceeds and the output is intact; a small needs-password file never comes back labelled compressed.

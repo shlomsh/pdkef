@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 8 up next, 20 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 50 live: 6 up next, 10 then, 19 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -12,13 +12,7 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ENC-05 | P1 | [ENC-05](backlog/tasks/ENC-05.md) · Redact meets a protected PDF with one quiet state, not a dead Save |  |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| ENC-06 | P2 | [ENC-06](backlog/tasks/ENC-06.md) · Redact's export catch shows the protected state if one still gets through |  |
+| ENC-02 | P1 | [ENC-02](backlog/tasks/ENC-02.md) · Redact meets a protected PDF with one quiet state, not an exception |  |
 
 ### Waiting
 
@@ -67,27 +61,17 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ENC-01 | P1 | [ENC-01](backlog/tasks/ENC-01.md) · One classifier says whether a PDF needs a password, is only protected, or is open |  |
-| ENC-02 | P1 | [ENC-02](backlog/tasks/ENC-02.md) · One quiet state with one action, shared by every tool that cannot read a protected PDF |  |
-| ENC-03 | P1 | [ENC-03](backlog/tasks/ENC-03.md) · Unlock opens an owner-only file with no password and takes a file from another tool |  |
-| ENC-04 | P1 | [ENC-04](backlog/tasks/ENC-04.md) · Unlock sends the unlocked file back to the tool that asked |  |
-| ENC-07 | P2 | [ENC-07](backlog/tasks/ENC-07.md) · Sign meets a protected PDF the same way Redact does |  |
-| ENC-16 | P1 | [ENC-16](backlog/tasks/ENC-16.md) · The round trip is tested across pages against a real protected file |  |
+| ENC-03 | P1 | [ENC-03](backlog/tasks/ENC-03.md) · Unlock takes a file from another tool and opens an owner-only file with no password |  |
+| ENC-04 | P1 | [ENC-04](backlog/tasks/ENC-04.md) · Unlock's done state offers Redact it and Sign it |  |
+| ENC-05 | P1 | [ENC-05](backlog/tasks/ENC-05.md) · The round trip is tested across pages against a real protected file |  |
 | DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ENC-08 | P1 | [ENC-08](backlog/tasks/ENC-08.md) · Split stops writing blank pages from a protected PDF, and shows when a file did not load |  |
+| ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
-| ENC-09 | P1 | [ENC-09](backlog/tasks/ENC-09.md) · Edit Pages stops writing blank pages from a protected PDF and can take a file back |  |
-| ENC-10 | P2 | [ENC-10](backlog/tasks/ENC-10.md) · Compress and Compress Image meet a protected PDF at the door, not at the button |  |
-| ENC-11 | P2 | [ENC-11](backlog/tasks/ENC-11.md) · PDF to Image meets a protected PDF at the door and can take a file back |  |
-| ENC-12 | P2 | [ENC-12](backlog/tasks/ENC-12.md) · Merge tells a protected file from an unreadable one |  |
-| ENC-14 | P2 | [ENC-14](backlog/tasks/ENC-14.md) · The daily read counts protected files as a funnel, not as failures |  |
-| ENC-13 | P2 | [ENC-13](backlog/tasks/ENC-13.md) · Merge puts the unlocked file back in its slot |  |
-| ENC-17 | P2 | [ENC-17](backlog/tasks/ENC-17.md) · Every tool's intake is tested against a real protected file in one table |  |
-| ENC-15 | P3 | [ENC-15](backlog/tasks/ENC-15.md) · The digest's definitions and the scheduled-task prompt say what the new columns mean |  |
 | DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | Needs Shlomi: The privacy-page sentence for action names in error reports |
 
 ### Waiting
@@ -100,6 +84,11 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ENC-07 | P3 | [ENC-07](backlog/tasks/ENC-07.md) · Sign shows the protected state instead of its alert |  |
+| ENC-08 | P3 | [ENC-08](backlog/tasks/ENC-08.md) · Compress, Compress Image and PDF to Image meet a protected PDF at the door |  |
+| ENC-09 | P3 | [ENC-09](backlog/tasks/ENC-09.md) · Merge tells a protected file from an unreadable one, and takes the unlocked file back |  |
+| ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
+| ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
@@ -112,7 +101,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-| ENC-18 | P3 | [ENC-18](backlog/tasks/ENC-18.md) · The protected-PDF state has been read in Hebrew and mirrors in RTL | Needs Shlomi: A short read of the Hebrew gate strings |
 
 ### Waiting
 
@@ -153,6 +141,12 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ENC-12 | P3 | [ENC-12](backlog/tasks/ENC-12.md) · One hand-off row, not four copies |  |
 
 # Closed work
 

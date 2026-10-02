@@ -1,22 +1,20 @@
 ---
 id: "ENC-12"
-title: "Merge tells a protected file from an unreadable one"
+title: "One hand-off row, not four copies"
 status: "open"
-priority: "P2"
-epic: "robustness"
-horizon: "next"
-order: 5
-depends_on: ["ENC-01"]
+priority: "P3"
+epic: "polish"
+horizon: "later"
+order: 1
+depends_on: ["ENC-04"]
 ---
 
-# ENC-12 · Merge tells a protected file from an unreadable one
+# ENC-12 · One hand-off row, not four copies
 
-*Plan sections 2 and 4.* Merge is the only tool with a complete per-file card and an Unlock link today, and it has two gaps found by running it.
-- `inspectPdf` calls `doc.getCreationDate()` outside its try (`merge.js:75`). On a file whose Info dictionary is encrypted (pypdf's output, and in practice most encryptors') it throws, and `PdfMergeTool.tsx:638` turns that into "unreadable", so the person is told the file is damaged instead of protected (3 of 4 variants, both kinds).
-- It refuses an owner-only file as "encrypted" (`merge.js:80`, `:214`) though pdf.js and `{password: ''}` handle it.
+*CLAUDE.md: quiet duplication is a ticket.* Merge, Redact, Split and, after ENC-04, Unlock each carry their own "next tool" row (button, icon, `useNavigatingAway` busy flag, failure line), because tools may not import each other.
 
 ## Brief
-- Classify each entry with the ENC-01 classifier (the thumbnail load is already pdf.js); keep the per-file card; make the Unlock link a hand-off (`sendToUnlock` with `from=merge`).
+- One component in `src/shell` (four consumers), one set of strings, one place that disables the buttons for the navigation; each tool passes its list of verbs. Behaviour and look do not change.
 
 ## Acceptance
-- Unit: a protected file with an encrypted Info dictionary shows the protected card, not "unreadable"; an owner-only file shows the card with the owner-restricted wording.
+- The four rows render identically to today (the existing handoff e2e and `test:navigating-away` pass); the copies are deleted.
