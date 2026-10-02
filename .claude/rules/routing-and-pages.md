@@ -135,3 +135,7 @@ ContactPoint present on every page.
   `fetch-depth: 0`, because a shallow clone dates every file with its shallow boundary commit (the
   2026-09-14 incident: every guide showed that day). When a date is unknowable the page and the
   sitemap both omit it rather than fake one, and `test:seo` fails.
+- **A tool page is dated by its own entry in `tools.js`, not the file.** `gitToolEntryLastModifiedIso`
+  runs `git log -L` over that entry's line range, so editing one tool no longer re-stamps every tool
+  page's `<lastmod>` (seven commits on 2026-09-28 had left all of them on the same day, and a
+  `lastmod` that moves without the page changing is one Google learns to ignore).

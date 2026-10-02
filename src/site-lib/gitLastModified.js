@@ -39,6 +39,7 @@
 // build carrying an undated page - and on `checks`, whose unit run includes
 // this module's test against real history.
 import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 
 let isShallowCache = null;
 
@@ -60,28 +61,76 @@ function isShallowRepository() {
 
 const gitDateCache = new Map();
 
-export function gitFileLastModifiedIso(file) {
-  if (gitDateCache.has(file)) return gitDateCache.get(file);
-  let iso = null;
+// `git log` output whose first line is "<iso>\t<parents>" (--format=%cI%x09%P),
+// or null when git has nothing or the only commit it can find is a shallow
+// boundary (see the header comment). Shared by the whole-file and the
+// entry-range lookups so both refuse the boundary the same way.
+function firstCommitIso(command, cwd) {
   try {
-    const out = execSync(`git log -1 --format=%cI%x09%P -- "${file}"`, {
+    const out = execSync(command, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-    if (out) {
-      const [dateIso, parents = ''] = out.split('\t');
-      // A shallow boundary commit is grafted with no parents and stands in
-      // for the entire history git could not fetch, so it "touches" every
-      // file in the tree whether or not that file actually changed there -
-      // see the header comment. Only trust it when the clone isn't shallow.
-      const isShallowBoundary = isShallowRepository() && parents.trim() === '';
-      if (!isShallowBoundary) iso = new Date(dateIso).toISOString();
-    }
+      ...(cwd ? { cwd } : {}),
+    })
+      .split('\n')[0]
+      .trim();
+    if (!out) return null;
+    const [dateIso, parents = ''] = out.split('\t');
+    // A shallow boundary commit is grafted with no parents and stands in
+    // for the entire history git could not fetch, so it "touches" every
+    // file in the tree whether or not that file actually changed there -
+    // see the header comment. Only trust it when the clone isn't shallow.
+    const isShallowBoundary = isShallowRepository() && parents.trim() === '';
+    return isShallowBoundary ? null : new Date(dateIso).toISOString();
   } catch {
     // expected: build-time script, no git date falls back to null
+    return null;
+  }
+}
+
+export function gitFileLastModifiedIso(file) {
+  if (gitDateCache.has(file)) return gitDateCache.get(file);
+  const iso = firstCommitIso(`git log -1 --format=%cI%x09%P -- "${file}"`);
+  gitDateCache.set(file, iso);
+  return iso;
+}
+
+// Sitemap churn fix: `src/data/tools.js` holds every tool's copy, so dating a
+// tool by the file re-dated all the tool pages whenever any one of them was
+// edited (seven commits on 2026-09-28 stamped every tool page with the last
+// one's date). Google learns to ignore a <lastmod> that moves without the
+// page changing, and this is the only freshness signal the sitemap carries.
+// Each entry in the registry is a `  {` ... `  },` block with a `slug:` line,
+// so a tool is dated by the history of its own block's lines.
+export function toolEntryLineRange(source, slug) {
+  const lines = source.split('\n');
+  const slugLine = lines.findIndex((line) => line.trim() === `slug: '${slug}',`);
+  if (slugLine === -1) return null;
+  let start = slugLine;
+  while (start >= 0 && lines[start] !== '  {') start -= 1;
+  let end = slugLine;
+  while (end < lines.length && lines[end] !== '  },') end += 1;
+  if (start < 0 || end >= lines.length) return null;
+  return { start: start + 1, end: end + 1 };
+}
+
+export function gitToolEntryLastModifiedIso(slug, { file = 'src/data/tools.js', cwd } = {}) {
+  const key = `${cwd ?? ''}\0${file}#${slug}`;
+  if (gitDateCache.has(key)) return gitDateCache.get(key);
+  let iso = null;
+  try {
+    const range = toolEntryLineRange(fs.readFileSync(cwd ? `${cwd}/${file}` : file, 'utf8'), slug);
+    if (range) {
+      iso = firstCommitIso(
+        `git log -1 -L ${range.start},${range.end}:"${file}" --format=%cI%x09%P`,
+        cwd,
+      );
+    }
+  } catch {
+    // expected: build-time script, an unreadable file falls back to null
     iso = null;
   }
-  gitDateCache.set(file, iso);
+  gitDateCache.set(key, iso);
   return iso;
 }
 
