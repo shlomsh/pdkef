@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool from './PdfCompressTool.tsx';
 import * as compressLib from './compress.js';
+import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 import styles from './PdfCompressTool.module.css';
@@ -57,15 +58,24 @@ vi.mock('pdfjs-dist', () => {
 
 vi.mock('./compress.js', () => {
   return {
-    compressPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }))),
+    compressPdf: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 })),
     compressPdfToTarget: vi.fn(() =>
       Promise.resolve({
         blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }),
         metTarget: true,
+        rasterBytes: 500,
       }),
     ),
   };
 });
+
+// analyzePdf statically imports pdf-lib; the island loads it dynamically.
+vi.mock('./analyzePdf.js', () => ({
+  analyzePdf: vi.fn(() => ({ images: [{}], hasText: true })),
+}));
+vi.mock('../../lib/pdfLib.js', () => ({
+  getPdfLib: vi.fn(() => Promise.resolve({ PDFDocument: { load: vi.fn(() => Promise.resolve({})) } })),
+}));
 
 // The interface this tool is built against (see compressImage.js's own
 // tests): mocked here so this suite never depends on its implementation,
@@ -92,7 +102,8 @@ describe('PdfCompressTool UI flow', () => {
     // down that overrides these with a deferred implementation (to hold a run
     // in flight) would otherwise leave every later test's compress/preview
     // calls returning undefined instead of a Blob/data URL.
-    compressLib.compressPdf.mockImplementation(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' })));
+    compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 }));
+    analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true }));
     thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) =>
       Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
     );
@@ -366,7 +377,7 @@ describe('PdfCompressTool UI flow', () => {
 
     // A's compress now resolves - it must not land on B.
     await act(async () => {
-      resolveA(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }));
+      resolveA({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 });
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
 
@@ -765,7 +776,7 @@ describe('PdfCompressTool UI flow', () => {
     // `blob` when the file is already under the target size - the PDF-side
     // mirror of compressImageToTarget's rule exercised above.
     compressLib.compressPdfToTarget.mockImplementation((passthroughFile) =>
-      Promise.resolve({ blob: passthroughFile, metTarget: true }),
+      Promise.resolve({ blob: passthroughFile, metTarget: true, rasterBytes: null }),
     );
 
     container = document.createElement('div');
@@ -817,7 +828,7 @@ describe('PdfCompressTool UI flow', () => {
   it('says a PDF is already as small as it gets, instead of "Successfully Compressed", when a level hands the input back', async () => {
     // compressPdf returns the input File itself when a re-rendered copy would
     // be bigger (a small vector PDF) - the same reference check as passthrough.
-    compressLib.compressPdf.mockImplementation((inputFile) => Promise.resolve(inputFile));
+    compressLib.compressPdf.mockImplementation((inputFile) => Promise.resolve({ blob: inputFile, rasterBytes: 30390 }));
 
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -847,7 +858,10 @@ describe('PdfCompressTool UI flow', () => {
 
     const stats = container.querySelector(`.${styles['compression-stats']}`);
     expect(stats.textContent).toContain('Already as small as it gets');
-    expect(stats.textContent).toContain('would come out bigger');
+    expect(stats.textContent).toContain('Turned into images, this PDF came to 29.68 KB, more than the 10.74 KB it is now');
+    expect(stats.textContent).toContain('As images');
+    expect(stats.textContent).toContain('None, original kept');
+    expect(stats.textContent).not.toContain('No size reduction');
     expect(stats.textContent).not.toContain('Successfully Compressed');
     expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
 
@@ -858,6 +872,130 @@ describe('PdfCompressTool UI flow', () => {
     expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
 
     window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it('says the target cannot be reached this way, with the real numbers, when Target Size hands the input back', async () => {
+    compressLib.compressPdfToTarget.mockImplementation((inputFile) =>
+      Promise.resolve({ blob: inputFile, metTarget: false, rasterBytes: 30390 }),
+    );
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('small_form.pdf', 11_000);
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
+    const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
+    await act(async () => {
+      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:alreadysmalltarget');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const stats = container.querySelector(`.${styles['compression-stats']}`);
+    expect(stats.textContent).toContain('29.68 KB');
+    expect(stats.textContent).toContain('100 KB can');
+    expect(stats.textContent).toContain("can't be reached this way");
+    expect(stats.textContent).toContain('As images');
+    expect(stats.textContent).not.toContain('Closest achievable');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  describe('the nothing-to-shrink note', () => {
+    const NOTE = 'Nothing here to shrink.';
+
+    async function addPdf(name) {
+      container = container || document.createElement('div');
+      if (!container.isConnected) document.body.appendChild(container);
+      const file = makePdfFile(name, 5000);
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [file]);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      return file;
+    }
+
+    function mountTool() {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfCompressTool />, container);
+      });
+    }
+
+    it('says so before any click for a PDF with text and no images, and keeps the cards and button', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true }));
+      mountTool();
+      await addPdf('text_only.pdf');
+
+      expect(container.textContent).toContain(NOTE);
+      expect(container.textContent).toContain('This PDF is text and drawings, with no images in it');
+      expect(container.querySelector('[role="note"]')).not.toBeNull();
+      expect(container.querySelectorAll(`.${styles['compress-card']}`).length).toBeGreaterThan(0);
+      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).not.toBeNull();
+    });
+
+    it('uses the drawing wording when the PDF has no text either', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: false }));
+      mountTool();
+      await addPdf('drawing.pdf');
+
+      expect(container.textContent).toContain(NOTE);
+      expect(container.textContent).toContain('This PDF is drawings, with no images in it');
+      expect(container.textContent).not.toContain('text and drawings');
+    });
+
+    it('shows no note when the PDF has an image', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true }));
+      mountTool();
+      await addPdf('photo.pdf');
+
+      expect(container.textContent).not.toContain(NOTE);
+    });
+
+    it('drops an analysis that lands after a newer file was added', async () => {
+      let resolveA;
+      // B's analysis runs first (A's is held), so B takes the one-shot answer.
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true }));
+      const pdfLib = await import('../../lib/pdfLib.js');
+      pdfLib.getPdfLib.mockImplementationOnce(
+        () => new Promise((resolve) => { resolveA = resolve; }),
+      );
+      mountTool();
+      await addPdf('a.pdf');
+      // A's analysis is still pending; B arrives and is analysed (images present).
+      analyzePdfLib.analyzePdf.mockImplementationOnce(() => ({ images: [{}], hasText: true }));
+      await addPdf('b.pdf');
+      await act(async () => {
+        resolveA({ PDFDocument: { load: () => Promise.resolve({}) } });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      // B has an image, A's (image-free) result must not leak onto it.
+      expect(container.textContent).not.toContain(NOTE);
+    });
   });
 
   it('rejects a file that is not a PDF, JPG or PNG', async () => {
