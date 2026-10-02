@@ -33,6 +33,7 @@ const base = {
   hasDecode: false,
   components: 3,
   smaskHasMatte: false,
+  hasColorKeyMask: false,
 };
 
 const fakeEncoder = vi.fn(async () => jpeg1x1());
@@ -57,6 +58,8 @@ describe('planImageRewrite', () => {
     expect(planImageRewrite({ ...base, hasSMask: true })).toBe('reencode');
   });
   it('keeps each unsupported case', () => {
+    // After JPEG re-encoding the pixels no longer match the key, so the transparency would speckle.
+    expect(planImageRewrite({ ...base, hasColorKeyMask: true })).toBe('keep');
     expect(planImageRewrite({ ...base, isMask: true })).toBe('keep');
     expect(planImageRewrite({ ...base, bitsPerComponent: 1 })).toBe('keep');
     expect(planImageRewrite({ ...base, colorSpace: 'ICCBased', components: 4 })).toBe('keep');
@@ -87,7 +90,43 @@ describe('targetDimensions', () => {
   });
 });
 
+// A PDF whose only image is 1x1, so it is planned 'keep'.
+async function tinyImagePdf() {
+  const doc = await PDFDocument.create();
+  doc.addPage().drawImage(await doc.embedJpg(jpeg1x1()), { x: 0, y: 0, width: 10, height: 10 });
+  return new File([await doc.save()], 'tiny.pdf', { type: 'application/pdf' });
+}
+
 describe('compressPdfImages', () => {
+  it("reports 'unsupported' when every image is kept, without encoding", async () => {
+    const file = await tinyImagePdf();
+    const encode = vi.fn(async () => null);
+    const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: encode });
+    expect(result.reason).toBe('unsupported');
+    expect(result.blob).toBe(file);
+    expect(encode).not.toHaveBeenCalled();
+  });
+
+  it("keeps 'no-gain' for images that were tried", async () => {
+    const result = await compressPdfImages(fixture('mixed.pdf'), {
+      maxLongSidePx: 1000, quality: 0.7, encodeImage: async () => null,
+    });
+    expect(result.reason).toBe('no-gain');
+  });
+
+  it('does not save or run text detection when nothing is rewritten', async () => {
+    const save = vi.spyOn(PDFDocument.prototype, 'save');
+    const getPages = vi.spyOn(PDFDocument.prototype, 'getPages');
+    try {
+      await compressPdfImages(fixture('mixed.pdf'), { maxLongSidePx: 1000, quality: 0.7, encodeImage: async () => null });
+      expect(save).not.toHaveBeenCalled();
+      // detectText walks the pages' content streams; image collection never does.
+      expect(getPages).not.toHaveBeenCalled();
+    } finally {
+      save.mockRestore();
+      getPages.mockRestore();
+    }
+  });
   it('rewrites the photos of mixed.pdf and leaves the page alone', async () => {
     const file = fixture('mixed.pdf');
     const result = await compressPdfImages(file, {
@@ -268,6 +307,16 @@ describe('compressPdfImagesToTarget', () => {
     const encode = sized();
     const result = await compressPdfImagesToTarget(file, { targetKB: 1, encodeImage: encode });
     expect(result.reason).toBe('no-images');
+    expect(result.metTarget).toBe(false);
+    expect(result.blob).toBe(file);
+    expect(encode).not.toHaveBeenCalled();
+  });
+
+  it("stops at once when every image is unsupported", async () => {
+    const file = await tinyImagePdf();
+    const encode = sized();
+    const result = await compressPdfImagesToTarget(file, { targetKB: 0.001, encodeImage: encode });
+    expect(result.reason).toBe('unsupported');
     expect(result.metTarget).toBe(false);
     expect(result.blob).toBe(file);
     expect(encode).not.toHaveBeenCalled();

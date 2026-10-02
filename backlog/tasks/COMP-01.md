@@ -214,8 +214,22 @@ real UI (Chromium, dev server), default mode, after the bisection change; body t
 The first run showed Target Size walking only the five ladder rungs: 5 pages at 100 KB came back at
 59 KB with soft text because the rung above was 174 KB. It now bisects four times between the first
 rung that fits and the one above (973eb88a). The ladder's floor is about 11.7 KB a page, so 10+ pages
-miss 100 KB and say so. Pictures mode misses targets by 0.5 to 3% on multi-page scans, pre-existing on
-main; split to its own session.
+miss 100 KB and say so. Pictures mode missed targets by 0.5 to 3% on multi-page scans, pre-existing on
+main: `compressPdfToTarget` reserved a flat 300 B a page for the PDF container where pdf-lib adds about
+570 B plus 515 B a page. Fixed in its own session on main (16727280, now measured from a placeholder
+PDF), merged here.
+
+**2026-10-03, independent review of the branch** (fresh agent, no shared context). Fixed, test first:
+colour-key `/Mask` arrays are kept (JPEG pixels would no longer match the key); a file whose images
+are all of kinds this tool keeps (CMYK, predictors, JPX...) now says so (`'unsupported'`, "Left as it
+was") instead of "already compact"; no save or text detection on Target Size passes that change
+nothing; a JPEG whose decoded size differs from its dict is kept rather than stretched; restricted PDFs
+are analysed after an empty-password load, so their text is seen; the locked title is also what screen
+readers hear; "the only way to make it smaller" became "the only way this tool can"; the FAQ and
+guides describe the bisection, and the Indonesian timing says it was measured on a laptop. Accepted
+as is: a restricted file is re-encrypted with a random owner password (the original cannot be known;
+its restrictions carry over and the original file still opens with its own password); inline images
+(`BI`/`EI`) are not counted as images, which is rare.
 
 Found in review and fixed: pdf-lib's Flate decoder ignores `/DecodeParms`, so a PNG-predicted image
 would have decoded sheared, and a `/Decode` array would have been dropped un-applied (an inverted

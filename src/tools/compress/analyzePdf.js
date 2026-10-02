@@ -97,6 +97,7 @@ function describeImage(ref, stream, maskedRefs, context) {
     bytes: stream.getContents().length,
     predictor: predictorOf(dict, context),
     hasDecode: dict.has(PDFName.of('Decode')),
+    hasColorKeyMask: context.lookup(dict.get(PDFName.of('Mask'))) instanceof PDFArray,
     hasSMask: dict.has(PDFName.of('SMask')),
     isMask: maskedRefs.has(ref.toString()) || String(imageMask) === 'true',
   };
@@ -193,12 +194,17 @@ function detectText(pdfDoc) {
   });
 }
 
+/** The image streams alone, without the text scan (which decodes every content stream). */
+export function analyzePdfImages(pdfDoc) {
+  return collectImages(pdfDoc.context);
+}
+
 /**
  * @param {import('@cantoo/pdf-lib').PDFDocument} pdfDoc  an already-loaded pdf-lib document
  * @param {{ totalBytes: number }} options                  the file's size on disk
  */
 export function analyzePdf(pdfDoc, { totalBytes }) {
-  const images = collectImages(pdfDoc.context);
+  const images = analyzePdfImages(pdfDoc);
   const imageBytes = images.reduce((sum, image) => sum + image.bytes, 0);
   const imageShare = totalBytes > 0 ? Math.min(1, Math.max(0, imageBytes / totalBytes)) : 0;
   return {
