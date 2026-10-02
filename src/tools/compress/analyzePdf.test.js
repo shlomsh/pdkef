@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import { describe, expect, it } from 'vitest';
-import { PDFDocument, PDFName, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFRef, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { analyzePdf } from './analyzePdf.js';
 
 const JPEG_1X1_GRAY_B64 =
@@ -200,5 +200,21 @@ describe('analyzePdf on the compress fixtures', () => {
     expect(a.images.filter((i) => i.hasSMask)).toHaveLength(1);
     expect(a.images.filter((i) => i.isMask)).toHaveLength(1);
     expect(a.imageShare).toBeGreaterThan(0.9);
+    // pdf-lib writes /Decode [0 1] on the SMask it emits; the photos carry neither.
+    expect(a.images.filter((i) => !i.isMask).every((i) => i.predictor === null && !i.hasDecode)).toBe(true);
+    expect(a.images.find((i) => i.isMask).hasDecode).toBe(true);
+  });
+
+  it('reports a Flate predictor and a /Decode array', async () => {
+    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
+    const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+    const flate = analyzePdf(doc, { totalBytes: bytes.length }).images[1];
+    const [num, gen] = flate.ref.split(' ').map(Number);
+    const { dict } = doc.context.lookup(PDFRef.of(num, gen));
+    dict.set(PDFName.of('DecodeParms'), doc.context.obj({ Predictor: 15, Colors: 3, Columns: 800 }));
+    dict.set(PDFName.of('Decode'), doc.context.obj([1, 0, 1, 0, 1, 0]));
+    const image = analyzePdf(doc, { totalBytes: bytes.length }).images[1];
+    expect(image.predictor).toBe(15);
+    expect(image.hasDecode).toBe(true);
   });
 });

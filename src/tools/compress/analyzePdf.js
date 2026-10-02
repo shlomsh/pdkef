@@ -45,6 +45,15 @@ function colorSpaceName(dict, context) {
   return 'none';
 }
 
+// The PNG/TIFF predictor a Flate image is stored with, or null when none (1).
+function predictorOf(dict, context) {
+  const parms = context.lookup(dict.get(PDFName.of('DecodeParms')));
+  const first = parms instanceof PDFArray ? context.lookup(parms.get(0)) : parms;
+  if (!(first instanceof PDFDict)) return null;
+  const predictor = numberValue(context.lookup(first.get(PDFName.of('Predictor'))));
+  return predictor > 1 ? predictor : null;
+}
+
 function refTargets(dict, keys) {
   return keys
     .map((key) => dict.get(PDFName.of(key)))
@@ -64,6 +73,8 @@ function describeImage(ref, stream, maskedRefs, context) {
     colorSpace: colorSpaceName(dict, context),
     filters: filterNames(dict, context),
     bytes: stream.getContents().length,
+    predictor: predictorOf(dict, context),
+    hasDecode: dict.has(PDFName.of('Decode')),
     hasSMask: dict.has(PDFName.of('SMask')),
     isMask: maskedRefs.has(ref.toString()) || String(imageMask) === 'true',
   };
