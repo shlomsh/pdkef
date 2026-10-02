@@ -1,6 +1,14 @@
 // Prints the anonymous error counts (DEBT-17): npm run errors:read -- [--days 7]
 // Env comes from process.env, else .env.local (written by `vercel env pull`).
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { sampleLines } from './errors-frames.mjs';
+
+// The one git door for the stale-tab note: repo root, short timeout; failures are caught by the caller.
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const runGit = (args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] });
 
 // usage:<day> holds `<event>|<tool>` -> count. Sums the days into one row per tool,
 // sorted by accepted descending; ready/accepted is a whole percent, or '-' without accepted.
@@ -98,10 +106,7 @@ for (const [field, count] of table) {
     sample = JSON.parse(samples.get(field) ?? 'null');
   } catch {}
   if (!sample) continue;
-  console.log(`    ${sample.step} · ${sample.tool} · ${sample.installed ? 'installed' : 'browser'}/${sample.sw ? 'sw' : 'no-sw'} · ${sample.age}`);
-  console.log(`    actions: ${Array.isArray(sample.actions) && sample.actions.length ? sample.actions.join(', ') : '(none)'}`);
-  for (const frame of sample.stack ?? []) console.log(`    ${frame}`);
-  console.log(`    npm run errors:resolve -- ${(sample.stack ?? []).join(' ')}`);
+  for (const line of sampleLines(sample, runGit)) console.log(line);
 }
 if (!table.length) console.log(`(no reports in the last ${days} days)`);
 

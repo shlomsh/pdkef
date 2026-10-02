@@ -40,6 +40,8 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
     <title>{title}</title>
+    {/* Deploying commit, substituted after the build id by scripts/buildCommit.mjs; HTML only. */}
+    {import.meta.env.PROD && <meta name="pdkef-build" content="__BUILD_COMMIT__" />}
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, follow" />}
     <link rel="canonical" href={canonicalURL} />

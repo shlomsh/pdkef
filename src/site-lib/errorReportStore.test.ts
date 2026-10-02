@@ -7,6 +7,7 @@ import {
   dayKey,
   engineBucket,
   eventCommands,
+  fingerprintField,
   readEnv,
   reportCommands,
   usageCapCommands,
@@ -82,6 +83,18 @@ describe('actions in the sample', () => {
     expect(fieldOf(a, 'HINCRBY')[0][2]).toBe(fieldOf(b, 'HINCRBY')[0][2]);
     expect(fieldOf(a, 'HSET')[0][2]).toBe(fieldOf(b, 'HSET')[0][2]);
     expect(fieldOf(a, 'HSET')[0][3]).not.toBe(fieldOf(b, 'HSET')[0][3]);
+  });
+});
+
+describe('build in the sample', () => {
+  const sampleOf = (r: object) =>
+    JSON.parse(countCommands(r as typeof report, 'ios-26', '2026-10-01').find((c) => c[0] === 'HSET')![3] as string);
+  it('is stored when the report has one, and omitted otherwise', () => {
+    expect(sampleOf({ ...report, build: 'abc1234' }).build).toBe('abc1234');
+    expect('build' in sampleOf(report)).toBe(false);
+  });
+  it('does not change the fingerprint field', () => {
+    expect(fingerprintField({ ...report, build: 'abc1234' } as never, 'ios-26')).toBe(fingerprintField(report as never, 'ios-26'));
   });
 });
 

@@ -91,7 +91,8 @@ anything after it), whether PDkef is installed as an app, whether a service
 worker served the page, roughly how long the page had been open (under 10
 seconds, under a minute, under 10 minutes, or longer), and the last up to 10
 UI action names (DEBT-31) from a closed list, oldest first, kept in memory until
-an error is reported. Never the error message,
+an error is reported, and the 7-character commit the page was built from
+(optional). Never the error message,
 anything from a document, a filename, text, an IP address, or an identifier.
 The server keeps daily counts of identical reports, plus the latest full
 example of each distinct error per day with a coarse browser family and

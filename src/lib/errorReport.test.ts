@@ -6,6 +6,7 @@ import {
   MAX_REPORT_BYTES,
   MAX_REPORTS_PER_PAGE,
   parseErrorReport,
+  readBuildCommit,
   readPageContext,
   reportError,
   sendBeacon,
@@ -240,5 +241,94 @@ describe('actions field', () => {
     const bytes = new TextEncoder().encode(JSON.stringify(largest)).length;
     expect(bytes).toBe(1538);
     expect(bytes).toBeLessThan(MAX_REPORT_BYTES);
+  });
+});
+
+describe('build field', () => {
+  const base = { area: 'drafts', name: 'TypeError', stack: ['A.1.js:1:2'], step: 'none', ...CTX };
+  it('accepts exactly 7 lowercase hex characters', () => {
+    expect(parseErrorReport({ ...base, build: 'abc1234' })?.build).toBe('abc1234');
+    expect(parseErrorReport({ ...base, build: '0123456' })?.build).toBe('0123456');
+  });
+  it('rejects 6 or 8 characters, uppercase, non-hex and non-strings', () => {
+    for (const bad of ['abc123', 'abc12345', 'ABC1234', 'abc123g', 'abc 123', ' abc1234', 'abc1234\n', '', 1234567, null, undefined, ['abc1234'], {}]) {
+      expect(parseErrorReport({ ...base, build: bad })).toBeNull();
+    }
+  });
+  it('rejects build without actions, and an unknown extra key beside it', () => {
+    const { actions: _drop, ...noActions } = base as Record<string, unknown>;
+    expect(parseErrorReport({ ...noActions, build: 'abc1234' })).toBeNull();
+    expect(parseErrorReport({ ...base, build: 'abc1234', extra: 1 })).toBeNull();
+  });
+  it('still accepts the 8-key and 9-key older shapes, with no build key in the result', () => {
+    const { actions: _drop, ...eight } = base as Record<string, unknown>;
+    const old8 = parseErrorReport(eight);
+    const old9 = parseErrorReport(base);
+    expect(old8).not.toBeNull();
+    expect(old9).not.toBeNull();
+    expect('build' in (old8 as object)).toBe(false);
+    expect('build' in (old9 as object)).toBe(false);
+  });
+  it('keeps the largest valid report with a build under MAX_REPORT_BYTES', () => {
+    const longest = [...ACTIONS].sort((a, b) => b.length - a.length)[0];
+    const largest = {
+      actions: Array(MAX_ACTIONS).fill(longest),
+      area: 'sign_form_detection',
+      name: 'A' + 'b'.repeat(63),
+      stack: Array(MAX_FRAMES).fill(`${'a'.repeat(120)}.js:1234567:1234567`),
+      step: 'a' + 'b'.repeat(31),
+      tool: '/he/sign/',
+      installed: true,
+      sw: true,
+      age: 'under_10m',
+      build: 'abc1234',
+    };
+    expect(parseErrorReport(largest)).not.toBeNull();
+    const bytes = new TextEncoder().encode(JSON.stringify(largest)).length;
+    expect(bytes).toBe(1556);
+    expect(bytes).toBeLessThan(MAX_REPORT_BYTES);
+  });
+});
+
+describe('readBuildCommit', () => {
+  const docWith = (content: string | null) => ({
+    querySelector: (sel: string) =>
+      sel === 'meta[name="pdkef-build"]' && content !== null ? { getAttribute: () => content } : null,
+  }) as unknown as Pick<Document, 'querySelector'>;
+  it('reads a valid tag', () => expect(readBuildCommit(docWith('abc1234'))).toBe('abc1234'));
+  it('is undefined with no tag', () => expect(readBuildCommit(docWith(null))).toBeUndefined());
+  it('is undefined for invalid content', () => {
+    for (const bad of ['', 'ABC1234', 'abc123', 'abc12345', 'zzzzzzz']) {
+      expect(readBuildCommit(docWith(bad))).toBeUndefined();
+    }
+  });
+  it('never throws when querySelector throws', () => {
+    const throwing = { querySelector: () => { throw new Error('no'); } } as unknown as Pick<Document, 'querySelector'>;
+    expect(readBuildCommit(throwing)).toBeUndefined();
+  });
+});
+
+describe('build in the page context and report', () => {
+  const stubPage = (content: string | null) => {
+    vi.stubGlobal('location', { pathname: '/sign/' });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('document', {
+      querySelector: () => (content === null ? null : { getAttribute: () => content }),
+    });
+  };
+  it('readPageContext includes build only when the tag is valid', () => {
+    stubPage('abc1234');
+    expect(readPageContext().build).toBe('abc1234');
+    for (const bad of [null, 'nope']) {
+      stubPage(bad);
+      expect('build' in readPageContext()).toBe(false);
+    }
+  });
+  it('toErrorReport carries a valid build and omits it otherwise', () => {
+    expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'x', { ...CTX, build: 'abc1234' })?.build).toBe('abc1234');
+    const without = toErrorReport('drafts', errorAt('A.js:1:1'), 'x', CTX);
+    expect(without).not.toBeNull();
+    expect('build' in (without as object)).toBe(false);
   });
 });

@@ -66,6 +66,7 @@ export function toErrorReport(
 export function readPageContext(): PageContext {
   // One fact per guard: a browser missing one API keeps the other three.
   const path = safely(() => location.pathname, '/');
+  const build = readBuildCommit();
   return {
     // Same shape as the schema's TOOL; a path outside it must not kill the report.
     tool: /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/.test(path) ? path : '/',
@@ -73,7 +74,21 @@ export function readPageContext(): PageContext {
     sw: safely(() => Boolean(navigator.serviceWorker?.controller), false),
     age: safely(() => pageAge(performance.now()), 'under_10s' as const),
     actions: safely(() => recentActions(), []),
+    ...(build ? { build } : {}),
   };
+}
+
+const BUILD_COMMIT = /^[0-9a-f]{7}$/;
+
+/**
+ * The 7-character commit the page was built from, off `<meta name="pdkef-build">` (written by the
+ * production build only), or undefined when the tag is missing or malformed. Never throws.
+ */
+export function readBuildCommit(doc?: Pick<Document, 'querySelector'>): string | undefined {
+  return safely(() => {
+    const content = (doc ?? document).querySelector('meta[name="pdkef-build"]')?.getAttribute('content');
+    return typeof content === 'string' && BUILD_COMMIT.test(content) ? content : undefined;
+  }, undefined);
 }
 
 function safely<T>(read: () => T, fallback: T): T {
