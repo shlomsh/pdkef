@@ -444,12 +444,12 @@ export default function PdfSplitTool({
       event.preventDefault();
       return;
     }
+    recordAction('download');
     if (mode === 'separate') {
       event.preventDefault();
       downloadAll(outputs);
     }
     setSaved(true);
-    recordAction('download');
     setAnnouncement(mode === 'combined' ? 'PDF saved.' : `${outputs.length} PDFs saved.`);
   };
 

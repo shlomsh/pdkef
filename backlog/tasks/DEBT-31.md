@@ -1,7 +1,7 @@
 ---
 id: "DEBT-31"
 title: "Error reports carry the last few UI actions, so a crash's trigger is read, not inferred"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
@@ -53,10 +53,22 @@ data to fix unreported runtime errors". The closed list of action names is discl
       during them; a draft restore and automatic field detection are no longer recorded as the
       person's actions; a report from an older cached build, which sends no `actions`, is still
       counted (empty list) instead of dropped; the trail ignores any name off the list.
-- [ ] `check:push` green on the fixed branch, pushed.
+- [x] `check:push` and `check:e2e` green on the merged branch, pushed.
 
 ## What it leaves out, on purpose
 
 Zoom and the shell's own recents menu are not recorded (they live in shared code the tools do not
 own), nor is a person's typing, positions or file names. Merge and Split build automatically on idle,
 so they record no `export`.
+
+## Outcome (2026-10-02)
+
+Shipped as the closed list of 28 names, the one `recordAction` helper, `actions` on the report and
+the stored sample, and `errors:read` printing them oldest first. Landed by merging origin/main into
+the branch. The only real conflict was Redact's colour and eyedropper props: main's `target`
+plumbing (RED-51) and this ticket's `recordAction('change_setting')` on colour were both kept, and
+the other 24 Redact `recordAction` calls came through the merge untouched. After the merge,
+`check:fast`, `check:push` (22 steps) and `check:e2e` (product, fonts, export guards) were green.
+A fresh reviewer found no privacy or Redact-merge problems; its one fix was to record `download`
+before the call that can throw (Split, Sign). Typing in a text field records one name, not one per
+keystroke, because an immediate repeat is dropped.
