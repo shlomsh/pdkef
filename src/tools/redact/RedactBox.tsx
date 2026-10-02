@@ -26,6 +26,9 @@ import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 // two can never disagree about which corner is fixed.
 const toolbarScaleOrigin = toolbarScaleOriginCss;
 
+/** RED-53: the pill's gap above the box, px. Wider than TOOLBAR_FLOATING_OFFSET so the top handles can be grabbed. */
+export const BOX_TOOLBAR_GAP = 16;
+
 // Redact never renders a registered node component - its whiteout/blackout/
 // blur elements always take the `renderTarget: 'redact'` branch inside
 // createElementRenderers(), which is core-only. So this map is built with no
@@ -72,6 +75,7 @@ export default function RedactBox({
   pageWidthPoints,
   pageHeightPoints,
   peekAll = false,
+  recentColors,
 }: {
   el: any;
   isSelected: boolean;
@@ -106,6 +110,8 @@ export default function RedactBox({
   pageHeightPoints?: number;
   /** RED-31: view state only - every box shows what is under it. */
   peekAll?: boolean;
+  /** RED-53: last custom whiteout colours, most recent first, lowercase '#rrggbb'. */
+  recentColors?: readonly string[];
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const coarsePointer = useCoarsePointer();
@@ -145,8 +151,10 @@ export default function RedactBox({
   // 'bottom' here (the two options fed to `useFloating`/`flip` above), so the
   // gap always sits on the main (vertical) axis: negative to push the bar up
   // off the top of the box, positive to push it down when flipped below.
+  // The gap is BOX_TOOLBAR_GAP (wider than the 8px shift padding) so the box's
+  // top handles stay grabbable under the pill.
   const toolbarGapSign = placement.startsWith('bottom') ? 1 : -1;
-  const toolbarTransform = `${floatingStyles.transform || ''} translateY(calc(${toolbarGapSign} * ${TOOLBAR_FLOATING_OFFSET}px / var(--vv-scale, 1))) scale(calc(1 / var(--vv-scale, 1)))`;
+  const toolbarTransform = `${floatingStyles.transform || ''} translateY(calc(${toolbarGapSign} * ${BOX_TOOLBAR_GAP}px / var(--vv-scale, 1))) scale(calc(1 / var(--vv-scale, 1)))`;
 
   // Drag-to-move and resize gestures, shared with the Sign tool's element
   // wrapper (E7.5) - blackout/blur/whiteout never hit the line/text-specific
@@ -244,6 +252,7 @@ export default function RedactBox({
       onToggleEyedropper={onToggleEyedropper}
       onMatchPage={() => onMatchPage(el.id)}
       onPickColor={(c: string) => onPickColor(el.id, c)}
+      recentColors={recentColors}
       onChangeStrength={(s: BlurStrength) => onChangeStrength(el.id, s)}
       onDuplicate={() => onDuplicate(el.id)}
       onDelete={() => onDelete(el.id)}

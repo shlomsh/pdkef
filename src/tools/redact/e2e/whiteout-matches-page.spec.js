@@ -293,7 +293,8 @@ test.describe('Whiteout matches the page (RED-51)', () => {
     await expect(bar).toBeVisible();
     await expectFillCloseTo(whiteout, BLUE, 2, 'eyedropper sets the blue');
     await expect(auto).toHaveAttribute('aria-pressed', 'false');
-    await expect(bar.locator('[data-redact-color-swatch]')).toBeVisible();
+    // RED-53: the picked colour is now the first recent swatch, shown as chosen.
+    await expect(bar.locator('[data-redact-color-recent][aria-pressed="true"]')).toBeVisible();
 
     await auto.click();
     await expect(auto).toHaveAttribute('aria-pressed', 'true');

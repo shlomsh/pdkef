@@ -319,6 +319,11 @@ test.describe('Redact editor browser guardrails', () => {
       // Blur has no colour, but it has a strength slider (RED-30), then duplicate and delete.
       await expect(toolbar.locator('input[type="range"]'), 'blur carries its strength slider').toHaveCount(1);
       await expect(toolbar.locator('button'), 'blur carries duplicate and delete').toHaveCount(2);
+      // RED-53: one row, the slider on the buttons' centre line (it once sat
+      // about 9px low under a heading).
+      const centres = await toolbar.locator('button, input[type="range"]').evaluateAll((els) =>
+        els.map((el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; }));
+      expect(Math.max(...centres) - Math.min(...centres), 'blur toolbar controls share one centre line').toBeLessThan(1);
       const boxRect = await getBox(blur, 'blur box');
       const toolbarRect = await getBox(toolbar, 'blur toolbar');
       offsetAboveBoxTop.blur = boxRect.y - (toolbarRect.y + toolbarRect.height);
@@ -353,6 +358,8 @@ test.describe('Redact editor browser guardrails', () => {
     console.log('Redact selection-toolbar offset above box top (px):', offsetAboveBoxTop);
     expect(offsetAboveBoxTop.blackout).toBeCloseTo(offsetAboveBoxTop.whiteout, 0);
     expect(offsetAboveBoxTop.blur).toBeCloseTo(offsetAboveBoxTop.whiteout, 0);
+    // RED-53: a clear gap, so the box's top-centre handle can be grabbed under the pill.
+    expect(offsetAboveBoxTop.whiteout, 'pill sits clear of the box top').toBeGreaterThanOrEqual(12);
   });
 
   // Start over is gone: it and Replace both meant "I want a different file", so

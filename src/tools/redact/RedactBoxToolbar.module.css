@@ -1,12 +1,15 @@
 /* RED-51: the selected box's controls as a light pill, the look of the top
-   toolbar card (ToolShell's .editor). Groups wrap whole, never a lone control. */
+   toolbar card (ToolShell's .editor). Groups wrap whole, never a lone control.
+   RED-53: the inset is the pill's radius minus a control's, so every 44px
+   tile's corner is concentric with the pill's and sits the same distance from
+   its top, bottom and ends. */
 .pill {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--space-1) var(--space-2);
-  padding: var(--space-1);
+  padding: calc(var(--radius) - var(--radius-sm));
   box-sizing: border-box;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
@@ -24,9 +27,10 @@
 }
 
 /* No gap inside a group: every control is already a 44px box, so its icon
-   sits well clear of the next one. Measured in WebKit (2026-10-01): the
-   whiteout pill with Every page is one 54px row at 375, 390 and 402px; blur's
-   labelled slider takes a row of its own at those widths. */
+   sits well clear of the next one. Measured in WebKit (2026-10-02, RED-53):
+   with Every page, the whiteout, blackout and blur pills are each one 58px row
+   at 375, 390 and 402px; a whiteout with three recent colours wraps its two
+   groups onto two rows. */
 .group {
   display: flex;
   flex-wrap: nowrap;
@@ -35,6 +39,7 @@
 
 .button,
 .auto,
+.recent,
 .eyedropper,
 .custom {
   position: relative;
@@ -52,6 +57,7 @@
 }
 
 .button,
+.recent,
 .eyedropper,
 .custom {
   width: 44px;
@@ -60,17 +66,24 @@
 }
 
 .button:hover,
+.recent:hover,
 .eyedropper:hover { background: var(--color-primary-soft); }
 
 .buttonWide {
   width: auto;
-  padding-inline: 7px;
+  /* (44 - 18) / 2: the icon sits where an icon-only button's would. */
+  padding-inline: 13px;
   white-space: nowrap;
 }
 
 .buttonWide svg { margin-inline-end: 4px; }
 
 .label { font-size: .75rem; font-weight: 600; white-space: nowrap; }
+
+/* The phone bar shows icons only. */
+:global([data-redact-box-bar]) .label { display: none; }
+:global([data-redact-box-bar]) .buttonWide { width: 44px; padding-inline: 0; }
+:global([data-redact-box-bar]) .buttonWide svg { margin-inline-end: 0; }
 
 .danger:hover {
   background: var(--color-danger-soft);
@@ -87,6 +100,8 @@
 
 .auto {
   height: 44px;
+  /* (44 - 30) / 2: the chip sits as far from the pill's end as from its top. */
+  padding-inline: 7px;
 }
 
 .autoFace {
@@ -121,26 +136,25 @@
   background: var(--hue-wheel);
 }
 
-.swatch {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  box-sizing: content-box;
-  background: var(--swatch);
-  border: 2px solid var(--color-surface);
+.recentFace {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.inkDark {
-  color: var(--color-text);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--swatch);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 28%, transparent);
 }
+
+/* A selected choice is a primary ring, never the solid fill that means an armed tool. */
+.recent[aria-pressed='true'] .recentFace {
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary);
+}
+
+.recentFace > span { display: flex; }
+
+.inkDark { color: var(--color-text); }
 
 .inkLight { color: var(--color-surface); }
 
@@ -157,5 +171,6 @@
 
 .custom:has(input:focus-visible) { outline: 2px solid var(--color-primary); }
 .auto:focus-visible,
+.recent:focus-visible,
 .eyedropper:focus-visible,
 .button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }

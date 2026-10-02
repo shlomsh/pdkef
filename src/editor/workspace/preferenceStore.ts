@@ -38,6 +38,7 @@ const LEGACY_SIGNATURES_KEY = 'pdf-toolkit:signatures';
 const RECORD_KEY_PREFIX = 'pdf-toolkit:editor-preferences:v1:';
 const SIGNATURE_LIBRARY_KEY_PREFIX = 'pdf-toolkit:saved-signatures:v1:';
 const APP_STYLE_KEY_PREFIX = 'pdf-toolkit:app-style:v1:';
+const RECENT_WHITEOUT_COLORS_KEY_PREFIX = 'pdf-toolkit:recent-whiteout-colors:v1:';
 /** Increment only when the persisted app-wide style record shape changes. */
 export const APP_STYLE_RECORD_VERSION = 1;
 const TAB_ID_KEY = 'pdf-toolkit:editor-preferences-tab-id';
@@ -182,6 +183,7 @@ export function getEditorUserScope(options: EditorPreferenceOptions = {}): strin
 function recordKey(scope: string): string { return `${RECORD_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function appStyleKey(scope: string): string { return `${APP_STYLE_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function signatureLibraryKey(scope: string): string { return `${SIGNATURE_LIBRARY_KEY_PREFIX}${encodeURIComponent(scope)}`; }
+function recentWhiteoutColorsKey(scope: string): string { return `${RECENT_WHITEOUT_COLORS_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function getTabId(): string {
   try {
     const existing = sessionStorage.getItem(TAB_ID_KEY); if (existing) return existing;
@@ -360,4 +362,38 @@ export function rememberAppStyle(patch: Partial<DocumentStyle>, options: EditorP
     return true;
   // expected: quota or blocked storage returns false
   } catch { return false; }
+}
+
+// RED-53: the last few custom whiteout colours, remembered across documents.
+const HEX_COLOR = /^#[0-9a-f]{6}$/;
+const RECENT_WHITEOUT_COLORS_VERSION = 1;
+
+/** Puts a '#rrggbb' colour first (lowercased), dedupes, caps at max. Anything else is ignored. */
+export function withRecentColor(list: readonly string[], color: string, max = 3): string[] {
+  const next = typeof color === 'string' ? color.toLowerCase() : '';
+  const rest = list.filter((c) => c !== next);
+  return (HEX_COLOR.test(next) ? [next, ...rest] : rest).slice(0, max);
+}
+
+/** The remembered custom whiteout colours, most recent first. [] on any problem. */
+export function getRecentWhiteoutColors(options: EditorPreferenceOptions = {}): string[] {
+  try {
+    const scope = getEditorUserScope(options); if (!scope) return [];
+    const raw = localStorage.getItem(recentWhiteoutColorsKey(scope)); if (raw === null) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!isObject(parsed) || parsed.schemaVersion !== RECENT_WHITEOUT_COLORS_VERSION || !Array.isArray(parsed.colors)) return [];
+    return parsed.colors.filter((c): c is string => typeof c === 'string' && HEX_COLOR.test(c)).slice(0, 3);
+  // expected: blocked storage or unparseable record returns []
+  } catch { return []; }
+}
+
+/** Adds a colour to the remembered list and writes it; returns the new list (kept in memory if the write fails). */
+export function rememberRecentWhiteoutColor(color: string, options: EditorPreferenceOptions = {}): string[] {
+  const next = withRecentColor(getRecentWhiteoutColors(options), color);
+  try {
+    const scope = getEditorUserScope(options);
+    if (scope) localStorage.setItem(recentWhiteoutColorsKey(scope), JSON.stringify({ schemaVersion: RECENT_WHITEOUT_COLORS_VERSION, colors: next }));
+  // expected: quota or blocked storage, the list stays in memory
+  } catch { /* best effort */ }
+  return next;
 }

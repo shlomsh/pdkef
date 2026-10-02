@@ -19,7 +19,7 @@ import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
 import { loadDraft } from '../../lib/drafts/draftStore.js';
 import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
-import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
 
@@ -489,6 +489,27 @@ describe('PdfRedactTool UI flow', () => {
       const cards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       const copyColors = cards.slice(1).map((card) => query<HTMLElement>(card, '.redact-surface--whiteout').style.backgroundColor);
       expect(copyColors).toEqual([rgb(BLUE), rgb('#e0f0e0')]);
+    });
+
+    // RED-53: the toolbar offers the last custom colours, remembered across documents.
+    it('RED-53: a custom pick is remembered; Auto and a move are not', async () => {
+      await drawWhiteoutAndSelect();
+      expect(getRecentWhiteoutColors()).toEqual([]);
+      await pressAuto();
+      await nudgeDown();
+      expect(getRecentWhiteoutColors()).toEqual([]);
+      await setSelectedBoxColor('#112233');
+      expect(getRecentWhiteoutColors()).toEqual(['#112233']);
+      const recent = Array.from(container.querySelectorAll('[data-redact-color-recent]'));
+      if (recent.length > 0) expect(recent.map((el) => el.getAttribute('data-redact-color-recent') ?? el.getAttribute('aria-label') ?? el.textContent).join(' ').toLowerCase()).toContain('112233');
+    });
+
+    it('RED-53: a remount reads the stored list', async () => {
+      rememberRecentWhiteoutColor('#abcdef');
+      await drawWhiteoutAndSelect();
+      expect(getRecentWhiteoutColors()).toEqual(['#abcdef']);
+      await setSelectedBoxColor('#112233');
+      expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
     });
   });
 

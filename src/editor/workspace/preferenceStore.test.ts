@@ -4,7 +4,10 @@ import {
   getAppStyle,
   getEditorPreference,
   getEditorUserScope,
+  getRecentWhiteoutColors,
   getSavedSignatures,
+  rememberRecentWhiteoutColor,
+  withRecentColor,
   rememberAppStyle,
   setEditorPreference,
   setSavedSignatures,
@@ -331,5 +334,37 @@ describe('editor workspace preferences', () => {
       expect(getAppStyle({ userScope: 'person-a' })).toEqual({ color: '#aaaaaa' });
       expect(getAppStyle({ userScope: 'person-b' })).toEqual({ color: '#bbbbbb' });
     });
+  });
+});
+
+describe('recent whiteout colours (RED-53)', () => {
+  beforeEach(() => { localStorage.clear(); });
+  afterEach(() => { localStorage.clear(); });
+  const key = `pdf-toolkit:recent-whiteout-colors:v1:${encodeURIComponent(scope)}`;
+
+  it('withRecentColor lowercases, puts first, dedupes and caps', () => {
+    expect(withRecentColor(['#111111', '#222222', '#333333'], '#ABCDEF')).toEqual(['#abcdef', '#111111', '#222222']);
+    expect(withRecentColor(['#111111', '#222222'], '#222222')).toEqual(['#222222', '#111111']);
+    expect(withRecentColor(['#111111', '#222222'], '#222222'.toUpperCase())).toEqual(['#222222', '#111111']);
+    expect(withRecentColor(['#111111'], 'red')).toEqual(['#111111']);
+    expect(withRecentColor(['#111111'], '#fff')).toEqual(['#111111']);
+    expect(withRecentColor([], '#123456', 1)).toEqual(['#123456']);
+  });
+
+  it('remembers colours across reads, most recent first, capped at three', () => {
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
+    for (const c of ['#111111', '#222222', '#333333', '#444444']) rememberRecentWhiteoutColor(c, { userScope: scope });
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#444444', '#333333', '#222222']);
+    expect(JSON.parse(localStorage.getItem(key) as string).schemaVersion).toBe(1);
+  });
+
+  it('returns [] for a corrupt or wrong-version record and ignores invalid colours', () => {
+    localStorage.setItem(key, 'not json');
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 2, colors: ['#111111'] }));
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#111111', 'blue', 5] }));
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#111111']);
+    expect(rememberRecentWhiteoutColor('nope', { userScope: scope })).toEqual(['#111111']);
   });
 });
