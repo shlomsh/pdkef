@@ -3,7 +3,7 @@ import {
   BLUR_MAX, BLUR_MIN, DEFAULT_BLUR_STRENGTH, resolveBlurStrength, snapBlurStrength,
 } from '../../editor/model/blurStrength.ts';
 import { paintBlurStrength } from '../../editor/registry/redactionSurface.ts';
-import { useNativeChange } from './useNativeChange.ts';
+import { useNativeChange } from '../../editor-ui/useNativeChange.ts';
 import styles from './BlurStrengthSlider.module.css';
 
 /**
