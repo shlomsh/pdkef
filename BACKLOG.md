@@ -77,7 +77,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | ENC-09 | P3 | [ENC-09](backlog/tasks/ENC-09.md) · Merge tells a protected file from an unreadable one, and takes the unlocked file back |  |
 | ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
-| ENC-13 | P3 | [ENC-13](backlog/tasks/ENC-13.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
+| ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
@@ -145,7 +145,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 13 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 21 done, 3 retired
+- Robustness and debt: 22 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
