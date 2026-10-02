@@ -63,7 +63,7 @@ sections:
   - sketch: 'waves'
     icon: 'HardDriveDownload'
     iconPos: 'br'
-    kicker: 'Lima berkas nyata, satu target'
+    kicker: 'Lima berkas uji, satu target'
     heading: 'Begini hasilnya kalau scan dikompres di bawah 1 MB'
     blocks:
       - kind: 'steps'
@@ -77,30 +77,29 @@ sections:
             selesai dalam hitungan detik.
           - 'Unduh hasilnya dan periksa dulu sebelum diunggah ke portal.'
       - kind: 'table'
-        caption: 'Setiap baris dihasilkan dari berkas uji (halaman ketikan yang dibuat menyerupai scan HP) yang dijalankan lewat mode Target Size PDkef pada target 1 MB.'
+        caption: 'Setiap baris dihasilkan dari berkas uji (satu formulir buatan yang dibuat menyerupai scan HP, sekitar 410 KB per halaman) yang dijalankan lewat mode Target Size PDkef pada target 1 MB.'
         headers: ['Jumlah halaman', 'Ukuran asli', 'Hasil pada target 1 MB', 'Kondisi']
         rows:
-          - ['2 halaman', '1,07 MB', '238 KB', 'tajam']
-          - ['5 halaman', '2,82 MB', '632 KB', 'tajam']
-          - ['10 halaman', '5,59 MB', '959 KB', 'tajam']
-          - ['20 halaman', '11,18 MB', '1,01 MB', 'tajam']
-          - ['40 halaman', '22,34 MB', '1,03 MB (ukuran terdekat)', 'terbaca, agak pecah']
+          - ['2 halaman', '0,80 MB', 'tidak diubah, sudah di bawah target', 'tajam']
+          - ['5 halaman', '2,00 MB', '999 KB', 'tajam']
+          - ['10 halaman', '4,00 MB', '1.023 KB', 'tajam']
+          - ['20 halaman', '8,00 MB', '982 KB', 'tajam']
+          - ['40 halaman', '16,00 MB', '953 KB', 'terbaca, sedikit lembut']
       - kind: 'prose'
         text: >-
-          Sampai sepuluh halaman scan biasanya muat di bawah 1 MB dan tetap tajam. Itu mencakup
-          sebagian besar surat lamaran, ijazah, transkrip, dan surat keterangan. Dua puluh halaman
-          biasanya juga muat, sementara empat puluh halaman sedikit melebihi target dan terlihat agak
-          pecah di beberapa bagian. PDF hasil ketikan yang sudah kecil dibiarkan apa adanya, byte demi
-          byte, karena alat ini hanya mengubah halaman menjadi gambar kalau targetnya benar-benar
-          memaksa. Setiap pengujian di atas selesai dalam waktu kurang dari tiga detik, langsung di
-          perangkat, tanpa satu berkas pun yang diunggah ke mana pun.
+          Dalam pengujian kami, sampai empat puluh halaman scan muat di bawah 1 MB. Sampai dua puluh
+          halaman tetap tajam, dan empat puluh halaman masih terbaca dengan tulisan yang sedikit lebih
+          lembut. Itu mencakup sebagian besar surat lamaran, ijazah, transkrip, dan surat keterangan.
+          PDF hasil ketikan dibiarkan apa adanya: alat ini hanya mengecilkan gambar di dalam PDF, jadi
+          teks ketikan tidak pernah diubah menjadi gambar. Setiap pengujian di atas selesai dalam waktu
+          kurang dari sepuluh detik, langsung di perangkat, tanpa satu berkas pun yang diunggah ke mana
+          pun.
       - kind: 'prose'
         text: >-
-          Catatan jujur soal dua baris terakhir: halaman uji dua puluh dan empat puluh dibuat sintetis,
-          dengan teks hanya mengisi bagian atas halaman, jadi lebih ringan daripada scan ijazah atau
-          transkrip asli yang penuh tulisan dari atas sampai bawah. Anggap keduanya sebagai gambaran
-          yang agak optimistis; scan yang padat teks bisa menyentuh batas lebih cepat daripada di
-          tabel ini.
+          Catatan soal berkas uji: setiap halaman adalah formulir buatan yang sama, dibuat menyerupai
+          foto HP dengan derau yang berbeda di tiap halaman. Scan ijazah atau transkrip asli yang penuh
+          tulisan dari atas sampai bawah bisa lebih berat, jadi bisa menyentuh batas lebih cepat
+          daripada di tabel ini.
   - sketch: 'rings'
     icon: 'AlertTriangle'
     iconPos: 'cl'
@@ -121,9 +120,10 @@ sections:
             berkas memang tidak akan pernah muat.
       - kind: 'prose'
         text: >-
-          Kalau kompresor menampilkan "ukuran terdekat" ("closest achievable size"), artinya berkas
-          Anda hanya sedikit melebihi target. Coba target sekitar sepuluh persen lebih rendah dulu,
-          sebelum menyimpulkan dokumennya memang terlalu panjang.
+          Kalau kompresor bilang targetnya tidak tercapai, artinya gambar di dalam PDF sudah
+          dikecilkan sampai batasnya. Sakelar "Turn pages into pictures" bisa mengecilkan lebih jauh,
+          tapi teksnya jadi tidak bisa dipilih dan tulisan kecil makin kabur. Untuk scan yang panjang,
+          memisahkan berkas biasanya pilihan yang lebih baik.
       - kind: 'prose'
         text: >-
           Jangan pernah mengompres KTP atau ijazah sampai ke titik di mana angka dan capnya sudah
@@ -166,15 +166,17 @@ sections:
           ketat daripada semua batas resmi di bagian pertama. Kalau atasan atau portal yang lebih
           kecil memintanya, begini gambaran nyatanya.
       - kind: 'table'
-        caption: 'Dua berkas uji yang sama dijalankan lewat mode Target Size PDkef pada target 200 KB.'
+        caption: 'Tiga berkas uji yang sama dijalankan lewat mode Target Size PDkef pada target 200 KB.'
         headers: ['Jumlah halaman', 'Ukuran asli', 'Hasil pada 200 KB', 'Kondisi']
         rows:
-          - ['2 halaman', '1,07 MB', '203 KB', 'tajam']
-          - ['5 halaman', '2,82 MB', '206 KB (ukuran terdekat)', 'tajam']
+          - ['2 halaman', '0,80 MB', '193 KB', 'tajam']
+          - ['5 halaman', '2,00 MB', '197 KB', 'tajam']
+          - ['10 halaman', '4,00 MB', '199 KB', 'terbaca, agak lembut']
       - kind: 'prose'
         text: >-
-          Dua sampai tiga halaman masih nyaman di target seketat ini. Lebih dari itu, pisahkan
-          berkasnya daripada memaksa kompresi sampai tulisannya tidak terbaca lagi.
+          Dua sampai lima halaman masih nyaman di target seketat ini, dan sepuluh halaman masih
+          terbaca walau tulisannya mulai lembut. Lebih dari itu, pisahkan berkasnya daripada memaksa
+          kompresi sampai tulisannya tidak terbaca lagi.
 faq:
   - question: 'Kenapa portal menolak berkas saya padahal sudah di bawah 1 MB?'
     answer: >-
@@ -186,18 +188,19 @@ faq:
       persen di bawah batas.
   - question: 'Berapa banyak halaman scan yang muat di bawah 1 MB?'
     answer: >-
-      Dalam pengujian kami, sampai sepuluh halaman scan biasanya muat di bawah 1 MB dan tetap tajam.
-      Dua puluh halaman biasanya juga muat. Scan yang padat teks, seperti ijazah atau transkrip asli,
-      bisa menyentuh batas itu lebih cepat daripada halaman uji kami yang lebih ringan.
+      Dalam pengujian kami, sampai dua puluh halaman scan muat di bawah 1 MB dan tetap tajam, dan
+      empat puluh halaman masih muat dengan tulisan yang sedikit lebih lembut. Scan yang padat teks,
+      seperti ijazah atau transkrip asli, bisa menyentuh batas itu lebih cepat daripada halaman uji
+      kami.
   - question: 'Apakah mengompres sampai 1 MB membuat dokumen jadi tidak terbaca?'
     answer: >-
-      Tidak, untuk sampai sekitar sepuluh halaman; hasil pengujian kami tetap tajam di ukuran itu.
-      Baru pada scan yang jauh lebih panjang, hasilnya mulai terlihat agak pecah.
+      Tidak, untuk sampai sekitar dua puluh halaman; hasil pengujian kami tetap tajam di ukuran itu.
+      Pada empat puluh halaman tulisannya mulai sedikit lembut, tapi masih terbaca.
   - question: 'PDF saya jadi 1,1 MB setelah dikompres, sekarang bagaimana?'
     answer: >-
-      Coba masukkan target sekitar sepuluh persen lebih rendah dulu sebelum menyimpulkan dokumennya
-      terlalu panjang; itu artinya berkas Anda hanya sedikit melebihi target ("ukuran terdekat"). Kalau
-      tetap tidak muat, pisahkan berkas menjadi beberapa bagian dan unggah hanya halaman yang diminta.
+      Artinya gambar di dalam PDF sudah dikecilkan sebisanya dan targetnya tetap tidak tercapai.
+      Pisahkan berkas menjadi beberapa bagian dan unggah hanya halaman yang diminta, atau nyalakan
+      sakelar "Turn pages into pictures" kalau Anda tidak keberatan teksnya tidak bisa dipilih lagi.
   - question: 'Apakah pas foto masih diterima setelah dikompres?'
     answer: >-
       Ya. Pas foto dengan latar polos biasanya turun di bawah 200 KB tanpa kehilangan apa pun yang
