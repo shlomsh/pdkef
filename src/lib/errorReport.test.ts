@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ACTIONS,
+  MAX_ACTIONS,
+  MAX_FRAMES,
+  MAX_REPORT_BYTES,
   MAX_REPORTS_PER_PAGE,
   parseErrorReport,
   readPageContext,
@@ -10,6 +14,7 @@ import {
   toErrorReport,
   type PageContext,
 } from './errorReport.ts';
+import { recordAction, resetActionTrailForTests } from './actionTrail.ts';
 
 function errorAt(frame: string, message = 'boom', name?: string): Error {
   const e = new TypeError(message);
@@ -18,7 +23,7 @@ function errorAt(frame: string, message = 'boom', name?: string): Error {
   return e;
 }
 
-const CTX: PageContext = { tool: '/sign/', installed: false, sw: true, age: 'under_1m' };
+const CTX: PageContext = { tool: '/sign/', installed: false, sw: true, age: 'under_1m', actions: [] };
 
 describe('toErrorReport', () => {
   it('carries no message text', () => {
@@ -119,6 +124,15 @@ describe('reportError', () => {
     const body = parseErrorReport(JSON.parse(await blob.text()));
     expect(body).toMatchObject({ area: 'drafts', name: 'TypeError', stack: ['A.js:1:2'], step: 'save_draft' });
   });
+  it('carries exactly the recorded actions, oldest first', async () => {
+    resetActionTrailForTests();
+    recordAction('add_files');
+    recordAction('clear_all');
+    reportError('drafts', errorAt('Act.js:1:2'), 'save_draft');
+    const [, blob] = beacon.mock.calls[0] as [string, Blob];
+    expect(JSON.parse(await blob.text()).actions).toEqual(['add_files', 'clear_all']);
+    resetActionTrailForTests();
+  });
   it('keeps two call sites over one throw site apart', () => {
     const e = errorAt('S.js:1:2');
     reportError('drafts', e, 'save_draft');
@@ -168,5 +182,63 @@ describe('parseErrorReport', () => {
     expect(parseErrorReport({ ...ok, area: 'other' })).toBeNull();
     expect(parseErrorReport({ ...ok, name: 'Type Error' })).toBeNull();
     expect(parseErrorReport({ ...ok, stack: ['/_astro/A.js:1:2'] })).toBeNull();
+  });
+});
+
+describe('actions field', () => {
+  const ok = { area: 'drafts', name: 'TypeError', stack: ['A.1.js:1:2'], step: 'none', ...CTX };
+  const names = (n: number) => Array.from({ length: n }, (_, i) => ACTIONS[i % ACTIONS.length]);
+  it('accepts 0 and exactly MAX_ACTIONS names', () => {
+    expect(parseErrorReport({ ...ok, actions: [] })?.actions).toEqual([]);
+    expect(parseErrorReport({ ...ok, actions: names(MAX_ACTIONS) })?.actions).toHaveLength(10);
+  });
+  it('rejects 11 names', () => {
+    expect(parseErrorReport({ ...ok, actions: names(MAX_ACTIONS + 1) })).toBeNull();
+  });
+  it('rejects names off the list, near misses and non-strings', () => {
+    for (const bad of ['nope', 'Add_files', 'add_files ', ' add_files', 'add-files', '', 1, null, undefined, {}, ['add_files']]) {
+      expect(parseErrorReport({ ...ok, actions: [bad] })).toBeNull();
+    }
+  });
+  it('rejects a non-array actions, and an extra key, accepting a missing one (older build)', () => {
+    expect(parseErrorReport({ ...ok, actions: { 0: 'add_files', length: 1 } })).toBeNull();
+    expect(parseErrorReport({ ...ok, actions: 'add_files' })).toBeNull();
+    const { actions: _drop, ...without } = ok as Record<string, unknown>;
+    expect(parseErrorReport(without)?.actions).toEqual([]);
+    expect(parseErrorReport({ ...without, tenth: 1 })).toBeNull();
+    expect(parseErrorReport({ ...ok, actions: null })).toBeNull();
+    expect(parseErrorReport({ ...ok, actions: [], tenth: 1 })).toBeNull();
+  });
+  it('returns a frozen copy, not the input array', () => {
+    const input = ['add_files', 'clear_all'];
+    const parsed = parseErrorReport({ ...ok, actions: input });
+    expect(parsed?.actions).toEqual(input);
+    expect(parsed?.actions).not.toBe(input);
+    expect(Object.isFrozen(parsed?.actions)).toBe(true);
+    input.push('undo');
+    expect(parsed?.actions).toHaveLength(2);
+  });
+  it('toErrorReport carries the context actions', () => {
+    const report = toErrorReport('drafts', errorAt('A.js:1:1'), 'save_draft', { ...CTX, actions: ['undo', 'redo'] });
+    expect(report?.actions).toEqual(['undo', 'redo']);
+  });
+  it('keeps the largest valid report under MAX_REPORT_BYTES', () => {
+    const longest = [...ACTIONS].sort((a, b) => b.length - a.length)[0];
+    const frame = `${'a'.repeat(120)}.js:1234567:1234567`;
+    const largest = {
+      actions: Array(MAX_ACTIONS).fill(longest),
+      area: 'sign_form_detection',
+      name: 'A' + 'b'.repeat(63),
+      stack: Array(MAX_FRAMES).fill(frame),
+      step: 'a' + 'b'.repeat(31),
+      tool: '/he/sign/',
+      installed: true,
+      sw: true,
+      age: 'under_10m',
+    };
+    expect(parseErrorReport(largest)).not.toBeNull();
+    const bytes = new TextEncoder().encode(JSON.stringify(largest)).length;
+    expect(bytes).toBe(1538);
+    expect(bytes).toBeLessThan(MAX_REPORT_BYTES);
   });
 });

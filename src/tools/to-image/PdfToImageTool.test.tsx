@@ -9,6 +9,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import toolStyles from './PdfToImageTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -347,5 +348,31 @@ describe('PdfToImageTool UI flow', () => {
     expect(Array.from(container.querySelectorAll('button')).some((b) =>
       b.textContent.includes('Convert to'),
     )).toBe(true);
+  });
+
+  it('records what the person did, by name only, in order', async () => {
+    resetActionTrailForTests();
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+      callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' }));
+    };
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool />, container);
+    });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('report.pdf')]);
+    });
+    const jpg = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'JPG');
+    await act(async () => {
+      jpg.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(recentActions()).toEqual(['add_files', 'change_setting', 'export']);
   });
 });

@@ -17,6 +17,7 @@ import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 
 let pdfjsLib: any;
 async function getPdfjs() {
@@ -135,6 +136,7 @@ export default function PdfSplitTool({
         if (undoTimer.current) clearTimeout(undoTimer.current);
         setUndoAction(null);
         perform();
+        recordAction('undo');
       },
     });
     undoTimer.current = setTimeout(() => setUndoAction(null), 5000);
@@ -316,6 +318,7 @@ export default function PdfSplitTool({
     if (pdfs.length === 0) return;
 
     const picked = pdfs[0];
+    recordAction(file ? 'replace_file' : 'add_files');
     invalidate();
     setFile(picked);
     setPages([]);
@@ -348,6 +351,7 @@ export default function PdfSplitTool({
       const isPartial = /[-,]\s*$/.test(value);
       setPageSelectorError(isPartial ? '' : err.message);
     }
+    recordAction('select_pages');
   };
 
   // Review 2026-09-14, P1: a toggled cell stays where it is. Membership is
@@ -363,6 +367,7 @@ export default function PdfSplitTool({
       setPageSelectorError('');
       return next;
     });
+    recordAction('select_pages');
   };
 
   // Rotation is a page property, not a selection one: it applies in either
@@ -374,6 +379,7 @@ export default function PdfSplitTool({
       prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 90) % 360 } : p)),
     );
     setAnnouncement(`Page ${pageNumber} rotated.`);
+    recordAction('rotate');
     registerUndo(`Rotated page ${pageNumber}`, () => {
       invalidate();
       setPages(snapshot);
@@ -388,6 +394,7 @@ export default function PdfSplitTool({
       setPageSelectorError('');
       return next;
     });
+    recordAction('select_pages');
   };
 
   const selectNone = () => {
@@ -395,12 +402,14 @@ export default function PdfSplitTool({
     setPages((prev) => prev.map((p) => ({ ...p, selected: false })));
     setPageSelector('');
     setPageSelectorError('');
+    recordAction('select_pages');
   };
 
   const chooseMode = (next: Mode) => {
     if (next === mode) return;
     invalidate();
     setMode(next);
+    recordAction('change_setting');
     setAnnouncement(next === 'combined'
       ? 'Selected pages will become a single PDF.'
       : 'Each selected page will become its own PDF.');
@@ -435,6 +444,7 @@ export default function PdfSplitTool({
       event.preventDefault();
       return;
     }
+    recordAction('download');
     if (mode === 'separate') {
       event.preventDefault();
       downloadAll(outputs);
@@ -445,6 +455,7 @@ export default function PdfSplitTool({
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement('Split PDF files shared successfully.');
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF files are still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');

@@ -1,0 +1,319 @@
+{
+ "id": "health-declaration-2021",
+ "pageWidthPts": 595.32,
+ "pageHeightPts": 841.92,
+ "rules": [
+  {
+   "id": "health-declaration-2021-r1",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.45,
+   "y": 229.7,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r2",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.45,
+   "y": 240.98,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r3",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.45,
+   "y": 252.38,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r4",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.45,
+   "y": 264.5,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r5",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.45,
+   "y": 275.78,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r6",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 411.55,
+   "y": 287.21,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r7",
+   "kind": "rule",
+   "x0": 413.95,
+   "x1": 555.46,
+   "y": 287.21,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r8",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.46,
+   "y": 298.49,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r9",
+   "kind": "rule",
+   "x0": 38.28,
+   "x1": 555.46,
+   "y": 309.77,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r10",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292.01,
+   "y": 329.93,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r11",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.82,
+   "y": 329.93,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r12",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 354.53,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r13",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 354.53,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r14",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 364.97,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r15",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 372.77,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r16",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 382.13,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r17",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 394.97,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r18",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 400.37,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r19",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 420.53,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r20",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 424.97,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r21",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 438.77,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r22",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 445.13,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r23",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 458.93,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r24",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 465.29,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r25",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 477.19,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r26",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 485.47,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r27",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 486.55,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r28",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 504.67,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r29",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 515.59,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r30",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 533.71,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r31",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 535.75,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r32",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 551.95,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r33",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 555.91,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r34",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 570.19,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r35",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292,
+   "y": 576.07,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r36",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 579.55,
+   "thickness": 0.72
+  },
+  {
+   "id": "health-declaration-2021-r37",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 597.79,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r38",
+   "kind": "rule",
+   "x0": 52.68,
+   "x1": 292.01,
+   "y": 748.656,
+   "thickness": 0.36
+  },
+  {
+   "id": "health-declaration-2021-r39",
+   "kind": "rule",
+   "x0": 303.29,
+   "x1": 555.81,
+   "y": 755.016,
+   "thickness": 0.36
+  }
+ ]
+}

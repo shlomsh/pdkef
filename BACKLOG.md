@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 2 up next, 11 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 39 live: 2 up next, 9 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -28,7 +28,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |  |
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |  |
@@ -38,6 +37,7 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |  |
 
 ## Form detector accuracy
@@ -67,7 +67,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
-| DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | Needs Shlomi: The privacy-page sentence for action names in error reports |
 | DEBT-33 | P3 | [DEBT-33](backlog/tasks/DEBT-33.md) · The shared colour picker commits on every drag step under preact/compat |  |
 
 ### Waiting
@@ -140,7 +139,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 11 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 15 done, 3 retired
+- Robustness and debt: 16 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
