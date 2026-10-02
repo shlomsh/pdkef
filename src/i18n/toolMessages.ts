@@ -1319,6 +1319,9 @@ export interface ShellMessages {
    * and iCloud. Shown on phones only, after the same mount-effect check as
    * iosFilesHint, on tools that opt in with `showCloudDriveHint`. */
   cloudDriveHint: string;
+  /** Shown only once a file is added, and only when `src/lib/browserSupport.ts`
+   * places the browser below what pdf.js needs. Never blocks the page. */
+  oldBrowserNotice: string;
 }
 
 const englishShellMessages: ShellMessages = {
@@ -1369,6 +1372,7 @@ const englishShellMessages: ShellMessages = {
   pageOf: 'Page {current} of {total}',
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
   cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
+  oldBrowserNotice: 'This tool needs {browser} {version} or newer to open PDFs. A quick update, or another browser, will do it.',
 };
 
 const hebrewShellMessages: ShellMessages = {
@@ -1417,6 +1421,7 @@ const hebrewShellMessages: ShellMessages = {
   pageOf: 'עמוד {current} מתוך {total}',
   iosFilesHint: 'באייפון או אייפד, שתפו את קובץ ה-PDF ל-Files מתוך Mail, WhatsApp או כל אפליקציה אחרת, ואז לחצו על בחירת קובץ. הוא ייפתח בכרטיסיית "אחרונים" ב-Files, עם הקובץ ששמרתם הרגע למעלה.',
   cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
+  oldBrowserNotice: 'כדי לפתוח קובצי PDF בכלי הזה צריך {browser} {version} ומעלה. עדכון קצר, או דפדפן אחר, יסדרו את זה.',
 };
 
 const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {

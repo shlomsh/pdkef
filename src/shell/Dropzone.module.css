@@ -371,6 +371,16 @@
    only). Plain body text, not another pill like .privacy-line - it is
    supplementary guidance, not a trust signal, and doesn't need the same
    visual weight. */
+.old-browser-notice {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .ios-files-hint {
   margin: var(--space-2) 0 0;
   max-width: 32rem;

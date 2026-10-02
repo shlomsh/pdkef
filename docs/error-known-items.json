@@ -36,5 +36,18 @@
       "slug": "unlock"
     },
     "fixedIn": "01bf5820"
+  },
+  {
+    "id": "DEBT-38",
+    "ticket": "DEBT-38",
+    "title": "pdf.js needs the global Iterator, missing before Chromium 122",
+    "match": {
+      "area": "pdf_tool_run",
+      "name": "ReferenceError",
+      "slug": "compress",
+      "module": "pdf"
+    },
+    "open": true,
+    "note": "old browsers are told once a file is added; the crash itself is not prevented"
   }
 ]
