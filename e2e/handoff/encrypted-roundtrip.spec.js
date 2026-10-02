@@ -36,7 +36,7 @@ test('an owner-only file in Redact goes to Unlock with no prompt and comes back 
   await openTool(page, '/redact/');
   await chooseInRedact(page, 'owner-only.pdf', fixture('owner-only'));
 
-  await expect(page.getByText('This PDF is protected')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This PDF is protected' })).toBeVisible();
   await expect(page.locator('.redact-draw-area')).toHaveCount(0);
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
@@ -60,7 +60,7 @@ test('a file that needs a password asks for it in Unlock, refuses a wrong one, a
   await openTool(page, '/redact/');
   await chooseInRedact(page, 'needs-password.pdf', fixture('needs-password'));
 
-  await expect(page.getByText('This PDF has a password')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This PDF has a password' })).toBeVisible();
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
   await page.waitForURL(/\/unlock\/?(?:\?.*)?$/);

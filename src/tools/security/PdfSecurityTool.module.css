@@ -31,7 +31,7 @@
 .line {
   margin: 1.5rem 0 0;
   font-size: 0.9rem;
-  color: var(--color-text-secondary);
+  color: var(--color-muted);
 }
 
 /* Quiet next steps after Download and Share. Same shape as Redact's row; tools cannot import each other (ENC-12 folds the copies). */

@@ -142,9 +142,10 @@ calls `getCreationDate()` outside its try and throws on the garbled string, so s
   exist. The buttons are always there after an unlock, not only when the person came from Redact, which is
   what guidelines section 13 asks for (Unlock to Sign is already a listed candidate).
 - **No new concept.** No `?from=`, no return marker, no change to the hand-off record, no memory-space
-  write. The protected file is never stored (Redact and Sign call `cacheRecentFile` only after pdf.js
-  accepts a file, `PdfRedactTool.tsx:460-464`), so there is no pair of hashes to reconcile: the unlocked
-  file is a new file.
+  write. There is no pair of hashes to reconcile: the unlocked file is a new file. (Found in review: an
+  owner-only file can still reach Redact's recents, because the preview effect in `useDraftPersistence.js`
+  caches once pdf.js renders it and does not wait for the gate. It is harmless: opening it from there
+  meets the gate again.)
 
 ### Cases
 

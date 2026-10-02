@@ -1,6 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import { Eraser, FileSignature } from 'lucide-preact';
-import { protectPdf, unlockPdf, WrongPasswordError, SecurityError } from './security.js';
+import { protectPdf, unlockPdf, WrongPasswordError } from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
@@ -90,7 +90,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       // Same rule on the way out: a failure for a file nobody is looking at
       // any more must not put the loaded one into an error state.
       if (!run.isCurrent()) return;
-      if (!(err instanceof WrongPasswordError) && !(err instanceof SecurityError)) reportError('pdf_tool_run', err, sourceMode);
+      if (!(err instanceof WrongPasswordError)) reportError('pdf_tool_run', err, sourceMode);
       run.settle();
       setStatus('error');
       const wrongPassword = err instanceof WrongPasswordError;
@@ -225,7 +225,13 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       {hasFiles && mode && (
         <div class="tool-workspace">
           {noPassword ? (
-            <p class={styles.line}>No password needed. This takes the protection off.</p>
+            status === 'error' ? (
+              <p class={styles.line}>Choose another file with Replace.</p>
+            ) : (
+              <p class={styles.line}>
+                No password needed. This takes the protection off.{status === 'processing' ? ' Unlocking…' : ''}
+              </p>
+            )
           ) : (
             <form class={styles['unlock-form']} onSubmit={handleSubmit}>
               <label class={styles['unlock-label']} htmlFor="security-password">

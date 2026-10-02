@@ -15,7 +15,7 @@
 .body {
   margin: 0;
   max-width: 36rem;
-  color: var(--color-text-secondary);
+  color: var(--color-muted);
 }
 
 .actions {
