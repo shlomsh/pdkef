@@ -1,10 +1,9 @@
 ---
 id: "ENC-07"
 title: "Sign shows the protected state instead of its alert"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 order: 2
 depends_on: ["ENC-02"]
 ---
@@ -21,3 +20,7 @@ depends_on: ["ENC-02"]
 ## Acceptance
 - The round trip in `e2e/handoff/encrypted-roundtrip.spec.js` gains a Sign case: protected file in Sign, Unlock it, Continue in Sign, Sign's editor has `<name>_unlocked.pdf`.
 - Island test with the ENC-01 fixtures: both kinds show the state, the editor never mounts, no recent is cached. Verified at phone width.
+
+## Result
+
+Shipped on `fix/unlock-done-state` (ae7190b4). Sign passes `onNeedsUnlock` to the shared `loadPdf`, so both kinds show `NeedsUnlock` (`src/shell/`) with Sign's own English and Hebrew copy and `from: 'sign'`; the editor never mounts and the file never reaches recents. Every entry point (pick, draft restore, `launchQueue`, hand-off intake) goes through `loadPdf`. The export catch keeps `reportError` (a gate miss) and shows the state instead of an alert. Island tests: `PdfSignTool.protected.test.tsx`; round trip: `e2e/handoff/encrypted-roundtrip-sign.spec.js`. Checked at 1280 and 375.
