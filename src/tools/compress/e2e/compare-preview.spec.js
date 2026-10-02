@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import fs from 'fs';
+import { PDFDocument } from '@cantoo/pdf-lib';
+
+// Compress now only shrinks embedded images, so the fixture's pages carry
+// photos: they are copies of the committed mixed.pdf fixture's page.
+const MIXED = fs.readFileSync(new URL('../__fixtures__/mixed.pdf', import.meta.url));
 
 // SEO-25 - the before/after compare panel opens by default as soon as a
 // result exists (Shlomi, 2026-09-12: "it turned out amazing, it is however
@@ -20,25 +25,11 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 // scoped to specific specs and does not pick this one up).
 
 async function makeMultiPagePdfBuffer(pageCount = 4) {
+  const source = await PDFDocument.load(MIXED);
   const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
   for (let i = 0; i < pageCount; i += 1) {
-    const page = doc.addPage([612, 792]);
-    page.drawText(`SEO-25 compare preview fixture - page ${i + 1}`, {
-      x: 72,
-      y: 700,
-      size: 20,
-      font,
-      color: rgb(0.14, 0.22, 0.29),
-    });
-    page.drawRectangle({ x: 72, y: 420, width: 380, height: 220, color: rgb(0.24, 0.49, 0.55) });
-    page.drawText('Lorem ipsum dolor sit amet, consectetur adipiscing elit.', {
-      x: 72,
-      y: 360,
-      size: 12,
-      font,
-      color: rgb(0.29, 0.4, 0.44),
-    });
+    const [page] = await doc.copyPages(source, [0]);
+    doc.addPage(page);
   }
   return Buffer.from(await doc.save());
 }
