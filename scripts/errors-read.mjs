@@ -110,27 +110,53 @@ replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
 });
 const table = [...rows].sort((a, b) => b[1] - a[1]);
 
-// The verdict first (DEBT-36): what needs attention, then the known old tabs. Builds are looked up in git, so
-// bring origin up to date first; offline or failing, the verdicts degrade to "unverifiable", never an error.
-try {
-  execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repoRoot, timeout: 20000, stdio: 'ignore' });
-} catch {
-  // expected: offline or no remote; verdicts that need git then say they could not tell
+// Anything that makes this read incomplete is said before the verdict, so "nothing needs attention" is never an
+// all-clear by accident: a store that answered with errors or too little, or a day that hit its cap.
+const problems = [];
+const badReplies = Array.isArray(fetched) ? fetched.filter((r) => !r || r.error !== undefined).length : 0;
+if (!Array.isArray(fetched) || badReplies || fetched.length < allKeys.length * 6) {
+  problems.push(`WARNING: the store returned errors or too little (${badReplies} bad of ${Array.isArray(fetched) ? fetched.length : 0} replies, ${allKeys.length * 6} expected), so this read is incomplete`);
 }
+// The total is the INCR count, so a day past the cap reads above it; later events that day went uncounted.
+keys.forEach((day, n) => {
+  if (errorTotals[n] > DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${DAILY_CAP} error reports and Sign events; later ones that day were not counted`);
+  if (usageTotals[n] > USAGE_DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${USAGE_DAILY_CAP} tool usage events; later ones that day were not counted`);
+});
+for (const line of problems) console.log(line);
+
+// The verdict first (DEBT-36). Builds are looked up in git, so bring origin up to date, but only when there is
+// something to look up; offline or failing, the verdicts degrade to "unverifiable", never an error.
+if (table.length && !process.env.ERRORS_READ_OFFLINE) {
+  try {
+    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repoRoot, timeout: 20000, stdio: 'ignore' });
+  } catch {
+    // expected: offline or no remote; verdicts that need git then say they could not tell
+  }
+}
+// The registry as origin/main has it, so a shared checkout that lags does not make known crashes read as new;
+// the working-tree file is the fallback.
+const REGISTRY = 'docs/error-known-items.json';
 let knownItems = [];
 try {
-  knownItems = JSON.parse(readFileSync(path.join(repoRoot, 'docs/error-known-items.json'), 'utf8'));
-  const problems = validateRegistry(knownItems);
-  if (problems.length) {
-    console.log(`docs/error-known-items.json is invalid, treating every report as new: ${problems.join('; ')}`);
+  let text;
+  try {
+    text = runGit(['show', `origin/main:${REGISTRY}`]);
+  } catch {
+    // expected: no origin/main here, read the working tree instead
+    text = readFileSync(path.join(repoRoot, REGISTRY), 'utf8');
+  }
+  knownItems = JSON.parse(text);
+  const invalid = validateRegistry(knownItems);
+  if (invalid.length) {
+    console.log(`${REGISTRY} is invalid, treating every report as unknown: ${invalid.join('; ')}`);
     knownItems = [];
   }
 } catch (error) {
-  console.log(`docs/error-known-items.json could not be read (${error.message}); treating every report as new`);
+  console.log(`${REGISTRY} could not be read (${error.message}); treating every report as unknown`);
 }
 const verdicts = triage({ table, samples, history: fingerprintHistory(perDay, days), entries: knownItems, run: runGit });
 for (const line of renderTriage(verdicts, toolRates(perDay, days))) console.log(line);
-console.log(`(window ${days} day${days === 1 ? '' : 's'}, history ${history}; newest UTC day first, today is partial)\n`);
+console.log(`(window ${days} day${days === 1 ? '' : 's'}, history ${history}; today is a partial UTC day; a fingerprint includes its chunk hash, so a rebuilt chunk reads as a new one)\n`);
 const verdictByField = new Map([...verdicts.needs, ...verdicts.known].map((item) => [item.field, item.verdict]));
 
 console.log('count | area | name | frame | step | engine');
@@ -177,13 +203,3 @@ if (usageRows.length) {
   console.log('tool | accepted | started | ready | failed | ready/accepted');
   for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
-
-// The total is the INCR count, so a day past the cap reads above it; later events that day went uncounted.
-keys.forEach((day, n) => {
-  if (errorTotals[n] > DAILY_CAP) {
-    console.log(`${day}: error reports and Sign events reached the daily cap of ${DAILY_CAP}; later ones that day were not counted`);
-  }
-  if (usageTotals[n] > USAGE_DAILY_CAP) {
-    console.log(`${day}: tool usage reached the daily cap of ${USAGE_DAILY_CAP}; later ones that day were not counted`);
-  }
-});

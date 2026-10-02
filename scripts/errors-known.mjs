@@ -3,17 +3,22 @@
 // `git merge-base --is-ancestor` has .status === 1 for "not an ancestor", any other failure is no answer).
 import { frameLabel } from './errors-frames.mjs';
 
-// The commit that first stamped builds with their commit: a stamped report carries `build`, an older tab none.
+// The first DEPLOYED commit whose builds carry a stamp: a stamped report carries `build`, an older tab none.
+// Deployed, not authored: the stamping commit 2f19bbbb reached production inside the push of f27c2b71, while a
+// fix that landed on the other side of that merge (01bf5820) shipped, unstamped, in the push before it.
 export const STAMP_COMMIT = 'f27c2b71';
 
 const HEX = /^[0-9a-f]{7,40}$/;
 const MATCH_KEYS = ['area', 'name', 'step', 'slug', 'module'];
 
-// '/merge/' -> 'merge', '/he/merge/' -> 'merge', '/' -> 'home'; anything else -> ''.
+// '/merge/' -> 'merge', '/he/merge/' -> 'merge', '/' and '/he/' -> 'home'; anything else -> ''.
+// A lone two-letter segment is a localized home page; no tool slug is two letters.
 export function toSlug(tool) {
   if (typeof tool !== 'string' || !tool) return '';
   const parts = tool.split('/').filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : tool.startsWith('/') ? 'home' : '';
+  if (!parts.length) return tool.startsWith('/') ? 'home' : '';
+  if (parts.length === 1 && parts[0].length === 2) return 'home';
+  return parts[parts.length - 1];
 }
 
 // `area|name|frame|step|engine` plus the parsed stored sample (may be null).
@@ -32,7 +37,9 @@ export function findEntry(entries, fp) {
   return (entries ?? []).find((entry) => matchEntry(entry, fp)) ?? null;
 }
 
-const validValue = (v) => typeof v === 'string' || (Array.isArray(v) && v.length > 0 && v.every((s) => typeof s === 'string'));
+// Never an empty string: toSlug and describeFingerprint produce '' for a missing field, so '' would match it.
+const validValue = (v) =>
+  (typeof v === 'string' && v !== '') || (Array.isArray(v) && v.length > 0 && v.every((s) => typeof s === 'string' && s !== ''));
 
 export function validateRegistry(json) {
   if (!Array.isArray(json)) return ['registry must be an array'];
@@ -51,7 +58,7 @@ export function validateRegistry(json) {
       errors.push(`${at}: match must be an object`);
     } else {
       const keys = Object.keys(match);
-      if (!keys.length) errors.push(`${at}: match needs at least one key`);
+      if (keys.length < 2) errors.push(`${at}: match needs at least two keys, one alone swallows a whole class of reports`);
       for (const key of keys) {
         if (!MATCH_KEYS.includes(key)) errors.push(`${at}: unknown match key ${key}`);
         else if (!validValue(match[key])) errors.push(`${at}: match.${key} must be a string or a list of strings`);
@@ -61,7 +68,7 @@ export function validateRegistry(json) {
     const isOpen = entry.open !== undefined;
     if (isOpen && entry.open !== true) errors.push(`${at}: open must be true`);
     if (hasFix === isOpen) errors.push(`${at}: needs exactly one of fixedIn or open: true`);
-    if (hasFix && !HEX.test(String(entry.fixedIn))) errors.push(`${at}: fixedIn must be 7 to 40 lowercase hex characters`);
+    if (hasFix && !(typeof entry.fixedIn === 'string' && HEX.test(entry.fixedIn))) errors.push(`${at}: fixedIn must be 7 to 40 lowercase hex characters`);
   });
   return errors;
 }
@@ -93,10 +100,11 @@ export function classify({ entry, build, run }) {
   }
   const answer = ancestor(run, entry.fixedIn, STAMP_COMMIT);
   if (answer === 'no') {
+    // Most likely, never certain: a build deployed without a commit (a CLI deploy) sends no stamp either.
     return {
-      category: 'old_tab',
+      category: 'likely_old_tab',
       actionable: false,
-      reason: 'no build stamp, and the fix is newer than stamping, so this tab predates it',
+      reason: 'no build stamp and the fix is newer than stamping, so this is most likely a tab that predates it (a build deployed without a commit would also read this way)',
       ticket,
     };
   }

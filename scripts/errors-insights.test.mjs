@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   RISING,
   fingerprintHistory,
-  latestSamples,
   parseDayReplies,
   sliceWindow,
   toolRates,
@@ -70,19 +69,6 @@ describe('parseDayReplies', () => {
   });
 });
 
-describe('latestSamples', () => {
-  it('lets the newest day win', () => {
-    const perDay = [
-      day('d2', { samples: { f: 'new', g: 'g2' } }),
-      day('d1', { samples: { f: 'old', h: 'h1' } }),
-    ];
-    const m = latestSamples(perDay);
-    expect(m.get('f')).toBe('new');
-    expect(m.get('g')).toBe('g2');
-    expect(m.get('h')).toBe('h1');
-  });
-});
-
 describe('fingerprintHistory', () => {
   const perDay = [
     day('d4', { counts: { onlyWin: 2, both: 1 } }),
@@ -132,7 +118,7 @@ describe('toolRates', () => {
   const by = (rows, t) => rows.find((r) => r.tool === t);
 
   it('exports the defaults', () => {
-    expect(RISING).toEqual({ factor: 2, minFailed: 3 });
+    expect(RISING).toEqual({ factor: 2, minFailed: 3, minBaselineStarts: 5, noBaselineRate: 0.2 });
   });
 
   it('flags redact against its baseline and sorts by failed', () => {
@@ -213,6 +199,38 @@ describe('sliceWindow', () => {
   });
   it('tolerates short or non-array replies', () => {
     expect(sliceWindow(undefined, 3, 2)).toHaveLength(12);
-    expect(sliceWindow([], 3, 2).every((x) => x === undefined)).toBe(true);
+    // A consumer destructures `{ result }`, so a missing reply must come back as an empty one, not undefined.
+    expect(sliceWindow([], 3, 2).every((x) => x && x.result === null)).toBe(true);
+  });
+});
+
+describe('toolRates, baselines that cannot be trusted', () => {
+  const by = (rows, t) => rows.find((r) => r.tool === t);
+  const u = (started, failed) => ({ 'tool_operation_started|t': started, 'tool_operation_failed|t': failed });
+
+  it('a baseline of a few starts is too thin to compare: a low failure rate is not flagged', () => {
+    const rows = toolRates([day('w', { usage: u(1000, 3) }), day('h', { usage: u(1, 0) })], 1);
+    const r = by(rows, 't');
+    expect(r.baselineRate).toBeNull();
+    expect(r.flag).toBe(false);
+    expect(r.why).toContain('too thin (1 start)');
+  });
+  it('without a usable baseline, a high failure rate still flags', () => {
+    const r = by(toolRates([day('w', { usage: u(10, 5) }), day('h', { usage: u(2, 0) })], 1), 't');
+    expect(r.flag).toBe(true);
+  });
+  it('without any history, 3 failures in 1000 is not flagged but 3 in 10 is', () => {
+    expect(by(toolRates([day('w', { usage: u(1000, 3) })], 1), 't').flag).toBe(false);
+    expect(by(toolRates([day('w', { usage: u(10, 3) })], 1), 't').flag).toBe(true);
+  });
+  it('a baseline with starts and no failures flags new failures, and says none failed earlier', () => {
+    const r = by(toolRates([day('w', { usage: u(100, 3) }), day('h', { usage: u(20, 0) })], 1), 't');
+    expect(r.flag).toBe(true);
+    expect(r.why).toContain('none failed earlier');
+  });
+  it('failures with no starts in the window flag against a real baseline', () => {
+    const r = by(toolRates([day('w', { usage: u(0, 4) }), day('h', { usage: u(20, 2) })], 1), 't');
+    expect(r.flag).toBe(true);
+    expect(r.why).toContain('no starts recorded');
   });
 });

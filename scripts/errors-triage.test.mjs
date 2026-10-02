@@ -98,13 +98,32 @@ describe('triage', () => {
   });
 });
 
+describe('a verdict rests on one sample', () => {
+  it('says so when the count covers more reports than the one the verdict was read from', () => {
+    const t = run([[REDACT_EXPORT, 5]], { samples: { [REDACT_EXPORT]: sample('/redact/', 'abc1234') }, answers: { 'bb156a5b>abc1234': 'no' } });
+    const line = renderTriage(t, []).find((l) => l.includes('ENC-02'));
+    expect(line).toContain('judged on the latest of 5 reports');
+  });
+  it('says nothing extra for one report, or for a fingerprint no entry covers', () => {
+    const one = run([[REDACT_EXPORT, 1]], { samples: { [REDACT_EXPORT]: sample('/redact/', 'abc1234') }, answers: { 'bb156a5b>abc1234': 'no' } });
+    expect(renderTriage(one, []).join('\n')).not.toContain('judged on');
+    const unknown = run([[PDFJS, 9]], { samples: { [PDFJS]: sample('/redact/') } });
+    expect(renderTriage(unknown, []).join('\n')).not.toContain('judged on');
+  });
+  it('a likely old tab is known and not actionable', () => {
+    const t = run([[UNLOCK, 3]], { samples: { [UNLOCK]: sample('/unlock/') }, answers: { '01bf5820>f27c2b71': 'no' } });
+    expect(t.needs).toEqual([]);
+    expect(t.known[0].verdict.category).toBe('likely_old_tab');
+  });
+});
+
 describe('renderTriage', () => {
   const needsNew = () => run([[PDFJS, 1]], { samples: { [PDFJS]: sample('/redact/') }, history: { [PDFJS]: hist() } });
 
   it('leads with Needs attention and one labelled line per item, with first-seen', () => {
     const lines = renderTriage(needsNew(), []);
     expect(lines[0]).toBe('Needs attention (1)');
-    expect(lines[1]).toBe('  NEW  1x redact TypeError read_glyphs on redact (chromium-143): not in the known items; new, first seen 2026-10-02');
+    expect(lines[1]).toBe('  UNKNOWN  1x redact TypeError read_glyphs on redact (chromium-143): not in the known items; not seen on earlier days (first seen 2026-10-02)');
   });
 
   it('says so when nothing needs attention, and still lists the known ones', () => {
@@ -112,7 +131,7 @@ describe('renderTriage', () => {
     const lines = renderTriage(t, []);
     expect(lines[0]).toBe('Needs attention: nothing');
     expect(lines).toContain('Known, not actionable (1)');
-    expect(lines.some((l) => l.includes('OPEN-1') && l.includes('seen 5 of 14 days'))).toBe(true);
+    expect(lines.some((l) => l.includes('OPEN-1') && l.includes('seen on 5 of 14 days (earliest in history: 2026-09-28)'))).toBe(true);
   });
 
   it('prints each flagged tool as a RISING line under Needs attention', () => {

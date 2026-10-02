@@ -1,7 +1,10 @@
 // Pure helpers for the daily error read: turn the Upstash pipeline replies into per-day data, then
 // answer "is this fingerprint new?", "how often has it recurred?" and "is a tool failing more than usual?".
 
-export const RISING = { factor: 2, minFailed: 3 };
+// factor: how many times its earlier failure rate; minFailed: fewer failures than this never flag;
+// minBaselineStarts: an earlier history with fewer starts is too thin to compare against;
+// noBaselineRate: with nothing to compare against, flag only when at least this share of runs fails.
+export const RISING = { factor: 2, minFailed: 3, minBaselineStarts: 5, noBaselineRate: 0.2 };
 
 const toNum = (v) => {
   const n = Number(v);
@@ -40,14 +43,10 @@ export function parseDayReplies(replies, keys) {
 export function sliceWindow(replies, total, n) {
   const r = Array.isArray(replies) ? replies : [];
   const out = [];
-  for (let i = 0; i < 2 * n; i++) out.push(r[i]);
-  for (const block of [2, 3, 4, 5]) for (let i = 0; i < n; i++) out.push(r[block * total + i]);
-  return out;
-}
-
-export function latestSamples(perDay) {
-  const out = new Map();
-  for (const d of perDay) for (const [f, s] of d.samples) if (!out.has(f)) out.set(f, s);
+  // A missing reply comes back as an empty one: consumers destructure `{ result }`.
+  const at = (i) => r[i] ?? { result: null };
+  for (let i = 0; i < 2 * n; i++) out.push(at(i));
+  for (const block of [2, 3, 4, 5]) for (let i = 0; i < n; i++) out.push(at(block * total + i));
   return out;
 }
 
@@ -109,6 +108,8 @@ const multiple = (x) => `${Number(x.toFixed(1))}x`;
 export function toolRates(perDay, windowDays, opts = {}) {
   const factor = opts.factor ?? RISING.factor;
   const minFailed = opts.minFailed ?? RISING.minFailed;
+  const minBaselineStarts = opts.minBaselineStarts ?? RISING.minBaselineStarts;
+  const noBaselineRate = opts.noBaselineRate ?? RISING.noBaselineRate;
   const history = perDay.slice(windowDays);
   const win = sumByTool(perDay.slice(0, windowDays));
   const base = sumByTool(history);
@@ -117,15 +118,21 @@ export function toolRates(perDay, windowDays, opts = {}) {
     if (!(w.accepted || w.started || w.ready || w.failed)) continue;
     const b = history.length ? base.get(tool) || emptyTotals() : null;
     const rate = w.started > 0 ? w.failed / w.started : null;
-    const baselineRate = b && b.started > 0 ? b.failed / b.started : null;
+    const baselineRate = b && b.started >= minBaselineStarts ? b.failed / b.started : null;
     const cmpRate = w.started === 0 && w.failed >= minFailed ? Infinity : rate;
     const flag =
       w.failed >= minFailed &&
-      (baselineRate === null || (cmpRate !== null && cmpRate >= factor * baselineRate));
+      (baselineRate === null
+        ? rate === null || rate >= noBaselineRate
+        : cmpRate !== null && cmpRate >= factor * baselineRate);
     const head = w.started > 0 ? `failed ${w.failed} of ${w.started} started (${pct(rate)})` : `failed ${w.failed}, no starts recorded`;
     let why;
     if (baselineRate === null) {
-      const gap = history.length ? 'no earlier starts to compare' : 'no earlier history to compare';
+      const gap = !history.length
+        ? 'no earlier history to compare'
+        : b && b.started > 0
+          ? `earlier history too thin (${b.started} start${b.started === 1 ? '' : 's'})`
+          : 'no earlier starts to compare';
       why = w.started > 0 ? `failed ${w.failed}, ${gap}` : `failed ${w.failed}, no starts recorded, ${gap}`;
     } else if (baselineRate === 0) {
       why = `${head}, none failed earlier`;
