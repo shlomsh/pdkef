@@ -3,7 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { documentationSourceFiles, gitFileLastModifiedIso, lastModifiedFor } from './gitLastModified.js';
+import {
+  documentationSourceFiles,
+  gitFileLastModifiedIso,
+  gitToolEntryLastModifiedIso,
+  lastModifiedFor,
+  toolEntryLineRange,
+} from './gitLastModified.js';
 
 describe('documentationSourceFiles', () => {
   it('dates an English page by its YAML alone, never the shared route template', () => {
@@ -81,5 +87,79 @@ describe('a shallow clone cannot date a file outside its window', () => {
     );
     const shallowCloneOutput = execSync(`node "${scriptFile}"`, { cwd: shallowClone, encoding: 'utf8' }).trim();
     expect(JSON.parse(shallowCloneOutput)).toBeNull();
+  });
+});
+
+// Sitemap churn: `src/data/tools.js` holds every tool's copy, so dating a tool
+// by the whole file re-dated all ten tool pages on every edit to any one of
+// them (seven commits on 2026-09-28 left them all stamped with the last one).
+// A tool is dated by the history of its own entry's lines instead.
+describe('toolEntryLineRange', () => {
+  const source = [
+    'export const tools = [',
+    '  {',
+    "    slug: 'sign',",
+    "    title: 'Sign',",
+    '  },',
+    '',
+    '  {',
+    "    slug: 'merge',",
+    '    faq: [',
+    '      { q: 1 },',
+    '    ],',
+    '  },',
+    '];',
+  ].join('\n');
+
+  it('spans the entry from its opening brace to its closing one', () => {
+    expect(toolEntryLineRange(source, 'sign')).toEqual({ start: 2, end: 5 });
+    expect(toolEntryLineRange(source, 'merge')).toEqual({ start: 7, end: 12 });
+  });
+
+  it('returns null for a slug that has no entry', () => {
+    expect(toolEntryLineRange(source, 'nope')).toBeNull();
+  });
+});
+
+describe('gitToolEntryLastModifiedIso', () => {
+  let repo;
+  const git = (cmd, date) =>
+    execSync(`git ${cmd}`, {
+      cwd: repo,
+      encoding: 'utf8',
+      env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date },
+    });
+  const write = (alpha, beta) =>
+    fs.writeFileSync(
+      path.join(repo, 'tools.js'),
+      `export const tools = [\n  {\n    slug: 'alpha',\n    title: '${alpha}',\n  },\n\n  {\n    slug: 'beta',\n    title: '${beta}',\n  },\n];\n`,
+    );
+
+  beforeAll(() => {
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'pdkef-tool-entry-test-'));
+    git('init --quiet', '2026-01-01T00:00:00Z');
+    git('config user.email t@example.com', '2026-01-01T00:00:00Z');
+    git('config user.name t', '2026-01-01T00:00:00Z');
+    write('a1', 'b1');
+    git('add tools.js', '2026-01-01T00:00:00Z');
+    git('commit --quiet -m first', '2026-01-01T00:00:00Z');
+    write('a1', 'b2');
+    git('commit --quiet -am beta-only', '2026-02-01T00:00:00Z');
+    write('a2', 'b2');
+    git('commit --quiet -am alpha-only', '2026-03-01T00:00:00Z');
+  });
+
+  afterAll(() => {
+    if (repo) fs.rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("dates each entry by the last commit that touched its own lines, not the file's", () => {
+    const opts = { file: 'tools.js', cwd: repo };
+    expect(gitToolEntryLastModifiedIso('alpha', opts)).toBe('2026-03-01T00:00:00.000Z');
+    expect(gitToolEntryLastModifiedIso('beta', opts)).toBe('2026-02-01T00:00:00.000Z');
+  });
+
+  it('returns null for a slug with no entry', () => {
+    expect(gitToolEntryLastModifiedIso('gamma', { file: 'tools.js', cwd: repo })).toBeNull();
   });
 });
