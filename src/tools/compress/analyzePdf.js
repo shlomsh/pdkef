@@ -45,6 +45,26 @@ function colorSpaceName(dict, context) {
   return 'none';
 }
 
+// Samples per pixel: Device spaces by name, ICCBased from its profile stream's /N.
+function componentsOf(dict, context) {
+  const cs = context.lookup(dict.get(PDFName.of('ColorSpace')));
+  const name = colorSpaceName(dict, context);
+  if (name === 'DeviceRGB') return 3;
+  if (name === 'DeviceGray') return 1;
+  if (name === 'ICCBased' && cs instanceof PDFArray) {
+    const profile = context.lookup(cs.get(1));
+    const n = profile instanceof PDFRawStream ? context.lookup(profile.dict.get(PDFName.of('N'))) : null;
+    return n instanceof PDFNumber ? n.asNumber() : null;
+  }
+  return null;
+}
+
+// Pre-multiplied alpha (/Matte) cannot be re-encoded without un-multiplying it.
+function smaskHasMatte(dict, context) {
+  const smask = context.lookup(dict.get(PDFName.of('SMask')));
+  return smask instanceof PDFRawStream && smask.dict.has(PDFName.of('Matte'));
+}
+
 // The PNG/TIFF predictor a Flate image is stored with, or null when none (1).
 function predictorOf(dict, context) {
   const parms = context.lookup(dict.get(PDFName.of('DecodeParms')));
@@ -71,6 +91,8 @@ function describeImage(ref, stream, maskedRefs, context) {
     height: numberValue(dict.get(PDFName.of('Height'))),
     bitsPerComponent: bpc instanceof PDFNumber ? bpc.asNumber() : null,
     colorSpace: colorSpaceName(dict, context),
+    components: componentsOf(dict, context),
+    smaskHasMatte: smaskHasMatte(dict, context),
     filters: filterNames(dict, context),
     bytes: stream.getContents().length,
     predictor: predictorOf(dict, context),

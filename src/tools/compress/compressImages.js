@@ -10,10 +10,11 @@ const sameFilters = (filters, name) => filters.length === 1 && filters[0] === na
 // decode sheared, and a /Decode array would be dropped without being applied:
 // both are kept as they are rather than re-encoded wrongly.
 export function planImageRewrite(image) {
-  if (image.isMask || image.hasSMask) return 'keep';
+  if (image.isMask || image.smaskHasMatte) return 'keep';
   if (image.predictor !== null || image.hasDecode) return 'keep';
   if (image.bitsPerComponent !== 8) return 'keep';
-  if (image.colorSpace !== 'DeviceRGB' && image.colorSpace !== 'DeviceGray') return 'keep';
+  if (!['DeviceRGB', 'DeviceGray', 'ICCBased'].includes(image.colorSpace)) return 'keep';
+  if (image.components !== 1 && image.components !== 3) return 'keep';
   if (!sameFilters(image.filters, 'DCTDecode') && !sameFilters(image.filters, 'FlateDecode')) return 'keep';
   if (image.width * image.height < MIN_PIXELS) return 'keep';
   return 'reencode';
@@ -39,10 +40,13 @@ export async function encodeImageOnCanvas({ image, stream, target, quality, deco
   try {
     let drawable;
     if (image.filters[0] === 'DCTDecode') {
-      drawable = await createImageBitmap(new Blob([stream.getContents()], { type: 'image/jpeg' }));
+      // No colour management: the PDF's own colour space stays on the output, so converting here would apply it twice.
+      drawable = await createImageBitmap(new Blob([stream.getContents()], { type: 'image/jpeg' }), {
+        colorSpaceConversion: 'none',
+      });
     } else {
       const samples = decodeRaw(stream).decode();
-      const perPixel = image.colorSpace === 'DeviceGray' ? 1 : 3;
+      const perPixel = image.components;
       const { width, height } = image;
       if (samples.length < width * height * perPixel) return null;
       const rgba = new Uint8ClampedArray(width * height * 4);
@@ -115,8 +119,13 @@ export async function compressPdfImages(
         dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
         dict.set(PDFName.of('Width'), doc.context.obj(target.width));
         dict.set(PDFName.of('Height'), doc.context.obj(target.height));
-        dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceRGB'));
+        // An RGB ICC profile still describes the JPEG's samples; everything else becomes DeviceRGB.
+        if (!(image.colorSpace === 'ICCBased' && image.components === 3)) {
+          dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceRGB'));
+        }
         dict.set(PDFName.of('BitsPerComponent'), doc.context.obj(8));
+        // /SMask is kept as cloned: the mask stream is untouched and may differ in size from the new image.
+        dict.delete(PDFName.of('SMaskInData'));
         dict.delete(PDFName.of('DecodeParms'));
         dict.delete(PDFName.of('Decode'));
         doc.context.assign(ref, PDFRawStream.of(dict, jpeg));
