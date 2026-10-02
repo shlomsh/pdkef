@@ -515,7 +515,10 @@ export interface CompressMessages {
   alreadySmallComplete: string;
   flattenLabel: string;
   flattenHint: string;
-  imagesNotice: string;
+  slightGainTitle: string;
+  slightGainCompactNotice: string;
+  slightGainExtremeHint: string;
+  slightGainKeptNotice: string;
   imagesTargetMissedNotice: string;
   imagesNoImagesNotice: string;
   imagesNoGainNotice: string;
@@ -545,6 +548,7 @@ export interface CompressMessages {
   compareAfterLabel: string;
   compareCaptionImage: string;
   compareCaptionPdf: string;
+  compareCaptionPdfSingle: string;
   /** ENC-08: the protected-file state (src/shell/NeedsUnlock.tsx), shown for a PDF that needs a password. */
   protectedNeedsPasswordTitle: string;
   protectedNeedsPasswordBody: string;
@@ -618,7 +622,7 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so there was nothing to gain. I've kept your original as it is, text and links included.",
   alreadySmallTargetNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so {target} can't be reached this way. I've kept your original as it is, text and links included.",
   noImagesTitle: 'Nothing here to shrink.',
-  imageShareNote: 'Images are {share} of this PDF, and they are the part that can get smaller. Text and drawings stay exactly as they are.',
+  imageShareNote: 'Images are {share} of this PDF, and they are the part that can get smaller. The text stays exactly as it is.',
   imageShareScanNote: 'Images are {share} of this PDF, and they are the part that can get smaller.',
   imageShareLowNote: 'Most of this PDF is text and drawings. Its images are {share} of the file, so shrinking them can save at most about that much.',
   lessThanOnePercent: 'less than 1%',
@@ -629,7 +633,10 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallComplete: 'This PDF is already as small as it gets, so it is unchanged.',
   flattenLabel: 'Turn pages into pictures',
   flattenHint: 'The smallest size for scans. Text stops being selectable, links stop working, and small text gets softer.',
-  imagesNotice: 'Only the images were made smaller. Text, links and drawings are exactly as they were.',
+  slightGainTitle: 'Only a little smaller',
+  slightGainCompactNotice: 'The images in this PDF were already compact, so making them smaller saved {saving}.',
+  slightGainExtremeHint: 'Extreme Compression can go further, and photos look soft when zoomed in.',
+  slightGainKeptNotice: "Most of the image data in this PDF is stored in a way I can't recompress, so it stayed as it was and this saved {saving}. Turning the pages into pictures, with the switch above, can go smaller.",
   imagesTargetMissedNotice: 'Shrinking the images got this PDF to {size}, above your {target} target. Turning the pages into pictures, with the switch above, can go smaller.',
   imagesNoImagesNotice: 'There are no images in this PDF, so there was nothing to make smaller. Your original is unchanged.',
   imagesNoGainNotice: 'The images in this PDF are already compact, so making them smaller saved nothing. Your original is unchanged.',
@@ -655,7 +662,8 @@ const englishCompressMessages: CompressMessages = {
   compareBeforeLabel: 'Original',
   compareAfterLabel: 'Compressed',
   compareCaptionImage: 'Drag to compare the original and the compressed image.',
-  compareCaptionPdf: 'Drag to compare page 1. The rest of the document compresses the same way.',
+  compareCaptionPdf: 'Drag to compare page 1 with the original.',
+  compareCaptionPdfSingle: 'Drag to compare the original and the compressed page.',
   protectedNeedsPasswordTitle: 'This PDF has a password',
   protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can compress it.',
   protectedUnlockIt: 'Unlock it',
@@ -746,7 +754,7 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז לא היה מה להרוויח. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   alreadySmallTargetNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז אי אפשר להגיע ל-{target} בדרך הזו. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   noImagesTitle: 'אין כאן מה לכווץ.',
-  imageShareNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון. הטקסט והשרטוטים נשארים בדיוק כמו שהם.',
+  imageShareNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון. הטקסט נשאר בדיוק כמו שהוא.',
   imageShareScanNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון.',
   imageShareLowNote: 'רוב ה-PDF הזה הוא טקסט ושרטוטים. התמונות הן {share} מהקובץ, כך שהקטנה שלהן יכולה לחסוך לכל היותר בערך כך.',
   lessThanOnePercent: 'פחות מ-1%',
@@ -757,7 +765,10 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallComplete: 'ה-PDF הזה כבר קטן ככל האפשר, אז הוא נשאר ללא שינוי.',
   flattenLabel: 'להפוך עמודים לתמונות',
   flattenHint: 'הגודל הקטן ביותר לסריקות. אי אפשר יהיה לסמן טקסט, קישורים יפסיקו לעבוד, וטקסט קטן ייראה פחות חד.',
-  imagesNotice: 'רק התמונות הוקטנו. הטקסט, הקישורים והשרטוטים נשארו בדיוק כמו שהיו.',
+  slightGainTitle: 'קטן רק במעט',
+  slightGainCompactNotice: 'התמונות ב-PDF הזה כבר היו קומפקטיות, אז הקטנה שלהן חסכה {saving}.',
+  slightGainExtremeHint: 'כיווץ מקסימלי יכול להקטין עוד, ותמונות נראות מטושטשות בהגדלה.',
+  slightGainKeptNotice: 'רוב נתוני התמונה ב-PDF הזה שמורים בצורה שאנחנו לא יכולים לדחוס מחדש, אז הם נשארו כמו שהיו וזה חסך {saving}. הפיכת העמודים לתמונות, עם המתג למעלה, יכולה להקטין עוד.',
   imagesTargetMissedNotice: 'הקטנת התמונות הביאה את ה-PDF ל-{size}, מעל היעד של {target}. הפיכת העמודים לתמונות, עם המתג למעלה, יכולה להקטין עוד.',
   imagesNoImagesNotice: 'אין תמונות ב-PDF הזה, אז לא היה מה להקטין. הקובץ המקורי לא השתנה.',
   imagesNoGainNotice: 'התמונות ב-PDF הזה כבר קומפקטיות, אז הקטנה שלהן לא חסכה כלום. הקובץ המקורי לא השתנה.',
@@ -783,7 +794,8 @@ const hebrewCompressMessages: CompressMessages = {
   compareBeforeLabel: 'מקור',
   compareAfterLabel: 'מכווץ',
   compareCaptionImage: 'גררו כדי להשוות בין התמונה המקורית לתמונה המכווצת.',
-  compareCaptionPdf: 'גררו כדי להשוות את עמוד 1. שאר המסמך מכווץ באותו אופן.',
+  compareCaptionPdf: 'גררו כדי להשוות את עמוד 1 למקור.',
+  compareCaptionPdfSingle: 'גררו כדי להשוות בין העמוד המקורי לעמוד המכווץ.',
   protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
   protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לכווץ אותו.',
   protectedUnlockIt: 'הסרת נעילה',

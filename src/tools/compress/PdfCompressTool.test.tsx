@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
+import { englishCompressMessages } from '../../i18n/toolMessages';
 import * as compressLib from './compress.js';
 import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
@@ -1114,20 +1115,21 @@ describe('PdfCompressTool UI flow', () => {
       expect(note.className).toContain(styles['compress-warning']);
     });
 
-    it('a text-bearing PDF says text and drawings stay as they are', async () => {
+    it('a text-bearing PDF says only that the text stays as it is', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       mountTool();
       await addPdf('pics.pdf');
-      expect(container.querySelector('[role="note"]').textContent).toContain('Text and drawings stay exactly as they are');
+      expect(container.querySelector('[role="note"]').textContent).toContain('The text stays exactly as it is.');
     });
 
-    it('a pure scan does not talk about text and drawings', async () => {
+    it('a pure scan does not talk about text', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: false, imageShare: 1 }));
       mountTool();
       await addPdf('scan.pdf');
       const note = container.querySelector('[role="note"]');
       expect(note.textContent).toContain('Images are 100% of this PDF');
-      expect(note.textContent).not.toContain('Text and drawings');
+      expect(note.textContent).not.toContain('The text stays');
+      expect(note.textContent).not.toContain('drawings');
     });
 
     it('a mostly-text PDF gets the quiet share note', async () => {
@@ -1275,7 +1277,142 @@ describe('PdfCompressTool UI flow', () => {
       await clickCompress();
       expect(imagesLib.compressPdfImages).toHaveBeenCalledWith(file, expect.objectContaining({ maxLongSidePx: 1600, quality: 0.6 }));
       expect(compressLib.compressPdf).not.toHaveBeenCalled();
-      expect(container.querySelector(`.${styles['compression-stats']}`).textContent).toContain('Only the images were made smaller');
+      // A big saving has nothing to add: no notice, the success title.
+      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      expect(stats.textContent).not.toContain('Only the images were made smaller');
+      expect(stats.querySelector(`.${styles['compress-warning']}`)).toBeNull();
+    });
+
+    describe('result card honesty (COMP-02)', () => {
+      const slightBlob = (bytes) => new Blob(['x'.repeat(bytes)], { type: 'application/pdf' });
+      const analysisOf = (extra = {}) => analyzePdfLib.analyzePdf.mockImplementation(
+        () => ({ images: [{}], hasText: true, imageShare: 0.9, pageCount: 3, ...extra }),
+      );
+      const stats = () => container.querySelector(`.${styles['compression-stats']}`);
+      const title = () => stats().querySelector(`.${styles['stats-title']}`).textContent;
+      const pickLevel = async (name) => {
+        const card = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes(name));
+        await act(async () => {
+          card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+      };
+
+      it('a 1% result at Recommended says only a little smaller, already compact, and points at Extreme', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0 })));
+        await loadPdf();
+        await clickCompress();
+        expect(title()).toBe('Only a little smaller');
+        expect(stats().textContent).toContain('already compact, so making them smaller saved 1%');
+        expect(stats().textContent).toContain('Extreme Compression can go further');
+        expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      });
+
+      it('at Extreme the same result has no Extreme hint', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0 })));
+        await loadPdf();
+        await pickLevel('Extreme');
+        await clickCompress();
+        expect(title()).toBe('Only a little smaller');
+        expect(stats().textContent).toContain('already compact, so making them smaller saved 1%');
+        expect(stats().textContent).not.toContain('Extreme Compression can go further');
+      });
+
+      it('when most image bytes were kept it says they could not be recompressed', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99900), afterBytes: 99900, keptBytes: 80000, imageBytes: 90000 })));
+        await loadPdf();
+        await clickCompress();
+        expect(stats().textContent).toContain("stored in a way I can't recompress, so it stayed as it was and this saved less than 1%");
+        expect(stats().textContent).not.toContain('already compact');
+      });
+
+      it('4% still gets the slight-gain title', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(96000), afterBytes: 96000 })));
+        await loadPdf();
+        await clickCompress();
+        expect(title()).toBe('Only a little smaller');
+        expect(stats().textContent).toContain('saved 4%');
+      });
+
+      it('5% and over keeps the success title and shows no notice', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(94000), afterBytes: 94000 })));
+        await loadPdf();
+        await clickCompress();
+        expect(title()).toBe('PDF Successfully Compressed!');
+        expect(stats().querySelector(`.${styles['compress-warning']}`)).toBeNull();
+        expect(stats().querySelector(`.${styles['honest-note']}`)).toBeNull();
+      });
+
+      it('an image re-encoded but not smaller reads as compact, not kept', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0, imageBytes: 90000 })));
+        await loadPdf();
+        await clickCompress();
+        expect(stats().textContent).toContain('already compact');
+        expect(stats().textContent).not.toContain("can't recompress");
+      });
+
+      it('exactly 5% keeps the success title', async () => {
+        analysisOf();
+        imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(95000), afterBytes: 95000 })));
+        await loadPdf();
+        await clickCompress();
+        expect(title()).toBe('PDF Successfully Compressed!');
+      });
+
+      it('the flatten path under 5% gets the title and keeps its rasterize notice', async () => {
+        analysisOf();
+        compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: slightBlob(99000), rasterBytes: 99000 }));
+        await loadPdf();
+        await tickFlatten(container);
+        await clickCompress();
+        expect(title()).toBe('Only a little smaller');
+        expect(stats().textContent).not.toContain('already compact');
+        expect(stats().querySelector(`.${styles['compress-warning']}`).textContent).toBe(englishCompressMessages.rasterizeNotice);
+      });
+
+      it('Target Size met with a small gain keeps the success title', async () => {
+        analysisOf();
+        imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, metTarget: true })));
+        await loadPdf();
+        await pickTarget();
+        await clickCompress();
+        expect(title()).toBe('PDF Successfully Compressed!');
+        expect(stats().textContent).not.toContain('already compact');
+      });
+
+      it('no result card text mentions links or drawings', async () => {
+        analysisOf();
+        for (const bytes of [99000, 90000]) {
+          // 99000 is a ~1% saving, so a notice is on the card.
+          imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(bytes), afterBytes: bytes })));
+          await loadPdf();
+          await clickCompress();
+          if (bytes === 99000) expect(stats().textContent).toContain('already compact');
+          expect(stats().textContent).not.toMatch(/links|drawings/);
+          container.remove();
+          container = undefined;
+        }
+      });
+
+      it('the compare caption names page 1 only for a multi-page PDF', async () => {
+        analysisOf({ pageCount: 1 });
+        await loadPdf();
+        await clickCompress();
+        expect(container.textContent).toContain('Drag to compare the original and the compressed page.');
+        expect(container.textContent).not.toContain('rest of the document');
+        container.remove();
+        container = undefined;
+        analysisOf({ pageCount: 3 });
+        await loadPdf();
+        await clickCompress();
+        expect(container.textContent).toContain('Drag to compare page 1 with the original.');
+        expect(container.textContent).not.toContain('rest of the document');
+      });
     });
 
     it('ticking the switch calls compressPdf and not compressPdfImages', async () => {
@@ -1334,7 +1471,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
     });
 
-    it('a smaller result still has Download and Share, and its notice stays a plain warning', async () => {
+    it('a smaller result still has Download and Share, and a big saving has no notice', async () => {
       const nativeShare = mockNativeFileShare();
       await loadPdf();
       await clickCompress();
@@ -1342,7 +1479,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
       expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).not.toBeNull();
       expect(stats.querySelector(`.${styles['honest-note']}`)).toBeNull();
-      expect(stats.querySelector(`.${styles['compress-warning']}`)).not.toBeNull();
+      expect(stats.querySelector(`.${styles['compress-warning']}`)).toBeNull();
       nativeShare.restore();
     });
 
@@ -1364,7 +1501,7 @@ describe('PdfCompressTool UI flow', () => {
       await pickTarget();
       await clickCompress();
       const stats = container.querySelector(`.${styles['compression-stats']}`);
-      expect(stats.textContent).toContain('Only the images were made smaller');
+      expect(stats.textContent).not.toContain('Only the images were made smaller');
       expect(stats.textContent).toContain('Shrinking the images got this PDF to 15 Bytes, above your 100 KB target. Turning the pages into pictures, with the switch above, can go smaller.');
       expect(stats.textContent).not.toContain('Closest achievable');
     });

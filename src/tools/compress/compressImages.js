@@ -102,7 +102,13 @@ export async function compressPdfImages(
   { maxLongSidePx, quality, onProgress, encodeImage = encodeImageOnCanvas },
 ) {
   const beforeBytes = file.size;
-  const untouched = (reason) => ({ blob: file, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason });
+  // keptBytes: image bytes the pass could not attempt (not planned, not a raw stream, or undecodable).
+  // An image re-encoded but not smaller is already compact, so it is not counted.
+  let keptBytes = 0;
+  let imageBytes = 0;
+  const untouched = (reason) => ({
+    blob: file, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason, keptBytes, imageBytes,
+  });
 
   const { PDFDocument, PDFName, PDFRef, PDFRawStream, PDFDict, PDFNumber, decodePDFRawStream } = await getPdfLib();
   const { analyzePdfImages } = await import('./analyzePdf.js');
@@ -131,7 +137,9 @@ export async function compressPdfImages(
   const images = analyzePdfImages(doc);
   if (images.length === 0) return untouched('no-images');
 
+  imageBytes = images.reduce((sum, image) => sum + image.bytes, 0);
   const planned = images.filter((image) => planImageRewrite(image) === 'reencode');
+  for (const image of images) if (!planned.includes(image)) keptBytes += image.bytes;
   let rewritten = 0;
   for (let i = 0; i < planned.length; i += 1) {
     const image = planned[i];
@@ -141,6 +149,7 @@ export async function compressPdfImages(
     if (stream instanceof PDFRawStream) {
       const target = targetDimensions(image.width, image.height, maxLongSidePx);
       const jpeg = await encodeImage({ image, stream, target, quality, decodeRaw: decodePDFRawStream });
+      if (!jpeg) keptBytes += image.bytes;
       if (jpeg && jpeg.length < image.bytes) {
         const dict = stream.dict.clone(doc.context);
         dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
@@ -158,6 +167,8 @@ export async function compressPdfImages(
         doc.context.assign(ref, PDFRawStream.of(dict, jpeg));
         rewritten += 1;
       }
+    } else {
+      keptBytes += image.bytes;
     }
     onProgress?.((i + 1) / planned.length);
   }
@@ -178,6 +189,8 @@ export async function compressPdfImages(
     afterBytes,
     rewritten,
     reason: 'smaller',
+    keptBytes,
+    imageBytes,
   };
 }
 
