@@ -36,7 +36,8 @@ export function canvasToBlob(canvas, type, quality) {
  * @param {Object} options
  * @param {string} [options.level='medium'] - 'low' | 'medium' | 'high'
  * @param {Function} [options.onProgress] - Callback for progress (0 to 1).
- * @returns {Promise<Blob>} The compressed PDF Blob.
+ * @returns {Promise<Blob>} The compressed PDF Blob, or `file` itself when
+ *   re-rendering would not make it smaller.
  */
 export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
   // Determine scale (DPI) and image quality based on compression level
@@ -100,6 +101,10 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
     }
 
     const compressedBytes = await pdfDoc.save();
+    // A small or mostly-vector PDF is already leaner than a picture of each
+    // page, so re-rendering it can only grow it. Hand the input back (same
+    // reference - the tool's passthrough check) rather than a bigger file.
+    if (compressedBytes.byteLength >= file.size) return file;
     return new Blob([compressedBytes], { type: 'application/pdf' });
   } finally {
     await loadingTask.destroy();
@@ -183,7 +188,8 @@ function releaseRenderedCanvases(rendered) {
  * @param {Object} options
  * @param {number} options.targetKB - Target output size, in kilobytes.
  * @param {Function} [options.onProgress] - Callback for progress (0 to 1).
- * @returns {Promise<{ blob: Blob, metTarget: boolean }>}
+ * @returns {Promise<{ blob: Blob, metTarget: boolean }>} `blob` is `file`
+ *   itself when already under target, or when no rasterised copy is smaller.
  */
 export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
   const targetBytes = Math.max(1, Math.round(targetKB * 1024));
@@ -279,6 +285,9 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
     onProgress?.(1);
 
     const finalBytes = await pdfDoc.save();
+    // Over target and the rasterised copy is bigger than the input too: the
+    // input is the closer result, so keep it (and say the target was missed).
+    if (finalBytes.byteLength >= file.size) return { blob: file, metTarget: false };
     const blob = new Blob([finalBytes], { type: 'application/pdf' });
     return { blob, metTarget: blob.size <= targetBytes };
   } finally {

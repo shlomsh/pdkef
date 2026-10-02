@@ -129,6 +129,11 @@ export default function PdfCompressTool({
   // notice paragraph for why it replaces the re-encode warning with an
   // honest "untouched" one.
   const [passthrough, setPassthrough] = useState(false);
+  // A PDF passthrough that is not the "already under target" kind: re-rendering
+  // it would only have made it bigger, so the input is handed back as it is.
+  // Everything that calls the result "compressed" (title, button, file name)
+  // reads this instead.
+  const [unchanged, setUnchanged] = useState(false);
   // Object URLs created for the image-mode comparison (see handleToggleCompare)
   // aren't run through `useObjectUrls` like `downloadUrl` is: that hook's own
   // `url` lands a render after `setBlob` is called, but both sides need to
@@ -168,6 +173,7 @@ export default function PdfCompressTool({
     clearComparePreviews();
     setCompareStatus('idle');
     setPassthrough(false);
+    setUnchanged(false);
   };
 
   // Builds the before/after pair for the CompareSlider. PDF: renders page 1
@@ -390,12 +396,22 @@ export default function PdfCompressTool({
       // equality check as the image branch above - compressPdf with a level
       // never returns the input, it always re-encodes, so this is only ever
       // true via the target path.
-      setPassthrough(compressedBlob === activeFile);
+      const isPassthrough = compressedBlob === activeFile;
+      // Under target is the only passthrough that is a success; every other
+      // one (a level, or a target the input is still over) means the input
+      // was already as small as it gets.
+      const isUnchanged = isPassthrough && (level !== 'target' || !didMeetTarget);
+      setPassthrough(isPassthrough);
+      setUnchanged(isUnchanged);
       compressedBlobRef.current = compressedBlob;
       setDownloadBlob(compressedBlob);
-      prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
+      prepareFiles([{
+        blob: compressedBlob,
+        filename: isUnchanged ? activeFile.name : deriveDownloadName(activeFile.name, resultType),
+        type: resultType,
+      }]);
       setStatus('done');
-      setAnnouncement(t.complete);
+      setAnnouncement(isUnchanged ? t.alreadySmallComplete : t.complete);
       // Open by default (SEO-25, 2026-09-12): see openCompare's comment.
       // Except a passthrough result, same as the image branch above - both
       // sides of the slider would be the same bytes.
@@ -430,7 +446,7 @@ export default function PdfCompressTool({
   // The honest-miss condition (see the notice below) also decides what the
   // Download button's second line says - "closest achievable" rather than a
   // savings percentage that would misrepresent a target that wasn't hit.
-  const missedTargetSize = !metTarget && (kind === 'image' || level === 'target');
+  const missedTargetSize = !unchanged && !metTarget && (kind === 'image' || level === 'target');
 
   // Button anchor (SEO-25, 2026-09-12): a visitor's first read of the result
   // is now this line, inside the button they just pressed, rather than a
@@ -445,7 +461,7 @@ export default function PdfCompressTool({
     ? undefined
     : missedTargetSize
       ? formatMessage(t.downloadDetailClosest, { size: formatBytes(compressedSize) })
-      : savingsPercent > 0
+      : savingsPercent > 0 && !unchanged
         ? formatMessage(t.downloadDetailSmaller, { size: formatBytes(compressedSize), percent: savingsPercent })
         : formatBytes(compressedSize);
 
@@ -463,12 +479,12 @@ export default function PdfCompressTool({
           <>
             <DownloadButton
               href={downloadUrl}
-              download={deriveDownloadName(file!.name, outputType)}
-              label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
+              download={unchanged ? file!.name : deriveDownloadName(file!.name, outputType)}
+              label={unchanged ? t.alreadySmallDownloadLabel : kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
               detail={downloadDetail}
               onClick={() => recordAction('download')}
             />
-            <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
+            <PdfShareButton visible={shareReady} onShare={handleShare} label={unchanged ? t.alreadySmallShareLabel : kind === 'image' ? t.imageShareLabel : t.shareLabel} />
           </>
         ) : hasFiles ? (
           status !== 'done' && (
@@ -504,7 +520,7 @@ export default function PdfCompressTool({
       {hasFiles && status === 'done' && downloadUrl && (
         <>
           <div class={styles['compression-stats']}>
-            <p class={styles['stats-title']}>{kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
+            <p class={styles['stats-title']}>{unchanged ? t.alreadySmallTitle : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
             <div class={styles['stats-grid']}>
               <div class={styles['metric-item']}>
                 <span class={styles['metric-label']}>{t.originalSize}</span>
@@ -538,14 +554,14 @@ export default function PdfCompressTool({
                 photo's target only ever comes from the image panel, a PDF's
                 only from the Target Size card, so the two conditions never
                 overlap. */}
-            {!metTarget && (kind === 'image' || level === 'target') && (
+            {!unchanged && !metTarget && (kind === 'image' || level === 'target') && (
               <p class={styles['compress-warning']}>
                 {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: formatBytes(targetKB * 1024) })}
               </p>
             )}
 
             <p class={styles['compress-warning']}>
-              {passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
+              {unchanged ? t.alreadySmallNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
             </p>
 
             {/* Open by default as soon as a result exists (see openCompare
