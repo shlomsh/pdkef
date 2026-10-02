@@ -43,6 +43,12 @@ const BRUSH_COPY: Record<'blur' | 'whiteout', ToolCopy> = {
 
 const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_COPY;
 
+/** iOS starts a text selection from a long press on the label; `selectstart`
+ * is not in Preact's JSX types, so it is bound by ref. Same function every
+ * render, so addEventListener never stacks a duplicate. */
+const stopSelect = (e: Event) => e.preventDefault();
+const blockSelection = (el: HTMLButtonElement | null) => el?.addEventListener('selectstart', stopSelect);
+
 export default function RedactToolbar({
   activeStyle,
   toolLocked,
@@ -291,6 +297,8 @@ export default function RedactToolbar({
             onPointerCancel={() => onPeekChange(false)}
             onPointerLeave={() => onPeekChange(false)}
             onContextMenu={(e) => e.preventDefault()}
+            onTouchStart={(e) => e.preventDefault()}
+            ref={blockSelection}
             aria-pressed={peeking}
             title="Hold to see what is under the boxes"
             data-redact-peek

@@ -781,6 +781,16 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('RED-31: a long press on the Peek button cannot start a text selection or a callout', async () => {
+    await loadFileAndGetDrawArea();
+    const peekButton = query(container, '[data-redact-peek]');
+    for (const type of ['selectstart', 'touchstart', 'contextmenu']) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      peekButton.querySelector('span')!.dispatchEvent(event);
+      expect(event.defaultPrevented, type).toBe(true);
+    }
+  });
+
   it('RED-31: holding a box for 250ms peeks it, release covers it, and it never moves', async () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
