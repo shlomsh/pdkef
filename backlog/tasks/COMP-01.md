@@ -1,10 +1,9 @@
 ---
 id: "COMP-01"
 title: "Compress keeps the page and shrinks only its images, and says plainly when there is nothing to gain"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 order: 1
 depends_on: []
 ---
