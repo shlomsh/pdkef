@@ -1,12 +1,12 @@
 ---
 id: "ENC-07"
 title: "Sign shows the protected state instead of its alert"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"
 order: 2
-depends_on: ["ENC-02", "ENC-06"]
+depends_on: ["ENC-02"]
 ---
 
 # ENC-07 · Sign shows the protected state instead of its alert

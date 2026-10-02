@@ -8,6 +8,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [ENC-07](backlog/tasks/ENC-07.md) P2 · Sign shows the protected state instead of its alert (in progress)
+- [ENC-08](backlog/tasks/ENC-08.md) P2 · Compress meets a protected PDF at the door and leads back after Unlock (in progress)
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)
 
 ## Waiting, by date
