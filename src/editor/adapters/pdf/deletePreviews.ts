@@ -60,7 +60,7 @@ export function previewTexts(
   const previews = new Map<string, string>();
   const boxes: Box[] = [];
   for (const object of objects) {
-    if (object.kind === 'text' && object.bbox) boxes.push({ id: object.id, ...object.bbox });
+    if ((object.kind === 'text' || object.kind === 'mark') && object.bbox) boxes.push({ id: object.id, ...object.bbox });
   }
   if (boxes.length === 0 || glyphs.length === 0) return previews;
 

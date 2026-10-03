@@ -1,5 +1,7 @@
 import {
   PDFDocument,
+  beginMarkedContent,
+  endMarkedContent,
   PDFName,
   PDFNumber,
   concatTransformationMatrix,
@@ -189,7 +191,11 @@ export async function signPdf(file, elements, onProgress) {
     // space. This one graphics-state transform maps the complete result back
     // to raw PDF user space; page /Rotate then displays it exactly where the
     // pdf.js viewport and DOM overlay placed it.
+    //
+    // The whole frame sits in a `/PDkef` marked-content sequence (RED-55), so a
+    // later Delete reads what was one element as one thing, not as loose paths.
     page.pushOperators(
+      beginMarkedContent('PDkef'),
       pushGraphicsState(),
       concatTransformationMatrix(...pageGeometry.editorToPdf),
     );
@@ -205,7 +211,7 @@ export async function signPdf(file, elements, onProgress) {
         baselineOffset: baselineOffsetEm,
       });
     } finally {
-      page.pushOperators(popGraphicsState());
+      page.pushOperators(popGraphicsState(), endMarkedContent());
     }
     onProgress?.((i + 1) / elements.length);
   }
