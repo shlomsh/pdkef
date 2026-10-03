@@ -3,8 +3,8 @@ import styles from './PdfRedactTool.module.css';
 export interface DeletablePdfObject {
   id: string;
   pageIndex: number;
-  kind: 'image' | 'text';
-  /** Text only: the words in the box, read from the page's glyphs (RED-16); absent until read. */
+  kind: 'image' | 'text' | 'mark';
+  /** Text and marks: the words in the box, read from the page's glyphs (RED-16); absent until read. */
   preview?: string;
   /** The box in PDF user space, as the parser found it. */
   bbox?: { x: number; y: number; width: number; height: number };
@@ -42,7 +42,9 @@ export default function DeletableObjectOverlay({ objects, markedIds, onSelect }:
             ? 'Click to delete this image'
             : object.preview?.trim()
               ? `Click to delete: "${object.preview.trim()}"`
-              : 'Click to delete this text'
+              : object.kind === 'mark'
+                ? 'Click to delete this mark'
+                : 'Click to delete this text'
         }
         style={{
           position: 'absolute',

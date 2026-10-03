@@ -22,7 +22,7 @@ export async function withPreviews(bytes, objects) {
   const pdf = await task.promise;
   try {
     const previews = new Map();
-    for (const pageIndex of new Set(objects.filter((o) => o.kind === 'text').map((o) => o.pageIndex))) {
+    for (const pageIndex of new Set(objects.filter((o) => o.kind === 'text' || o.kind === 'mark').map((o) => o.pageIndex))) {
       const page = await pdf.getPage(pageIndex + 1);
       const glyphs = (await readGlyphs(pdfjs, page)) ?? [];
       const onPage = objects.filter((o) => o.pageIndex === pageIndex);
