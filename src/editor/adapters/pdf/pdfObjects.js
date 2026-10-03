@@ -77,6 +77,9 @@ function symbolFontFamily(baseFont) {
   return match[1] ? 'wingdings2' : 'wingdings';
 }
 
+/** A number as a content stream may write it: plain decimal, never exponent notation. */
+const pdfNumber = (n) => String(Number(n.toFixed(4)));
+
 /** Baseline drift allowed between joined show ops, as a fraction of the font size. */
 const JOIN_BASELINE_TOLERANCE = 0.1;
 /** Gap allowed between one op's end and the next op's start, as a fraction of the font size. */
@@ -834,7 +837,7 @@ export function extractPageObjects(page, pageIndex = 0) {
       if (opMin) {
         const trm = multiplyMatrix(tm, ctm);
         const scale = fontSize * horizontalScale;
-        const advance = scale ? `[${Number(((-opShift * 1000) / scale).toFixed(4))}] TJ` : '';
+        const advance = scale ? `[${pdfNumber((-opShift * 1000) / scale)}] TJ` : '';
         pending.push({
           kind: 'text',
           pageIndex,
@@ -1071,7 +1074,7 @@ export function extractPageObjects(page, pageIndex = 0) {
           if (op === '"') {
             wordSpacing = num(operands.length - 3);
             charSpacing = num(operands.length - 2);
-            prefix.push(`${wordSpacing} Tw`, `${charSpacing} Tc`);
+            prefix.push(`${pdfNumber(wordSpacing)} Tw`, `${pdfNumber(charSpacing)} Tc`);
           }
           if (op !== 'Tj') prefix.push('T*');
           opFrom = applyMatrix(multiplyMatrix(tm, ctm), 0, 0);

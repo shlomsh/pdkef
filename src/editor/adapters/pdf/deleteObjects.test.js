@@ -165,6 +165,11 @@ describe('spliceOut', () => {
     expect(decode(spliceOut(bytes('0123456789'), [inner, outer]))).toBe('01\n[-9] TJ\n89');
   });
 
+  it('keeps both replacements when ranges only touch (review of RED-54)', () => {
+    const out = spliceOut(bytes('AABBCC'), [{ start: 0, end: 2, replacement: 'X' }, { start: 2, end: 4, replacement: 'Y' }]);
+    expect(decode(out)).toBe('\nX\n\nY\nCC');
+  });
+
   it('drops the replacements of partially overlapping ranges', () => {
     const out = spliceOut(bytes('0123456789'), [
       { start: 2, end: 6, replacement: 'X' },
@@ -348,6 +353,20 @@ describe('deleting one show-text operation (RED-54)', () => {
     const content = await contentOf(await deleteObjectsFromPdf(source, [second]));
     expect(content).toContain('T* [-500] TJ');
     expect(content).not.toContain('(B)');
+  });
+
+  it('keeps later text in place in a stream with no space between ops', async () => {
+    const source = await buildRowFixture('BT /F2 10 Tf 1 0 0 1 50 700 Tm (AAAA)Tj(BBBB)Tj/F2 12 Tf(tail)Tj ET');
+    const before = await textUnits(source);
+    const out = await deleteObjectsFromPdf(source, [before[0]]);
+    const after = await textUnits(new Uint8Array(await out.arrayBuffer()));
+    expect(after[after.length - 1].bbox.x).toBeCloseTo(before[before.length - 1].bbox.x, 2);
+  });
+
+  it('writes Tw and Tc without exponent notation', async () => {
+    const source = await buildRowFixture('BT /F2 10 Tf 12 TL 1 0 0 1 50 700 Tm 0.0000001 0.00000001 (A) " ET');
+    const [first] = await textUnits(source);
+    expect(first.replacement).not.toMatch(/e-/);
   });
 
   it('keeps Tw and Tc for the double-quote operator', async () => {
