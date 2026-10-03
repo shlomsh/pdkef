@@ -196,6 +196,23 @@ describe('PdfSplitTool UI flow', () => {
     expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
   });
 
+  it('a protected file ends in an alert that points to Unlock', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/encrypted/owner-only.pdf');
+    const file = new File([fs.readFileSync(fixturePath)], 'owner-only.pdf', { type: 'application/pdf' });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [file]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+    const alert = container.querySelector('[role="alert"]');
+    expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
+  });
+
   it('Share appears next to Download as soon as output is ready, not only after a first save', async () => {
     const nativeShare = mockNativeFileShare();
     URL.createObjectURL = vi.fn(() => 'blob:fake-url');

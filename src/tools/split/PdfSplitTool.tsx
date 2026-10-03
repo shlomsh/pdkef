@@ -791,7 +791,7 @@ export default function PdfSplitTool({
 
                 {status === 'error' && (
                   <ErrorMessage>
-                    The split failed. Make sure the file is not encrypted or damaged.
+                    The split failed. A protected PDF opens in <a href="/unlock/">Unlock</a> first. Otherwise the file may be damaged.
                   </ErrorMessage>
                 )}
               </aside>
