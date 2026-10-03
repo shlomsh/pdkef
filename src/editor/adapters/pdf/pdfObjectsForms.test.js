@@ -68,7 +68,7 @@ describe('extractPageObjects inside Form XObjects (RED-29)', () => {
     const stream = [...doc.context.enumerateIndirectObjects()]
       .find(([ref]) => ref.tag === secret.formPath[0])[1];
     const content = new TextDecoder().decode(stream.getContents());
-    expect(content.slice(secret.start, secret.end)).toBe('BT /F1 12 Tf 72 700 Td (Secret 0) Tj ET');
+    expect(content.slice(secret.start, secret.end)).toBe('(Secret 0) Tj');
   });
 
   it('reports a shared Form on every page under the same formPath', async () => {

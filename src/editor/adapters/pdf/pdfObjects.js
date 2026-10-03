@@ -16,12 +16,14 @@ import { reportError } from '../../../lib/errorReport.ts';
  *   - `image`: one `cm ... /Name Do` placement of an image XObject, carrying
  *     `imageRef` ("12 0 R") so the same picture drawn on several pages can be
  *     recognised as one object. Inline images are not reported.
- *   - `text`:  one `BT ... ET` block.
+ *   - `text`:  one show-text operation (`Tj`, `TJ`, `'` or `"`) and its operands
+ *     (RED-54). Carries `replacement`, the advance-only `TJ` that stands in for
+ *     it when deleted so what follows in the text object keeps its position.
  *
- * A `BT`/`ET` block is whatever the producing tool chose to emit, which is
- * often but not always a word. That is a real limit of the format and the UI
- * must show the caller what it is about to remove rather than promise a
- * semantic unit the file does not contain.
+ * A `BT`/`ET` block is whatever the producing tool chose to emit, and a form
+ * can draw a whole table in one, so it is not the unit. Blocks are reported
+ * separately as `blocks`, only so a deletion saved when the block was the
+ * unit still matches. A vertical-writing font keeps the whole block as its unit.
  */
 
 const IDENTITY = [1, 0, 0, 1, 0, 0];
@@ -190,6 +192,7 @@ function readFont(context, fontDict) {
   const widths = new Map();
   let defaultWidth = 500;
   let twoByte = false;
+  let vertical = false;
 
   const toUnicodeStream = context.lookup(fontDict.get(PDFName.of('ToUnicode')));
   const toUnicode =
@@ -205,6 +208,7 @@ function readFont(context, fontDict) {
     // codespace walk; widths then fall back to /DW, which keeps the box roughly
     // right instead of collapsing it.
     twoByte = true;
+    vertical = /-V$/.test(context.lookup(fontDict.get(PDFName.of('Encoding')))?.asString?.() ?? '');
     const descendants = context.lookup(fontDict.get(PDFName.of('DescendantFonts')));
     const descendant =
       descendants instanceof PDFArray ? lookupDict(context, descendants.get(0)) : undefined;
@@ -256,6 +260,7 @@ function readFont(context, fontDict) {
 
   return {
     twoByte,
+    vertical,
     widths,
     defaultWidth,
     toUnicode,
@@ -640,7 +645,8 @@ function formMatrix(context, stream) {
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {number} pageIndex
- * @returns {{objects: Array, bytes: Uint8Array}}
+ * @returns {{objects: Array, bytes: Uint8Array, blocks: Array}} `blocks` are the
+ *   `BT ... ET` spans (`start`, `end`, `formPath`, `bbox`), not offered as units
  */
 export function extractPageObjects(page, pageIndex = 0) {
   const context = page.doc.context;
@@ -648,6 +654,7 @@ export function extractPageObjects(page, pageIndex = 0) {
   const resources = lookupDict(context, page.node.get(PDFName.of('Resources')));
   const { width: pageWidth, height: pageHeight } = page.getSize();
   const objects = [];
+  const blocks = [];
   // Forms already walked on this page. Also the cycle guard: a Form that
   // (indirectly) draws itself finds itself here and stops.
   const walkedForms = new Set();
@@ -669,7 +676,7 @@ export function extractPageObjects(page, pageIndex = 0) {
     };
   }
 
-  return { objects, bytes };
+  return { objects, bytes, blocks };
 
   /**
    * Walks one content stream, pushing what it draws onto `objects`.
@@ -703,6 +710,13 @@ export function extractPageObjects(page, pageIndex = 0) {
     let rise = 0;
     let runMin = null;
     let runMax = null;
+    // The same for the show operation being read, and the x shift it causes.
+    let opMin = null;
+    let opMax = null;
+    let opShift = 0;
+    // Units of the open BT..ET, held until ET says whether a vertical font turns them into the block.
+    let pending = [];
+    let blockVertical = false;
 
     // Every unit this stream reports goes through here, so a rule about which
     // units a page offers lives in one place.
@@ -716,15 +730,38 @@ export function extractPageObjects(page, pageIndex = 0) {
     };
 
     const noteBox = (box) => {
-      if (!runMin) {
-        runMin = [box.x, box.y];
-        runMax = [box.x + box.width, box.y + box.height];
-        return;
+      const lo = [box.x, box.y];
+      const hi = [box.x + box.width, box.y + box.height];
+      const grow = (min, max) => (min ? [
+        [Math.min(min[0], lo[0]), Math.min(min[1], lo[1])],
+        [Math.max(max[0], hi[0]), Math.max(max[1], hi[1])],
+      ] : [lo, hi]);
+      [runMin, runMax] = grow(runMin, runMax);
+      [opMin, opMax] = grow(opMin, opMax);
+    };
+
+    const rectOf = (min, max) => ({ x: min[0], y: min[1], width: max[0] - min[0], height: max[1] - min[1] });
+
+    // Ends one show operation: a unit when it showed a glyph. `prefix` is what a `'` or `"` does before
+    // showing (it moves the line and, for `"`, sets spacing), which the replacement must repeat.
+    const endShow = (firstOperand, token, prefix) => {
+      if (font?.vertical) blockVertical = true;
+      if (opMin) {
+        const scale = fontSize * horizontalScale;
+        const advance = scale ? `[${Number(((-opShift * 1000) / scale).toFixed(4))}] TJ` : '';
+        pending.push({
+          kind: 'text',
+          pageIndex,
+          formPath,
+          bbox: rectOf(opMin, opMax),
+          start: firstOperand.start,
+          end: token.end,
+          replacement: [...prefix, advance].filter(Boolean).join(' '),
+        });
       }
-      runMin[0] = Math.min(runMin[0], box.x);
-      runMin[1] = Math.min(runMin[1], box.y);
-      runMax[0] = Math.max(runMax[0], box.x + box.width);
-      runMax[1] = Math.max(runMax[1], box.y + box.height);
+      opMin = null;
+      opMax = null;
+      opShift = 0;
     };
 
     const showString = (bytesOfString) => {
@@ -757,6 +794,7 @@ export function extractPageObjects(page, pageIndex = 0) {
         });
 
         tm = multiplyMatrix([1, 0, 0, 1, advance, 0], tm);
+        opShift += advance;
       }
     };
 
@@ -819,24 +857,18 @@ export function extractPageObjects(page, pageIndex = 0) {
           tlm = IDENTITY;
           runMin = null;
           runMax = null;
+          pending = [];
+          blockVertical = false;
           break;
 
         case 'ET':
           if (inText && runMin && runMax) {
-            emit({
-              kind: 'text',
-              pageIndex,
-              formPath,
-              bbox: {
-                x: runMin[0],
-                y: runMin[1],
-                width: runMax[0] - runMin[0],
-                height: runMax[1] - runMin[1],
-              },
-              start: textStart,
-              end: token.end,
-            });
+            const block = { formPath, bbox: rectOf(runMin, runMax), start: textStart, end: token.end };
+            blocks.push(block);
+            if (blockVertical) emit({ kind: 'text', pageIndex, ...block });
+            else pending.forEach(emit);
           }
+          pending = [];
           inText = false;
           break;
 
@@ -881,13 +913,17 @@ export function extractPageObjects(page, pageIndex = 0) {
         case 'Tj':
         case "'":
         case '"': {
+          const prefix = [];
           if (op !== 'Tj') nextLine(0, -leading);
           if (op === '"') {
             wordSpacing = num(operands.length - 3);
             charSpacing = num(operands.length - 2);
+            prefix.push(`${wordSpacing} Tw`, `${charSpacing} Tc`);
           }
+          if (op !== 'Tj') prefix.push('T*');
           const str = operands[operands.length - 1];
           if (str?.type === 'string' || str?.type === 'hexstring') showString(str.value);
+          endShow(operands[operands.length - (op === '"' ? 3 : 1)] ?? token, token, prefix);
           break;
         }
 
@@ -899,11 +935,13 @@ export function extractPageObjects(page, pageIndex = 0) {
                 // A kern: shifts the cursor without drawing.
                 const shift = (-item.value / 1000) * fontSize * horizontalScale;
                 tm = multiplyMatrix([1, 0, 0, 1, shift, 0], tm);
+                opShift += shift;
               } else if (item.type === 'string' || item.type === 'hexstring') {
                 showString(item.value);
               }
             }
           }
+          endShow(arr ?? token, token, []);
           break;
         }
 
