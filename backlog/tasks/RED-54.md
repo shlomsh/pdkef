@@ -36,7 +36,14 @@ whatever the producing tool chose, and for forms it is often far too wide.
   per op (our own Sign export) would otherwise give one Delete target per character. A joined unit
   carries `parts` (`start`, `end`, `replacement` per op), and deleting it replaces each op while the
   `Tm`/`Td` between them stay.
-- Vertical writing mode keeps the whole-block unit.
+- Vertical writing mode keeps the whole-block unit (an `-V` encoding name or a CMap with `/WMode 1`).
+- The replacement is only as right as the glyph widths, so the walker reads the widths a viewer uses:
+  the standard-14 AFM metrics when a font has no `/Widths`, `/MissingWidth` (else 0) past `LastChar`,
+  and a Type3 font's `/FontMatrix`. Spans that only touch keep their own replacements, and numbers are
+  written as plain decimals.
+- Deleting text also empties the property dict of any enclosing `BDC` that carries `/ActualText`,
+  `/Alt` or `/E`. Sign wrote every text element that way before RED-55, so without this the typed
+  text stayed in the file after a delete (true of block deletes on production too).
 
 ## Acceptance
 
