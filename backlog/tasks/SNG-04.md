@@ -1,10 +1,10 @@
 ---
 id: "SNG-04"
 title: "One interaction machine and one input router, pure and synchronous, with the MOBI history as tests"
-status: "in_progress"
+status: "open"
 priority: "P1"
 epic: "sign-fill-mode"
-horizon: "next"
+horizon: "later"
 order: 2
 depends_on: []
 ---
@@ -51,4 +51,7 @@ machine and router this ticket describes.
 `src/editor/interaction/` holds `constants.ts` (the §2.5 table, proposed values marked), `gestureMachine.ts` (`transition(state, event) => { state, effects }` plus `createGestureMachine`, whose `send` commits state and then runs effects in the caller's stack) and 11 transition tests on synthetic streams: the 2026-09-25 staggered-finger race, the create path's missing second-finger guard, scroll over an unselected element, the 8px slop, pinch excluding drag, mouse. Nothing imports it yet.
 Decisions to confirm before wiring: pen is treated like a mouse; a touch drag on blank with a create tool armed creates; the drag begins at distance >= 8 and the element jumps to the finger (re-basing at the crossing is the alternative); the 75ms second-finger window is not enforced (any second finger before commit pinches, which is stricter); the finger left after a pinch only scrolls. Guidelines §3 has no gesture boundary table, so that part of this ticket's text has nothing to implement.
 Still to do: the router in `src/editor-ui/`, routing `useDraggableElement` through the machine behind `?next=1`, then the resize and create paths, and `touchClaim.ts` folded in.
+
+## Parked 2026-10-03 (Shlomi)
+Slice 2 stands on its own: the machine is pure and nothing imports it. Picking this up means settling the five calls listed under Slice 2, then the router and routing `useDraggableElement` through the machine behind `?next=1`, with Shlomi on the iPhone for the wiring.
 
