@@ -30,6 +30,12 @@ whatever the producing tool chose, and for forms it is often far too wide.
   behave as today.
 - A saved Redact draft made before this change holds `start`/`end` of a whole `BT ... ET`. Export and
   preview still honour it by deleting that whole block, so no saved deletion is ever silently dropped.
+- At `ET`, consecutive show ops join into one unit when they share a font resource and size, sit on one
+  baseline (starting y within 0.1 x font size) and the next starts within 0.3 x font size of where the
+  previous ended (plain distance, so visual-order RTL glyphs still join). A producer that writes one glyph
+  per op (our own Sign export) would otherwise give one Delete target per character. A joined unit
+  carries `parts` (`start`, `end`, `replacement` per op), and deleting it replaces each op while the
+  `Tm`/`Td` between them stay.
 - Vertical writing mode keeps the whole-block unit.
 
 ## Acceptance

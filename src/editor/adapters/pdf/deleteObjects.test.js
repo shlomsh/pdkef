@@ -283,7 +283,7 @@ const ROW_STREAM = [
   '/F2 10 Tf 1 0 0 1 532 792 Tm (1)Tj',
   '/F2 12 Tf 1 0 0 1 429 791 Tm (row text)Tj',
   '0 -14 Td (second line)Tj ET',
-  'BT /F2 12 Tf 1 0 0 1 50 700 Tm [(AB) -200 (CD)] TJ (EF) Tj ET',
+  'BT /F2 12 Tf 1 0 0 1 50 700 Tm [(AB) -200 (CD)] TJ 1 0 0 1 200 700 Tm (EF) Tj ET',
 ].join('\n');
 
 async function buildRowFixture(stream = ROW_STREAM) {
@@ -305,12 +305,12 @@ const contentOf = async (blob) => textOf(new Uint8Array(await blob.arrayBuffer()
 describe('deleting one show-text operation (RED-54)', () => {
   it('offers one unit per show operation, not one per BT..ET', async () => {
     const units = await textUnits(await buildRowFixture());
-    expect(units).toHaveLength(7);
-    // The checkbox box, the space after it, the number and the row text each get their own box.
-    expect(units[1].bbox.x).toBeCloseTo(608, 4);
-    expect(units[2].bbox.x).toBeCloseTo(532, 4);
-    expect(units[3].bbox.x).toBeCloseTo(429, 4);
-    expect(units[3].bbox.width).toBeCloseTo(8 * 6, 4);
+    // The checkbox box (with the space right after it), the number, the row text, the second line,
+    // and the two ops of the second BT that sit far apart.
+    expect(units).toHaveLength(6);
+    expect(units[1].bbox.x).toBeCloseTo(532, 4);
+    expect(units[2].bbox.x).toBeCloseTo(429, 4);
+    expect(units[2].bbox.width).toBeCloseTo(8 * 6, 4);
   });
 
   it('keeps every other unit at the same bbox after deleting the checkbox glyph', async () => {
@@ -344,7 +344,7 @@ describe('deleting one show-text operation (RED-54)', () => {
     );
     const [first, second] = await textUnits(source);
     expect(first.replacement).toBe('[-500] TJ');
-    expect(second.replacement).toBe('T* [-500] TJ');
+    expect(second.parts[0].replacement).toBe('T* [-500] TJ'); // (B)' and (C)Tj share a line, so they join
     const content = await contentOf(await deleteObjectsFromPdf(source, [second]));
     expect(content).toContain('T* [-500] TJ');
     expect(content).not.toContain('(B)');
@@ -353,9 +353,44 @@ describe('deleting one show-text operation (RED-54)', () => {
   it('keeps Tw and Tc for the double-quote operator', async () => {
     const source = await buildRowFixture('BT /F2 10 Tf 12 TL 1 0 0 1 50 700 Tm 2 1 (A B) " (C) Tj ET');
     const [first] = await textUnits(source);
-    expect(first.replacement.startsWith('2 Tw 1 Tc T* [')).toBe(true);
+    expect(first.parts[0].replacement.startsWith('2 Tw 1 Tc T* [')).toBe(true);
     const content = await contentOf(await deleteObjectsFromPdf(source, [first]));
     expect(content).not.toContain('(A B)');
+  });
+
+  it('joins one-glyph-per-op placement into a single unit, and deleting it keeps the Tm operators (RED-54)', async () => {
+    const glyphs = [['0', 100], ['3', 106.67], ['/', 113.34], ['1', 120.01], ['0', 126.68]];
+    const stream = `BT /F2 12 Tf ${glyphs.map(([c, x]) => `1 0 0 1 ${x} 700 Tm (${c})Tj`).join(' ')} ET`;
+    const source = await buildRowFixture(stream);
+    const units = await textUnits(source);
+    expect(units).toHaveLength(1);
+    expect(units[0].parts).toHaveLength(5);
+    expect(units[0].bbox.x).toBeCloseTo(100, 4);
+    expect(units[0].bbox.width).toBeCloseTo(26.68 + 6, 2);
+
+    const out = await deleteObjectsFromPdf(source, units);
+    const content = await contentOf(out);
+    for (const [c] of glyphs) expect(content).not.toContain(`(${c})`);
+    expect(content.match(/ Tm/g)).toHaveLength(5);
+    expect(await textUnits(new Uint8Array(await out.arrayBuffer()))).toHaveLength(0);
+    const doc = await PDFDocument.load(source);
+    const preview = await buildDeletePreviewPage(doc, 0, units);
+    expect(await textOf(preview)).toBe(content);
+  });
+
+  it('keeps two words a wide gap apart as two units (RED-54)', async () => {
+    const source = await buildRowFixture('BT /F2 12 Tf 1 0 0 1 100 700 Tm (ab)Tj 1 0 0 1 136 700 Tm (cd)Tj ET');
+    expect(await textUnits(source)).toHaveLength(2);
+  });
+
+  it('keeps ops on a second baseline apart (RED-54)', async () => {
+    const source = await buildRowFixture('BT /F2 12 Tf 1 0 0 1 100 700 Tm (ab)Tj 0 -14 Td (cd)Tj ET');
+    expect(await textUnits(source)).toHaveLength(2);
+  });
+
+  it('keeps a font or size change apart (RED-54)', async () => {
+    const source = await buildRowFixture('BT /F2 12 Tf 1 0 0 1 100 700 Tm (ab)Tj /F2 10 Tf (cd)Tj /F1 10 Tf (e)Tj ET');
+    expect(await textUnits(source)).toHaveLength(3);
   });
 
   it('still honours a legacy deletion spanning a whole BT..ET block', async () => {
