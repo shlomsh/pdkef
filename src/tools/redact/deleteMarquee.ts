@@ -42,11 +42,13 @@ export function objectsInMarquee(
 
 /** The undo entry and chip text for a group of deletions. */
 export function deletedSummary(objects: readonly Pick<DeletablePdfObject, 'kind'>[]): string {
-  const images = objects.filter((o) => o.kind === 'image').length;
-  const texts = objects.length - images;
-  const textPart = texts === 1 ? 'text' : `${texts} pieces of text`;
-  const imagePart = images === 1 ? 'an image' : `${images} images`;
-  if (!images) return `Deleted ${textPart}`;
-  if (!texts) return `Deleted ${imagePart}`;
-  return `Deleted ${textPart === 'text' ? '1 piece of text' : textPart} and ${images === 1 ? '1 image' : imagePart}`;
+  const count = (kind: DeletablePdfObject['kind']) => objects.filter((o) => o.kind === kind).length;
+  const kinds = [
+    { n: count('text'), alone: 'text', one: '1 piece of text', many: (n: number) => `${n} pieces of text` },
+    { n: count('image'), alone: 'an image', one: '1 image', many: (n: number) => `${n} images` },
+    { n: count('mark'), alone: 'a mark', one: '1 mark', many: (n: number) => `${n} marks` },
+  ].filter((k) => k.n > 0);
+  const parts = kinds.map((k) => (k.n > 1 ? k.many(k.n) : kinds.length === 1 ? k.alone : k.one));
+  const last = parts.pop();
+  return `Deleted ${parts.length ? `${parts.join(', ')} and ${last}` : last}`;
 }

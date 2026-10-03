@@ -43,7 +43,7 @@ export default function useObjectPreviews(
 
   useEffect(() => {
     if (finishedFor.current === objects) return undefined;
-    const pages = [...new Set(objects.filter((o) => o.kind === 'text').map((o) => o.pageIndex))].sort((a, b) => a - b);
+    const pages = [...new Set(objects.filter((o) => o.kind === 'text' || o.kind === 'mark').map((o) => o.pageIndex))].sort((a, b) => a - b);
     if (!enabled || !pdfDocument || pages.length === 0) return undefined;
     let current = true;
     (async () => {

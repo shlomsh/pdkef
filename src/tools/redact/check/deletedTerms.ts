@@ -20,7 +20,7 @@ export function deletedTerms(marks: readonly DeleteMarkLike[]): CheckTerm[] {
   const terms: CheckTerm[] = [];
   const seen = new Set<string>();
   for (const mark of marks) {
-    if (mark.type !== 'delete' || mark.kind !== 'text') continue;
+    if (mark.type !== 'delete' || (mark.kind !== 'text' && mark.kind !== 'mark')) continue;
     const label = (mark.preview ?? '').replace(/\s+/g, ' ').trim();
     if (label.replace(/\s/g, '').length < MIN_COVERED_CHARS || seen.has(label)) continue;
     seen.add(label);
