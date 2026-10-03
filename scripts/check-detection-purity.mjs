@@ -171,6 +171,11 @@ export const FUNCTION_SHIMS = new Map([
         + 'decodePDFRawStream) into one plain byte buffer.'],
       ['readFont', 'reads a pdf-lib font dict (Type0 descendant, /W widths, FontDescriptor) into '
         + 'plain glyph metrics; the biggest single adapter in the file.'],
+      ['readDifferences', "reads a pdf-lib font's /Encoding /Differences array into a plain code to "
+        + 'glyph-name map.'],
+      ['standardFontWidths', "reads a standard-14 font's per-code widths from pdf-lib's shipped AFM "
+        + 'metrics into a plain map.'],
+      ['isVerticalCMap', "decodes a pdf-lib /Encoding CMap stream to see whether it declares /WMode 1."],
       ['buildFontTable', "walks a pdf-lib Resources dict's /Font entries into a plain lookup table."],
       ['buildXObjectTable', "walks a pdf-lib Resources dict's /XObject entries into a plain lookup "
         + 'table.'],
