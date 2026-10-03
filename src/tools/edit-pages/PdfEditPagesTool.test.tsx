@@ -208,6 +208,28 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(actionButton.textContent).toContain('Apply Changes');
   });
 
+  it('a failed export points to Unlock, where a protected PDF can be opened', async () => {
+    editPages.mockRejectedValueOnce(new Error('This PDF is password protected.'));
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfEditPagesTool />, container);
+    });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(async () => {
+      container.querySelectorAll(`.${pageGridStyles['page-card']}`)[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const alert = container.querySelector('[role="alert"]');
+    expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
+  });
+
   it('runs page removal and produces download URL', async () => {
     const nativeShare = mockNativeFileShare();
     const originalCreateObjectURL = window.URL.createObjectURL;

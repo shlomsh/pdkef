@@ -459,7 +459,7 @@ export default function PdfEditPagesTool() {
 
               {status === 'error' && (
                 <ErrorMessage>
-                  The file may be damaged or password-protected - try another PDF.
+                  A protected PDF opens in <a href="/unlock/">Unlock</a> first. Otherwise the file may be damaged - try another PDF.
                 </ErrorMessage>
               )}
 
