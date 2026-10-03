@@ -51,6 +51,25 @@ describe('text in an enclosing marked-content dict (RED-55)', () => {
   });
 });
 
+describe('text in a marked-content dict opened inside its own BT..ET', () => {
+  it('empties an ActualText that opens and closes around one show op', async () => {
+    // Ligatures and tagged exports put the BDC inside the text object, around a single op.
+    const bytes = await build('BT /F1 12 Tf 1 0 0 1 50 700 Tm /Span <</ActualText (SECRETFI)>> BDC (fi) Tj EMC 1 0 0 1 50 600 Tm (kept) Tj ET');
+    const units = (await objectsOf(bytes)).filter((o) => o.kind === 'text');
+    const { text } = await contentAfterDelete(bytes, units[0]);
+    expect(text).not.toContain('SECRETFI');
+    expect(text).toContain('(kept)');
+  });
+
+  it('empties every ActualText of a joined run, not only the first op\'s', async () => {
+    const bytes = await build('BT /F1 12 Tf 1 0 0 1 50 700 Tm (a) Tj /Span <</ActualText (SECRETB)>> BDC (b) Tj EMC ET');
+    const units = (await objectsOf(bytes)).filter((o) => o.kind === 'text');
+    expect(units).toHaveLength(1);
+    const { text } = await contentAfterDelete(bytes, units[0]);
+    expect(text).not.toContain('SECRETB');
+  });
+});
+
 describe('mark state across streams (RED-55)', () => {
   const text = (at, s) => `BT /F1 12 Tf 1 0 0 1 50 ${at} Tm (${s}) Tj ET`;
   const offered = (objects) => objects.filter((o) => o.kind === 'text');
