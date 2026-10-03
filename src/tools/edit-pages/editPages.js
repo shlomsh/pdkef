@@ -23,6 +23,9 @@ export async function editPages(
   const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
   const srcDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  // An owner-only file loads without a password, but its page streams are still
+  // encrypted: copying them out would save a valid PDF of blank pages.
+  if (srcDoc.isEncrypted) throw new Error('This PDF is password protected.');
   const originalCount = srcDoc.getPageCount();
 
   // Build the ordered list of 1-indexed page numbers to keep, in final output order.

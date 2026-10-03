@@ -54,6 +54,9 @@ export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations
   const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
   const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  // An owner-only file loads without a password, but its page streams are still
+  // encrypted: copying them out would save a valid PDF of blank pages.
+  if (source.isEncrypted) throw new Error('This PDF is password protected.');
 
   if (mode === 'combined') {
     const merged = await PDFDocument.create();
