@@ -153,6 +153,26 @@ describe('spliceOut', () => {
     expect(decode(out)).toBe('BT\n ET');
   });
 
+  it('writes a replacement between newlines instead of the lone newline (RED-54)', () => {
+    const out = spliceOut(bytes('AAABBBCCC'), [{ start: 3, end: 6, replacement: '[-5] TJ' }]);
+    expect(decode(out)).toBe('AAA\n[-5] TJ\nCCC');
+  });
+
+  it('lets the outer range win, with its own replacement, when ranges nest', () => {
+    const inner = { start: 4, end: 6, replacement: '[-1] TJ' };
+    expect(decode(spliceOut(bytes('0123456789'), [inner, { start: 2, end: 8 }]))).toBe('01\n89');
+    const outer = { start: 2, end: 8, replacement: '[-9] TJ' };
+    expect(decode(spliceOut(bytes('0123456789'), [inner, outer]))).toBe('01\n[-9] TJ\n89');
+  });
+
+  it('drops the replacements of partially overlapping ranges', () => {
+    const out = spliceOut(bytes('0123456789'), [
+      { start: 2, end: 6, replacement: 'X' },
+      { start: 4, end: 8, replacement: 'Y' },
+    ]);
+    expect(decode(out)).toBe('01\n89');
+  });
+
   it('clamps ranges that run past the end', () => {
     expect(decode(spliceOut(bytes('ABC'), [{ start: 1, end: 99 }]))).toBe('A\n');
   });
@@ -254,6 +274,112 @@ describe('deleteObjectsFromPdf', () => {
     const calls = [];
     await deleteObjectsFromPdf(source, [objects[0]], (p) => calls.push(p));
     expect(calls).toEqual([1]);
+  });
+});
+
+// RED-54: a text unit is one show-text operation, and deleting it keeps what follows in place.
+const ROW_STREAM = [
+  'BT /F1 14 Tf 14 0 0 14 510 790 Tm (o)Tj ( )Tj',
+  '/F2 10 Tf 1 0 0 1 532 792 Tm (1)Tj',
+  '/F2 12 Tf 1 0 0 1 429 791 Tm (row text)Tj',
+  '0 -14 Td (second line)Tj ET',
+  'BT /F2 12 Tf 1 0 0 1 50 700 Tm [(AB) -200 (CD)] TJ (EF) Tj ET',
+].join('\n');
+
+async function buildRowFixture(stream = ROW_STREAM) {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([600, 800]);
+  const { context } = doc;
+  const fonts = context.obj({
+    F1: context.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: StandardFonts.ZapfDingbats }),
+    F2: context.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: StandardFonts.Helvetica }),
+  });
+  page.node.set(PDFName.of('Resources'), context.obj({ Font: fonts }));
+  page.node.set(PDFName.of('Contents'), context.register(context.flateStream(stream)));
+  return new Uint8Array(await doc.save());
+}
+
+const textUnits = async (bytes) => (await objectsOf(bytes)).objects.filter((o) => o.kind === 'text');
+const contentOf = async (blob) => textOf(new Uint8Array(await blob.arrayBuffer()));
+
+describe('deleting one show-text operation (RED-54)', () => {
+  it('offers one unit per show operation, not one per BT..ET', async () => {
+    const units = await textUnits(await buildRowFixture());
+    expect(units).toHaveLength(7);
+    // The checkbox box, the space after it, the number and the row text each get their own box.
+    expect(units[1].bbox.x).toBeCloseTo(608, 4);
+    expect(units[2].bbox.x).toBeCloseTo(532, 4);
+    expect(units[3].bbox.x).toBeCloseTo(429, 4);
+    expect(units[3].bbox.width).toBeCloseTo(8 * 6, 4);
+  });
+
+  it('keeps every other unit at the same bbox after deleting the checkbox glyph', async () => {
+    const source = await buildRowFixture();
+    const before = await textUnits(source);
+    const out = await deleteObjectsFromPdf(source, [before[0]]);
+    const after = await textUnits(new Uint8Array(await out.arrayBuffer()));
+    expect(after).toHaveLength(before.length - 1);
+    after.forEach((unit, i) => {
+      const was = before[i + 1].bbox;
+      for (const key of ['x', 'y', 'width', 'height']) expect(unit.bbox[key]).toBeCloseTo(was[key], 2);
+    });
+    expect(await contentOf(out)).not.toContain('(o)');
+  });
+
+  it('keeps a following Tj in place after deleting the first op of a TJ + Tj pair', async () => {
+    const source = await buildRowFixture();
+    const before = await textUnits(source);
+    const ef = before[before.length - 1];
+    const out = await deleteObjectsFromPdf(source, [before[before.length - 2]]);
+    const after = await textUnits(new Uint8Array(await out.arrayBuffer()));
+    expect(after[after.length - 1].bbox.x).toBeCloseTo(ef.bbox.x, 2);
+    const content = await contentOf(out);
+    expect(content).not.toContain('(AB)');
+    expect(content).not.toContain('(CD)');
+  });
+
+  it('writes an advance-only TJ, with T* first for a quote operator', async () => {
+    const source = await buildRowFixture(
+      'BT /F2 10 Tf 12 TL 1 0 0 1 50 700 Tm (A) Tj (B) \' (C) Tj ET',
+    );
+    const [first, second] = await textUnits(source);
+    expect(first.replacement).toBe('[-500] TJ');
+    expect(second.replacement).toBe('T* [-500] TJ');
+    const content = await contentOf(await deleteObjectsFromPdf(source, [second]));
+    expect(content).toContain('T* [-500] TJ');
+    expect(content).not.toContain('(B)');
+  });
+
+  it('keeps Tw and Tc for the double-quote operator', async () => {
+    const source = await buildRowFixture('BT /F2 10 Tf 12 TL 1 0 0 1 50 700 Tm 2 1 (A B) " (C) Tj ET');
+    const [first] = await textUnits(source);
+    expect(first.replacement.startsWith('2 Tw 1 Tc T* [')).toBe(true);
+    const content = await contentOf(await deleteObjectsFromPdf(source, [first]));
+    expect(content).not.toContain('(A B)');
+  });
+
+  it('still honours a legacy deletion spanning a whole BT..ET block', async () => {
+    const source = await buildRowFixture();
+    const doc = await PDFDocument.load(source);
+    const { blocks, bytes } = extractPageObjects(doc.getPage(0), 0);
+    expect(blocks).toHaveLength(2);
+    const legacy = { pageIndex: 0, start: blocks[0].start, end: blocks[0].end, formPath: [] };
+    const content = await contentOf(await deleteObjectsFromPdf(source, [legacy]));
+    expect(content).not.toContain('row text');
+    expect(content).not.toContain('(1)');
+    expect(content).toContain('(EF)');
+    expect(decode(bytes).slice(legacy.start, legacy.start + 2)).toBe('BT');
+    // The preview path agrees with the export for the same legacy span.
+    const preview = await buildDeletePreviewPage(doc, 0, [legacy]);
+    expect(await textOf(preview)).toBe(content);
+  });
+
+  it('previews a unit deletion exactly as the export writes it', async () => {
+    const source = await buildRowFixture();
+    const [target] = (await textUnits(source)).slice(2);
+    const doc = await PDFDocument.load(source);
+    const preview = await buildDeletePreviewPage(doc, 0, [target]);
+    expect(await textOf(preview)).toBe(await contentOf(await deleteObjectsFromPdf(source, [target])));
   });
 });
 

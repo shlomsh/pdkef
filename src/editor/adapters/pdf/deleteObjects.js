@@ -51,19 +51,13 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
     // splices a stream and its byte offsets stop matching `start`/`end`. A
     // deletion inside a Form XObject only matches an object of the same form
     // path: the same offsets mean something else in the page's own stream.
-    const { objects } = extractPageObjects(page, pageIndex);
     const spans = [];
     const deletedBoxes = [];
-    for (const deletion of byPage.get(pageIndex)) {
-      const key = formPathKey(deletion);
-      const found = objects.find(
-        (o) => o.start === deletion.start && o.end === deletion.end && formPathKey(o) === key,
-      );
-      const imageRef = deletion.imageRef ?? found?.imageRef;
-      const bbox = found?.bbox ?? deletion.bbox;
+    for (const { found, span } of resolveDeletions(page, pageIndex, byPage.get(pageIndex))) {
+      const bbox = found?.bbox ?? span.bbox;
       if (bbox) deletedBoxes.push(bbox);
-      if (imageRef) deletedImageRefs.add(imageRef);
-      spans.push({ ...deletion, imageRef });
+      if (span.imageRef) deletedImageRefs.add(span.imageRef);
+      spans.push(span);
     }
 
     rewritePageContent(doc, page, spans, replacedForms);
@@ -85,6 +79,27 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 
   const saved = await doc.save();
   return new Blob([saved], { type: 'application/pdf' });
+}
+
+/**
+ * Matches each deletion to what it removes, by offsets and form path, against a
+ * fresh extraction. A text unit brings its `replacement` (RED-54); a deletion
+ * saved when a whole `BT ... ET` was the unit matches a block and is cut whole;
+ * anything else passes through as given.
+ *
+ * @returns {Array<{found?: object, span: object}>} `found` is the matched unit or block
+ */
+function resolveDeletions(page, pageIndex, deletions) {
+  const { objects, blocks } = extractPageObjects(page, pageIndex);
+  return deletions.map((deletion) => {
+    const key = formPathKey(deletion);
+    const same = (o) => o.start === deletion.start && o.end === deletion.end && formPathKey(o) === key;
+    const unit = objects.find(same);
+    const found = unit ?? blocks.find(same);
+    const imageRef = deletion.imageRef ?? unit?.imageRef;
+    const replacement = unit?.replacement;
+    return { found, span: { ...deletion, imageRef, ...(replacement ? { replacement } : {}) } };
+  });
 }
 
 /** The `/XObject` dict of a resources dict, if it has one. */
@@ -520,7 +535,8 @@ export async function buildDeletePreviewPage(sourceDoc, pageIndex, spans) {
   const [copiedPage] = await previewDoc.copyPages(sourceDoc, [pageIndex]);
   previewDoc.addPage(copiedPage);
   const replacedForms = new Set();
-  const translated = translateFormPaths(sourceDoc, sourceDoc.getPage(pageIndex), previewDoc, copiedPage, spans);
+  const resolved = resolveDeletions(sourceDoc.getPage(pageIndex), pageIndex, spans).map((r) => r.span);
+  const translated = translateFormPaths(sourceDoc, sourceDoc.getPage(pageIndex), previewDoc, copiedPage, resolved);
   rewritePageContent(previewDoc, copiedPage, translated, replacedForms);
   dropUnreachable(previewDoc);
   return previewDoc.save();
@@ -569,30 +585,40 @@ function translateFormPaths(sourceDoc, sourcePage, previewDoc, copiedPage, spans
  *
  * Ranges are applied back to front so earlier offsets stay valid, and each cut
  * leaves a newline behind: the removed span sat between two tokens, and butting
- * its neighbours together could fuse them into one.
+ * its neighbours together could fuse them into one. A range with a `replacement`
+ * leaves that, between newlines, instead (RED-54: the advance-only `TJ` that
+ * keeps later text in place). Where ranges overlap, a range that contains the
+ * other keeps its own replacement; partly overlapping ranges merge into a plain cut.
  *
  * @param {Uint8Array} bytes
- * @param {Array<{start: number, end: number}>} ranges
+ * @param {Array<{start: number, end: number, replacement?: string|Uint8Array}>} ranges
  * @returns {Uint8Array}
  */
 export function spliceOut(bytes, ranges) {
-  const ordered = [...ranges].sort((a, b) => a.start - b.start);
+  const ordered = [...ranges].sort((a, b) => a.start - b.start || b.end - a.end);
 
-  // Merge overlaps so a doubly-selected span is not cut twice.
   const merged = [];
   for (const range of ordered) {
     const last = merged[merged.length - 1];
-    if (last && range.start <= last.end) last.end = Math.max(last.end, range.end);
-    else merged.push({ start: range.start, end: range.end });
+    if (!last || range.start > last.end) merged.push({ ...range });
+    else if (range.end > last.end) {
+      last.end = range.end;
+      delete last.replacement;
+    }
   }
 
+  const encoder = new TextEncoder();
+  const newline = new Uint8Array([0x0a]);
   const pieces = [];
   let cursor = 0;
   for (const range of merged) {
     const start = Math.max(0, Math.min(range.start, bytes.length));
     const end = Math.max(start, Math.min(range.end, bytes.length));
     pieces.push(bytes.subarray(cursor, start));
-    pieces.push(new Uint8Array([0x0a]));
+    if (range.replacement) {
+      const text = typeof range.replacement === 'string' ? encoder.encode(range.replacement) : range.replacement;
+      pieces.push(newline, text, newline);
+    } else pieces.push(newline);
     cursor = end;
   }
   pieces.push(bytes.subarray(cursor));
