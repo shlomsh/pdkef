@@ -96,6 +96,13 @@ const unionBox = (a, b) => {
   };
 };
 
+/** The byte range of an inline BDC dict that may carry the text it marks, else null. */
+function textDictRange(token) {
+  const carries = token?.type === 'dict'
+    && token.value.some((t) => t.type === 'name' && ['ActualText', 'Alt', 'E'].includes(t.value));
+  return carries ? { start: token.start, end: token.end } : null;
+}
+
 /**
  * Joins the show ops of one text object that read as a single run (RED-54): a producer that places
  * one glyph per op (`Tm (x) Tj`) would otherwise offer one Delete target per character. Ops join
@@ -717,7 +724,11 @@ export function extractPageObjects(page, pageIndex = 0) {
   const walkedForms = new Set();
   // The `/PDkef` mark being read (RED-55), shared with nested Forms: what a
   // mark draws, wherever it draws it, folds into one box and one unit.
-  const mark = { depth: 0, start: 0, min: null, max: null, imageRefs: new Set() };
+  // `owner` is the stream (formPath key) that opened it: only that stream's BMC/BDC/EMC count its depth.
+  const closedMark = () => ({
+    open: false, owner: '', depth: 0, start: 0, min: null, max: null, imageRefs: new Set(), units: [], drawsForm: false,
+  });
+  const mark = closedMark();
 
   walkStream(bytes, resources, IDENTITY, []);
 
@@ -779,12 +790,23 @@ export function extractPageObjects(page, pageIndex = 0) {
     let pending = [];
     let blockVertical = false;
 
+    // Marked-content sequences open in this stream, innermost last. `strip` is the byte range of an
+    // inline property dict that may hold a copy of the text (/ActualText, /Alt, /E), else null. A BDC
+    // naming a /Properties resource instead is out of scope: its dict is not in the stream to cut.
+    const key = formPath.join('>');
+    const sequences = [];
+
     // Every unit this stream reports goes through here, so a rule about which
     // units a page offers lives in one place.
     const emit = (object) => {
-      if (mark.depth > 0) {
+      if (object.kind === 'text') {
+        const strip = sequences.filter((s) => s.strip).map((s) => s.strip);
+        if (strip.length) object.strip = strip;
+      }
+      if (mark.open) {
         foldIntoMark(object.bbox);
         if (object.imageRef) mark.imageRefs.add(object.imageRef);
+        mark.units.push(object);
       } else objects.push(object);
     };
 
@@ -797,7 +819,7 @@ export function extractPageObjects(page, pageIndex = 0) {
       for (let i = 0; i + 1 < coords.length; i += 2) pathPoints.push(applyMatrix(ctm, coords[i], coords[i + 1]));
     };
     const paintPath = () => {
-      if (mark.depth > 0 && pathPoints.length) {
+      if (mark.open && pathPoints.length) {
         const xs = pathPoints.map((p) => p[0]);
         const ys = pathPoints.map((p) => p[1]);
         const [a, b, c, d] = ctm;
@@ -947,35 +969,31 @@ export function extractPageObjects(page, pageIndex = 0) {
 
         case 'BMC':
         case 'BDC': {
-          if (mark.depth > 0) {
-            mark.depth += 1;
-            break;
-          }
           const tag = operands[operands.length - (op === 'BMC' ? 1 : 2)];
-          if (tag?.type === 'name' && tag.value === 'PDkef') {
-            mark.depth = 1;
-            mark.start = tag.start;
-            mark.min = null;
-            mark.max = null;
-            mark.imageRefs = new Set();
+          sequences.push({ strip: op === 'BDC' ? textDictRange(operands[operands.length - 1]) : null });
+          if (mark.open) {
+            if (mark.owner === key) mark.depth += 1;
+          } else if (tag?.type === 'name' && tag.value === 'PDkef') {
+            Object.assign(mark, closedMark(), { open: true, owner: key, depth: 1, start: tag.start });
           }
           break;
         }
         case 'EMC':
-          if (mark.depth > 0 && --mark.depth === 0 && mark.min) {
-            objects.push({
+          sequences.pop();
+          if (mark.open && mark.owner === key && --mark.depth === 0) {
+            const { min, max, units, drawsForm, start: markStart } = mark;
+            const imageRefs = mark.imageRefs;
+            Object.assign(mark, closedMark());
+            // A mark that drew a Form could not be deleted whole: the Form's content would stay.
+            if (drawsForm || !min) objects.push(...units);
+            else objects.push({
               kind: 'mark',
               pageIndex,
               formPath,
-              bbox: {
-                x: mark.min[0],
-                y: mark.min[1],
-                width: mark.max[0] - mark.min[0],
-                height: mark.max[1] - mark.min[1],
-              },
+              bbox: { x: min[0], y: min[1], width: max[0] - min[0], height: max[1] - min[1] },
               // The images it drew, so deleting the mark can drop them if nothing else does.
-              ...(mark.imageRefs.size ? { imageRefs: [...mark.imageRefs] } : {}),
-              start: mark.start,
+              ...(imageRefs.size ? { imageRefs: [...imageRefs] } : {}),
+              start: markStart,
               end: token.end,
             });
           }
@@ -1001,6 +1019,7 @@ export function extractPageObjects(page, pageIndex = 0) {
               end: token.end,
             });
           } else if (entry?.form) {
+            if (mark.open) mark.drawsForm = true;
             walkForm(entry.form, streamResources, ctm, formPath);
           }
           break;
@@ -1108,6 +1127,13 @@ export function extractPageObjects(page, pageIndex = 0) {
       }
 
       operands = [];
+    }
+
+    // The stream that opened a mark ended with it open: it is no mark, so what it held is offered as is.
+    if (mark.open && mark.owner === key) {
+      const { units } = mark;
+      Object.assign(mark, closedMark());
+      objects.push(...units);
     }
   }
 

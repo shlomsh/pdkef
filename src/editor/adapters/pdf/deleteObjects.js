@@ -93,18 +93,23 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
  */
 function resolveDeletions(page, pageIndex, deletions) {
   const { objects, blocks } = extractPageObjects(page, pageIndex);
+  const stripped = new Set();
   return deletions.map((deletion) => {
     const key = formPathKey(deletion);
     const same = (o) => o.start === deletion.start && o.end === deletion.end && formPathKey(o) === key;
     const unit = objects.find(same);
     const found = unit ?? blocks.find(same);
     const imageRef = deletion.imageRef ?? unit?.imageRef;
+    // The enclosing BDC dicts that may repeat the text (RED-55): emptied once, however many units share them.
+    const strips = (unit?.strip ?? [])
+      .filter(({ start, end }) => !stripped.has(`${key}:${start}:${end}`) && stripped.add(`${key}:${start}:${end}`))
+      .map(({ start, end }) => ({ start, end, formPath: deletion.formPath, replacement: '<< >>' }));
     if (unit?.parts) {
       const { start, end, ...rest } = deletion;
-      return { found, spans: unit.parts.map((part) => ({ ...rest, ...part })) };
+      return { found, spans: [...unit.parts.map((part) => ({ ...rest, ...part })), ...strips] };
     }
     const replacement = unit?.replacement;
-    return { found, spans: [{ ...deletion, imageRef, ...(replacement ? { replacement } : {}) }] };
+    return { found, spans: [{ ...deletion, imageRef, ...(replacement ? { replacement } : {}) }, ...strips] };
   });
 }
 
