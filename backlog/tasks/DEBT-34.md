@@ -1,11 +1,9 @@
 ---
 id: "DEBT-34"
 title: "Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: ["ENC-13"]
 ---
 
@@ -60,3 +58,6 @@ Ours. The library only inspects the bytes; the throw is a missing global in our 
 - A changed `patches/*.patch` fails the auto deploy on Vercel's cached `node_modules`; Shlomi runs `vercel deploy --prod --force` after the push (ENC-13 had the same). `installCommand: "npm ci"` in `vercel.json` would end that; his call.
 - Proposed, not done (it touches the privacy wording): reports never carry a message, so the cause needed a browser repro. A `ReferenceError` message is only an identifier (`Buffer is not defined`); sending just that identifier, matched against a strict identifier pattern, would have named this in one read. It needs a schema key, the endpoint, `docs/maintenance-telemetry.md` and the privacy page, so it is Shlomi's decision.
 - Inferred, not shown: the three production reports came from the pre-ENC-13 build with protected xref-stream files. The reported chunk is gone, so its bytes cannot be checked.
+
+## Outcome (2026-10-03)
+Shipped and live. Production `/unlock/` loads `PdfSecurityTool.DqHjZWvp.js` -> `pdfLib.CDSp_AOP.js` -> `pdf-lib.DWZ1PWXp.js`, where `computeBufferSize` decodes with `new TextDecoder('latin1')` and the chunk holds no `Buffer.from(`. Read from the served bytes, not from the git history. The `--force` deploy went out (production deployments Ready 18 to 22 hours before this check). The telemetry-identifier proposal stays Shlomi's decision and is not part of this ticket.

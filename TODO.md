@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [DEBT-34](backlog/tasks/DEBT-34.md) P1 · Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 
