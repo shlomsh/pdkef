@@ -11,6 +11,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
+import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
@@ -123,24 +124,9 @@ export default function PdfSplitTool({
 
   useEffect(() => () => revokeAll(outputsRef.current), []);
 
-  // A single-slot undo chip (Merge's pattern): the next registered undo
-  // silently replaces a pending one rather than stacking, and it clears
-  // itself after 5s. Rotate is the only action that uses it today.
-  const [undoAction, setUndoAction] = useState<{ message: string; undo: () => void } | null>(null);
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const registerUndo = (message: string, perform: () => void) => {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    setUndoAction({
-      message,
-      undo: () => {
-        if (undoTimer.current) clearTimeout(undoTimer.current);
-        setUndoAction(null);
-        perform();
-        recordAction('undo');
-      },
-    });
-    undoTimer.current = setTimeout(() => setUndoAction(null), 5000);
-  };
+  // The single-slot undo chip Merge shares. Rotate is the only action that
+  // uses it today; a new file clears it so a stale undo never runs on it.
+  const { action: undoAction, register: registerUndo, clear: clearUndo, run: runUndo } = useUndoChip();
 
   // Any edit invalidates the prepared output; the idle prepare below rebuilds it.
   const invalidate = () => {
@@ -320,6 +306,7 @@ export default function PdfSplitTool({
     const picked = pdfs[0];
     recordAction(file ? 'replace_file' : 'add_files');
     invalidate();
+    clearUndo();
     setFile(picked);
     setPages([]);
     setPageSelector('');
@@ -373,7 +360,6 @@ export default function PdfSplitTool({
   // Rotation is a page property, not a selection one: it applies in either
   // mode, and toggling a page out and back in keeps whatever rotation it had.
   const rotatePage = (pageNumber: number) => {
-    const snapshot = pages;
     invalidate();
     setPages((prev) =>
       prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 90) % 360 } : p)),
@@ -382,7 +368,9 @@ export default function PdfSplitTool({
     recordAction('rotate');
     registerUndo(`Rotated page ${pageNumber}`, () => {
       invalidate();
-      setPages(snapshot);
+      setPages((prev) =>
+        prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 270) % 360 } : p)),
+      );
     });
   };
 
@@ -606,7 +594,7 @@ export default function PdfSplitTool({
                 {undoAction && (
                   <span class={styles['undo-chip']} role="status">
                     {undoAction.message}
-                    <button type="button" onClick={undoAction.undo}>Undo</button>
+                    <button type="button" onClick={runUndo}>Undo</button>
                   </span>
                 )}
               </div>

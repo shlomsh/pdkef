@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [UNDO-05](backlog/tasks/UNDO-05.md) P2 · Merge and Split share one undo chip, and Split's stops leaking (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 
