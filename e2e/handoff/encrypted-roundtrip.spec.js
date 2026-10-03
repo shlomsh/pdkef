@@ -42,7 +42,9 @@ test('an owner-only file in Redact goes to Unlock with no prompt and comes back 
 
   await page.waitForURL(/\/unlock\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  await expect(page.getByText('No password needed. This takes the protection off.')).toBeVisible({ timeout: 10_000 });
+  // The line changes to "The protection is off." once unlocking finishes, which a fast runner reaches
+  // before this assertion first polls, so accept either wording.
+  await expect(page.getByText(/No password needed\. (This takes the protection off|The protection is off)/)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole('link', { name: /Download unlocked PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
 
   await page.getByRole('button', { name: 'Continue in Redact' }).click();
