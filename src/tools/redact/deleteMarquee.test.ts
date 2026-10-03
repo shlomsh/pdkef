@@ -63,4 +63,11 @@ describe('deletedSummary', () => {
     expect(deletedSummary([...t(9), ...i(2)])).toBe('Deleted 9 pieces of text and 2 images');
     expect(deletedSummary([...t(1), ...i(1)])).toBe('Deleted 1 piece of text and 1 image');
   });
+  it('names marks Sign placed (RED-55)', () => {
+    const m = (n: number) => Array.from({ length: n }, () => ({ kind: 'mark' as const }));
+    expect(deletedSummary(m(1))).toBe('Deleted a mark');
+    expect(deletedSummary(m(3))).toBe('Deleted 3 marks');
+    expect(deletedSummary([...t(2), ...m(1)])).toBe('Deleted 2 pieces of text and 1 mark');
+    expect(deletedSummary([...t(1), ...i(1), ...m(2)])).toBe('Deleted 1 piece of text, 1 image and 2 marks');
+  });
 });

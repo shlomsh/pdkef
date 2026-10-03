@@ -154,3 +154,26 @@ describe('extractPageObjects', () => {
     expect(previewed.filter((o) => o.kind === 'text').map((o) => o.preview)).toEqual(['האגף']);
   });
 });
+
+describe('PDkef marks (RED-55)', () => {
+  it('reports one mark for a PDkef sequence, absorbing the text inside its own BDC', async () => {
+    const page = await pageWith(
+      '/PDkef BMC q 1 0 0 1 100 200 cm 2 w 0 0 m 10 10 l S /Span <</ActualText (x)>> BDC BT /F 10 Tf 0 20 Td (x) Tj ET EMC Q EMC',
+      (document) => ({ F: document.context.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: StandardFonts.Helvetica }) }),
+    );
+    const { objects, bytes } = extractPageObjects(page, 0);
+    expect(objects.map((o) => o.kind)).toEqual(['mark']);
+    const [mark] = objects;
+    expect(new TextDecoder().decode(bytes.slice(mark.start, mark.end)).startsWith('/PDkef BMC')).toBe(true);
+    expect(new TextDecoder().decode(bytes.slice(mark.start, mark.end)).endsWith('EMC')).toBe(true);
+    // The path (0,0)-(10,10) at (100,200), widened by half the 2pt line; the text lies above it.
+    expect(mark.bbox.x).toBeCloseTo(99, 5);
+    expect(mark.bbox.y).toBeCloseTo(199, 5);
+    expect(mark.bbox.y + mark.bbox.height).toBeGreaterThan(220);
+  });
+
+  it('offers no unit for paths outside a PDkef mark', async () => {
+    const page = await pageWith('q 1 w 10 10 m 50 50 l S 0 0 100 20 re f /Other BMC 5 5 m 9 9 l S EMC Q', () => ({}));
+    expect(extractPageObjects(page, 0).objects).toEqual([]);
+  });
+});

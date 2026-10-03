@@ -57,6 +57,7 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
       const bbox = found?.bbox ?? span.bbox;
       if (bbox) deletedBoxes.push(bbox);
       if (span.imageRef) deletedImageRefs.add(span.imageRef);
+      for (const ref of found?.imageRefs ?? []) deletedImageRefs.add(ref); // a mark's images (RED-55)
       spans.push(span);
     }
 
