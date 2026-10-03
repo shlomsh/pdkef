@@ -6,7 +6,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-_Nothing is up next._
+### Redact: finish removal
+
+- [RED-54](backlog/tasks/RED-54.md) P1 · Delete offers one show-text operation, not a whole text block (in progress)
+- [RED-55](backlog/tasks/RED-55.md) P1 · What Sign places stays one deletable thing after download (in progress)
 
 ## Waiting, by date
 

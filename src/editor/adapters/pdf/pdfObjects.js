@@ -704,6 +704,12 @@ export function extractPageObjects(page, pageIndex = 0) {
     let runMin = null;
     let runMax = null;
 
+    // Every unit this stream reports goes through here, so a rule about which
+    // units a page offers lives in one place.
+    const emit = (object) => {
+      objects.push(object);
+    };
+
     const num = (index) => {
       const token = operands[index];
       return token?.type === 'number' ? token.value : 0;
@@ -790,7 +796,7 @@ export function extractPageObjects(page, pageIndex = 0) {
             // is left behind. The preceding `cm` stays: it sits inside the
             // enclosing q/Q and is undone by the `Q` regardless.
             const box = transformedUnitBox(ctm);
-            objects.push({
+            emit({
               kind: 'image',
               pageIndex,
               name: key,
@@ -817,7 +823,7 @@ export function extractPageObjects(page, pageIndex = 0) {
 
         case 'ET':
           if (inText && runMin && runMax) {
-            objects.push({
+            emit({
               kind: 'text',
               pageIndex,
               formPath,

@@ -2,11 +2,18 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 0 up next, 6 then, 20 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 2 up next, 6 then, 20 waiting, 15 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-54 | P1 | [RED-54](backlog/tasks/RED-54.md) · Delete offers one show-text operation, not a whole text block | In progress |
+| RED-55 | P1 | [RED-55](backlog/tasks/RED-55.md) · What Sign places stays one deletable thing after download | In progress |
 
 ### Waiting
 
