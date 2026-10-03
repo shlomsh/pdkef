@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Sign: finish fill mode
-
-- [SNG-04](backlog/tasks/SNG-04.md) P1 · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 
