@@ -23,4 +23,11 @@ describe('deletedTerms', () => {
       { type: 'delete', kind: 'text', preview: 'Haifa' },
     ]).map((term) => term.label)).toEqual(['Haifa']);
   });
+
+  it('looks for the text of a deleted Sign mark too (RED-55)', () => {
+    expect(deletedTerms([
+      { type: 'delete', kind: 'mark', preview: 'Dana Levi' },
+      { type: 'delete', kind: 'mark' },
+    ]).map((term) => term.label)).toEqual(['Dana Levi']);
+  });
 });
