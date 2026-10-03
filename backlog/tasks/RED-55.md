@@ -33,6 +33,11 @@ empty space.
   any other undrawn image. Its hover label reads its text when it has some, and otherwise "Click to
   delete this mark".
 - Files Sign saved before this change stay as they are; nothing guesses at untagged paths.
+- A mark opens and closes in one stream: an `EMC` inside a Form never closes a page-level mark, a mark
+  left open at its stream's end is dropped and its contents offered as usual, and a mark that draws a
+  Form is not offered (deleting it could not remove the Form's content).
+- Every element Sign exports (check, x, dot, signature, line, rectangle, ellipse, whiteout, Latin and
+  Hebrew text) is one mark, each a test case.
 
 ## Acceptance
 
