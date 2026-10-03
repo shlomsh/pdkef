@@ -1,7 +1,7 @@
 ---
 id: "ENC-06"
 title: "Split and Edit Pages stop writing blank pages from a protected PDF"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "next"

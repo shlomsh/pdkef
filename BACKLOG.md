@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 0 up next, 9 then, 20 waiting, 14 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 1 up next, 8 then, 20 waiting, 14 parked.
 
 ## Redact: finish removal
 
@@ -50,11 +50,16 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
 
 ### Waiting
