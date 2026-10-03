@@ -651,6 +651,9 @@ export function extractPageObjects(page, pageIndex = 0) {
   // Forms already walked on this page. Also the cycle guard: a Form that
   // (indirectly) draws itself finds itself here and stops.
   const walkedForms = new Set();
+  // The `/PDkef` mark being read (RED-55), shared with nested Forms: what a
+  // mark draws, wherever it draws it, folds into one box and one unit.
+  const mark = { depth: 0, start: 0, min: null, max: null, imageRefs: new Set() };
 
   walkStream(bytes, resources, IDENTITY, []);
 
@@ -707,7 +710,34 @@ export function extractPageObjects(page, pageIndex = 0) {
     // Every unit this stream reports goes through here, so a rule about which
     // units a page offers lives in one place.
     const emit = (object) => {
-      objects.push(object);
+      if (mark.depth > 0) {
+        foldIntoMark(object.bbox);
+        if (object.imageRef) mark.imageRefs.add(object.imageRef);
+      } else objects.push(object);
+    };
+
+    // Current path (RED-55): its points in page space, kept only to size a
+    // mark; outside a mark a path is never a unit.
+    let pathPoints = [];
+    let lineWidth = 1;
+    const lineWidthStack = [];
+    const notePoints = (...coords) => {
+      for (let i = 0; i + 1 < coords.length; i += 2) pathPoints.push(applyMatrix(ctm, coords[i], coords[i + 1]));
+    };
+    const paintPath = () => {
+      if (mark.depth > 0 && pathPoints.length) {
+        const xs = pathPoints.map((p) => p[0]);
+        const ys = pathPoints.map((p) => p[1]);
+        const [a, b, c, d] = ctm;
+        const half = (lineWidth * (Math.hypot(a, b) + Math.hypot(c, d))) / 4;
+        foldIntoMark({
+          x: Math.min(...xs) - half,
+          y: Math.min(...ys) - half,
+          width: Math.max(...xs) - Math.min(...xs) + 2 * half,
+          height: Math.max(...ys) - Math.min(...ys) + 2 * half,
+        });
+      }
+      pathPoints = [];
     };
 
     const num = (index) => {
@@ -776,15 +806,75 @@ export function extractPageObjects(page, pageIndex = 0) {
       switch (op) {
         case 'q':
           ctmStack.push(ctm);
+          lineWidthStack.push(lineWidth);
           break;
         case 'Q':
           ctm = ctmStack.pop() ?? baseCtm;
+          lineWidth = lineWidthStack.pop() ?? 1;
           break;
         case 'cm':
           ctm = multiplyMatrix(
             [num(0), num(1), num(2), num(3), num(4), num(5)],
             ctm,
           );
+          break;
+
+        case 'w':
+          lineWidth = num(operands.length - 1);
+          break;
+        case 'm':
+        case 'l':
+          notePoints(num(0), num(1));
+          break;
+        case 'c':
+          notePoints(num(0), num(1), num(2), num(3), num(4), num(5));
+          break;
+        case 'v':
+        case 'y':
+          notePoints(num(0), num(1), num(2), num(3));
+          break;
+        case 're':
+          notePoints(num(0), num(1), num(0) + num(2), num(1), num(0), num(1) + num(3), num(0) + num(2), num(1) + num(3));
+          break;
+        case 'S': case 's': case 'f': case 'F': case 'f*':
+        case 'B': case 'B*': case 'b': case 'b*': case 'n':
+          paintPath();
+          break;
+
+        case 'BMC':
+        case 'BDC': {
+          if (mark.depth > 0) {
+            mark.depth += 1;
+            break;
+          }
+          const tag = operands[operands.length - (op === 'BMC' ? 1 : 2)];
+          if (tag?.type === 'name' && tag.value === 'PDkef') {
+            mark.depth = 1;
+            mark.start = tag.start;
+            mark.min = null;
+            mark.max = null;
+            mark.imageRefs = new Set();
+          }
+          break;
+        }
+        case 'EMC':
+          if (mark.depth > 0 && --mark.depth === 0 && mark.min) {
+            objects.push({
+              kind: 'mark',
+              pageIndex,
+              formPath,
+              bbox: {
+                x: mark.min[0],
+                y: mark.min[1],
+                width: mark.max[0] - mark.min[0],
+                height: mark.max[1] - mark.min[1],
+              },
+              // The images it drew, so deleting the mark can drop them if nothing else does.
+              ...(mark.imageRefs.size ? { imageRefs: [...mark.imageRefs] } : {}),
+              start: mark.start,
+              end: token.end,
+            });
+          }
           break;
 
         case 'Do': {
@@ -913,6 +1003,19 @@ export function extractPageObjects(page, pageIndex = 0) {
 
       operands = [];
     }
+  }
+
+  /** Grows the open mark's box to hold `box`. */
+  function foldIntoMark(box) {
+    if (!mark.min) {
+      mark.min = [box.x, box.y];
+      mark.max = [box.x + box.width, box.y + box.height];
+      return;
+    }
+    mark.min[0] = Math.min(mark.min[0], box.x);
+    mark.min[1] = Math.min(mark.min[1], box.y);
+    mark.max[0] = Math.max(mark.max[0], box.x + box.width);
+    mark.max[1] = Math.max(mark.max[1], box.y + box.height);
   }
 
   /**
