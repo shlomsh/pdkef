@@ -1,11 +1,9 @@
 ---
 id: "UNDO-05"
 title: "Merge and Split share one undo chip, and Split's stops leaking"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 1
 depends_on: []
 ---
 
@@ -55,3 +53,6 @@ an `amend` that applies an async change to the live document *and* to every snap
 stacks, leaving the history's length untouched. Merge and Split need the same separation whenever
 they get a real stack, and Split's wholesale `setPages(snapshot)` has the same hole today inside its
 five-second window.
+
+## Outcome (2026-10-03)
+`src/lib/useUndoChip.ts` (single slot, 5s, cleared on unmount, `clear` for a new document) replaces both copies. Split: a new file clears a pending chip, and rotate's undo reverses that one page instead of restoring the whole array, so a selection toggle made inside the window survives (each test seen red first). Kept out on purpose: a shared `<UndoChip>` component (each tool's chip CSS stays in its own module); translating Split's chip (Split has no i18n wiring at all, so that belongs with localizing Split); Merge's wholesale restore, whose exposure is narrower because each new action replaces the pending one; redo, as the ticket already said.

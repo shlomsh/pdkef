@@ -295,6 +295,59 @@ describe('PdfSplitTool UI flow', () => {
     expect(container.querySelector(`.${styles['undo-chip']}`)).toBeNull();
   });
 
+  it('replacing the file clears a pending rotate Undo chip', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('first.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cell = container.querySelectorAll(`.${styles.cell}`)[0];
+    await act(async () => cell.querySelector(`.${styles['rotate-btn']}`).click());
+    expect(container.querySelector(`.${styles['undo-chip']}`)).not.toBeNull();
+
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('second.pdf')]);
+    });
+    // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
+    const confirmReplace = Array.from(container.querySelectorAll('dialog button'))
+      .find((button) => button.textContent.trim() === 'Replace file');
+    await act(async () => confirmReplace.click());
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(container.querySelector(`.${styles['undo-chip']}`)).toBeNull();
+  });
+
+  it('Undo reverts only the rotated page and keeps edits made inside the window', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cells = () => Array.from(container.querySelectorAll(`.${styles.cell}`));
+    await act(async () => cells()[0].querySelector(`.${styles['rotate-btn']}`).click());
+    await act(async () => cells()[2].click()); // toggle page 3 out, inside the window
+    expect(cells()[2].classList.contains(styles['is-out'])).toBe(true);
+
+    await act(async () => container.querySelector(`.${styles['undo-chip']} button`).click());
+    expect(cells()[0].querySelector(`.${styles['cell-thumb']}`).getAttribute('data-rotation')).toBeNull();
+    expect(cells()[2].classList.contains(styles['is-out'])).toBe(true);
+  });
+
   it('shares separately split PDFs as multiple native files', async () => {
     const nativeShare = mockNativeFileShare();
     URL.createObjectURL = vi.fn(() => 'blob:fake-url');

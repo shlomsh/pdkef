@@ -24,6 +24,7 @@ import { formatFileSize } from '../../lib/format.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
+import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
@@ -205,12 +206,6 @@ function planInsertionIndex(plan: PlanEntry[], entries: FileEntry[], fileId: num
 /* Direction A: one Undo chip, one slot - file removal and page actions
    (skip, rotate, move) all register through the same `registerUndo`, so a
    second action's undo silently replaces the first's rather than stacking. */
-const UNDO_WINDOW_MS = 5000;
-
-interface UndoAction {
-  message: string;
-  perform: () => void;
-}
 
 function hasFilePayload(event: DragEvent) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
@@ -312,7 +307,6 @@ export default function PdfMergeTool({
   const { entries, plan } = model;
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [duplicates, setDuplicates] = useState<File[]>([]);
-  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(() => readRememberedOptions().addPageNumbers);
   const [sortMode, setSortMode] = useState<SortMode>('added');
@@ -372,7 +366,6 @@ export default function PdfMergeTool({
   const stripRef = useRef<HTMLUListElement | null>(null);
   const documentRef = useRef<HTMLDivElement | null>(null);
   const sortableRef = useRef<Sortable | null>(null);
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insertIndexRef = useRef(-1);
   /* MERGE-10: a file dropped onto the grid lands at that page position. The
      plan index is recorded per new entry and consumed when its page count
@@ -451,25 +444,7 @@ export default function PdfMergeTool({
     if (prepared.status !== 'ready') setDownloadedOnce(false);
   }, [prepared.status]);
 
-  const registerUndo = useCallback((message: string, perform: () => void) => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoAction({ message, perform });
-    undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
-  }, []);
-
-  const clearUndo = useCallback(() => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = null;
-    setUndoAction(null);
-  }, []);
-
-  const runUndo = useCallback(() => {
-    const action = undoAction;
-    if (!action) return;
-    clearUndo();
-    action.perform();
-    recordAction('undo');
-  }, [undoAction, clearUndo]);
+  const { action: undoAction, register: registerUndo, clear: clearUndo, run: runUndo } = useUndoChip();
 
   // Drag-to-reorder in the rail: SortableJS owns the DOM order during a drag;
   // on drop we read its final order back into Preact state, which becomes
@@ -741,7 +716,6 @@ export default function PdfMergeTool({
   }, [t.fileRemoved, t.removedUndo, t.filesAddedOne, registerUndo, inspectEntry]);
 
   useEffect(() => () => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
     if (shortcutsTimerRef.current) clearTimeout(shortcutsTimerRef.current);
   }, []);
