@@ -77,6 +77,60 @@ function symbolFontFamily(baseFont) {
   return match[1] ? 'wingdings2' : 'wingdings';
 }
 
+/** Baseline drift allowed between joined show ops, as a fraction of the font size. */
+const JOIN_BASELINE_TOLERANCE = 0.1;
+/** Gap allowed between one op's end and the next op's start, as a fraction of the font size. */
+const JOIN_GAP_TOLERANCE = 0.3;
+
+const unionBox = (a, b) => {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y,
+  };
+};
+
+/**
+ * Joins the show ops of one text object that read as a single run (RED-54): a producer that places
+ * one glyph per op (`Tm (x) Tj`) would otherwise offer one Delete target per character. Ops join
+ * when they share a font and size, sit on one baseline, and the next starts within a small gap of
+ * where the previous ended (plain distance, so visual-order RTL glyphs placed left to right join).
+ * A joined unit carries `parts`, the replacement of each op, so a delete keeps the positioning
+ * operators between them. A lone op keeps its own `replacement` and has no `parts`.
+ *
+ * @param {Array<{run: {fontKey, size, scale, from: number[], to: number[]}}>} ops units in stream order
+ */
+function joinRuns(ops) {
+  const groups = [];
+  for (const op of ops) {
+    const group = groups[groups.length - 1];
+    const prev = group?.[group.length - 1];
+    const { run } = op;
+    const unit = run.size * run.scale;
+    const joins = prev
+      && prev.run.fontKey === run.fontKey
+      && prev.run.size === run.size
+      && Math.abs(run.from[1] - prev.run.from[1]) <= JOIN_BASELINE_TOLERANCE * unit
+      && Math.hypot(run.from[0] - prev.run.to[0], run.from[1] - prev.run.to[1]) <= JOIN_GAP_TOLERANCE * unit;
+    if (joins) group.push(op);
+    else groups.push([op]);
+  }
+  return groups.map((group) => {
+    const strip = ({ run, ...unit }) => unit;
+    if (group.length === 1) return strip(group[0]);
+    const { replacement, ...first } = strip(group[0]);
+    return {
+      ...first,
+      bbox: group.reduce((box, op) => unionBox(box, op.bbox), group[0].bbox),
+      end: group[group.length - 1].end,
+      parts: group.map((op) => ({ start: op.start, end: op.end, replacement: op.replacement })),
+    };
+  });
+}
+
 function lookupDict(context, value) {
   const resolved = context.lookup(value);
   return resolved instanceof PDFDict ? resolved : undefined;
@@ -717,6 +771,7 @@ export function extractPageObjects(page, pageIndex = 0) {
     let opMin = null;
     let opMax = null;
     let opShift = 0;
+    let opFrom = [0, 0]; // where the show operation starts, in page space (RED-54 join)
     // Units of the open BT..ET, held until ET says whether a vertical font turns them into the block.
     let pending = [];
     let blockVertical = false;
@@ -777,6 +832,7 @@ export function extractPageObjects(page, pageIndex = 0) {
     const endShow = (firstOperand, token, prefix) => {
       if (font?.vertical) blockVertical = true;
       if (opMin) {
+        const trm = multiplyMatrix(tm, ctm);
         const scale = fontSize * horizontalScale;
         const advance = scale ? `[${Number(((-opShift * 1000) / scale).toFixed(4))}] TJ` : '';
         pending.push({
@@ -787,6 +843,13 @@ export function extractPageObjects(page, pageIndex = 0) {
           start: firstOperand.start,
           end: token.end,
           replacement: [...prefix, advance].filter(Boolean).join(' '),
+          run: {
+            fontKey,
+            size: fontSize,
+            scale: Math.hypot(trm[0], trm[1]) || 1,
+            from: opFrom,
+            to: applyMatrix(trm, 0, 0),
+          },
         });
       }
       opMin = null;
@@ -956,7 +1019,7 @@ export function extractPageObjects(page, pageIndex = 0) {
             const block = { formPath, bbox: rectOf(runMin, runMax), start: textStart, end: token.end };
             blocks.push(block);
             if (blockVertical) emit({ kind: 'text', pageIndex, ...block });
-            else pending.forEach(emit);
+            else joinRuns(pending).forEach(emit);
           }
           pending = [];
           inText = false;
@@ -1011,6 +1074,7 @@ export function extractPageObjects(page, pageIndex = 0) {
             prefix.push(`${wordSpacing} Tw`, `${charSpacing} Tc`);
           }
           if (op !== 'Tj') prefix.push('T*');
+          opFrom = applyMatrix(multiplyMatrix(tm, ctm), 0, 0);
           const str = operands[operands.length - 1];
           if (str?.type === 'string' || str?.type === 'hexstring') showString(str.value);
           endShow(operands[operands.length - (op === '"' ? 3 : 1)] ?? token, token, prefix);
@@ -1019,6 +1083,7 @@ export function extractPageObjects(page, pageIndex = 0) {
 
         case 'TJ': {
           const arr = operands[operands.length - 1];
+          opFrom = applyMatrix(multiplyMatrix(tm, ctm), 0, 0);
           if (arr?.type === 'array') {
             for (const item of arr.value) {
               if (item.type === 'number') {

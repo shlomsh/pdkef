@@ -53,12 +53,12 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
     // path: the same offsets mean something else in the page's own stream.
     const spans = [];
     const deletedBoxes = [];
-    for (const { found, span } of resolveDeletions(page, pageIndex, byPage.get(pageIndex))) {
-      const bbox = found?.bbox ?? span.bbox;
+    for (const { found, spans: resolved } of resolveDeletions(page, pageIndex, byPage.get(pageIndex))) {
+      const bbox = found?.bbox ?? resolved[0].bbox;
       if (bbox) deletedBoxes.push(bbox);
-      if (span.imageRef) deletedImageRefs.add(span.imageRef);
+      if (resolved[0].imageRef) deletedImageRefs.add(resolved[0].imageRef);
       for (const ref of found?.imageRefs ?? []) deletedImageRefs.add(ref); // a mark's images (RED-55)
-      spans.push(span);
+      spans.push(...resolved);
     }
 
     rewritePageContent(doc, page, spans, replacedForms);
@@ -84,11 +84,12 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 
 /**
  * Matches each deletion to what it removes, by offsets and form path, against a
- * fresh extraction. A text unit brings its `replacement` (RED-54); a deletion
- * saved when a whole `BT ... ET` was the unit matches a block and is cut whole;
- * anything else passes through as given.
+ * fresh extraction. A text unit brings its `replacement` (RED-54), or one span per
+ * part when several show ops were joined, so the positioning operators between
+ * them stay; a deletion saved when a whole `BT ... ET` was the unit matches a
+ * block and is cut whole; anything else passes through as given.
  *
- * @returns {Array<{found?: object, span: object}>} `found` is the matched unit or block
+ * @returns {Array<{found?: object, spans: object[]}>} `found` is the matched unit or block
  */
 function resolveDeletions(page, pageIndex, deletions) {
   const { objects, blocks } = extractPageObjects(page, pageIndex);
@@ -98,8 +99,12 @@ function resolveDeletions(page, pageIndex, deletions) {
     const unit = objects.find(same);
     const found = unit ?? blocks.find(same);
     const imageRef = deletion.imageRef ?? unit?.imageRef;
+    if (unit?.parts) {
+      const { start, end, ...rest } = deletion;
+      return { found, spans: unit.parts.map((part) => ({ ...rest, ...part })) };
+    }
     const replacement = unit?.replacement;
-    return { found, span: { ...deletion, imageRef, ...(replacement ? { replacement } : {}) } };
+    return { found, spans: [{ ...deletion, imageRef, ...(replacement ? { replacement } : {}) }] };
   });
 }
 
@@ -536,7 +541,7 @@ export async function buildDeletePreviewPage(sourceDoc, pageIndex, spans) {
   const [copiedPage] = await previewDoc.copyPages(sourceDoc, [pageIndex]);
   previewDoc.addPage(copiedPage);
   const replacedForms = new Set();
-  const resolved = resolveDeletions(sourceDoc.getPage(pageIndex), pageIndex, spans).map((r) => r.span);
+  const resolved = resolveDeletions(sourceDoc.getPage(pageIndex), pageIndex, spans).flatMap((r) => r.spans);
   const translated = translateFormPaths(sourceDoc, sourceDoc.getPage(pageIndex), previewDoc, copiedPage, resolved);
   rewritePageContent(previewDoc, copiedPage, translated, replacedForms);
   dropUnreachable(previewDoc);
