@@ -111,6 +111,13 @@ function textDictRange(token) {
   return carries ? { start: token.start, end: token.end } : null;
 }
 
+/** The distinct dict ranges among several units' `strip` lists. */
+const unionStrips = (lists) => {
+  const byStart = new Map();
+  for (const range of lists.flat().filter(Boolean)) byStart.set(range.start, range);
+  return [...byStart.values()];
+};
+
 /**
  * Joins the show ops of one text object that read as a single run (RED-54): a producer that places
  * one glyph per op (`Tm (x) Tj`) would otherwise offer one Delete target per character. Ops join
@@ -137,11 +144,13 @@ function joinRuns(ops) {
     else groups.push([op]);
   }
   return groups.map((group) => {
-    const strip = ({ run, ...unit }) => unit;
-    if (group.length === 1) return strip(group[0]);
-    const { replacement, ...first } = strip(group[0]);
+    const withoutRun = ({ run, ...unit }) => unit;
+    if (group.length === 1) return withoutRun(group[0]);
+    const { replacement, ...first } = withoutRun(group[0]);
+    const strips = unionStrips(group.map((op) => op.strip));
     return {
       ...first,
+      ...(strips.length ? { strip: strips } : {}),
       bbox: group.reduce((box, op) => unionBox(box, op.bbox), group[0].bbox),
       end: group[group.length - 1].end,
       parts: group.map((op) => ({ start: op.start, end: op.end, replacement: op.replacement })),
@@ -893,12 +902,14 @@ export function extractPageObjects(page, pageIndex = 0) {
     // naming a /Properties resource instead is out of scope: its dict is not in the stream to cut.
     const key = formPath.join('>');
     const sequences = [];
+    // A dict a show op sits in is read when the op runs: a BDC can open and close inside BT..ET.
+    const openStrips = () => sequences.filter((s) => s.strip).map((s) => s.strip);
 
     // Every unit this stream reports goes through here, so a rule about which
     // units a page offers lives in one place.
     const emit = (object) => {
       if (object.kind === 'text') {
-        const strip = sequences.filter((s) => s.strip).map((s) => s.strip);
+        const strip = unionStrips([object.strip, openStrips()]);
         if (strip.length) object.strip = strip;
       }
       if (mark.open) {
@@ -966,6 +977,7 @@ export function extractPageObjects(page, pageIndex = 0) {
           start: firstOperand.start,
           end: token.end,
           replacement: [...prefix, advance].filter(Boolean).join(' '),
+          ...(openStrips().length ? { strip: openStrips() } : {}),
           run: {
             fontKey,
             size: fontSize,
