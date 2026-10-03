@@ -223,10 +223,10 @@ describe('checkbox glyphs', () => {
     const { checkboxes } = detectPageRegions(reloaded.getPage(0), 0);
     expect(checkboxes).toHaveLength(2);
     // Each region is the glyph's shadow-free square (SNG-09): ❏ starts 0.64pt
-    // into its glyph, ❑ 0.66pt into its own at 125pt (pdf-lib writes no
-    // /Widths for a standard font, so the walker advances by 500/1000 em).
+    // into its glyph, ❑ 0.66pt into its own at 127.62pt (pdf-lib writes no
+    // /Widths for a standard font, so the walker advances by the AFM width, 762/1000 em).
     expect(checkboxes[0].left).toBeCloseTo(120.64 / 6, 5);
-    expect(checkboxes[1].left).toBeCloseTo(125.66 / 6, 5);
+    expect(checkboxes[1].left).toBeCloseTo(128.28 / 6, 5);
     expect(checkboxes[0].top).toBeCloseTo((800 - 606.62) / 8, 5);
     expect(checkboxes[1].top).toBeCloseTo((800 - 606.6) / 8, 5);
   });

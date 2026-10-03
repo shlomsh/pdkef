@@ -87,15 +87,11 @@ describe('extractPageObjects', () => {
     expect(run.bbox.width).toBeLessThan(80);
   });
 
-  it('falls back to an average glyph width when the font omits /Widths', async () => {
-    // The standard 14 fonts may leave their metrics implicit, as pdf-lib does
-    // here. The box is then approximate: 0.5 em per glyph rather than the real
-    // 0.556 em of a Helvetica digit, so it reads about 8% narrow. Deletion is
-    // unaffected because it removes the whole run, but hover hit-testing on
-    // such a file is correspondingly loose.
+  it('takes the AFM glyph widths when a standard-14 font omits /Widths', async () => {
+    // The standard 14 fonts may leave their metrics implicit, as pdf-lib does here.
     const { objects } = await objectsOf(await buildSample());
     const run = objects.find((o) => o.preview === '123456789');
-    expect(run.bbox.width).toBeCloseTo(9 * 12 * 0.5, 5);
+    expect(run.bbox.width).toBeCloseTo(9 * 12 * 0.556, 5);
   });
 
   it('boxes an image at its placement rectangle', async () => {
@@ -315,7 +311,7 @@ describe('deleting one show-text operation (RED-54)', () => {
     expect(units).toHaveLength(6);
     expect(units[1].bbox.x).toBeCloseTo(532, 4);
     expect(units[2].bbox.x).toBeCloseTo(429, 4);
-    expect(units[2].bbox.width).toBeCloseTo(8 * 6, 4);
+    expect(units[2].bbox.width).toBeCloseTo(3.501 * 12, 4); // Helvetica AFM widths of 'row text'
   });
 
   it('keeps every other unit at the same bbox after deleting the checkbox glyph', async () => {
@@ -348,10 +344,10 @@ describe('deleting one show-text operation (RED-54)', () => {
       'BT /F2 10 Tf 12 TL 1 0 0 1 50 700 Tm (A) Tj (B) \' (C) Tj ET',
     );
     const [first, second] = await textUnits(source);
-    expect(first.replacement).toBe('[-500] TJ');
-    expect(second.parts[0].replacement).toBe('T* [-500] TJ'); // (B)' and (C)Tj share a line, so they join
+    expect(first.replacement).toBe('[-667] TJ');
+    expect(second.parts[0].replacement).toBe('T* [-667] TJ'); // (B)' and (C)Tj share a line, so they join
     const content = await contentOf(await deleteObjectsFromPdf(source, [second]));
-    expect(content).toContain('T* [-500] TJ');
+    expect(content).toContain('T* [-667] TJ');
     expect(content).not.toContain('(B)');
   });
 
@@ -385,7 +381,7 @@ describe('deleting one show-text operation (RED-54)', () => {
     expect(units).toHaveLength(1);
     expect(units[0].parts).toHaveLength(5);
     expect(units[0].bbox.x).toBeCloseTo(100, 4);
-    expect(units[0].bbox.width).toBeCloseTo(26.68 + 6, 2);
+    expect(units[0].bbox.width).toBeCloseTo(26.68 + 0.556 * 12, 2);
 
     const out = await deleteObjectsFromPdf(source, units);
     const content = await contentOf(out);
@@ -683,5 +679,72 @@ describe('clearDocumentDetails via deleteObjectsFromPdf', () => {
     expect(outDoc.getAuthor()).toBeUndefined();
     expect(outDoc.catalog.get(PDFName.of('Metadata'))).toBeUndefined();
     expect(await decompressedObjectText(outDoc)).not.toContain('secret author');
+  });
+});
+
+describe('glyph widths behind an advance-only TJ (RED-54)', () => {
+  async function buildWithFont(stream, makeFont) {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([600, 800]);
+    const { context } = doc;
+    page.node.set(PDFName.of('Resources'), context.obj({ Font: context.obj({ F1: makeFont(context) }) }));
+    page.node.set(PDFName.of('Contents'), context.register(context.flateStream(stream)));
+    return new Uint8Array(await doc.save());
+  }
+  const SHOW = 'BT /F1 10 Tf 1 0 0 1 50 700 Tm (AAAA) Tj ET';
+
+  it('uses the AFM widths of a standard-14 font with no /Widths', async () => {
+    const source = await buildWithFont(SHOW, (c) =>
+      c.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: 'ABCDEF+Helvetica' }));
+    const [unit] = await textUnits(source);
+    expect(unit.replacement).toBe('[-2668] TJ');
+    expect(unit.bbox.width).toBeCloseTo(26.68, 2);
+  });
+
+  it('reads Symbol widths by the font\'s own code table', async () => {
+    const source = await buildWithFont('BT /F1 10 Tf 1 0 0 1 50 700 Tm (a) Tj ET', (c) =>
+      c.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: 'Symbol' }));
+    const [unit] = await textUnits(source);
+    expect(unit.replacement).toBe('[-631] TJ'); // alpha
+  });
+
+  it('scales a Type3 font by its FontMatrix', async () => {
+    const source = await buildWithFont(SHOW, (c) =>
+      c.obj({
+        Type: 'Font', Subtype: 'Type3', FontMatrix: [0.01, 0, 0, 0.01, 0, 0],
+        FirstChar: 65, LastChar: 65, Widths: [100],
+      }));
+    const [unit] = await textUnits(source);
+    expect(unit.replacement).toBe('[-4000] TJ');
+  });
+
+  it('gives a code past the /Widths array no advance when there is no MissingWidth', async () => {
+    const source = await buildWithFont('BT /F1 10 Tf 1 0 0 1 50 700 Tm (AB) Tj ET', (c) =>
+      c.obj({
+        Type: 'Font', Subtype: 'Type1', BaseFont: 'Foo', FirstChar: 65, LastChar: 65, Widths: [600],
+      }));
+    const [unit] = await textUnits(source);
+    expect(unit.replacement).toBe('[-600] TJ');
+  });
+
+  it('keeps 500 for a simple font with neither /Widths nor a standard name', async () => {
+    const source = await buildWithFont('BT /F1 10 Tf 1 0 0 1 50 700 Tm (A) Tj ET', (c) =>
+      c.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: 'Foo' }));
+    const [unit] = await textUnits(source);
+    expect(unit.replacement).toBe('[-500] TJ');
+  });
+
+  it('treats a Type0 font with an embedded /WMode 1 CMap as vertical, one whole-block unit', async () => {
+    const stream = 'BT /F1 10 Tf 1 0 0 1 50 700 Tm <00410042> Tj 1 0 0 1 50 650 Tm <00430044> Tj ET';
+    const source = await buildWithFont(stream, (c) => {
+      const cmap = c.register(
+        c.stream('/CIDInit /ProcSet findresource begin\n/WMode 1 def\nendcmap', { Type: 'CMap', CMapName: 'Custom-V' }),
+      );
+      const descendant = c.obj({ Type: 'Font', Subtype: 'CIDFontType2', BaseFont: 'Foo', DW: 1000 });
+      return c.obj({
+        Type: 'Font', Subtype: 'Type0', BaseFont: 'Foo', Encoding: cmap, DescendantFonts: [descendant],
+      });
+    });
+    expect(await textUnits(source)).toHaveLength(1);
   });
 });
