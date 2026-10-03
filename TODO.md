@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [ENC-06](backlog/tasks/ENC-06.md) P1 · Split and Edit Pages stop writing blank pages from a protected PDF (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 

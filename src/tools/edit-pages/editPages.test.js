@@ -76,3 +76,14 @@ describe('editPages library integration with real fixtures', () => {
     expect(details.pageTexts[4]).toContain('5');
   });
 });
+
+describe('editPages on a protected file', () => {
+  // Copying an owner-only file's still-encrypted page streams writes blank pages.
+  it('refuses an owner-only file instead of writing blank pages', async () => {
+    const buffer = fs.readFileSync(
+      path.resolve(__dirname, '../../lib/__fixtures__/encrypted/owner-only.pdf'),
+    );
+    const file = new File([buffer], 'owner-only.pdf', { type: 'application/pdf' });
+    await expect(editPages(file, {})).rejects.toThrow(/protected/i);
+  });
+});
