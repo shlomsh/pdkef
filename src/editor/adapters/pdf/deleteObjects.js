@@ -606,7 +606,8 @@ export function spliceOut(bytes, ranges) {
   const merged = [];
   for (const range of ordered) {
     const last = merged[merged.length - 1];
-    if (!last || range.start > last.end) merged.push({ ...range });
+    // Ranges that only touch stay apart: each keeps its own replacement.
+    if (!last || range.start >= last.end) merged.push({ ...range });
     else if (range.end > last.end) {
       last.end = range.end;
       delete last.replacement;
