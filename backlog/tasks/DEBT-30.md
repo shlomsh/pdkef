@@ -1,11 +1,10 @@
 ---
 id: "DEBT-30"
 title: "Merge destroys its Sortable twice and throws, caught in production by the error loop"
-status: "blocked"
+status: "done"
 priority: "P1"
 epic: "robustness"
 depends_on: ["DEBT-27"]
-waiting_on: "Real traffic on the fixed build, then one errors:read"
 ---
 
 # DEBT-30 · Merge destroys its Sortable twice and throws, caught in production by the error loop
@@ -44,4 +43,4 @@ it can take the Merge island down, not just log.
       on `destroy()` showed `Cannot set properties of null` from `el[expando]`).
 - [x] Both cleanups clear their ref; the test passes (`3173680e`, 39/39 in the file).
 - [x] `errors:resolve` clips minified dependency lines to 160 characters around the column (`0ee6468e`).
-- [ ] After the push, no new `sortable.esm` destroy report arrives from the fixed build.
+- [x] After the push, no new `sortable.esm` destroy report arrives from the fixed build. Fix live about 20:10 UTC on 2026-10-01; the full UTC days of 2026-10-02 and 2026-10-03 and 2026-10-04 so far show no `sortable.esm` report (`errors:read -- --days 4`, checked 2026-10-04). The one report in history is from 2026-10-01, unstamped Firefox on `/he/merge/`, most likely a tab opened before the fix.

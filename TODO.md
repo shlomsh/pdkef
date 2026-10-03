@@ -19,7 +19,6 @@ _Nothing is up next._
 - 2026-11-06: [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages
 - 2026-11-07: [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads
 - 2026-11-08: [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family
-- Real traffic on the fixed build, then one errors:read: [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop
 - An Android phone: [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
 - Shlomi's read-through: [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through
