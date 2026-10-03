@@ -10,6 +10,7 @@ import {
   signPdf,
   UnrepresentableTextError
 } from './sign.js';
+import { mockFontFetch } from './fontFetch.test-helper.js';
 import { hasFillableAcroForm } from './pdfObjects.js';
 import { hexToRgbFractions, getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { percentToPoints } from '../../geometry/coords.js';
@@ -38,24 +39,6 @@ async function buildAcroFormFixture() {
   return new File([bytes], 'acroform-fixture.pdf', { type: 'application/pdf' });
 }
 
-// signPdf fetches bundled fonts from same-origin `/fonts/<name>.ttf` at runtime.
-// Node's test environment has no server, so serve the real files straight off
-// disk — this keeps the test honest about which files actually exist (a missing
-// file here fails exactly like a 404 would in the browser).
-function mockFontFetch() {
-  const originalFetch = global.fetch;
-  global.fetch = vi.fn(async (url) => {
-    const match = /\/fonts\/(.+)$/.exec(String(url));
-    if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
-    const filePath = path.resolve(__dirname, '../../../../public/fonts', match[1]);
-    if (!fs.existsSync(filePath)) {
-      return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
-    }
-    const buffer = fs.readFileSync(filePath);
-    return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(buffer).buffer };
-  });
-  return () => { global.fetch = originalFetch; };
-}
 
 async function getTextItems(blob) {
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');

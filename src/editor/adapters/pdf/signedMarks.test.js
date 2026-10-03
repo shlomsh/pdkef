@@ -5,6 +5,7 @@ import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { signPdf } from './sign.js';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { deleteObjectsFromPdf } from './deleteObjects.js';
+import { mockFontFetch } from './fontFetch.test-helper.js';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 const decode = (bytes) => new TextDecoder().decode(bytes);
@@ -65,5 +66,40 @@ describe('what Sign bakes is one mark each (RED-55)', () => {
     const images = reloaded.context.enumerateIndirectObjects().filter(([, o]) =>
       o.dict?.get(PDFName.of('Subtype'))?.asString?.() === '/Image');
     expect(images).toHaveLength(0);
+  });
+});
+
+// Every element Sign can export, one at a time: each is one Delete target, and
+// deleting it gives back the page as it was before signing.
+const EVERY_ELEMENT = [
+  ['check', tick],
+  ['x', { ...tick, id: 'x', mark: 'x' }],
+  ['dot', { ...tick, id: 'd', mark: 'dot' }],
+  ['signature', signature],
+  ['line', { id: 'l', type: 'line', pageIndex: 0, x1: 10, y1: 50, x2: 40, y2: 60, color: '#1463ff', strokeWidth: 2 }],
+  ['rectangle', { id: 'r', type: 'rectangle', pageIndex: 0, left: 45, top: 15, width: 12, height: 10, color: '#1463ff', strokeWidth: 2 }],
+  ['ellipse', { id: 'e', type: 'ellipse', pageIndex: 0, left: 60, top: 30, width: 12, height: 10, color: '#1463ff', strokeWidth: 2 }],
+  ['whiteout', { id: 'w', type: 'whiteout', pageIndex: 0, left: 70, top: 70, width: 10, height: 8, color: '#ffffff' }],
+  ['text', { id: 't', type: 'text', pageIndex: 0, left: 10, top: 10, text: 'Dana Levi', fontFamily: 'Arimo', fontSize: 12, color: '#000000' }],
+  ['Hebrew text', { id: 'h', type: 'text', pageIndex: 0, left: 10, top: 30, text: 'דנה לוי 03/10/2026', fontFamily: 'Arimo', fontSize: 12, color: '#000000' }],
+];
+
+describe('every element Sign exports is one Delete target', () => {
+  let restoreFetch;
+  beforeEach(() => { restoreFetch = mockFontFetch(); });
+  afterEach(() => restoreFetch());
+
+  it.each(EVERY_ELEMENT)('%s', async (_, element) => {
+    const source = await sourcePdf();
+    const signed = await signPdf(source, [element]);
+    const { objects } = extractPageObjects(await pageOf(signed), 0);
+    expect(objects.map((o) => o.kind)).toEqual(['mark']);
+
+    const [mark] = objects;
+    const out = await deleteObjectsFromPdf(signed, [{ pageIndex: 0, start: mark.start, end: mark.end }]);
+    const before = decode(getPageContentBytes(await pageOf(source)));
+    const after = decode(getPageContentBytes(await pageOf(out)));
+    expect(after.replace(/\s+/g, ' ')).not.toMatch(/PDkef|BT|Do\b/);
+    expect(after).toContain(before.trim());
   });
 });
