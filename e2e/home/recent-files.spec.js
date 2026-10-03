@@ -171,6 +171,7 @@ test.describe('opening a recent tile', () => {
     await page.getByRole('button', { name: /Open recent PDF, entry-b\.pdf/ }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.waitForURL('**/sign/');
+    await page.waitForLoadState('load');
     expect(await page.evaluate(() => localStorage.getItem('pdf-toolkit:workspace:current:sign')))
       .toBe('sha256:entry-b');
 
