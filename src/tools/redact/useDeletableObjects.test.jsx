@@ -111,12 +111,12 @@ describe('useDeletableObjects', () => {
       render(<Harness apiRef={apiRef} file={fileA} bytes={bytesA} />, container);
     });
     await flush();
-    expect(apiRef.current[0].bbox.width).toBeCloseTo(5 * 12 * 0.5, 5);
+    expect(apiRef.current[0].bbox.width).toBeCloseTo(3.279 * 12, 5);
 
     act(() => {
       render(<Harness apiRef={apiRef} file={fileB} bytes={bytesB} />, container);
     });
     await flush();
-    expect(apiRef.current[0].bbox.width).toBeCloseTo(6 * 12 * 0.5, 5);
+    expect(apiRef.current[0].bbox.width).toBeCloseTo(4.278 * 12, 5);
   });
 });

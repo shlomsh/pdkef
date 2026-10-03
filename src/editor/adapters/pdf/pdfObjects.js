@@ -1,4 +1,12 @@
-import { PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
+import {
+  PDFName,
+  PDFArray,
+  PDFDict,
+  PDFRef,
+  PDFStream,
+  StandardFontEmbedder,
+  decodePDFRawStream,
+} from '@cantoo/pdf-lib';
 import {
   tokenize,
   multiplyMatrix,
@@ -239,6 +247,74 @@ function parseToUnicode(bytes) {
   return map;
 }
 
+const STANDARD_14 = new Set([
+  'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique',
+  'Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic',
+  'Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique',
+  'Symbol', 'ZapfDingbats',
+]);
+
+/** A Type1/TrueType font's name without its `ABCDEF+` subset tag, when it is one of the standard 14. */
+function standardFontName(baseFont) {
+  const name = baseFont.replace(/^\//, '').replace(/^[A-Z]{6}\+/, '');
+  return STANDARD_14.has(name) ? name : undefined;
+}
+
+/** The /Differences of an /Encoding dictionary as code -> glyph name. */
+function readDifferences(context, encoding) {
+  const names = new Map();
+  const differences = context.lookup(encoding?.get?.(PDFName.of('Differences')));
+  if (!(differences instanceof PDFArray)) return names;
+  let code = 0;
+  for (let i = 0; i < differences.size(); i += 1) {
+    const item = context.lookup(differences.get(i));
+    if (item instanceof PDFName) {
+      names.set(code, item.asString().slice(1));
+      code += 1;
+    } else if (typeof item?.asNumber === 'function') {
+      code = item.asNumber();
+    }
+  }
+  return names;
+}
+
+/**
+ * Per-code widths (1/1000 em) of a standard-14 font from the AFM metrics pdf-lib ships. A code's
+ * glyph is its /Differences name, else the built-in name (Symbol, ZapfDingbats) or the WinAnsi
+ * name, which is what StandardEncoding and MacRoman share for printable ASCII.
+ */
+function standardFontWidths(context, name, encoding) {
+  const embedder = StandardFontEmbedder.for(name);
+  const { font } = embedder;
+  const differences = readDifferences(context, encoding);
+  // The embedder's own encoding table: code -> glyph name for WinAnsi, Symbol and ZapfDingbats.
+  const builtIn = new Map();
+  for (const codePoint of embedder.encoding.supportedCodePoints) {
+    const { code, name: glyph } = embedder.encoding.encodeUnicodeCodePoint(codePoint);
+    if (!builtIn.has(code)) builtIn.set(code, glyph);
+  }
+  const widths = new Map();
+  for (let code = 0; code < 256; code += 1) {
+    const glyph = differences.get(code) ?? builtIn.get(code);
+    const width = glyph ? font.getWidthOfGlyph(glyph) : undefined;
+    if (typeof width === 'number') widths.set(code, width);
+  }
+  return widths;
+}
+
+/** True when an /Encoding CMap stream declares vertical writing. */
+function isVerticalCMap(context, encoding) {
+  if (!(encoding instanceof PDFStream)) return false;
+  if (numberAt(context, encoding.dict, 'WMode') === 1) return true;
+  try {
+    return /\/WMode\s+1\s+def/.test(
+      new TextDecoder('latin1').decode(decodePDFRawStream(encoding).decode()),
+    );
+  } catch { // expected: an undecodable CMap stream is simply not vertical
+    return false;
+  }
+}
+
 /**
  * Reads the metrics we need to advance the text cursor: per-code widths, the
  * code size, and the vertical extent of a line.
@@ -248,6 +324,7 @@ function readFont(context, fontDict) {
   const baseFont = context.lookup(fontDict.get(PDFName.of('BaseFont')))?.asString?.() || '';
   const widths = new Map();
   let defaultWidth = 500;
+  let widthScale = 0.001;
   let twoByte = false;
   let vertical = false;
 
@@ -265,7 +342,8 @@ function readFont(context, fontDict) {
     // codespace walk; widths then fall back to /DW, which keeps the box roughly
     // right instead of collapsing it.
     twoByte = true;
-    vertical = /-V$/.test(context.lookup(fontDict.get(PDFName.of('Encoding')))?.asString?.() ?? '');
+    const encoding = context.lookup(fontDict.get(PDFName.of('Encoding')));
+    vertical = /-V$/.test(encoding?.asString?.() ?? '') || isVerticalCMap(context, encoding);
     const descendants = context.lookup(fontDict.get(PDFName.of('DescendantFonts')));
     const descendant =
       descendants instanceof PDFArray ? lookupDict(context, descendants.get(0)) : undefined;
@@ -309,7 +387,26 @@ function readFont(context, fontDict) {
         if (Number.isFinite(width)) widths.set(firstChar + i, width);
       }
     }
-    defaultWidth = numberAt(context, descriptor, 'MissingWidth') ?? 500;
+    const missingWidth = numberAt(context, descriptor, 'MissingWidth');
+    const standardName = standardFontName(baseFont);
+    if (widthArray instanceof PDFArray) {
+      // A code outside the array has no width of its own (PDF 32000-1, 9.6.2.1).
+      defaultWidth = missingWidth ?? 0;
+    } else if (standardName && subtype !== '/Type3') {
+      const encoding = context.lookup(fontDict.get(PDFName.of('Encoding')));
+      for (const [code, width] of standardFontWidths(context, standardName, encoding)) {
+        widths.set(code, width);
+      }
+      defaultWidth = missingWidth ?? 500;
+    } else {
+      defaultWidth = missingWidth ?? 500;
+    }
+    if (subtype === '/Type3') {
+      // Type3 widths are in glyph space, which /FontMatrix maps to text space.
+      const matrix = context.lookup(fontDict.get(PDFName.of('FontMatrix')));
+      const scale = matrix instanceof PDFArray ? context.lookup(matrix.get(0))?.asNumber?.() : undefined;
+      if (Number.isFinite(scale) && scale > 0) widthScale = scale;
+    }
   }
 
   const ascent = numberAt(context, descriptor, 'Ascent');
@@ -320,6 +417,7 @@ function readFont(context, fontDict) {
     vertical,
     widths,
     defaultWidth,
+    widthScale,
     toUnicode,
     isZapfDingbats: /ZapfDingbats/i.test(baseFont),
     symbolFamily: symbolFontFamily(baseFont),
@@ -457,7 +555,7 @@ export function collectCheckboxGlyphs(page) {
     const ascent = (font?.ascent ?? FALLBACK_ASCENT) * fontSize + rise;
     const descent = (font?.descent ?? FALLBACK_DESCENT) * fontSize + rise;
     for (const code of codes) {
-      const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) / 1000;
+      const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) * (font?.widthScale ?? 0.001);
       const applyWordSpacing = !font?.twoByte && code === 32;
       const advance = (
         glyphWidth * fontSize + charSpacing + (applyWordSpacing ? wordSpacing : 0)
@@ -866,7 +964,7 @@ export function extractPageObjects(page, pageIndex = 0) {
       const descent = (font?.descent ?? FALLBACK_DESCENT) * fontSize + rise;
 
       for (const code of codes) {
-        const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) / 1000;
+        const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) * (font?.widthScale ?? 0.001);
         // Word spacing applies to single-byte code 32 only.
         const applyWordSpacing = !font?.twoByte && code === 32;
         const advance =
