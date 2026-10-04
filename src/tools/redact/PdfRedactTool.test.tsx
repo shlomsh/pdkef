@@ -40,10 +40,13 @@ function query<T extends Element = HTMLElement>(root: ParentNode, selector: stri
 // /redact/'s first paint), and a module load is not a fixed number of ticks:
 // it takes more of them under a full-suite run than it does with this file
 // alone, which is exactly how a counted tick goes green here and red in CI.
-// So wait on the thing the test is really waiting for. The bound turns a
-// genuine regression into a named failure rather than a hang.
-async function settleUntil(description: string, ready: () => boolean, limit = 50): Promise<void> {
-  for (let i = 0; i < limit && !ready(); i += 1) {
+// So wait on the thing the test is really waiting for. The bound is time, not
+// a count of ticks, for the same reason (DEBT-39: a counted bound ran out
+// under a loaded machine), and it turns a genuine regression into a named
+// failure well inside the test timeout rather than a hang.
+async function settleUntil(description: string, ready: () => boolean, budgetMs = 2000): Promise<void> {
+  const deadline = performance.now() + budgetMs;
+  while (!ready() && performance.now() < deadline) {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -187,6 +190,9 @@ describe('PdfRedactTool UI flow', () => {
     gestureCommitSpies.length = 0;
     lifecycleSpy.mockClear();
     vi.restoreAllMocks();
+    // A remembered blur strength or brush colour (rememberAppStyle) is on-device
+    // state, so a test that sets one must not hand it to whichever test runs next.
+    localStorage.clear();
   });
 
   it('renders the initial file dropper zone', () => {
@@ -277,7 +283,6 @@ describe('PdfRedactTool UI flow', () => {
     afterEach(() => {
       pageSampler.impl = () => null;
       pageSampler.calls.length = 0;
-      localStorage.clear();
     });
 
     const surfaces = () => Array.from(container.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
@@ -565,8 +570,6 @@ describe('PdfRedactTool UI flow', () => {
       });
       return drawArea;
     }
-
-    afterEach(() => { localStorage.clear(); });
 
     it('a restored document still draws whiteout in the page colour (auto), not its remembered one', async () => {
       rememberAppStyle({ whiteoutColor: '#00ff00' });
@@ -935,10 +938,9 @@ describe('PdfRedactTool UI flow', () => {
       );
 
       await armTool('Delete');
-      // useDeletableObjects parses the real file asynchronously.
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
+      // useDeletableObjects loads pdf-lib on demand and parses the real file,
+      // so wait for the fixture's one object rather than a fixed 50ms.
+      await settleUntil('the fixture\'s deletable object', () => container.querySelector(`.${redactStyles['delete-candidate']}`) !== null);
 
       return drawArea;
     }
@@ -1232,8 +1234,6 @@ describe('PdfRedactTool UI flow', () => {
       }
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
     }
-
-    afterEach(() => localStorage.clear());
 
     it('a stroke commits exactly one simplified element and the brush stays armed', async () => {
       const drawArea = await loadFileAndGetDrawArea();
@@ -2366,12 +2366,6 @@ describe('PdfRedactTool UI flow', () => {
   // wiring of them through updateElement/duplicateElement/unlinkFromGroup/
   // removeGroup, mirroring the clear-page block above.
   describe('repeat a box on every page, linked copies (RED-03)', () => {
-    // Picking a whiteout colour here is remembered browser-wide (preferenceStore),
-    // which would change the default colour a later test starts from.
-    afterEach(() => {
-      localStorage.clear();
-    });
-
     function mockPageCount(numPages: number) {
       vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
         promise: Promise.resolve({
@@ -2721,10 +2715,6 @@ describe('PdfRedactTool UI flow', () => {
   describe('found boxes stay a set (RED-11)', () => {
     beforeEach(() => {
       mockedUsePageTexts.mockReturnValue(readyPageTexts());
-    });
-
-    afterEach(() => {
-      localStorage.clear();
     });
 
     // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts
