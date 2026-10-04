@@ -6,7 +6,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-_Nothing is up next._
+### Robustness and debt
+
+- [DEBT-39](backlog/tasks/DEBT-39.md) P2 · PdfRedactTool.test.tsx hangs two tests a run, different ones each time (in progress)
 
 ## Waiting, by date
 
