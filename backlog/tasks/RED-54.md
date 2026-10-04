@@ -1,11 +1,9 @@
 ---
 id: "RED-54"
 title: "Delete offers one show-text operation, not a whole text block"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -52,3 +50,16 @@ whatever the producing tool chose, and for forms it is often far too wide.
   units for the box, the number and the row text; deleting the box leaves the number and the text at
   the same walker-computed positions; a legacy block-span deletion still removes the whole block.
 - `check:fast` green.
+
+## Result
+
+Delete offers one show-text operation, and neighbouring ops in one font on one baseline join into a
+single target, so a one-glyph-per-op producer (Sign's own export) still gives words, not letters. On
+the 101 form the old target was one text block covering 514 x 797 pt of the page; the checkbox is now
+its own 11 x 13 pt target, apart from the row number and the row text. Deleting replaces each op with
+an advance-only `TJ`; pdf.js reads zero drift on every other text item of the real form after deleting
+the checkbox, or the three widest runs. The walker reads the widths a viewer uses (standard-14 AFM,
+`/MissingWidth`, Type3 `/FontMatrix`, `/WMode 1` CMaps), touching cuts keep their own replacements, and
+an `/ActualText`, `/Alt` or `/E` dict around deleted text is emptied, also when it opens inside the
+text object. Saved block-span deletions still cut their whole block. A fresh review found the touching
+spans, widths and ActualText issues; each fix started from a failing test.

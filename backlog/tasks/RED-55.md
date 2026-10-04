@@ -1,11 +1,9 @@
 ---
 id: "RED-55"
 title: "What Sign places stays one deletable thing after download"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "now"
-order: 2
 depends_on: []
 ---
 
@@ -46,3 +44,13 @@ empty space.
   text or image unit; deleting the tick mark removes its path operators and leaves the page's own
   content byte-identical.
 - `check:fast` green.
+
+## Result
+
+`signPdf` wraps every element in `/PDkef BMC ... EMC`, and Delete offers each such sequence as one
+`mark` target (its text reads in the hover label, the undo chip says "Deleted a mark", the saved-file
+check looks for its text). Every exported element type is a test case (check, x, dot, signature, line,
+rectangle, ellipse, whiteout, Latin and Hebrew text); with the tag removed all of them fail. Deleting a
+mark gives back the page as it was before signing and drops an image only it drew. A mark opens and
+closes in one stream, one left open is dropped and its contents offered as usual, and one that draws
+a Form is not offered.
