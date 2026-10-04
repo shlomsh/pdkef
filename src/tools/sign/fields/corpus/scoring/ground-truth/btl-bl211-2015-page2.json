@@ -1,0 +1,713 @@
+{
+ "form": "btl-bl211-2015",
+ "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
+ "sourceUrl": "https://www.btl.gov.il",
+ "pageIndex": 1,
+ "pageSize": {
+  "width": 612,
+  "height": 792
+ },
+ "render": {
+  "file": "btl-bl211-2015-page2.png",
+  "width": 1275,
+  "height": 1650
+ },
+ "notes": "PDF page 2 of 9, printed 'עמוד 1 מתוך 8' (pageIndex 1; PDF page 1 is the unnumbered instructions cover) of Bituach Leumi form BL/211 (work-injury claim, 05.2015): the claim-type band, section 1 (claimant details) and section 2 (workplace details). Flat Word export with a text layer, no AcroForm; every bound was read from the PDF's own geometry (ruled cell edges, comb tick positions, the Wingdings checkbox glyph squares and the underscore runs, via pdf.js operator list and a raster measurement of the 150 dpi render) and then checked against the render with overlay.mjs. Conventions, copied from the Hebrew truths itc101-page1 and health-page1 and the scanned irs-1040-1970 note: (1) an ID/phone/number tick comb is ONE `comb` target with `cells`, bounded to the cell strip from the baseline up to the regular tick tops (taller separator ticks, e.g. before the check digit or after an area code, are not included); a phone is one 10-cell run because its ticks are continuous. (2) a day/month/year tick comb is ONE `date` target (8 cells, DD MM YYYY), never three, as in itc101; a date on a blank underline is a `date` with no cells. (3) a ruled cell that carries its caption inside, top-right (the name cells, the email cell), is bounded to the writing strip beneath the caption, as in irs-1040-1970; a cell whose caption sits in its own header cell above (the address rows, employer, role, business name and business type) is the whole input cell. (4) a checkbox is the printed square itself (measured ink of the Wingdings glyph, about 10 x 10 pt), not the glyph advance box, as in itc101; option checkboxes are labelled \"option / group caption\" with the verbatim Hebrew caption in logical order. (5) an underscore run is a `text` target bounded from the line up to one text height above it, x from the first to the last underscore. Section-2 captions repeat for the employed block and the self-employed block, so those labels carry a group suffix. Not annotated: the \"לשימוש פנימי בלבד\" office-use boxes (document-type, pages, scan ID comb), the \"חותמת קבלה\" stamp box, the logo, the numbered section badges, the grey section bars and every pre-printed caption.",
+ "targets": [
+  {
+   "id": "t001",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4972,
+    "y": 0.0346,
+    "width": 0.1703,
+    "height": 0.0139
+   },
+   "label": "נא ציין את מספר תעודת זהות"
+  },
+  {
+   "id": "t002",
+   "kind": "date",
+   "bounds": {
+    "x": 0.2454,
+    "y": 0.0346,
+    "width": 0.1302,
+    "height": 0.0139
+   },
+   "label": "תאריך הפגיעה",
+   "notes": "blank underline, no ticks: one date answer"
+  },
+  {
+   "id": "t003",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8846,
+    "y": 0.1965,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "תאונה בעבודה"
+  },
+  {
+   "id": "t004",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4894,
+    "y": 0.1965,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "שכיר"
+  },
+  {
+   "id": "t005",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4109,
+    "y": 0.1965,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "עצמאי"
+  },
+  {
+   "id": "t006",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.3239,
+    "y": 0.1965,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "מתנדב"
+  },
+  {
+   "id": "t007",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8846,
+    "y": 0.2191,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "מחלת מקצוע"
+  },
+  {
+   "id": "t008",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6252,
+    "y": 0.2213,
+    "width": 0.1278,
+    "height": 0.0139
+   },
+   "label": "מחלת מקצוע, פרט"
+  },
+  {
+   "id": "t009",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4894,
+    "y": 0.2191,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "הכשרה מקצועית"
+  },
+  {
+   "id": "t010",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.3278,
+    "y": 0.2191,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "חבר קיבוץ או מושב שיתופי"
+  },
+  {
+   "id": "t011",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7005,
+    "y": 0.2866,
+    "width": 0.2096,
+    "height": 0.0394
+   },
+   "label": "שם משפחה"
+  },
+  {
+   "id": "t012",
+   "kind": "text",
+   "bounds": {
+    "x": 0.432,
+    "y": 0.2866,
+    "width": 0.2647,
+    "height": 0.0394
+   },
+   "label": "שם פרטי"
+  },
+  {
+   "id": "t013",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.1363,
+    "y": 0.3111,
+    "width": 0.2565,
+    "height": 0.0152
+   },
+   "label": "מספר זהות / דרכון",
+   "cells": 9
+  },
+  {
+   "id": "t014",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.7052,
+    "y": 0.358,
+    "width": 0.1997,
+    "height": 0.0152
+   },
+   "label": "מספר אישי בצה\"ל",
+   "cells": 7
+  },
+  {
+   "id": "t015",
+   "kind": "date",
+   "bounds": {
+    "x": 0.4502,
+    "y": 0.3551,
+    "width": 0.2278,
+    "height": 0.0152
+   },
+   "label": "תאריך לידה",
+   "cells": 8,
+   "notes": "DD MM YYYY, taller ticks after the day and month cells"
+  },
+  {
+   "id": "t016",
+   "kind": "date",
+   "bounds": {
+    "x": 0.1374,
+    "y": 0.3551,
+    "width": 0.2279,
+    "height": 0.0152
+   },
+   "label": "תאריך עלייה",
+   "cells": 8,
+   "notes": "DD MM YYYY, taller ticks after the day and month cells"
+  },
+  {
+   "id": "t017",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8565,
+    "y": 0.4047,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "רווק/ה / מצב משפחתי"
+  },
+  {
+   "id": "t018",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.7467,
+    "y": 0.4047,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "אלמן/ה / מצב משפחתי"
+  },
+  {
+   "id": "t019",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6448,
+    "y": 0.4047,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "פרוד/ה / מצב משפחתי"
+  },
+  {
+   "id": "t020",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5717,
+    "y": 0.4047,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "נשוי/אה / מצב משפחתי"
+  },
+  {
+   "id": "t021",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4611,
+    "y": 0.4047,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "גרוש/ה / מצב משפחתי"
+  },
+  {
+   "id": "t022",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.36,
+    "y": 0.4047,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "ידוע/ה בציבור / מצב משפחתי"
+  },
+  {
+   "id": "t023",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6623,
+    "y": 0.4602,
+    "width": 0.2479,
+    "height": 0.0289
+   },
+   "label": "רחוב / תא דואר / כתובת (הרשומה במשרד הפנים)"
+  },
+  {
+   "id": "t024",
+   "kind": "text",
+   "bounds": {
+    "x": 0.5694,
+    "y": 0.4602,
+    "width": 0.0891,
+    "height": 0.0289
+   },
+   "label": "מס' בית / כתובת (הרשומה במשרד הפנים)"
+  },
+  {
+   "id": "t025",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4869,
+    "y": 0.4602,
+    "width": 0.0791,
+    "height": 0.0289
+   },
+   "label": "כניסה / כתובת (הרשומה במשרד הפנים)"
+  },
+  {
+   "id": "t026",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4046,
+    "y": 0.4602,
+    "width": 0.0789,
+    "height": 0.0289
+   },
+   "label": "דירה / כתובת (הרשומה במשרד הפנים)"
+  },
+  {
+   "id": "t027",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1691,
+    "y": 0.4602,
+    "width": 0.2319,
+    "height": 0.0289
+   },
+   "label": "יישוב / כתובת (הרשומה במשרד הפנים)"
+  },
+  {
+   "id": "t028",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0748,
+    "y": 0.4602,
+    "width": 0.0907,
+    "height": 0.0289
+   },
+   "label": "מיקוד / כתובת (הרשומה במשרד הפנים)"
+  },
+  {
+   "id": "t029",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.669,
+    "y": 0.5186,
+    "width": 0.234,
+    "height": 0.0152
+   },
+   "label": "טלפון קווי",
+   "cells": 10
+  },
+  {
+   "id": "t030",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.4113,
+    "y": 0.5186,
+    "width": 0.24,
+    "height": 0.0152
+   },
+   "label": "טלפון נייד",
+   "cells": 10
+  },
+  {
+   "id": "t031",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0748,
+    "y": 0.5069,
+    "width": 0.3261,
+    "height": 0.0288
+   },
+   "label": "דואר אלקטרוני"
+  },
+  {
+   "id": "t032",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6306,
+    "y": 0.5364,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "אני מאשר קבלת הודעות SMS"
+  },
+  {
+   "id": "t033",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.3757,
+    "y": 0.5384,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "אני מאשר קבלת מכתבים בדואר אלקטרוני"
+  },
+  {
+   "id": "t034",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6623,
+    "y": 0.5951,
+    "width": 0.2479,
+    "height": 0.0192
+   },
+   "label": "רחוב / תא דואר / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+  },
+  {
+   "id": "t035",
+   "kind": "text",
+   "bounds": {
+    "x": 0.5694,
+    "y": 0.5951,
+    "width": 0.0891,
+    "height": 0.0192
+   },
+   "label": "מס' בית / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+  },
+  {
+   "id": "t036",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4869,
+    "y": 0.5951,
+    "width": 0.0791,
+    "height": 0.0192
+   },
+   "label": "כניסה / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+  },
+  {
+   "id": "t037",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4046,
+    "y": 0.5951,
+    "width": 0.0789,
+    "height": 0.0192
+   },
+   "label": "דירה / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+  },
+  {
+   "id": "t038",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1712,
+    "y": 0.5951,
+    "width": 0.2297,
+    "height": 0.0192
+   },
+   "label": "יישוב / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+  },
+  {
+   "id": "t039",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0748,
+    "y": 0.5951,
+    "width": 0.0928,
+    "height": 0.0192
+   },
+   "label": "מיקוד / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+  },
+  {
+   "id": "t040",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.0977,
+    "y": 0.6987,
+    "width": 0.2848,
+    "height": 0.0152
+   },
+   "label": "טלפון קווי / שכיר/מתנדב/הכשרה מקצועית",
+   "cells": 10
+  },
+  {
+   "id": "t041",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7005,
+    "y": 0.6971,
+    "width": 0.2057,
+    "height": 0.029
+   },
+   "label": "שם מעסיק/ מפעל"
+  },
+  {
+   "id": "t042",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4025,
+    "y": 0.6971,
+    "width": 0.2943,
+    "height": 0.029
+   },
+   "label": "תפקיד התובע במקום העבודה"
+  },
+  {
+   "id": "t043",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.0977,
+    "y": 0.7404,
+    "width": 0.2848,
+    "height": 0.0152
+   },
+   "label": "טלפון נייד / שכיר/מתנדב/הכשרה מקצועית",
+   "cells": 10
+  },
+  {
+   "id": "t044",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1373,
+    "y": 0.7565,
+    "width": 0.2,
+    "height": 0.0139
+   },
+   "label": "מס' פקס / שכיר/מתנדב/הכשרה מקצועית"
+  },
+  {
+   "id": "t045",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7776,
+    "y": 0.7485,
+    "width": 0.1286,
+    "height": 0.0364
+   },
+   "label": "רחוב / תא דואר / שכיר/מתנדב/הכשרה מקצועית"
+  },
+  {
+   "id": "t046",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7005,
+    "y": 0.7485,
+    "width": 0.0734,
+    "height": 0.0364
+   },
+   "label": "מספר בית / שכיר/מתנדב/הכשרה מקצועית"
+  },
+  {
+   "id": "t047",
+   "kind": "text",
+   "bounds": {
+    "x": 0.5124,
+    "y": 0.7485,
+    "width": 0.1843,
+    "height": 0.0364
+   },
+   "label": "יישוב / שכיר/מתנדב/הכשרה מקצועית"
+  },
+  {
+   "id": "t048",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4025,
+    "y": 0.7485,
+    "width": 0.1062,
+    "height": 0.0364
+   },
+   "label": "מיקוד / שכיר/מתנדב/הכשרה מקצועית"
+  },
+  {
+   "id": "t049",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5507,
+    "y": 0.7903,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "לא / האם אתה אחד מבעלי החברה/ בעל שליטה בחברה"
+  },
+  {
+   "id": "t050",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4863,
+    "y": 0.7903,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "כן / האם אתה אחד מבעלי החברה/ בעל שליטה בחברה"
+  },
+  {
+   "id": "t051",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2322,
+    "y": 0.7922,
+    "width": 0.1905,
+    "height": 0.0139
+   },
+   "label": "כן, פרט / האם אתה אחד מבעלי החברה/ בעל שליטה בחברה"
+  },
+  {
+   "id": "t052",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5835,
+    "y": 0.8128,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "לא / האם יש קרבה משפחתית בינך לבין המעסיק"
+  },
+  {
+   "id": "t053",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5193,
+    "y": 0.8128,
+    "width": 0.0165,
+    "height": 0.0128
+   },
+   "label": "כן / האם יש קרבה משפחתית בינך לבין המעסיק"
+  },
+  {
+   "id": "t054",
+   "kind": "text",
+   "bounds": {
+    "x": 0.265,
+    "y": 0.8146,
+    "width": 0.1907,
+    "height": 0.0139
+   },
+   "label": "כן, פרט / האם יש קרבה משפחתית בינך לבין המעסיק"
+  },
+  {
+   "id": "t055",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7005,
+    "y": 0.8674,
+    "width": 0.2057,
+    "height": 0.0273
+   },
+   "label": "שם העסק / עצמאי"
+  },
+  {
+   "id": "t056",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4025,
+    "y": 0.8674,
+    "width": 0.2943,
+    "height": 0.0273
+   },
+   "label": "סוג העיסוק / עצמאי"
+  },
+  {
+   "id": "t057",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.0977,
+    "y": 0.878,
+    "width": 0.2848,
+    "height": 0.0152
+   },
+   "label": "טלפון קווי / עצמאי",
+   "cells": 10
+  },
+  {
+   "id": "t058",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7775,
+    "y": 0.9149,
+    "width": 0.1288,
+    "height": 0.0266
+   },
+   "label": "רחוב / תא דואר / עצמאי"
+  },
+  {
+   "id": "t059",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7005,
+    "y": 0.9149,
+    "width": 0.0734,
+    "height": 0.0266
+   },
+   "label": "מספר בית / עצמאי"
+  },
+  {
+   "id": "t060",
+   "kind": "text",
+   "bounds": {
+    "x": 0.5124,
+    "y": 0.9149,
+    "width": 0.1843,
+    "height": 0.0266
+   },
+   "label": "יישוב / עצמאי"
+  },
+  {
+   "id": "t061",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4025,
+    "y": 0.9149,
+    "width": 0.1062,
+    "height": 0.0266
+   },
+   "label": "מיקוד / עצמאי"
+  },
+  {
+   "id": "t062",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.0977,
+    "y": 0.9251,
+    "width": 0.2848,
+    "height": 0.0152
+   },
+   "label": "טלפון נייד / עצמאי",
+   "cells": 10
+  }
+ ]
+}
