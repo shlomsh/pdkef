@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 1 up next, 6 then, 19 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 0 up next, 6 then, 19 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -49,12 +49,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 ## Robustness and debt
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-39 | P2 | [DEBT-39](backlog/tasks/DEBT-39.md) · PdfRedactTool.test.tsx hangs two tests a run, different ones each time | In progress |
 
 ### Waiting
 
@@ -136,7 +130,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 15 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 34 done, 3 retired
+- Robustness and debt: 35 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
