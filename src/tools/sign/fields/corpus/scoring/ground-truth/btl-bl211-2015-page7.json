@@ -1,0 +1,965 @@
+{
+ "form": "btl-bl211-2015",
+ "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
+ "sourceUrl": "https://www.btl.gov.il",
+ "pageIndex": 6,
+ "pageSize": {
+  "width": 612,
+  "height": 792
+ },
+ "render": {
+  "file": "btl-bl211-2015-page7.png",
+  "width": 1275,
+  "height": 1650
+ },
+ "notes": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, printed 'עמוד 6 מתוך 8' = 0-based pageIndex 6 of the 9-page file (page 1 is an unnumbered cover): the employer section, 12 (injury away from the business) and 13 (salary of the 4 months before work stopped). Flat Word 2010 export, no AcroForm, text layer present. The `render` is a 150 DPI pdftoppm render of this page. Bounds are exact geometry, not eyeballed: ruled cells and table cells come from the vector rules of the page (the painted #bfbfbf cell borders; the target is the white interior between them), underline targets from the raster run of the printed underscore glyphs, checkboxes from the ink of the Wingdings square glyph (U+F071, the visible square with its drop shadow), the one comb from its raster ticks. Conventions, copied from the existing truths: (1) a tick-comb is ONE target with `cells` and a strip the height of its ticks (itc101 t001/t010); this page has one, the 12-cell employer deductions file number (counted from the ticks), kind `comb`. (2) A date is kind `date`, one target, whether it is a tick-comb or here an underline (itc101 date kind, health t071/t073): the six date underlines (injury date in the header, start of work, absent from, absent until, returned on, stopped on) are `date`; times (hour of injury, shift start, hours of return/exit) and ID numbers written on an underline are `text`. (3) A plain underline is the writing strip ABOVE the printed underscore run, about one line (11pt) tall and as long as the run (practice-form lineWritableRect, health t067). (4) A ruled table or box cell a person writes into is kind `text`, never `table-cell` (the corpus README says table-cell is never a truth kind), and the target is the whole white interior of the cell: every cell here has its caption in a separate row above it, so there is no caption strip to exclude (the irs-1040-1970 rule would apply only if a caption sat inside the cell). (5) A checkbox target is the printed square itself (health and itc101 checkbox targets); yes/no pairs are two independent `checkbox` targets, not radio, as in itc101 (marital status). (6) Label is the verbatim Hebrew caption in logical order; for a checkbox the label is its own word followed by ' / ' and the question, and for a table cell the column caption followed by ' / ' and the table row, as in the itc101 children table. Not targets: the pre-printed 'חודש' month column, the table header rows, the section badges, captions, the bold sub-heading underline under the page title, the long instruction sentence above the table. Ambiguities decided: the checkbox in front of 'אם בשלושת החודשים ... נעדר העובד מהעבודה' and the one in front of 'העובד ממשיך להימנות על עובדי המפעל' are real answer boxes beside their own כן/לא boxes, so all are targets; the 'מקום הפגיעה' line and 'שעת הפגיעה' line are separate answers; the 'מס' ימי העבודה בשבוע' and 'היקף המשרה ב-%' fields are plain underlines (`text`), not combs. Review (lead, 2026-10-04): the month column's cells print only the word 'חודש' at their right edge and leave the rest blank for the month to be written, so each row's blank strip (from the column's left rule to just before the printed word) is a text target, t083-t086. The original brief had wrongly called that column pre-printed. The file is named page7 after its PDF page (pageIndex 6), as thai-pnd90-2565-page3.json is named for pageIndex 2.",
+ "targets": [
+  {
+   "id": "t001",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4973,
+    "y": 0.0345,
+    "width": 0.1702,
+    "height": 0.0139
+   },
+   "label": "נא ציין את מספר תעודת זהות"
+  },
+  {
+   "id": "t002",
+   "kind": "date",
+   "bounds": {
+    "x": 0.2455,
+    "y": 0.0345,
+    "width": 0.1302,
+    "height": 0.0139
+   },
+   "label": "תאריך הפגיעה"
+  },
+  {
+   "id": "t003",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8573,
+    "y": 0.1079,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "הפגיעה אירעה מחוץ למפעל – תוך כדי עבודה"
+  },
+  {
+   "id": "t004",
+   "kind": "text",
+   "bounds": {
+    "x": 0.3561,
+    "y": 0.1303,
+    "width": 0.3914,
+    "height": 0.0139
+   },
+   "label": "מקום הפגיעה"
+  },
+  {
+   "id": "t005",
+   "kind": "text",
+   "bounds": {
+    "x": 0.182,
+    "y": 0.1303,
+    "width": 0.0824,
+    "height": 0.0139
+   },
+   "label": "שעת הפגיעה"
+  },
+  {
+   "id": "t006",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0918,
+    "y": 0.1606,
+    "width": 0.3545,
+    "height": 0.0139
+   },
+   "label": "המקום שבו היה על התובע לעבוד או שבו עבד התובע ביום הפגיעה"
+  },
+  {
+   "id": "t007",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5286,
+    "y": 0.1952,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "לא / האם העובד מועסק דרך קבע מחוץ לכותלי המפעל?"
+  },
+  {
+   "id": "t008",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.469,
+    "y": 0.1952,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "כן / האם העובד מועסק דרך קבע מחוץ לכותלי המפעל?"
+  },
+  {
+   "id": "t009",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0894,
+    "y": 0.197,
+    "width": 0.2008,
+    "height": 0.0139
+   },
+   "label": "בדרך כלל מועסק ב"
+  },
+  {
+   "id": "t010",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5984,
+    "y": 0.2327,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "לא / האם נכחו עובדים נוספים בעת הפגיעה?"
+  },
+  {
+   "id": "t011",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5388,
+    "y": 0.2327,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "כן / האם נכחו עובדים נוספים בעת הפגיעה?"
+  },
+  {
+   "id": "t012",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2675,
+    "y": 0.2345,
+    "width": 0.182,
+    "height": 0.0139
+   },
+   "label": "שם / עובד נוסף 1"
+  },
+  {
+   "id": "t013",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1051,
+    "y": 0.2345,
+    "width": 0.1278,
+    "height": 0.0139
+   },
+   "label": "ת.ז. / עובד נוסף 1"
+  },
+  {
+   "id": "t014",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2722,
+    "y": 0.2576,
+    "width": 0.1733,
+    "height": 0.0139
+   },
+   "label": "שם / עובד נוסף 2"
+  },
+  {
+   "id": "t015",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1106,
+    "y": 0.2576,
+    "width": 0.1271,
+    "height": 0.0139
+   },
+   "label": "ת.ז. / עובד נוסף 2"
+  },
+  {
+   "id": "t016",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7042,
+    "y": 0.314,
+    "width": 0.2059,
+    "height": 0.0313
+   },
+   "label": "תפקיד הנפגע במפעל"
+  },
+  {
+   "id": "t017",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4946,
+    "y": 0.314,
+    "width": 0.206,
+    "height": 0.0313
+   },
+   "label": "מטרת יציאתו מחוץ למפעל"
+  },
+  {
+   "id": "t018",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2851,
+    "y": 0.314,
+    "width": 0.2059,
+    "height": 0.0313
+   },
+   "label": "שם העובד שנתן לתובע את ההוראה לצאת"
+  },
+  {
+   "id": "t019",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0753,
+    "y": 0.314,
+    "width": 0.2062,
+    "height": 0.0313
+   },
+   "label": "תפקידו"
+  },
+  {
+   "id": "t020",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4946,
+    "y": 0.367,
+    "width": 0.4155,
+    "height": 0.0294
+   },
+   "label": "שעת היציאה"
+  },
+  {
+   "id": "t021",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0753,
+    "y": 0.367,
+    "width": 0.4157,
+    "height": 0.0294
+   },
+   "label": "שעת החזרה הצפויה"
+  },
+  {
+   "id": "t022",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8847,
+    "y": 0.4018,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "פגיעה בדרך לעבודה"
+  },
+  {
+   "id": "t023",
+   "kind": "text",
+   "bounds": {
+    "x": 0.622,
+    "y": 0.4194,
+    "width": 0.0369,
+    "height": 0.0139
+   },
+   "label": "באיזו שעה היה עליו להתחיל בעבודה"
+  },
+  {
+   "id": "t024",
+   "kind": "text",
+   "bounds": {
+    "x": 0.458,
+    "y": 0.4194,
+    "width": 0.0643,
+    "height": 0.0139
+   },
+   "label": "איזו משמרת"
+  },
+  {
+   "id": "t025",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0886,
+    "y": 0.4194,
+    "width": 0.1639,
+    "height": 0.0139
+   },
+   "label": "הכתובת שבה היה אמור לעבוד"
+  },
+  {
+   "id": "t026",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8847,
+    "y": 0.4533,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "פגיעה בדרך הביתה"
+  },
+  {
+   "id": "t027",
+   "kind": "text",
+   "bounds": {
+    "x": 0.549,
+    "y": 0.4752,
+    "width": 0.1631,
+    "height": 0.0139
+   },
+   "label": "באיזו שעה סיים את העבודה"
+  },
+  {
+   "id": "t028",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.3404,
+    "y": 0.4733,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "כן / האם סיים בשעה הקבועה?"
+  },
+  {
+   "id": "t029",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.2533,
+    "y": 0.4733,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "לא / האם סיים בשעה הקבועה?"
+  },
+  {
+   "id": "t030",
+   "kind": "text",
+   "bounds": {
+    "x": 0.5349,
+    "y": 0.4903,
+    "width": 0.2094,
+    "height": 0.0139
+   },
+   "label": "הסיבה ליציאה המוקדמת"
+  },
+  {
+   "id": "t031",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0902,
+    "y": 0.4903,
+    "width": 0.2,
+    "height": 0.0139
+   },
+   "label": "הכתובת שבה עבד לפני היציאה לביתו"
+  },
+  {
+   "id": "t032",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4675,
+    "y": 0.5611,
+    "width": 0.4426,
+    "height": 0.0326
+   },
+   "label": "שם המפעל / המעסיק"
+  },
+  {
+   "id": "t033",
+   "kind": "comb",
+   "bounds": {
+    "x": 0.0988,
+    "y": 0.5758,
+    "width": 0.342,
+    "height": 0.0152
+   },
+   "label": "מספר תיק ניכויים במוסד לביטוח לאומי",
+   "cells": 12
+  },
+  {
+   "id": "t034",
+   "kind": "date",
+   "bounds": {
+    "x": 0.771,
+    "y": 0.6152,
+    "width": 0.1365,
+    "height": 0.0139
+   },
+   "label": "תאריך תחילת עבודה"
+  },
+  {
+   "id": "t035",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6361,
+    "y": 0.603,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "קבוע / מעמד העובד"
+  },
+  {
+   "id": "t036",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5663,
+    "y": 0.603,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "ארעי / מעמד העובד"
+  },
+  {
+   "id": "t037",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4973,
+    "y": 0.603,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "יומי / מעמד העובד"
+  },
+  {
+   "id": "t038",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.4463,
+    "y": 0.603,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "חודשי / מעמד העובד"
+  },
+  {
+   "id": "t039",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2525,
+    "y": 0.6152,
+    "width": 0.1192,
+    "height": 0.0139
+   },
+   "label": "היקף המשרה ב-%"
+  },
+  {
+   "id": "t040",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1129,
+    "y": 0.6152,
+    "width": 0.0729,
+    "height": 0.0139
+   },
+   "label": "מספר ימי העבודה בשבוע"
+  },
+  {
+   "id": "t041",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8878,
+    "y": 0.6388,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "אם בשלושת החודשים שקדמו לפגיעה נעדר העובד מהעבודה, נא פרט את סיבת ההיעדרות"
+  },
+  {
+   "id": "t042",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1302,
+    "y": 0.6406,
+    "width": 0.182,
+    "height": 0.0139
+   },
+   "label": "סיבת ההיעדרות"
+  },
+  {
+   "id": "t043",
+   "kind": "date",
+   "bounds": {
+    "x": 0.731,
+    "y": 0.66,
+    "width": 0.1184,
+    "height": 0.0139
+   },
+   "label": "ממתי / נעדר מהעבודה"
+  },
+  {
+   "id": "t044",
+   "kind": "date",
+   "bounds": {
+    "x": 0.5584,
+    "y": 0.66,
+    "width": 0.1184,
+    "height": 0.0139
+   },
+   "label": "עד מתי / נעדר מהעבודה"
+  },
+  {
+   "id": "t045",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.1992,
+    "y": 0.6582,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "כן / האם שולם שכר בעבור ימים אלה?"
+  },
+  {
+   "id": "t046",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.1357,
+    "y": 0.6582,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "לא / האם שולם שכר בעבור ימים אלה?"
+  },
+  {
+   "id": "t047",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6832,
+    "y": 0.7633,
+    "width": 0.0874,
+    "height": 0.0237
+   },
+   "label": "מס' הימים בעבורם שולם השכר / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t048",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6416,
+    "y": 0.7661,
+    "width": 0.0173,
+    "height": 0.0127
+   },
+   "label": "יומי / העובד הוא / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t049",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5835,
+    "y": 0.7661,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "חודשי / העובד הוא / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t050",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4136,
+    "y": 0.7633,
+    "width": 0.1493,
+    "height": 0.0237
+   },
+   "label": "שכר ברוטו החייב בדמי ביטוח לחודש זה בש\"ח / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t051",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2967,
+    "y": 0.7633,
+    "width": 0.1134,
+    "height": 0.0237
+   },
+   "label": "סכום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t052",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1979,
+    "y": 0.7633,
+    "width": 0.0953,
+    "height": 0.0237
+   },
+   "label": "לתקופה / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t053",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0753,
+    "y": 0.7633,
+    "width": 0.119,
+    "height": 0.0237
+   },
+   "label": "שם התשלום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t054",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6832,
+    "y": 0.7896,
+    "width": 0.0874,
+    "height": 0.0236
+   },
+   "label": "מס' הימים בעבורם שולם השכר / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t055",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6416,
+    "y": 0.7921,
+    "width": 0.0173,
+    "height": 0.0127
+   },
+   "label": "יומי / העובד הוא / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t056",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5835,
+    "y": 0.7921,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "חודשי / העובד הוא / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t057",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4136,
+    "y": 0.7896,
+    "width": 0.1493,
+    "height": 0.0236
+   },
+   "label": "שכר ברוטו החייב בדמי ביטוח לחודש זה בש\"ח / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t058",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2967,
+    "y": 0.7896,
+    "width": 0.1134,
+    "height": 0.0236
+   },
+   "label": "סכום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t059",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1979,
+    "y": 0.7896,
+    "width": 0.0953,
+    "height": 0.0236
+   },
+   "label": "לתקופה / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t060",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0753,
+    "y": 0.7896,
+    "width": 0.119,
+    "height": 0.0236
+   },
+   "label": "שם התשלום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t061",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6832,
+    "y": 0.816,
+    "width": 0.0874,
+    "height": 0.0236
+   },
+   "label": "מס' הימים בעבורם שולם השכר / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t062",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6416,
+    "y": 0.8188,
+    "width": 0.0173,
+    "height": 0.0127
+   },
+   "label": "יומי / העובד הוא / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t063",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5835,
+    "y": 0.8188,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "חודשי / העובד הוא / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t064",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4136,
+    "y": 0.816,
+    "width": 0.1493,
+    "height": 0.0236
+   },
+   "label": "שכר ברוטו החייב בדמי ביטוח לחודש זה בש\"ח / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t065",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2967,
+    "y": 0.816,
+    "width": 0.1134,
+    "height": 0.0236
+   },
+   "label": "סכום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t066",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1979,
+    "y": 0.816,
+    "width": 0.0953,
+    "height": 0.0236
+   },
+   "label": "לתקופה / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t067",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0753,
+    "y": 0.816,
+    "width": 0.119,
+    "height": 0.0236
+   },
+   "label": "שם התשלום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t068",
+   "kind": "text",
+   "bounds": {
+    "x": 0.6832,
+    "y": 0.8424,
+    "width": 0.0874,
+    "height": 0.0236
+   },
+   "label": "מס' הימים בעבורם שולם השכר / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t069",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.6416,
+    "y": 0.8455,
+    "width": 0.0173,
+    "height": 0.0127
+   },
+   "label": "יומי / העובד הוא / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t070",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5835,
+    "y": 0.8455,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "חודשי / העובד הוא / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t071",
+   "kind": "text",
+   "bounds": {
+    "x": 0.4136,
+    "y": 0.8424,
+    "width": 0.1493,
+    "height": 0.0236
+   },
+   "label": "שכר ברוטו החייב בדמי ביטוח לחודש זה בש\"ח / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t072",
+   "kind": "text",
+   "bounds": {
+    "x": 0.2967,
+    "y": 0.8424,
+    "width": 0.1134,
+    "height": 0.0236
+   },
+   "label": "סכום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t073",
+   "kind": "text",
+   "bounds": {
+    "x": 0.1979,
+    "y": 0.8424,
+    "width": 0.0953,
+    "height": 0.0236
+   },
+   "label": "לתקופה / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t074",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0753,
+    "y": 0.8424,
+    "width": 0.119,
+    "height": 0.0236
+   },
+   "label": "שם התשלום / תוספת חד פעמית, מענק או הפרשים / טבלת שכר, שורה 4"
+  },
+  {
+   "id": "t075",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8847,
+    "y": 0.8758,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "העובד שב לעבודה בתאריך"
+  },
+  {
+   "id": "t076",
+   "kind": "date",
+   "bounds": {
+    "x": 0.4682,
+    "y": 0.8776,
+    "width": 0.2275,
+    "height": 0.0139
+   },
+   "label": "העובד שב לעבודה בתאריך"
+  },
+  {
+   "id": "t077",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.3725,
+    "y": 0.8758,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "העובד לא שב עדיין לעבודה"
+  },
+  {
+   "id": "t078",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.8847,
+    "y": 0.9055,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "העובד ממשיך להימנות על עובדי המפעל"
+  },
+  {
+   "id": "t079",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5584,
+    "y": 0.9055,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "כן / העובד ממשיך להימנות על עובדי המפעל"
+  },
+  {
+   "id": "t080",
+   "kind": "checkbox",
+   "bounds": {
+    "x": 0.5067,
+    "y": 0.9055,
+    "width": 0.0165,
+    "height": 0.0127
+   },
+   "label": "לא / העובד ממשיך להימנות על עובדי המפעל"
+  },
+  {
+   "id": "t081",
+   "kind": "date",
+   "bounds": {
+    "x": 0.1067,
+    "y": 0.9073,
+    "width": 0.1271,
+    "height": 0.0139
+   },
+   "label": "העובד הפסיק לעבוד במפעל בתאריך"
+  },
+  {
+   "id": "t082",
+   "kind": "text",
+   "bounds": {
+    "x": 0.0918,
+    "y": 0.9267,
+    "width": 0.2455,
+    "height": 0.0139
+   },
+   "label": "סיבת הפסקת העבודה"
+  },
+  {
+   "id": "t083",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7745,
+    "y": 0.7633,
+    "width": 0.0956,
+    "height": 0.0237
+   },
+   "label": "החודש, כולל חודש הפסקת העבודה / טבלת שכר, שורה 1"
+  },
+  {
+   "id": "t084",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7745,
+    "y": 0.7896,
+    "width": 0.0956,
+    "height": 0.0236
+   },
+   "label": "החודש, כולל חודש הפסקת העבודה / טבלת שכר, שורה 2"
+  },
+  {
+   "id": "t085",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7745,
+    "y": 0.816,
+    "width": 0.0956,
+    "height": 0.0236
+   },
+   "label": "החודש, כולל חודש הפסקת העבודה / טבלת שכר, שורה 3"
+  },
+  {
+   "id": "t086",
+   "kind": "text",
+   "bounds": {
+    "x": 0.7745,
+    "y": 0.8424,
+    "width": 0.0956,
+    "height": 0.0236
+   },
+   "label": "החודש, כולל חודש הפסקת העבודה / טבלת שכר, שורה 4"
+  }
+ ]
+}

@@ -547,6 +547,116 @@
         }
       },
       "sha256": "53841ec2138b5d1ccd8e69ae402b35e6e3a04f17556bb3b0829f55b47f51b506"
+    },
+    "btl-bl211-2015-p2": {
+      "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-bl211-2015.pdf",
+      "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-bl211-2015-page2.json",
+      "pageIndex": 1,
+      "note": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, supplied by Shlomi; issuer https://www.btl.gov.il, exact file URL unknown. The first Microsoft Word export in the corpus (FORM-30): flat, no AcroForm, a text layer, Wingdings checkbox glyphs, open-top tick combs, and underline leaders typed as '_' characters rather than drawn rules. PDF page 2, printed 'עמוד 1 מתוך 8' (claimant and workplace details). Measured 2026-10-04 on a reviewed overlay, the misses are three detector gaps, not truth artifacts: (1) a ruled cell about 23pt tall is found but reported as an 11.5pt strip at its top, so IoU with the whole cell is 0.36-0.48 (registered address row, email, employer name, both employer address rows: 13 misses); the mailing-address row, about 15pt tall, matches because a one-line strip covers most of it; (2) the six underscore-character leaders (both header lines, 'מחלת מקצוע, פרט', 'מס' פקס', both 'כן, פרט') get no candidate at all; (3) the self-employed address row (t058-t061) gets nothing although the identical employer row above it is found. Precision is low because every open-top tick comb surfaces as two or three stacked comb candidates plus small checkbox-kind squares at its end ticks (37 extra combs, 29 extra checkboxes), and the office-use box and the 'שכיר/מתנדב' sub-heading bar are reported. Every real comb, date comb and checkbox is found.",
+      "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
+      "targets": 62,
+      "candidates": 133,
+      "matched": 40,
+      "recall": 64.5,
+      "precision": 30.1,
+      "labels": {
+        "rate": 87.5,
+        "evaluated": 40,
+        "correct": 35
+      },
+      "byKind": {
+        "text": {
+          "recall": 34.4,
+          "targets": 32,
+          "found": 11,
+          "precision": 42.9,
+          "candidates": 21,
+          "matchedCandidates": 9
+        },
+        "date": {
+          "recall": 66.7,
+          "targets": 3,
+          "found": 2,
+          "precision": 0,
+          "candidates": 3,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 19,
+          "found": 19,
+          "precision": 39.6,
+          "candidates": 48,
+          "matchedCandidates": 19
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 8,
+          "found": 8,
+          "precision": 21.3,
+          "candidates": 47,
+          "matchedCandidates": 10
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 14.3,
+          "candidates": 14,
+          "matchedCandidates": 2
+        }
+      }
+    },
+    "btl-bl211-2015-p7": {
+      "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-bl211-2015.pdf",
+      "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-bl211-2015-page7.json",
+      "pageIndex": 6,
+      "note": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, supplied by Shlomi; issuer https://www.btl.gov.il, exact file URL unknown. The first Microsoft Word export in the corpus (FORM-30): flat, no AcroForm, a text layer, Wingdings checkbox glyphs, open-top tick combs, and underline leaders typed as '_' characters rather than drawn rules. PDF page 7, printed 'עמוד 6 מתוך 8' (the employer section, 12 and 13, with the four-month salary table). Measured 2026-10-04 on a reviewed overlay: (1) underscore-character leaders are the bulk of the 52 misses, every one of the ~25 text and all 6 date underlines (place and time of injury, names and IDs of witnesses, start/stop dates); (2) in the salary table only row 1's cells are found, rows 2-4 (21 cells) and every month cell get nothing; (3) three of the four section-12 cells under the two-line caption row miss while their neighbour is found; (4) five checkboxes on rows dense with underlines (t028, t029, t070, t075, t077) come back as squares offset from the printed one. The 12-cell deductions-file comb is found, with four stacked comb candidates on top of it.",
+      "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
+      "targets": 86,
+      "candidates": 45,
+      "matched": 34,
+      "recall": 39.5,
+      "precision": 75.6,
+      "labels": {
+        "rate": 94.1,
+        "evaluated": 34,
+        "correct": 32
+      },
+      "byKind": {
+        "text": {
+          "recall": 18,
+          "targets": 50,
+          "found": 9,
+          "precision": 81.8,
+          "candidates": 11,
+          "matchedCandidates": 9
+        },
+        "date": {
+          "recall": 0,
+          "targets": 6,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 82.8,
+          "targets": 29,
+          "found": 24,
+          "precision": 82.8,
+          "candidates": 29,
+          "matchedCandidates": 24
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 1,
+          "found": 1,
+          "precision": 20,
+          "candidates": 5,
+          "matchedCandidates": 1
+        }
+      }
     }
   }
 }
