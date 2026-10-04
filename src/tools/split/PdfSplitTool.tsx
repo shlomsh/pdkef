@@ -97,6 +97,9 @@ export default function PdfSplitTool({
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
   const [saved, setSaved] = useState(false);
+  // DEBT-46 analytics: the person's Download or Share is the start; idle prepares
+  // are not counted (as in Merge's MERGE-12).
+  const [tap, setTap] = useState<'idle' | 'processing' | 'done'>('idle');
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
   /** A protected PDF is a precondition, not a failure (DEBT-41): no prepare run, nothing reported. */
@@ -154,6 +157,7 @@ export default function PdfSplitTool({
     pendingTap.current = false;
     clearPrepared();
     setSaved(false);
+    setTap('idle');
     // A hand-off still reading the old bytes must not park them or navigate,
     // and its button comes back for the newly chosen file.
     handoffRun.invalidate();
@@ -233,6 +237,12 @@ export default function PdfSplitTool({
       setSaved(true);
     }
   }, [status, outputs, mode, downloadAll]);
+
+  // A tap on a ready Download or a share: 'processing' renders once so
+  // BasePdfTool reports the start, then 'done' once the download is delivered.
+  useEffect(() => {
+    if (tap === 'processing' && !pendingTap.current && status === 'ready') setTap('done');
+  }, [tap, status, outputs]);
 
   const loadDocumentAndThumbnails = async (pdfFile: File) => {
     const run = loadRun.begin();
@@ -467,6 +477,7 @@ export default function PdfSplitTool({
     if (status === 'preparing') {
       event.preventDefault();
       pendingTap.current = true;
+      setTap('processing');
       setAnnouncement(t.announcePreparingTap);
       return;
     }
@@ -475,6 +486,7 @@ export default function PdfSplitTool({
       return;
     }
     recordAction('download');
+    setTap('processing');
     if (mode === 'separate') {
       event.preventDefault();
       downloadAll(outputs);
@@ -486,6 +498,7 @@ export default function PdfSplitTool({
   const handleShare = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') recordAction('share');
+    if (result.status === 'shared') setTap('processing');
     if (result.status === 'shared') setAnnouncement(t.announceShared);
     else if (result.status === 'canceled') setAnnouncement(t.announceShareCanceled);
     else if (result.status === 'error') setAnnouncement(t.announceShareError);
@@ -605,7 +618,7 @@ export default function PdfSplitTool({
     <BasePdfTool
       hasFiles={hasFiles}
       analyticsTool="split"
-      analyticsStatus={status === 'preparing' ? 'processing' : saved ? 'done' : status}
+      analyticsStatus={status === 'error' ? 'error' : tap}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       file={file}
