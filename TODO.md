@@ -14,7 +14,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [DEBT-46](backlog/tasks/DEBT-46.md) P1 · Split reports started for its automatic prepare, not for a saved result
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
 
 ### Search and languages
