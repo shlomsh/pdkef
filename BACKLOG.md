@@ -129,7 +129,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 15 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
-- Form detector accuracy: 11 done, 1 retired
+- Form detector accuracy: 12 done, 1 retired
 - Robustness and debt: 35 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired

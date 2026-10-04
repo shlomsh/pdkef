@@ -71,6 +71,23 @@ const ZAPF_DINGBATS_CHECKBOX_SQUARES = new Map([
   [0x71, [66, 123, 598, 660]],
 ]);
 
+// The square a person sees inside each Wingdings box glyph that has one, in glyph space (1000/em)
+// as [x0, y0, x1, y1], by family and code (FORM-31). The font-wide ascent/descent box is wrong for
+// them as it is for Zapf's: for 0x71 it is 12.6 x 9.7pt around a 10.1pt glyph, 2.2pt high.
+// Provenance: contours of the glyphs embedded in btl-bl211-2015.pdf (Wingdings 0x71, subset gid 137)
+// and thai-sso-1-10.pdf (Wingdings 2 0x2A, gid 13), and of Wingdings.ttf for 0x6F, which no scored
+// form embeds (the two fonts agree on 0x71 and 0x2A exactly). 0x6F and 0x71 are boxes with a drop
+// shadow, so the box is the inner (hole) contour: the outer contour, x[84,807] y[0,723], includes the
+// shadow. 0x2A is a ring, whose hole is only the paper inside the stroke, so the box is its outer
+// edge. 0xA8 is one contour with no hole to read a square from, so it keeps the line box.
+const SYMBOL_FONT_CHECKBOX_SQUARES = {
+  wingdings: new Map([
+    [0x6f, [181, 96, 711, 626]],
+    [0x71, [133, 145, 663, 675]],
+  ]),
+  wingdings2: new Map([[0x2a, [84, 0, 615, 530]]]),
+};
+
 /**
  * The Wingdings family a BaseFont names, or undefined: the `/ABCDEE+` subset tag, `#20` escapes and a
  * `,Bold` style are not part of it.
@@ -576,7 +593,9 @@ export function collectCheckboxGlyphs(page) {
       const advance = (
         glyphWidth * fontSize + charSpacing + (applyWordSpacing ? wordSpacing : 0)
       ) * horizontalScale;
-      const square = font?.isZapfDingbats ? ZAPF_DINGBATS_CHECKBOX_SQUARES.get(code) : undefined;
+      const square = font?.isZapfDingbats
+        ? ZAPF_DINGBATS_CHECKBOX_SQUARES.get(code)
+        : font?.symbolFamily && SYMBOL_FONT_CHECKBOX_SQUARES[font.symbolFamily].get(symbolCode(font, code));
       if (square) {
         const [x0, y0, x1, y1] = square;
         const sx = (fontSize * horizontalScale) / 1000;

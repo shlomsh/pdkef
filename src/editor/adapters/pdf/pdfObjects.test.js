@@ -64,23 +64,63 @@ describe('collectCheckboxGlyphs', () => {
 
 describe('collectCheckboxGlyphs in a symbol font (FORM-20)', () => {
   /** A one-glyph-per-code TrueType font under `baseFont`, 700 wide, the way a Word export writes it. */
-  const symbolFont = (baseFont) => (document) => {
+  const symbolFont = (baseFont, firstChar = 0x6c) => (document) => {
     const descriptor = document.context.obj({ Type: 'FontDescriptor', Ascent: 800, Descent: -200 });
     return {
       S: document.context.obj({
         Type: 'Font',
         Subtype: 'TrueType',
         BaseFont: baseFont,
-        FirstChar: 0x6c,
+        FirstChar: firstChar,
         Widths: [PDFNumber.of(700), PDFNumber.of(700), PDFNumber.of(700), PDFNumber.of(700)],
         FontDescriptor: document.context.register(descriptor),
       }),
     };
   };
 
-  it('reads a Wingdings box code as a checkbox, by the advance-by-ascent box', async () => {
-    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (o) Tj ET', symbolFont('Wingdings'));
+  it('bounds a Wingdings box by the square a person sees, not the font-wide line box', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (o) Tj 1 0 0 1 300 200 Tm (q) Tj ET', symbolFont('Wingdings'));
+    // The inner (hole) contours of Wingdings 0x6F (x 181-711, y 96-626) and 0x71 (x 133-663,
+    // y 145-675) per 1000 em, at 10pt; the drop shadow around them is not the box.
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([
+      { x: 101.81, y: 200.96, width: 5.3, height: 5.3 },
+      { x: 301.33, y: 201.45, width: 5.3, height: 5.3 },
+    ]);
+  });
+
+  it('keeps the advance-by-ascent box for a Wingdings code whose square is not measured', async () => {
+    // 0xA8 is in the box family, but its glyph is one contour with no hole to read a square from.
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (\xA8) Tj ET', symbolFont('Wingdings', 0xa8));
     expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 100, y: 198, width: 7, height: 10 }]);
+  });
+
+  it('keeps a Wingdings square under the text matrix, horizontal scaling and rise', async () => {
+    const page = await pageWith('BT /S 10 Tf 50 Tz 2 Ts 2 0 0 2 100 200 Tm (q) Tj ET', symbolFont('Wingdings'));
+    // x: (133..663)/1000 * 10pt * 0.5 Tz, then * 2; y: (145..675)/1000 * 10pt + 2 rise, then * 2 (the 200 is a translation, not scaled).
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 101.33, y: 206.9, width: 5.3, height: 10.6 }]);
+  });
+
+  it('bounds a Wingdings box shown through a two-byte font by its square too', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm [<0089>] TJ ET', (document) => {
+      const toUnicode = document.context.register(document.context.flateStream(
+        'begincmap 1 beginbfchar <0089> <F071> endbfchar endcmap',
+      ));
+      const descriptor = document.context.obj({ Type: 'FontDescriptor', Ascent: 800, Descent: -200 });
+      const descendant = document.context.obj({
+        Type: 'Font', Subtype: 'CIDFontType2', DW: 700, FontDescriptor: document.context.register(descriptor),
+      });
+      return {
+        S: document.context.obj({
+          Type: 'Font',
+          Subtype: 'Type0',
+          BaseFont: 'ABCDEE+Wingdings',
+          Encoding: 'Identity-H',
+          DescendantFonts: [document.context.register(descendant)],
+          ToUnicode: toUnicode,
+        }),
+      };
+    });
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 101.33, y: 201.45, width: 5.3, height: 5.3 }]);
   });
 
   it('reads a Wingdings bullet as nothing', async () => {
@@ -118,7 +158,8 @@ describe('collectCheckboxGlyphs in a symbol font (FORM-20)', () => {
         }),
       };
     });
-    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 100, y: 198, width: 7, height: 10 }]);
+    // The ring's outer edge (x 84-615, y 0-530 per 1000 em): the stroke is part of the box.
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 100.84, y: 200, width: 5.31, height: 5.3 }]);
   });
 
   it('does not read Wingdings 2\'s code as a box in plain Wingdings', async () => {
