@@ -61,7 +61,7 @@ export default function PdfPageCanvas({
         } catch (renderErr) {
           // pdf.js throws synchronously (a TypeError from its dead transport) when
           // the document was destroyed before this effect was torn down.
-          if (renderErr instanceof TypeError || pdfDocument.loadingTask?.destroyed) return;
+          if (pdfDocument.loadingTask?.destroyed) return;
           throw renderErr;
         }
         await renderTask.promise;

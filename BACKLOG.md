@@ -2,11 +2,17 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 0 up next, 6 then, 20 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 0 up next, 7 then, 20 waiting, 15 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-56 | P2 | [RED-56](backlog/tasks/RED-56.md) · Redact: defer old-document dispose until after the pdfDocument prop swaps |  |
 
 ### Waiting
 
