@@ -56,7 +56,14 @@ export default function PdfPageCanvas({
 
         const context = getPdfRenderContext(renderTarget);
         if (!context || !active) return;
-        renderTask = page.render({ canvasContext: context, canvas: renderTarget, viewport });
+        try {
+          renderTask = page.render({ canvasContext: context, canvas: renderTarget, viewport });
+        } catch (renderErr) {
+          // pdf.js throws synchronously (a TypeError from its dead transport) when
+          // the document was destroyed before this effect was torn down.
+          if (renderErr instanceof TypeError || pdfDocument.loadingTask?.destroyed) return;
+          throw renderErr;
+        }
         await renderTask.promise;
         if (!active) return;
 
@@ -74,7 +81,7 @@ export default function PdfPageCanvas({
       } catch (err) {
         // Cancellation is the normal teardown path when a document/page is
         // replaced or this canvas unmounts; only report real render failures.
-        if (active && (!(err instanceof Error) || err.name !== 'RenderingCancelledException')) {
+        if (active && !pdfDocument.loadingTask?.destroyed && (!(err instanceof Error) || err.name !== 'RenderingCancelledException')) {
           reportError('pdf_render', err, 'render_page');
           console.error(`Error rendering page ${pageNum}:`, err);
         }
