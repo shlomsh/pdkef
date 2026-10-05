@@ -77,7 +77,8 @@ for (const file of htmlFiles) {
   const scripts = Array.from(document.querySelectorAll('script'));
   for (const script of scripts) {
     if (script.hasAttribute('src')) continue;
-    if (script.getAttribute('type') === 'application/ld+json') continue;
+    // Data blocks are not executable, so script-src does not govern them.
+    if (['application/ld+json', 'application/json'].includes(script.getAttribute('type'))) continue;
     
     const text = script.textContent;
     const hash = 'sha256-' + crypto.createHash('sha256').update(text).digest('base64');

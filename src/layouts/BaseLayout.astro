@@ -4,6 +4,7 @@ import SpeedInsights from '@vercel/speed-insights/astro';
 import OrganizationSchema from '../components/OrganizationSchema.astro';
 import AppUpdateLine from '../components/AppUpdateLine.astro';
 import ogImageSrc from '../assets/og-image.jpg';
+import { tools } from '../data/tools.js';
 
 interface Props {
   title: string;
@@ -17,6 +18,14 @@ interface Props {
 }
 
 const { title, description, noindex = false, lang = 'en', dir = 'ltr', canonical, alternates = [], socialImageAlt = 'PDkef - free PDF tools that run entirely in your browser.' } = Astro.props;
+const webMcpEntries = JSON.stringify(
+  tools.map((t) => ({
+    slug: t.slug,
+    name: t.toolName,
+    description: t.gridDescription,
+    url: t.href,
+  })),
+).replace(/</g, '\\u003c');
 const canonicalURL = canonical ? new URL(canonical, Astro.site) : new URL(Astro.url.pathname, Astro.site);
 
 // The social card, run through Astro's image pipeline rather than served raw
@@ -89,6 +98,13 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
   <body>
     <slot />
     <AppUpdateLine lang={lang} />
+    <script type="application/json" id="pdkef-webmcp-tools" set:html={webMcpEntries} />
+    <script>
+      // WebMCP (navigator.modelContext): list the tools and open one for the
+      // person. Discovery and navigation only, never file bytes.
+      import { startWebMcp } from '../site-lib/webMcp.ts';
+      startWebMcp();
+    </script>
     {import.meta.env.PROD && <SpeedInsights />}
     <script>
       import { inject } from '@vercel/analytics';
