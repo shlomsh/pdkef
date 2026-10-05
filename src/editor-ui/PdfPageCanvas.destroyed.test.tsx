@@ -36,7 +36,7 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
       cleanup: vi.fn(),
     };
     let resolvePage;
-    const doc = { getPage: () => new Promise((r) => { resolvePage = r; }) };
+    const doc = { getPage: () => new Promise((r) => { resolvePage = r; }), loadingTask: { destroyed: true } };
 
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
     host.addEventListener('page-painted', painted);
@@ -62,7 +62,7 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
     };
     let resolvePage;
     let destroyed = false;
-    const doc = { getPage: () => new Promise((r) => { resolvePage = r; }), destroy: () => { destroyed = true; } };
+    const doc = { getPage: () => new Promise((r) => { resolvePage = r; }), loadingTask: { destroyed: false }, destroy: () => { destroyed = true; doc.loadingTask.destroyed = true; } };
 
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
     host.addEventListener('page-painted', painted);
@@ -109,5 +109,18 @@ describe('PdfPageCanvas when the document is destroyed between getPage and rende
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
     await act(flush);
     expect(reportError).toHaveBeenCalledWith('pdf_render', expect.any(Error), 'render_page');
+  });
+
+  it('still reports a synchronous TypeError from page.render on a live document', async () => {
+    const page = {
+      rotate: 0,
+      getViewport: () => ({ width: 10, height: 10 }),
+      render: () => { throw new TypeError('genuine bug'); },
+      cleanup: vi.fn(),
+    };
+    const doc = { getPage: async () => page, loadingTask: { destroyed: false } };
+    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
+    await act(flush);
+    expect(reportError).toHaveBeenCalledWith('pdf_render', expect.any(TypeError), 'render_page');
   });
 });
