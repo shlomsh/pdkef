@@ -54,7 +54,7 @@ export default function useObjectPreviews(
         for (const pageIndex of pages) {
           if (glyphsKept >= GLYPH_BUDGET) break;
           const page = await pdfDocument.getPage(pageIndex + 1);
-          const glyphs = await readGlyphs(pdfjs, page);
+          const glyphs = await readGlyphs(pdfjs, page, undefined, () => !current);
           if (!current) return;
           if (!glyphs) continue;
           glyphsKept += glyphs.length;
@@ -64,6 +64,8 @@ export default function useObjectPreviews(
         }
         if (current) finishedFor.current = objects;
       } catch (error) {
+        // The file was replaced (and destroyed) mid-read: pdf.js throws from a dead document.
+        if (!current) return;
         reportError('redact', error, 'read_object_previews');
         // Without previews Delete still works: the label is the generic one.
         console.error('Delete could not read the text of this PDF', error);
