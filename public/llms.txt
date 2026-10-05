@@ -47,3 +47,6 @@ Not a fit: batch or headless PDF processing with no browser involved, or server-
 - [Source Code](https://github.com/shlomsh/pdkef)
 - [Developer](https://github.com/shlomsh): Shlomi Shemesh
 - License: MIT
+
+## For in-browser agents (WebMCP)
+Every page registers two WebMCP tools on `navigator.modelContext`: `list_pdf_tools` (what each tool does and its URL) and `open_pdf_tool` (opens one for the person). They only discover and navigate; the person picks their own file inside the tool, so no file ever passes through an agent.
