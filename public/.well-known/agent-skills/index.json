@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "pdf-tools",
+      "type": "skill-md",
+      "description": "Send a person to the right free PDkef browser tool to sign, fill, merge, split, compress, redact, convert or unlock a PDF without uploading it.",
+      "url": "/.well-known/agent-skills/pdf-tools/SKILL.md",
+      "digest": "sha256:043bc32de02fe075f929f88265dbf7ccbbaa6b1ad1e5d448d8e9c753f25376d0"
+    }
+  ]
+}

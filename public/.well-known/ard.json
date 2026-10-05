@@ -1,0 +1,24 @@
+{
+  "entries": [
+    {
+      "identifier": "urn:air:pdkef.com:skill:pdf-tools",
+      "displayName": "PDkef PDF tools",
+      "type": "application/ai-skill+md",
+      "url": "https://pdkef.com/.well-known/agent-skills/pdf-tools/SKILL.md",
+      "description": "Free PDF and image tools that run in the browser. Files never leave the device, so there is no API: this skill says which tool page to send a person to.",
+      "tags": [
+        "pdf",
+        "privacy",
+        "browser",
+        "client-side"
+      ],
+      "representativeQueries": [
+        "sign a PDF without uploading it",
+        "merge two PDFs in my browser",
+        "compress a PDF to under 100 KB",
+        "blur or black out text in a PDF for free",
+        "remove the password from a PDF"
+      ]
+    }
+  ]
+}

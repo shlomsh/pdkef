@@ -195,6 +195,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'public/hero-demo-noscript.css',
       'src/components/HeroDemo/HeroDemo.module.css',
       'public/llms.txt',
+      'public/.well-known/ard.json',
       'THIRD_PARTY_LICENSES.md',
       'src/styles/global.css',
       'src/layouts/HomePageLayout.astro',
