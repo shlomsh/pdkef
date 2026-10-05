@@ -67,7 +67,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "astro": "^7.3.5",
     "bidi-js": "^1.1.0",
-    "lucide-preact": "^1.49.0",
+    "lucide-preact": "^1.50.0",
     "pdfjs-dist": "^6.3.289",
     "preact": "^10.29.8",
     "regenerator-runtime": "^0.14.1",
