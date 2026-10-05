@@ -178,6 +178,12 @@ export const WIDEN_RULES = [
     tests: ['src/data/llmsTxt.test.js'],
   },
   {
+    id: 'agent-discovery-files',
+    reason: 'the ARD manifest, agent-skills index, SKILL.md and agents.md are read with fs.readFileSync; the index carries a digest of SKILL.md',
+    match: (f) => f.startsWith('public/.well-known/') || f === 'public/agents.md',
+    tests: ['src/data/agentDiscovery.test.js'],
+  },
+  {
     id: 'home-page-shell-text-read',
     reason: 'global.css and the home layout are read as text for a contrast/markup check',
     match: (f) => f === 'src/styles/global.css' || f === 'src/layouts/HomePageLayout.astro',
