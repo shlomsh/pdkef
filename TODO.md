@@ -25,6 +25,7 @@ _Nothing is up next._
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
 - SEO-05's verdict: [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
 - About four weeks after indexing: [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the "Scanned with CamScanner" footer from a PDF
+- @astrojs/preact peer range admits preact 11: [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it
 - SEO-06 crawl gate and a volume check: [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency
 - SEO-06 crawl gate and a volume check: [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated
 - SEO-06 crawl gate and a volume check: [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned

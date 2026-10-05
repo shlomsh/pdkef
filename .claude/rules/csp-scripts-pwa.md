@@ -93,6 +93,18 @@ Astro is pinned to `^7.0.3`, not the `@vite-pwa/astro`-certified `^5.x` line, **
   advisories cover every version through 7.0-beta). Any tool that forces `legacy-peer-deps` to install
   must be re-audited against that pin before adoption.
 
+### Preact stays on 10.x (2026-10-05, Dependabot #33)
+
+`@astrojs/preact@6.0.5` peers on `preact@^10.6.5`, so a preact 11 bump fails `npm install` with
+`ERESOLVE` and takes every CI job and the Vercel preview down with it. We did not reach for
+`--legacy-peer-deps`. `.github/dependabot.yml` ignores preact major updates.
+
+**Revisit when `@astrojs/preact` lists preact 11 in its peer range.** Check with
+`npm view @astrojs/preact version peerDependencies`; the ticket that owns this is
+[DEBT-40](../../backlog/tasks/DEBT-40.md). When the range admits 11, delete the `preact` entry under
+`ignore:` in `dependabot.yml`, run the full CI chain on a branch, and close the ticket. Our code has no
+reason to move earlier, so a preact 11 PR before that is noise, not a missed upgrade.
+
 ## CI guard
 
 1. **CSP hash gate** (`verify-csp.js`) - the generated `<meta>` CSP still covers every emitted inline

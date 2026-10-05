@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 0 up next, 6 then, 19 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 0 up next, 6 then, 20 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -55,6 +55,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware | Waiting on An Android phone. Needs Shlomi: Half an hour with an Android phone |
+| DEBT-40 | P3 | [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it | Waiting on @astrojs/preact peer range admits preact 11 |
 
 ### Parked
 

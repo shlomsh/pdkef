@@ -14,8 +14,8 @@ updates:
       - dependencies
     ignore:
       # @astrojs/preact peers on preact ^10, so a preact 11 bump fails npm
-      # install with ERESOLVE (PR #33). Drop this once the integration
-      # widens its peer range.
+      # install with ERESOLVE (PR #33). Drop this once the integration widens
+      # its peer range; see DEBT-40 and .claude/rules/csp-scripts-pwa.md.
       - dependency-name: preact
         update-types:
           - version-update:semver-major
