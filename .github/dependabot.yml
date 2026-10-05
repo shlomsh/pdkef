@@ -12,6 +12,13 @@ updates:
       - shlomsh
     labels:
       - dependencies
+    ignore:
+      # @astrojs/preact peers on preact ^10, so a preact 11 bump fails npm
+      # install with ERESOLVE (PR #33). Drop this once the integration
+      # widens its peer range.
+      - dependency-name: preact
+        update-types:
+          - version-update:semver-major
     groups:
       # Production dependencies are browser-shipped code. Keeping them together
       # makes the PDF/export and client runtime review explicit; major releases
