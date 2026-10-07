@@ -74,6 +74,14 @@ describe('validateRegistry', () => {
   it('still holds the entries the digest was built around', () => {
     expect(REGISTRY.map((r) => r.id)).toEqual(expect.arrayContaining(['DEBT-30', 'ENC-02', 'DEBT-34']));
   });
+  it('reads an empty page picture at Redact export as RED-57, not as an ENC-02 regression', () => {
+    const fp = describeFingerprint('redact|RangeError|pdf-lib.B684t7cZ.js:34:6205|export|chromium-146', { tool: '/redact/' });
+    expect(findEntry(REGISTRY, fp)?.id).toBe('RED-57');
+  });
+  it('reads the Preact NotFoundError on Sign as the open SIGN-40', () => {
+    const fp = describeFingerprint('uncaught|NotFoundError|preact.module.D1NPFmCi.js:1:2990|unhandled_rejection|chromium-154', { tool: '/sign/' });
+    expect(findEntry(REGISTRY, fp)?.id).toBe('SIGN-40');
+  });
   it('rejects a match with a single key, which would swallow a whole area', () => {
     expect(validateRegistry([{ ...ok, match: { area: 'uncaught' } }]).join()).toMatch(/at least two/i);
   });
