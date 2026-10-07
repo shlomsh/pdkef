@@ -186,6 +186,12 @@ describe('sampleLines', () => {
     expect(out.some((l) => l.includes('has the latest PdfMergeTool'))).toBe(true);
   });
 
+  it('prints translated only when the sample says so', () => {
+    const run = () => { throw new Error('x'); };
+    expect(sampleLines(sample, run)[0]).not.toContain('translated');
+    expect(sampleLines({ ...sample, translated: true }, run)[0]).toContain(' · translated');
+  });
+
   it('says all vendor when nothing is ours', () => {
     const out = sampleLines({ ...sample, stack: [stack[0]] }, () => { throw new Error('x'); });
     expect(out).toContain('    all frames are vendor code');

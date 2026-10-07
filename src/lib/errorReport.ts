@@ -75,7 +75,13 @@ export function readPageContext(): PageContext {
     age: safely(() => pageAge(performance.now()), 'under_10s' as const),
     actions: safely(() => recentActions(), []),
     ...(build ? { build } : {}),
+    ...(readTranslated() ? { translated: true } : {}),
   };
+}
+
+/** Chrome's built-in page translation sets `translated-ltr` / `translated-rtl` on `<html>`. */
+function readTranslated(): boolean {
+  return safely(() => /\btranslated-(ltr|rtl)\b/.test(document.documentElement.className), false);
 }
 
 const BUILD_COMMIT = /^[0-9a-f]{7}$/;

@@ -332,3 +332,34 @@ describe('build in the page context and report', () => {
     expect('build' in (without as object)).toBe(false);
   });
 });
+
+describe('translated field (SIGN-40)', () => {
+  const base = { area: 'drafts', name: 'TypeError', stack: ['A.js:1:1'], step: 'x', tool: '/sign/', installed: false, sw: true, age: 'under_1m', actions: [], build: 'abc1234' };
+  it('accepts translated true and false beside the other shapes, rejects a non-boolean', () => {
+    expect(parseErrorReport({ ...base, translated: true })?.translated).toBe(true);
+    expect(parseErrorReport({ ...base, translated: false })?.translated).toBe(false);
+    const { build: _b, ...noBuild } = base;
+    expect(parseErrorReport({ ...noBuild, translated: true })?.translated).toBe(true);
+    for (const bad of ['true', 1, null, undefined]) expect(parseErrorReport({ ...base, translated: bad })).toBeNull();
+  });
+  it('omits translated from a report that lacks it', () => {
+    expect('translated' in (parseErrorReport(base) as object)).toBe(false);
+  });
+  it('readPageContext sends translated: true only when <html> carries translated-ltr or -rtl', () => {
+    const stub = (className: string) => {
+      vi.stubGlobal('location', { pathname: '/sign/' });
+      vi.stubGlobal('matchMedia', () => ({ matches: false }));
+      vi.stubGlobal('navigator', {});
+      vi.stubGlobal('document', { querySelector: () => null, documentElement: { className } });
+    };
+    stub('translated-ltr');
+    expect(readPageContext().translated).toBe(true);
+    stub('a translated-rtl b');
+    expect(readPageContext().translated).toBe(true);
+    stub('untranslated-ltr');
+    expect('translated' in readPageContext()).toBe(false);
+  });
+  it('toErrorReport carries translated', () => {
+    expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'x', { ...CTX, translated: true })?.translated).toBe(true);
+  });
+});
