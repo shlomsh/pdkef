@@ -86,6 +86,17 @@ describe('actions in the sample', () => {
   });
 });
 
+describe('translated in the sample', () => {
+  const sampleOf = (r: object) =>
+    JSON.parse(countCommands(r as typeof report, 'ios-26', '2026-10-01').find((c) => c[0] === 'HSET')![3] as string);
+  it('keeps translated: true so the daily read can show it (SIGN-40)', () => {
+    expect(sampleOf({ ...report, translated: true }).translated).toBe(true);
+  });
+  it('leaves it out when the report has none', () => {
+    expect('translated' in sampleOf(report)).toBe(false);
+  });
+});
+
 describe('build in the sample', () => {
   const sampleOf = (r: object) =>
     JSON.parse(countCommands(r as typeof report, 'ios-26', '2026-10-01').find((c) => c[0] === 'HSET')![3] as string);
