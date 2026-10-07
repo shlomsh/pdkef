@@ -3,7 +3,7 @@ import { getPdfjs } from './pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
-import { RASTER_SCALE, rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
+import { rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
 import { strokeInPixels } from '../../model/strokeGeometry.ts';
 
 /**
@@ -98,7 +98,8 @@ async function flattenPage(pdfjsPage, pageElements) {
 
 /** Paints the page's redaction boxes onto its rendered canvas. */
 function paintBoxes(ctx, viewport, canvas, pageElements) {
-  const scale = RASTER_SCALE;
+  // The page may have rendered below RASTER_SCALE (RED-57 canvas cap).
+  const scale = viewport.scale;
 
   // Each type owns the instruction it contributes to this destructive,
   // page-scoped flatten pass. The registry makes the type decision; this
