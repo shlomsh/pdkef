@@ -1,10 +1,9 @@
 ---
 id: "DEBT-41"
 title: "Split checks for a protected PDF when the file is added"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -25,5 +24,12 @@ a catch, and per the "Catching errors" rule a catch that receives one is ours.
 
 ## Acceptance
 
-- [ ] A unit test with a protected file fails before the change and passes after: no prepare run, no report.
-- [ ] An open file splits as before.
+- [x] A unit test with a protected file fails before the change and passes after: no prepare run, no report.
+- [x] An open file splits as before.
+
+## Outcome
+
+Shipped in `378bed4d`. Split probes the file with `probeEncryption` as soon as it is added. A `needs-password` or
+`owner-restricted` file shows "This PDF is protected. Open it in Unlock first, then split it here." in
+place of the page grid, never starts a prepare run, and reports nothing. If the probe itself throws, it
+reports `check_encryption` and the file loads as before.

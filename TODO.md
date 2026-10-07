@@ -10,11 +10,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
 
-### Robustness and debt
-
-- [DEBT-41](backlog/tasks/DEBT-41.md) P2 · Split checks for a protected PDF when the file is added (in progress)
-- [SIGN-40](backlog/tasks/SIGN-40.md) P2 · Sign: Preact NotFoundError while arming a tool or placing a mark (in progress)
-
 ## Waiting, by date
 
 - 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
@@ -32,6 +27,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
 - SEO-05's verdict: [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
 - About four weeks after indexing: [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the "Scanned with CamScanner" footer from a PDF
+- The next Sign NotFoundError report, with the translated flag: [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark
 - @astrojs/preact peer range admits preact 11: [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it
 - SEO-06 crawl gate and a volume check: [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency
 - SEO-06 crawl gate and a volume check: [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated

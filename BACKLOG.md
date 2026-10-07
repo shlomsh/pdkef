@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 3 up next, 7 then, 20 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 7 then, 21 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -62,18 +62,12 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-41 | P2 | [DEBT-41](backlog/tasks/DEBT-41.md) · Split checks for a protected PDF when the file is added | In progress |
-| SIGN-40 | P2 | [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark | In progress |
-
 ### Waiting
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware | Waiting on An Android phone. Needs Shlomi: Half an hour with an Android phone |
+| SIGN-40 | P2 | [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark | Waiting on The next Sign NotFoundError report, with the translated flag |
 | DEBT-40 | P3 | [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it | Waiting on @astrojs/preact peer range admits preact 11 |
 
 ### Parked
@@ -150,7 +144,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 15 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 12 done, 1 retired
-- Robustness and debt: 35 done, 3 retired
+- Robustness and debt: 36 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
