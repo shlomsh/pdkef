@@ -17,6 +17,7 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
@@ -81,6 +82,8 @@ export default function PdfSplitTool({
   const [saved, setSaved] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
+  /** A protected PDF is a precondition, not a failure (DEBT-41): no prepare run, nothing reported. */
+  const [isProtected, setIsProtected] = useState(false);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
@@ -149,7 +152,7 @@ export default function PdfSplitTool({
   // cancelled by the next change, so Download is ready by the time the person
   // reads the page. Nothing here leaves the device.
   useEffect(() => {
-    if (!file || status === 'loading') return;
+    if (!file || isProtected || status === 'loading') return;
     if (selectedCount === 0) {
       setStatus('ready');
       return;
@@ -188,7 +191,7 @@ export default function PdfSplitTool({
     // selectedPages and rotationKey are derived from pages; the joins key
     // the effect on the actual selection and rotation, not object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, mode, selectedPages.join(','), rotationKey, status === 'loading']);
+  }, [file, isProtected, mode, selectedPages.join(','), rotationKey, status === 'loading']);
 
   const downloadAll = useCallback((list: OutputFile[]) => {
     list.forEach((f, index) => {
@@ -221,6 +224,22 @@ export default function PdfSplitTool({
       const lib = await getPdfjs();
       const bytes = await pdfFile.arrayBuffer();
       if (!run.isCurrent()) return;
+      let protection = 'open';
+      try {
+        protection = await probeEncryption(bytes);
+      } catch (err) {
+        // The probe itself failing says nothing about the file; load as today.
+        if (!run.isCurrent()) return;
+        reportError('pdf_tool_run', err, 'check_encryption');
+      }
+      if (!run.isCurrent()) return;
+      if (protection === 'needs-password' || protection === 'owner-restricted') {
+        setIsProtected(true);
+        setStatus('error');
+        setAnnouncement('This PDF is protected. Open it in Unlock first.');
+        run.settle();
+        return;
+      }
       loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
       const pdf = await loadingTask.promise;
       if (!run.isCurrent()) return;
@@ -308,6 +327,7 @@ export default function PdfSplitTool({
     invalidate();
     clearUndo();
     setFile(picked);
+    setIsProtected(false);
     setPages([]);
     setPageSelector('');
     setPageSelectorError('');
@@ -580,6 +600,10 @@ export default function PdfSplitTool({
             <div class={pdfToolStyles['status-block']}>
               <p class={pdfToolStyles['status-text-muted']}>Loading document pages...</p>
             </div>
+          ) : isProtected ? (
+            <ErrorMessage>
+              This PDF is protected. A protected PDF opens in <a href="/unlock/">Unlock</a> first.
+            </ErrorMessage>
           ) : (
             <div class={styles.stage}>
               {/* The heading names the output and spans both columns, so the
