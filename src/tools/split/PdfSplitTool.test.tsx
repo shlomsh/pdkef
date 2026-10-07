@@ -33,6 +33,15 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   saveHandoff: saveHandoffMock,
 }));
 
+const { probeMock, reportErrorMock } = vi.hoisted(() => ({
+  probeMock: vi.fn(),
+  reportErrorMock: vi.fn(),
+}));
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
+vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportError: reportErrorMock,
+}));
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 4 } }));
 
 // Mock pdfjs-dist
@@ -61,6 +70,9 @@ describe('PdfSplitTool UI flow', () => {
 
   beforeEach(() => {
     resetActionTrailForTests();
+    probeMock.mockReset();
+    probeMock.mockResolvedValue('open');
+    reportErrorMock.mockClear();
   });
 
   afterEach(() => {
@@ -83,6 +95,50 @@ describe('PdfSplitTool UI flow', () => {
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
+  });
+
+  describe.each(['needs-password', 'owner-restricted'])('a %s PDF (DEBT-41)', (protection) => {
+    it('never starts a prepare run, reports nothing, and points to Unlock', async () => {
+      probeMock.mockResolvedValue(protection);
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfSplitTool />, container);
+      });
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        setInputFiles(input, [makePdfFile('locked.pdf')]);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      });
+      // A fake file would make splitPdf throw and report, so no report also means no prepare run.
+      expect(container.querySelector(`.${styles.primary}`)).toBeNull();
+      expect(reportErrorMock).not.toHaveBeenCalled();
+      expect(container.querySelector('a[href="/unlock/"]')).not.toBeNull();
+    });
+  });
+
+  it('still prepares an open PDF', async () => {
+    mockState.numPages = 5;
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSplitTool />, container);
+    });
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+    expect(probeMock).toHaveBeenCalled();
+    expect(container.querySelector(`.${styles.primary}`).getAttribute('data-state')).toBe('ready');
+    expect(reportErrorMock).not.toHaveBeenCalled();
   });
 
   it('loads file and populates page grid', async () => {
