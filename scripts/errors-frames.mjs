@@ -105,7 +105,7 @@ export function sampleLines(sample, run) {
   }
   const { frames, firstOurs } = labelStack(stack, sources);
   const out = [
-    `    ${sample.step} · ${sample.tool} · ${sample.installed ? 'installed' : 'browser'}/${sample.sw ? 'sw' : 'no-sw'} · ${sample.age} · ${build ? `build ${build}` : 'build unknown (older tab)'}`,
+    `    ${sample.step} · ${sample.tool} · ${sample.installed ? 'installed' : 'browser'}/${sample.sw ? 'sw' : 'no-sw'} · ${sample.age} · ${build ? `build ${build}` : 'build unknown (older tab)'}${sample.translated === true ? ' · translated' : ''}`,
     `    actions: ${Array.isArray(sample.actions) && sample.actions.length ? sample.actions.join(', ') : '(none)'}`,
   ];
   frames.forEach((f, n) => out.push(`    #${n + 1} ${f.label}  ${f.raw}`));

@@ -29,6 +29,10 @@
  *   document or a person. The chunk hash identifies a build only by rebuilding history; the commit
  *   names it directly. Optional, like `actions`: a cached older build, or a build with no commit,
  *   sends none, and it only ever travels beside `actions`;
+ * - `translated`, true when the browser's page translation has rewritten the page (`<html>` carries
+ *   `translated-ltr` or `translated-rtl`). A flag only, never the language or any text; it tells a
+ *   translation-extension DOM breakage from our own defect (SIGN-40). Optional, and sent only when
+ *   true, so every shape above may carry it;
  * - `installed` (display-mode standalone), `sw` (a service worker controls the
  *   page), and `age`, how long the page had been open, bucketed. No online
  *   flag: nothing is sent offline, so it would always say true.
@@ -83,6 +87,7 @@ export type ActionName = (typeof ACTIONS)[number];
 
 export type ErrorReport = Readonly<{
   build?: string;
+  translated?: boolean;
   actions: readonly ActionName[];
   area: ErrorArea;
   name: string;
@@ -95,7 +100,7 @@ export type ErrorReport = Readonly<{
 }>;
 
 /** The page facts a report carries, read once per report in the browser. */
-export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age' | 'actions' | 'build'>;
+export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age' | 'actions' | 'build' | 'translated'>;
 
 /** The largest body the endpoint accepts. The largest valid report is about 1.5KB. */
 export const MAX_REPORT_BYTES = 2048;
@@ -126,9 +131,10 @@ const TOOL = /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/;
  */
 export function parseErrorReport(value: unknown): ErrorReport | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
-  const keys = Object.keys(value).sort();
+  const keys = Object.keys(value).filter((key) => key !== 'translated').sort();
   const expected = 'build' in value ? KEYS_WITH_BUILD : 'actions' in value ? KEYS_WITH_ACTIONS : KEYS;
   if (keys.length !== expected.length || keys.some((key, i) => key !== expected[i])) return null;
+  if ('translated' in value && typeof value.translated !== 'boolean') return null;
   const { actions, build, area, name, stack, step, tool, installed, sw, age } = value as Record<string, unknown>;
   if (typeof area !== 'string' || !AREAS.has(area)) return null;
   if (typeof name !== 'string' || !NAME.test(name)) return null;
@@ -144,6 +150,7 @@ export function parseErrorReport(value: unknown): ErrorReport | null {
   if ('build' in value && (typeof build !== 'string' || !BUILD.test(build))) return null;
   return Object.freeze({
     ...('build' in value ? { build: build as string } : {}),
+    ...('translated' in value ? { translated: value.translated as boolean } : {}),
     actions: Object.freeze([...trail] as ActionName[]),
     area: area as ErrorArea,
     name,
