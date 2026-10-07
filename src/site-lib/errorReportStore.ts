@@ -70,8 +70,10 @@ export function fingerprintField(report: ErrorReport, engine: string): string {
 /** Second step, only when the day is under its cap. The latest sample per fingerprint wins. */
 export function countCommands(report: ErrorReport, engine: string, day: string): Command[] {
   const field = fingerprintField(report, engine);
-  const { stack, step, tool, installed, sw, age, actions, build } = report;
-  const sample = JSON.stringify({ stack, step, tool, installed, sw, age, actions, ...(build ? { build } : {}), engine });
+  const { stack, step, tool, installed, sw, age, actions, build, translated } = report;
+  const sample = JSON.stringify({
+    stack, step, tool, installed, sw, age, actions, ...(build ? { build } : {}), ...(translated ? { translated } : {}), engine,
+  });
   return [
     ['HINCRBY', `errors:${day}`, field, 1],
     ['EXPIRE', `errors:${day}`, TTL_SECONDS],
