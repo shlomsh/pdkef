@@ -6,7 +6,14 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-_Nothing is up next._
+### Redact: finish removal
+
+- [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
+
+### Robustness and debt
+
+- [DEBT-41](backlog/tasks/DEBT-41.md) P2 · Split checks for a protected PDF when the file is added (in progress)
+- [SIGN-40](backlog/tasks/SIGN-40.md) P2 · Sign: Preact NotFoundError while arming a tool or placing a mark (in progress)
 
 ## Waiting, by date
 
