@@ -5,6 +5,7 @@
 // verify-seo.js and are exercised by every preview build; guard 5's manifest
 // half lives in serviceWorker.test.js against shouldPrecache.
 import { JSDOM } from 'jsdom';
+import vercelConfig from '../vercel.json';
 import { describe, expect, it } from 'vitest';
 import {
   MIN_SCRIPT_PURITY,
@@ -13,6 +14,7 @@ import {
   localeForRelPath,
   localizedPageProblems,
   scriptPurity,
+  sitemapIsNoindexed,
   sitemapLocations,
   sitemapUrlsMissingLastmod,
   visibleText,
@@ -233,5 +235,24 @@ describe('every sitemap <url> carries a <lastmod> (guard for the 2026-09-14 shal
       <url><loc>https://pdkef.com/sign/</loc></url>
     </urlset>`;
     expect(sitemapUrlsMissingLastmod(xml)).toEqual(['https://pdkef.com/sign/']);
+  });
+});
+
+describe('the sitemap file itself is served noindex (2026-10-07 GSC "Crawled - currently not indexed" row)', () => {
+  const rule = (source, key, value) => ({ headers: [{ source, headers: [{ key, value }] }] });
+
+  it('passes a /sitemap.xml rule carrying X-Robots-Tag: noindex, whatever the header key case', () => {
+    expect(sitemapIsNoindexed(rule('/sitemap.xml', 'X-Robots-Tag', 'noindex'))).toBe(true);
+    expect(sitemapIsNoindexed(rule('/sitemap.xml', 'x-robots-tag', 'noindex, follow'))).toBe(true);
+  });
+
+  it('SABOTAGE: fails when the header is missing, on another path, or not noindex', () => {
+    expect(sitemapIsNoindexed({ headers: [] })).toBe(false);
+    expect(sitemapIsNoindexed(rule('/robots.txt', 'X-Robots-Tag', 'noindex'))).toBe(false);
+    expect(sitemapIsNoindexed(rule('/sitemap.xml', 'X-Robots-Tag', 'nofollow'))).toBe(false);
+  });
+
+  it('holds for the real vercel.json', () => {
+    expect(sitemapIsNoindexed(vercelConfig)).toBe(true);
   });
 });

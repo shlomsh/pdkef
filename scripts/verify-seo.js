@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
-import { hasLastUpdatedDate, localizedPageProblems, sitemapLocations, sitemapUrlsMissingLastmod } from './localizedSeoChecks.mjs';
+import { hasLastUpdatedDate, localizedPageProblems, sitemapIsNoindexed, sitemapLocations, sitemapUrlsMissingLastmod } from './localizedSeoChecks.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -239,6 +239,13 @@ if (sitemapXml) {
     console.error(`[ERROR] sitemap.xml: missing <lastmod> for ${loc}`);
     hasError = true;
   }
+}
+
+// 2026-10-07: the sitemap file itself stays out of search (see sitemapIsNoindexed).
+const vercelConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));
+if (!sitemapIsNoindexed(vercelConfig)) {
+  console.error('[ERROR] vercel.json: /sitemap.xml needs an X-Robots-Tag: noindex header rule');
+  hasError = true;
 }
 
 if (hasError) {

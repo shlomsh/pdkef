@@ -181,3 +181,16 @@ export function sitemapUrlsMissingLastmod(xml) {
     .filter(([, block]) => !/<lastmod>/.test(block))
     .map(([, block]) => (block.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? '').trim());
 }
+
+/**
+ * Whether vercel.json serves /sitemap.xml with an X-Robots-Tag: noindex header.
+ * 2026-10-07: Google listed the sitemap file under "Crawled - currently not
+ * indexed"; the header keeps the file itself out of search without changing how
+ * Google reads it as a sitemap. robots.txt must never block it instead.
+ */
+export function sitemapIsNoindexed(vercelConfig) {
+  return (vercelConfig.headers ?? [])
+    .filter((rule) => rule.source === '/sitemap.xml')
+    .flatMap((rule) => rule.headers)
+    .some(({ key, value }) => key.toLowerCase() === 'x-robots-tag' && /\bnoindex\b/.test(value));
+}
