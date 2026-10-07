@@ -31,7 +31,14 @@ at Redact export.
 
 ## Acceptance
 
-- [ ] A unit test on an oversized page fails before the fix and passes after.
+- [x] A unit test on an oversized page fails before the fix and passes after.
 - [ ] Redaction boxes still land where they were drawn on a capped page (unit test).
-- [ ] The 7 Oct fingerprint matches RED-57, not ENC-02 (`scripts/errors-known.test.mjs`).
+- [x] The 7 Oct fingerprint matches RED-57, not ENC-02 (`scripts/errors-known.test.mjs`).
 - [ ] A full UTC day on a build with the fix and no RED-57 report.
+
+## Progress
+
+The cap and the empty-encode throw landed in `4ed205fc`, with `rasterScaleFor` and its tests. Redact's
+`paintBoxes` takes its scale from the viewport. The registry entry sits ahead of ENC-02. The
+box-placement box stays open: `redact.test.js` runs real PDFs at 2.5x, so a capped-page case needs a fixture
+page larger than 4096 x 4096 px at that scale. The production day is the last box.

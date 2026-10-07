@@ -602,7 +602,7 @@ export default function PdfSplitTool({
             </div>
           ) : isProtected ? (
             <ErrorMessage>
-              This PDF is protected. A protected PDF opens in <a href="/unlock/">Unlock</a> first.
+              This PDF is protected. Open it in <a href="/unlock/">Unlock</a> first, then split it here.
             </ErrorMessage>
           ) : (
             <div class={styles.stage}>
