@@ -13,6 +13,34 @@
     "fixedIn": "10b3cf24"
   },
   {
+    "id": "RED-57",
+    "ticket": "RED-57",
+    "title": "Redact export embeds an empty page picture on a large page",
+    "match": {
+      "area": "redact",
+      "name": "RangeError",
+      "step": "export",
+      "slug": "redact",
+      "module": "pdf-lib"
+    },
+    "fixedIn": "4ed205fc",
+    "note": "listed before ENC-02, which matches any pdf-lib error at Redact export; the first match wins"
+  },
+  {
+    "id": "SIGN-40",
+    "ticket": "SIGN-40",
+    "title": "Sign: Preact NotFoundError while arming a tool or placing a mark",
+    "match": {
+      "area": "uncaught",
+      "name": "NotFoundError",
+      "step": "unhandled_rejection",
+      "slug": "sign",
+      "module": "preact.module"
+    },
+    "open": true,
+    "note": "cause unknown; reports carry a translated flag from SIGN-40's reporter change"
+  },
+  {
     "id": "ENC-02",
     "ticket": "ENC-02",
     "title": "Redact on a protected PDF",
