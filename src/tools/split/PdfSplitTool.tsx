@@ -541,6 +541,8 @@ export default function PdfSplitTool({
   const fileWord = (n: number) => (n === 1 ? t.pdfOne : formatMessage(t.pdfOther, { count: n }));
   // A page range ("1-3, 5") inside right-to-left text keeps its digits in
   // reading order; left-to-right pages need no wrapper.
+  // A file size ("1.0 MB") is isolated the same way (LRI ... PDI) inside a catalogue string.
+  const sizeText = (bytes: number) => (t.dir === 'rtl' ? `\u2066${formatFileSize(bytes)}\u2069` : formatFileSize(bytes));
   const rangeNode = (range: string) => (t.dir === 'rtl' ? <bdi dir="ltr">{range}</bdi> : range);
 
   const canvasHeading = mode === 'combined'
@@ -783,8 +785,8 @@ export default function PdfSplitTool({
                         </span>
                         <span class={styles['primary-detail']}>
                           {mode === 'combined'
-                            ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: formatFileSize(totalBytes) })
-                            : formatMessage(t.detailSeparate, { size: formatFileSize(totalBytes) })}
+                            ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: sizeText(totalBytes) })
+                            : formatMessage(t.detailSeparate, { size: sizeText(totalBytes) })}
                         </span>
                       </>
                     )}
