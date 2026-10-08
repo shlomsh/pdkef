@@ -8,7 +8,6 @@ import type { MeasureText } from './find/matchBoxes.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { describeTraces, survivedRows } from './check/describeTraces.ts';
 import { TRACES_ANNOUNCEMENT, TRACES_SURVIVED_ANNOUNCEMENT } from './check/checkCopy.ts';
-import { hasNoTraces } from '../../editor/adapters/pdf/documentTraces.js';
 
 /** en-GB reads "7 Oct 09:14", the approved form for a plain English page. */
 export function traceLocale(): string {
@@ -75,7 +74,7 @@ export default function useSavedFileCheck({
         if (survivedRows(rows, after, keptAttachments).size > 0) {
           announce?.(TRACES_SURVIVED_ANNOUNCEMENT);
           reportError('redact', new Error('trace survived export'), 'export_trace_survived');
-        } else if (!hasNoTraces(original)) {
+        } else if (rows.length > 0) {
           announce?.(TRACES_ANNOUNCEMENT);
         }
       } catch (error) {

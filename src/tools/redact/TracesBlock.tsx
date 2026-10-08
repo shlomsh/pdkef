@@ -12,7 +12,6 @@ import {
   TRACES_SURVIVED_ALERT,
   TRACE_SURVIVED,
 } from './check/checkCopy.ts';
-import { hasNoTraces } from '../../editor/adapters/pdf/documentTraces.js';
 import type { DocumentTraces } from '../../editor/adapters/pdf/documentTraces.js';
 
 function Part({ part }: { part: TracePart }) {
@@ -40,10 +39,12 @@ export default function TracesBlock({
   locale?: string;
   now?: Date;
 }) {
-  if (hasNoTraces(traces.original)) {
+  // No pdf-lib on the island's first paint: "carried nothing" is "no rows",
+  // which describeTraces answers from the traces object alone.
+  const rows = describeTraces(traces.original, { locale: locale ?? navigator.language, now: now ?? new Date() });
+  if (rows.length === 0) {
     return <p className={styles.rb} data-traces>{TRACES_NONE}</p>;
   }
-  const rows = describeTraces(traces.original, { locale: locale ?? navigator.language, now: now ?? new Date() });
   const survived = survivedRows(rows, traces.saved, keptAttachments);
   return (
     <div data-traces>
