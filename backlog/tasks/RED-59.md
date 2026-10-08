@@ -121,10 +121,10 @@ XMP naming Dana Levi. Screens and read-backs: scratchpad `red59-walk/`.
 - **After Blackout** the check mentions nothing; the file carries pdf-lib's name as creator and producer and
   the export time.
 - **On a phone** the sticky toolbar takes about 350 of 844px and covers the top of the check when scrolled to.
-- **"Remove it" does not last** (outside this plan, filed as a separate task): it downloads a clean copy, but
-  the next Download re-exports from the draft and the attachment is back. Dropping every trace on every
-  export (below) makes Remove it unnecessary for document details; fields, comments, links and bookmarks
-  still need it to last.
+- **"Remove it" does not last** (RED-60, folded into this plan below): it downloads a clean copy, but the
+  next Download re-exports from the draft and the attachment is back. Dropping every trace on every export
+  makes Remove it unnecessary for document details; fields, comments, links and bookmarks still need it
+  to last.
 - Redact has no Hebrew edition yet: `/he/redact/` is a 404 and its strings have no catalogue
   (`LOCALIZED_TOOL_ISLANDS` holds merge, compress, sign).
 
@@ -268,7 +268,7 @@ changes:
 | T5 | Document scripts, open action | gone (field scripts untouched, never claimed) |
 | T6 | Page `/Metadata`, `/PieceInfo` | gone on every page, copied untouched or not |
 | T7 | File ID | new and random on every download (pdf-lib writes none today on the flattened path, so this adds one) |
-| T8 | Remove it on a saved file | adds nothing; keeps T1 to T6 and the download's own ID from T7 (re-saving the same copy, not a new one) |
+| T8 | Remove it | is a new export (RED-60), so T1 to T7 hold on it like any download |
 
 **Doc sentences**, each tied to its rows:
 
@@ -334,6 +334,23 @@ are measured first and, where present, covered. Add them to the step 1 table, me
 
 Each one found widens the T row it belongs to and gets its unit tests; the words table gains a row only
 where a plain sentence exists ("A small picture of page 3 as it was").
+
+### Remove it lasts (RED-60, reviewed with this plan)
+
+RED-60's ticket and its red guard (`redact-check-remove-sticks.spec.js`, on the peer branch
+`claude/strange-ramanujan-2f598c`, to be cherry-picked here; the red spec must not reach main before the
+fix) cover what this plan's strip does not: a field value, comment, link or bookmark removed from the
+check. Its design shares one seam with the strip: `applyPageEdits` takes one optional `finish(doc)` step,
+run right before each of the two saves, and Redact passes `removePlaces(doc, removedPlaces)`, pure, on
+`placeLocator`. The removals live in Redact's work on the document (`extra.removedPlaces`), so a reload or
+recents bring them back. Nothing shows in the editing stage; the next file and its check are the evidence.
+
+Decisions (RED-60's, recommendation first):
+- (a) Remove it records the removal and runs the normal export (one path; slower on flattened pages), or
+  keeps the instant byte patch and only records for later downloads.
+- (b) A removal is an Undo/Redo step, a new history operation with no page; no undo chip.
+- (c) No new UI while editing.
+- (d) Record every removable kind except `unused`, or only the four this plan's strip leaves.
 
 ### Decisions for Shlomi
 
