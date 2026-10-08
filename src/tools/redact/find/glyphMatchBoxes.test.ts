@@ -105,6 +105,56 @@ describe('mapItemGlyphs', () => {
   });
 });
 
+describe('overprinted glyphs stay in the match box (RED-62)', () => {
+  /** `chars` at `size` pt, advance 0.5 em, drawn once per offset in `offsets`. */
+  function drawn(chars: string, size: number, offsets: number[]): PageGlyph[] {
+    return offsets.flatMap((dx) =>
+      [...chars].map((ch, i) => ({
+        unicode: ch,
+        isSpace: false,
+        matrix: [size, 0, 0, size, 100 + dx + i * 0.5 * size, 700] as PageGlyph['matrix'],
+        width: 0.5,
+      })),
+    );
+  }
+  const itemOf = (str: string, size: number): PlacedItem => ({
+    start: 0,
+    end: str.length,
+    transform: [size, 0, 0, size, 100, 700],
+    width: str.length * 0.5 * size,
+    height: size,
+    rtl: false,
+  });
+
+  it('covers the second copy of a 24 pt title drawn 3 pt to the right', () => {
+    const glyphs = drawn('Employee', 24, [0, 3]);
+    const mapped = mapItemGlyphs(itemOf('Employee', 24), 'Employee', glyphs)!;
+    expect(mapped.length).toBe(8);
+    const matched = [...new Set(mapped.filter((g): g is PageGlyph => g !== null))];
+    const box = glyphsBox(matched, () => glyphs)!;
+    // The second copy's last glyph ends at 100 + 3 + 8 * 12 = 199, plus the 1 pt pad.
+    expect(box.x1).toBeGreaterThanOrEqual(199);
+  });
+
+  it('covers both copies of a lone "l" in "Hill" drawn twice 3 pt apart', () => {
+    const glyphs = drawn('Hill', 24, [0, 3]);
+    const mapped = mapItemGlyphs(itemOf('Hill', 24), 'Hill', glyphs)!;
+    const last = mapped[3]!;
+    const box = glyphsBox([last], () => glyphs)!;
+    // Second copy of the last "l": origin 100 + 3 + 36 = 139, advance 12.
+    expect(box.x1).toBeGreaterThanOrEqual(151);
+    expect(box.x0).toBeLessThanOrEqual(136 + 1);
+  });
+
+  it('maps a triple draw in 0.1 em steps to one glyph per character', () => {
+    const glyphs = drawn('abc', 10, [0, 1, 2]);
+    const mapped = mapItemGlyphs(itemOf('abc', 10), 'abc', glyphs);
+    expect(mapped?.map((g) => g?.matrix[4])).toEqual([100, 105, 110]);
+    const box = glyphsBox([mapped![2]!], () => glyphs)!;
+    expect(box.x1).toBeGreaterThanOrEqual(100 + 2 + 15);
+  });
+});
+
 describe('glyphsBox', () => {
   const none = () => [];
 

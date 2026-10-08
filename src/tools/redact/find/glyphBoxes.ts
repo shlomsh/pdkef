@@ -13,7 +13,7 @@
  */
 
 import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
-import type { PageGlyphMap } from './itemGlyphs.ts';
+import { isOverprint, type PageGlyphMap } from './itemGlyphs.ts';
 
 export interface PointBox {
   x0: number;
@@ -130,13 +130,31 @@ function cutAway(box: Rect, keep: Rect, other: Rect): Rect {
   return cuts.reduce((best, cut) => (cut.lost < best.lost ? cut : best)).apply();
 }
 
+/** `chosen` plus every glyph in `near` that repeats a member of the set. A
+ * glyph exactly on a member adds nothing to the box, so it is skipped. */
+function withOverprints(chosen: readonly PageGlyph[], near: PageGlyphMap['near']): PageGlyph[] {
+  const set = [...chosen];
+  for (let i = 0; i < set.length; i++) {
+    const x = set[i].matrix[4];
+    const y = set[i].matrix[5];
+    const em = Math.hypot(set[i].matrix[0], set[i].matrix[1]);
+    for (const other of near(x, y, x, y, em)) {
+      if (set.some((own) => own === other || (own.unicode === other.unicode && own.matrix[4] === other.matrix[4] && own.matrix[5] === other.matrix[5]))) continue;
+      if (isOverprint(set[i], other)) set.push(other);
+    }
+  }
+  return set;
+}
+
 /**
  * The PDF-point box of `matched`, glyphs of one line. `near` lists glyphs
  * around a rectangle (the page's index); a `cover` box keeps clear of the
  * cores of those that are not `matched`. Null for no glyphs.
  */
-export function glyphsBox(matched: readonly PageGlyph[], near: PageGlyphMap['near'], shape: GlyphBoxShape = 'cover'): PointBox | null {
-  if (matched.length === 0) return null;
+export function glyphsBox(chosen: readonly PageGlyph[], near: PageGlyphMap['near'], shape: GlyphBoxShape = 'cover'): PointBox | null {
+  if (chosen.length === 0) return null;
+  // The copies overprinted on a chosen glyph are part of it, not neighbours.
+  const matched = withOverprints(chosen, near);
   const frame = frameOf(matched[0]);
   const core = union(matched.map((glyph) => coreOf(frame, glyph)));
   if (shape === 'core') return toPointBox(frame, core);
@@ -145,9 +163,9 @@ export function glyphsBox(matched: readonly PageGlyph[], near: PageGlyphMap['nea
   let box: Rect = { s0: ink.s0 - PAD_PT, s1: ink.s1 + PAD_PT, t0: ink.t0 - PAD_PT, t1: ink.t1 + PAD_PT };
   const around = toPointBox(frame, box);
   const size = Math.hypot(matched[0].matrix[0], matched[0].matrix[1]);
-  const chosen = new Set(matched);
+  const own = new Set(matched);
   for (const other of near(around.x0, around.y0, around.x1, around.y1, 2 * size)) {
-    if (chosen.has(other) || isBlank(other)) continue;
+    if (own.has(other) || isBlank(other)) continue;
     const otherCore = coreOf(frame, other);
     if (touches(box, otherCore)) box = cutAway(box, core, otherCore);
   }
