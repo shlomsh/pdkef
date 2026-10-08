@@ -1,7 +1,7 @@
 ---
 id: "RED-62"
 title: "Text drawn twice for a bold look reads as doubled letters under a box"
-status: "open"
+status: "in_progress"
 horizon: "next"
 priority: "P2"
 epic: "redact"
