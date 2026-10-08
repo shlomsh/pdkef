@@ -288,7 +288,7 @@ export async function buildSignBundle(bundleFilename) {
     platform: 'browser',
     jsx: 'automatic',
     jsxImportSource: 'preact',
-    plugins: [cssModuleStubPlugin, workerUrlStubPlugin],
+    plugins: [cssModuleStubPlugin, pdfjsWorkerUrlPlugin],
     write: false,
   });
   const bundlePath = join(distDir, bundleFilename);
@@ -316,17 +316,18 @@ const cssModuleStubPlugin = {
 };
 
 /**
- * `loadPdfjs.js` imports the pdf.js worker as `./pdfjsWorker.js?worker&url`, a
- * Vite suffix esbuild cannot resolve. The harness never uses that URL: it sets
- * `workerSrc` itself from the built worker (`findPdfWorkerUrl`), so the import
- * becomes an empty string here.
+ * `loadPdfjs.js` imports the pdf.js worker through Vite's `?worker&url`
+ * suffix, which esbuild does not implement (DEBT-43). Resolve it to the
+ * worker the build already emitted, so the bundle points pdf.js at the same
+ * polyfilled worker the page does (DEBT-42). Only that one import: any other
+ * `?worker&url` still fails the bundle rather than getting the wrong worker.
  */
-const workerUrlStubPlugin = {
-  name: 'worker-url-stub',
+const pdfjsWorkerUrlPlugin = {
+  name: 'pdfjs-worker-url',
   setup(b) {
-    b.onResolve({ filter: /\?worker&url$/ }, (args) => ({ path: args.path, namespace: 'worker-url-stub' }));
-    b.onLoad({ filter: /.*/, namespace: 'worker-url-stub' }, () => ({
-      contents: "export default '';",
+    b.onResolve({ filter: /\/pdfjsWorker\.js\?worker&url$/ }, (args) => ({ path: args.path, namespace: 'pdfjs-worker-url' }));
+    b.onLoad({ filter: /.*/, namespace: 'pdfjs-worker-url' }, () => ({
+      contents: `export default ${JSON.stringify(findPdfWorkerUrl())};`,
       loader: 'js',
     }));
   },
@@ -338,10 +339,10 @@ export function removeSignBundle(bundlePath) {
 
 /**
  * The already-built, content-hashed pdf.js worker Astro emitted, as a
- * same-origin URL. pdf.js needs an explicit `workerSrc` here because
- * `loadPdfjs.js` resolves it through Vite's `?worker&url` import, which esbuild
- * does not implement (`workerUrlStubPlugin` stubs it out) - left unset, pdf.js
- * would fall back to a fake worker that cannot load in an IIFE bundle.
+ * same-origin URL: `src/lib/pdfjsWorker.js`, the wrapper that installs
+ * DEBT-42's polyfills before pdf.js's own worker. `pdfjsWorkerUrlPlugin`
+ * hands it to `loadPdfjs.js`; the specs also set it as `workerSrc` on the
+ * `pdfjs` they rasterise with.
  */
 export function findPdfWorkerUrl() {
   const astroDir = join(process.cwd(), 'dist', '_astro');
@@ -349,7 +350,7 @@ export function findPdfWorkerUrl() {
     ? readdirSync(astroDir).filter((name) => /^pdfjsWorker-.*\.js$/.test(name))
     : [];
   if (matches.length !== 1) {
-    throw new Error(`Expected exactly one built pdf.js worker in dist/_astro, found ${matches.length}. Run \`npm run build\`.`);
+    throw new Error(`Expected exactly one built pdf.js worker (pdfjsWorker-*.js) in dist/_astro, found ${matches.length}. Run \`npm run build\`.`);
   }
   return `/_astro/${matches[0]}`;
 }
