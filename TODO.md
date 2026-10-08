@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Redact: finish removal
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
-- [RED-62](backlog/tasks/RED-62.md) P2 · Text drawn twice for a bold look reads as doubled letters under a box (in progress)
 
 ### Search and languages
 
