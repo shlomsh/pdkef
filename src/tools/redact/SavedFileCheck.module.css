@@ -12,13 +12,18 @@
 
 .lead,
 .note,
-.danger {
+.danger,
+.rb {
   margin: 0 0 0.5rem;
 }
 
 .danger {
   color: var(--color-danger);
   font-weight: 600;
+}
+
+.rb {
+  color: var(--color-muted);
 }
 
 .note {
@@ -55,6 +60,38 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+.tracesLead {
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--color-muted);
+  /* The sticky toolbar is about 350px tall on a phone. */
+  scroll-margin-top: 360px;
+}
+
+.traces {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.traceRow {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  padding-block: 0.2rem;
+  padding-inline-start: 1.4rem;
+  overflow-wrap: anywhere;
+}
+
+.mark {
+  position: absolute;
+  inset-inline-start: 0;
+  font-weight: 700;
 }
 
 .cover,

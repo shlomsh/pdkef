@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './SavedFileCheck.module.css';
+import TracesBlock from './TracesBlock.tsx';
 import {
   attachmentsNote,
   canCover,
@@ -35,6 +36,9 @@ export default function SavedFileCheck({
   onRemove,
   removing = false,
   note = null,
+  keptAttachments = [],
+  onKeepAttachment,
+  onDropAttachment,
 }: {
   state: SavedFileCheckState;
   onSearch: (text: string) => void;
@@ -44,6 +48,10 @@ export default function SavedFileCheck({
   removing?: boolean;
   /** What the last Remove it did, said plainly. */
   note?: string | null;
+  /** RED-59: attached files the person chose to keep, by name. */
+  keptAttachments?: readonly string[];
+  onKeepAttachment?: (name: string) => void;
+  onDropAttachment?: (name: string) => void;
 }) {
   const [query, setQuery] = useState('');
   if (state.status === 'idle') return null;
@@ -58,12 +66,18 @@ export default function SavedFileCheck({
   const results = [...outcome.results, ...typed];
   const unsolid = unsolidNote(outcome.unsolidPages);
   const pictures = picturePagesNote(outcome.context.saved.picturePages);
-  const attachments = attachmentsNote(outcome.context.saved.attachmentCount);
+  const attachments = attachmentsNote(outcome.traces.saved.attachments.length);
 
   return (
     <section className={styles.check} aria-label="Check of the saved file" data-saved-file-check>
       {unsolid && <p className={styles.danger} role="alert">{unsolid}</p>}
       {note && <p className={styles.note} role="status" data-check-removed>{note}</p>}
+      <TracesBlock
+        traces={outcome.traces}
+        keptAttachments={keptAttachments}
+        onKeepAttachment={onKeepAttachment}
+        onDropAttachment={onDropAttachment}
+      />
       <p className={styles.lead}>{CHECK_LEAD}</p>
       {outcome.results.length === 0 && <p className={styles.note}>{NOTHING_COVERED}</p>}
       {results.length > 0 && (
