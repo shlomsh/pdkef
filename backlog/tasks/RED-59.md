@@ -1,10 +1,9 @@
 ---
 id: "RED-59"
 title: "Metadata removal is a claim Redact has to show and explain, not just do"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "now"
 depends_on: []
 ---
 
@@ -360,3 +359,32 @@ Decisions (RED-60's, recommendation first):
 4. The words: the table above and the closing line, "None of these are in your download. I read it back to
    make sure."
 5. The measurement gate runs before the build, not as an option: the copy depends on it.
+
+## 2026-10-08 built
+
+Shlomi approved every recommendation, plus one addition: an attached file can be kept. Built in
+parallel by Sonnet implementers on disjoint files, each test seen red first, reviewed by a zero-context
+agent and walked on the dev server at 390 and 1280.
+
+- **Gate, measured before the build** (scratchpad `red59-gate/`): on a copied page both paths kept page
+  thumbnails, page scripts, file-attachment comments with their payloads and details on images and
+  drawn objects; Delete also kept custom Info keys, catalog scripts and `/AF`. No path wrote a file ID.
+- **One list of trace kinds, read and stripped by the same module** (`src/editor/adapters/pdf/
+  documentTraces.js`, `pdfDate.js`): Info (all keys), catalog XMP and `/PieceInfo`, attachments in all
+  three shapes, document and page scripts, thumbnails, page and XObject details, and a fresh random ID.
+  `stripDocumentTraces` runs before each of the export's two saves (`assemble()`, `deleteObjectsFromPdf`)
+  behind `applyPageEdits(file, elements, onProgress, { finish, keepAttachments })`; `finish` replays
+  RED-60's removals on the first pass only. A kept attachment is copied across the flattened path.
+- **The check** reads both files' traces back (`runCheck.ts`), `describeTraces.ts` turns them into rows of
+  parts (values in `<bdi>`, dates in `<time>`, `en-GB` for the English page), and `TracesBlock.tsx` shows
+  them struck through with a hidden "Gone:" prefix, one read-back line, the nothing-carried line, or the
+  survived state (danger row, alert, an error report). Keep it / Drop it on document-level attachments
+  only; kept names live in the draft (`extra.keptAttachments`).
+- **Docs**: the two guides and a new Redact FAQ entry, each sentence traced to T1 to T7 (table in
+  `docs/redact-content-removal.md`).
+- **Tests**: units per kind for read, strip, each path, each row, the copy, the UI; `redact-hidden-traces.
+  spec.js` saves a fixture carrying every trace through Delete and Blackout and reads none back, then
+  keeps one. `check:push` and `check:e2e` green.
+- **Review findings fixed**: a kept file counted as survived (false error report), replay on both passes of
+  a mixed export, Keep it offered on a comment a flattened page cannot keep, catalog `/PieceInfo`
+  unread, and pdf-lib reaching `/redact/`'s first paint through `hasNoTraces` (caught by `test:lazy-modules`).
