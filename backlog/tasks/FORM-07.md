@@ -109,3 +109,12 @@ the FORM-06 OCR spike first, since labels and open-topped blanks are what limit 
 ## 2026-10-01 decision
 
 Shlomi: keep OCR (FORM-06) as a possibility and check again in the future only. The raster path stays on `main` unwired; nothing is productized now.
+
+## 2026-10-08 evidence from FORM-32
+
+FORM-32 ran `inkFromRaster` on pdf.js renders of all 12 scored rows, so every row now has a raster
+score with an exact truth frame (`scripts/spike/form-32/scoreArms.mjs`). Even with perfect text, raster
+recall is 44.5% against 85.0% from vectors over the 9 flat rows. The gaps, in order: `hmrc-sa100` and
+`thai-pnd90` get zero candidates (white boxes on a light tint; dense comb grids), dotted leaders are
+never seen on a raster (`thai-sso` 73.9% with pdf.js text, 8.7% with OCR text), and the `phone` variant
+(200 DPI, blur, noise) roughly halves recall. OCR is not the lever until these move.
