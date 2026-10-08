@@ -70,7 +70,7 @@ sections:
       - kind: 'prose'
         text: >-
           The footer is also an invisible link to CamScanner's website. Delete removes the link together
-          with the footer, and the downloaded file keeps no title, author or scan time from the original.
+          with the footer, and the downloaded file keeps no title, author, app name or scan time from the original. After Download, the check lists what your original carried, like 'Made with CamScanner', and reads your copy back to show none of it is there.
   - sketch: 'rings'
     icon: 'ShieldCheck'
     iconPos: 'br'
@@ -95,7 +95,7 @@ faq:
   - question: 'Does the hidden CamScanner link go too?'
     answer: >-
       Yes. The footer is also an invisible link to CamScanner's website. Delete removes it with the
-      footer, and the downloaded file keeps no title, author or scan time from the original.
+      footer, and the downloaded file keeps no title, author, app name or scan time from the original. After Download, the check lists what your original carried, like 'Made with CamScanner', and reads your copy back to show none of it is there.
   - question: 'Is my scan uploaded anywhere?'
     answer: >-
       No. PDkef works on the PDF in your browser, on your device. There is no upload and no account,
