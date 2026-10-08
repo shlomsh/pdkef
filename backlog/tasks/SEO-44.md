@@ -130,3 +130,20 @@ Variant pages are new URLs, so they wait for the SEO-06 gate. Modes on `/split/`
 does both is **split by size**: the same portal-limit audience Compress already serves, a mode three of
 five competitors name, and a natural "still too big? split it" hand-off from Compress. Pending: the
 Trends read of the split modes.
+
+## 2026-10-08 two corrections from the data
+
+- **Split modes have no search demand.** Trends (Shlomi's screenshot, worldwide, 12 months): `split pdf`
+  averages ~64; `split pdf by size`, `in half`, `every page` and `by bookmarks` sit at ~0, with only
+  two small blips for `in half`. Split by size is not a demand play. Any mode would be built for the
+  person using the tool, not for search.
+- **The Merge rebuild did not cause Merge's rank.** `/merge/` export (28 days): zero to three impressions
+  a day until 09-25, then 79 on 09-26 and 246-331 a day after, at 6-8, on head terms (`merge pdf online`
+  511 at 5.15, `merge pdf free` 377 at 6.69, `combine pdf free` 160 at 8.34). Its last crawl is 09-12
+  (`docs/seo-last-crawled.json`), the day before the rebuild landed (09-13). Google ranks a page version
+  it read before the rebuild, so the step on 09-26 is Google re-weighing a 09-12 page. `/split/` was read
+  on 09-11 and did not step up. CTR at 6-8 is 0.5%, with 706 US impressions and no clicks.
+
+What is still unexplained: two pages read a day apart, one stepped to page one on 09-26 and one did not.
+Measurable next: the `/merge/` page as served on 09-12 against `/split/` as served on 09-11 (git), and
+whether anything linked to `/merge/` and not `/split/` by then.
