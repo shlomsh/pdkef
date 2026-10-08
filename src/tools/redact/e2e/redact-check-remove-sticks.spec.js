@@ -78,4 +78,13 @@ test('a place removed from the saved file stays removed on the next Download', a
   const againDoc = await savedPdf(again);
   expect.soft(hasNote(againDoc), 'the removed comment came back on the next Download').toBe(false);
   expect.soft(hasAttachment(againDoc), 'an attachment came back on the next Download').toBe(false);
+
+  // RED-60: the removal is part of the saved work, so it survives a reload too.
+  await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
+  await page.reload();
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await expect(page.getByText('1 deletion').first()).toBeVisible({ timeout: 10_000 });
+  const [afterReload] = await Promise.all([page.waitForEvent('download'), download()]);
+  const reloadedDoc = await savedPdf(afterReload);
+  expect(hasNote(reloadedDoc), 'the removed comment came back after a reload').toBe(false);
 });
