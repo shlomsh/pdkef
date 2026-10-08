@@ -37,21 +37,21 @@ describe('applyPageEdits', () => {
     // omitted rather than being wrapped into a no-op function.
     const result = await applyPageEdits(SOURCE, [box]);
     expect(deleteObjectsFromPdf).not.toHaveBeenCalled();
-    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [box], undefined);
+    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [box], undefined, {});
     expect(result).toBe(FINAL_RESULT);
   });
 
   it('runs only deleteObjectsFromPdf when there are no boxes, wrapping its output in the shared shape', async () => {
     const result = await applyPageEdits(SOURCE, [deletion]);
     expect(redactPdf).not.toHaveBeenCalled();
-    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], undefined);
+    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], undefined, {});
     expect(result).toEqual({ blob: AFTER_DELETIONS });
   });
 
   it('feeds the deletion pass output into redactPdf, not the original source', async () => {
     const result = await applyPageEdits(SOURCE, [deletion, box]);
-    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function));
-    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function));
+    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function), {});
+    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function), {});
     expect(result).toBe(FINAL_RESULT);
   });
 
@@ -72,8 +72,8 @@ describe('applyPageEdits', () => {
 
   it('splits mixed elements by type regardless of array order', async () => {
     await applyPageEdits(SOURCE, [box, deletion]);
-    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function));
-    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function));
+    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function), {});
+    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function), {});
   });
 
   it('scales the deletion phase to 0-0.4 and the redaction phase to 0.4-1 when both run', async () => {
@@ -108,6 +108,6 @@ describe('applyPageEdits', () => {
     // not something this function special-cases.
     await applyPageEdits(SOURCE, []);
     expect(deleteObjectsFromPdf).not.toHaveBeenCalled();
-    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [], undefined);
+    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [], undefined, {});
   });
 });

@@ -2,6 +2,7 @@ import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRa
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { tokenize } from './contentStream.js';
 import { dropUnreachable } from './reachability.js';
+import { stripDocumentTraces } from './documentTraces.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
 import { reportError } from '../../../lib/errorReport.ts';
 
@@ -22,16 +23,19 @@ import { reportError } from '../../../lib/errorReport.ts';
  * @param {Array<{pageIndex: number, start: number, end: number}>} deletions
  *   byte spans as reported by `extractPageObjects` for that same page
  * @param {(progress: number) => void} [onProgress]
+ * @param {{ finish?: (doc: PDFDocument) => void, keepAttachments?: string[] }} [options]
+ *   `finish` edits the output document just before the traces are stripped
+ *   (RED-59); `keepAttachments` names attached files to keep, by name.
  * @returns {Promise<Blob>}
  */
-export async function deleteObjectsFromPdf(file, deletions, onProgress) {
+export async function deleteObjectsFromPdf(file, deletions, onProgress, options = {}) {
   const bytes =
     file instanceof Uint8Array
       ? file
       : new Uint8Array(file instanceof ArrayBuffer ? file : await file.arrayBuffer());
 
   // updateMetadata: false so pdf-lib does not itself stamp a new
-  // Producer/ModDate into the Info dict on save - clearDocumentDetails below
+  // Producer/ModDate into the Info dict on save - stripDocumentTraces below
   // wants Info to end up with nothing, not pdf-lib's own something.
   const doc = await PDFDocument.load(bytes, { updateMetadata: false });
 
@@ -76,7 +80,9 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
   dropUnreachable(doc);
   removeUndrawnImages(doc, deletedImageRefs);
   dropUnreachable(doc);
-  clearDocumentDetails(doc);
+  options.finish?.(doc);
+  stripDocumentTraces(doc, { keepAttachments: options.keepAttachments });
+  dropUnreachable(doc);
 
   const saved = await doc.save();
   return new Blob([saved], { type: 'application/pdf' });
@@ -313,32 +319,6 @@ function removeLinksOverDeleted(doc, page, deletedBoxes) {
     const actionRef = annot.get(PDFName.of('A'));
     if (actionRef instanceof PDFRef) context.delete(actionRef);
     if (ref instanceof PDFRef) context.delete(ref);
-  }
-}
-
-/**
- * Clears every detail of the source document from an exported Delete
- * download: Info dict entries (title, author, subject, keywords, creator,
- * producer, dates) and the catalog's XMP `/Metadata` stream. Redact's
- * companion export already starts this clean because a page saved as a
- * picture is a brand-new document with none of the original's details; a
- * Delete download edits the original document in place, so it has to clear
- * them itself to match (RED-27, found on a CamScanner scan whose Info still
- * carried the app name, device and the exact scan time).
- *
- * @param {PDFDocument} doc
- */
-export function clearDocumentDetails(doc) {
-  const info = doc.getInfoDict();
-  for (const key of ['Title', 'Author', 'Subject', 'Keywords', 'Creator', 'Producer', 'CreationDate', 'ModDate']) {
-    info.delete(PDFName.of(key));
-  }
-
-  const context = doc.context;
-  const metadataRef = doc.catalog.get(PDFName.of('Metadata'));
-  if (metadataRef !== undefined) {
-    doc.catalog.delete(PDFName.of('Metadata'));
-    if (metadataRef instanceof PDFRef) context.delete(metadataRef);
   }
 }
 

@@ -659,7 +659,7 @@ describe('deleteObjectsFromPdf: a link over a deleted text run', () => {
   });
 });
 
-describe('clearDocumentDetails via deleteObjectsFromPdf', () => {
+describe('document details via deleteObjectsFromPdf', () => {
   it('drops Info title/author and any XMP Metadata stream from the saved file', async () => {
     const doc = await PDFDocument.create();
     doc.addPage([100, 100]);
@@ -673,13 +673,14 @@ describe('clearDocumentDetails via deleteObjectsFromPdf', () => {
     const source = new Uint8Array(await doc.save());
     const blob = await deleteObjectsFromPdf(source, []);
     const outBytes = new Uint8Array(await blob.arrayBuffer());
-    const outDoc = await PDFDocument.load(outBytes);
+    const outDoc = await PDFDocument.load(outBytes, { updateMetadata: false });
 
     expect(outDoc.getTitle()).toBeUndefined();
     expect(outDoc.getAuthor()).toBeUndefined();
     expect(outDoc.catalog.get(PDFName.of('Metadata'))).toBeUndefined();
     expect(await decompressedObjectText(outDoc)).not.toContain('secret author');
   });
+  // Every other kind of trace, on both export paths: exportTraces.test.js.
 });
 
 describe('glyph widths behind an advance-only TJ (RED-54)', () => {

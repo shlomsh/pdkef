@@ -19,14 +19,17 @@ import { deleteObjectsFromPdf } from './deleteObjects.js';
  * @param {Array} elements Redact tool elements; `type: 'delete'` ones carry
  *   `start`/`end` from `pdfObjects.js`, everything else is a redaction box
  * @param {(progress: number) => void} [onProgress]
+ * @param {{ finish?: (doc: import('@cantoo/pdf-lib').PDFDocument) => void, keepAttachments?: string[] }} [options]
+ *   RED-59: `finish` edits the output document before its traces are stripped;
+ *   `keepAttachments` names attached files to keep. Passed to both steps.
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
-export async function applyPageEdits(file, elements, onProgress) {
+export async function applyPageEdits(file, elements, onProgress, options = {}) {
   const deletions = elements.filter((el) => el.type === 'delete');
   const boxes = elements.filter((el) => el.type !== 'delete');
 
   if (deletions.length === 0) {
-    return redactPdf(file, boxes, onProgress);
+    return redactPdf(file, boxes, onProgress, options);
   }
 
   const hasBoxes = boxes.length > 0;
@@ -34,9 +37,10 @@ export async function applyPageEdits(file, elements, onProgress) {
     file,
     deletions,
     hasBoxes ? (p) => onProgress?.(p * 0.4) : onProgress,
+    options,
   );
 
   if (!hasBoxes) return { blob: deleted };
 
-  return redactPdf(deleted, boxes, (p) => onProgress?.(0.4 + p * 0.6));
+  return redactPdf(deleted, boxes, (p) => onProgress?.(0.4 + p * 0.6), options);
 }
