@@ -1,4 +1,4 @@
-import { useReducer, useRef, useEffect, useCallback, useState } from 'preact/hooks';
+import { useReducer, useRef, useEffect, useCallback, useState, useMemo } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
@@ -34,7 +34,12 @@ import { isDeleteElement, type RedactElement } from './redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar, { PRESET_LABELS } from './FindBar.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
-import { keptNote, removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
+import { removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
+import { DetailsFooter } from './details/DetailsFooter.tsx';
+import { DetailsSheet } from './details/DetailsSheet.tsx';
+import { useDocumentDetails } from './details/useDocumentDetails.ts';
+import { describeDetails, detailsSummary, changesSummary } from './details/describeDetails.ts';
+import type { DetailEdits } from '../../editor/adapters/pdf/documentTraces.js';
 import useSavedFileCheck, { traceLocale } from './useSavedFileCheck.ts';
 import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
@@ -47,7 +52,7 @@ import type { FindMatch } from './find/types.ts';
 import type { ActionHistoryEntry, HistoryPlace, PlaceHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
   initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
-  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces,
+  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces, selectDetailEdits,
 } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
@@ -100,7 +105,7 @@ type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLEleme
 const UNDO_WINDOW_MS = 5000;
 
 /** A call right after a dispatch passes the fresh values the closure has not seen yet (removedPlaces newest first). */
-type ExportOverrides = { removedPlaces?: HistoryPlace[]; keptAttachments?: string[] };
+type ExportOverrides = { removedPlaces?: HistoryPlace[]; details?: DetailEdits };
 
 export default function PdfRedactTool() {
   // SNG-08: the island's state lives in redactState.ts; the preferences it
@@ -470,7 +475,7 @@ export default function PdfRedactTool() {
         // A restored draft has no redoable future - future is never persisted.
         dispatch({
           type: 'FILE_INITIALIZED', file: selected, restored, elements: presetElements, past: preset.actionHistory,
-          carried: preset.carried, keptAttachments: preset.keptAttachments ?? [], brush, activeColor: color, activeBlurStrength: strength,
+          carried: preset.carried, details: preset.details ?? {}, brush, activeColor: color, activeBlurStrength: strength,
         });
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
@@ -516,7 +521,7 @@ export default function PdfRedactTool() {
     elements,
     actionHistory,
     carried,
-    keptAttachments: state.edits.keptAttachments,
+    details: state.edits.details,
     status,
     isDirty: isDirty(state),
     loadStartedRef,
@@ -784,11 +789,18 @@ export default function PdfRedactTool() {
   // as a picture, with no text layer at all (redact.js), so those are the
   // pages text search can't see.
   const checkBoxes: CheckBox[] = checkBoxesFromElements(elements);
+  // RED-59: what the file says about itself, as it was opened.
+  const traces = useDocumentDetails(file);
+  const rows = useMemo(() => (traces ? describeDetails(traces, { locale: traceLocale(), now: new Date() }) : []), [traces]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsAtOpenRef = useRef<DetailEdits>({});
+  const openDetails = () => { detailsAtOpenRef.current = state.edits.details; setDetailsOpen(true); };
   const savedCheck = useSavedFileCheck({
     pdfDocument,
     originalFile: file,
     announce: setAnnouncement,
-    keptAttachments: state.edits.keptAttachments,
+    detailEdits: state.edits.details,
+    detailRows: rows,
     saved: exportedForHandoff?.blob ?? null,
     boxes: checkBoxes,
     findTerms: [...deletedTerms(elements), ...findTerms],
@@ -815,13 +827,13 @@ export default function PdfRedactTool() {
     handleSavePdf('download', pending.overrides).then(pending.done, () => pending.done(false));
   }, [documentRevision]);
 
-  const reexport = async (change: () => void, overrides: ExportOverrides, note: string) => {
+  const reexport = async (change: () => void, overrides: ExportOverrides, note?: string) => {
     if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) return;
     dispatch({ type: 'REMOVE_STARTED' });
     try {
       const exported = new Promise<boolean>((resolve) => { pendingExportRef.current = { overrides, done: resolve }; });
       change();
-      if (await exported) dispatch({ type: 'REMOVAL_NOTED', note });
+      if ((await exported) && note) dispatch({ type: 'REMOVAL_NOTED', note });
     } finally {
       dispatch({ type: 'REMOVE_SETTLED' });
     }
@@ -848,22 +860,14 @@ export default function PdfRedactTool() {
     );
   };
 
-  // RED-60: Keep it / Drop it on an attached file.
-  const keepAttachment = (name: string) => {
-    if (state.edits.keptAttachments.includes(name)) return;
-    return reexport(
-      () => dispatch({ type: 'ATTACHMENT_KEPT', name }),
-      { keptAttachments: [...state.edits.keptAttachments, name] },
-      keptNote(name),
-    );
-  };
-  const dropAttachment = (name: string) => {
-    if (!state.edits.keptAttachments.includes(name)) return;
-    return reexport(
-      () => dispatch({ type: 'ATTACHMENT_DROPPED', name }),
-      { keptAttachments: state.edits.keptAttachments.filter((kept) => kept !== name) },
-      removedMessage({ kind: 'attachment', text: name }),
-    );
+  // RED-59: closing the sheet commits what changed in it. An existing export
+  // is made again with the new details; otherwise the commit only saves the draft.
+  const closeDetails = () => {
+    setDetailsOpen(false);
+    if (JSON.stringify(state.edits.details) === JSON.stringify(detailsAtOpenRef.current)) return;
+    const commit = () => dispatch({ type: 'DETAILS_COMMITTED' });
+    if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) { commit(); return; }
+    return reexport(commit, { details: state.edits.details });
   };
 
   const handleSavePdf = async (exportAction = 'download', overrides: ExportOverrides = {}): Promise<boolean> => {
@@ -904,7 +908,7 @@ export default function PdfRedactTool() {
         if (run.isCurrent()) dispatch({ type: 'EXPORT_PROGRESS', progress: p });
       }, {
         finish: (doc) => removePlaces(doc, places as SavedPlace[]),
-        keepAttachments: overrides.keptAttachments ?? state.edits.keptAttachments,
+        details: overrides.details ?? selectDetailEdits(state),
       });
       if (!run.isCurrent()) return false;
       run.settle();
@@ -1278,6 +1282,8 @@ export default function PdfRedactTool() {
             ))}
           </div>
 
+          <DetailsFooter summary={detailsSummary(rows)} onReview={openDetails} />
+
           {/* RED-36: the one finish row - what will be saved, Download (with
               its progress while saving), what was saved, then Compress it and
               Sign it. The export error and the saved-file check sit under it,
@@ -1300,10 +1306,19 @@ export default function PdfRedactTool() {
                 {errorDetail}
               </ErrorMessage>
             )}
-            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} keptAttachments={state.edits.keptAttachments} onKeepAttachment={keepAttachment} onDropAttachment={dropAttachment} locale={traceLocale()} />
+            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} detailsChanged={changesSummary(rows, state.edits.details)} detailsSurvived={savedCheck.detailsSurvived} onReviewDetails={openDetails} />
           </RedactFinish>
         </div>
       )}
+
+      <DetailsSheet
+        open={detailsOpen}
+        rows={rows}
+        edits={state.edits.details}
+        onEdit={(id, edit) => dispatch({ type: 'DETAIL_EDITED', id, edit })}
+        onRestore={(id) => dispatch({ type: 'DETAIL_RESTORED', id })}
+        onClose={closeDetails}
+      />
 
       {/* Error */}
       {status === 'error' && !needsUnlock && (

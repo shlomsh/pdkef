@@ -6,8 +6,10 @@ import type { CheckBox, CheckTerm, TermResult } from './check/types.ts';
 import { termFinder } from './find/finders.ts';
 import type { MeasureText } from './find/matchBoxes.ts';
 import { reportError } from '../../lib/errorReport.ts';
-import { describeTraces, survivedRows } from './check/describeTraces.ts';
-import { TRACES_ANNOUNCEMENT, TRACES_SURVIVED_ANNOUNCEMENT } from './check/checkCopy.ts';
+import { changesSummary, survivedDetails } from './details/describeDetails.ts';
+import type { DetailRow } from './details/describeDetails.ts';
+import type { DetailEdits } from '../../editor/adapters/pdf/documentTraces.js';
+import { DETAILS_CHANGED_ANNOUNCEMENT, DETAILS_SURVIVED_ANNOUNCEMENT } from './check/checkCopy.ts';
 
 /** en-GB reads "7 Oct 09:14", the approved form for a plain English page. */
 export function traceLocale(): string {
@@ -35,7 +37,8 @@ export default function useSavedFileCheck({
   picturePages,
   measure,
   announce,
-  keptAttachments = [],
+  detailEdits,
+  detailRows,
 }: {
   pdfDocument: PDFDocumentProxy | null;
   /** RED-59: the file as opened, read once per run to compare its traces. */
@@ -47,20 +50,24 @@ export default function useSavedFileCheck({
   measure?: MeasureText;
   /** Says the traces verdict once a check finishes. */
   announce?: (message: string) => void;
-  /** RED-60: attachments the person kept; their survival is expected. */
-  keptAttachments?: readonly string[];
+  /** RED-59: what the person edited; read back against the saved file. */
+  detailEdits: DetailEdits;
+  detailRows: DetailRow[];
 }) {
   const [state, setState] = useState<SavedFileCheckState>({ status: 'idle' });
+  const [detailsSurvived, setDetailsSurvived] = useState<string[]>([]);
 
   // Only a new export starts a check; the boxes and terms it reads are the
   // ones that export was made from, since any edit clears `saved` first.
   useEffect(() => {
     if (!saved || !pdfDocument || !originalFile) {
       setState({ status: 'idle' });
+      setDetailsSurvived([]);
       return;
     }
     let current = true;
     setState({ status: 'checking' });
+    setDetailsSurvived([]);
     (async () => {
       try {
         const savedBytes = new Uint8Array(await saved.arrayBuffer());
@@ -69,13 +76,17 @@ export default function useSavedFileCheck({
         const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: findTerms, picturePages, measure });
         if (!current) return;
         setState({ status: 'done', outcome, typed: [] });
-        const { original, saved: after } = outcome.traces;
-        const rows = describeTraces(original, { locale: traceLocale(), now: new Date() });
-        if (survivedRows(rows, after, keptAttachments).size > 0) {
-          announce?.(TRACES_SURVIVED_ANNOUNCEMENT);
+        const labels = survivedDetails(detailEdits, outcome.traces.saved).map((id) => {
+          const row = detailRows.find((r) => r.id === id);
+          return !row ? id : id.startsWith('attachment:') ? row.text : row.label;
+        });
+        setDetailsSurvived(labels);
+        const changes = changesSummary(detailRows, detailEdits);
+        if (labels.length > 0) {
+          announce?.(DETAILS_SURVIVED_ANNOUNCEMENT(labels.join(', ')));
           reportError('redact', new Error('trace survived export'), 'export_trace_survived');
-        } else if (rows.length > 0) {
-          announce?.(TRACES_ANNOUNCEMENT);
+        } else if (changes) {
+          announce?.(DETAILS_CHANGED_ANNOUNCEMENT(changes));
         }
       } catch (error) {
         reportError('redact', error, 'check_saved_file');
@@ -96,5 +107,5 @@ export default function useSavedFileCheck({
     setState({ ...state, typed: [...state.typed.filter((entry) => entry.term.label !== label), result] });
   };
 
-  return { state, search };
+  return { state, search, detailsSurvived };
 }
