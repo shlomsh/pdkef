@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
+import { describe, it, expect, vi } from 'vitest';
+import { PDFDocument, PDFName, PDFString, PDFRef } from '@cantoo/pdf-lib';
 import {
-  readDocumentTraces, applyDetailEdits, copyDocumentDetails, reachesPage,
+  readDocumentTraces, applyDetailEdits, copyDocumentDetails, reachesPage, removeXmpThumbnails,
 } from './documentTraces.js';
 import { attachmentDetailId } from './detailEdits.js';
 import { buildTracesFixture } from './tracesFixture.test-helper.js';
@@ -269,5 +269,50 @@ describe('reachesPage', () => {
     const ref = ctx.register(a);
     a.set(PDFName.of('Self'), ref);
     expect(reachesPage(ctx, ref)).toBe(false);
+  });
+});
+
+describe('copyDocumentDetails robustness', () => {
+  it('scans the source document once, however many details it copies (2,000 pages took seconds when every value rescanned it)', async () => {
+    const src = await PDFDocument.create({ updateMetadata: false });
+    for (let i = 0; i < 50; i++) src.addPage([100, 100]).drawText('x', { x: 1, y: 1 });
+    for (let i = 0; i < 40; i++) await src.attach(new Uint8Array([i % 256]), `f${i}.txt`, { mimeType: 'text/plain' });
+    for (let i = 0; i < 10; i++) src.getInfoDict().set(PDFName.of(`Custom${i}`), PDFString.of(`v${i}`));
+    await src.flush();
+    const target = await PDFDocument.create({ updateMetadata: false });
+    const scan = vi.spyOn(src.context, 'enumerateIndirectObjects');
+    copyDocumentDetails(src, target);
+    expect(scan.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
+  it('skips a dangling reference instead of crashing and copies the other Info keys', async () => {
+    const src = await PDFDocument.create({ updateMetadata: false });
+    src.addPage([100, 100]);
+    src.setTitle('Kept');
+    src.getInfoDict().set(PDFName.of('Custom'), PDFRef.of(9999, 0));
+    src.catalog.set(PDFName.of('Metadata'), PDFRef.of(9998, 0));
+    src.catalog.set(PDFName.of('OpenAction'), PDFRef.of(9997, 0));
+    const target = await PDFDocument.create({ updateMetadata: false });
+    expect(() => copyDocumentDetails(src, target)).not.toThrow();
+    expect(target.getTitle()).toBe('Kept');
+    expect(target.getInfoDict().has(PDFName.of('Custom'))).toBe(false);
+  });
+});
+
+describe('removeXmpThumbnails', () => {
+  it('stays linear on 50,000 unclosed <xmp:Thumbnails> starts and leaves the packet unchanged', () => {
+    const packet = '<x:xmpmeta>' + '<xmp:Thumbnails>'.repeat(50000) + '</x:xmpmeta>';
+    const t0 = performance.now();
+    const out = removeXmpThumbnails(packet);
+    const ms = performance.now() - t0;
+    console.log(`removeXmpThumbnails 50,000 unclosed: ${Math.round(ms)}ms`);
+    expect(ms).toBeLessThan(500);
+    expect(out).toBe(packet);
+  });
+
+  it('removes closed, self-closed and xap: elements, and xmpGImg:image inside xmpTPg page info', () => {
+    const t = '<a/><xmp:Thumbnails><b/></xmp:Thumbnails><c/><xap:Thumbnails/><d/><xmpTPg:x><xmpGImg:image>QQ==</xmpGImg:image></xmpTPg:x><e/>';
+    const out = removeXmpThumbnails(t);
+    expect(out).toBe('<a/><c/><d/><xmpTPg:x></xmpTPg:x><e/>');
   });
 });

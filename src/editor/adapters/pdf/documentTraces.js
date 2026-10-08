@@ -293,7 +293,54 @@ function dropAppData(doc) {
   }
 }
 
-const XMP_THUMBNAILS = /<(xmp|xap):Thumbnails\b[^>]*?(?:\/>|>[\s\S]*?<\/\1:Thumbnails\s*>)/g;
+const THUMBNAIL_TAGS = ['xmp:Thumbnails', 'xap:Thumbnails', 'xmpGImg:image'];
+
+/**
+ * Cuts every `<tag>...</tag>` (or `<tag/>`) out of `text` in one linear pass:
+ * an open tag with no close tag after it ends the scan, so a packet of
+ * thousands of unclosed starts cannot make it slow.
+ */
+function removeElements(text, tag) {
+  const open = `<${tag}`;
+  const close = `</${tag}`;
+  let out = '';
+  let from = 0;
+  let at = text.indexOf(open, from);
+  while (at !== -1) {
+    const after = text[at + open.length];
+    if (after !== '>' && after !== '/' && !/\s/.test(after ?? '')) {
+      at = text.indexOf(open, at + 1);
+      continue;
+    }
+    const tagEnd = text.indexOf('>', at);
+    if (tagEnd === -1) break;
+    let end = tagEnd + 1;
+    if (text[tagEnd - 1] !== '/') {
+      const closeAt = text.indexOf(close, end);
+      if (closeAt === -1) break;
+      const closeEnd = text.indexOf('>', closeAt);
+      if (closeEnd === -1) break;
+      end = closeEnd + 1;
+    }
+    out += text.slice(from, at);
+    from = end;
+    at = text.indexOf(open, from);
+  }
+  return from === 0 ? text : out + text.slice(from);
+}
+
+/** `text` without its XMP thumbnails (`xmp:Thumbnails`, and `xmpGImg:image` such as in `xmpTPg` page info). */
+export function removeXmpThumbnails(text) {
+  let result = text;
+  for (const tag of THUMBNAIL_TAGS) if (result.includes(`<${tag}`)) result = removeElements(result, tag);
+  return result;
+}
+
+/** Decodes an XMP packet: UTF-16 by its byte order mark, otherwise UTF-8. Null when it is neither. */
+function decodeXmp(bytes) {
+  const label = bytes[0] === 0xFE && bytes[1] === 0xFF ? 'utf-16be' : bytes[0] === 0xFF && bytes[1] === 0xFE ? 'utf-16le' : 'utf-8';
+  return safe(() => new TextDecoder(label, { fatal: true }).decode(bytes));
+}
 
 /**
  * Cuts the `xmp:Thumbnails` element (pictures of the page as it was) out of
@@ -310,9 +357,9 @@ function stripXmpThumbnails(doc) {
     const stream = resolve(ctx, holder.get(N('Metadata')));
     if (!(stream instanceof PDFStream)) continue;
     const bytes = safe(() => (stream.dict.has(N('Filter')) ? decodePDFRawStream(stream).decode() : stream.getContents()));
-    const text = bytes && safe(() => new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-    if (!text || !/Thumbnails/.test(text)) continue;
-    const stripped = text.replace(XMP_THUMBNAILS, '');
+    const text = bytes && decodeXmp(bytes);
+    if (!text || !/Thumbnails|xmpGImg/.test(text)) continue;
+    const stripped = removeXmpThumbnails(text);
     if (stripped === text) continue;
     const fresh = ctx.stream(new TextEncoder().encode(stripped), { Type: 'Metadata', Subtype: 'XML' });
     holder.set(N('Metadata'), ctx.register(fresh));
@@ -381,6 +428,16 @@ function isJavaScriptOnly(ctx, o, seen = new Set()) {
  * @param {*} value
  */
 export function reachesPage(ctx, value) {
+  return makePageReach(ctx)(value);
+}
+
+/**
+ * The same check as `reachesPage`, with the source's page contents and root
+ * worked out once: build it once per document and call it per value.
+ * @param {import('@cantoo/pdf-lib').PDFContext} ctx
+ * @returns {(value: *) => boolean}
+ */
+export function makePageReach(ctx) {
   const root = ctx.trailerInfo.Root && ctx.lookup(ctx.trailerInfo.Root);
   const contents = new Set();
   for (const [, o] of ctx.enumerateIndirectObjects()) {
@@ -392,26 +449,27 @@ export function reachesPage(ctx, value) {
       if (target) contents.add(target);
     }
   }
-  const seen = new Set();
-  const stack = [value];
-  while (stack.length) {
-    const v = stack.pop();
-    const target = resolve(ctx, v);
-    if (target === undefined || seen.has(target)) continue;
-    seen.add(target);
-    if (contents.has(target) || (root && target === root)) return true;
-    if (target instanceof PDFArray) {
-      for (let i = 0; i < target.size(); i++) stack.push(target.get(i));
-      continue;
+  return (value) => {
+    const seen = new Set();
+    const stack = [value];
+    while (stack.length) {
+      const target = resolve(ctx, stack.pop());
+      if (target === undefined || seen.has(target)) continue;
+      seen.add(target);
+      if (contents.has(target) || (root && target === root)) return true;
+      if (target instanceof PDFArray) {
+        for (let i = 0; i < target.size(); i++) stack.push(target.get(i));
+        continue;
+      }
+      const dict = target instanceof PDFStream ? target.dict : target instanceof PDFDict ? target : null;
+      if (!dict) continue;
+      const type = dict.get(N('Type'));
+      if (type === N('Page') || type === N('Pages') || type === N('Annot')) return true;
+      if (dict.has(N('Subtype')) && dict.has(N('P'))) return true;
+      for (const [, entry] of dict.entries()) stack.push(entry);
     }
-    const dict = target instanceof PDFStream ? target.dict : target instanceof PDFDict ? target : null;
-    if (!dict) continue;
-    const type = dict.get(N('Type'));
-    if (type === N('Page') || type === N('Pages') || type === N('Annot')) return true;
-    if (dict.has(N('Subtype')) && dict.has(N('P'))) return true;
-    for (const [, entry] of dict.entries()) stack.push(entry);
-  }
-  return false;
+    return false;
+  };
 }
 
 /**
@@ -436,7 +494,8 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
   const tctx = targetDoc.context;
   // Everything copied passes here: a value that reaches a page is skipped
   // whole, and a stream is registered so it is set as a reference.
-  const safeToCopy = (value) => value !== undefined && !reachesPage(ctx, value);
+  const reaches = makePageReach(ctx);
+  const safeToCopy = (value) => resolve(ctx, value) !== undefined && !reaches(value);
   const copyValue = (value) => {
     const copied = copier.copy(resolve(ctx, value));
     return copied instanceof PDFStream ? tctx.register(copied) : copied;
@@ -486,7 +545,7 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
   // `attach()` embeds lazily at save, after the edits would have run.
   // A spec that is missing, not a dict, or reaches a page is skipped (null).
   const copySpec = (spec) => {
-    if (!asDict(ctx, spec) || reachesPage(ctx, spec)) return null;
+    if (!asDict(ctx, spec) || reaches(spec)) return null;
     const copied = copier.copy(spec);
     return copied instanceof PDFRef ? copied : tctx.register(copied);
   };

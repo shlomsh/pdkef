@@ -85,6 +85,27 @@ describe.each(Object.keys(paths))('%s export', (path) => {
     expect(text).not.toContain('QUJDREVGRw');
   });
 
+  it.each([['UTF-16BE', 'be'], ['UTF-16LE', 'le']])('strips the XMP thumbnails from a %s packet, re-encoded as UTF-8', async (_label, endian) => {
+    const fixture = await buildTracesFixture();
+    const ctx = fixture.doc.context;
+    const packet = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta><rdf:Description xmpMM:History="h"><dc:title>Kept Title</dc:title>${XMP_THUMBS}</rdf:Description></x:xmpmeta><?xpacket end="w"?>`;
+    const units = [0xFEFF, ...Array.from(packet, (c) => c.charCodeAt(0))];
+    const raw = new Uint8Array(units.length * 2);
+    units.forEach((u, i) => {
+      raw[i * 2 + (endian === 'be' ? 0 : 1)] = u >> 8;
+      raw[i * 2 + (endian === 'be' ? 1 : 0)] = u & 255;
+    });
+    fixture.doc.catalog.set(PDFName.of('Metadata'), ctx.register(ctx.stream(raw, { Type: 'Metadata', Subtype: 'XML' })));
+    const out = await paths[path](await fixture.save());
+    const reloaded = await PDFDocument.load(out, { updateMetadata: false });
+    const xmp = reloaded.catalog.lookup(PDFName.of('Metadata'));
+    const text = Buffer.from(decodePDFRawStream(xmp).decode()).toString('utf8');
+    expect(text).toContain('<dc:title>Kept Title</dc:title>');
+    expect(text).toContain('begin="\uFEFF"');
+    expect(text).not.toContain('Thumbnails');
+    expect(text).not.toContain('QUJDREVGRw');
+  });
+
   it('the catalog /Metadata is an indirect stream', async () => {
     const out = await run();
     const reloaded = await PDFDocument.load(out, { updateMetadata: false });
