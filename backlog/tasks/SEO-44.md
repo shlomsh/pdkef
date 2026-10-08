@@ -66,3 +66,20 @@ Compare the three pages before changing anything, and write the table here:
 - Which queries `/compress/` ranks for in the top 10, and whether `/split/` has a matching section.
 
 Then one change at a time, each with a 28-day read against the before row above.
+
+## 2026-10-08 comparison (built `dist/`, sources, `seo:crawl-staleness`)
+
+| | /split/ | /compress/ | /merge/ |
+| --- | --- | --- | --- |
+| Visible words | 907 | 1448 | 992 |
+| Keyword in title / h1 / first 100 words | 1 / 1 / 3 | 1 / 1 / 3 | 0 / 0 / 1 |
+| Pages linking in / total links | 37 / 40 | 34 / 39 | 34 / 34 |
+| hreflang cluster, Hebrew page | none | en, he, x-default | en, he, x-default |
+| Content page pointing at it | none | `pdf-wont-compress-to-100kb` | none |
+| Last crawled | 2026-09-11 | 2026-09-23 | 2026-09-12 |
+
+On-site, `/split/` is at parity or better on title, h1, keyword placement and internal links. The
+measured differences: about 37% fewer words than `/compress/`, and no Hebrew page or hreflang cluster,
+which both page-one tools have. The findings doc also records that `/merge/` went from 36 to 7.3 with no
+change of ours, so part of this is Google re-weighing pages on its own schedule. Which difference
+matters is not known; with `/split/` stuck at 52, the cost of trying is low.
