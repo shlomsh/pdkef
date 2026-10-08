@@ -28,8 +28,6 @@ export const REMOVE_IT = 'Remove it';
 
 export const REMOVING = 'Removing…';
 
-export const ALREADY_GONE = 'That was already gone.';
-
 export const COVER_IT_NOTE = 'Adding a box covers it in your next download. Download again to get the new copy.';
 
 /** "3", "3 and 7", "2, 5 and 9", from zero-based indexes. */

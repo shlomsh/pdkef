@@ -10,7 +10,8 @@ import { checkSavedFile } from './checkSavedFile.ts';
 import { canRemove, findingText } from './checkCopy.ts';
 import { locatePlaces, isSamePlace } from './placeLocator.ts';
 import { readSavedFile } from './readSavedFile.ts';
-import { removePlace } from './removePlace.ts';
+import { removePlaces } from './removePlaces.ts';
+import { dropUnreachable } from '../../../editor/adapters/pdf/reachability.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 
 beforeAll(() => {
@@ -39,6 +40,13 @@ async function read(bytes, withBytes = true) {
   } finally {
     await task.destroy();
   }
+}
+
+async function removeAndSave(bytes, place) {
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  removePlaces(doc, [place]);
+  dropUnreachable(doc);
+  return new Uint8Array(await doc.save({ updateFieldAppearances: false }));
 }
 
 const unusedOf = (saved) => saved.places.filter((p) => p.kind === 'unused');
@@ -85,10 +93,10 @@ describe('parts of the file no page shows', () => {
     expect(isSamePlace(located[0], { kind: 'unused', text: 'anything' })).toBe(true);
   });
 
-  it('removePlace drops all of them and leaves the page text alone', async () => {
+  it('removing it drops all of them and leaves the page text alone', async () => {
     const bytes = await build({ leftovers: true });
     const before = await read(bytes);
-    const out = await removePlace(bytes, unusedOf(before)[0]);
+    const out = await removeAndSave(bytes, unusedOf(before)[0]);
     expect(unreachableRefs(await PDFDocument.load(out))).toEqual([]);
     const after = await read(out);
     expect(unusedOf(after)).toEqual([]);
@@ -96,14 +104,14 @@ describe('parts of the file no page shows', () => {
     expect(new TextDecoder('latin1').decode(out)).not.toContain('Leftover');
   });
 
-  it('every removePlace drops them too, so Remove it on a title carries none along', async () => {
+  it('every removal drops them too, so Remove it on a title carries none along', async () => {
     const doc = await PDFDocument.create();
     doc.addPage([200, 200]);
     doc.setTitle('title-secret');
     doc.context.register(doc.context.obj({ Contents: PDFString.of('LeftoverNote') }));
     const bytes = new Uint8Array(await doc.save({ useObjectStreams: false }));
     expect(new TextDecoder('latin1').decode(bytes)).toContain('LeftoverNote');
-    const out = await removePlace(bytes, { kind: 'title', text: 'title-secret' });
+    const out = await removeAndSave(bytes, { kind: 'title', text: 'title-secret' });
     expect(new TextDecoder('latin1').decode(out)).not.toContain('LeftoverNote');
     expect(unreachableRefs(await PDFDocument.load(out))).toEqual([]);
   });

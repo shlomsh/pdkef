@@ -77,7 +77,7 @@ export type Finding =
   | { kind: 'in-text'; pageIndex: number }
   /** Found in a place outside page text. `placeIndex` is that place's index in
    * `SavedFile.places`, and `text` its text, so a caller can hand the place
-   * back unchanged (to `removePlace`). */
+   * back unchanged (to `removePlaces`). */
   | { kind: 'in-place'; place: PlaceKind; pageIndex?: number; text: string; placeIndex: number; removable?: boolean };
 
 export interface TermResult {
