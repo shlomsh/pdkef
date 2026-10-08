@@ -24,6 +24,17 @@ export const GLYPH_BUDGET = 400_000;
 const OFF_BASELINE = 0.5;
 /** A glyph this close (in ems) to an identical one is the same glyph overprinted. */
 const OVERPRINT = 0.15;
+
+/** True when `copy` is `glyph` drawn again over itself: the same character,
+ * origin within OVERPRINT em on each axis (em from `glyph`, else `fallbackEm`). */
+export function isOverprint(glyph: PageGlyph, copy: PageGlyph, fallbackEm = 0): boolean {
+  const em = Math.hypot(glyph.matrix[0], glyph.matrix[1]) || fallbackEm;
+  return (
+    copy.unicode === glyph.unicode &&
+    Math.abs(copy.matrix[4] - glyph.matrix[4]) <= OVERPRINT * em &&
+    Math.abs(copy.matrix[5] - glyph.matrix[5]) <= OVERPRINT * em
+  );
+}
 /** Slack along the baseline, as a share of the item's height. */
 const ALONG_SLACK = 0.01;
 
@@ -124,18 +135,23 @@ export function mapItemGlyphs(item: PlacedItem, str: string, candidates: readonl
   }
   onItem.sort((p, q) => p.along - q.along);
 
-  // A glyph drawn again over itself (faked bold) is one glyph.
-  const kept: PageGlyph[] = [];
+  // A glyph drawn again over itself (faked bold) is one glyph. A copy joins
+  // the first kept glyph whose cluster it repeats, so a triple draw in small
+  // steps stays one glyph.
+  const clusters = new Map<PageGlyph, PageGlyph[]>();
   for (const { glyph } of onItem) {
     const em = Math.hypot(glyph.matrix[0], glyph.matrix[1]) || item.height;
-    const repeat = kept.some(
-      (other) =>
-        other.unicode === glyph.unicode &&
-        Math.abs(other.matrix[4] - glyph.matrix[4]) <= OVERPRINT * em &&
-        Math.abs(other.matrix[5] - glyph.matrix[5]) <= OVERPRINT * em,
-    );
-    if (!repeat) kept.push(glyph);
+    let joined = false;
+    for (const members of clusters.values()) {
+      if (members.some((member) => isOverprint(glyph, member, em))) {
+        members.push(glyph);
+        joined = true;
+        break;
+      }
+    }
+    if (!joined) clusters.set(glyph, [glyph]);
   }
+  const kept = [...clusters.keys()];
 
   const visual: Placed[] = [];
   for (const glyph of kept) {
