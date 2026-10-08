@@ -52,3 +52,12 @@ corpus matcher, and reports per-page inference time.
 - [ ] A record under `docs/` with GO / NO-GO / REWORK for FFDetr as a Sign `FieldSource`, and the
   phone-side cost it would carry.
 - [ ] No dependency, asset or product code change.
+
+## 2026-10-08 Shlomi: ask before running it
+
+If it earns its place, the model loads only when the person agrees, on a page that has no text layer
+and no vector ink (a scan or photo). That turns the download from a cost every visitor pays into a
+one-time, opt-in one, cached for offline use after. It does not change the accuracy question this
+spike answers. What it leaves open: phone inference time and memory at 1024px, hosting a 33-116MB
+file same-origin (Vercel file-size and bandwidth limits), and the prompt's copy (an offer, never a
+claim about what the form needs).
