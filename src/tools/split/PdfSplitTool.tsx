@@ -596,7 +596,7 @@ export default function PdfSplitTool({
         </svg>
       </button>
       {perCellCaptions && p.selected ? (
-        <span class={styles['cell-caption']} title={`${baseName}-page-${p.pageNumber}.pdf`}>
+        <span class={styles['cell-caption']} dir="ltr" title={`${baseName}-page-${p.pageNumber}.pdf`}>
           {'…-page-'}{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
         </span>
       ) : (
@@ -675,7 +675,7 @@ export default function PdfSplitTool({
                       <span class={styles['frame-caption-note']}>
                         {selectedCount === 0
                           ? t.pickAtLeastOne
-                          : withSlot(t.eachSavesAs, '{name}', <bdi>{baseName}</bdi>)}
+                          : withSlot(t.eachSavesAs, '{name}', <bdi dir="ltr">{baseName}-page-N.pdf</bdi>)}
                       </span>
                     </div>
                     <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>

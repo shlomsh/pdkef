@@ -220,6 +220,30 @@ describe('PdfSplitTool UI flow', () => {
     expect(container.querySelector(`.${styles['rotate-btn']}`).getAttribute('aria-label')).toBe('סיבוב עמוד 1');
   });
 
+  // Bidi: in RTL the whole saved file name must be one LTR isolate, and the
+  // per-cell caption must lay out left-to-right.
+  it('keeps saved file names whole and LTR in Hebrew', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    mockState.numPages = 5;
+    act(() => render(<PdfSplitTool messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+    const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === hebrewSplitMessages.modeSeparate);
+    await act(async () => perPage.click());
+    const isolates = Array.from(container.querySelectorAll('bdi[dir="ltr"]'));
+    expect(isolates.some((b) => b.textContent === 'open-page-N.pdf')).toBe(true);
+    expect(container.querySelector(`.${styles['cell-caption']}`).getAttribute('dir')).toBe('ltr');
+  });
+
   // The size ("1.0 MB") inside the Hebrew detail line must be bidi-isolated or
   // it renders reversed; English stays untouched.
   describe('the download detail line size', () => {
