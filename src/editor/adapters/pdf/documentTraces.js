@@ -173,6 +173,15 @@ export function readDocumentTraces(doc) {
     for (let i = 0; i < af.size(); i++) attachments.push({ name: fileName(ctx, af.get(i), 'attachment') });
   }
   for (const a of fileAttachmentAnnots(doc)) attachments.push({ name: a.name, pageIndex: a.pageIndex });
+  // One file, one row: pdf-lib's `attach()` lists a file in both the name tree
+  // and /AF, and the check counts files, not listings.
+  const seenAttachment = new Set();
+  const uniqueAttachments = attachments.filter((a) => {
+    const key = `${a.pageIndex ?? ''}:${a.name}`;
+    if (seenAttachment.has(key)) return false;
+    seenAttachment.add(key);
+    return true;
+  });
 
   let namedScripts = false;
   if (names) walkNameTree(ctx, names.get(N('JavaScript')), () => { namedScripts = true; });
@@ -191,7 +200,7 @@ export function readDocumentTraces(doc) {
     modDate: date('ModDate'),
     otherInfoKeys,
     xmp: xmpState(doc),
-    attachments,
+    attachments: uniqueAttachments,
     scripts: { document, pages: pages.flatMap((p, i) => (p.node.has(N('AA')) ? [i] : [])) },
     thumbnails: pages.flatMap((p, i) => (p.node.has(N('Thumb')) ? [i] : [])),
     pageDetails: pages.flatMap((p, i) =>
