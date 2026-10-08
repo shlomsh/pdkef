@@ -151,3 +151,27 @@
     min-height: 2.75rem;
   }
 }
+
+/* RED-59: the one quiet line about the file's details, muted like the page
+   footer, with Review as a plain text-coloured button on a 44px target. */
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.review {
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
