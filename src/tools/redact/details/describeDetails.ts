@@ -91,7 +91,8 @@ export function describeDetails(traces: DocumentTraces, options: { locale: strin
 export function detailsSummary(rows: DetailRow[]): string {
   if (rows.length === 0) return '';
   const parts = ['title', 'author', 'made', 'created']
-    .map((id) => rows.find((row) => row.id === id)?.text)
+    // Made with reads "app · library"; the footer names the app only.
+    .map((id) => rows.find((row) => row.id === id)?.text.split(' · ')[0])
     .filter((text): text is string => Boolean(text));
   const attached = rows.filter((row) => row.id.startsWith('attachment:')).length;
   if (attached > 0) parts.push(`${attached} attached ${attached === 1 ? 'file' : 'files'}`);
@@ -107,7 +108,8 @@ export function changesSummary(rows: DetailRow[], edits: DetailEdits): string {
     const edit = edits[row.id];
     if (!edit) continue;
     const verb = edit.action === 'delete' ? 'deleted' : 'altered';
-    parts.push(row.id.startsWith('attachment:') ? `${row.text} deleted` : `${row.label.toLowerCase()} ${verb}`);
+    const name = row.id.startsWith('attachment:') ? row.text : row.id === 'made' ? 'app' : row.label.toLowerCase();
+    parts.push(`${name} ${verb}`);
   }
   return parts.join(', ');
 }

@@ -95,6 +95,10 @@ describe('detailsSummary', () => {
     expect(detailsSummary(rows(t))).toBe(`T · A · Pages · ${created} · 2 attached files · scripts · hidden details`);
   });
 
+  it('shows only the app that made the file, not the library that wrote it', () => {
+    expect(detailsSummary(rows({ ...empty(), creator: 'Notes', producer: 'iOS Version 17.5 Quartz PDFContext' }))).toBe('Notes');
+  });
+
   it('one attached file is singular', () => {
     expect(detailsSummary(rows({ ...empty(), attachments: [{ name: 'a', pageIndex: 0 }] }))).toBe('1 attached file');
   });
@@ -114,7 +118,7 @@ describe('changesSummary', () => {
       made: { action: 'delete' as const },
       scripts: { action: 'delete' as const },
     };
-    expect(changesSummary(rows(t), edits)).toBe('title altered, author deleted, made with deleted, a.png deleted, scripts deleted');
+    expect(changesSummary(rows(t), edits)).toBe('title altered, author deleted, app deleted, a.png deleted, scripts deleted');
   });
 
   it('ignores edits for ids the file does not have', () => {

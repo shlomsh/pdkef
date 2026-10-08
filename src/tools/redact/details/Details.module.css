@@ -1,5 +1,10 @@
 /* RED-59: the footer line under the last page and the sheet that opens from it. */
 .footer {
+  /* The workspace centres its children; the footer takes the page's width so the summary can ellipsise. */
+  align-self: stretch;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
