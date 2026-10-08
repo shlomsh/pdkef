@@ -11,6 +11,17 @@ import { isIOSDevice, type NavigatorPlatformInfo } from './platform';
  * DEBT-42 polyfills the global `Iterator` and the other built-ins pdf.js calls
  * (pdfjsPolyfills.js), so these floors may now be higher than pdf.js strictly
  * needs. They stay until a browser below them is shown to run every tool.
+ *
+ * Checked 2026-10-08 against MDN browser-compat-data 8.1.5 for pdfjs-dist 6.3.289:
+ * the built-ins pdf.js calls unguarded on the paths this app runs (open, render,
+ * text, images) are all polyfilled now; the last five were Promise.withResolvers,
+ * transferToFixedLength, URL.parse and Response/Blob bytes (Chrome 119-144,
+ * Firefox 121-128, Safari 17.4-18). Read from the code, the unguarded calls left
+ * are AbortSignal.any and Set.prototype.intersection, in pdf.js's viewer and editor
+ * classes, which the app does not load, and the stream iteration in
+ * getTextContent(), which it never calls (pdfTextItems.ts reads the stream). The rest is
+ * syntax, which no polyfill reaches: Vite's default target (Chrome/Edge 111,
+ * Firefox 114, Safari 16.4) and the module worker (Firefox 114), below every floor.
  */
 const MINIMUMS = { Chrome: 122, Edge: 122, Firefox: 131, Safari: 18.4, iOS: 18.4 } as const;
 

@@ -12,6 +12,14 @@
  *
  * This runs in two places: before pdf.js is imported on the main thread
  * (`loadPdfjs.js`) and as the first import of the worker (`pdfjsWorker.js`).
+ * Also installed, each with the first browser version that has it (MDN
+ * browser-compat-data 8.1.5): `Promise.withResolvers` (Chrome 119, Firefox 121,
+ * Safari 17.4; ~27 calls in `pdf.mjs`), `ArrayBuffer.prototype.transferToFixedLength`
+ * (Chrome 114, Firefox 122, Safari 17.4; worker only), `URL.parse` (Chrome 126,
+ * Firefox 126, Safari 18), `Response.prototype.bytes` (Chrome 132, Firefox 128,
+ * Safari 18; the JBIG2/JPX wasm fetch) and `Blob.prototype.bytes` (Chrome 144,
+ * Firefox 128, Safari 18; the worker's `convertToBlob` JPEG path).
+ *
  * Browsers may take a plain loop over the spec algorithm; speed does not matter
  * here, so each is the shortest correct form.
  */
@@ -105,4 +113,30 @@ export function installPdfjsPolyfills() {
     return sum;
   });
   installBytes();
+  define(Promise, 'withResolvers', function withResolvers() {
+    let resolve, reject;
+    const promise = new this((res, rej) => ((resolve = res), (reject = rej)));
+    return { promise, resolve, reject };
+  });
+  // A copy cannot detach the source; pdf.js's two callers (compileSystemFontInfo,
+  // compileFontInfo) return the result of a local buffer and never touch it again.
+  define(ArrayBuffer.prototype, 'transferToFixedLength', function transferToFixedLength(newLength = this.byteLength) {
+    const out = new Uint8Array(newLength);
+    out.set(new Uint8Array(this, 0, Math.min(newLength, this.byteLength)));
+    return out.buffer;
+  });
+  define(URL, 'parse', function parse(url, base) {
+    try {
+      return new URL(url, base);
+    } catch {
+      // expected: an unparseable URL is the null result URL.parse specifies
+      return null;
+    }
+  });
+  for (const Body of [globalThis.Response, globalThis.Blob]) {
+    if (!Body) continue;
+    define(Body.prototype, 'bytes', async function bytes() {
+      return new Uint8Array(await this.arrayBuffer());
+    });
+  }
 }

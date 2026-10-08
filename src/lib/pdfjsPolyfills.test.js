@@ -117,6 +117,120 @@ describe('Uint8Array base64 and hex', () => {
   });
 });
 
+describe('Promise.withResolvers', () => {
+  it('returns a promise with working resolve and reject', async () => {
+    remove(Promise, 'withResolvers');
+    installPdfjsPolyfills();
+    const a = Promise.withResolvers();
+    a.resolve(5);
+    await expect(a.promise).resolves.toBe(5);
+    const b = Promise.withResolvers();
+    b.reject(new Error('no'));
+    await expect(b.promise).rejects.toThrow('no');
+  });
+
+  it('constructs with `this`, so a subclass gets its own kind of promise', () => {
+    remove(Promise, 'withResolvers');
+    installPdfjsPolyfills();
+    class Sub extends Promise {}
+    expect(Sub.withResolvers().promise).toBeInstanceOf(Sub);
+  });
+
+  it('never replaces a native one', () => {
+    const sentinel = function () {};
+    saved.push([Promise, 'withResolvers', Object.getOwnPropertyDescriptor(Promise, 'withResolvers')]);
+    Object.defineProperty(Promise, 'withResolvers', { value: sentinel, configurable: true, writable: true });
+    installPdfjsPolyfills();
+    expect(Promise.withResolvers).toBe(sentinel);
+  });
+});
+
+describe('ArrayBuffer.prototype.transferToFixedLength', () => {
+  const AB = ArrayBuffer.prototype;
+  it('keeps the first bytes when shorter, and copies the whole buffer by default', () => {
+    remove(AB, 'transferToFixedLength');
+    installPdfjsPolyfills();
+    const source = new U8([1, 2, 3, 4]).buffer;
+    const short = source.transferToFixedLength(2);
+    expect(short).toBeInstanceOf(ArrayBuffer);
+    expect(Array.from(new U8(short))).toEqual([1, 2]);
+    expect(Array.from(new U8(source.transferToFixedLength()))).toEqual([1, 2, 3, 4]);
+  });
+
+  it('zero-pads when longer', () => {
+    remove(AB, 'transferToFixedLength');
+    installPdfjsPolyfills();
+    const grown = new U8([9, 8]).buffer.transferToFixedLength(5);
+    expect(grown.byteLength).toBe(5);
+    expect(Array.from(new U8(grown))).toEqual([9, 8, 0, 0, 0]);
+  });
+
+  it('never replaces a native one', () => {
+    const sentinel = function () {};
+    saved.push([AB, 'transferToFixedLength', Object.getOwnPropertyDescriptor(AB, 'transferToFixedLength')]);
+    Object.defineProperty(AB, 'transferToFixedLength', { value: sentinel, configurable: true, writable: true });
+    installPdfjsPolyfills();
+    expect(AB.transferToFixedLength).toBe(sentinel);
+  });
+});
+
+describe('URL.parse', () => {
+  it('parses absolute and relative-with-base URLs, and gives null for an invalid one', () => {
+    remove(URL, 'parse');
+    installPdfjsPolyfills();
+    expect(URL.parse('https://a.test/x').href).toBe('https://a.test/x');
+    expect(URL.parse('/y', 'https://a.test/x').href).toBe('https://a.test/y');
+    expect(URL.parse('not a url')).toBeNull();
+    expect(URL.parse('/y', 'nope')).toBeNull();
+  });
+
+  it('never replaces a native one', () => {
+    const sentinel = function () {};
+    saved.push([URL, 'parse', Object.getOwnPropertyDescriptor(URL, 'parse')]);
+    Object.defineProperty(URL, 'parse', { value: sentinel, configurable: true, writable: true });
+    installPdfjsPolyfills();
+    expect(URL.parse).toBe(sentinel);
+  });
+});
+
+describe('Response.prototype.bytes', () => {
+  it('resolves to a Uint8Array of the body', async () => {
+    remove(Response.prototype, 'bytes');
+    installPdfjsPolyfills();
+    const bytes = await new Response(new U8([7, 8, 9])).bytes();
+    expect(bytes).toBeInstanceOf(U8);
+    expect(Array.from(bytes)).toEqual([7, 8, 9]);
+  });
+
+  it('never replaces a native one', () => {
+    const sentinel = function () {};
+    const proto = Response.prototype;
+    saved.push([proto, 'bytes', Object.getOwnPropertyDescriptor(proto, 'bytes')]);
+    Object.defineProperty(proto, 'bytes', { value: sentinel, configurable: true, writable: true });
+    installPdfjsPolyfills();
+    expect(proto.bytes).toBe(sentinel);
+  });
+});
+
+describe('Blob.prototype.bytes', () => {
+  it('resolves to a Uint8Array of the blob', async () => {
+    remove(Blob.prototype, 'bytes');
+    installPdfjsPolyfills();
+    const bytes = await new Blob([new U8([4, 5, 6])]).bytes();
+    expect(bytes).toBeInstanceOf(U8);
+    expect(Array.from(bytes)).toEqual([4, 5, 6]);
+  });
+
+  it('never replaces a native one', () => {
+    const sentinel = function () {};
+    const proto = Blob.prototype;
+    saved.push([proto, 'bytes', Object.getOwnPropertyDescriptor(proto, 'bytes')]);
+    Object.defineProperty(proto, 'bytes', { value: sentinel, configurable: true, writable: true });
+    installPdfjsPolyfills();
+    expect(proto.bytes).toBe(sentinel);
+  });
+});
+
 describe('installing twice', () => {
   it('is harmless', () => {
     remove(Map.prototype, 'getOrInsert');
