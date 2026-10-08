@@ -2,7 +2,7 @@
 // Delete is run for real; the flattened path through `assemble`, which holds
 // everything `redactPdf` does after the canvas work.
 import { describe, it, expect } from 'vitest';
-import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, decodePDFRawStream } from '@cantoo/pdf-lib';
 import { deleteObjectsFromPdf } from './deleteObjects.js';
 import { assemble } from './redact.js';
 import { readDocumentTraces, hasNoTraces } from './documentTraces.js';
@@ -64,6 +64,22 @@ describe.each(Object.keys(paths))('%s export', (path) => {
     const reloaded = await PDFDocument.load(out, { updateMetadata: false });
     expect(readDocumentTraces(reloaded).attachments.map((a) => a.name)).toEqual([kept]);
   });
+
+  if (path === 'flattened') {
+    it('carries a kept name-tree attachment over, bytes equal, as the only one left', async () => {
+      const out = await run({ keepAttachments: ['keep.txt'] });
+      const reloaded = await PDFDocument.load(out, { updateMetadata: false });
+      // pdf-lib lists a file in the name tree and in /AF, so the reader sees it twice.
+      const attachments = readDocumentTraces(reloaded).attachments;
+      expect([...new Set(attachments.map((a) => a.name))]).toEqual(['keep.txt']);
+      const names = reloaded.catalog.lookup(PDFName.of('Names'));
+      const tree = names.lookup(PDFName.of('EmbeddedFiles'));
+      const spec = reloaded.context.lookup(tree.lookup(PDFName.of('Names')).get(1));
+      const stream = reloaded.context.lookup(spec.lookup(PDFName.of('EF')).get(PDFName.of('F')));
+      const bytes = decodePDFRawStream(stream).decode();
+      expect(Buffer.from(bytes).toString('latin1')).toBe('KEEP_PAYLOAD');
+    });
+  }
 
   it('runs finish on the output before the strip: a comment finish removes on page 2 is gone', async () => {
     const dropText = (doc) => {

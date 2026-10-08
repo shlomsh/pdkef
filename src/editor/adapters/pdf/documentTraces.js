@@ -267,6 +267,56 @@ export function stripDocumentTraces(doc, options = {}) {
   ctx.trailerInfo.ID = ctx.obj([id(), id()]);
 }
 
+/**
+ * Copies the named attached files from `sourceDoc` (its EmbeddedFiles name tree
+ * and catalog `/AF`) into `targetDoc`, bytes, name, type, description and dates,
+ * for an export that builds a new document instead of editing the source. A name
+ * found twice is copied once; a name not found is skipped.
+ * @param {PDFDocument} sourceDoc
+ * @param {PDFDocument} targetDoc
+ * @param {readonly string[] | undefined} names
+ */
+export function copyKeptAttachments(sourceDoc, targetDoc, names) {
+  const keep = new Set(names ?? []);
+  if (keep.size === 0) return;
+  const ctx = sourceDoc.context;
+  const specs = [];
+  const sourceNames = asDict(ctx, sourceDoc.catalog.get(N('Names')));
+  if (sourceNames) {
+    walkNameTree(ctx, sourceNames.get(N('EmbeddedFiles')), (pairs, i) => {
+      specs.push([fileName(ctx, pairs.get(i + 1), textOf(pairs.get(i)) ?? 'attachment'), pairs.get(i + 1)]);
+    });
+  }
+  const af = resolve(ctx, sourceDoc.catalog.get(N('AF')));
+  if (af instanceof PDFArray) {
+    for (let i = 0; i < af.size(); i++) specs.push([fileName(ctx, af.get(i), 'attachment'), af.get(i)]);
+  }
+  const done = new Set();
+  for (const [name, spec] of specs) {
+    if (!keep.has(name) || done.has(name)) continue;
+    const ef = asDict(ctx, asDict(ctx, spec)?.get(N('EF')));
+    const stream = ef && (resolve(ctx, ef.get(N('UF'))) ?? resolve(ctx, ef.get(N('F'))));
+    if (!(stream instanceof PDFStream)) continue;
+    const bytes = safe(() => (stream.dict.has(N('Filter')) ? decodePDFRawStream(stream).decode() : stream.getContents()));
+    if (!bytes) continue;
+    done.add(name);
+    const params = asDict(ctx, stream.dict.get(N('Params')));
+    const date = (key) => {
+      const t = params && textOf(resolve(ctx, params.get(N(key))));
+      const m = t && /^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/.exec(t);
+      return m ? new Date(Date.UTC(+m[1], (+m[2] || 1) - 1, +m[3] || 1, +m[4] || 0, +m[5] || 0, +m[6] || 0)) : undefined;
+    };
+    const subtype = stream.dict.get(N('Subtype'));
+    const description = asDict(ctx, spec)?.get(N('Desc'));
+    targetDoc.attach(bytes, name, {
+      mimeType: subtype instanceof PDFName ? subtype.decodeText().replace(/#2F/gi, '/') : undefined,
+      description: textOf(description) ?? undefined,
+      creationDate: date('CreationDate'),
+      modificationDate: date('ModDate'),
+    });
+  }
+}
+
 /** True when nothing in `traces` is set: no detail, nothing attached or hidden. */
 export function hasNoTraces(traces) {
   return (

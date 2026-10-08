@@ -4,7 +4,7 @@ import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
 import { dropUnreachable } from './reachability.js';
-import { stripDocumentTraces } from './documentTraces.js';
+import { stripDocumentTraces, copyKeptAttachments } from './documentTraces.js';
 import { rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
 import { strokeInPixels } from '../../model/strokeGeometry.ts';
 
@@ -190,6 +190,7 @@ export async function assemble(sourceDoc, covered, options = {}) {
     }
     await buildImageOnlyPage(newDoc, page.jpeg, page.width, page.height);
   }
+  copyKeptAttachments(sourceDoc, newDoc, options.keepAttachments);
   options.finish?.(newDoc);
   stripDocumentTraces(newDoc, { keepAttachments: options.keepAttachments });
   dropUnreachable(newDoc);
