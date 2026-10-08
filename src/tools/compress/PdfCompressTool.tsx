@@ -18,7 +18,7 @@ import CompareSlider from './CompareSlider.tsx';
 import { comparePreviewWidth } from './compareSize.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { describeFile } from '../../lib/format.js';
+import { describeFile, isolateLtr } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
 import { getPdfLib } from '../../lib/pdfLib.js';
@@ -83,6 +83,8 @@ export default function PdfCompressTool({
   emptyStateMessage,
 }: PdfCompressToolProps = {}) {
   const t: CompressMessages = { ...englishCompressMessages, ...messagesProp };
+  // A size inside a catalogue string is bidi-isolated in right-to-left text.
+  const sizeText = (bytes: number) => isolateLtr(formatBytes(bytes), t.dir);
 
   const COMPRESSION_LEVELS = [
     { id: 'high', name: t.levelHighName, tag: t.levelHighTag, desc: t.levelHighDesc, pros: t.levelHighPros, cons: t.levelHighCons },
@@ -634,16 +636,16 @@ export default function PdfCompressTool({
   const downloadDetail = compressedSize == null
     ? undefined
     : missedTargetSize
-      ? formatMessage(t.downloadDetailClosest, { size: formatBytes(compressedSize) })
+      ? formatMessage(t.downloadDetailClosest, { size: sizeText(compressedSize) })
       : savingsPercent > 0 && !unchanged
-        ? formatMessage(t.downloadDetailSmaller, { size: formatBytes(compressedSize), percent: savingsPercent })
+        ? formatMessage(t.downloadDetailSmaller, { size: sizeText(compressedSize), percent: savingsPercent })
         : formatBytes(compressedSize);
 
   const unchangedNotice = unchanged && file
     ? formatMessage(level === 'target' ? t.alreadySmallTargetNotice : t.alreadySmallNotice, {
-        raster: formatBytes(rasterBytes ?? 0),
-        original: formatBytes(file.size),
-        target: formatBytes(targetKB * 1024),
+        raster: sizeText(rasterBytes ?? 0),
+        original: sizeText(file.size),
+        target: sizeText(targetKB * 1024),
       })
     : '';
 
@@ -776,7 +778,7 @@ export default function PdfCompressTool({
                 overlap. */}
             {imageReason === null && !unchanged && !metTarget && (kind === 'image' || level === 'target') && (
               <p class={styles['compress-warning']}>
-                {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: formatBytes(targetKB * 1024) })}
+                {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: sizeText(targetKB * 1024) })}
               </p>
             )}
 
@@ -785,7 +787,7 @@ export default function PdfCompressTool({
             )}
             {imageReason === 'smaller' && level === 'target' && !metTarget && (
               <p class={styles['compress-warning']}>
-                {formatMessage(t.imagesTargetMissedNotice, { size: formatBytes(compressedSize as number), target: formatBytes(targetKB * 1024) })}
+                {formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })}
               </p>
             )}
 

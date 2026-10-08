@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
-import { englishCompressMessages } from '../../i18n/toolMessages';
+import { englishCompressMessages, hebrewCompressMessages } from '../../i18n/toolMessages';
 import * as compressLib from './compress.js';
 import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
@@ -1579,5 +1579,41 @@ describe('PdfCompressTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(recentActions()).toEqual(['add_files', 'change_setting', 'export']);
+  });
+
+  // The size ("15 Bytes") inside the Hebrew detail line must be bidi-isolated
+  // or it renders reversed; English stays untouched.
+  describe('the download detail line size', () => {
+    const compressAndReadDetail = async (props) => {
+      window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => render(<PdfCompressTool {...props} />, container));
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('test_doc.pdf', 100000)]);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      await act(async () => {
+        container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      return container.querySelector(`.${pdfToolStyles['download-button']}`).textContent;
+    };
+
+    it('wraps the size in LRI/PDI in Hebrew', async () => {
+      const detail = await compressAndReadDetail({ messages: hebrewCompressMessages });
+      expect(detail).toMatch(/\u2066[^\u2066\u2069]*\d[^\u2066\u2069]*\u2069/);
+    });
+
+    it('adds no isolates in English', async () => {
+      const detail = await compressAndReadDetail({});
+      expect(detail).toMatch(/\d+ Bytes/);
+      expect(detail).not.toContain('\u2066');
+      expect(detail).not.toContain('\u2069');
+    });
   });
 });

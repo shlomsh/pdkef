@@ -75,6 +75,8 @@ export function signUpdateDescription(t: SignMessages, kind: ElementUpdateKind, 
 }
 
 export interface MergeMessages {
+  /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */
+  dir: 'ltr' | 'rtl';
   skippedOne: string;
   skippedMany: string;
   addPageNumbers: string;
@@ -214,6 +216,7 @@ export interface MergeMessages {
 }
 
 const englishMergeMessages: MergeMessages = {
+  dir: 'ltr',
   skippedOne: 'Skipped "{name}" - not a PDF.',
   skippedMany: 'Skipped {count} files - not PDFs.',
   addPageNumbers: 'Add page numbers',
@@ -323,6 +326,7 @@ const englishMergeMessages: MergeMessages = {
 // island catalogue LOC-03 will ship. Do not treat these values as approved
 // copy; the merge.yaml fixture they pair with is a draft for the same reason.
 const hebrewMergeMessages: MergeMessages = {
+  dir: 'rtl',
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
   addPageNumbers: 'הוספת מספרי עמודים',
@@ -429,6 +433,8 @@ const hebrewMergeMessages: MergeMessages = {
 };
 
 export interface CompressMessages {
+  /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */
+  dir: 'ltr' | 'rtl';
   skippedOne: string;
   skippedMany: string;
   compressionOptionsLabel: string;
@@ -557,6 +563,7 @@ export interface CompressMessages {
 }
 
 const englishCompressMessages: CompressMessages = {
+  dir: 'ltr',
   skippedOne: 'Skipped "{name}" - not a PDF, JPG or PNG.',
   skippedMany: 'Skipped {count} files - not PDF, JPG or PNG files.',
   compressionOptionsLabel: 'Compression Options',
@@ -689,6 +696,7 @@ const mergeMessages: Partial<Record<DocumentationLocaleId, MergeMessages>> = {
 // ("כיווץ" as the lead term, "PDF" and file-size units left in Latin script,
 // matching every incumbent on the Hebrew SERPs).
 const hebrewCompressMessages: CompressMessages = {
+  dir: 'rtl',
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF, JPG או PNG.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF, JPG או PNG.',
   compressionOptionsLabel: 'אפשרויות כיווץ',
@@ -805,6 +813,244 @@ const hebrewCompressMessages: CompressMessages = {
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {
   en: englishCompressMessages,
   he: hebrewCompressMessages,
+};
+
+/**
+ * The Split island's strings. English is the source of truth and is byte for
+ * byte what PdfSplitTool.tsx rendered before it took a catalogue. `{name}`-style
+ * tokens are filled with formatMessage; the `{unlock}`, `{name}` slots inside a
+ * sentence that also holds a link or a <bdi> are filled by the component.
+ * The output file names (`extracted_<name>.pdf`, `<name>-page-N.pdf`) are real
+ * file names and are never translated.
+ */
+export interface SplitMessages {
+  lang: string;
+  dir: 'ltr' | 'rtl';
+  skippedOne: string;
+  skippedMany: string;
+  loadingPages: string;
+  /** '{unlock}' is the link. */
+  protectedBody: string;
+  splitFailedBody: string;
+  unlockLink: string;
+  pageOne: string;
+  pageOther: string;
+  pdfOne: string;
+  pdfOther: string;
+  /** '{files}' is a pdfOne/pdfOther phrase. */
+  headingSeparate: string;
+  /** '{selected}' of '{pages}' (a page phrase). */
+  pageCountOf: string;
+  rendering: string;
+  undo: string;
+  undoRotated: string;
+  canvasLabel: string;
+  railLabel: string;
+  frameOneDocument: string;
+  frameSeparate: string;
+  pickAtLeastOne: string;
+  frameNoteOne: string;
+  frameNoteMany: string;
+  /** '{name}' is the file's base name. */
+  eachSavesAs: string;
+  hintAllIn: string;
+  hintSomeOut: string;
+  pagesLabel: string;
+  selectAll: string;
+  clear: string;
+  pageSelectorPlaceholder: string;
+  modeGroupLabel: string;
+  modeCombined: string;
+  modeSeparate: string;
+  modeNoteCombined: string;
+  modeNoteSeparate: string;
+  pageAria: string;
+  rotateAria: string;
+  pageCell: string;
+  preparing: string;
+  cannotPrepare: string;
+  saved: string;
+  savedMany: string;
+  downloadAgain: string;
+  downloadOne: string;
+  downloadMany: string;
+  detailCombined: string;
+  detailSeparate: string;
+  shareOne: string;
+  shareMany: string;
+  compress: string;
+  handoffFailed: string;
+  /* Screen-reader announcements. */
+  announceLoaded: string;
+  announceProtected: string;
+  announceLoadFailed: string;
+  announcePrepareFailed: string;
+  announceRotated: string;
+  announceCombined: string;
+  announceSeparate: string;
+  announcePreparingTap: string;
+  announceSavedOne: string;
+  announceSavedMany: string;
+  announceShared: string;
+  announceShareCanceled: string;
+  announceShareError: string;
+  /* parsePageSelector's errors, rebuilt from its code and params. */
+  outOfRange: string;
+  rangeOutOfRange: string;
+  invalidPart: string;
+  noValidPages: string;
+}
+
+const englishSplitMessages: SplitMessages = {
+  lang: 'en',
+  dir: 'ltr',
+  skippedOne: 'Skipped “{name}” - not a PDF.',
+  skippedMany: 'Skipped {count} files - not PDFs.',
+  loadingPages: 'Loading document pages...',
+  protectedBody: 'This PDF is protected. Open it in {unlock} first, then split it here.',
+  splitFailedBody: 'The split failed. A protected PDF opens in {unlock} first. Otherwise the file may be damaged.',
+  unlockLink: 'Unlock',
+  pageOne: '1 page',
+  pageOther: '{count} pages',
+  pdfOne: '1 PDF',
+  pdfOther: '{count} PDFs',
+  headingSeparate: '{files}, one page each',
+  pageCountOf: '{selected} of {pages}',
+  rendering: 'Rendering {done} of {total}',
+  undo: 'Undo',
+  undoRotated: 'Rotated page {number}',
+  canvasLabel: 'Your split PDF',
+  railLabel: 'Split options',
+  frameOneDocument: 'one document',
+  frameSeparate: 'separate documents',
+  pickAtLeastOne: 'Pick at least one page',
+  frameNoteOne: 'page {range}',
+  frameNoteMany: 'pages {range}',
+  eachSavesAs: 'each saves as {name}',
+  hintAllIn: 'Every page is in. Click a page to leave it out.',
+  hintSomeOut: 'Dimmed pages are left out. Click one to bring it back.',
+  pagesLabel: 'Pages',
+  selectAll: 'Select all',
+  clear: 'Clear',
+  pageSelectorPlaceholder: 'e.g. 1-3, 5, 8-',
+  modeGroupLabel: 'What to save',
+  modeCombined: 'One PDF',
+  modeSeparate: 'One PDF per page',
+  modeNoteCombined: 'Selected pages become a single PDF.',
+  modeNoteSeparate: 'Each selected page becomes its own PDF.',
+  pageAria: 'Page {number}',
+  rotateAria: 'Rotate page {number}',
+  pageCell: 'Page {number}',
+  preparing: 'Preparing {pages}…',
+  cannotPrepare: 'Could not prepare this PDF',
+  saved: 'Saved',
+  savedMany: 'Saved {files}',
+  downloadAgain: 'download again',
+  downloadOne: 'Download 1 PDF',
+  downloadMany: 'Download {files}',
+  detailCombined: '{pages} · {size}',
+  detailSeparate: '1 page each · {size}',
+  shareOne: 'Share PDF',
+  shareMany: 'Share {count} PDFs',
+  compress: 'Compress',
+  handoffFailed: 'Could not hand the file to Compress. Download it and open Compress instead.',
+  announceLoaded: 'Loaded PDF "{name}" with {count} pages.',
+  announceProtected: 'This PDF is protected. Open it in Unlock first.',
+  announceLoadFailed: 'Failed to load PDF file.',
+  announcePrepareFailed: 'Could not prepare the split PDF.',
+  announceRotated: 'Page {number} rotated.',
+  announceCombined: 'Selected pages will become a single PDF.',
+  announceSeparate: 'Each selected page will become its own PDF.',
+  announcePreparingTap: 'Preparing. The download starts as soon as it is ready.',
+  announceSavedOne: 'PDF saved.',
+  announceSavedMany: '{count} PDFs saved.',
+  announceShared: 'Split PDF files shared successfully.',
+  announceShareCanceled: 'Sharing canceled. Your PDF files are still ready.',
+  announceShareError: 'Could not open the share sheet. Please try again.',
+  outOfRange: 'Page number {number} out of range (1-{max})',
+  rangeOutOfRange: 'Range {start}-{end} contains out of range page numbers (1-{max})',
+  invalidPart: 'Invalid page range or number: "{part}"',
+  noValidPages: 'No valid pages selected',
+};
+
+// An AI draft, not reviewed copy: pairs with he/split.yaml's own draft status
+// and awaits Shlomi's read. Terms follow Merge's and Compress's Hebrew
+// catalogues for shared ideas (הורדה, שיתוף, ביטול, סיבוב עמוד, כיווץ, הסרת נעילה).
+const hebrewSplitMessages: SplitMessages = {
+  lang: 'he',
+  dir: 'rtl',
+  skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
+  skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF.',
+  loadingPages: 'טוענים את עמודי המסמך...',
+  protectedBody: 'ה-PDF הזה מוגן. קודם פותחים אותו ב{unlock}, ואז מפצלים אותו כאן.',
+  splitFailedBody: 'הפיצול נכשל. קובץ PDF מוגן נפתח קודם ב{unlock}. אם הוא לא מוגן, ייתכן שהקובץ פגום.',
+  unlockLink: 'הסרת נעילה',
+  pageOne: 'עמוד אחד',
+  pageOther: '{count} עמודים',
+  pdfOne: 'קובץ PDF אחד',
+  pdfOther: '{count} קבצי PDF',
+  headingSeparate: '{files}, עמוד אחד בכל קובץ',
+  pageCountOf: '{selected} מתוך {pages}',
+  rendering: 'מציגים {done} מתוך {total}',
+  undo: 'ביטול',
+  undoRotated: 'סובב עמוד {number}',
+  canvasLabel: 'ה-PDF המפוצל שלכם',
+  railLabel: 'אפשרויות פיצול',
+  frameOneDocument: 'מסמך אחד',
+  frameSeparate: 'מסמכים נפרדים',
+  pickAtLeastOne: 'בחרו לפחות עמוד אחד',
+  frameNoteOne: 'עמוד {range}',
+  frameNoteMany: 'עמודים {range}',
+  eachSavesAs: 'כל עמוד נשמר בשם {name}',
+  hintAllIn: 'כל העמודים כלולים. לחצו על עמוד כדי להשאיר אותו בחוץ.',
+  hintSomeOut: 'עמודים עמומים נשארים בחוץ. לחצו על עמוד כדי להחזיר אותו.',
+  pagesLabel: 'עמודים',
+  selectAll: 'בחירת הכול',
+  clear: 'ניקוי',
+  pageSelectorPlaceholder: 'לדוגמה 1-3, 5, 8-',
+  modeGroupLabel: 'מה לשמור',
+  modeCombined: 'PDF אחד',
+  modeSeparate: 'PDF לכל עמוד',
+  modeNoteCombined: 'העמודים שבחרתם יהפכו לקובץ PDF אחד.',
+  modeNoteSeparate: 'כל עמוד שבחרתם יהפוך לקובץ PDF משלו.',
+  pageAria: 'עמוד {number}',
+  rotateAria: 'סיבוב עמוד {number}',
+  pageCell: 'עמוד {number}',
+  preparing: 'מכינים {pages}…',
+  cannotPrepare: 'לא הצלחנו להכין את ה-PDF הזה',
+  saved: 'נשמר',
+  savedMany: 'נשמרו {files}',
+  downloadAgain: 'הורדה שוב',
+  downloadOne: 'הורדת PDF אחד',
+  downloadMany: 'הורדת {files}',
+  detailCombined: '{pages} · {size}',
+  detailSeparate: 'עמוד אחד בכל קובץ · {size}',
+  shareOne: 'שיתוף PDF',
+  shareMany: 'שיתוף {count} קבצי PDF',
+  compress: 'כיווץ',
+  handoffFailed: 'לא הצלחנו להעביר את הקובץ לכיווץ. הורידו אותו ופתחו את הכיווץ בעצמכם.',
+  announceLoaded: 'הקובץ "{name}" נטען, {count} עמודים.',
+  announceProtected: 'ה-PDF הזה מוגן. קודם פותחים אותו בהסרת נעילה.',
+  announceLoadFailed: 'טעינת קובץ ה-PDF נכשלה.',
+  announcePrepareFailed: 'לא הצלחנו להכין את ה-PDF המפוצל.',
+  announceRotated: 'עמוד {number} סובב.',
+  announceCombined: 'העמודים שבחרתם יהפכו לקובץ PDF אחד.',
+  announceSeparate: 'כל עמוד שבחרתם יהפוך לקובץ PDF משלו.',
+  announcePreparingTap: 'מכינים. ההורדה תתחיל ברגע שהקובץ יהיה מוכן.',
+  announceSavedOne: 'ה-PDF נשמר.',
+  announceSavedMany: 'נשמרו {count} קבצי PDF.',
+  announceShared: 'קבצי ה-PDF המפוצלים שותפו.',
+  announceShareCanceled: 'השיתוף בוטל. קבצי ה-PDF עדיין מוכנים.',
+  announceShareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  outOfRange: 'עמוד {number} מחוץ לטווח (1-{max})',
+  rangeOutOfRange: 'הטווח {start}-{end} כולל עמודים מחוץ לטווח (1-{max})',
+  invalidPart: 'טווח או מספר עמוד לא תקין: "{part}"',
+  noValidPages: 'לא נבחרו עמודים תקינים',
+};
+
+const splitMessages: Partial<Record<DocumentationLocaleId, SplitMessages>> = {
+  en: englishSplitMessages,
+  he: hebrewSplitMessages,
 };
 
 /**
@@ -1336,6 +1582,7 @@ const signMessages: Partial<Record<DocumentationLocaleId, SignMessages>> = {
 const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, unknown>>> = {
   merge: mergeMessages,
   compress: compressMessages,
+  split: splitMessages,
   sign: signMessages,
 };
 
@@ -1663,6 +1910,8 @@ export {
   hebrewMergeMessages,
   englishCompressMessages,
   hebrewCompressMessages,
+  englishSplitMessages,
+  hebrewSplitMessages,
   englishSignMessages,
   hebrewSignMessages,
   englishShellMessages,

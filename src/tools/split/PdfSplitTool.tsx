@@ -14,12 +14,25 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { describeFile, formatFileSize } from '../../lib/format.js';
+import { describeFile, formatFileSize, isolateLtr } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
+import {
+  englishShellMessages,
+  englishSplitMessages,
+  formatMessage,
+  type ShellMessages,
+  type SplitMessages,
+} from '../../i18n/toolMessages';
+
+/** Fills a sentence that holds one non-text node (a link, a <bdi>) at `{slot}`. */
+function withSlot(template: string, slot: string, node: any) {
+  const [before, after] = template.split(slot);
+  return <>{before}{node}{after}</>;
+}
 
 let pdfjsLib: any;
 async function getPdfjs() {
@@ -63,13 +76,21 @@ const PER_CELL_CAPTION_LIMIT = 24;
 const PREPARE_DELAY_MS = 350;
 
 export interface PdfSplitToolProps {
+  /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
+   * edition; every key not overridden keeps the English default. */
+  messages?: Partial<SplitMessages>;
+  shellMessages?: Partial<ShellMessages>;
   /** Tests only: jsdom cannot navigate. */
   navigate?: (href: string) => void;
 }
 
 export default function PdfSplitTool({
+  messages: messagesProp,
+  shellMessages,
   navigate = (href) => { window.location.href = href; },
 }: PdfSplitToolProps = {}) {
+  const t: SplitMessages = { ...englishSplitMessages, ...messagesProp };
+  const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pages, setPages] = useState<SplitPage[]>([]);
@@ -184,7 +205,7 @@ export default function PdfSplitTool({
         reportError('pdf_tool_run', err, 'prepare_split');
         console.error(err);
         setStatus('error');
-        setAnnouncement('Could not prepare the split PDF.');
+        setAnnouncement(t.announcePrepareFailed);
       }
     }, PREPARE_DELAY_MS);
     return () => clearTimeout(timer);
@@ -236,7 +257,7 @@ export default function PdfSplitTool({
       if (protection === 'needs-password' || protection === 'owner-restricted') {
         setIsProtected(true);
         setStatus('error');
-        setAnnouncement('This PDF is protected. Open it in Unlock first.');
+        setAnnouncement(t.announceProtected);
         run.settle();
         return;
       }
@@ -256,7 +277,7 @@ export default function PdfSplitTool({
       setPages(initialPages);
       setPageSelector(pageNumbersToRangeString(initialPages.map((p) => p.pageNumber)));
       setStatus('ready');
-      setAnnouncement(`Loaded PDF "${pdfFile.name}" with ${pageCount} pages.`);
+      setAnnouncement(formatMessage(t.announceLoaded, { name: pdfFile.name, count: pageCount }));
 
       for (let i = 1; i <= pageCount; i += 1) {
         // Checked per page, not once before the loop: setPages below matches
@@ -295,7 +316,7 @@ export default function PdfSplitTool({
       if (!run.isCurrent()) return;
       reportError('pdf_render', err, 'load_document');
       setStatus('error');
-      setAnnouncement('Failed to load PDF file.');
+      setAnnouncement(t.announceLoadFailed);
     } finally {
       // In `finally` so an abandoned load releases pdf.js too, not only one
       // that walked every page - that was the leak behind the old
@@ -343,6 +364,13 @@ export default function PdfSplitTool({
   // instead resolve their hand-off ahead of a draft restore.
   useHandoffIntake('split', (f) => handleFilesAdded([f]));
 
+  // parsePageSelector's errors carry a code and params so this catalogue can
+  // phrase them; anything else keeps its own message.
+  const selectorErrorText = (err: any): string => {
+    const template = err?.code ? (t as any)[err.code] : undefined;
+    return template ? formatMessage(template, err.params ?? {}) : err.message;
+  };
+
   const handlePageSelectorChange = (value: string) => {
     setPageSelector(value);
     invalidate();
@@ -356,7 +384,7 @@ export default function PdfSplitTool({
       // expected: the person's own page range did not parse; its message is shown under the field.
       // While a selector is being typed ("1-" or "1,") hold the error.
       const isPartial = /[-,]\s*$/.test(value);
-      setPageSelectorError(isPartial ? '' : err.message);
+      setPageSelectorError(isPartial ? '' : selectorErrorText(err));
     }
     recordAction('select_pages');
   };
@@ -384,9 +412,9 @@ export default function PdfSplitTool({
     setPages((prev) =>
       prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 90) % 360 } : p)),
     );
-    setAnnouncement(`Page ${pageNumber} rotated.`);
+    setAnnouncement(formatMessage(t.announceRotated, { number: pageNumber }));
     recordAction('rotate');
-    registerUndo(`Rotated page ${pageNumber}`, () => {
+    registerUndo(formatMessage(t.undoRotated, { number: pageNumber }), () => {
       invalidate();
       setPages((prev) =>
         prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 270) % 360 } : p)),
@@ -418,9 +446,7 @@ export default function PdfSplitTool({
     invalidate();
     setMode(next);
     recordAction('change_setting');
-    setAnnouncement(next === 'combined'
-      ? 'Selected pages will become a single PDF.'
-      : 'Each selected page will become its own PDF.');
+    setAnnouncement(next === 'combined' ? t.announceCombined : t.announceSeparate);
   };
 
   const onSegmentKeyDown = (e: KeyboardEvent) => {
@@ -445,7 +471,7 @@ export default function PdfSplitTool({
     if (status === 'preparing') {
       event.preventDefault();
       pendingTap.current = true;
-      setAnnouncement('Preparing. The download starts as soon as it is ready.');
+      setAnnouncement(t.announcePreparingTap);
       return;
     }
     if (status !== 'ready' || outputs.length === 0) {
@@ -458,15 +484,15 @@ export default function PdfSplitTool({
       downloadAll(outputs);
     }
     setSaved(true);
-    setAnnouncement(mode === 'combined' ? 'PDF saved.' : `${outputs.length} PDFs saved.`);
+    setAnnouncement(mode === 'combined' ? t.announceSavedOne : formatMessage(t.announceSavedMany, { count: outputs.length }));
   };
 
   const handleShare = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setAnnouncement('Split PDF files shared successfully.');
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF files are still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+    if (result.status === 'shared') setAnnouncement(t.announceShared);
+    else if (result.status === 'canceled') setAnnouncement(t.announceShareCanceled);
+    else if (result.status === 'error') setAnnouncement(t.announceShareError);
   };
 
   // Cross-tool hand-off (guideline §13): park the prepared bytes for Compress
@@ -511,8 +537,12 @@ export default function PdfSplitTool({
   const combinedOutput = mode === 'combined' ? outputs[0] : undefined;
   const primaryIsLink = !!combinedOutput && (primaryState === 'ready' || primaryState === 'saved');
 
-  const pageWord = (n: number) => `${n} page${n === 1 ? '' : 's'}`;
-  const fileWord = (n: number) => `${n} PDF${n === 1 ? '' : 's'}`;
+  const pageWord = (n: number) => (n === 1 ? t.pageOne : formatMessage(t.pageOther, { count: n }));
+  const fileWord = (n: number) => (n === 1 ? t.pdfOne : formatMessage(t.pdfOther, { count: n }));
+  // A page range ("1-3, 5") inside right-to-left text keeps its digits in
+  // reading order; left-to-right pages need no wrapper.
+  // A file size ("1.0 MB") is isolated the same way (LRI ... PDI) inside a catalogue string.
+  const rangeNode = (range: string) => (t.dir === 'rtl' ? <bdi dir="ltr">{range}</bdi> : range);
 
   const canvasHeading = mode === 'combined'
     ? (
@@ -521,8 +551,8 @@ export default function PdfSplitTool({
         <span class={styles['output-ext']}>.pdf</span>
       </>
     )
-    : `${fileWord(selectedCount)}, one page each`;
-  const canvasCount = `${selectedCount} of ${pageWord(numPages)}`;
+    : formatMessage(t.headingSeparate, { files: fileWord(selectedCount) });
+  const canvasCount = formatMessage(t.pageCountOf, { selected: selectedCount, pages: pageWord(numPages) });
 
   const renderCell = (p: SplitPage) => (
     <div
@@ -531,7 +561,7 @@ export default function PdfSplitTool({
       onClick={() => togglePageSelection(p.pageNumber)}
       role="checkbox"
       aria-checked={p.selected}
-      aria-label={`Page ${p.pageNumber}`}
+      aria-label={formatMessage(t.pageAria, { number: p.pageNumber })}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === ' ' || e.key === 'Enter') {
@@ -555,7 +585,7 @@ export default function PdfSplitTool({
       <button
         type="button"
         class={styles['rotate-btn']}
-        aria-label={`Rotate page ${p.pageNumber}`}
+        aria-label={formatMessage(t.rotateAria, { number: p.pageNumber })}
         onClick={(e) => { e.stopPropagation(); rotatePage(p.pageNumber); }}
       >
         {/* The same rotate-clockwise arrow Edit Pages uses (Shlomi, 2026-09-14:
@@ -566,11 +596,11 @@ export default function PdfSplitTool({
         </svg>
       </button>
       {perCellCaptions && p.selected ? (
-        <span class={styles['cell-caption']} title={`${baseName}-page-${p.pageNumber}.pdf`}>
+        <span class={styles['cell-caption']} dir="ltr" title={`${baseName}-page-${p.pageNumber}.pdf`}>
           {'…-page-'}{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
         </span>
       ) : (
-        <span class={styles['cell-number']}>Page {p.pageNumber}</span>
+        <span class={styles['cell-number']}>{formatMessage(t.pageCell, { number: p.pageNumber })}</span>
       )}
     </div>
   );
@@ -584,13 +614,14 @@ export default function PdfSplitTool({
       multiple={false}
       file={file}
       fileLabel={file?.name}
-      fileMeta={describeFile(file, numPages)}
+      fileMeta={describeFile(file, numPages, undefined, sm)}
+      shellMessages={shellMessages}
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? `Skipped “${rejectedFiles[0]}” - not a PDF.`
-            : `Skipped ${rejectedFiles.length} files - not PDFs.`}
+            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}
 
@@ -598,11 +629,11 @@ export default function PdfSplitTool({
         <div class="tool-workspace">
           {status === 'loading' ? (
             <div class={pdfToolStyles['status-block']}>
-              <p class={pdfToolStyles['status-text-muted']}>Loading document pages...</p>
+              <p class={pdfToolStyles['status-text-muted']}>{t.loadingPages}</p>
             </div>
           ) : isProtected ? (
             <ErrorMessage>
-              This PDF is protected. Open it in <a href="/unlock/">Unlock</a> first, then split it here.
+              {withSlot(t.protectedBody, '{unlock}', <a href="/unlock/">{t.unlockLink}</a>)}
             </ErrorMessage>
           ) : (
             <div class={styles.stage}>
@@ -613,26 +644,26 @@ export default function PdfSplitTool({
                 <h3 id="split-canvas-title" class={styles['canvas-title']}>{canvasHeading}</h3>
                 <span class={styles['canvas-count']}>{canvasCount}</span>
                 {renderedCount < numPages && (
-                  <span class={styles['canvas-status']} role="status">Rendering {renderedCount} of {numPages}</span>
+                  <span class={styles['canvas-status']} role="status">{formatMessage(t.rendering, { done: renderedCount, total: numPages })}</span>
                 )}
                 {undoAction && (
                   <span class={styles['undo-chip']} role="status">
                     {undoAction.message}
-                    <button type="button" onClick={runUndo}>Undo</button>
+                    <button type="button" onClick={runUndo}>{t.undo}</button>
                   </span>
                 )}
               </div>
 
               {/* The canvas: the output, as the person will get it. */}
-              <section class={styles.canvas} aria-label="Your split PDF">
+              <section class={styles.canvas} aria-label={t.canvasLabel}>
                 {mode === 'combined' ? (
                   <div class={styles['doc-frame']} data-empty={selectedCount === 0 ? 'true' : undefined}>
                     <div class={styles['frame-caption']}>
-                      <span>one document</span>
+                      <span>{t.frameOneDocument}</span>
                       <span class={styles['frame-caption-note']}>
                         {selectedCount === 0
-                          ? 'Pick at least one page'
-                          : `page${selectedCount === 1 ? '' : 's'} ${pageNumbersToRangeString(selectedPages)}`}
+                          ? t.pickAtLeastOne
+                          : withSlot(selectedCount === 1 ? t.frameNoteOne : t.frameNoteMany, '{range}', rangeNode(pageNumbersToRangeString(selectedPages)))}
                       </span>
                     </div>
                     <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>
@@ -640,11 +671,11 @@ export default function PdfSplitTool({
                 ) : (
                   <div class={styles['doc-frames']}>
                     <div class={styles['frame-caption']}>
-                      <span>separate documents</span>
+                      <span>{t.frameSeparate}</span>
                       <span class={styles['frame-caption-note']}>
                         {selectedCount === 0
-                          ? 'Pick at least one page'
-                          : <>each saves as <bdi>{baseName}</bdi>-page-N.pdf</>}
+                          ? t.pickAtLeastOne
+                          : withSlot(t.eachSavesAs, '{name}', <bdi dir="ltr">{baseName}-page-N.pdf</bdi>)}
                       </span>
                     </div>
                     <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>
@@ -652,21 +683,19 @@ export default function PdfSplitTool({
                 )}
 
                 <p class={styles['canvas-hint']}>
-                  {selectedCount === numPages
-                    ? 'Every page is in. Click a page to leave it out.'
-                    : 'Dimmed pages are left out. Click one to bring it back.'}
+                  {selectedCount === numPages ? t.hintAllIn : t.hintSomeOut}
                 </p>
 
               </section>
 
               {/* The rail: commands on the selection, the setting, the primary control. */}
-              <aside class={styles.rail} aria-label="Split options">
+              <aside class={styles.rail} aria-label={t.railLabel}>
                 <div class={styles.commands}>
                   <div class={pdfToolStyles['page-selector-field']}>
                     <div class={styles['command-row']}>
-                      <label for="page-selector-input" class={pdfToolStyles['page-selector-label']}>Pages</label>
-                      <button type="button" class={styles.command} onClick={selectAll}>Select all</button>
-                      <button type="button" class={styles.command} onClick={selectNone}>Clear</button>
+                      <label for="page-selector-input" class={pdfToolStyles['page-selector-label']}>{t.pagesLabel}</label>
+                      <button type="button" class={styles.command} onClick={selectAll}>{t.selectAll}</button>
+                      <button type="button" class={styles.command} onClick={selectNone}>{t.clear}</button>
                     </div>
                     <input
                       id="page-selector-input"
@@ -674,7 +703,8 @@ export default function PdfSplitTool({
                       class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
                       value={pageSelector}
                       onInput={(e) => handlePageSelectorChange((e.target as HTMLInputElement).value)}
-                      placeholder="e.g. 1-3, 5, 8-"
+                      dir="ltr"
+                      placeholder={t.pageSelectorPlaceholder}
                       aria-describedby={pageSelectorError ? 'page-selector-hint' : undefined}
                       aria-invalid={!!pageSelectorError}
                     />
@@ -689,7 +719,7 @@ export default function PdfSplitTool({
                     <div
                       class={styles.segmented}
                       role="radiogroup"
-                      aria-label="What to save"
+                      aria-label={t.modeGroupLabel}
                       onKeyDown={onSegmentKeyDown}
                     >
                       {(['combined', 'separate'] as Mode[]).map((m, index) => (
@@ -703,14 +733,12 @@ export default function PdfSplitTool({
                           class={`${styles.segment}${mode === m ? ` ${styles['is-active']}` : ''}`}
                           onClick={() => chooseMode(m)}
                         >
-                          {m === 'combined' ? 'One PDF' : 'One PDF per page'}
+                          {m === 'combined' ? t.modeCombined : t.modeSeparate}
                         </button>
                       ))}
                     </div>
                     <p class={styles['setting-note']}>
-                      {mode === 'combined'
-                        ? 'Selected pages become a single PDF.'
-                        : 'Each selected page becomes its own PDF.'}
+                      {mode === 'combined' ? t.modeNoteCombined : t.modeNoteSeparate}
                     </p>
                   </div>
 
@@ -733,11 +761,11 @@ export default function PdfSplitTool({
                     }}
                   >
                     {primaryState === 'empty' ? (
-                      <span class={styles['primary-label']}>Pick at least one page</span>
+                      <span class={styles['primary-label']}>{t.pickAtLeastOne}</span>
                     ) : primaryState === 'preparing' ? (
-                      <ProgressRing progress={progress} label={`Preparing ${pageWord(selectedCount)}…`} />
+                      <ProgressRing progress={progress} label={formatMessage(t.preparing, { pages: pageWord(selectedCount) })} />
                     ) : primaryState === 'error' ? (
-                      <span class={styles['primary-label']}>Could not prepare this PDF</span>
+                      <span class={styles['primary-label']}>{t.cannotPrepare}</span>
                     ) : primaryState === 'saved' ? (
                       <>
                         <svg class={styles['primary-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -745,19 +773,19 @@ export default function PdfSplitTool({
                           <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                         </svg>
                         <span class={styles['primary-label']}>
-                          {mode === 'combined' ? 'Saved' : `Saved ${fileWord(outputs.length)}`}
+                          {mode === 'combined' ? t.saved : formatMessage(t.savedMany, { files: fileWord(outputs.length) })}
                         </span>
-                        <span class={styles['primary-detail']}>download again</span>
+                        <span class={styles['primary-detail']}>{t.downloadAgain}</span>
                       </>
                     ) : (
                       <>
                         <span class={styles['primary-label']}>
-                          {mode === 'combined' ? 'Download 1 PDF' : `Download ${fileWord(outputs.length)}`}
+                          {mode === 'combined' ? t.downloadOne : formatMessage(t.downloadMany, { files: fileWord(outputs.length) })}
                         </span>
                         <span class={styles['primary-detail']}>
                           {mode === 'combined'
-                            ? `${pageWord(selectedCount)} · ${formatFileSize(totalBytes)}`
-                            : `1 page each · ${formatFileSize(totalBytes)}`}
+                            ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: isolateLtr(formatFileSize(totalBytes), t.dir) })
+                            : formatMessage(t.detailSeparate, { size: isolateLtr(formatFileSize(totalBytes), t.dir) })}
                         </span>
                       </>
                     )}
@@ -777,7 +805,7 @@ export default function PdfSplitTool({
                       <PdfShareButton
                         visible={shareReady}
                         onShare={handleShare}
-                        label={outputs.length === 1 ? 'Share PDF' : `Share ${outputs.length} PDFs`}
+                        label={outputs.length === 1 ? t.shareOne : formatMessage(t.shareMany, { count: outputs.length })}
                         className={styles['next-step']}
                       />
                       {mode === 'combined' && (
@@ -788,7 +816,7 @@ export default function PdfSplitTool({
                           onClick={() => { void handoffToCompress(); }}
                         >
                           <Shrink size={16} aria-hidden="true" />
-                          Compress
+                          {t.compress}
                         </button>
                       )}
                     </div>
@@ -796,14 +824,14 @@ export default function PdfSplitTool({
 
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-                      Could not hand the file to Compress. Download it and open Compress instead.
+                      {t.handoffFailed}
                     </p>
                   )}
                 </div>
 
                 {status === 'error' && (
                   <ErrorMessage>
-                    The split failed. A protected PDF opens in <a href="/unlock/">Unlock</a> first. Otherwise the file may be damaged.
+                    {withSlot(t.splitFailedBody, '{unlock}', <a href="/unlock/">{t.unlockLink}</a>)}
                   </ErrorMessage>
                 )}
               </aside>

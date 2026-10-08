@@ -14,6 +14,7 @@ import docStyles from './components/MergeDocument.module.css';
 import downloadStyles from './components/DownloadElement.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { hebrewMergeMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
@@ -1121,6 +1122,29 @@ describe('PdfMergeTool UI flow', () => {
         await flush(10);
       });
       expect(nameEl().textContent).toBe('Restored name');
+    });
+  });
+
+  // The size ("1.0 KB") inside the Hebrew detail line must be bidi-isolated or
+  // it renders reversed; English stays untouched.
+  describe('the download detail line size', () => {
+    const mergedDetail = async (props) => {
+      mount(props);
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+      return downloadBox().textContent;
+    };
+
+    it('wraps the size in LRI/PDI in Hebrew', async () => {
+      const detail = await mergedDetail({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
+      expect(detail).toMatch(/\u2066[^\u2066\u2069]*\d[^\u2066\u2069]*\u2069/);
+    });
+
+    it('adds no isolates in English', async () => {
+      const detail = await mergedDetail({});
+      expect(detail).toMatch(/\d (B|KB)/);
+      expect(detail).not.toContain('\u2066');
+      expect(detail).not.toContain('\u2069');
     });
   });
 });
