@@ -123,6 +123,29 @@ describe('collectCheckboxGlyphs in a symbol font (FORM-20)', () => {
     expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 101.33, y: 201.45, width: 5.3, height: 5.3 }]);
   });
 
+  it('bounds a Wingdings box shown through a two-byte font by its square when ToUnicode names the box as U+2751 (FORM-37)', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm [<0089>] TJ ET', (document) => {
+      const toUnicode = document.context.register(document.context.flateStream(
+        'begincmap 1 beginbfchar <0089> <2751> endbfchar endcmap',
+      ));
+      const descriptor = document.context.obj({ Type: 'FontDescriptor', Ascent: 800, Descent: -200 });
+      const descendant = document.context.obj({
+        Type: 'Font', Subtype: 'CIDFontType2', DW: 700, FontDescriptor: document.context.register(descriptor),
+      });
+      return {
+        S: document.context.obj({
+          Type: 'Font',
+          Subtype: 'Type0',
+          BaseFont: 'BCDEEE+Wingdings-Regular',
+          Encoding: 'Identity-H',
+          DescendantFonts: [document.context.register(descendant)],
+          ToUnicode: toUnicode,
+        }),
+      };
+    });
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 101.33, y: 201.45, width: 5.3, height: 5.3 }]);
+  });
+
   it('reads a Wingdings bullet as nothing', async () => {
     const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (l) Tj ET', symbolFont('Wingdings'));
     expect(collectCheckboxGlyphs(page)).toEqual([]);

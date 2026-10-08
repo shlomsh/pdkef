@@ -502,14 +502,22 @@ function decodeCodes(bytes, font) {
   return codes;
 }
 
+// The Wingdings code of each box that some producers map to its real Unicode character instead of
+// the private-use range (FORM-37: BL/1500 maps its glyph for 0x71 to U+2751, BL/211 to U+F071).
+const WINGDINGS_BOX_UNICODE_CODES = new Map([[0x274f, 0x6f], [0x2751, 0x71]]);
+
 /**
  * The character a symbol font means by `code`: a single-byte code is itself, and a two-byte font
  * reports it through its ToUnicode map in the private-use range U+F020-F0FF (Word's way of
- * embedding Wingdings), where the low byte is the Wingdings code.
+ * embedding Wingdings), where the low byte is the Wingdings code, or as the box's own Unicode
+ * character.
  */
 function symbolCode(font, code) {
   const unicode = font.toUnicode.get(code)?.codePointAt(0);
   if (unicode !== undefined && unicode >= 0xf020 && unicode <= 0xf0ff) return unicode - 0xf000;
+  if (font.symbolFamily === 'wingdings' && WINGDINGS_BOX_UNICODE_CODES.has(unicode)) {
+    return WINGDINGS_BOX_UNICODE_CODES.get(unicode);
+  }
   return font.twoByte ? undefined : code;
 }
 
