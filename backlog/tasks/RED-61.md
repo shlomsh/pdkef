@@ -1,10 +1,9 @@
 ---
 id: "RED-61"
 title: "Redact toolbar at 390: six per row clips Blackout, Whiteout and Download"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "now"
 depends_on: []
 ---
 
@@ -35,3 +34,11 @@ of `widest label + padding + border + 2px air` plus five gaps fit. Sign (twelve)
 an e2e that, after an export, walks every toolbar button at 360, 375, 390, 414 and 430 and asserts the
 label's `Range` extent sits inside the button's border box on both sides (per `.claude/rules/tests.md`:
 a property, not a pixel count), red at 390 first.
+
+## 2026-10-08 fixed
+
+Guard `redact-toolbar-labels-fit.spec.js` was red at 390 (Blackout, Whiteout, Download), 414 and 430
+(Download) before the fix. `SignToolbar.module.css` steps the eleven-count toolbar from six per row to
+four under a 395px container query (6 × 62 + 5 × 4.8 = 396.0, one pixel below). After: 4+4+3 at every
+width from 360 to 430, narrowest button 62.2px at 360. Sign's 20 toolbar guards unchanged. Measured on
+macOS; CI's Linux run is the second check (tests.md).

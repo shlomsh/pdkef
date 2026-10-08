@@ -453,6 +453,19 @@
     .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
+  /* 396.0px is where six per row stops giving the widest label room, for the
+     eleven-control toolbar (Redact after an export; Sign's twelve are not
+     touched). Redact's "Download" is 52.2px of text at 0.66rem; add the 4px of
+     padding, the 2px of border and 4px of air and a control needs about 62px,
+     so six need 6 * 62 + 5 * 4.8 = 396.0. Below it eleven steps from six per
+     row to four (4+4+3, a count that balances). Measured at 390px, 414px and
+     430px, six per row gave 44.9px, 48.9px and 51.5px, and "Download" overhung
+     its button at all three (RED-61). Fires one pixel below, same convention
+     as the 531px rule above. */
+  @container toolbar (max-width: 395px) {
+    .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 4; }
+  }
+
   /* 580.8px is where twelve controls stop fitting one line at the touch floor
      (12 * 44 + 11 * 4.8), one tier up from eleven's 532.0px. Sign is the
      twelve, with Share and without it alike (see the 11-of rule's comment for

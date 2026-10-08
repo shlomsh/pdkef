@@ -75,8 +75,10 @@
   text-align: center;
 }
 
-/* The phone's five-per-row grid gives each control ~52px: "Download" and
-   "Whiteout" need the smaller size to sit inside it with air on both sides. */
+/* The phone's grid is four per row once a redacted export makes eleven
+   controls (SignToolbar.module.css, RED-61), about 62px each or more:
+   "Download" and "Whiteout" need the smaller size to sit inside it with air
+   on both sides. */
 @media (max-width: 480px) {
   .bar.bar.bar button { font-size: 0.66rem; padding-inline: 0.125rem; }
 }
