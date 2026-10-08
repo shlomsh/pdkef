@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { labelFieldCandidates, unmirrorParens } from './fieldLabels.js';
+import { cleanFieldLabel, labelFieldCandidates, unmirrorParens } from './fieldLabels.js';
 
 /** A page-percent text run, matching pdf.js's `dir` on `TextContent.items[]`. */
 function text(str, { left, top, width = str.length * 1.4, height = 2.2, dir = 'rtl' } = {}) {
@@ -159,6 +159,139 @@ describe('labelFieldCandidates', () => {
     it('un-mirrors a lone RTL item\'s own parens', () => {
       expect(unmirrorParens(')עובד יומי(', 'rtl')).toBe('(עובד יומי)');
       expect(unmirrorParens('(4)', 'ltr')).toBe('(4)'); // LTR items are never touched
+    });
+  });
+
+  describe('items that abut', () => {
+    it('glues two RTL items with no gap between them into one word', () => {
+      const cand = candidate({ left: 30, width: 16 });
+      const items = [
+        text('נ', { left: 50, top: 19.8, width: 1 }),
+        text('קבה', { left: 46.99, top: 19.8, width: 3 }),
+      ];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('נקבה');
+    });
+
+    it('keeps a real word gap as a space', () => {
+      const cand = candidate({ left: 30, width: 16 });
+      const items = [
+        text('נקבה', { left: 50, top: 19.8, width: 3 }),
+        text('אחרת', { left: 46, top: 19.8, width: 3 }),
+      ];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('נקבה אחרת');
+    });
+  });
+
+  describe('abutting LTR items', () => {
+    const cand = candidate({ left: 80, width: 5 });
+    const ltr = (str, left, width) => text(str, { left, top: 19.8, width, dir: 'ltr' });
+
+    it('glues two LTR items with no gap', () => {
+      const items = [ltr('AB', 70, 2), ltr('CD', 72.01, 2)];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('ABCD');
+    });
+
+    it('keeps a word gap between LTR items as a space', () => {
+      const items = [ltr('AB', 70, 2), ltr('CD', 72.6, 2)];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('AB CD');
+    });
+  });
+
+  describe('cleanFieldLabel', () => {
+    it('strips blank and dash filler at the edges', () => {
+      expect(cleanFieldLabel('סיום עבודה עונתית מתאריך _______ ____')).toBe('סיום עבודה עונתית מתאריך');
+      expect(cleanFieldLabel('גרוש/ה –')).toBe('גרוש/ה');
+      expect(cleanFieldLabel('סיבה אחרת. נא לפרט:____ ___')).toBe('סיבה אחרת. נא לפרט');
+    });
+
+    it('keeps printed punctuation at the edges', () => {
+      expect(cleanFieldLabel('Apt.')).toBe('Apt.');
+      expect(cleanFieldLabel('U.S.')).toBe('U.S.');
+      expect(cleanFieldLabel('Are you ok?')).toBe('Are you ok?');
+      expect(cleanFieldLabel('-5')).toBe('-5');
+      expect(cleanFieldLabel('ת.ז.')).toBe('ת.ז.');
+      expect(cleanFieldLabel('מ-')).toBe('מ-');
+    });
+
+    it('strips a dash only when whitespace separates it from the text', () => {
+      expect(cleanFieldLabel('חופשה ללא תשלום מ -')).toBe('חופשה ללא תשלום מ');
+      expect(cleanFieldLabel('סיבה אחרת. נא לפרט:___')).toBe('סיבה אחרת. נא לפרט');
+      expect(cleanFieldLabel('-')).toBe('');
+    });
+
+    it('strips a dotted leader but keeps a single period', () => {
+      expect(cleanFieldLabel('ร้อยละ............')).toBe('ร้อยละ');
+      expect(cleanFieldLabel('Apt.')).toBe('Apt.');
+    });
+
+    it('returns an empty string for filler alone', () => {
+      expect(cleanFieldLabel('____ -')).toBe('');
+    });
+
+    it('labelFieldCandidates drops a trailing dash item', () => {
+      const cand = candidate({ left: 30, width: 16 });
+      const items = [
+        text('גרוש/ה', { left: 46.5, top: 19.8, width: 6 }),
+        text('–', { left: 45.5, top: 19.8, width: 0.8 }),
+      ];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('גרוש/ה');
+    });
+  });
+
+  describe('paren vote per call', () => {
+    const cand = candidate({ left: 30, width: 16 });
+
+    it('keeps parens that are already logical', () => {
+      const items = [text('הכנסה (יש לצרף תלוש)', { left: 46.5, top: 19.8, width: 20 })];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('הכנסה (יש לצרף תלוש)');
+    });
+
+    it('does not count a logical "1) ... (...)" item as mirrored', () => {
+      const items = [
+        text('הכנסה (יש)', { left: 46.5, top: 5, width: 12 }),
+        text('1) הכנסה (שכר)', { left: 46.5, top: 19.8, width: 12 }),
+      ];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('1) הכנסה (שכר)');
+    });
+
+    it('flips parens when the page stores them mirrored, fragments included', () => {
+      const items = [
+        text('הכנסה )יש לצרף תלוש(', { left: 46.5, top: 5, width: 20 }),
+        text('שכר )', { left: 46.5, top: 19.8, width: 6 }),
+      ];
+      expect(labelFieldCandidates([cand], items)[0].label).toBe('שכר (');
+    });
+  });
+
+  describe('list numbers beside a box', () => {
+    const box = candidate({ kind: 'checkbox', left: 86.48, top: 20, width: 1.3, height: 1.3 });
+    const marker = (str, left, width) => text(str, { left, top: 19.8, width, dir: 'ltr' });
+
+    it('skips a list number when words follow it', () => {
+      const items = [
+        marker('1', 84.62, 0.9), marker('.', 84.17, 0.4),
+        text('אני חייל משוחרר', { left: 70, top: 19.8, width: 12.8 }),
+      ];
+      expect(labelFieldCandidates([box], items)[0].label).toBe('אני חייל משוחרר');
+    });
+
+    it('skips a list number to the right of the box', () => {
+      const right = candidate({ kind: 'checkbox', left: 40, top: 20, width: 1.3, height: 1.3 });
+      const items = [
+        marker('1', 41.8, 0.9), marker('.', 42.8, 0.4),
+        text('אני חייל משוחרר', { left: 44, top: 19.8, width: 12.8 }),
+      ];
+      expect(labelFieldCandidates([right], items)[0].label).toBe('אני חייל משוחרר');
+    });
+
+    it('keeps a bare quantity before a word', () => {
+      const items = [marker('12', 84.62, 1.4), text('חודשים', { left: 76, top: 19.8, width: 7 })];
+      expect(labelFieldCandidates([box], items)[0].label).toContain('12');
+    });
+
+    it('keeps a number that is the whole label', () => {
+      const items = [marker('30', 84.62, 1.4)];
+      expect(labelFieldCandidates([box], items)[0].label).toBe('30');
     });
   });
 });

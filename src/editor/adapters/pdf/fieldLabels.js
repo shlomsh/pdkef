@@ -115,6 +115,27 @@ function fallbackDistance(cand, item) {
 
 // ---- text-run text assembly (RTL-aware) --------------------------------
 
+// pdf.js splits a word into items that abut ("נ" + "קבה", a 0.01 gap); a real word gap is about
+// 0.25 em and up, so two neighbours closer than this fraction of the item height are one word.
+const GLUE_GAP_EM = 0.1;
+
+/** Joins a chunk's items in reading order, with no space where two of them touch. */
+function joinChunk(chunk) {
+  const rtl = chunk.dir === 'rtl';
+  let out = '';
+  let prev = null;
+  for (const item of chunk.items) {
+    const str = item.str.trim();
+    if (!str) continue;
+    if (prev) {
+      const gap = rtl ? prev.left - right(item) : item.left - right(prev);
+      out += gap < GLUE_GAP_EM * item.height ? str : ` ${str}`;
+    } else out = str;
+    prev = item;
+  }
+  return out;
+}
+
 /** Both spike forms are RTL Hebrew forms. pdf.js emits each item's own characters in correct
  * logical order, but items across a *line* come out in ascending-x (left-to-right, visual)
  * order. A line is really a sequence of same-direction runs ("chunks": a Hebrew phrase, or an
@@ -141,7 +162,7 @@ function assemblePhrase(items) {
   const orderedChunks = overallRtl ? [...chunks].reverse() : chunks;
 
   return orderedChunks
-    .map((c) => c.items.map((i) => i.str.trim()).filter(Boolean).join(' '))
+    .map(joinChunk)
     .filter(Boolean)
     .join(' ')
     .replace(/\s+/g, ' ')
@@ -150,15 +171,53 @@ function assemblePhrase(items) {
     .trim();
 }
 
-/** pdf.js hands back each RTL item's own characters already reordered into correct logical
- * order, but on both spike forms every RTL item that contains a paren has that paren's glyph
- * mirrored for its own on-page visual placement - e.g. the item literally reads
- * "שכר עבודה )עובד יומי(" where a human reads "שכר עבודה (עובד יומי)". Undoing that mirroring
- * once, per RTL item, up front is what lets a lone "(4)"-style LTR digit run (already correctly
- * ordered - never touched here) sit right next to Hebrew text after assembly. */
-export function unmirrorParens(str, dir) {
-  if (dir !== 'rtl' || !/[()]/.test(str)) return str;
+/** Some pages (income-tax-101-2024) store an RTL item's parens mirrored for their on-page
+ * placement - the item literally reads "שכר עבודה )עובד יומי(" where a human reads
+ * "שכר עבודה (עובד יומי)" - while others (BTL 1500) hand them back logical. An RTL item votes by
+ * its FIRST and LAST paren only: first "(" and last ")" is logical, first ")" and last "(" is
+ * mirrored, anything else abstains (a list number such as "1) הכנסה (שכר)" opens with a ")" but
+ * is logical). A tie, or a call with no votes, keeps the mirrored reading, the behaviour both
+ * spike forms were tuned on. */
+function parenVote(str) {
+  const parens = str.replace(/[^()]/g, '');
+  if (!parens) return 0;
+  const first = parens[0];
+  const last = parens[parens.length - 1];
+  if (first === '(' && last === ')') return 1;
+  if (first === ')' && last === '(') return -1;
+  return 0;
+}
+
+function parensAreMirrored(items) {
+  let balance = 0;
+  for (const { str, dir } of items) if (dir === 'rtl') balance += parenVote(str);
+  return balance <= 0;
+}
+
+/** Swaps an RTL item's mirrored parens back, once, up front; that is what lets a lone
+ * "(4)"-style LTR digit run (already correctly ordered - never touched here) sit right next to
+ * Hebrew text after assembly. `mirrored` is the page's vote from `parensAreMirrored`. */
+export function unmirrorParens(str, dir, mirrored = true) {
+  if (!mirrored || dir !== 'rtl' || !/[()]/.test(str)) return str;
   return str.replace(/[()]/g, (ch) => (ch === '(' ? ')' : '('));
+}
+
+// Blank and dash items sit within MERGE_GAP of a label and growPhrase absorbs them; they are
+// never part of the name. Runs of 2+ underscores are blanks, and the edges lose any filler.
+const BLANK_RUN_RE = /[_\u2017\uFF3F]{2,}/g;
+// Edges lose whitespace, underscores, dotted leaders (3+ dots) and : ; , always; a dash only when whitespace separates it
+// from the text (or it is the whole string), so "-5", "מ-", "Apt." and "Are you ok?" survive.
+const LABEL_EDGE_FILLER_RE = /^(?:[\s_\u2017\uFF3F:;,]|\.{3,})+|(?:[\s_\u2017\uFF3F:;,]|\.{3,})+$/g;
+const LABEL_EDGE_DASH_RE = /^[-\u2013\u2014]+(?=\s)|(?<=\s)[-\u2013\u2014]+$|^[-\u2013\u2014]+$/;
+
+/** A label without the blank/dash filler pdf.js prints around it. */
+export function cleanFieldLabel(label) {
+  let out = label.replace(BLANK_RUN_RE, ' ').replace(/\s+/g, ' ');
+  for (let prev = null; prev !== out;) {
+    prev = out;
+    out = out.replace(LABEL_EDGE_FILLER_RE, '').replace(LABEL_EDGE_DASH_RE, '');
+  }
+  return out;
 }
 
 // ---- per-candidate label search ----------------------------------------
@@ -280,13 +339,54 @@ function growPhrase(anchor, pool, excludeIds) {
   return items;
 }
 
+// A printed list number ("1", then ".") between a checkbox and its sentence numbers the box; it is
+// not the label. It only steps aside when a real word follows it ("30" alone can be the label).
+const LIST_MARKER_RE = /^[\d.)]{1,3}$/;
+const REAL_WORD_RE = /\p{L}{2,}/u;
+const isListMarker = (item) => LIST_MARKER_RE.test(item.str.trim());
+// A number is a list number only with a "." or ")" in its chain ("1.", "1)", or "1" then "."); a
+// bare "12" before "חודשים" is a quantity and stays the label.
+const hasListPunctuation = (items) => items.some((it) => /[.)]/.test(it.str));
+// Slack for an item that sits flush against, or a hair over, the edge it is measured from.
+const EDGE_SLACK = 0.2;
+
+/** The list-number items chained outward from `anchor` away from `cand`, with the box widened to
+ * cover them, or null when no real word lies within TOUCH_GAP past the last one. */
+function listMarkersBeforeWords(cand, anchor, pool) {
+  const outward = anchor.left >= right(cand) - EDGE_SLACK ? 1 : -1;
+  const markers = [anchor];
+  let edge = outward > 0 ? right(anchor) : anchor.left;
+  const gapBeyond = (item) => (outward > 0 ? item.left - edge : edge - right(item));
+  for (let grew = true; grew;) {
+    grew = false;
+    const next = pool.find((it) => !markers.includes(it) && isListMarker(it) && sameLine(anchor, it)
+      && gapBeyond(it) >= -EDGE_SLACK && gapBeyond(it) <= MERGE_GAP);
+    if (next) { markers.push(next); edge = outward > 0 ? right(next) : next.left; grew = true; }
+  }
+  const wordFollows = pool.some((it) => !markers.includes(it) && REAL_WORD_RE.test(it.str) && !isListMarker(it)
+    && sameLine(anchor, it) && gapBeyond(it) >= -EDGE_SLACK && gapBeyond(it) <= TOUCH_GAP);
+  if (!wordFollows || !hasListPunctuation(markers)) return null;
+  const left = Math.min(cand.left, ...markers.map((m) => m.left));
+  const edgeRight = Math.max(right(cand), ...markers.map(right));
+  return { markers, box: { ...cand, left, width: edgeRight - left } };
+}
+
 function labelCandidate(cand, textItems, excludedIds) {
-  const pool = textItems.filter((t) => !excludedIds.has(t.id));
-  const anchorPool = pool.filter((t) => !isPunctuationOnly(t.str));
-  const anchor = findAnchor(cand, anchorPool, cand.kind);
+  let pool = textItems.filter((t) => !excludedIds.has(t.id));
+  let anchorPool = pool.filter((t) => !isPunctuationOnly(t.str));
+  let anchor = findAnchor(cand, anchorPool, cand.kind);
   if (!anchor) return null;
+  if (anchor.rule === 'same-line-touch' && isListMarker(anchor.item)) {
+    const skipped = listMarkersBeforeWords(cand, anchor.item, pool);
+    if (skipped) {
+      pool = pool.filter((t) => !skipped.markers.includes(t));
+      anchorPool = anchorPool.filter((t) => !skipped.markers.includes(t));
+      anchor = findAnchor(skipped.box, anchorPool, cand.kind);
+      if (!anchor) return null;
+    }
+  }
   const phraseItems = growPhrase(anchor.item, pool, excludedIds);
-  const label = assemblePhrase(phraseItems);
+  const label = cleanFieldLabel(assemblePhrase(phraseItems));
   if (!label) return null;
   const note = `${anchor.rule}(metric=${anchor.metric.toFixed(2)}, items=${phraseItems.length})`;
   return { label, note };
@@ -313,10 +413,11 @@ function labelCandidate(cand, textItems, excludedIds) {
  * @returns {FieldCandidate[]} a new array; input candidates are not mutated.
  */
 export function labelFieldCandidates(candidates, textItems) {
+  const mirroredParens = parensAreMirrored(textItems);
   const items = textItems
     .map((t, idx) => ({
       id: `text-${idx}`,
-      str: unmirrorParens(t.str, t.dir),
+      str: unmirrorParens(t.str, t.dir, mirroredParens),
       dir: t.dir,
       left: t.left,
       top: t.top,
