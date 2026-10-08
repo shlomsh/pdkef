@@ -2,18 +2,12 @@ import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { searchTargetSize } from './targetSizeSearch.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { loadPdfjs } from '../../lib/loadPdfjs.js';
 
 let pdfjsLib;
 
-
 async function getPdfjs() {
-  if (!pdfjsLib) {
-    pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url,
-    ).href;
-  }
+  pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
   return pdfjsLib;
 }
 
