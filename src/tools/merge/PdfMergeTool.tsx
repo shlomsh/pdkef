@@ -20,7 +20,7 @@ import {
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
-import { formatFileSize } from '../../lib/format.js';
+import { formatFileSize, isolateLtr } from '../../lib/format.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
@@ -1168,7 +1168,7 @@ export default function PdfMergeTool({
       : prepared.status === 'ready'
         ? (downloadedOnce ? 'saved' : 'ready')
         : 'preparing';
-  const downloadDetail = prepared.status === 'ready' ? `${pagesLabel(prepared.pageCount)} · ${formatFileSize(prepared.size)}` : undefined;
+  const downloadDetail = prepared.status === 'ready' ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}` : undefined;
   const analyticsStatus = failedEntry || otherError ? 'error' : tap;
 
   const draftStatusLabel = draftState.draftSaveState === 'saved' ? sm.draftSaved

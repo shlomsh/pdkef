@@ -14,7 +14,7 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { describeFile, formatFileSize } from '../../lib/format.js';
+import { describeFile, formatFileSize, isolateLtr } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
@@ -542,7 +542,6 @@ export default function PdfSplitTool({
   // A page range ("1-3, 5") inside right-to-left text keeps its digits in
   // reading order; left-to-right pages need no wrapper.
   // A file size ("1.0 MB") is isolated the same way (LRI ... PDI) inside a catalogue string.
-  const sizeText = (bytes: number) => (t.dir === 'rtl' ? `\u2066${formatFileSize(bytes)}\u2069` : formatFileSize(bytes));
   const rangeNode = (range: string) => (t.dir === 'rtl' ? <bdi dir="ltr">{range}</bdi> : range);
 
   const canvasHeading = mode === 'combined'
@@ -785,8 +784,8 @@ export default function PdfSplitTool({
                         </span>
                         <span class={styles['primary-detail']}>
                           {mode === 'combined'
-                            ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: sizeText(totalBytes) })
-                            : formatMessage(t.detailSeparate, { size: sizeText(totalBytes) })}
+                            ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: isolateLtr(formatFileSize(totalBytes), t.dir) })
+                            : formatMessage(t.detailSeparate, { size: isolateLtr(formatFileSize(totalBytes), t.dir) })}
                         </span>
                       </>
                     )}

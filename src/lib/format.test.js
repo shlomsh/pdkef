@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeFile, formatFileSize } from './format.js';
+import { describeFile, formatFileSize, isolateLtr } from './format.js';
 
 describe('formatFileSize', () => {
   it('formats bytes under 1KB as B', () => {
@@ -41,5 +41,16 @@ describe('describeFile', () => {
 
   it('falls back to the static count when pageCount is missing', () => {
     expect(describeFile(file, 0, 2)).toBe('500 KB');
+  });
+});
+
+describe('isolateLtr', () => {
+  it('wraps the text in LRI/PDI when the direction is rtl', () => {
+    expect(isolateLtr('1.0 MB', 'rtl')).toBe('\u20661.0 MB\u2069');
+  });
+
+  it('returns the text unchanged for ltr or an unknown direction', () => {
+    expect(isolateLtr('1.0 MB', 'ltr')).toBe('1.0 MB');
+    expect(isolateLtr('1.0 MB', undefined)).toBe('1.0 MB');
   });
 });
