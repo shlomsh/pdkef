@@ -142,6 +142,7 @@ function xmpState(doc) {
  * @property {Array<{ name: string, pageIndex?: number }>} attachments Files attached anywhere: the EmbeddedFiles name tree, catalog `/AF`, a FileAttachment comment (with its page).
  * @property {{ document: boolean, pages: number[] }} scripts Document scripts (`/Names /JavaScript`, an `/OpenAction` or catalog `/AA` script) and pages carrying `/AA` scripts.
  * @property {number[]} thumbnails Pages carrying a `/Thumb` picture of themselves. Sorted, zero-based.
+ * @property {boolean} pieceInfo The catalog carries a `/PieceInfo` (an application's private data).
  * @property {number[]} pageDetails Pages carrying `/Metadata` or `/PieceInfo`, on the page or on an image or form it draws. Sorted, zero-based.
  */
 
@@ -202,6 +203,7 @@ export function readDocumentTraces(doc) {
     xmp: xmpState(doc),
     attachments: uniqueAttachments,
     scripts: { document, pages: pages.flatMap((p, i) => (p.node.has(N('AA')) ? [i] : [])) },
+    pieceInfo: doc.catalog.has(N('PieceInfo')),
     thumbnails: pages.flatMap((p, i) => (p.node.has(N('Thumb')) ? [i] : [])),
     pageDetails: pages.flatMap((p, i) =>
       hasDetail(p.node) || pageXObjects(doc, p.node).some(hasDetail) ? [i] : []),
@@ -226,6 +228,7 @@ export function stripDocumentTraces(doc, options = {}) {
   const info = infoDict(doc);
   if (info) for (const key of [...info.keys()]) info.delete(key);
   doc.catalog.delete(N('Metadata'));
+  doc.catalog.delete(N('PieceInfo'));
 
   // Attachments: drop each entry not kept, from the name tree, /AF and comments.
   const names = asDict(ctx, doc.catalog.get(N('Names')));
@@ -337,6 +340,7 @@ export function hasNoTraces(traces) {
     traces.attachments.length === 0 &&
     !traces.scripts.document &&
     traces.scripts.pages.length === 0 &&
+    !traces.pieceInfo &&
     traces.thumbnails.length === 0 &&
     traces.pageDetails.length === 0
   );

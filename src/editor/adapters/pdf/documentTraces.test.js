@@ -46,6 +46,13 @@ describe('readDocumentTraces', () => {
     expect(readDocumentTraces(doc).pageDetails).toEqual([1]);
   });
 
+  it('reads a catalog /PieceInfo, and none on a bare document', async () => {
+    const { doc } = await buildTracesFixture();
+    expect(readDocumentTraces(doc).pieceInfo).toBe(false);
+    doc.catalog.set(PDFName.of('PieceInfo'), doc.context.obj({ App: { Private: 'x' } }));
+    expect(readDocumentTraces(doc).pieceInfo).toBe(true);
+  });
+
   it('finds an OpenAction script on its own', async () => {
     const doc = await PDFDocument.create({ updateMetadata: false });
     doc.addPage();
@@ -67,6 +74,13 @@ describe('stripDocumentTraces', () => {
     expect(traces.author).toBeNull();
     expect(traces.creationDate).toBeNull();
     expect(traces.otherInfoKeys).toEqual([]);
+  });
+
+  it('removes a catalog /PieceInfo', async () => {
+    const { doc } = await buildTracesFixture();
+    doc.catalog.set(PDFName.of('PieceInfo'), doc.context.obj({ App: { Private: 'x' } }));
+    stripDocumentTraces(doc);
+    expect(readDocumentTraces(doc).pieceInfo).toBe(false);
   });
 
   it('removes the catalog XMP', async () => {
@@ -133,6 +147,13 @@ describe('hasNoTraces', () => {
     const { doc } = await buildTracesFixture();
     stripDocumentTraces(doc);
     expect(hasNoTraces(readDocumentTraces(doc))).toBe(true);
+  });
+
+  it('is false for a catalog /PieceInfo alone', async () => {
+    const doc = await PDFDocument.create({ updateMetadata: false });
+    doc.addPage();
+    doc.catalog.set(PDFName.of('PieceInfo'), doc.context.obj({ App: { Private: 'x' } }));
+    expect(hasNoTraces(readDocumentTraces(doc))).toBe(false);
   });
 
   it('is false for a single thumbnail', async () => {
