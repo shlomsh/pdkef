@@ -1,11 +1,10 @@
 ---
 id: "SEO-44"
-title: "Split ranks at 79 for \"pdf breaker\": measure the term, then decide how to move /split/"
+title: "/split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference"
 status: "open"
 priority: "P2"
 epic: "search-and-languages"
 horizon: "now"
-needs: "A Google Trends read of pdf breaker against split pdf and compress pdf"
 ---
 
 # SEO-44 · Split ranks at 79 for "pdf breaker": measure the term, then decide how to move /split/
@@ -38,3 +37,32 @@ page work, a Google Trends read (worldwide, past 12 months) of `pdf breaker` aga
 
 - Trends numbers and the decision recorded here.
 - If built: the before row (`pdf breaker` 29 at 79, `/split/` 0 / 157 at 51.6) and a 28-day after row.
+
+## 2026-10-08 Trends read (Shlomi's screenshot, worldwide, past 12 months, read off the chart)
+
+| Term | Average | Line |
+| --- | --- | --- |
+| `compress pdf` | ~78 | 50-100 |
+| `split pdf` | ~48 | 28-75 |
+| `pdf breaker` | ~3 | 1-8 |
+| `unmerge pdf` | ~0 | flat |
+
+**Verdict on step 1:** `pdf breaker` is about 6% of `split pdf`, above flatten's noise floor but not a
+target on its own. `unmerge pdf` is noise. The real finding is the head term: `split pdf` is about 60%
+of `compress pdf`, and `/split/` sits at 51.6 while `/compress/` sits at 9.4 and `/merge/` at 7.3 on the
+same domain. Same domain means same authority, so SEO-39's "authority problem" does not explain the gap
+on its own; something about the page does.
+
+## Step 2, re-scoped: what does /compress/ have that /split/ does not
+
+Compare the three pages before changing anything, and write the table here:
+
+- Index and crawl history: first indexed, last crawled (`npm run seo:crawl-staleness`), any canonical or
+  duplicate signal in URL Inspection.
+- Internal links in: count and anchor text from the home page, other tool pages and content pages.
+- External links to each page (Search Console Links report).
+- Title, h1 and the first screen: does `/split/` lead with `split pdf` the way `/compress/` leads with its
+  query?
+- Which queries `/compress/` ranks for in the top 10, and whether `/split/` has a matching section.
+
+Then one change at a time, each with a 28-day read against the before row above.

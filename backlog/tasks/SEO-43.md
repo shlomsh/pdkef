@@ -1,11 +1,10 @@
 ---
 id: "SEO-43"
-title: "New tool: see and remove what a PDF's metadata says about you"
+title: "Redact's check lists creator, producer and dates, the metadata that says the most about you"
 status: "open"
 priority: "P2"
-epic: "search-and-languages"
-horizon: "later"
-needs: "Your call: extend Redact's check, or a standalone page behind the SEO-06 gate"
+epic: "redact"
+horizon: "next"
 ---
 
 # SEO-43 · New tool: see and remove what a PDF's metadata says about you
@@ -58,3 +57,11 @@ and removal lives:
    volume check, like SEO-20.
 
 Needs Shlomi's call before any build.
+
+## 2026-10-08 Trends read: no standalone page
+
+Shlomi's screenshot, worldwide, past 12 months, read off the chart: `compress pdf` ~78, `pdf metadata`
+~5-8, `flatten pdf` ~1-2, `remove metadata from pdf` and `pdf metadata remover` ~0. The removal queries
+sit at or below flatten's noise floor (SEO-21). **Decision: no standalone page.** The scope is option 1:
+add Creator, Producer, CreationDate and ModDate to Redact's check as places it shows and removes, with a
+unit test per key seen failing first.
