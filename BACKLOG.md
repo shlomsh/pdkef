@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 5 up next, 7 then, 16 waiting, 16 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 6 up next, 8 then, 16 waiting, 16 parked.
 
 ## Redact: finish removal
 
@@ -50,6 +50,18 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 ## Form detector accuracy
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| FORM-34 | P2 | [FORM-34](backlog/tasks/FORM-34.md) · BTL page 7: find what FFDetr sees that today's detector misses, and fix it in our own geometry | In progress |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| FORM-35 | P2 | [FORM-35](backlog/tasks/FORM-35.md) · Count how often Sign opens a page that is only an image, before building anything for scans |  |
 
 ### Parked
 
