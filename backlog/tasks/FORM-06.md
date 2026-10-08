@@ -87,3 +87,12 @@ ticket does not edit it.
 ## 2026-10-01 decision
 
 Shlomi: keep OCR as a possibility and check again in the future only. No build now, and the spike record stays as the evidence. The ticket stays open as the place to revisit it.
+
+## 2026-10-08 re-check: stays parked
+
+Asked again after a competitor read. A fresh review against the docs: the SNG-09 trigger ("revisit only on
+a measured failure class") has not fired; the only measured scan failure is `irs-1040-1970` (English, 0%
+recall, a geometry cause, `baselines.json`), and the product's scan answer is SNG-09's tap-time snap, not
+label reading. Cheapest deciding input: MOBI-14's telemetry question, how often a PDF with no text layer
+and no vector ink is opened in Sign, split by Hebrew locale. If scans are common, SNG-09's snap and score
+come next; OCR returns only if that score shows failures label text would fix.
