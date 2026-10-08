@@ -13,7 +13,7 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-57 | P1 | [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page | In progress |
-| RED-60 | P1 | [RED-60](backlog/tasks/RED-60.md) · A place removed from the saved file stays removed on every later Download | Needs Shlomi: Your call on the four decisions below |
+| RED-60 | P1 | [RED-60](backlog/tasks/RED-60.md) · A place removed from the saved file stays removed on every later Download | In progress. Needs Shlomi: Your call on the four decisions below |
 | RED-59 | P2 | [RED-59](backlog/tasks/RED-59.md) · Metadata removal is a claim Redact has to show and explain, not just do | In progress |
 
 ### Then, in order
