@@ -14,6 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
 - [SEO-42](backlog/tasks/SEO-42.md) P2 · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console (in progress)
+- [SEO-44](backlog/tasks/SEO-44.md) P2 · Split ranks at 79 for "pdf breaker": measure the term, then decide how to move /split/
 
 ## Waiting, by date
 
@@ -39,7 +40,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
-- [SEO-42](backlog/tasks/SEO-42.md) · Search Console numbers for /split/ and /compress/, before and 28 days after deploy
+- [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
 - [SEO-43](backlog/tasks/SEO-43.md) · Your call: extend Redact's check, or a standalone page behind the SEO-06 gate
+- [SEO-44](backlog/tasks/SEO-44.md) · A Google Trends read of pdf breaker against split pdf and compress pdf
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
