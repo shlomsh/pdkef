@@ -1,10 +1,9 @@
 ---
 id: "SEO-04"
 title: "Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "now"
 depends_on: []
 ---
 
@@ -446,3 +445,53 @@ so the next reader does not re-diagnose it.
 
 Nothing here changes the 10-08 plan: CTR on the thirteen, the 09-17 copy change as a second variable,
 and the AI features export pulled alongside.
+
+## The read, 2026-10-08
+
+Method and windows as in [SEO-39](SEO-39.md): before is three months to 09-08, after is 09-09 to 10-05.
+
+**Crawl date first.** `/redact/` was last crawled on **2026-09-11** (Coverage -> Valid, 10-08 export).
+Its copy changed after that on 09-17 (Blur first, `e0c16e19`), 09-18 and 09-19 (hero), 09-27 (28-day
+drafts), 09-28 (RED-10, RED-12, the "saved as a picture" line) and 10-01 (SEO-41). **None of it has been
+crawled, so this read measured nothing about the 09-17 change, and that change is not judged here.**
+It reaches the index together with RED-46 now, so it can no longer be read on its own; accepted.
+
+What the window did measure: from 09-11 the index held the live title (DEMO-07, confirmed on the SERP
+09-17 and in Search Console Insights today), the 09-10 meta and the pre-09-17 body copy.
+
+| Query | Before: clicks / impressions, position | After: clicks / impressions, CTR, position |
+| --- | --- | --- |
+| blur text in pdf | 0 / 36, 11.58 | 3 / 113, 2.7%, 6.46 |
+| blur text in pdf online free | 0 / 24, 6.79 | 14 / 58, 24.1%, 4.12 |
+| pdf blur tool | 0 / 19, 8.37 | 4 / 78, 5.1%, 6.82 |
+| blur pdf online free | 0 / 24, 7.00 | 12 / 104, 11.5%, 4.51 |
+| blur in pdf | 0 / 16, 8.12 | 1 / 28, 3.6%, 5.04 |
+| blackout text in pdf free | 0 / 13, 9.77 | 0 / 36, 0%, 9.61 |
+| blur out pdf | 0 / 10, 9.30 | 1 / 13, 7.7%, 5.99 |
+| pdf blur text | 0 / 10, 10.00 | 1 / 22, 4.5%, 7.54 |
+| pdf text blur online | 0 / 9, 7.11 | 2 / 22, 9.1%, 4.50 |
+| blur text pdf | 0 / 10, 8.40 | 0 / 17, 0%, 7.76 |
+| blur the pdf | 0 / 7, 7.86 | 1 / 25, 4.0%, 5.97 |
+| online pdf blur tool | 0 / 7, 6.00 | 0 / 9, 0%, 4.67 |
+| black and blur pdf | 0 / 5, 9.00 | 0 / 1, 0%, 10.02 |
+| **All thirteen** | **0 / 190, 8.67** | **39 / 526, 7.4%, 5.96** |
+
+(The 2026-09-10 export's baseline in the scope table differs by a few impressions on some rows; same
+picture.)
+
+**Verdict.** CTR moved, from zero to 7.4%, in the four weeks after the index caught up. Nine of the
+thirteen click now. The zero-click pattern was the stale index, not the page. The 2026-09-10 hypothesis
+about the meta description is **not** what moved it: Google showed the steps copy as the snippet on every
+capture, and the thirteen gained 2.7 positions with the recrawl. Credit the recrawl (the live title in
+the index, and the position), not the meta. `blur text in pdf` is still the weakest converter (2.7%), as
+the how-to intent read of 09-11 predicted. `blackout text in pdf free` (36 at 9.6, no clicks) is now the
+largest zero-click row; the blackout family as a whole took 1 click on 118 impressions at 13.5.
+
+**AI features.** `/redact/` has 1,851 AI-feature impressions in three months, 23.5% of its 7,892 web
+impressions; site-wide the AI share has held at 13% to 19% a week since 09-07. `/redact/`'s CTR rose
+from 3.5% to 6.3% over the same weeks, so being shown inside AI features is not holding the page down.
+The AI Overview card's favicon was not recaptured.
+
+**Status: done.** Every acceptance line holds: SERP recorded, a stated hypothesis, "permanently" and the
+reader-runnable test on the page (kept by RED-46), FAQ mirrored, and the before-and-after for all
+thirteen recorded here and in the findings doc's standings (section 3.5).

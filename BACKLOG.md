@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 6 up next, 7 then, 16 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 3 up next, 6 then, 16 waiting, 16 parked.
 
 ## Redact: finish removal
 
@@ -20,6 +20,12 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-56 | P2 | [RED-56](backlog/tasks/RED-56.md) · Redact: defer old-document dispose until after the pdfDocument prop swaps |  |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-58 | P3 | [RED-58](backlog/tasks/RED-58.md) · The two redaction guides speak the tool's words, as the Redact page now does |  |
 
 ## Sign: finish fill mode
 
@@ -84,15 +90,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks | In progress |
-| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue | In progress |
-| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools | In progress |
-| SEO-39 | P1 | [SEO-39](backlog/tasks/SEO-39.md) · The 2026-10-08 Search Console read | In progress |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
 
 ### Waiting
@@ -145,7 +142,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 12 done, 1 retired
 - Robustness and debt: 36 done, 3 retired
-- Search and languages: 3 done, 0 retired
+- Search and languages: 7 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

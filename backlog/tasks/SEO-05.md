@@ -1,10 +1,9 @@
 ---
 id: "SEO-05"
 title: "Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "now"
 depends_on: []
 ---
 
@@ -206,3 +205,32 @@ subhead now states the job and the problem ("Shrink a PDF to a size limit like 1
 portals and upload forms that cap the file."), keeps the honest-miss caveat as a clause of the second
 sentence, and ends on the shared closer. Same on `/compress-image/`. Words of the compress cluster
 (100KB, shrink, target) all kept; title, h1 and description untouched.
+
+## The read, 2026-10-08
+
+Windows as in [SEO-39](SEO-39.md). `/compress/` was crawled 09-12 and again 09-23 without a request, so
+the 09-10 meta, SEO-13's line, SEO-33's words and the 09-19 subhead were all in the index for the read;
+Insights shows the live title. COMP-01 changed the page again on 10-02 and 10-03, after the window.
+
+| | Before (three months to 09-08) | After (09-09 to 10-05) |
+| --- | --- | --- |
+| `/compress/` | 13 / 396, 3.3%, 10.14 | 41 / 1,742, 2.4%, 9.38 |
+| 100KB family (any kb target) | 8 / 227, 3.5%, 9.33 | 18 / 959, 1.9%, 10.38 |
+| `compress pdf to 100kb` | no row | 5 / 451, 1.1%, 9.85 |
+| `compress pdf to 100kb free` | 0 / 18, 9.56 | 5 / 62, 8.1%, 9.37 |
+| `file compressor to 100kb` | 4 / 95, 4.2%, 9.44 | 3 / 26, 11.5%, 10.60 |
+| `100 compress pdf` | 0 / 10, 8.10 | no impressions |
+| `100kb compress pdf` | 0 / 8, 10.12 | 0 / 2, 22.0 |
+| reduce / resize / size reducer with a kb target (SEO-33) | 2 / 54, 8.80 | 1 / 156, 12.56 |
+
+**Verdict.** Flat at the page-one boundary. `/compress/` ran at about 450 impressions a week at 9.4 and
+2.4%, inside the 09-17 baseline of about 350 a week at position 10 and 2% to 3%. The cluster grew
+fourfold in impressions at the same rank. The meta hypothesis cannot be tested from position ten, as
+the 09-17 SERP capture said; this read is neither for nor against it. The reduce, shrink and resize words
+earned no head-term row at all, only kb-target variants at the same boundary (SEO-39). The lever is
+rank, which is authority (SEO-03). One row worth knowing: `compress pdf to 100kb free offline`, 1 click
+on 24 at 7.7, the phrasing the 09-17 capture saw in "People also search for".
+
+**Status: done.** Every acceptance line holds: SERP recorded with a hypothesis, rasterization and the
+passthrough stated above the FAQ, FAQ mirrored, and the before-and-after recorded here and in the
+findings doc (section 3.5).

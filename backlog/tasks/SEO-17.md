@@ -124,3 +124,8 @@ hit the quota (above), so the effective request date is 09-12, and the eight-wee
 ## 2026-10-01 board cleanup
 
 - Title date corrected from 2026-10-08 to 2026-11-06 to match the body (the eight-week read). The 2026-10-08 refresh is a first look at crawl state only.
+
+## 2026-10-08 crawl state
+
+`/pdf-wont-compress-to-100kb/` is still "Discovered - currently not indexed", `Last crawled` N/A (SEO-06's
+Week 4 read). The 11-06 read stays on its date; it measures the page only if it has been crawled by then.

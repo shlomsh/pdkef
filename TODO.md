@@ -13,10 +13,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Search and languages
 
-- [SEO-04](backlog/tasks/SEO-04.md) P1 · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks (in progress)
-- [SEO-05](backlog/tasks/SEO-05.md) P1 · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue (in progress)
-- [SEO-06](backlog/tasks/SEO-06.md) P1 · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools (in progress)
-- [SEO-39](backlog/tasks/SEO-39.md) P1 · The 2026-10-08 Search Console read (in progress)
+- [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
 
 ## Waiting, by date
 
