@@ -5,6 +5,7 @@ status: "open"
 priority: "P2"
 epic: "search-and-languages"
 horizon: "later"
+needs: "Your call: extend Redact's check, or a standalone page behind the SEO-06 gate"
 ---
 
 # SEO-43 · New tool: see and remove what a PDF's metadata says about you
@@ -33,3 +34,27 @@ this handles what is in the file.
 
 - A unit test per metadata source showing it is gone from the saved file, each seen failing first.
 - The page and FAQ copy in voice, every claim checked against the code.
+
+## 2026-10-08 finding: most of the core already exists in Redact
+
+Filed before reading the code. What is already built:
+
+- Redact's saved-file check reads document details as places it can show and remove one by one: title,
+  author, subject, keywords, the XMP stream and attachments, plus parts of the file no page shows
+  (`src/tools/redact/check/types.ts` `PlaceKind`, `placeLocator.ts` "document information, XMP",
+  `removePlace.ts`).
+- Redact's Delete export clears every Info entry (title, author, subject, keywords, creator, producer,
+  both dates) and the XMP stream (`clearDocumentDetails`, `src/editor/adapters/pdf/deleteObjects.js`,
+  RED-27).
+- Gap: the check does not list Creator, Producer or the dates as places, though they are what RED-27
+  found on a CamScanner scan (app name, device, exact scan time).
+
+So this ticket is not "write a stripper". It is a product decision about where that existing reading
+and removal lives:
+
+1. **Inside Redact only:** add Creator, Producer and dates to the check's places. No new URL, so not
+   blocked by the SEO-06 gate.
+2. **A standalone page** that reuses the same core. A new URL, so it waits for the SEO-06 gate and a
+   volume check, like SEO-20.
+
+Needs Shlomi's call before any build.

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 2 up next, 7 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 3 up next, 6 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -90,12 +90,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console |  |
+| SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: Search Console numbers for /split/ and /compress/, before and 28 days after deploy |
 
 ### Waiting
 
@@ -119,7 +114,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SEO-43 | P2 | [SEO-43](backlog/tasks/SEO-43.md) · New tool: see and remove what a PDF's metadata says about you |  |
+| SEO-43 | P2 | [SEO-43](backlog/tasks/SEO-43.md) · New tool: see and remove what a PDF's metadata says about you | Needs Shlomi: Your call: extend Redact's check, or a standalone page behind the SEO-06 gate |
 | DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |  |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |  |
 

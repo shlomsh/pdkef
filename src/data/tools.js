@@ -505,7 +505,7 @@ export const tools = [
       'Extract specific pages or split a PDF into multiple files, with no page limit or watermark.',
     sitemapPriority: '0.9',
     sitemapChangefreq: 'monthly',
-    seoTitle: 'Split PDF Online Free - Extract Pages from PDF | PDkef',
+    seoTitle: 'Split PDF Online Free - Extract Pages, No Upload | PDkef',
     seoDescription:
       'Split a PDF file online for free. Extract specific pages or separate into multiple documents in your browser. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Split PDF',
@@ -556,7 +556,7 @@ export const tools = [
       'Shrink a PDF toward a size limit like 100KB, with quality controls and no daily cap.',
     sitemapPriority: '0.9',
     sitemapChangefreq: 'monthly',
-    seoTitle: 'Compress PDF to 100KB Free - Reduce File Size | PDkef',
+    seoTitle: 'Compress PDF to 100KB Free - No Upload, Reduce Size | PDkef',
     seoDescription:
       "Compress PDF to 100KB free, right in your browser. If it can't hit the target, we say so instead of guessing. No upload, signup, or watermark.",
     schemaName: 'PDkef - Compress PDF',
