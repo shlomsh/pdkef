@@ -284,6 +284,7 @@ copy on `/redact/`, the Delete guide and the CamScanner guide traces to this tab
 | T3 | `created`, `changed` | Kept; delete removes CreationDate or ModDate (no alter) |
 | T4 | `attachment:<page>:<name>` (name tree, /AF, file-attachment comments) | Kept; delete removes that file only |
 | T5 | `scripts` (document scripts, open action, catalog and page /AA) | Kept; delete removes them (scripts inside form fields are left as they are) |
-| T6 | `hidden` (catalog and page and image /Metadata, /PieceInfo, other Info keys) | Kept; delete removes them, and editing any text or date detail deletes it too, since the XMP packet is a second copy |
-| T7 | Page thumbnails (/Thumb) | Always removed, a cached picture from before the marks |
+| T6 | `hidden` (catalog and page and image /Metadata, other Info keys) | Kept; delete removes them, and editing any text or date detail deletes it too, since the XMP packet is a second copy |
+| T7 | Page thumbnails (/Thumb), XMP thumbnails (`xmp:Thumbnails`) and app data (/PieceInfo on the catalog, pages and images) | Always removed, whatever the edits: a picture or the app's own copy of the content from before the marks could show what a mark covers |
+| T9 | Any copied detail that reaches a page (flattened path) | Never copied: `reachesPage` refuses a value whose object graph holds a page, a page tree, an annotation or a page's content |
 | T8 | File ID | Left alone |

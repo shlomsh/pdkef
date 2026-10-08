@@ -73,7 +73,7 @@ describe('redact page copy', () => {
     const entry = redact.faq.find((e) => e.question === "What about the file's details, like author and title?");
     expect(entry).toBeTruthy();
     expect(entry.answer).toContain('keeps them as they came, unless you change them');
-    expect(entry.answer).toContain('cached picture of a page');
+    expect(entry.answer).toContain('cached pictures of the pages');
     expect(entry.answer).not.toContain('every download');
   });
 });

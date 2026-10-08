@@ -3,7 +3,7 @@
 // Delete is run for real; the flattened path through `assemble`, which holds
 // everything `redactPdf` does after the canvas work.
 import { describe, it, expect } from 'vitest';
-import { PDFDocument, PDFName, PDFDict, PDFStream, PDFString, StandardFonts, decodePDFRawStream } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFDict, PDFRef, PDFStream, PDFString, StandardFonts, decodePDFRawStream } from '@cantoo/pdf-lib';
 import { deleteObjectsFromPdf } from './deleteObjects.js';
 import { assemble } from './redact.js';
 import { readDocumentTraces } from './documentTraces.js';
@@ -30,6 +30,8 @@ async function sourceBytes() {
   return (await buildTracesFixture()).save();
 }
 
+const XMP_THUMBS = '<xmp:Thumbnails><rdf:Alt><rdf:li rdf:parseType="Resource"><xmpGImg:format>JPEG</xmpGImg:format>'
+  + '<xmpGImg:image>QUJDREVGRw==</xmpGImg:image></rdf:li></rdf:Alt></xmp:Thumbnails>';
 const del = { action: 'delete' };
 const reread = async (out) => readDocumentTraces(await PDFDocument.load(out, { updateMetadata: false }));
 const names = (t) => [...new Set(t.attachments.map((a) => a.name))].sort();
@@ -57,10 +59,36 @@ describe.each(Object.keys(paths))('%s export', (path) => {
     expect(t.thumbnails).toEqual([]);
   });
 
-  it('untouched keeps a catalog /PieceInfo', async () => {
+  it('untouched drops /PieceInfo everywhere and the XMP thumbnails, keeping the rest of the packet', async () => {
     const fixture = await buildTracesFixture();
-    fixture.doc.catalog.set(PDFName.of('PieceInfo'), fixture.doc.context.obj({ App: { Private: 'x' } }));
-    expect((await reread(await paths[path](await fixture.save()))).pieceInfo).toBe(true);
+    const ctx = fixture.doc.context;
+    fixture.doc.catalog.set(PDFName.of('PieceInfo'), ctx.obj({ App: { Private: 'x' } }));
+    fixture.doc.catalog.set(PDFName.of('Metadata'), ctx.register(ctx.stream(
+      `<x:xmpmeta><rdf:Description xmpMM:History="h"><dc:title>Kept Title</dc:title>${XMP_THUMBS}</rdf:Description></x:xmpmeta>`,
+      { Type: 'Metadata', Subtype: 'XML' },
+    )));
+    const out = await paths[path](await fixture.save());
+    const reloaded = await PDFDocument.load(out, { updateMetadata: false });
+    for (const [, o] of reloaded.context.enumerateIndirectObjects()) {
+      const d = o instanceof PDFStream ? o.dict : o;
+      if (d instanceof PDFDict) expect(d.has(PDFName.of('PieceInfo'))).toBe(false);
+    }
+    expect(reloaded.catalog.has(PDFName.of('PieceInfo'))).toBe(false);
+    expect(readDocumentTraces(reloaded).pieceInfo).toBe(false);
+    const xmp = reloaded.catalog.lookup(PDFName.of('Metadata'));
+    expect(xmp).toBeInstanceOf(PDFStream);
+    const text = Buffer.from(decodePDFRawStream(xmp).decode()).toString('utf8');
+    expect(text).toContain('<dc:title>Kept Title</dc:title>');
+    expect(text).toContain('xmpMM:History');
+    expect(text).not.toContain('Thumbnails');
+    expect(text).not.toContain('xmpGImg');
+    expect(text).not.toContain('QUJDREVGRw');
+  });
+
+  it('the catalog /Metadata is an indirect stream', async () => {
+    const out = await run();
+    const reloaded = await PDFDocument.load(out, { updateMetadata: false });
+    expect(reloaded.catalog.get(PDFName.of('Metadata'))).toBeInstanceOf(PDFRef);
   });
 
   it('untouched keeps the bytes of a document attachment', async () => {
@@ -253,6 +281,72 @@ describe('flattened path: catalog actions never drag in a source page', () => {
     });
     expectClean(r);
     expect(readDocumentTraces(r.loaded).scripts.document).toBe(true);
+  });
+
+  const pageRefIn = (ctx, p1) => ctx.obj({ Page: p1.ref });
+  const expectKept = (r, what) => {
+    expectClean(r);
+    expect(what(r.loaded)).toBe(true);
+  };
+
+  it('an Info value holding a page ref is skipped; the other keys stay', async () => {
+    const r = await build((doc, p1) => {
+      doc.getInfoDict().set(PDFName.of('Linked'), p1.ref);
+      doc.setTitle('Kept');
+    });
+    expectKept(r, (d) => d.getTitle() === 'Kept' && !d.getInfoDict().has(PDFName.of('Linked')));
+  });
+
+  it('a /PieceInfo holding a page ref reaches no source page', async () => {
+    const r = await build((doc, p1) => {
+      doc.catalog.set(PDFName.of('PieceInfo'), doc.context.obj({ App: { Data: p1.ref } }));
+    });
+    expectClean(r);
+  });
+
+  it('a catalog /Metadata stream whose dict holds a page ref is skipped', async () => {
+    const r = await build((doc, p1) => {
+      const ctx = doc.context;
+      doc.catalog.set(PDFName.of('Metadata'), ctx.register(ctx.stream('<x/>', { Type: 'Metadata', Subtype: 'XML', Extra: p1.ref })));
+    });
+    expectKept(r, (d) => !d.catalog.has(PDFName.of('Metadata')));
+  });
+
+  it('an /AF file spec with a page ref in its /EF params, or in /RF, is skipped; a plain one stays', async () => {
+    const r = await build((doc, p1) => {
+      const ctx = doc.context;
+      const spec = (name, extra, params) => ctx.register(ctx.obj({
+        Type: 'Filespec', F: PDFString.of(name), UF: PDFString.of(name), ...extra,
+        EF: { F: ctx.register(ctx.stream('X', { Type: 'EmbeddedFile', Params: params ?? {} })) },
+      }));
+      doc.catalog.set(PDFName.of('AF'), ctx.obj([
+        spec('viaparams.txt', {}, pageRefIn(ctx, p1)),
+        spec('viarf.txt', { RF: { F: [PDFString.of('x'), p1.ref] } }),
+        spec('plain.txt', {}),
+      ]));
+    });
+    expectClean(r);
+    expect(readDocumentTraces(r.loaded).attachments.map((a) => a.name)).toEqual(['plain.txt']);
+  });
+
+  it('a name-tree attachment whose spec reaches a page is skipped', async () => {
+    const r = await build((doc, p1) => {
+      const ctx = doc.context;
+      const bad = ctx.register(ctx.obj({ Type: 'Filespec', F: PDFString.of('bad.txt'), Back: p1.ref }));
+      doc.catalog.set(PDFName.of('Names'), ctx.obj({ EmbeddedFiles: { Names: [PDFString.of('bad.txt'), bad] } }));
+    });
+    expectClean(r);
+    expect(readDocumentTraces(r.loaded).attachments).toEqual([]);
+  });
+
+  it('a FileAttachment comment without /FS on a covered page does not throw', async () => {
+    const r = await build((doc, p1) => {
+      const ctx = doc.context;
+      p1.node.set(PDFName.of('Annots'), ctx.obj([ctx.register(ctx.obj({
+        Type: 'Annot', Subtype: 'FileAttachment', Rect: [0, 0, 5, 5], P: p1.ref,
+      }))]));
+    });
+    expectClean(r);
   });
 
   it('a plain JavaScript /OpenAction is kept', async () => {
