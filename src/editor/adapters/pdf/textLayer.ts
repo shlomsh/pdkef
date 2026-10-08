@@ -186,13 +186,14 @@ interface ReadingLine {
 }
 
 /** Text drawn twice a hair apart to fake bold is one reading, not two:
- * a glyph is dropped when an earlier one has the same character with its
- * origin within `OVERPRINT_EM` of its own em. Reading only; the callers'
+ * a glyph is dropped when an earlier one, kept or itself dropped, has the
+ * same character with its origin within `OVERPRINT_EM` of its own em, so a
+ * triple draw in small steps is one reading too. Reading only; the callers'
  * glyph list is untouched, so deleting still removes both copies. */
 function withoutOverprints(glyphs: PageGlyph[]): PageGlyph[] {
-  // Kept glyphs are bucketed by character and a grid cell of their origin, the
-  // cell as wide as the widest reach, so a repeat is always in the 3x3 cells
-  // around a glyph: near linear instead of every glyph against every kept one.
+  // Every glyph, kept or dropped, is bucketed by character and a grid cell of
+  // its origin, the cell as wide as the widest reach, so a repeat is always in
+  // the 3x3 cells around a glyph: near linear instead of all pairs.
   let cell = 0;
   for (const glyph of glyphs) cell = Math.max(cell, OVERPRINT_EM * Math.hypot(glyph.matrix[0], glyph.matrix[1]));
   if (!(cell > 0)) cell = 1;
@@ -210,8 +211,10 @@ function withoutOverprints(glyphs: PageGlyph[]): PageGlyph[] {
         repeat = near?.some((other) => Math.hypot(other.matrix[4] - e, other.matrix[5] - f) <= reach) ?? false;
       }
     }
-    if (repeat) continue;
-    kept.push(glyph);
+    // A dropped glyph joins the buckets too, so a third copy that only overprints
+    // the second (0.2 em from the first) is dropped as well. Its reach is still
+    // at most `cell`, so the 3x3 lookup stays enough.
+    if (!repeat) kept.push(glyph);
     const key = `${glyph.unicode}\u0000${cx}\u0000${cy}`;
     const bucket = buckets.get(key);
     if (bucket) bucket.push(glyph);

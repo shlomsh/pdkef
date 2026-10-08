@@ -106,6 +106,35 @@ describe('buildPageText', () => {
       expect(page.text).toBe('Hello Hello');
     });
 
+    it('reads an item drawn three times in small steps once', () => {
+      const page = buildPageText(0, [
+        item('Hello', [1, 0, 0, 1, 0, 700], 30),
+        item('Hello', [1, 0, 0, 1, 1.2, 700], 30),
+        item('Hello', [1, 0, 0, 1, 2.4, 700], 30),
+      ]);
+      expect(page.text).toBe('Hello');
+      expect(page.items).toHaveLength(1);
+    });
+
+    it('does not compare every item with every other on a big page', () => {
+      const many = Array.from({ length: 30000 }, (_, i) =>
+        item(`w${i}`, [1, 0, 0, 1, (i % 60) * 10, 800 - Math.floor(i / 60) * 10], 30, 10),
+      );
+      const original = String.prototype.trim;
+      let calls = 0;
+      String.prototype.trim = function (this: string) {
+        calls += 1;
+        if (calls > 100000) throw new Error('trim called more than 100000 times');
+        return original.call(this);
+      };
+      try {
+        expect(buildPageText(0, many).items).toHaveLength(30000);
+      } finally {
+        String.prototype.trim = original;
+      }
+      expect(calls).toBeLessThan(100000);
+    });
+
     it('reads a Hebrew item drawn twice once', () => {
       const page = buildPageText(0, [
         item('כרטיס', [1, 0, 0, 1, 100, 700], 30, 12, { dir: 'rtl' }),
