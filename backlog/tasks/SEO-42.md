@@ -1,10 +1,11 @@
 ---
 id: "SEO-42"
 title: "Title test: put \"No Upload\" in the Split and Compress titles and read the result in Search Console"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "search-and-languages"
-horizon: "next"
+horizon: "now"
+needs: "Search Console numbers for /split/ and /compress/, before and 28 days after deploy"
 ---
 
 # SEO-42 · Title test: "No Upload" in the Split and Compress titles
@@ -31,3 +32,10 @@ copy; only Merge's `seoTitle` carries "No Upload" (`src/data/tools.js`).
 
 - Both titles changed, `npm run test:seo` passes, before and after numbers recorded here with dates.
 - A decision line (roll out, or revert) with the numbers behind it.
+
+## 2026-10-08 progress
+
+- Titles changed (`src/data/tools.js`):
+  - Split: `Split PDF Online Free - Extract Pages from PDF | PDkef` to `Split PDF Online Free - Extract Pages, No Upload | PDkef` (55 characters).
+  - Compress: `Compress PDF to 100KB Free - Reduce File Size | PDkef` to `Compress PDF to 100KB Free - No Upload, Reduce Size | PDkef` (58 characters).
+- Baseline: Search Console keeps 16 months, so the 28 days ending on the deploy date can be read after the fact. Needs Shlomi: for `/split/` and `/compress/`, impressions, clicks, CTR and average position for the 28 days before the deploy date, and the same window 28 days after.

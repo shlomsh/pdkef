@@ -19,7 +19,8 @@ reviewNotes: >-
   mechanically. 10-01 (QUAL-14): closer now "נשאר אצלכם במכשיר", matching
   merge and sign; wording chosen by Shlomi. 10-02 (COMP-01): about, subhead and three FAQ answers rewritten
   for the image-only compressor; awaiting Shlomi's read. Target Size answers corrected after review (bisection).
-sourceHash: 'fnv1a64:12958f6faba16601'
+# 10-08 (SEO-42): English title gained "No Upload"; the Hebrew title is its own phrasing and stays. Hash refreshed mechanically.
+sourceHash: 'fnv1a64:1143f986ffd25103'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
   כווצו קובץ PDF ל-100KB בחינם, ישירות בדפדפן. גם דחיסת PDF וגם הקטנת קובץ
