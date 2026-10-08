@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorElement } from './editorModel.ts';
+import { pushCommand, redoStep, revertCommands } from './historyStack.ts';
 import {
   applyHistoryEntries,
   canCoalesce,
@@ -9,6 +10,7 @@ import {
   coalesceUpdates,
   createActionEntry,
   isActionHistoryEntry,
+  removedPlaces,
   revertHistoryEntries,
   type ActionHistoryEntry,
   type UpdateHistoryEntry,
@@ -437,5 +439,56 @@ describe('isActionHistoryEntry for an update entry', () => {
       updates: [{ id: middle.id, before: 'nope', after: { left: 20 } }],
     };
     expect(isActionHistoryEntry(bad, isElement)).toBe(false);
+  });
+});
+
+describe('remove-place entries', () => {
+  const isEl = (value: unknown): value is EditorElement => Boolean(value) && typeof value === 'object' && 'id' in (value as object);
+  const placeEntry = (place: { kind: string; text: string; pageIndex?: number }, id = 'p1') => ({
+    id, type: 'REMOVE_PLACE', operation: 'remove-place' as const, pageIndex: place.pageIndex ?? 0,
+    description: `Removed ${place.kind}`, timestamp: 1, place,
+  });
+
+  it('is accepted with a kind, text and an absent or non-negative integer pageIndex', () => {
+    expect(isActionHistoryEntry(placeEntry({ kind: 'title', text: 'secret' }), isEl)).toBe(true);
+    expect(isActionHistoryEntry(placeEntry({ kind: 'comment', text: 'x', pageIndex: 2 }), isEl)).toBe(true);
+  });
+
+  it.each([
+    ['no place', { place: undefined }],
+    ['non-string kind', { place: { kind: 3, text: 'x' } }],
+    ['non-string text', { place: { kind: 'title', text: null } }],
+    ['negative pageIndex', { place: { kind: 'comment', text: 'x', pageIndex: -1 } }],
+    ['fractional pageIndex', { place: { kind: 'comment', text: 'x', pageIndex: 1.5 } }],
+    ['string pageIndex', { place: { kind: 'comment', text: 'x', pageIndex: '1' } }],
+  ])('is rejected with %s', (_name, over) => {
+    expect(isActionHistoryEntry({ ...placeEntry({ kind: 'title', text: 'x' }), ...over }, isEl)).toBe(false);
+  });
+
+  it('leaves elements untouched on apply and revert', () => {
+    const entry = placeEntry({ kind: 'title', text: 'x' }) as ActionHistoryEntry<EditorElement>;
+    const elements = [back, middle];
+    expect(ids(applyHistoryEntries(elements, [entry]))).toEqual(['back', 'middle']);
+    expect(ids(revertHistoryEntries(elements, [entry]))).toEqual(['back', 'middle']);
+    expect(canCoalesce(entry, entry)).toBe(false);
+  });
+
+  it('removedPlaces lists the places of every remove-place entry in past order', () => {
+    const a = placeEntry({ kind: 'title', text: 'a' }, 'a');
+    const b = placeEntry({ kind: 'comment', text: 'b', pageIndex: 1 }, 'b');
+    const del = createActionEntry({ operation: 'delete', type: 'DELETE', pageIndex: 0, description: 'd', elements: [captureAddedElement(back, 0)] });
+    const past = [a, del, b] as ActionHistoryEntry<EditorElement>[];
+    expect(removedPlaces(past)).toEqual([a.place, b.place]);
+    expect(removedPlaces([])).toEqual([]);
+  });
+
+  it('undo drops the place from removedPlaces and redo brings it back', () => {
+    const a = placeEntry({ kind: 'title', text: 'a' }, 'a') as ActionHistoryEntry<EditorElement>;
+    const pushed = pushCommand([], [], a);
+    expect(removedPlaces(pushed.past)).toHaveLength(1);
+    const undone = revertCommands(pushed.past, pushed.future, new Set(['a']));
+    expect(removedPlaces(undone.past)).toEqual([]);
+    const redone = redoStep(undone.past, undone.future);
+    expect(redone && removedPlaces(redone.past)).toEqual([a.operation === 'remove-place' ? a.place : null]);
   });
 });

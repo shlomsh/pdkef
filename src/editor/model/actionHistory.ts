@@ -17,7 +17,7 @@ export interface HistoryElementSnapshot<TElement extends HistoryElement = Histor
 }
 
 export type SnapshotOperation = 'add' | 'delete';
-export type HistoryOperation = SnapshotOperation | 'update';
+export type HistoryOperation = SnapshotOperation | 'update' | 'remove-place';
 
 /**
  * One element's change, as the fields that changed and nothing else: `before`
@@ -71,10 +71,40 @@ export interface UpdateHistoryEntry<TElement extends HistoryElement = HistoryEle
   group?: string;
 }
 
+/**
+ * A place outside page content that a saved file carried (a comment, a title,
+ * an attachment...). Declared here because the editor must not import from a
+ * tool; the Redact check's `SavedPlace` is structurally the same.
+ */
+export interface HistoryPlace {
+  kind: string;
+  text: string;
+  pageIndex?: number;
+  removable?: boolean;
+}
+
+/**
+ * "Remove it" on a place in the saved-file check (RED-60). It changes no
+ * element: every export replays it onto the file. `pageIndex` is
+ * `place.pageIndex ?? 0`, so a document-level place reports page 0.
+ */
+export interface PlaceHistoryEntry extends HistoryEntryBase {
+  operation: 'remove-place';
+  place: HistoryPlace;
+}
+
 /** One atomic, reversible editor command. */
 export type ActionHistoryEntry<TElement extends HistoryElement = HistoryElement> =
   | SnapshotHistoryEntry<TElement>
-  | UpdateHistoryEntry<TElement>;
+  | UpdateHistoryEntry<TElement>
+  | PlaceHistoryEntry;
+
+/** The places of every remove-place entry, in past order. */
+export function removedPlaces<TElement extends HistoryElement>(
+  past: readonly ActionHistoryEntry<TElement>[],
+): HistoryPlace[] {
+  return past.flatMap((entry) => (entry.operation === 'remove-place' ? [entry.place] : []));
+}
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
@@ -217,6 +247,7 @@ export function isActionHistoryEntry<TElement extends HistoryElement>(
   if (typeof entry.description !== 'string') return false;
   if (typeof entry.timestamp !== 'number' || !Number.isFinite(entry.timestamp)) return false;
   if (entry.operation === 'update') return isUpdatePayload(entry);
+  if (entry.operation === 'remove-place') return isPlacePayload(entry);
   if (entry.operation !== 'add' && entry.operation !== 'delete') return false;
   if (!Array.isArray(entry.elements) || entry.elements.length === 0) return false;
 
@@ -231,6 +262,14 @@ export function isActionHistoryEntry<TElement extends HistoryElement>(
     seenIds.add(snapshot.element.id);
     return true;
   });
+}
+
+function isPlacePayload(entry: Record<string, unknown>): boolean {
+  const place = entry.place;
+  if (!place || typeof place !== 'object' || Array.isArray(place)) return false;
+  const { kind, text, pageIndex } = place as Record<string, unknown>;
+  if (typeof kind !== 'string' || typeof text !== 'string') return false;
+  return pageIndex === undefined || (Number.isInteger(pageIndex) && (pageIndex as number) >= 0);
 }
 
 const isPlainRecord = (value: unknown): value is Record<string, unknown> => (
@@ -297,6 +336,7 @@ export function revertHistoryEntries<TElement extends HistoryElement>(
   entries: readonly ActionHistoryEntry<TElement>[],
 ): TElement[] {
   return entries.reduce<TElement[]>((current, entry) => {
+    if (entry.operation === 'remove-place') return current;
     if (entry.operation === 'update') return patchElements(current, entry.updates, 'before');
     if (entry.operation === 'add') {
       const addedIds = new Set(entry.elements.map(({ element }) => element.id));
@@ -322,6 +362,7 @@ export function applyHistoryEntries<TElement extends HistoryElement>(
   entries: readonly ActionHistoryEntry<TElement>[],
 ): TElement[] {
   return entries.reduce<TElement[]>((current, entry) => {
+    if (entry.operation === 'remove-place') return current;
     if (entry.operation === 'update') return patchElements(current, entry.updates, 'after');
     if (entry.operation === 'delete') {
       const removedIds = new Set(entry.elements.map(({ element }) => element.id));

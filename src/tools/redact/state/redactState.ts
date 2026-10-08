@@ -18,9 +18,12 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import {
   applyHistoryEntries,
+  removedPlaces,
   revertHistoryEntries,
   type ActionHistoryEntry,
   type HistoryElement,
+  type HistoryPlace,
+  type PlaceHistoryEntry,
 } from '../../../editor/model/actionHistory.ts';
 import { pushCommand, redoStep, revertCommands, type HistoryStack } from '../../../editor/model/historyStack.ts';
 import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
@@ -83,6 +86,8 @@ export interface RedactState {
     /** The revision a load or restore captured; draft saving is dirty past it. */
     draftBaselineRevision: number;
     undoAction: RedactUndoChip | null;
+    /** RED-60: attachments the person chose to keep, by name. Rides in the draft's `extra.keptAttachments`. */
+    keptAttachments: string[];
   };
   tool: {
     activeStyle: RedactToolType | null;
@@ -143,6 +148,7 @@ export function initialRedactState(init: RedactInitialValues): RedactState {
       documentRevision: 0,
       draftBaselineRevision: 0,
       undoAction: null,
+      keptAttachments: [],
     },
     tool: {
       activeStyle: null,
@@ -183,6 +189,8 @@ export type RedactAction =
       /** The restored past; a restored draft never has a redoable future. */
       past: ActionHistoryEntry<RedactElement>[];
       carried: Partial<DocumentStyle> | undefined;
+      /** Restored attachment choices; absent starts empty. */
+      keptAttachments?: string[];
       brush: BrushSettings;
       activeColor: string;
       activeBlurStrength: BlurStrength;
@@ -194,6 +202,9 @@ export type RedactAction =
   | { type: 'PAGE_SIZED'; sizedPageCount: number }
   // Edits
   | ({ type: 'EDIT_COMMITTED' } & EditCommit<RedactElement>)
+  | { type: 'PLACE_REMOVED'; entry: PlaceHistoryEntry }
+  | { type: 'ATTACHMENT_KEPT'; name: string }
+  | { type: 'ATTACHMENT_DROPPED'; name: string }
   | { type: 'UNDO'; entryId?: string }
   | { type: 'REDO' }
   | { type: 'UNDO_CHIP_SHOWN'; message: string; entryId: string; extra?: RedactUndoChip['extra'] }
@@ -253,6 +264,9 @@ export function isDirty(state: RedactState): boolean {
 export function restoredNoteVisible(state: RedactState): boolean {
   return state.document.restoredWithWork && !isDirty(state);
 }
+
+/** RED-60: the places "Remove it" took out, in order; every export replays them. */
+export const selectRemovedPlaces = (state: RedactState): HistoryPlace[] => removedPlaces(state.edits.history.past);
 
 export function canRedo(state: RedactState): boolean {
   return state.edits.history.future.length > 0;
@@ -358,6 +372,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           ...afterTool.edits,
           elements: action.elements,
           history: { past: action.past, future: [] },
+          keptAttachments: action.keptAttachments ?? [],
           draftBaselineRevision: afterTool.edits.documentRevision,
         },
         tool: {
@@ -405,6 +420,28 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
         selection,
       };
     }
+    case 'PLACE_REMOVED':
+      return {
+        ...state,
+        edits: {
+          ...state.edits,
+          history: pushCommand(state.edits.history.past, state.edits.history.future, action.entry),
+          documentRevision: state.edits.documentRevision + 1,
+        },
+        view: { ...state.view, announcement: action.entry.description },
+      };
+    case 'ATTACHMENT_KEPT': {
+      const { keptAttachments } = state.edits;
+      return withEdits(state, {
+        keptAttachments: keptAttachments.includes(action.name) ? keptAttachments : [...keptAttachments, action.name],
+        documentRevision: state.edits.documentRevision + 1,
+      });
+    }
+    case 'ATTACHMENT_DROPPED':
+      return withEdits(state, {
+        keptAttachments: state.edits.keptAttachments.filter((name) => name !== action.name),
+        documentRevision: state.edits.documentRevision + 1,
+      });
     case 'UNDO': {
       const { past, future } = state.edits.history;
       const reverted = action.entryId === undefined

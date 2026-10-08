@@ -545,3 +545,25 @@ describe('carried blur strength (RED-40)', () => {
     expect(validateDocumentStyle({ blurStrength: 'loud' })).toEqual({});
   });
 });
+
+describe('remove-place history entries (RED-60)', () => {
+  const good = {
+    id: 'rp1', type: 'REMOVE_PLACE', operation: 'remove-place', pageIndex: 0,
+    description: 'Removed the title', timestamp: 5, place: { kind: 'title', text: 'secret' },
+  };
+  const rec = (actionHistory: unknown[]) => ({
+    fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION, elements: [], extra: { actionHistory },
+  });
+
+  it('survives validation, and a malformed one drops only itself', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const bad = { ...good, id: 'rp2', place: { kind: 7, text: 'x' } };
+    expect(validateDraftRecord(rec([good, bad]))?.extra?.actionHistory).toEqual([good]);
+    spy.mockRestore();
+  });
+
+  it('passes through migrateDraftRecord unchanged', () => {
+    const migrated = migrateDraftRecord(rec([good])) as Record<string, any>;
+    expect(migrated.extra.actionHistory).toEqual([good]);
+  });
+});
