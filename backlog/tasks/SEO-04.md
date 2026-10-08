@@ -1,11 +1,11 @@
 ---
 id: "SEO-04"
 title: "Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks"
-status: "blocked"
+status: "in_progress"
 priority: "P1"
 epic: "search-and-languages"
+horizon: "now"
 depends_on: []
-waiting_on: "2026-10-08"
 ---
 
 # SEO-04 · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
