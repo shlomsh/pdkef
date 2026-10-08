@@ -139,5 +139,5 @@ Not `/split/` (the organic probe). `/he/sign/`: URL Inspection first, not a requ
 carry their own verdicts; SEO-17 and LOC-03 got their crawl-state line.
 
 **Requests made 2026-10-08** (Shlomi, after the `fca0f02` deploy): `/redact/`, `/he/merge/`, `/merge/` and
-`/compress/`, dated in `docs/seo-last-crawled.json`. URL Inspection run on `/he/sign/`; its result is in
-LOC-03.
+`/compress/`, dated in `docs/seo-last-crawled.json`. URL Inspection on `/he/sign/`: indexed again, crawled
+2026-10-05 (LOC-03).

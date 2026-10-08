@@ -9,7 +9,7 @@
     "Recapture at each monthly SEO-02 refresh and update \"captured\".",
     "indexingRequested: the date Shlomi first made a Search Console indexing request for a new URL, then any resubmission. Resubmitting does not move a URL up the crawl queue (Google's own dialog); the eight-week read in each ticket counts from the FIRST date.",
     "2026-09-17 capture came from the Coverage -> Pages -> Valid export (Table.csv, one Last crawled column), not URL Inspection one by one; a URL absent from that export is not indexed, and only the Not-indexed export says whether it was crawled.",
-    "2026-10-08 capture: Coverage -> Pages -> Valid export again (21 URLs, data to 2026-10-04). /he/sign/ is not in it: it was indexed on 2026-09-11 and dropped out of the Valid list between the 09-17 and 10-08 exports, so its date below is the last one known, not a current crawl. URLs that were never in a Valid export stay null."
+    "2026-10-08 capture: Coverage -> Pages -> Valid export again (21 URLs, data to 2026-10-04). /he/sign/ was missing from it (out of the index from about 09-22); URL Inspection the same day showed it indexed again, last crawled 2026-10-05, so its date is that one. URLs that were never in a Valid export stay null."
   ],
   "captured": "2026-10-08",
   "lastCrawled": {
@@ -29,7 +29,7 @@
     "/he/merge/": "2026-09-11",
     "/he/open-source-pdf-editor/": null,
     "/he/sign-pdf-no-signup/": null,
-    "/he/sign/": "2026-09-11",
+    "/he/sign/": "2026-10-05",
     "/how-to-sign-a-pdf-on-android/": "2026-09-29",
     "/how-to-sign-a-pdf-on-iphone/": "2026-09-20",
     "/how-to-sign-a-pdf-on-mac/": "2026-09-14",
