@@ -1,4 +1,10 @@
 .finish {
+  /* The workspace centres its children; the finish area takes the page's
+     width so it starts on the same edge as the details line above it, and
+     its width never depends on what it holds. */
+  align-self: stretch;
+  box-sizing: border-box;
+  inline-size: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -52,4 +58,32 @@
 .handoff-button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/* Buttons first, then the caption; start-aligned so it lines up with the details line above. */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+/* EditorExportActions' completion row is full-width with a top margin; here it only holds its buttons. */
+.action-row > div {
+  inline-size: auto;
+  margin: 0;
+}
+
+.action-row > div > button {
+  flex: none;
+  /* The completion pair's own top margin would lift the caption off centre. */
+  margin: 0;
+}
+
+.caption {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
 }

@@ -30,11 +30,11 @@ describe('finishStatusText', () => {
 
 describe('finishCountText', () => {
   it('joins boxes and deletions', () => {
-    expect(finishCountText(f({ boxCount: 3, deletionCount: 1 }))).toBe('3 boxes · 1 deletion');
+    expect(finishCountText(f({ boxCount: 3, deletionCount: 1 }))).toBe('Saves with 3 boxes and 1 deletion');
   });
   it('handles one kind alone and singular', () => {
-    expect(finishCountText(f({ boxCount: 1 }))).toBe('1 box');
-    expect(finishCountText(f({ deletionCount: 2 }))).toBe('2 deletions');
+    expect(finishCountText(f({ boxCount: 1 }))).toBe('Saves with 1 box');
+    expect(finishCountText(f({ deletionCount: 2 }))).toBe('Saves with 2 deletions');
   });
   it('is null when both are zero', () => {
     expect(finishCountText(f({}))).toBeNull();

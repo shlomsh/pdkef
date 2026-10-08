@@ -33,7 +33,7 @@ export default function RedactFinish({
         <p class={styles.empty}>Draw a box or delete something, then download it here.</p>
       ) : (
         <>
-          {count && <p class={styles.line} data-redact-count>{count}</p>}
+          <div class={styles['action-row']}>
           <EditorExportActions
             variant="completion"
             canShare={canShare}
@@ -45,6 +45,8 @@ export default function RedactFinish({
             downloadTitle="Download the redacted PDF"
             shareTitle={shareReady ? 'Share the redacted PDF' : 'Prepare the redacted PDF for sharing'}
           />
+          {count && <p class={styles.caption} data-redact-count>{count}</p>}
+          </div>
           {phase === 'exporting' && (
             <span class={`${pdfToolStyles['tool-primary-action-progress']} ${pdfToolStyles['tool-primary-action-progress--standalone']}`}>
               <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">

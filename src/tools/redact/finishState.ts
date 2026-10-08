@@ -33,7 +33,7 @@ export function finishCountText(f: FinishFacts): string | null {
   const parts: string[] = [];
   if (f.boxCount > 0) parts.push(plural(f.boxCount, 'box', 'boxes'));
   if (f.deletionCount > 0) parts.push(plural(f.deletionCount, 'deletion', 'deletions'));
-  return parts.length ? parts.join(' · ') : null;
+  return parts.length ? `Saves with ${parts.join(' and ')}` : null;
 }
 
 export function finishPagesText(f: FinishFacts): string | null {
