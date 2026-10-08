@@ -50,3 +50,43 @@ XMP history, a file with an attachment. Include the export's own Producer: does 
 - The step 1 table recorded here, from saved files.
 - Every metadata claim in the tool and docs traces to a row of that table.
 - An e2e test that saves a fixture with known details and asserts the saved file has none of them.
+
+## 2026-10-08 step 1 measured
+
+Fixture: `thai-lor-yor-01-2562.pdf` (a real Word 2016 export with XMP and widgets), plus a title,
+subject, keywords, an attachment, a catalog JavaScript name tree, an OpenAction script, and page-level
+`/Metadata` and `/PieceInfo`. `deleteObjectsFromPdf` and `removePlace` were run for real. The flattened
+row replicates `assemble()` in `redact.js` (`create()` + `copyPages` + `save()`), because `redactPdf` needs a
+canvas. Script: scratchpad `red59/measure.mjs`; the lead re-ran it with the same result.
+
+| Detail | Delete | Flattened or mixed | Remove it (one place) |
+| --- | --- | --- | --- |
+| Title, author, subject, keywords | gone | gone | only the one removed |
+| Creator, producer, dates | gone | replaced: "pdf-lib (https://github.com/Hopding/pdf-lib)" and the export time | original kept |
+| Catalog XMP | gone | gone | gone only when that place is removed |
+| Attached files | **kept** | gone | only the one removed |
+| Document JavaScript, OpenAction | **kept** | gone | kept |
+| Page-level `/Metadata`, `/PieceInfo` | **kept** | **kept on pages copied untouched** | kept |
+| Trailer `/ID` | kept (original's) | none | kept |
+
+Mixed runs Delete first and then the flattened path, so its result is the flattened column.
+
+**What the check shows:** a document detail is listed only when a searched term matches its text
+(`checkSavedFile.ts`). Nothing lists the details unprompted. Creator, producer and dates are never read
+(`readSavedFile.ts`, `placeLocator.ts`).
+
+**What the docs claim:**
+- `permanently-delete-text-from-pdf.yaml` (body and FAQ): the download "leaves out the original file's
+  details: its title, author, the app that made it and when". True for Delete, which is the path that guide
+  covers.
+- `remove-camscanner-watermark-from-pdf.yaml`: "keeps no title, author or scan time". True on every path.
+- No claim covers attachments, scripts or page-level metadata, and the Redact FAQ makes no metadata claim.
+
+**Existing tests** cover Info and catalog XMP after Delete only (`deleteObjects.test.js`, RED-27). Nothing
+covers the flattened export's details, attachments, scripts, page-level metadata or `/ID`.
+
+**Calls for step 2** (the lead proposes, Shlomi decides):
+1. Should Delete drop attached files, document scripts and page-level metadata the way the flattened path
+   does? An attachment can carry the unredacted original.
+2. Should the export stamp no producer instead of "pdf-lib"?
+3. Should the check show the document details unprompted, in plain words, so the person sees what goes?
