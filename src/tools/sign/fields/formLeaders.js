@@ -9,11 +9,15 @@
  *
  * ## The rule (precision over reach - SNG-11)
  *
- * 1. A **leader** is `MIN_DOTS` or more consecutive dots. Where it stands is read off the run: the
- *    dots are one fixed advance wide (calibrated from the page's own pure-dot runs, so each font
- *    size gets its own), the rest of the run's width is shared among its other characters.
- * 2. Its **label** is the text just before it in the run, else the nearest run to its left on the
- *    same line. Its **kind** comes from the label: a signature word, a date word, else text.
+ * 1. A **leader** is `MIN_DOTS` or more consecutive dots, or underscores (Word typesets a blank as
+ *    `_____`). Where it stands is read off the run: the dots are one fixed advance wide (calibrated
+ *    from the page's own pure-dot runs, so each font size gets its own), the rest of the run's width
+ *    is shared among its other characters. A right-to-left run (`dir: 'rtl'`) is laid out from its
+ *    right end, so what comes last in its string stands leftmost.
+ * 2. Its **label** comes from the side its script captions from (right for Hebrew and Arabic, left
+ *    otherwise): the text beside it in its own run, else the nearest run on that side; then the same
+ *    on the other side; then a caption printed just under it. Edge punctuation is stripped. Its
+ *    **kind** comes from the label: a signature word, a date word, else text.
  * 3. A leader followed by nothing but a number is a table-of-contents entry, not a field
  *    ("Introduction ........ 12"). A unit or word after it ("จำนวน.....แผ่น") is not a number.
  * 4. A line that is only dots and sits directly under another leader, aligned with its dots or with
@@ -34,9 +38,18 @@
 const MIN_DOTS = 5;
 /** A leader narrower than this share of the page's width is too short to write in. */
 const MIN_WIDTH = 3;
-/** Dots are `.` and the ellipsis/leader characters some producers use instead. */
-const DOT = '[.\\u2026\\u2024\\u00B7]';
+/** Dots are `.` and the ellipsis/leader characters some producers use instead; underscores are a blank too. */
+const DOT = '[.\\u2026\\u2024\\u00B7_\\u2017\\uFF3F]';
+/** An underscore sits as wide as ~0.55 of its height, a dot ~0.3: the two calibrate apart. */
+const UNDERSCORE_RE = /[_\u2017\uFF3F]/;
 const LEADER_RE = new RegExp(`${DOT}{${MIN_DOTS},}`, 'g');
+const RTL_LETTERS_RE = /[\u0590-\u05FF\u0600-\u06FF]/;
+const WORD_CHAR_RE = /[\p{L}\p{N}]/u;
+/** One decision for position and caption side: pdf.js's direction, else the run's own letters. */
+const isRtl = (run) => (run.dir ? run.dir === 'rtl' : RTL_LETTERS_RE.test(run.str));
+/** Underscores glued to letters or digits on both ends are an identifier or a URL, not a blank. */
+const insideWord = (str, match) => UNDERSCORE_RE.test(match[0][0])
+  && WORD_CHAR_RE.test(str[match.index - 1] ?? '') && WORD_CHAR_RE.test(str[match.index + match[0].length] ?? '');
 const PURE_DOTS_RE = new RegExp(`^\\s*${DOT}+\\s*$`);
 /** What may follow a leader in a table-of-contents entry: a page number, Latin, Thai or Arabic. */
 const PAGE_NUMBER_RE = /^[\s\d๐-๙٠-٩ivxlcdmIVXLCDM]{1,6}$/;
@@ -72,8 +85,8 @@ export function leaderKind(label) {
 
 /**
  * The page's dot advance per font size: median of width / dots over its pure-dot runs, keyed by
- * the run's height (rounded to a tenth). A run with no pure-dot sibling of its own height falls
- * back to the nearest one, then to a share of its own height.
+ * the run's height (rounded to a tenth), dots and underscores apart. A run with no pure-dot sibling
+ * of its own height falls back to the nearest one, then to a share of its own height.
  */
 function dotAdvances(runs) {
   const byHeight = new Map();
@@ -81,15 +94,17 @@ function dotAdvances(runs) {
     if (!PURE_DOTS_RE.test(run.str)) continue;
     const dots = [...run.str].filter((ch) => new RegExp(DOT).test(ch)).length;
     if (dots < MIN_DOTS) continue;
-    const key = run.height.toFixed(1);
+    const key = `${UNDERSCORE_RE.test(run.str) ? 'u' : 'd'}${run.height.toFixed(1)}`;
     byHeight.set(key, [...(byHeight.get(key) ?? []), run.width / dots]);
   }
-  const table = [...byHeight.entries()].map(([height, values]) => [Number(height), median(values)]);
+  const table = [...byHeight.entries()].map(([key, values]) => [key[0], Number(key.slice(1)), median(values)]);
   return (run) => {
-    if (table.length === 0) return run.height * 0.3;
-    return table.reduce((best, entry) => (
-      Math.abs(entry[0] - run.height) < Math.abs(best[0] - run.height) ? entry : best
-    ))[1];
+    const kind = UNDERSCORE_RE.test(run.str) ? 'u' : 'd';
+    const own = table.filter((entry) => entry[0] === kind);
+    if (own.length === 0) return run.height * (kind === 'u' ? 0.55 : 0.3);
+    return own.reduce((best, entry) => (
+      Math.abs(entry[1] - run.height) < Math.abs(best[1] - run.height) ? entry : best
+    ))[2];
   };
 }
 
@@ -103,7 +118,8 @@ function dotAdvances(runs) {
  */
 function leadersInRun(run, advance) {
   const chars = [...run.str];
-  const matches = [...run.str.matchAll(LEADER_RE)];
+  const rtl = isRtl(run);
+  const matches = [...run.str.matchAll(LEADER_RE)].filter((match) => !insideWord(run.str, match));
   if (matches.length === 0) return [];
   const dotCount = matches.reduce((sum, match) => sum + [...match[0]].length, 0);
   const otherCount = chars.length - dotCount;
@@ -119,7 +135,9 @@ function leadersInRun(run, advance) {
     const previousEnd = index === 0 ? 0 : matches[index - 1].index + matches[index - 1][0].length;
     const nextStart = index + 1 < matches.length ? matches[index + 1].index : run.str.length;
     return {
-      left: run.left + dotsBefore * advance + othersBefore * each,
+      left: run.left + (rtl
+        ? (dotCount - dotsBefore - length) * advance + (otherCount - othersBefore) * each
+        : dotsBefore * advance + othersBefore * each),
       width: length * advance,
       before: run.str.slice(previousEnd, match.index).replace(/\s+/g, ' ').trim(),
       after: run.str.slice(match.index + match[0].length, nextStart).trim(),
@@ -129,14 +147,54 @@ function leadersInRun(run, advance) {
 
 const sameLine = (a, b) => Math.abs(a.top - b.top) <= SAME_LINE * Math.max(a.height, b.height);
 
-/** The text of the nearest run left of `leader` on its own line, when it ends close enough to name it. */
-function labelFromLeftRun(leader, runs) {
-  const candidates = runs
-    .filter((run) => run !== leader.run && sameLine(run, leader.run)
-      && run.left + run.width <= leader.left + 0.5 && leader.left - (run.left + run.width) <= LABEL_GAP_MAX)
-    .sort((a, b) => (b.left + b.width) - (a.left + a.width));
-  const nearest = candidates[0];
-  return nearest ? nearest.str.replace(new RegExp(`${DOT}+`, 'g'), ' ').replace(/\s+/g, ' ').trim() : '';
+/** Punctuation and space a label does not keep at its ends. */
+const LABEL_EDGE_RE = /^[\s.:?,;_\u2017\uFF3F]+|[\s.:?,;_\u2017\uFF3F]+$/g;
+/** A caption printed under a blank sits no further below it than this many of the blank's line heights. */
+const CAPTION_BELOW_LINES = 1.5;
+
+// Two or more in a row is leader residue; a single dot is an abbreviation's (ת.ז, พ.ศ) and stays.
+const cleanLabel = (text) => text.replace(new RegExp(`${DOT}{2,}`, 'g'), ' ').replace(/\s+/g, ' ').replace(LABEL_EDGE_RE, '');
+
+/** The text of the nearest same-line run on one side of `leader`, when it ends close enough to name it. */
+function labelFromSide(leader, runs, side) {
+  const right = leader.left + leader.width;
+  const gap = (run) => (side === 'left' ? leader.left - (run.left + run.width) : run.left - right);
+  const nearest = runs
+    .filter((run) => run !== leader.run && sameLine(run, leader.run) && gap(run) >= -0.5 && gap(run) <= LABEL_GAP_MAX)
+    .sort((a, b) => gap(a) - gap(b))[0];
+  return nearest ? cleanLabel(nearest.str) : '';
+}
+
+/** The run just below the blank whose centre falls inside its span: a caption printed under the line. */
+function labelFromBelow(leader, runs) {
+  const below = runs
+    .filter((run) => {
+      const centre = run.left + run.width / 2;
+      return run.top > leader.top && run.top - (leader.top + leader.height) <= CAPTION_BELOW_LINES * leader.height
+        && centre >= leader.left && centre <= leader.left + leader.width;
+    })
+    .sort((a, b) => a.top - b.top)[0];
+  return below ? cleanLabel(below.str) : '';
+}
+
+/**
+ * What names a leader, by visual side with the caption side first: the text in its own run on that
+ * side, the nearest run on that side, then the same two on the other side (own text only when short),
+ * then a caption printed under it. The caption sits on the right for Hebrew and Arabic text, else on
+ * the left, decided by the run's direction (pdf.js `dir`, else its letters). In a right-to-left run the string's `before` stands to the right of the blank.
+ */
+function labelFor(leader, runs) {
+  const rtlRun = isRtl(leader.run);
+  const captionSide = rtlRun ? 'right' : 'left';
+  const inRun = rtlRun ? { right: leader.before, left: leader.after } : { left: leader.before, right: leader.after };
+  const sides = captionSide === 'right' ? ['right', 'left'] : ['left', 'right'];
+  for (const side of sides) {
+    const own = cleanLabel(inRun[side]);
+    if (own && (side === captionSide || own.length <= MAX_LABEL_CHARS)) return own;
+    const label = labelFromSide(leader, runs, side);
+    if (label) return label;
+  }
+  return labelFromBelow(leader, runs);
 }
 
 /** True when the leader runs on into nothing but a page number: a table-of-contents entry. */
@@ -180,7 +238,7 @@ export function detectLeaderCandidates(pageIndex, textItems, existingRegions = [
   const fields = [];
   for (const leader of leaders) {
     if (isTocEntry(leader, runs)) continue;
-    const label = (leader.before || labelFromLeftRun(leader, runs));
+    const label = labelFor(leader, runs);
     if (label.length > MAX_LABEL_CHARS) continue;
 
     // The same leader carried into the next text run: it starts its run, where the last one ended.

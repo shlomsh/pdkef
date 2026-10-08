@@ -30,6 +30,7 @@ function context(overrides = {}) {
     textItemsPoints: [],
     ownText: [],
     closedColumnCounts: new Map(),
+    emptyColumnCounts: new Map(),
     columnKey: (c) => `${Math.round(c.left)}|${Math.round(c.right)}`,
     isStackedRow: () => false,
     ...overrides,

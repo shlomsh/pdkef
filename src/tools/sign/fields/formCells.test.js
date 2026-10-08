@@ -647,3 +647,35 @@ describe('FORM-03: a tall stack of row bands reaches the one header printed abov
     expect(lastRowCell(cells).label).toBeUndefined();
   });
 });
+
+describe('FORM-34: an empty closed cell in a repeating column keeps its far header', () => {
+  /** `count` 10pt cells, 7pt apart, in one column under a header printed at the top. */
+  function payTable(count) {
+    const bands = [];
+    for (let i = 0; i < count; i += 1) {
+      bands.push(rowBand({ top: 80 - i * 17, bottom: 70 - i * 17, columns: [10, 60] }));
+    }
+    return mergeInk(...bands);
+  }
+  const header = [text('Payment name', { left: 20, top: 12, width: 20 })];
+
+  it('keeps every empty row of a column of four, however far the header', () => {
+    const cells = detectCellCandidates(payTable(4), geometry, 0, header);
+    expect(cells).toHaveLength(4);
+  });
+
+  it('still drops a single empty cell far below its caption', () => {
+    const cells = detectCellCandidates(payTable(1), geometry, 0, [text('Payment name', { left: 20, top: 2, width: 20 })]);
+    expect(cells).toHaveLength(0);
+  });
+
+  it('counts only the empty cells: three filled and one empty is not a repeating column', () => {
+    const prose = [0, 1, 2].map((i) => text('Some printed words', { left: 12, top: 21 + i * 17, width: 30 }));
+    expect(detectCellCandidates(payTable(4), geometry, 0, [...header, ...prose])).toHaveLength(0);
+  });
+
+  it('still drops a repeating column whose cells hold text', () => {
+    const prose = [0, 1, 2, 3].map((i) => text('Some printed words', { left: 12, top: 21 + i * 17, width: 30 }));
+    expect(detectCellCandidates(payTable(4), geometry, 0, [...header, ...prose])).toHaveLength(0);
+  });
+});
