@@ -76,3 +76,23 @@ Harness, not part of the test suite: `scripts/spike/form-32/renderAndOcr.mjs` (r
 and OCRs every row into a scratch dir; tesseract.js lives in a throwaway npm project, see its
 header) and `scripts/spike/form-32/scoreArms.mjs --scratch DIR` (the table above; arm A reproduces
 `baselines.json` on all 12 rows, and a stub run with pdf.js text as the "OCR" gives C = E).
+
+## Other libraries (survey, 2026-10-08)
+
+Since the gap is geometry, the stronger contender is a model that finds fields in a page image, not
+a better OCR. Licences below were checked on the Hugging Face API the same day.
+
+- **FFDetr** (`jbarrow/FFDetr`, RF-DETR trained on CommonForms, 2025-11): text input, choice button
+  and signature boxes straight from the image, weights tagged Apache-2.0. Published as a PyTorch
+  `.pth` only, so an ONNX export and a phone-size check come first; the RF-DETR size it uses is not
+  stated (Nano to Large are Apache-2.0, the smaller and larger sizes are under PML 1.0). The
+  CommonForms sources are Common Crawl PDFs with no stated terms. It fits the `FieldSource`
+  contract and this harness can score it as is.
+- **FFDNet-S/L** (same author, YOLO11): the published accuracy (mAP50-95 81.0 for L), but no licence on
+  the weights and an ultralytics base, so treat it as AGPL. Out unless the author says otherwise.
+- **Rivok/paddleocr-hebrew** (2026-08-29, Apache-2.0, ONNX): a PaddleOCR Hebrew word recogniser
+  (7.4MB) and detector (4.6MB). Its own card claims CER 0.35% against Tesseract's 1.34%, and 2.33%
+  against 16.14% on mixed Hebrew and Latin, which is Tesseract's weak spot here. Unverified, and the
+  training-data licence is not stated. The candidate if OCR comes back.
+- Out: Nutrient form-field-v1 (commercial), DocLayout-YOLO (AGPL), Scribe.js (AGPL), ocrs (models
+  trained on CC-BY-SA data, Latin only).
