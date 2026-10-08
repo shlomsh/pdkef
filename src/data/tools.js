@@ -526,8 +526,8 @@ export const tools = [
     steps: [
       { title: 'Open your PDF', text: 'Select the PDF file you want to split or drag-and-drop it into the tool.' },
       { title: 'Choose split mode', text: 'Extract your pages into a single combined PDF, or split each page into a separate PDF.' },
-      { title: 'Select pages', text: 'Click the page thumbnails or type page numbers and ranges (e.g., 1-3, 5, 8-).' },
-      { title: 'Split and download', text: 'Click Split PDF and download the files.' },
+      { title: 'Select pages', text: 'Click the page thumbnails or type page numbers and ranges (e.g., 1-3, 5, 8-). Turn any page the right way up with its rotate button.' },
+      { title: 'Download', text: 'Tap Download 1 PDF, or Download N PDFs for one file per page. The files are prepared while you choose, so they are ready when you are.' },
     ],
     faq: [
       { question: 'Is the PDF split tool completely free to use?', answer: 'Yes. Like all tools on PDkef, the Split PDF tool is completely free with no limits, no signup required, and no watermarks added.' },
@@ -536,7 +536,8 @@ export const tools = [
       { question: 'What is the difference between "One PDF" and "One PDF per page"?', answer: 'One PDF keeps the pages you picked together, in order, as a single new file. One PDF per page saves each picked page as its own file, one download per page. The preview shows which you have: one frame around the pages, or a frame around each page. Switch between them any time before you download.' },
       { question: 'Is there a limit on file size or number of pages?', answer: "There is no artificial limit. The tool can handle any file size and page count, constrained only by your device's system memory." },
       { question: 'Can I pull a single chapter or receipt out of a large PDF?', answer: 'Yes. Type the page range for just the chapter, invoice, or receipt you need, and Split extracts exactly those pages into their own file.' },
-      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose Separate mode to pull each one out as its own file, or Combined mode to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Edit PDF Pages.' },
+      { question: 'Can I compress the pages I extracted?', answer: 'Yes. With One PDF chosen, the Compress button opens the extracted pages in Compress PDF on your device, with nothing to open again.' },
+      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose "One PDF per page" to pull each one out as its own file, or "One PDF" to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Edit PDF Pages.' },
     ],
   },
 

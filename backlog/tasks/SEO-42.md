@@ -44,3 +44,5 @@ copy; only Merge's `seoTitle` carries "No Upload" (`src/data/tools.js`).
 - `/compress/` is the real test. At 51.6 almost nobody sees Split's title, so its CTR cannot move; its
   title change stays (harmless) but is not read as evidence.
 - Previously noted: Search Console keeps 16 months, so the 28 days ending on the deploy date can be read after the fact. Needs Shlomi: for `/split/` and `/compress/`, impressions, clicks, CTR and average position for the 28 days before the deploy date, and the same window 28 days after.
+
+- 2026-10-08: Shlomi requested indexing for `/split/` and `/compress/` in Search Console after the title deploy. The 28-day after-read counts from the first crawl that shows the new titles (check Insights or URL Inspection).
