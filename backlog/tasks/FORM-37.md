@@ -1,10 +1,10 @@
 ---
 id: "FORM-37"
 title: "BTL 1500's Wingdings checkboxes miss FORM-31's printed square"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "form-detection"
-horizon: "next"
+horizon: "now"
 depends_on: []
 ---
 

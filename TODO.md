@@ -10,6 +10,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
 
+### Form detector accuracy
+
+- [FORM-37](backlog/tasks/FORM-37.md) P2 · BTL 1500's Wingdings checkboxes miss FORM-31's printed square (in progress)
+
 ### Robustness and debt
 
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
