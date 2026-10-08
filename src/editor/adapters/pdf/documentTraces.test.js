@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import {
-  readDocumentTraces, applyDetailEdits, copyDocumentDetails,
+  readDocumentTraces, applyDetailEdits, copyDocumentDetails, reachesPage,
 } from './documentTraces.js';
 import { attachmentDetailId } from './detailEdits.js';
 import { buildTracesFixture } from './tracesFixture.test-helper.js';
@@ -200,7 +200,7 @@ describe('applyDetailEdits', () => {
 });
 
 describe('copyDocumentDetails', () => {
-  it('copies Info, XMP, PieceInfo, scripts and document attachments, not page-level items', async () => {
+  it('copies Info, XMP, scripts (never PieceInfo) and document attachments, not page-level items', async () => {
     const { doc: source } = await buildTracesFixture();
     source.catalog.set(PDFName.of('PieceInfo'), source.context.obj({ App: { Private: 'x' } }));
     const target = await PDFDocument.create({ updateMetadata: false });
@@ -217,7 +217,7 @@ describe('copyDocumentDetails', () => {
     expect(t.modDate).toEqual(readDocumentTraces(source).modDate);
     expect(t.otherInfoKeys.sort()).toEqual(['Company', 'SourceModified']);
     expect(t.xmp).toEqual({ present: true, hasHistory: true });
-    expect(t.pieceInfo).toBe(true);
+    expect(t.pieceInfo).toBe(false);
     expect(t.scripts.document).toBe(true);
     expect(names(t)).toEqual(['catalog-af.txt', 'drop.txt', 'keep.txt']);
     expect(t.thumbnails).toEqual([]);
@@ -233,5 +233,41 @@ describe('one attachment, one row', () => {
     await doc.attach(new TextEncoder().encode('x'), 'once.txt', { mimeType: 'text/plain' });
     const reloaded = await PDFDocument.load(await doc.save(), { updateMetadata: false });
     expect(readDocumentTraces(reloaded).attachments).toEqual([{ name: 'once.txt' }]);
+  });
+});
+
+describe('reachesPage', () => {
+  const setup = async () => {
+    const doc = await PDFDocument.create({ updateMetadata: false });
+    const page = doc.addPage([100, 100]);
+    return { doc, ctx: doc.context, page };
+  };
+
+  it('is false for plain values and a stream with no page link', async () => {
+    const { ctx } = await setup();
+    expect(reachesPage(ctx, PDFString.of('x'))).toBe(false);
+    expect(reachesPage(ctx, ctx.obj({ A: { B: [1, 2, 'c'] } }))).toBe(false);
+    expect(reachesPage(ctx, ctx.register(ctx.stream('x', { Type: 'EmbeddedFile', Subtype: 'text#2Fplain' })))).toBe(false);
+  });
+
+  it('is true through a ref, an array and a stream dict to a page, /Pages, an annotation, the catalog or a page /Contents', async () => {
+    const { doc, ctx, page } = await setup();
+    expect(reachesPage(ctx, page.ref)).toBe(true);
+    expect(reachesPage(ctx, ctx.obj([{ Deep: [page.ref] }]))).toBe(true);
+    expect(reachesPage(ctx, ctx.register(ctx.stream('x', { Via: page.ref })))).toBe(true);
+    expect(reachesPage(ctx, ctx.obj({ P: doc.catalog.get(PDFName.of('Pages')) }))).toBe(true);
+    expect(reachesPage(ctx, ctx.obj({ A: ctx.obj({ Subtype: 'Link', P: page.ref }) }))).toBe(true);
+    expect(reachesPage(ctx, ctx.obj({ A: ctx.obj({ Type: 'Annot', Subtype: 'Text' }) }))).toBe(true);
+    expect(reachesPage(ctx, ctx.obj({ C: ctx.trailerInfo.Root }))).toBe(true);
+    page.drawText('hi', { x: 1, y: 1 });
+    expect(reachesPage(ctx, ctx.obj({ C: page.node.get(PDFName.of('Contents')) }))).toBe(true);
+  });
+
+  it('terminates on a cycle', async () => {
+    const { ctx } = await setup();
+    const a = ctx.obj({});
+    const ref = ctx.register(a);
+    a.set(PDFName.of('Self'), ref);
+    expect(reachesPage(ctx, ref)).toBe(false);
   });
 });

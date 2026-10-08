@@ -4,8 +4,9 @@
  * the person). Pure pdf-lib; no UI, no words. The words live in Redact's
  * `details/describeDetails.ts`.
  *
- * An export keeps every detail unless the person edits it; the one thing that
- * always goes is `/Thumb`, a cached picture of the page from before the marks.
+ * An export keeps every detail unless the person edits it; what always goes is
+ * app data that can hold a copy of the page from before the marks: `/Thumb`,
+ * every `/PieceInfo`, and the thumbnails inside a kept XMP packet.
  */
 import {
   PDFArray, PDFDict, PDFHexString, PDFName, PDFObjectCopier, PDFRef, PDFStream, PDFString, decodePDFRawStream,
@@ -236,6 +237,7 @@ export function applyDetailEdits(doc, edits) {
   const info = infoDict(doc);
 
   for (const page of doc.getPages()) page.node.delete(N('Thumb'));
+  dropAppData(doc);
 
   for (const [id, key] of [['title', 'Title'], ['author', 'Author'], ['subject', 'Subject'], ['keywords', 'Keywords']]) {
     editInfoKey(info, key, all[id]);
@@ -278,6 +280,42 @@ export function applyDetailEdits(doc, edits) {
         xo.delete(N('PieceInfo'));
       }
     }
+  }
+  stripXmpThumbnails(doc);
+}
+
+/** Removes every `/PieceInfo` (catalog, pages, page XObjects): an application's private data, which can hold the original artwork. */
+function dropAppData(doc) {
+  doc.catalog.delete(N('PieceInfo'));
+  for (const page of doc.getPages()) {
+    page.node.delete(N('PieceInfo'));
+    for (const xo of pageXObjects(doc, page.node)) xo.delete(N('PieceInfo'));
+  }
+}
+
+const XMP_THUMBNAILS = /<(xmp|xap):Thumbnails\b[^>]*?(?:\/>|>[\s\S]*?<\/\1:Thumbnails\s*>)/g;
+
+/**
+ * Cuts the `xmp:Thumbnails` element (pictures of the page as it was) out of
+ * every XMP packet that is kept, writing a fresh uncompressed stream.
+ */
+function stripXmpThumbnails(doc) {
+  const ctx = doc.context;
+  const holders = [doc.catalog];
+  for (const page of doc.getPages()) {
+    holders.push(page.node);
+    for (const xo of pageXObjects(doc, page.node)) holders.push(xo);
+  }
+  for (const holder of holders) {
+    const stream = resolve(ctx, holder.get(N('Metadata')));
+    if (!(stream instanceof PDFStream)) continue;
+    const bytes = safe(() => (stream.dict.has(N('Filter')) ? decodePDFRawStream(stream).decode() : stream.getContents()));
+    const text = bytes && safe(() => new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    if (!text || !/Thumbnails/.test(text)) continue;
+    const stripped = text.replace(XMP_THUMBNAILS, '');
+    if (stripped === text) continue;
+    const fresh = ctx.stream(new TextEncoder().encode(stripped), { Type: 'Metadata', Subtype: 'XML' });
+    holder.set(N('Metadata'), ctx.register(fresh));
   }
 }
 
@@ -335,9 +373,51 @@ function isJavaScriptOnly(ctx, o, seen = new Set()) {
 }
 
 /**
+ * True when `value`, followed through every reference of the source, reaches a
+ * page: a `/Type /Page` or `/Pages` dict, an annotation, the catalog, or a
+ * page's content stream. Copying such a value would drag the original page,
+ * marks and all, into a new document.
+ * @param {import('@cantoo/pdf-lib').PDFContext} ctx
+ * @param {*} value
+ */
+export function reachesPage(ctx, value) {
+  const root = ctx.trailerInfo.Root && ctx.lookup(ctx.trailerInfo.Root);
+  const contents = new Set();
+  for (const [, o] of ctx.enumerateIndirectObjects()) {
+    if (!(o instanceof PDFDict) || o.get(N('Type')) !== N('Page')) continue;
+    const c = o.get(N('Contents'));
+    const list = resolve(ctx, c) instanceof PDFArray ? resolve(ctx, c) : null;
+    for (const item of list ? Array.from({ length: list.size() }, (_, i) => list.get(i)) : [c]) {
+      const target = resolve(ctx, item);
+      if (target) contents.add(target);
+    }
+  }
+  const seen = new Set();
+  const stack = [value];
+  while (stack.length) {
+    const v = stack.pop();
+    const target = resolve(ctx, v);
+    if (target === undefined || seen.has(target)) continue;
+    seen.add(target);
+    if (contents.has(target) || (root && target === root)) return true;
+    if (target instanceof PDFArray) {
+      for (let i = 0; i < target.size(); i++) stack.push(target.get(i));
+      continue;
+    }
+    const dict = target instanceof PDFStream ? target.dict : target instanceof PDFDict ? target : null;
+    if (!dict) continue;
+    const type = dict.get(N('Type'));
+    if (type === N('Page') || type === N('Pages') || type === N('Annot')) return true;
+    if (dict.has(N('Subtype')) && dict.has(N('P'))) return true;
+    for (const [, entry] of dict.entries()) stack.push(entry);
+  }
+  return false;
+}
+
+/**
  * For an export that builds a new document (the flattened path): copies every
- * Info key, the catalog XMP and `/PieceInfo`, document scripts and every
- * document-level attachment from `sourceDoc` into `targetDoc`. Only
+ * Info key, the catalog XMP, document scripts and every
+ * document-level attachment from `sourceDoc` into `targetDoc` (never `/PieceInfo`; a value that reaches a page is skipped). Only
  * JavaScript-only actions are copied (`/OpenAction`, entries of catalog `/AA`,
  * `/Names /JavaScript`): any other action can point at a page of the source,
  * and copying it would drag the unredacted page along. Page-level items stay
@@ -353,30 +433,37 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
   const ctx = sourceDoc.context;
   const copier = PDFObjectCopier.for(ctx, targetDoc.context);
 
+  const tctx = targetDoc.context;
+  // Everything copied passes here: a value that reaches a page is skipped
+  // whole, and a stream is registered so it is set as a reference.
+  const safeToCopy = (value) => value !== undefined && !reachesPage(ctx, value);
+  const copyValue = (value) => {
+    const copied = copier.copy(resolve(ctx, value));
+    return copied instanceof PDFStream ? tctx.register(copied) : copied;
+  };
+
   const info = infoDict(sourceDoc);
   if (info) {
     const targetInfo = targetDoc.getInfoDict();
-    for (const [key, value] of info.entries()) targetInfo.set(key, copier.copy(resolve(ctx, value)));
+    for (const [key, value] of info.entries()) if (safeToCopy(value)) targetInfo.set(key, copyValue(value));
   }
-  for (const key of ['Metadata', 'PieceInfo']) {
-    const value = sourceDoc.catalog.get(N(key));
-    if (value !== undefined) targetDoc.catalog.set(N(key), copier.copy(resolve(ctx, value)));
-  }
+  // /PieceInfo is never copied: it can hold the app's copy of the original artwork.
+  const metadata = sourceDoc.catalog.get(N('Metadata'));
+  if (safeToCopy(metadata)) targetDoc.catalog.set(N('Metadata'), copyValue(metadata));
   const open = sourceDoc.catalog.get(N('OpenAction'));
-  if (open !== undefined && isJavaScriptOnly(ctx, open)) {
-    targetDoc.catalog.set(N('OpenAction'), copier.copy(resolve(ctx, open)));
+  if (open !== undefined && isJavaScriptOnly(ctx, open) && safeToCopy(open)) {
+    targetDoc.catalog.set(N('OpenAction'), copyValue(open));
   }
   const sourceAA = asDict(ctx, sourceDoc.catalog.get(N('AA')));
   if (sourceAA) {
     const kept = targetDoc.context.obj({});
     for (const [key, value] of sourceAA.entries()) {
-      if (isJavaScriptOnly(ctx, value)) kept.set(key, copier.copy(resolve(ctx, value)));
+      if (isJavaScriptOnly(ctx, value) && safeToCopy(value)) kept.set(key, copyValue(value));
     }
     if (kept.keys().length > 0) targetDoc.catalog.set(N('AA'), kept);
   }
 
   const sourceNames = asDict(ctx, sourceDoc.catalog.get(N('Names')));
-  const tctx = targetDoc.context;
   const targetNames = () => {
     const existing = asDict(tctx, targetDoc.catalog.get(N('Names')));
     if (existing) return existing;
@@ -388,8 +475,8 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
   if (sourceNames) {
     walkNameTree(ctx, sourceNames.get(N('JavaScript')), (pairs, i) => {
       const action = pairs.get(i + 1);
-      if (isJavaScriptOnly(ctx, action)) {
-        scripts.push(PDFString.of(textOf(pairs.get(i)) ?? 'script'), copier.copy(resolve(ctx, action)));
+      if (isJavaScriptOnly(ctx, action) && safeToCopy(action)) {
+        scripts.push(PDFString.of(textOf(pairs.get(i)) ?? 'script'), copyValue(action));
       }
     });
   }
@@ -397,7 +484,9 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
 
   // File specifications are copied as they are, bytes included. pdf-lib's own
   // `attach()` embeds lazily at save, after the edits would have run.
+  // A spec that is missing, not a dict, or reaches a page is skipped (null).
   const copySpec = (spec) => {
+    if (!asDict(ctx, spec) || reachesPage(ctx, spec)) return null;
     const copied = copier.copy(spec);
     return copied instanceof PDFRef ? copied : tctx.register(copied);
   };
@@ -405,12 +494,16 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
   const specs = [];
   if (sourceNames) {
     walkNameTree(ctx, sourceNames.get(N('EmbeddedFiles')), (pairs, i) => {
-      entries.push(PDFString.of(textOf(pairs.get(i)) ?? 'attachment'), copySpec(pairs.get(i + 1)));
+      const spec = copySpec(pairs.get(i + 1));
+      if (spec) entries.push(PDFString.of(textOf(pairs.get(i)) ?? 'attachment'), spec);
     });
   }
   const af = resolve(ctx, sourceDoc.catalog.get(N('AF')));
   if (af instanceof PDFArray) {
-    for (let i = 0; i < af.size(); i++) specs.push(copySpec(af.get(i)));
+    for (let i = 0; i < af.size(); i++) {
+      const spec = copySpec(af.get(i));
+      if (spec) specs.push(spec);
+    }
   }
   const flattened = new Set(options.flattened ?? []);
   if (flattened.size > 0) {
@@ -418,6 +511,7 @@ export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
       if (!flattened.has(a.pageIndex) || isDelete(options.edits?.[`attachment:${a.pageIndex}:${a.name}`])) continue;
       const annot = asDict(ctx, a.annots.get(a.index));
       const spec = copySpec(annot.get(N('FS')));
+      if (!spec) continue;
       entries.push(PDFString.of(a.name), spec);
       specs.push(spec);
     }
