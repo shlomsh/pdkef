@@ -273,4 +273,5 @@ currently not indexed"; URL Inspection on it is the next step, not another reque
 the 11-06 read. URL Inspection on `/he/sign/` (Shlomi): **indexed again**, last crawled 2026-10-05 by Googlebot smartphone,
 discovered through the sitemap, Google-selected canonical is the URL itself. So it was out of the index
 from about 09-22 and came back with the 10-05 crawl, after the Valid export's data ended (10-04). The
-11-06 read covers it; no request needed.
+11-06 read covers it; no request needed. The "Crawled - currently not indexed" drilldown (10-08) lists
+`/he/sign/` (crawled 10-05) and `/sitemap.xml`: the report lags the inspection and should clear.

@@ -351,7 +351,8 @@ neither list yet.
 
 **`/he/sign/` dropped out and came back.** Indexed 09-11, missing from the Valid export (indexed count 22
 to 21 on 09-22), and indexed again per URL Inspection on 10-08: last crawled 10-05, after the export's
-data ended. The two "Crawled - currently not indexed" URLs are still unidentified.
+data ended. The two "Crawled - currently not indexed" URLs are `/he/sign/` (the report lags the inspection) and
+`/sitemap.xml`, which is not a page.
 
 Recrawled since 09-17 without a request: `/unlock/` 09-16 (from 08-21), `/sign/` 09-19,
 `/how-to-sign-a-pdf-on-iphone/` 09-20, `/compress/` 09-23, `/` 09-28, `/how-to-sign-a-pdf-on-android/`
@@ -378,10 +379,10 @@ column here. Positions marked "after" are the 09-09 to 10-05 window (see the top
 | איחוד קבצי pdf / איחוד pdf / מיזוג קבצי pdf (Hebrew merge) | 11.34 / 14.59 / 34.0 | 119 / 41 / 11 | 2026-10-08 | PDF24 (5.0, 24,060), FreePDFConvert, AvePDF, Adobe, Sejda, plus local lexa.co.il, mypdf.co.il, itspdf (Google SERP 2026-09-17) | The איחוד family outranks and outdraws מיזוג; the indexed title is still the pre-09-17 מיזוג one | LOC-03 |
 | `/sign/` itself (queries withheld) | 9.56 | 268 | 2026-10-08 | unknown | 2 clicks, 0.75% (was 2.38% on 42); stale since 09-28 | SEO-07 |
 | extract pdf / pdf extractor | 28.2 (after, long-tail rows only) | 18 (after) | 2026-10-08 | iLovePDF, Sejda | The head rows at 85+ are gone | SEO-39 |
-| merge pdf / combine pdf | 7.23 / 9.15 (after) | 1,597 / 551 (after) | 2026-10-08 | iLovePDF, Smallpdf | Page one: 11 clicks at 0.7% on merge phrasing, none on combine | SEO-39, SEO-03 |
+| merge pdf / combine pdf | 7.23 / 9.15 (after) | 1,597 / 551 (after) | 2026-10-08 | four ads, then iLovePDF, Smallpdf (4.8, 716,022), PDF24 (5.0, 24,130); on `merge pdf free` also FreePDFConvert, PDFgear (4.9, "processed locally"), Jotform, ihatepdf.cv ("no upload") (Google SERP 2026-10-08) | Page one: 11 clicks at 0.7% on merge phrasing, none on combine | SEO-39, SEO-03 |
 | pdf size reducer / shrink pdf size / resize pdf | absent; kb-target variants 12.56 (after) | 156 (after) | 2026-10-08 | not sampled | No head-term row; the words reach only kb-target queries | SEO-39 |
 | pdf tools / free pdf tools | not present | 0 | 2026-10-08 | not sampled | `/` ranks only for navigational queries | SEO-39 |
-| password protect pdf free | 4.09 | 81 | 2026-10-08 | not sampled | Page one, no clicks | SEO-16 |
+| password protect pdf free | 4.09 | 81 | 2026-10-08 | AI Overview (Adobe, Smallpdf, iLovePDF), iLovePDF, Smallpdf, Adobe, PDF24, Canva (Google SERP 2026-10-08, we are not on page one in it) | Page one in Search Console, no clicks | SEO-16 |
 | jpg to pdf | not present | 0 | 2026-10-08 | iLovePDF, Smallpdf | `/image-to-pdf/` has never been crawled | SEO-06, SEO-03 |
 
 ### 3.6 Non-ranking dimensions
