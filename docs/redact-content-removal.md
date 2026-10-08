@@ -269,3 +269,18 @@ happened, and the design must never let the promise break silently.
 | RED-10 | Sign's Whiteout removes what it covers, through the same engine | RED-09 |
 
 RED-04 ships with the removal, not after it: removal and the as-saved view are one feature.
+
+## RED-59 (2026-10-08): hidden traces
+
+Every Redact download (Delete, flattened, mixed, and Remove it) carries none of the following. The
+copy on `/redact/`, the Delete guide and the CamScanner guide traces to this table. Detail: RED-59.
+
+| # | Trace | After download |
+| --- | --- | --- |
+| T1 | Title, author, subject, keywords and every other Info entry | Gone |
+| T2 | Creator, producer, dates | None, nothing stamped |
+| T3 | Catalog XMP | Gone |
+| T4 | Files attached anywhere (name tree, /AF, file-attachment comments) | Gone, unless the person chose "Keep it in the download" for that file |
+| T5 | Document scripts, open action, page open/close/print scripts | Gone (scripts inside form fields are left as they are) |
+| T6 | Page-level and image-level details (/Metadata, /PieceInfo) and page thumbnails | Gone |
+| T7 | File ID | A new random one (not mentioned in the copy) |

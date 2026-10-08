@@ -30,9 +30,12 @@ sections:
       - kind: 'prose'
         text: >-
           If a link sits over the element, like the clickable footer a scanning app adds, the link is
-          removed too. The downloaded copy also leaves out the
-          original file's details: its title, author, the app that made it and when. After Download,
-          PDkef searches the saved file for the words you choose, including inside link addresses, so
+          removed too. The downloaded copy also leaves out what
+          the original said about itself: its title, author, the app and device that made it and when.
+          Files attached inside the PDF, scripts that run when it opens, the small preview pictures
+          some apps keep of each page, and the hidden notes apps store on a page or an image go too.
+          After Download, PDkef lists what your original carried and reads your copy back to show none
+          of it is there. It also searches the saved file for the words you choose, including inside link addresses, so
           you can see for yourself what is left. The
           <a href="/remove-camscanner-watermark-from-pdf/">CamScanner footer guide</a> walks through
           one real example.
@@ -151,8 +154,10 @@ faq:
   - question: 'Does Delete also remove links and the file details?'
     answer: >-
       Yes. A link lying over the deleted element is removed with it, and the downloaded copy leaves out the
-      original file's title, author, the app that made it and its dates. After Download, PDkef
-      searches the saved file's text, form fields, comments, bookmarks, document details and link
+      original file's title, author, the app and device that made it and its dates, plus any attached
+      files, opening scripts, page preview pictures and hidden notes on pages and images. After
+      Download, PDkef lists what your original carried and reads your copy back to show none of it is
+      there. It also searches the saved file's text, form fields, comments, bookmarks, document details and link
       addresses for the words you choose. Text inside pictures can't be searched, so look over any
       images yourself.
   - question: 'Can I use Delete on a scanned PDF?'

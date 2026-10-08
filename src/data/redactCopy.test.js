@@ -68,4 +68,10 @@ describe('redact page copy', () => {
   it('keeps the Hebrew card free of the word for areas', () => {
     expect(getToolCardCopy('he', 'redact').description).not.toContain('אזורים');
   });
+
+  it('has a FAQ entry on hidden details that promises every download', () => {
+    const entry = redact.faq.find((e) => e.question === "Does Redact remove the file's hidden details?");
+    expect(entry).toBeTruthy();
+    expect(entry.answer).toContain('every download');
+  });
 });
