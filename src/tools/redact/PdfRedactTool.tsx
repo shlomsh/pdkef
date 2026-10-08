@@ -34,20 +34,20 @@ import { isDeleteElement, type RedactElement } from './redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar, { PRESET_LABELS } from './FindBar.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
-import { ALREADY_GONE, removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
-import useSavedFileCheck from './useSavedFileCheck.ts';
+import { keptNote, removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
+import useSavedFileCheck, { traceLocale } from './useSavedFileCheck.ts';
 import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
 import { PRESET_FINDERS, termFinder } from './find/finders.ts';
-import type { CheckBox, CheckTerm } from './check/types.ts';
+import type { CheckBox, CheckTerm, SavedPlace } from './check/types.ts';
 import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
 import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
-import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
+import type { ActionHistoryEntry, HistoryPlace, PlaceHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
   initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
-  canRedo as canRedoOf, restoredNoteVisible,
+  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces,
 } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
@@ -98,6 +98,9 @@ type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLEleme
 // eligible action before this elapses replaces the first's chip rather than
 // stacking a second one.
 const UNDO_WINDOW_MS = 5000;
+
+/** A call right after a dispatch passes the fresh values the closure has not seen yet (removedPlaces newest first). */
+type ExportOverrides = { removedPlaces?: HistoryPlace[]; keptAttachments?: string[] };
 
 export default function PdfRedactTool() {
   // SNG-08: the island's state lives in redactState.ts; the preferences it
@@ -467,7 +470,7 @@ export default function PdfRedactTool() {
         // A restored draft has no redoable future - future is never persisted.
         dispatch({
           type: 'FILE_INITIALIZED', file: selected, restored, elements: presetElements, past: preset.actionHistory,
-          carried: preset.carried, brush, activeColor: color, activeBlurStrength: strength,
+          carried: preset.carried, keptAttachments: preset.keptAttachments ?? [], brush, activeColor: color, activeBlurStrength: strength,
         });
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
@@ -513,6 +516,7 @@ export default function PdfRedactTool() {
     elements,
     actionHistory,
     carried,
+    keptAttachments: state.edits.keptAttachments,
     status,
     isDirty: isDirty(state),
     loadStartedRef,
@@ -782,6 +786,8 @@ export default function PdfRedactTool() {
   const checkBoxes: CheckBox[] = checkBoxesFromElements(elements);
   const savedCheck = useSavedFileCheck({
     pdfDocument,
+    originalFile: file,
+    announce: setAnnouncement,
     saved: exportedForHandoff?.blob ?? null,
     boxes: checkBoxes,
     findTerms: [...deletedTerms(elements), ...findTerms],
@@ -794,46 +800,76 @@ export default function PdfRedactTool() {
     redactMatches(uncoveredMatches(pages, term.finder, checkBoxes, find.measure));
   };
 
-  // RED-25: Remove it. Bytes in, bytes out (check/removePlace.ts); the new
-  // file replaces the saved one under the same name, downloads again, and the
-  // saved-file check re-runs on it because `exportedForHandoff` changed.
-  const removeFromCheck = async (finding: InPlaceFinding) => {
+  // RED-60: a change that takes something out of the saved file is a history
+  // step, and the file is saved again through the normal export (which replays
+  // every step). The edit bumps `documentRevision`, whose invalidation effect
+  // retires any export begun before the render, so the export starts from an
+  // effect declared after it, once the new revision is the current one.
+  const pendingExportRef = useRef<null | { overrides: ExportOverrides; done: (ok: boolean) => void }>(null);
+  useEffect(() => {
+    const pending = pendingExportRef.current;
+    if (!pending) return;
+    pendingExportRef.current = null;
+    // expected: handleSavePdf reports its own failures; a rejection here only releases the waiting button
+    handleSavePdf('download', pending.overrides).then(pending.done, () => pending.done(false));
+  }, [documentRevision]);
+
+  const reexport = async (change: () => void, overrides: ExportOverrides, note: string) => {
     if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) return;
-    const place = savedCheck.state.outcome.context.saved.places[finding.placeIndex];
-    if (!place) return;
-    const { blob, name } = exportedForHandoff;
     dispatch({ type: 'REMOVE_STARTED' });
     try {
-      const { removePlace, PlaceNotFoundError } = await import('./check/removePlace.ts');
-      try {
-        const bytes = await removePlace(new Uint8Array(await blob.arrayBuffer()), place);
-        const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-        clearPrepared();
-        dispatch({ type: 'EXPORT_SAVED', saved: { blob: next, name } });
-        recordAction('delete_mark');
-        download(next, name);
-        dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
-      } catch (error) {
-        // expected: only PlaceNotFoundError stops here (the place is already gone); anything else is rethrown to the outer catch, which reports it
-        if (!(error instanceof PlaceNotFoundError)) throw error;
-        // Nothing changed; a fresh blob object makes the check read it again.
-        dispatch({ type: 'EXPORT_SAVED', saved: { blob: new Blob([blob], { type: blob.type }), name } });
-        dispatch({ type: 'REMOVAL_NOTED', note: ALREADY_GONE });
-      }
-    } catch (error) {
-      reportError('redact', error, 'remove_place');
-      console.error(error);
-      dispatch({ type: 'REMOVE_FAILED', announcement: "I couldn't remove that. Your saved file is unchanged." });
+      const exported = new Promise<boolean>((resolve) => { pendingExportRef.current = { overrides, done: resolve }; });
+      change();
+      if (await exported) dispatch({ type: 'REMOVAL_NOTED', note });
     } finally {
       dispatch({ type: 'REMOVE_SETTLED' });
     }
   };
 
-  const handleSavePdf = async (exportAction = 'download') => {
-    if (!file) return;
+  // RED-25: Remove it.
+  const removeFromCheck = async (finding: InPlaceFinding) => {
+    if (savedCheck.state.status !== 'done') return;
+    const place = savedCheck.state.outcome.context.saved.places[finding.placeIndex];
+    if (!place) return;
+    const entry: PlaceHistoryEntry = {
+      id: uniqueId(),
+      type: 'place',
+      operation: 'remove-place',
+      place,
+      pageIndex: place.pageIndex ?? 0,
+      description: removedMessage(place).replace(/ Saved again and downloaded\.$/, '').replace(/\.$/, ''),
+      timestamp: Date.now(),
+    };
+    await reexport(
+      () => dispatch({ type: 'PLACE_REMOVED', entry }),
+      { removedPlaces: [place, ...selectRemovedPlaces(state)] },
+      removedMessage(place),
+    );
+  };
+
+  // RED-60: Keep it / Drop it on an attached file.
+  const keepAttachment = (name: string) => {
+    if (state.edits.keptAttachments.includes(name)) return;
+    return reexport(
+      () => dispatch({ type: 'ATTACHMENT_KEPT', name }),
+      { keptAttachments: [...state.edits.keptAttachments, name] },
+      keptNote(name),
+    );
+  };
+  const dropAttachment = (name: string) => {
+    if (!state.edits.keptAttachments.includes(name)) return;
+    return reexport(
+      () => dispatch({ type: 'ATTACHMENT_DROPPED', name }),
+      { keptAttachments: state.edits.keptAttachments.filter((kept) => kept !== name) },
+      removedMessage({ kind: 'attachment', text: name }),
+    );
+  };
+
+  const handleSavePdf = async (exportAction = 'download', overrides: ExportOverrides = {}): Promise<boolean> => {
+    if (!file) return false;
     if (elements.length === 0) {
       setAnnouncement('Draw a box or delete something first.');
-      return;
+      return false;
     }
 
     const hasBoxes = elements.some((el) => el.type !== 'delete');
@@ -857,11 +893,19 @@ export default function PdfRedactTool() {
       // even open. A failed chunk load lands in the same catch as a failed
       // export, which is the right outcome: the boxes stay, the message is
       // "try again". Repeat exports reuse the module registry's copy.
-      const { applyPageEdits } = await import('../../editor/adapters/pdf/applyPageEdits.js');
+      const [{ applyPageEdits }, { removePlaces }] = await Promise.all([
+        import('../../editor/adapters/pdf/applyPageEdits.js'),
+        import('./check/removePlaces.ts'),
+      ]);
+      // RED-60: every removal replays, oldest first, onto the new document.
+      const places = [...(overrides.removedPlaces ?? selectRemovedPlaces(state))].reverse();
       const { blob: redactedBlob } = await applyPageEdits(sourceFile, elements, (p) => {
         if (run.isCurrent()) dispatch({ type: 'EXPORT_PROGRESS', progress: p });
+      }, {
+        finish: (doc) => removePlaces(doc, places as SavedPlace[]),
+        keepAttachments: overrides.keptAttachments ?? state.edits.keptAttachments,
       });
-      if (!run.isCurrent()) return;
+      if (!run.isCurrent()) return false;
       run.settle();
       const filename = redactedFileName(sourceFile.name);
       // Finding #4: a successful export (either export path - Download or
@@ -877,6 +921,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       }
+      return true;
     } catch (err) {
       reportError('redact', err, 'export');
       console.error(err);
@@ -888,12 +933,12 @@ export default function PdfRedactTool() {
         run.settle();
         setNeedsUnlock('owner-restricted');
         dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: 'This PDF is protected.' });
-        return;
+        return false;
       }
       // A failure nobody is waiting for any more: the invalidation effect has
       // already put the editor back, and reporting it would blame the user's
       // current boxes for a run they replaced.
-      if (!run.isCurrent()) return;
+      if (!run.isCurrent()) return false;
       run.settle();
       reportToolLifecycleEvent('tool_operation_failed', 'redact');
       // Recoverable: keep the workspace mounted so the boxes that caused the
@@ -902,6 +947,7 @@ export default function PdfRedactTool() {
       // failed document load, which never gets this far).
       const detail = 'Could not export the PDF. Your edits are still here. Try again.';
       dispatch({ type: 'EXPORT_FAILED', detail, announcement: `The download stopped. ${detail}` });
+      return false;
     }
   };
 
@@ -1253,7 +1299,7 @@ export default function PdfRedactTool() {
                 {errorDetail}
               </ErrorMessage>
             )}
-            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} />
+            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} keptAttachments={state.edits.keptAttachments} onKeepAttachment={keepAttachment} onDropAttachment={dropAttachment} locale={traceLocale()} />
           </RedactFinish>
         </div>
       )}

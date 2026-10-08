@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { describeTraces, survivedRows, type TraceRow } from './describeTraces.ts';
+import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
 
-const empty = () => ({
+const empty = (): DocumentTraces => ({
   title: null, author: null, subject: null, keywords: null, creator: null, producer: null,
   creationDate: null, modDate: null, otherInfoKeys: [] as string[],
   xmp: { present: false, hasHistory: false },
@@ -12,7 +13,7 @@ const empty = () => ({
 const now = new Date('2026-10-08T12:00:00Z');
 const opts = { locale: 'en-GB', now };
 const flat = (row: TraceRow) => row.parts.map((p) => p.text).join('');
-const one = (traces: ReturnType<typeof empty>, o = opts) => describeTraces(traces, o).map(flat);
+const one = (traces: DocumentTraces, o = opts) => describeTraces(traces, o).map(flat);
 
 describe('describeTraces', () => {
   it('gives no rows for an empty file', () => {

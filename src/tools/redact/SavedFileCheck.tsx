@@ -39,6 +39,7 @@ export default function SavedFileCheck({
   keptAttachments = [],
   onKeepAttachment,
   onDropAttachment,
+  locale,
 }: {
   state: SavedFileCheckState;
   onSearch: (text: string) => void;
@@ -52,6 +53,7 @@ export default function SavedFileCheck({
   keptAttachments?: readonly string[];
   onKeepAttachment?: (name: string) => void;
   onDropAttachment?: (name: string) => void;
+  locale?: string;
 }) {
   const [query, setQuery] = useState('');
   if (state.status === 'idle') return null;
@@ -77,6 +79,7 @@ export default function SavedFileCheck({
         keptAttachments={keptAttachments}
         onKeepAttachment={onKeepAttachment}
         onDropAttachment={onDropAttachment}
+        locale={locale}
       />
       <p className={styles.lead}>{CHECK_LEAD}</p>
       {outcome.results.length === 0 && <p className={styles.note}>{NOTHING_COVERED}</p>}

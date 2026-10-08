@@ -231,6 +231,16 @@ describe('validateDraftRecord', () => {
     expect(notARecord?.extra?.carried).toEqual({});
   });
 
+  it('RED-60: keptAttachments keeps non-empty strings and drops everything else', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [],
+      extra: { keptAttachments: ['a.txt', '', 4, null, 'b.pdf'] },
+    };
+    expect(validateDraftRecord(record)?.extra?.keptAttachments).toEqual(['a.txt', 'b.pdf']);
+    const bad = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: { keptAttachments: 'a.txt' } });
+    expect(bad?.extra?.keptAttachments).toEqual([]);
+  });
+
   it('extra missing entirely leaves carried undefined, not {}', () => {
     const result = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [] });
     expect(result?.extra).toBeUndefined();
