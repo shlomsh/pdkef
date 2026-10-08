@@ -36,7 +36,7 @@ describe('RedactFinish', () => {
 
   it('shows counts and Download when ready, no hand-off yet', () => {
     mount(facts());
-    expect(container.textContent).toContain('3 boxes · 1 deletion');
+    expect(container.textContent).toContain('Saves with 3 boxes and 1 deletion');
     expect(buttons().join('|')).toContain('Download');
     expect(buttons()).not.toContain('Compress it');
   });

@@ -3377,13 +3377,13 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      expect(query(container, '[data-redact-count]').textContent).toBe('1 box');
+      expect(query(container, '[data-redact-count]').textContent).toBe('Saves with 1 box');
       expect(query(container, `.${toolShellStyles.name}`).textContent).toBe('redacted_secret.pdf');
 
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
 
-      expect(query(container, '[data-redact-count]').textContent).toBe('2 boxes');
+      expect(query(container, '[data-redact-count]').textContent).toBe('Saves with 2 boxes');
     });
   });
 
