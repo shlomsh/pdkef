@@ -11,7 +11,7 @@ export type TracePart =
   | { type: 'value'; text: string }
   | { type: 'date'; iso: string; text: string };
 
-export type TraceRowKind = 'made' | 'titled' | 'described' | 'other' | 'xmp' | 'attachment' | 'scripts' | 'thumbnail' | 'pageDetails';
+export type TraceRowKind = 'made' | 'titled' | 'described' | 'other' | 'xmp' | 'pieceInfo' | 'attachment' | 'scripts' | 'thumbnail' | 'pageDetails';
 
 export interface TraceRow {
   id: string;
@@ -107,6 +107,10 @@ export function describeTraces(traces: DocumentTraces, options: { locale: string
     });
   }
 
+  if (traces.pieceInfo) {
+    rows.push({ id: 'pieceInfo', kind: 'pieceInfo', parts: [text('Hidden details the app stored in the file')] });
+  }
+
   traces.attachments.forEach((file, index) => {
     const lead = file.pageIndex === undefined ? 'Attached: ' : `Attached in a comment on page ${file.pageIndex + 1}: `;
     rows.push({
@@ -143,8 +147,8 @@ export function describeTraces(traces: DocumentTraces, options: { locale: string
   return rows;
 }
 
-/** Ids of the rows whose kind is still present in the saved file's traces. */
-export function survivedRows(rows: TraceRow[], saved: DocumentTraces): Set<string> {
+/** Ids of the rows whose kind is still present in the saved file's traces. A kept attachment is expected there. */
+export function survivedRows(rows: TraceRow[], saved: DocumentTraces, keptAttachments: readonly string[] = []): Set<string> {
   const out = new Set<string>();
   for (const row of rows) {
     let present = false;
@@ -154,7 +158,8 @@ export function survivedRows(rows: TraceRow[], saved: DocumentTraces): Set<strin
       case 'described': present = Boolean(saved.subject || saved.keywords); break;
       case 'other': present = saved.otherInfoKeys.length > 0; break;
       case 'xmp': present = saved.xmp.present; break;
-      case 'attachment': present = saved.attachments.some((file) => file.name === row.attachment); break;
+      case 'pieceInfo': present = saved.pieceInfo; break;
+      case 'attachment': present = !keptAttachments.includes(row.attachment ?? '') && saved.attachments.some((file) => file.name === row.attachment); break;
       case 'scripts': present = saved.scripts.document || saved.scripts.pages.length > 0; break;
       case 'thumbnail': present = saved.thumbnails.length > 0; break;
       case 'pageDetails': present = saved.pageDetails.length > 0; break;

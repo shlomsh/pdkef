@@ -12,7 +12,7 @@ import {
 
 const EMPTY: DocumentTraces = {
   title: null, author: null, subject: null, keywords: null, creator: null, producer: null,
-  creationDate: null, modDate: null, otherInfoKeys: [], xmp: { present: false, hasHistory: false },
+  creationDate: null, modDate: null, pieceInfo: false, otherInfoKeys: [], xmp: { present: false, hasHistory: false },
   attachments: [], scripts: { document: false, pages: [] }, thumbnails: [], pageDetails: [],
 };
 const FULL: DocumentTraces = {
@@ -93,7 +93,7 @@ describe('SavedFileCheck traces block', () => {
       expect(row.querySelector('s')).not.toBeNull();
       expect(row.textContent).toContain('\u2713');
     });
-    expect(container.querySelector('h3')?.textContent).toBeTruthy();
+    expect(container.querySelector('h2')?.textContent).toBeTruthy();
     expect(container.textContent).toContain(TRACES_READ_BACK);
     expect(container.querySelector('[role="alert"]')).toBeNull();
   });
@@ -132,5 +132,27 @@ describe('SavedFileCheck traces block', () => {
     act(() => drop.click());
     expect(onDropAttachment).toHaveBeenCalledWith('notes.txt');
     expect(row.querySelector('s')).toBeNull();
+    expect(container.querySelector('[data-trace-survived]')).toBeNull();
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('offers no Keep it on a file attached in a page comment', () => {
+    const original = { ...EMPTY, attachments: [{ name: 'c.txt', pageIndex: 1 }] };
+    show(withTraces(original, EMPTY), { onKeepAttachment: vi.fn() });
+    expect(Array.from(container.querySelectorAll('button')).filter((b) => b.textContent === KEEP_IT)).toHaveLength(0);
+  });
+
+  it('says Gone to a screen reader before each struck row, and not on a survived one', () => {
+    show(withTraces({ ...EMPTY, title: 'T', producer: 'P' }, { ...EMPTY, title: 'T' }));
+    const gone = container.querySelector('[data-trace-row="made"]') as HTMLElement;
+    expect(gone.querySelector('.sr-only')?.textContent).toBe('Gone: ');
+    expect(gone.querySelector('.sr-only + s')).not.toBeNull();
+    const bad = container.querySelector('[data-trace-row="titled"]') as HTMLElement;
+    expect(bad.querySelector('.sr-only')).toBeNull();
+  });
+
+  it('heads the block with an h2', () => {
+    show(withTraces(FULL, EMPTY));
+    expect(container.querySelector('[data-traces] h2')).not.toBeNull();
   });
 });

@@ -788,6 +788,7 @@ export default function PdfRedactTool() {
     pdfDocument,
     originalFile: file,
     announce: setAnnouncement,
+    keptAttachments: state.edits.keptAttachments,
     saved: exportedForHandoff?.blob ?? null,
     boxes: checkBoxes,
     findTerms: [...deletedTerms(elements), ...findTerms],

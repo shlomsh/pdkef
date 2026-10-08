@@ -710,7 +710,7 @@ describe('PdfRedactTool UI flow', () => {
     const finding = { kind: 'in-place', place: 'title', text: 'Secret title', placeIndex: 0 };
     const noTraces = {
       title: null, author: null, subject: null, keywords: null, creator: null, producer: null, creationDate: null, modDate: null,
-      otherInfoKeys: [], xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
+      otherInfoKeys: [], pieceInfo: false, xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
       thumbnails: [], pageDetails: [],
     };
     const savedArgs: Array<Blob | null> = [];
