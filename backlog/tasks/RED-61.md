@@ -42,3 +42,12 @@ Guard `redact-toolbar-labels-fit.spec.js` was red at 390 (Blackout, Whiteout, Do
 four under a 395px container query (6 × 62 + 5 × 4.8 = 396.0, one pixel below). After: 4+4+3 at every
 width from 360 to 430, narrowest button 62.2px at 360. Sign's 20 toolbar guards unchanged. Measured on
 macOS; CI's Linux run is the second check (tests.md).
+
+## 2026-10-08 revised: two rows, smaller labels
+
+The four-per-row step failed `e2e/tool-toolbars/toolbar-phone-row.spec.js` in `check:e2e`: Redact's card
+went to 213px against its 170px ceiling, and the `:nth-child(11 of ...)` selector also matched Sign's
+twelve controls (196px). Shlomi chose two rows with smaller labels over three rows or clipped labels. The
+shared toolbar CSS is back to `main`'s; Redact's phone label is `min(0.66rem, (control width - 8px) / 5.2)`,
+7.1px at 390px. Measured at 390px: every label inside its button with SF (Download 4.3px clear each side)
+and with Verdana forced as the Linux proxy (Download 2.6px). All 34 toolbar guards green.

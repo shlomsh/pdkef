@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changesPieces, changesSummary, describeDetails, detailsSummary, survivedDetails } from './describeDetails.ts';
+import { changesPieces, changesSummary, describeDetails, detailsSummary, survivedAlways, survivedDetails, survivorLabel } from './describeDetails.ts';
 import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
 
 const empty = (): DocumentTraces => ({
@@ -66,10 +66,10 @@ describe('describeDetails', () => {
   it('hidden: names the applicable parts, capitalised', () => {
     const text = (t: Partial<DocumentTraces>) => rows({ ...empty(), ...t })[0].text;
     expect(text({ xmp: { present: true, hasHistory: true } })).toBe('A second copy of these details with its save history');
-    expect(text({ pieceInfo: true })).toBe("The app's own notes");
+    expect(rows({ ...empty(), pieceInfo: true })).toEqual([]);
     expect(text({ otherInfoKeys: ['Company'] })).toBe("The app's own notes");
     expect(text({ pageDetails: [1] })).toBe("The app's own notes");
-    expect(text({ xmp: { present: true, hasHistory: false }, pieceInfo: true })).toBe("A second copy of these details, the app's own notes");
+    expect(text({ xmp: { present: true, hasHistory: false }, pieceInfo: true })).toBe('A second copy of these details');
   });
 
   it('scripts row for page scripts too', () => {
@@ -89,7 +89,7 @@ describe('detailsSummary', () => {
   it('joins title, author, made and created, then files, scripts and hidden', () => {
     const t = {
       ...empty(), title: 'T', author: 'A', subject: 'S', creator: 'Pages', creationDate: date('2026-10-07T09:14:00'),
-      attachments: [{ name: 'a' }, { name: 'b' }], scripts: { document: true, pages: [] }, pieceInfo: true,
+      attachments: [{ name: 'a' }, { name: 'b' }], scripts: { document: true, pages: [] }, otherInfoKeys: ['K'],
     };
     const created = rows(t).find((r) => r.id === 'created')!.text;
     expect(detailsSummary(rows(t), {}).join(' · ')).toBe(`T · A · Pages · ${created} · 2 attached files · scripts · hidden details`);
@@ -146,7 +146,7 @@ describe('changesSummary', () => {
   });
 
   it('gives the pieces for the UI to wrap one by one', () => {
-    expect(changesPieces(rows(t), { author: { action: 'delete' }, title: { action: 'alter', value: 'X' } })).toEqual(['title altered', 'author deleted']);
+    expect(changesPieces(rows(t), { author: { action: 'delete' }, title: { action: 'alter', value: 'X' } })).toEqual([{ name: 'title', verb: 'altered' }, { name: 'author', verb: 'deleted' }]);
   });
 
   it('ignores edits for ids the file does not have', () => {
@@ -200,8 +200,8 @@ describe('survivedDetails', () => {
     expect(survivedDetails({ scripts: del }, empty())).toEqual([]);
   });
 
-  it('hidden survives on any of xmp, pieceInfo, other Info keys, page details', () => {
-    for (const part of [{ xmp: { present: true, hasHistory: false } }, { pieceInfo: true }, { otherInfoKeys: ['K'] }, { pageDetails: [0] }]) {
+  it('hidden survives on any of xmp, other Info keys, page details', () => {
+    for (const part of [{ xmp: { present: true, hasHistory: false } }, { otherInfoKeys: ['K'] }, { pageDetails: [0] }]) {
       expect(survivedDetails({ hidden: del }, { ...empty(), ...part })).toEqual(['hidden']);
     }
     expect(survivedDetails({ hidden: del }, empty())).toEqual([]);
@@ -220,5 +220,36 @@ describe('survivedDetails', () => {
   it('catches an implied Changed delete (from deleting Created) that did not take', () => {
     const saved = { ...empty(), modDate: date('2026-01-01T00:00:00') };
     expect(survivedDetails({ created: { action: 'delete' } }, saved)).toEqual(['changed']);
+  });
+});
+
+describe('survivedAlways', () => {
+  it('names page pictures and app data still in the saved file, whatever the edits', () => {
+    expect(survivedAlways(empty())).toEqual([]);
+    expect(survivedAlways({ ...empty(), thumbnails: [0, 2] })).toEqual(['Page pictures']);
+    expect(survivedAlways({ ...empty(), pieceInfo: true })).toEqual(['App data']);
+    expect(survivedAlways({ ...empty(), thumbnails: [1], pieceInfo: true })).toEqual(['Page pictures', 'App data']);
+  });
+
+  it('survivedDetails no longer counts pieceInfo as hidden', () => {
+    expect(survivedDetails({ hidden: { action: 'delete' } }, { ...empty(), pieceInfo: true })).toEqual([]);
+  });
+});
+
+describe('survivorLabel', () => {
+  const r = [{ id: 'title', label: 'Title', text: 'Q', editable: true }];
+  it('uses the row label when the rows are loaded', () => {
+    expect(survivorLabel('title', r)).toBe('Title');
+  });
+
+  it('falls back to the id plain label while rows are still empty', () => {
+    const labels = Object.fromEntries(['title', 'made', 'scripts', 'hidden', 'created', 'changed', 'author'].map((id) => [id, survivorLabel(id, [])]));
+    expect(labels).toEqual({ title: 'Title', made: 'App', scripts: 'Scripts', hidden: 'Hidden', created: 'Created', changed: 'Changed', author: 'Author' });
+    expect(survivorLabel('attachment:2:שם.png', [])).toBe('שם.png');
+    expect(survivorLabel('attachment::a:b.png', [])).toBe('a:b.png');
+  });
+
+  it('names an attachment by its file name from the row', () => {
+    expect(survivorLabel('attachment::a.png', [{ id: 'attachment::a.png', label: 'Attached', text: 'a.png', editable: false }])).toBe('a.png');
   });
 });

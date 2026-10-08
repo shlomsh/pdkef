@@ -1,4 +1,6 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
+import type { ChangePiece } from './details/describeDetails.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './SavedFileCheck.module.css';
 import {
@@ -29,7 +31,7 @@ import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 const MARK = '\u0001';
 
 /** The copy's sentence with each name in its own `<bdi>`, so a Hebrew name can't reorder its neighbours. */
-function withPieces(sentence: (pieces: string) => string, pieces: readonly string[]) {
+function withPieces<T>(sentence: (pieces: string) => string, pieces: readonly T[], render: (piece: T) => ComponentChildren) {
   const [lead, tail] = sentence(MARK).split(MARK);
   return (
     <>
@@ -37,7 +39,7 @@ function withPieces(sentence: (pieces: string) => string, pieces: readonly strin
       {pieces.map((piece, i) => (
         <>
           {i > 0 && ', '}
-          <bdi>{piece}</bdi>
+          {render(piece)}
         </>
       ))}
       {tail}
@@ -68,8 +70,8 @@ export default function SavedFileCheck({
   removing?: boolean;
   /** What the last Remove it did, said plainly. */
   note?: string | null;
-  /** RED-59: the person's detail changes in words, '' when none. */
-  detailsChanged?: readonly string[];
+  /** RED-59: the person's detail changes, empty when none. */
+  detailsChanged?: readonly ChangePiece[];
   /** RED-59: labels of edited details that are still in the saved file. */
   detailsSurvived?: readonly string[];
   onReviewDetails?: () => void;
@@ -94,12 +96,12 @@ export default function SavedFileCheck({
       {note && <p className={styles.note} role="status" data-check-removed>{note}</p>}
       {detailsSurvived.length > 0 ? (
         <p className={styles.danger} role="alert" data-details-survived>
-          {withPieces(DETAILS_SURVIVED, detailsSurvived)}
+          {withPieces(DETAILS_SURVIVED, detailsSurvived, (label) => <bdi>{label}</bdi>)}
         </p>
       ) : (
         detailsChanged.length > 0 && (
           <p className={styles.details} data-details-changed>
-            {withPieces(DETAILS_CHANGED, detailsChanged)}
+            {withPieces(DETAILS_CHANGED, detailsChanged, ({ name, verb }) => <><bdi>{name}</bdi> {verb}</>)}
             <button type="button" className={styles.review} onClick={onReviewDetails}>{DETAILS_REVIEW}</button>
           </p>
         )

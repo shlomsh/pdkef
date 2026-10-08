@@ -58,11 +58,11 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
       if (editingId !== null) {
         pendingFocus.current = { id: editingId, action: 'edit' };
         setEditingId(null);
-      } else onClose();
+      } else closeRef.current();
     };
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [open, editingId, onClose]);
+  }, [open, editingId]);
 
   useEffect(() => {
     if (editingId !== null) inputRef.current?.focus();
@@ -97,6 +97,15 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
     else if (value !== currentText(row)) onEdit(row.id, { action: 'alter', value });
   };
 
+  // Closing never throws a typed value away: the active edit commits first, by the row's Done rule.
+  const closeSheet = () => {
+    const active = editingId === null ? undefined : rows.find((r) => r.id === editingId);
+    if (active) commit(active);
+    onClose();
+  };
+  const closeRef = useRef(closeSheet);
+  closeRef.current = closeSheet;
+
   const stateOf = (row: DetailRow): RowState => {
     if (editingId === row.id) return 'editing';
     const edit = edits[row.id];
@@ -126,12 +135,12 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
       ref={dialogRef}
       class={styles.sheet}
       aria-labelledby="details-sheet-title"
-      onClose={() => { if (open) onClose(); }}
-      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      onClose={() => { if (open) closeSheet(); }}
+      onClick={(event) => { if (event.target === event.currentTarget) closeSheet(); }}
     >
       <div class={styles.sheetHeader}>
         <h3 id="details-sheet-title">{DETAILS_TITLE}</h3>
-        <button type="button" class={styles.done} onClick={onClose}>{DETAILS_CLOSE}</button>
+        <button type="button" class={styles.done} onClick={closeSheet}>{DETAILS_CLOSE}</button>
       </div>
       <ul class={styles.rows}>
         {rows.map((row) => {

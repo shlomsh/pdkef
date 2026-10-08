@@ -40,7 +40,7 @@ function formatDate(iso: string, locale: string, now: Date): string {
   }).format(when);
 }
 
-const hasHidden = (t: DocumentTraces) => t.xmp.present || t.pieceInfo || t.otherInfoKeys.length > 0 || t.pageDetails.length > 0;
+const hasHidden = (t: DocumentTraces) => t.xmp.present || t.otherInfoKeys.length > 0 || t.pageDetails.length > 0;
 const hasScripts = (t: DocumentTraces) => t.scripts.document || t.scripts.pages.length > 0;
 
 export function describeDetails(traces: DocumentTraces, options: { locale: string; now: Date }): DetailRow[] {
@@ -80,7 +80,7 @@ export function describeDetails(traces: DocumentTraces, options: { locale: strin
   if (hasHidden(traces)) {
     const parts: string[] = [];
     if (traces.xmp.present) parts.push(traces.xmp.hasHistory ? 'a second copy of these details with its save history' : 'a second copy of these details');
-    if (traces.pieceInfo || traces.otherInfoKeys.length > 0 || traces.pageDetails.length > 0) parts.push("the app's own notes");
+    if (traces.otherInfoKeys.length > 0 || traces.pageDetails.length > 0) parts.push("the app's own notes");
     const joined = parts.join(', ');
     rows.push({ id: 'hidden', label: 'Hidden', text: joined.charAt(0).toUpperCase() + joined.slice(1), editable: false });
   }
@@ -114,20 +114,26 @@ export function detailsSummary(rows: DetailRow[], edits: DetailEdits): string[] 
   return pieces;
 }
 
+/** One change in words: the UI puts only `name` in a `<bdi>`, the verb stays in the sentence's own direction. */
+export interface ChangePiece {
+  name: string;
+  verb: 'deleted' | 'altered';
+}
+
 /** What the person changed, in row order, one piece each. Only explicit edits (the implied Hidden row is not one). */
-export function changesPieces(rows: DetailRow[], edits: DetailEdits): string[] {
-  const parts: string[] = [];
+export function changesPieces(rows: DetailRow[], edits: DetailEdits): ChangePiece[] {
+  const parts: ChangePiece[] = [];
   for (const row of rows) {
     const edit = edits[row.id];
     if (!edit) continue;
     const verb = edit.action === 'delete' ? 'deleted' : 'altered';
     const name = row.id.startsWith('attachment:') ? row.text : row.id === 'made' ? 'app' : row.label.toLowerCase();
-    parts.push(`${name} ${verb}`);
+    parts.push({ name, verb });
   }
   return parts;
 }
 
-export const changesSummary = (rows: DetailRow[], edits: DetailEdits): string => changesPieces(rows, edits).join(', ');
+export const changesSummary = (rows: DetailRow[], edits: DetailEdits): string => changesPieces(rows, edits).map((piece) => `${piece.name} ${piece.verb}`).join(', ');
 
 const isText = (id: string): id is (typeof TEXT_ROWS)[number][0] => TEXT_ROWS.some(([textId]) => textId === id);
 
@@ -158,4 +164,28 @@ export function survivedDetails(edits: DetailEdits, saved: DocumentTraces): stri
     if (survived) out.push(id);
   }
   return out;
+}
+
+/**
+ * Page pictures and app data always go on export, whatever the person edited,
+ * so finding either in the saved file is a failure of its own. Labels, not ids.
+ */
+export function survivedAlways(saved: DocumentTraces): string[] {
+  const out: string[] = [];
+  if (saved.thumbnails.length > 0) out.push('Page pictures');
+  if (saved.pieceInfo) out.push('App data');
+  return out;
+}
+
+const PLAIN_LABELS: Record<string, string> = { made: 'App', scripts: 'Scripts', hidden: 'Hidden', created: 'Created', changed: 'Changed' };
+
+/** A survivor's label for the alert: from its row, or its plain label while the rows are still loading. */
+export function survivorLabel(id: string, rows: DetailRow[]): string {
+  const row = rows.find((r) => r.id === id);
+  if (row) return id.startsWith('attachment:') ? row.text : row.label;
+  if (id.startsWith('attachment:')) {
+    const rest = id.slice('attachment:'.length);
+    return rest.slice(rest.indexOf(':') + 1);
+  }
+  return PLAIN_LABELS[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
 }

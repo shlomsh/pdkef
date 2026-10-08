@@ -76,21 +76,28 @@ describe('SavedFileCheck details line', () => {
 
   it('says what changed and hands Review back', () => {
     const onReviewDetails = vi.fn();
-    show({ detailsChanged: ['title altered', 'author deleted'], onReviewDetails });
+    show({ detailsChanged: [{ name: 'title', verb: 'altered' }, { name: 'author', verb: 'deleted' }], onReviewDetails });
     const line = container.querySelector('[data-details-changed]') as HTMLElement;
     expect(line.textContent).toContain(DETAILS_CHANGED('title altered, author deleted'));
-    expect([...line.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['title altered', 'author deleted']);
+    expect([...line.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['title', 'author']);
     const review = Array.from(line.querySelectorAll('button')).find((b) => b.textContent === DETAILS_REVIEW)!;
     act(() => review.click());
     expect(onReviewDetails).toHaveBeenCalledTimes(1);
   });
 
   it('turns an edit that did not take into an alert naming the details', () => {
-    show({ detailsChanged: ['title deleted'], detailsSurvived: ['Title', 'Scripts'] });
+    show({ detailsChanged: [{ name: 'title', verb: 'deleted' }], detailsSurvived: ['Title', 'Scripts'] });
     const alert = container.querySelector('[data-details-survived]') as HTMLElement;
     expect(alert.getAttribute('role')).toBe('alert');
     expect(alert.textContent).toBe(DETAILS_SURVIVED('Title, Scripts'));
     expect([...alert.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['Title', 'Scripts']);
     expect(container.querySelector('[data-details-changed]')).toBeNull();
+  });
+
+  it('keeps a Hebrew name alone in its bdi, the verb outside', () => {
+    show({ detailsChanged: [{ name: 'שם.pdf', verb: 'deleted' }] });
+    const line = container.querySelector('[data-details-changed]') as HTMLElement;
+    expect([...line.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['שם.pdf']);
+    expect(line.textContent).toContain('Details: שם.pdf deleted.');
   });
 });
