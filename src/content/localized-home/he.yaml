@@ -6,7 +6,7 @@
 # reaches production, same as always; nothing about this file changes that.
 #
 # Terminology follows src/i18n/documentationMessages.ts's already-reviewed
-# Hebrew shell strings where a concept overlaps (עובד מקומית / חינם לכולם /
+# Hebrew shell strings where a concept overlaps (עובד מקומית / בחינם, ללא תנאים /
 # קוד פתוח ברישיון MIT...) rather than inventing new terms - LOC-09's design
 # doc, section 7.1. The founder-story vocabulary (the errand, the consent
 # form, the paywall) has no existing reviewed precedent, so it is a first
