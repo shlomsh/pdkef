@@ -342,7 +342,7 @@ export const tools = [
     steps: [
       { title: 'Open your PDF', text: 'Choose a PDF from your device or drag it into the tool. It opens in your browser without being uploaded.' },
       { title: 'Choose the result', text: 'Use Blur, Blackout or Whiteout to drag a box over what you want to cover. Use Delete to click highlighted text or an image and delete it. You can mix the tools in the same PDF.' },
-      { title: 'Download your changed PDF', text: 'A page with a Blur, Blackout or Whiteout box is saved as a picture, so its text can no longer be selected or searched, and nothing hides under the box. Pages where you only used Delete keep their text. Your original file is not changed.' },
+      { title: 'Download your changed PDF', text: 'A page with a Blur, Blackout or Whiteout box is saved as a picture, so its text can no longer be selected or searched and what was under the box is gone for good. Pages where you only used Delete keep their text. Your original file is not changed.' },
     ],
     faq: [
       { question: 'How can I blur text in a PDF for free?', answer: 'Choose your PDF, select Blur, and click and drag to draw a box over the text. Adjust the box, then choose Download. There is no signup, upload, or watermark. A page with a blur box is saved as a picture. Blur only softens, so use Blackout for confidential text.' },
