@@ -1,10 +1,10 @@
 ---
 id: "RED-59"
 title: "Metadata removal is a claim Redact has to show and explain, not just do"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact"
-horizon: "next"
+horizon: "now"
 depends_on: []
 ---
 
