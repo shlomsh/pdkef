@@ -147,3 +147,5 @@ Trends read of the split modes.
 What is still unexplained: two pages read a day apart, one stepped to page one on 09-26 and one did not.
 Measurable next: the `/merge/` page as served on 09-12 against `/split/` as served on 09-11 (git), and
 whether anything linked to `/merge/` and not `/split/` by then.
+
+- 2026-10-08: indexing requested for `/split/` (Shlomi), after the SEO-42 title deploy.
