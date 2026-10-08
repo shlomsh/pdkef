@@ -149,3 +149,17 @@ Measurable next: the `/merge/` page as served on 09-12 against `/split/` as serv
 whether anything linked to `/merge/` and not `/split/` by then.
 
 - 2026-10-08: indexing requested for `/split/` (Shlomi), after the SEO-42 title deploy.
+
+## 2026-10-08 /merge/ as read on 09-12 against /split/ as read on 09-11 (git)
+
+- Same page wrapper, same sitemap priority and JSON-LD, registry-generated internal links on both;
+  `/split/` had more copy (FAQ 7 vs 5, 272 vs 145 words) and two hand-written inbound links `/merge/`
+  lacked. On-page, Split was not behind.
+- The only structural asymmetry: `/he/merge/` published 09-11 18:03 with reciprocal hreflang
+  (en, he, x-default) on `/merge/`; `/split/` has no alternate. Plus one merge-only sentence (SEO-10's
+  no-limit line), which SEO-39 found had no demand.
+- Nothing in the repo records a Google update or resubmission near 09-26.
+
+**Reading:** most likely Google re-weighing the domain, page by page, on its own schedule. The one lever
+left that the data names is the hreflang cluster; a Hebrew `/he/split/` would test it, valued for the
+English page's signal, not for Hebrew traffic. Unproven, and LOC rules apply (docs/i18n-status/).
