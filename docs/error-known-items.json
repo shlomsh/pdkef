@@ -70,12 +70,22 @@
     "ticket": "DEBT-38",
     "title": "pdf.js needs the global Iterator, missing before Chromium 122",
     "match": {
-      "area": "pdf_tool_run",
       "name": "ReferenceError",
-      "slug": "compress",
       "module": "pdf"
     },
     "open": true,
-    "note": "old browsers are told once a file is added; the crash itself is not prevented"
+    "note": "any tool, any step: a ReferenceError from the pdf.js chunk is a built-in the browser lacks; old browsers are told once a file is added, and DEBT-42 polyfills the global (set fixedIn once a stamped build carries it)"
+  },
+  {
+    "id": "DEBT-42",
+    "ticket": "DEBT-42",
+    "title": "pdf.js calls Map.prototype.getOrInsertComputed (and other built-ins) the browser lacks",
+    "match": {
+      "name": "TypeError",
+      "step": ["load_document", "render_page", "read_glyphs"],
+      "module": "pdf"
+    },
+    "open": true,
+    "note": "seen on Chromium 141 at render_page and read_glyphs; polyfilled in src/lib/pdfjsPolyfills.js on the page and in the worker, set fixedIn to the landing commit"
   }
 ]
