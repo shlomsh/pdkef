@@ -1,0 +1,779 @@
+{
+  "form": "btl-1500-2026",
+  "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+  "sourceUrl": "",
+  "pageIndex": 5,
+  "pageSize": {
+    "width": 612,
+    "height": 792
+  },
+  "render": {
+    "file": "btl-1500-2026-page6.png",
+    "width": 1275,
+    "height": 1650
+  },
+  "notes": "BTL form 1500 (unemployment claim, 05.2026 edition, the employer's confirmation 'אישור המעסיק על תקופת ההעסקה ועל השכר'), supplied by Shlomi on 2026-10-08 as T1500.pdf; PDF page 6 of 7 (pageIndex 5), printed 'עמוד 5 מתוך 6': section I (employer details), the employee details and reason for stopping work, the pay-basis row, the notice-pay row and the employer declaration. Flat Word export with a text layer, no AcroForm, Letter page. The render is a 150 DPI pdftoppm render. Annotated from the render and the page's own primitives (pdf.js text positions and the page's painted cell interiors, raster measurement of underscore ink lines, tick combs and the ❑ checkbox ink), never from detector output. Conventions copied from btl-bl211-2015-page2/page7 and btl-1500-2026-page3/4/5/7: an underscore run is a text target 11 pt tall above the printed line, x from the first to the last underscore; a blank on an underline for a date is `date`, otherwise `text`; a tick comb is ONE target with `cells` (an 8-cell day/month/year comb is `date`, the 9-cell ID comb and the 10-cell phones are `comb`), bounded from the baseline up to the regular tick tops; a ruled cell a person writes into is kind `text`; a cell whose caption sits inside it (name, email, employer name, file number) is the writing strip beneath the caption, a cell whose caption is in its own header row (the address rows) is the whole input cell; a checkbox is the ink of the printed ❑ square, drop shadow included, and belongs to the word at its left; yes/no pairs are two independent checkboxes; a signature is a `signature` target about 17 pt tall above its line. Labels are the field's own caption, then ' / ' and its group or question. Pattern not covered by earlier truths: the three printed lines under 'הערות לסיבה להפסקת העבודה' are three text targets (one per printed line, as every underscore run is), and the two 10-cell phone combs carry a taller tick after the seventh cell which is treated as a grouping mark, not a divider (btl-bl211-2015-page2 phone rule). Not annotated: the 'לשימוש פנימי בלבד' scan box with its ID comb, document-type cells and page count, the 'חותמת קבלה' stamp box, the section badge I, the grey bars, the table caption rows, the pre-printed X marks beside the signatures, all declaration text and the footer. Checkbox bounds are the printed square without the shadow (FORM-31 convention).",
+  "targets": [
+    {
+      "id": "t001",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4937,
+        "y": 0.0352,
+        "width": 0.18,
+        "height": 0.0139
+      },
+      "label": "נא למלא מספר תעודת זהות"
+    },
+    {
+      "id": "t002",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5663,
+        "y": 0.2304,
+        "width": 0.3435,
+        "height": 0.0139
+      },
+      "label": "שם המעסיק"
+    },
+    {
+      "id": "t003",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0753,
+        "y": 0.2304,
+        "width": 0.4874,
+        "height": 0.0139
+      },
+      "label": "מספר תיק ניכויים"
+    },
+    {
+      "id": "t004",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7271,
+        "y": 0.2645,
+        "width": 0.1832,
+        "height": 0.0221
+      },
+      "label": "רחוב / תא דואר / פרטי המעסיק"
+    },
+    {
+      "id": "t005",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6459,
+        "y": 0.2645,
+        "width": 0.0776,
+        "height": 0.0221
+      },
+      "label": "מס' בית / פרטי המעסיק"
+    },
+    {
+      "id": "t006",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5663,
+        "y": 0.2645,
+        "width": 0.0761,
+        "height": 0.0221
+      },
+      "label": "כניסה / פרטי המעסיק"
+    },
+    {
+      "id": "t007",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4855,
+        "y": 0.2645,
+        "width": 0.0773,
+        "height": 0.0221
+      },
+      "label": "דירה / פרטי המעסיק"
+    },
+    {
+      "id": "t008",
+      "kind": "text",
+      "bounds": {
+        "x": 0.207,
+        "y": 0.2645,
+        "width": 0.2748,
+        "height": 0.0221
+      },
+      "label": "יישוב / פרטי המעסיק"
+    },
+    {
+      "id": "t009",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0753,
+        "y": 0.2645,
+        "width": 0.1283,
+        "height": 0.0221
+      },
+      "label": "מיקוד / פרטי המעסיק"
+    },
+    {
+      "id": "t010",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.6219,
+        "y": 0.316,
+        "width": 0.2843,
+        "height": 0.0152
+      },
+      "label": "טלפון קווי",
+      "cells": 10,
+      "notes": "ticks continuous, a taller tick after the 7th cell from the right (7|3 split) does not divide the run"
+    },
+    {
+      "id": "t011",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.333,
+        "y": 0.316,
+        "width": 0.2804,
+        "height": 0.0152
+      },
+      "label": "טלפון פקס",
+      "cells": 10,
+      "notes": "same 10-cell run as the phone, taller tick after the 7th cell from the right"
+    },
+    {
+      "id": "t012",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0753,
+        "y": 0.3095,
+        "width": 0.2541,
+        "height": 0.0345
+      },
+      "label": "דואר אלקטרוני",
+      "notes": "cell with its caption inside top-right; target is the strip beneath the caption"
+    },
+    {
+      "id": "t013",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7271,
+        "y": 0.3818,
+        "width": 0.1832,
+        "height": 0.0215
+      },
+      "label": "רחוב / תא דואר / מען למכתבים (אם שונה מהכתובת המפורטת למעלה)"
+    },
+    {
+      "id": "t014",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6459,
+        "y": 0.3818,
+        "width": 0.0776,
+        "height": 0.0215
+      },
+      "label": "מס' בית / מען למכתבים (אם שונה מהכתובת המפורטת למעלה)"
+    },
+    {
+      "id": "t015",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5663,
+        "y": 0.3818,
+        "width": 0.0761,
+        "height": 0.0215
+      },
+      "label": "כניסה / מען למכתבים (אם שונה מהכתובת המפורטת למעלה)"
+    },
+    {
+      "id": "t016",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4855,
+        "y": 0.3818,
+        "width": 0.0773,
+        "height": 0.0215
+      },
+      "label": "דירה / מען למכתבים (אם שונה מהכתובת המפורטת למעלה)"
+    },
+    {
+      "id": "t017",
+      "kind": "text",
+      "bounds": {
+        "x": 0.207,
+        "y": 0.3818,
+        "width": 0.2748,
+        "height": 0.0215
+      },
+      "label": "יישוב / מען למכתבים (אם שונה מהכתובת המפורטת למעלה)"
+    },
+    {
+      "id": "t018",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0753,
+        "y": 0.3818,
+        "width": 0.1283,
+        "height": 0.0215
+      },
+      "label": "מיקוד / מען למכתבים (אם שונה מהכתובת המפורטת למעלה)"
+    },
+    {
+      "id": "t019",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7686,
+        "y": 0.4749,
+        "width": 0.1373,
+        "height": 0.0554
+      },
+      "label": "שם משפחה",
+      "notes": "caption inside the cell, target is the strip beneath it"
+    },
+    {
+      "id": "t020",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6342,
+        "y": 0.4749,
+        "width": 0.131,
+        "height": 0.0554
+      },
+      "label": "שם פרטי",
+      "notes": "caption inside the cell, target is the strip beneath it"
+    },
+    {
+      "id": "t021",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.4258,
+        "y": 0.5021,
+        "width": 0.1974,
+        "height": 0.0152
+      },
+      "label": "מספר זהות",
+      "cells": 9,
+      "notes": "9 cells; the rightmost cell is the check digit (ס\"ב), set off by a taller tick, still one run"
+    },
+    {
+      "id": "t022",
+      "kind": "date",
+      "bounds": {
+        "x": 0.2454,
+        "y": 0.5006,
+        "width": 0.1624,
+        "height": 0.0152
+      },
+      "label": "מתאריך / תקופת העסקה",
+      "cells": 8,
+      "notes": "DD MM YYYY tick comb, taller ticks after the day and month cells"
+    },
+    {
+      "id": "t023",
+      "kind": "date",
+      "bounds": {
+        "x": 0.0737,
+        "y": 0.5006,
+        "width": 0.1541,
+        "height": 0.0152
+      },
+      "label": "עד תאריך / תקופת העסקה",
+      "cells": 8,
+      "notes": "DD MM YYYY tick comb, taller ticks after the day and month cells"
+    },
+    {
+      "id": "t024",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8816,
+        "y": 0.5518,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "פיטורין ביוזמת המעסיק / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t025",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6289,
+        "y": 0.5518,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "התפטרות ביוזמת העובד / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t026",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8816,
+        "y": 0.5713,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "פרישה לפנסיה – ביוזמת המעסיק / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t027",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6292,
+        "y": 0.5713,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "פרישה לפנסיה – ביוזמת העובד / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t028",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.3831,
+        "y": 0.5713,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "יציאה לחל\"ת ביוזמת המעסיק / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t029",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8816,
+        "y": 0.591,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "יציאה לחל\"ת ביוזמת העובד / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t030",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6294,
+        "y": 0.591,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "סיבה אחרת. נא לפרט / הסיבה להפסקת העבודה"
+    },
+    {
+      "id": "t031",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0882,
+        "y": 0.5915,
+        "width": 0.391,
+        "height": 0.0139
+      },
+      "label": "סיבה אחרת. נא לפרט"
+    },
+    {
+      "id": "t032",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0827,
+        "y": 0.6197,
+        "width": 0.1918,
+        "height": 0.0139
+      },
+      "label": "הערות לסיבה להפסקת העבודה",
+      "notes": "line 1 of 3 printed underscore lines of one comment"
+    },
+    {
+      "id": "t033",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0871,
+        "y": 0.6343,
+        "width": 0.391,
+        "height": 0.0139
+      },
+      "label": "הערות לסיבה להפסקת העבודה",
+      "notes": "line 2 of 3 printed underscore lines of one comment"
+    },
+    {
+      "id": "t034",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0867,
+        "y": 0.6488,
+        "width": 0.3914,
+        "height": 0.0139
+      },
+      "label": "הערות לסיבה להפסקת העבודה",
+      "notes": "line 3 of 3 printed underscore lines of one comment"
+    },
+    {
+      "id": "t035",
+      "kind": "date",
+      "bounds": {
+        "x": 0.7843,
+        "y": 0.6379,
+        "width": 0.1004,
+        "height": 0.0139
+      },
+      "label": "מ / למי שנמצא בחל\"ת, ציין תקופת חל\"ת"
+    },
+    {
+      "id": "t036",
+      "kind": "date",
+      "bounds": {
+        "x": 0.649,
+        "y": 0.6379,
+        "width": 0.1098,
+        "height": 0.0139
+      },
+      "label": "עד / למי שנמצא בחל\"ת, ציין תקופת חל\"ת"
+    },
+    {
+      "id": "t037",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6745,
+        "y": 0.6564,
+        "width": 0.0643,
+        "height": 0.0139
+      },
+      "label": "מספר ימי חופשה שנותרו"
+    },
+    {
+      "id": "t038",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8816,
+        "y": 0.6915,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "חודשי / שכרו שולם על בסיס"
+    },
+    {
+      "id": "t039",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.804,
+        "y": 0.6915,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "יומי / שכרו שולם על בסיס"
+    },
+    {
+      "id": "t040",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.7434,
+        "y": 0.6915,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "שעות / שכרו שולם על בסיס"
+    },
+    {
+      "id": "t041",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8765,
+        "y": 0.711,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אחר / שכרו שולם על בסיס"
+    },
+    {
+      "id": "t042",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7639,
+        "y": 0.7115,
+        "width": 0.0729,
+        "height": 0.0139
+      },
+      "label": "אחר / שכרו שולם על בסיס"
+    },
+    {
+      "id": "t043",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5376,
+        "y": 0.702,
+        "width": 0.1353,
+        "height": 0.0246
+      },
+      "label": "מספר ימי עבודה בשבוע",
+      "notes": "blank cell under its two-line caption; target is the area beneath the caption"
+    },
+    {
+      "id": "t044",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4333,
+        "y": 0.702,
+        "width": 0.1008,
+        "height": 0.0246
+      },
+      "label": "מספר שעות עבודה ביום",
+      "notes": "blank cell under its two-line caption; target is the area beneath the caption"
+    },
+    {
+      "id": "t045",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.3639,
+        "y": 0.7058,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / עבודה במשמרות"
+    },
+    {
+      "id": "t046",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.4055,
+        "y": 0.7058,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / עבודה במשמרות"
+    },
+    {
+      "id": "t047",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.2368,
+        "y": 0.7058,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / עובד בשבת/חג"
+    },
+    {
+      "id": "t048",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.2784,
+        "y": 0.7058,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / עובד בשבת/חג"
+    },
+    {
+      "id": "t049",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.1303,
+        "y": 0.7058,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / זכאי לקצבת פרישה"
+    },
+    {
+      "id": "t050",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.1809,
+        "y": 0.7058,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / זכאי לקצבת פרישה"
+    },
+    {
+      "id": "t051",
+      "kind": "date",
+      "bounds": {
+        "x": 0.7247,
+        "y": 0.7727,
+        "width": 0.1742,
+        "height": 0.0152
+      },
+      "label": "מתאריך / שולם תשלום בגין אי מתן הודעה מוקדמת (ימים/חודשים)",
+      "cells": 8,
+      "notes": "DD MM YYYY tick comb, taller ticks after the day and month cells"
+    },
+    {
+      "id": "t052",
+      "kind": "date",
+      "bounds": {
+        "x": 0.5075,
+        "y": 0.7727,
+        "width": 0.1995,
+        "height": 0.0152
+      },
+      "label": "עד תאריך / שולם תשלום בגין אי מתן הודעה מוקדמת (ימים/חודשים)",
+      "cells": 8,
+      "notes": "DD MM YYYY tick comb, taller ticks after the day and month cells"
+    },
+    {
+      "id": "t053",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.422,
+        "y": 0.7916,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / העובד נמנה כיום או היה נמנה בעבר עם בעלי החברה"
+    },
+    {
+      "id": "t054",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.4725,
+        "y": 0.7916,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / העובד נמנה כיום או היה נמנה בעבר עם בעלי החברה"
+    },
+    {
+      "id": "t055",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.2637,
+        "y": 0.7916,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / האם העובד מוגדר כיום או היה מוגדר בעבר במס הכנסה כבעל שליטה בחברת מעטים (כהגדרתו בסעיף 32 לפקודת מס הכנסה)"
+    },
+    {
+      "id": "t056",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.3143,
+        "y": 0.7916,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / האם העובד מוגדר כיום או היה מוגדר בעבר במס הכנסה כבעל שליטה בחברת מעטים (כהגדרתו בסעיף 32 לפקודת מס הכנסה)"
+    },
+    {
+      "id": "t057",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.7985,
+        "y": 0.8141,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "בבנק / השכר שולם"
+    },
+    {
+      "id": "t058",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.7273,
+        "y": 0.8141,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "בהמחאה / השכר שולם"
+    },
+    {
+      "id": "t059",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6314,
+        "y": 0.8141,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "במזומן / השכר שולם"
+    },
+    {
+      "id": "t060",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.5541,
+        "y": 0.8141,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אחר / השכר שולם"
+    },
+    {
+      "id": "t061",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4957,
+        "y": 0.8142,
+        "width": 0.0278,
+        "height": 0.0139
+      },
+      "label": "אחר / השכר שולם"
+    },
+    {
+      "id": "t062",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.4563,
+        "y": 0.8286,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / קיימת קרבה משפחתית בינך לבין העובד"
+    },
+    {
+      "id": "t063",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.3284,
+        "y": 0.8286,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / קיימת קרבה משפחתית בינך לבין העובד"
+    },
+    {
+      "id": "t064",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1545,
+        "y": 0.8291,
+        "width": 0.1094,
+        "height": 0.0139
+      },
+      "label": "כן, מסוג / קיימת קרבה משפחתית בינך לבין העובד"
+    },
+    {
+      "id": "t065",
+      "kind": "signature",
+      "bounds": {
+        "x": 0.0984,
+        "y": 0.9149,
+        "width": 0.1271,
+        "height": 0.0212
+      },
+      "label": "חתימה וחותמת המעסיק/המפעל / הצהרת המעסיק",
+      "notes": "writing strip above the printed underscore run, ~17 pt tall as on btl-1500-2026-page5; the pre-printed X mark beside it is not part of the target"
+    },
+    {
+      "id": "t066",
+      "kind": "signature",
+      "bounds": {
+        "x": 0.4643,
+        "y": 0.9149,
+        "width": 0.1365,
+        "height": 0.0212
+      },
+      "label": "חתימת החותם ותפקידו / הצהרת המעסיק",
+      "notes": "signer signature and job title on one line; the pre-printed X mark beside it is not part of the target"
+    },
+    {
+      "id": "t067",
+      "kind": "date",
+      "bounds": {
+        "x": 0.7839,
+        "y": 0.9221,
+        "width": 0.082,
+        "height": 0.0139
+      },
+      "label": "תאריך / הצהרת המעסיק"
+    }
+  ]
+}

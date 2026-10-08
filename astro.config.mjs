@@ -82,6 +82,9 @@ export default defineConfig({
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
     plugins: [tailwindcss()],
+    // The pdf.js worker wrapper (src/lib/pdfjsWorker.js) is a module worker with a dynamic
+    // import inside pdf.js, which the default iife worker format cannot code-split (DEBT-42).
+    worker: { format: 'es' },
     build: {
       rollupOptions: {
         output: {

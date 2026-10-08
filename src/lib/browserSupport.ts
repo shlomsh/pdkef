@@ -7,6 +7,10 @@ import { isIOSDevice, type NavigatorPlatformInfo } from './platform';
  * (Chromium 109, reported 2026-10-02). A floor is judged from the user agent
  * so the notice can name the version to update to; a browser we cannot place
  * is never blocked or warned.
+ *
+ * DEBT-42 polyfills the global `Iterator` and the other built-ins pdf.js calls
+ * (pdfjsPolyfills.js), so these floors may now be higher than pdf.js strictly
+ * needs. They stay until a browser below them is shown to run every tool.
  */
 const MINIMUMS = { Chrome: 122, Edge: 122, Firefox: 131, Safari: 18.4, iOS: 18.4 } as const;
 

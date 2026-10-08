@@ -173,9 +173,14 @@ describe('the real registry against real fingerprints', () => {
     const f = fp('redact|um|pdf-lib.CqiVumd9.js:45:2284|list_objects|chromium-154', '/redact/');
     expect(findEntry(REGISTRY, f).id).toBe('ENC-02');
   });
-  it('matches the Redact pdf.js read_glyphs error to nothing', () => {
-    const f = fp('redact|TypeError|pdf.Zn9K1YuS.js:44:99875|read_glyphs|chromium-143', '/redact/');
-    expect(findEntry(REGISTRY, f)).toBeNull();
+  it.each([
+    ['load_document', 'ReferenceError', 'DEBT-38', 'chromium-109', '/redact/'],
+    ['load_document', 'ReferenceError', 'DEBT-38', 'chromium-109', '/compress/'],
+    ['render_page', 'TypeError', 'DEBT-42', 'chromium-141', '/redact/'],
+    ['read_glyphs', 'TypeError', 'DEBT-42', 'chromium-141', '/redact/'],
+  ])('matches the pdf.js %s %s on %s to %s (DEBT-42)', (step, name, id, engine, tool) => {
+    const f = fp(`redact|${name}|pdf.Zn9K1YuS.js:44:99875|${step}|${engine}`, tool);
+    expect(findEntry(REGISTRY, f).id).toBe(id);
   });
   it('classifies a matched entry through a fake git', () => {
     const f = fp('pdf_tool_run|ReferenceError|pdf-lib.CqiVumd9.js:12:36319|unlock|chromium-154', '/unlock/');

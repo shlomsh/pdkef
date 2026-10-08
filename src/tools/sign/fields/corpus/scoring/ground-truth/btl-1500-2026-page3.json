@@ -1,0 +1,247 @@
+{
+  "form": "btl-1500-2026",
+  "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+  "sourceUrl": "",
+  "notes": "Supplied by Shlomi on 2026-10-08 as T1500.pdf: Bituach Leumi unemployment claim form (בל/1500, 05.2026 edition), 7 pages; this is PDF page 3 (pageIndex 2), printed 'עמוד 2 מתוך 6': section 3 (unemployment period), 4 (if under 20) and 5 (if under 45, spouse income). Flat Word export with a text layer, no AcroForm. Annotated from the render and the page's own geometry (raster measurement of the 150 dpi render: underscore runs, comb ticks, Wingdings checkbox ink), never from detector output. Conventions copied from btl-bl211-2015-page2/page7: underscore blank = writing strip one text line (23 px) above the printed line, x from first to last underscore; date written on an underline = `date`, an ID or amount on an underline = `text`; a tick comb is ONE target with `cells`, bounded from the baseline up to the regular tick tops; checkbox = the printed square ink incl. its drop shadow; sub-option checkbox labelled 'own caption / parent question'. No pattern here is outside those files except the month+year comb, which follows the day/month/year `date` comb rule with 6 cells. Not annotated: the header page counter, section badges, grey bars, captions and the form footer. This page has no internal-use boxes. Checkbox bounds are the printed square without the shadow (FORM-31 convention).",
+  "pageIndex": 2,
+  "pageSize": {
+    "width": 612,
+    "height": 792
+  },
+  "render": {
+    "file": "btl-1500-2026-page3.png",
+    "width": 1275,
+    "height": 1650
+  },
+  "targets": [
+    {
+      "id": "t001",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4933,
+        "y": 0.0345,
+        "width": 0.1804,
+        "height": 0.0139
+      },
+      "label": "נא למלא מספר תעודת זהות",
+      "notes": ""
+    },
+    {
+      "id": "t002",
+      "kind": "date",
+      "bounds": {
+        "x": 0.6894,
+        "y": 0.1539,
+        "width": 0.1718,
+        "height": 0.0152
+      },
+      "label": "יש לרשום את החודש הראשון שבו התייצבת בשירות התעסוקה ובגינו אתה דורש אבטלה",
+      "cells": 6,
+      "notes": "MM YYYY tick comb, one target: 2 month cells (under חודש) then a taller tick, then 4 year cells (under שנה)"
+    },
+    {
+      "id": "t003",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8648,
+        "y": 0.2767,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אני חייל משוחרר",
+      "notes": ""
+    },
+    {
+      "id": "t004",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.683,
+        "y": 0.2767,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "בדחיית שירות / אני חייל משוחרר",
+      "notes": ""
+    },
+    {
+      "id": "t005",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.55,
+        "y": 0.2767,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "פטור משירות ביטחון / אני חייל משוחרר",
+      "notes": ""
+    },
+    {
+      "id": "t006",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8648,
+        "y": 0.3038,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "שירתי שירות לאומי או לאומי אזרחי",
+      "notes": ""
+    },
+    {
+      "id": "t007",
+      "kind": "date",
+      "bounds": {
+        "x": 0.4267,
+        "y": 0.3042,
+        "width": 0.1184,
+        "height": 0.0139
+      },
+      "label": "מתאריך / שירתי שירות לאומי או לאומי אזרחי",
+      "notes": ""
+    },
+    {
+      "id": "t008",
+      "kind": "date",
+      "bounds": {
+        "x": 0.1969,
+        "y": 0.3042,
+        "width": 0.1545,
+        "height": 0.0139
+      },
+      "label": "עד תאריך / שירתי שירות לאומי או לאומי אזרחי",
+      "notes": ""
+    },
+    {
+      "id": "t009",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8648,
+        "y": 0.3311,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אני מפרנס יחיד של משפחתי",
+      "notes": ""
+    },
+    {
+      "id": "t010",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.572,
+        "y": 0.3311,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "הורה/ים / אני מפרנס יחיד של משפחתי ובה:",
+      "notes": ""
+    },
+    {
+      "id": "t011",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.4722,
+        "y": 0.3311,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אח/ים / אני מפרנס יחיד של משפחתי ובה:",
+      "notes": ""
+    },
+    {
+      "id": "t012",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.3855,
+        "y": 0.3311,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "ילד/ים / אני מפרנס יחיד של משפחתי ובה:",
+      "notes": ""
+    },
+    {
+      "id": "t013",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8648,
+        "y": 0.3582,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "יש לי ילד ועיקר פרנסתו עליי",
+      "notes": ""
+    },
+    {
+      "id": "t014",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8648,
+        "y": 0.3855,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "הכנסת בן/בת זוג",
+      "notes": ""
+    },
+    {
+      "id": "t015",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5906,
+        "y": 0.3855,
+        "width": 0.1271,
+        "height": 0.0139
+      },
+      "label": "הכנסת בן/בת זוג",
+      "notes": "amount blank after the item-5 checkbox"
+    },
+    {
+      "id": "t016",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8564,
+        "y": 0.5114,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא עובד/ת / אם טרם מלאו לך 45 שנה, נא לציין פרטים על הכנסות בן/בת הזוג",
+      "notes": ""
+    },
+    {
+      "id": "t017",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8552,
+        "y": 0.5387,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "הכנסה מעבודה (יש לצרף תלוש שכר אחרון) / אם טרם מלאו לך 45 שנה, נא לציין פרטים על הכנסות בן/בת הזוג",
+      "notes": ""
+    },
+    {
+      "id": "t018",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8564,
+        "y": 0.5658,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "הכנסה ממשלח יד (עצמאי) / אם טרם מלאו לך 45 שנה, נא לציין פרטים על הכנסות בן/בת הזוג",
+      "notes": ""
+    },
+    {
+      "id": "t019",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8587,
+        "y": 0.5931,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "הכנסה מפנסיה (יש לצרף תלוש פנסיה אחרון) / אם טרם מלאו לך 45 שנה, נא לציין פרטים על הכנסות בן/בת הזוג",
+      "notes": ""
+    }
+  ]
+}

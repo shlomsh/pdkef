@@ -77,6 +77,8 @@ export interface FieldCandidate extends PercentBox {
  * `textRuns.js`'s `toPageTextRuns` produces from a pdf.js page. */
 export interface PageTextRun extends PercentBox {
   str: string;
+  /** pdf.js's reading direction, when it gives one. */
+  dir?: string;
 }
 
 /**

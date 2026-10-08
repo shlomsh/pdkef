@@ -19,12 +19,14 @@ import { toPagePercentBox } from '../../../editor/geometry/coords.ts';
  *
  * @param {Array<object>} items `getTextContent().items`
  * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
- * @returns {Array<{str: string, left: number, top: number, width: number, height: number}>}
+ * @returns {Array<{str: string, left: number, top: number, width: number, height: number, dir?: string}>}
  */
 export function toPageTextRuns(items, geometry) {
   return items.flatMap((item) => {
     if (!item || typeof item.str !== 'string' || !item.str.trim()) return [];
     const [, , , , e, f] = item.transform;
-    return [{ str: item.str, ...toPagePercentBox(geometry, { x0: e, y0: f, x1: e + item.width, y1: f + item.height }) }];
+    const box = toPagePercentBox(geometry, { x0: e, y0: f, x1: e + item.width, y1: f + item.height });
+    // The direction places a blank inside a right-to-left run (`formLeaders.js`).
+    return [{ str: item.str, ...box, ...(item.dir ? { dir: item.dir } : {}) }];
   });
 }
