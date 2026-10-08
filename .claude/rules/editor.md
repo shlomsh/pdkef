@@ -286,6 +286,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   improves it (three gives 3+3+3+1). It was an eleven, and balanced, until History left.
   Thirteen was the count that could not be balanced, and the second, earlier stand-down step Sign
   used to carry at 344px existed only to get back to twelve; it went with History.
+- Redact's eleven counted controls (after an export, RED-61) step from six per row to four under a 395px container query: six give "Download" (52.2px of text) 44.9px at a 390px viewport, 48.9px at 414px and 51.5px at 430px, so it overhung its button; four give 62.2px at 360px, and the threshold is 6 * 62 + 5 * 4.8 = 396.0, guarded by `redact-toolbar-labels-fit.spec.js` at 360 to 430px.
 - Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1300px the row is
   one line with labels, set 4px apart; the toolbar box plateaus at 1172px of content (it reaches
   that plateau at a 1280px window, so a classic scrollbar at 1300px no longer eats into it).
