@@ -2,7 +2,7 @@ import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRa
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { tokenize } from './contentStream.js';
 import { dropUnreachable } from './reachability.js';
-import { stripDocumentTraces } from './documentTraces.js';
+import { applyDetailEdits } from './documentTraces.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
 import { reportError } from '../../../lib/errorReport.ts';
 
@@ -23,9 +23,9 @@ import { reportError } from '../../../lib/errorReport.ts';
  * @param {Array<{pageIndex: number, start: number, end: number}>} deletions
  *   byte spans as reported by `extractPageObjects` for that same page
  * @param {(progress: number) => void} [onProgress]
- * @param {{ finish?: (doc: PDFDocument) => void, keepAttachments?: string[] }} [options]
- *   `finish` edits the output document just before the traces are stripped
- *   (RED-59); `keepAttachments` names attached files to keep, by name.
+ * @param {{ finish?: (doc: PDFDocument) => void, details?: import('./documentTraces.js').DetailEdits }} [options]
+ *   `finish` edits the output document just before the person's `details`
+ *   edits are applied (RED-59); with none, every detail stays but `/Thumb`.
  * @returns {Promise<Blob>}
  */
 export async function deleteObjectsFromPdf(file, deletions, onProgress, options = {}) {
@@ -35,8 +35,8 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress, options 
       : new Uint8Array(file instanceof ArrayBuffer ? file : await file.arrayBuffer());
 
   // updateMetadata: false so pdf-lib does not itself stamp a new
-  // Producer/ModDate into the Info dict on save - stripDocumentTraces below
-  // wants Info to end up with nothing, not pdf-lib's own something.
+  // Producer/ModDate into the Info dict on save - an untouched
+  // export keeps the source's Info as it came, not pdf-lib's own something.
   const doc = await PDFDocument.load(bytes, { updateMetadata: false });
 
   const byPage = new Map();
@@ -81,7 +81,7 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress, options 
   removeUndrawnImages(doc, deletedImageRefs);
   dropUnreachable(doc);
   options.finish?.(doc);
-  stripDocumentTraces(doc, { keepAttachments: options.keepAttachments });
+  applyDetailEdits(doc, options.details ?? {});
   dropUnreachable(doc);
 
   const saved = await doc.save();

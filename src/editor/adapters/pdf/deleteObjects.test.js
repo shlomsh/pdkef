@@ -660,22 +660,31 @@ describe('deleteObjectsFromPdf: a link over a deleted text run', () => {
 });
 
 describe('document details via deleteObjectsFromPdf', () => {
-  it('drops Info title/author and any XMP Metadata stream from the saved file', async () => {
+  const secretSource = async () => {
     const doc = await PDFDocument.create();
     doc.addPage([100, 100]);
     doc.setTitle('Secret Title');
     doc.setAuthor('Secret Author');
-
     const xmpBytes = new TextEncoder().encode('<x:xmpmeta>Secret Author XMP</x:xmpmeta>');
     const metadataStream = doc.context.flateStream(xmpBytes, { Type: 'Metadata', Subtype: 'XML' });
     doc.catalog.set(PDFName.of('Metadata'), doc.context.register(metadataStream));
+    return new Uint8Array(await doc.save());
+  };
+  const exported = async (details) => {
+    const blob = await deleteObjectsFromPdf(await secretSource(), [], undefined, { details });
+    return PDFDocument.load(new Uint8Array(await blob.arrayBuffer()), { updateMetadata: false });
+  };
 
-    const source = new Uint8Array(await doc.save());
-    const blob = await deleteObjectsFromPdf(source, []);
-    const outBytes = new Uint8Array(await blob.arrayBuffer());
-    const outDoc = await PDFDocument.load(outBytes, { updateMetadata: false });
+  it('keeps Info title/author and the XMP stream when nothing is edited', async () => {
+    const outDoc = await exported();
+    expect(outDoc.getTitle()).toBe('Secret Title');
+    expect(outDoc.getAuthor()).toBe('Secret Author');
+    expect(outDoc.catalog.get(PDFName.of('Metadata'))).toBeDefined();
+  });
 
-    expect(outDoc.getTitle()).toBeUndefined();
+  it('drops the author and the XMP stream with it when the author is deleted', async () => {
+    const outDoc = await exported({ author: { action: 'delete' } });
+    expect(outDoc.getTitle()).toBe('Secret Title');
     expect(outDoc.getAuthor()).toBeUndefined();
     expect(outDoc.catalog.get(PDFName.of('Metadata'))).toBeUndefined();
     expect(await decompressedObjectText(outDoc)).not.toContain('secret author');

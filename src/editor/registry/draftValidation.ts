@@ -319,9 +319,25 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
   extra?: {
     actionHistory?: ActionHistoryEntry<TElement>[];
     carried?: Partial<DocumentStyle>;
-    /** RED-60: Redact's attached files the person chose to keep, by name. */
-    keptAttachments?: string[];
+    /** RED-59: Redact's edits to the file's details, by detail id. */
+    details?: DetailEdits;
   };
+}
+
+/** RED-59: a detail edit is a delete or an alter with a string value. */
+export type DetailEdit = { action: 'delete' } | { action: 'alter'; value: string };
+export type DetailEdits = Record<string, DetailEdit>;
+
+/** Each key is checked on its own; anything unusable is dropped, a non-record is `{}`. */
+function validateDetailEdits(value: unknown): DetailEdits {
+  const out: DetailEdits = {};
+  if (!isRecord(value)) return out;
+  for (const [id, edit] of Object.entries(value)) {
+    if (!isRecord(edit)) continue;
+    if (edit.action === 'delete') out[id] = { action: 'delete' };
+    else if (edit.action === 'alter' && typeof edit.value === 'string') out[id] = { action: 'alter', value: edit.value };
+  }
+  return out;
 }
 
 function isNonEmptyArrayBuffer(value: unknown): value is ArrayBuffer {
@@ -379,15 +395,13 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
     ? migrateLegacyCarried(record.extra, validateDocumentStyle(record.extra.carried))
     : undefined;
 
-  const keptAttachments = isRecord(record.extra) && Array.isArray(record.extra.keptAttachments)
-    ? record.extra.keptAttachments.filter((name): name is string => typeof name === 'string' && name !== '')
-    : [];
+  const details = validateDetailEdits(isRecord(record.extra) ? record.extra.details : undefined);
 
   return {
     fileName: record.fileName as string,
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried, keptAttachments } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried, details } : undefined,
   };
 }

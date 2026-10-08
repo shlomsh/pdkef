@@ -122,30 +122,29 @@ export function unsolidNote(pages: readonly number[]): string | null {
     : `Boxes on pages ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`;
 }
 
-/** RED-59: the document-details read-back. */
-export const TRACES_LEAD = 'Your original file carried:';
+/** RED-59: the file's details are the person's to keep, alter or delete. */
+export const DETAILS_TITLE = 'Details';
 
-export const TRACES_READ_BACK = 'Read back from your download: none of it is there.';
+export const DETAILS_REVIEW = 'Review';
 
-/** The read-back line once the person kept an attached file on purpose. */
-export const TRACES_READ_BACK_KEPT = 'Read back from your download: only what you kept is there.';
+export const DETAIL_EDIT = 'Edit';
 
-export const TRACES_NONE = 'Your original file carried no details about itself. Neither does your download.';
+export const DETAIL_DELETE = 'Delete';
 
-export const TRACE_SURVIVED = 'Still in your download.';
+export const DETAIL_UNDO = 'Undo';
 
-export const TRACES_SURVIVED_ALERT = "Don't share this copy yet.";
+export const DETAIL_DONE = 'Done';
 
-export const KEEP_IT = 'Keep it in the download';
+export const DETAILS_CLOSE = 'Done';
 
-export const DROP_IT = 'Drop it';
+export const DETAIL_IMPLIED = 'Goes with the changes above';
 
-export const KEPT = 'Kept in your download.';
+export const DETAILS_THUMBS = "Page pictures from before your marks go on their own, so a mark can't be seen through them.";
 
-export const TRACES_ANNOUNCEMENT = "Checked your download: none of your original file's details are in it.";
+export const DETAILS_CHANGED = (summary: string) => `Details: ${summary}.`;
 
-export const TRACES_SURVIVED_ANNOUNCEMENT = "Something from your original file is still in your download. Don't share this copy yet.";
+export const DETAILS_SURVIVED = (labels: string) => `Still in your download: ${labels}. Don't share this copy yet.`;
 
-export function keptNote(name: string): string {
-  return `Kept "${truncated(name)}" in your download. Saved again and downloaded.`;
-}
+export const DETAILS_CHANGED_ANNOUNCEMENT = (summary: string) => `Checked your download. Details: ${summary}.`;
+
+export const DETAILS_SURVIVED_ANNOUNCEMENT = (labels: string) => `Still in your download: ${labels}.`;
