@@ -319,6 +319,8 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
   extra?: {
     actionHistory?: ActionHistoryEntry<TElement>[];
     carried?: Partial<DocumentStyle>;
+    /** RED-60: Redact's attached files the person chose to keep, by name. */
+    keptAttachments?: string[];
   };
 }
 
@@ -377,11 +379,15 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
     ? migrateLegacyCarried(record.extra, validateDocumentStyle(record.extra.carried))
     : undefined;
 
+  const keptAttachments = isRecord(record.extra) && Array.isArray(record.extra.keptAttachments)
+    ? record.extra.keptAttachments.filter((name): name is string => typeof name === 'string' && name !== '')
+    : [];
+
   return {
     fileName: record.fileName as string,
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried, keptAttachments } : undefined,
   };
 }

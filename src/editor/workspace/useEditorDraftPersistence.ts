@@ -10,7 +10,7 @@ interface DraftRecord {
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements?: unknown[];
-  extra?: { actionHistory?: unknown[]; carried?: Partial<DocumentStyle> };
+  extra?: { actionHistory?: unknown[]; carried?: Partial<DocumentStyle>; keptAttachments?: string[] };
 }
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
@@ -22,6 +22,8 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   /** The document-carried style (SIGN-33). Sign's whole style; Redact carries
    * only its brush mode and size (RED-32), and only once the person chose. */
   carried?: Partial<DocumentStyle> | null;
+  /** RED-60: Redact's kept attachments, by name. Sign passes none. */
+  keptAttachments?: string[];
   status: string;
   /** Explicitly supplied by the editor's document baseline/revision contract. */
   isDirty: boolean;
@@ -40,6 +42,8 @@ export interface EditorDraftInitialState<TElement extends HistoryElement> {
   actionHistory: ActionHistoryEntry<TElement>[];
   /** SIGN-33 (Sign) and RED-32 (Redact's brush); absent for a fresh pick. */
   carried?: Partial<DocumentStyle>;
+  /** RED-60: Redact only. */
+  keptAttachments?: string[];
 }
 
 /**
@@ -54,6 +58,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   elements,
   actionHistory,
   carried,
+  keptAttachments,
   status,
   isDirty,
   loadStartedRef,
@@ -74,8 +79,9 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     () => ({
       actionHistory,
       carried: carried ?? undefined,
+      ...(keptAttachments ? { keptAttachments } : {}),
     }),
-    [actionHistory, carried],
+    [actionHistory, carried, keptAttachments],
   );
 
   return useDraftPersistence({
@@ -125,6 +131,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
           elements: validated.elements,
           actionHistory: validated.extra?.actionHistory || [],
           carried: validated.extra?.carried,
+          keptAttachments: validated.extra?.keptAttachments ?? [],
         },
         true,
       );
