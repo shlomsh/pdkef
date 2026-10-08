@@ -187,6 +187,17 @@ describe('/api/report stays silent', () => {
       expect(hincrbys[0][2]).toBe('sign_form_detection|failure|not_started|ios-17');
     });
 
+    it('counts a detection success with its page kind into the field string', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+      const success = { name: 'sign_form_detection', properties: { outcome: 'success', field_count_bucket: 'one_to_five', page_kind: 'image' } };
+      expect((await postJson(success)).status).toBe(204);
+      const hincrbys = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body)).filter(([name]) => name === 'HINCRBY');
+      expect(hincrbys).toHaveLength(1);
+      expect(hincrbys[0][2]).toBe('sign_form_detection|success|one_to_five|image|ios-17');
+    });
+
     const rejected = {
       'an extra property': { ...event, properties: { ...event.properties, note: 'x' } },
       'an unknown error_code': { ...event, properties: { outcome: 'failure', error_code: 'boom' } },

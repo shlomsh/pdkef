@@ -3,6 +3,7 @@ import {
   EXPORT_DURATION_BUCKETS,
   EXPORT_ERROR_CODES,
   FIELD_COUNT_BUCKETS,
+  PAGE_KINDS,
   FORM_DETECTION_ERROR_CODES,
   maintenanceEventField,
   parseMaintenanceEvent,
@@ -19,6 +20,10 @@ const exportFailure = (duration_bucket: string, error_code: string) => ({
 const detectionSuccess = (field_count_bucket: string) => ({
   name: 'sign_form_detection',
   properties: { outcome: 'success', field_count_bucket },
+});
+const detectionWithKind = (field_count_bucket: string, page_kind: unknown) => ({
+  name: 'sign_form_detection',
+  properties: { outcome: 'success', field_count_bucket, page_kind },
 });
 const detectionFailure = (error_code: string) => ({
   name: 'sign_form_detection',
@@ -107,6 +112,26 @@ describe('parseMaintenanceEvent rejects', () => {
     }
   });
 
+  it('page_kind: every kind, the old shape, and nothing else', () => {
+    for (const kind of PAGE_KINDS) {
+      expect(parseMaintenanceEvent(detectionWithKind('none', kind))?.properties).toEqual({
+        outcome: 'success',
+        field_count_bucket: 'none',
+        page_kind: kind,
+      });
+    }
+    expect(parseMaintenanceEvent(detectionSuccess('none'))).not.toBeNull();
+    for (const bad of ['scan', '', 'Text', 'text ', null, undefined, 1, ['text'], { a: 1 }]) {
+      expect(parseMaintenanceEvent(detectionWithKind('none', bad))).toBeNull();
+    }
+    expect(
+      parseMaintenanceEvent({ name: 'sign_form_detection', properties: { outcome: 'failure', error_code: 'cancelled', page_kind: 'text' } }),
+    ).toBeNull();
+    expect(
+      parseMaintenanceEvent({ name: 'sign_export', properties: { outcome: 'success', duration_bucket: 'under_1s', page_kind: 'text' } }),
+    ).toBeNull();
+  });
+
   it('crossed shapes', () => {
     expect(parseMaintenanceEvent({ name: 'sign_export', properties: { outcome: 'success', duration_bucket: 'under_1s', error_code: 'cancelled' } })).toBeNull();
     expect(parseMaintenanceEvent({ name: 'sign_form_detection', properties: { outcome: 'failure', error_code: 'cancelled', field_count_bucket: 'none' } })).toBeNull();
@@ -171,6 +196,10 @@ describe('maintenanceEventField', () => {
   it('detection success', () => {
     const e = parseMaintenanceEvent(detectionSuccess('none'))!;
     expect(maintenanceEventField(e, 'ios-17')).toBe('sign_form_detection|success|none|ios-17');
+  });
+  it('detection success puts the page kind right after the count', () => {
+    const e = parseMaintenanceEvent(detectionWithKind('one_to_five', 'image'))!;
+    expect(maintenanceEventField(e, 'ios-17')).toBe('sign_form_detection|success|one_to_five|image|ios-17');
   });
   it('is distinct for every legitimate event', () => {
     const fields = legit.map((e) => maintenanceEventField(parseMaintenanceEvent(e)!, 'x'));

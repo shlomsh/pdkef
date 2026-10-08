@@ -80,6 +80,11 @@ describe('anonymous maintenance telemetry', () => {
     expect(Object.isFrozen(event)).toBe(true);
     expect(Object.isFrozen(event.properties)).toBe(true);
     expect(Object.keys(event.properties)).toEqual(['outcome', 'field_count_bucket']);
+
+    const withKind = signFormDetectionCompleted(7, 'image');
+    expect(Object.isFrozen(withKind.properties)).toBe(true);
+    expect(Object.keys(withKind.properties)).toEqual(['outcome', 'field_count_bucket', 'page_kind']);
+    expect(withKind.properties).toMatchObject({ page_kind: 'image' });
   });
 
   it('reports a detection failure as one code off the same closed list, never the error', () => {

@@ -16,6 +16,20 @@ import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.t
 
 declare const __dirname: string;
 
+// FORM-35: lets one test hand the tool a finished walk with a chosen page kind;
+// null leaves the real hook alone, which is what every other test here wants.
+const formRegionsOverride = vi.hoisted(() => ({ value: null as Record<string, unknown> | null }));
+vi.mock('./useFormFieldRegions.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./useFormFieldRegions.ts')>();
+  return {
+    ...actual,
+    default: (...args: Parameters<typeof actual.default>) => {
+      const real = actual.default(...args);
+      return formRegionsOverride.value ? { ...real, ...formRegionsOverride.value } : real;
+    },
+  };
+});
+
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
   return value;
@@ -200,6 +214,34 @@ describe('PdfSignTool UI flow', () => {
     expect(JSON.stringify(detection[0])).not.toContain('form.pdf');
     // And the person is told, rather than left with a blank editor.
     expect(container.textContent).toContain('Could not check this PDF for form fields');
+  });
+
+  // FORM-35: the success event carries the first page's kind off a closed list
+  // when the walk knows it, and keeps exactly its old two keys when it does not.
+  it.each([
+    ['carries', 'image' as const, ['outcome', 'field_count_bucket', 'page_kind']],
+    ['omits', undefined, ['outcome', 'field_count_bucket']],
+  ])('a finished walk %s page_kind', async (_label, pageKind, keys) => {
+    formRegionsOverride.value = { detection: 'done', detectionError: undefined, pageKind };
+    try {
+      const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportMaintenanceEvent');
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfSignTool />, container); });
+      await act(async () => {
+        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('kind.pdf')]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      const detected = () => reportEvent.mock.calls
+        .map(([event]) => event)
+        .filter((event) => event.name === 'sign_form_detection');
+      await vi.waitFor(() => expect(detected().length).toBeGreaterThan(0), { timeout: 3000, interval: 50 });
+      const success = detected().find((event) => event.properties.outcome === 'success');
+      expect(Object.keys(required(success, 'a success event').properties)).toEqual(keys);
+      if (pageKind) expect(success?.properties).toMatchObject({ page_kind: pageKind });
+    } finally {
+      formRegionsOverride.value = null;
+    }
   });
 
   it.each([

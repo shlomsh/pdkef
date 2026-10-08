@@ -63,13 +63,18 @@ standard Vercel property allowance and makes breakdowns consistent.
 
 Sign also emits `sign_form_detection` once per opened document, when the
 form-field check finishes: `outcome`, a coarse `field_count_bucket` on success,
-and one `error_code` on failure (`modules_unavailable` when the detector's own
+an optional `page_kind` on success (`text`, `vector`, `image`, or `none`: whether
+page 1 has a text layer, line or box ink, only an image, or none of these), and
+one `error_code` on failure (`modules_unavailable` when the detector's own
 chunks never loaded, which is what a shell cached from before a deploy does,
 and `not_started` when the run never happened because its inputs were not all
 there - the one outcome with no exception behind it).
 It answers one question no other signal can - whether detection is coming back
 empty in the wild, and whether it is empty because the document has nothing in
-it or because the detector never ran. See `docs/maintenance-telemetry.md`.
+it or because the detector never ran. `page_kind` (FORM-35) tells us how often
+Sign opens scans before we build anything for them; it is decided on the device
+from the page's content stream and text layer and is never document content. See
+`docs/maintenance-telemetry.md`.
 
 Sign also retains its existing `sign_export` maintenance event. It is now
 unsampled and uses only the fixed `outcome`, `duration_bucket`, and, on failure,
