@@ -90,3 +90,12 @@ covers the flattened export's details, attachments, scripts, page-level metadata
    does? An attachment can carry the unredacted original.
 2. Should the export stamp no producer instead of "pdf-lib"?
 3. Should the check show the document details unprompted, in plain words, so the person sees what goes?
+
+## 2026-10-08 Shlomi's calls
+
+- **File stamps:** every Redact download says nothing about who made it or when (no producer, creator or
+  dates) and gets a fresh file ID.
+- **Show the details:** the check shows a file's document details without being asked, in plain words.
+- **Hidden parts (attached files, scripts, page-level metadata):** not decided in chat. Shlomi wants the
+  UX planned carefully by a dedicated planning agent first ("even I didn't think about those traces").
+  The plan comes back here before any build.
