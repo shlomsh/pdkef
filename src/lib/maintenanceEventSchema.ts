@@ -36,6 +36,15 @@ export const FIELD_COUNT_BUCKETS = ['none', 'one_to_five', 'six_to_twenty', 'ove
 export type FieldCountBucket = (typeof FIELD_COUNT_BUCKETS)[number];
 
 /**
+ * What page 1 of an opened document is made of (FORM-35): a text layer, line or
+ * box ink, only an image, or none of these. Decided on the device from what
+ * detection already reads; it answers how often Sign opens scans, and is never
+ * document content.
+ */
+export const PAGE_KINDS = ['text', 'vector', 'image', 'none'] as const;
+export type PageKind = (typeof PAGE_KINDS)[number];
+
+/**
  * Why a detection run produced nothing. `modules_unavailable` is a browser
  * holding a cached shell from before a deploy; `not_started` is the run never
  * happening because its inputs were not there. Every other failure reuses the
@@ -50,7 +59,7 @@ export type SignExportProperties =
 
 /** The detection walk's outcome. No duration: it is not a performance question. */
 export type FormDetectionProperties =
-  | Readonly<{ outcome: 'success'; field_count_bucket: FieldCountBucket }>
+  | Readonly<{ outcome: 'success'; field_count_bucket: FieldCountBucket; page_kind?: PageKind }>
   | Readonly<{ outcome: 'failure'; error_code: FormDetectionErrorCode }>;
 
 export type MaintenanceEventProperties = SignExportProperties | FormDetectionProperties;
@@ -94,6 +103,14 @@ function parseDetection(p: Record<string, unknown>): FormDetectionProperties | n
     if (!has(FIELD_COUNT_BUCKETS, p.field_count_bucket)) return null;
     return Object.freeze({ outcome: 'success', field_count_bucket: p.field_count_bucket as FieldCountBucket });
   }
+  if (p.outcome === 'success' && exactKeys(p, ['outcome', 'field_count_bucket', 'page_kind'])) {
+    if (!has(FIELD_COUNT_BUCKETS, p.field_count_bucket) || !has(PAGE_KINDS, p.page_kind)) return null;
+    return Object.freeze({
+      outcome: 'success',
+      field_count_bucket: p.field_count_bucket as FieldCountBucket,
+      page_kind: p.page_kind as PageKind,
+    });
+  }
   if (p.outcome === 'failure' && exactKeys(p, ['outcome', 'error_code'])) {
     if (!has(FORM_DETECTION_ERROR_CODES, p.error_code)) return null;
     return Object.freeze({ outcome: 'failure', error_code: p.error_code as FormDetectionErrorCode });
@@ -129,6 +146,6 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
  */
 export function maintenanceEventField(event: MaintenanceEvent, engine: string): string {
   const p = event.properties as Record<string, string>;
-  const detail = [p.field_count_bucket, p.duration_bucket, p.error_code].filter(Boolean);
+  const detail = [p.field_count_bucket, p.page_kind, p.duration_bucket, p.error_code].filter(Boolean);
   return [event.name, p.outcome, ...detail, engine].join('|');
 }

@@ -7,6 +7,7 @@ import { dominantTextDirection } from '../../lib/signHelpers.js';
 import { readTextItems } from '../../lib/pdfTextItems.ts';
 import { describeFormDetectionFailure } from './formDetectionDetail.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import type { PageKind } from '../../lib/maintenanceEventSchema.ts';
 
 /** A page-percent `{left, top, width, height}` box - what `toPagePercentBox`
  * actually returns, which is `FieldRegion` minus `pageIndex` (the caller's to
@@ -101,6 +102,12 @@ export interface FormFieldRegions {
    * emits only a code off a closed list. Absent in every other state.
    */
   detectionError?: unknown;
+  /**
+   * What page 1 is made of (text, vector ink, an image, or nothing). Set only
+   * on `done`, and read only by FORM-35's maintenance telemetry, which counts
+   * how often Sign opens an image-only page. **Never shown.**
+   */
+  pageKind?: PageKind;
   /**
    * One content-free line about the last thing that went wrong for this file,
    * kept even once a later run has succeeded (see `issueRef`). It is already
@@ -236,7 +243,7 @@ export default function useFormFieldRegions(
       try {
         const [
           { PDFDocument },
-          { detectFormFields, pageGeometry, toPageTextRuns },
+          { detectFormFields, firstPageKind, pageGeometry, toPageTextRuns },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
           import('./fields/detectFormFields.ts'),
@@ -285,6 +292,7 @@ export default function useFormFieldRegions(
           // already there - no widening cast needed to filter on it.
           cells: detected.cells.filter((cell) => cell.kind !== 'signature'),
           pageDirections,
+          pageKind: firstPageKind(document, textRuns),
         };
         if (current) setRegions({ ...found, detectionIssue: issueRef.current.issue ?? undefined });
       } catch (error) {

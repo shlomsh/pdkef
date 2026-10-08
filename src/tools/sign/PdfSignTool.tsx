@@ -562,7 +562,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // total detection failure once shipped and nothing noticed
   // (useFormFieldRegions.wiring.test.js).
   //
-  // What travels: a bucketed count, or an error code off a closed list. No
+  // What travels: a bucketed count and the first page's kind (text, vector,
+  // image or none, off a closed list), or an error code off a closed list. No
   // labels, no filename, no page count, no bytes - maintenanceTelemetry.ts is
   // the only thing that may describe an event and it cannot express them.
   // `pending` is not an outcome, so it reports nothing; every other state
@@ -581,6 +582,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       if (formRegions.detection === 'failed') return signFormDetectionFailed(formRegions.detectionError);
       return signFormDetectionCompleted(
         formRegions.combs.length + formRegions.cells.length + formRegions.checkboxes.length,
+        formRegions.pageKind,
       );
     };
     reportMaintenanceEvent(detectionEvent(), transport);

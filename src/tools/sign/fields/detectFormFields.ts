@@ -59,6 +59,9 @@ const MAX_CAPTIONED_BOX_POINTS = 45;
  * directly. */
 export { toPageTextRuns } from './textRuns.js';
 
+/** Re-exported for the same reason: FORM-35's page kind rides this lazy chunk. */
+export { firstPageKind } from './pageKind.js';
+
 /**
  * The source contract - `PageTextRun`, `DetectionContext`, `SourceRegions`,
  * `FieldSource` - lives in `fieldTypes.ts` now (FORM-23), next to the kind

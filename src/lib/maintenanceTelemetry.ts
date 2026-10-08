@@ -17,6 +17,7 @@ import type {
   ExportDurationBucket,
   ExportErrorCode,
   FieldCountBucket,
+  PageKind,
   MaintenanceEvent,
 } from './maintenanceEventSchema';
 
@@ -94,10 +95,14 @@ function bucketFieldCount(fieldCount: number): FieldCountBucket {
  * else about the document travels: no label, no filename, no page count, no
  * bytes.
  */
-export function signFormDetectionCompleted(fieldCount: number): MaintenanceEvent {
+export function signFormDetectionCompleted(fieldCount: number, pageKind?: PageKind): MaintenanceEvent {
   return Object.freeze({
     name: 'sign_form_detection',
-    properties: Object.freeze({ outcome: 'success', field_count_bucket: bucketFieldCount(fieldCount) }),
+    properties: Object.freeze({
+      outcome: 'success',
+      field_count_bucket: bucketFieldCount(fieldCount),
+      ...(pageKind ? { page_kind: pageKind } : {}),
+    }),
   });
 }
 

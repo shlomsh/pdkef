@@ -163,6 +163,19 @@ describe('useFormFieldRegions detection state', () => {
     expect(regions.detectionError).toBeUndefined();
     expect(warn).not.toHaveBeenCalled();
   });
+
+  // FORM-35: a finished run says what page 1 is made of. A document with no
+  // pages has nothing on it, which is the 'none' answer rather than a gap.
+  it('carries a page kind once the walk is done', async () => {
+    vi.resetModules();
+    vi.doMock('@cantoo/pdf-lib', () => ({
+      PDFDocument: { load: async () => ({ getPageCount: () => 0 }) },
+    }));
+
+    const regions = await detect();
+    expect(regions.detection).toBe('done');
+    expect(['text', 'vector', 'image', 'none']).toContain(regions.pageKind);
+  });
 });
 
 /**

@@ -128,6 +128,18 @@ describe('eventCommands', () => {
   });
 });
 
+describe('eventCommands page kind', () => {
+  it('counts a detection success with its page kind in the field', () => {
+    const event = { name: 'sign_form_detection', properties: { outcome: 'success', field_count_bucket: 'none', page_kind: 'vector' } } as const;
+    expect(eventCommands(event, 'ios-17', '2026-10-01')[0]).toEqual([
+      'HINCRBY',
+      'events:2026-10-01',
+      'sign_form_detection|success|none|vector|ios-17',
+      1,
+    ]);
+  });
+});
+
 describe('usage commands', () => {
   it('counts a day total apart from errors, then one field under the day', () => {
     expect(USAGE_DAILY_CAP).toBe(3000);
