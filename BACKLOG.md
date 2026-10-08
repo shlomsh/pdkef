@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 3 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 4 up next, 6 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -90,7 +90,8 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-| SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: Search Console numbers for /split/ and /compress/, before and 28 days after deploy |
+| SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: The 28-day Search Console read for /compress/ about 2026-11-06 |
+| SEO-44 | P2 | [SEO-44](backlog/tasks/SEO-44.md) · Split ranks at 79 for "pdf breaker": measure the term, then decide how to move /split/ | Needs Shlomi: A Google Trends read of pdf breaker against split pdf and compress pdf |
 
 ### Waiting
 

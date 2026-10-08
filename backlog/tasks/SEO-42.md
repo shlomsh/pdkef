@@ -5,7 +5,7 @@ status: "in_progress"
 priority: "P2"
 epic: "search-and-languages"
 horizon: "now"
-needs: "Search Console numbers for /split/ and /compress/, before and 28 days after deploy"
+needs: "The 28-day Search Console read for /compress/ about 2026-11-06"
 ---
 
 # SEO-42 · Title test: "No Upload" in the Split and Compress titles
@@ -38,4 +38,9 @@ copy; only Merge's `seoTitle` carries "No Upload" (`src/data/tools.js`).
 - Titles changed (`src/data/tools.js`):
   - Split: `Split PDF Online Free - Extract Pages from PDF | PDkef` to `Split PDF Online Free - Extract Pages, No Upload | PDkef` (55 characters).
   - Compress: `Compress PDF to 100KB Free - Reduce File Size | PDkef` to `Compress PDF to 100KB Free - No Upload, Reduce Size | PDkef` (58 characters).
-- Baseline: Search Console keeps 16 months, so the 28 days ending on the deploy date can be read after the fact. Needs Shlomi: for `/split/` and `/compress/`, impressions, clicks, CTR and average position for the 28 days before the deploy date, and the same window 28 days after.
+- Baseline, read by Shlomi 2026-10-08 (28 days, data to about 10-06):
+  - `/compress/`: 42 clicks, 1.81K impressions, CTR 2.3%, average position 9.4.
+  - `/split/`: 0 clicks, 157 impressions, CTR 0%, average position 51.6.
+- `/compress/` is the real test. At 51.6 almost nobody sees Split's title, so its CTR cannot move; its
+  title change stays (harmless) but is not read as evidence.
+- Previously noted: Search Console keeps 16 months, so the 28 days ending on the deploy date can be read after the fact. Needs Shlomi: for `/split/` and `/compress/`, impressions, clicks, CTR and average position for the 28 days before the deploy date, and the same window 28 days after.
