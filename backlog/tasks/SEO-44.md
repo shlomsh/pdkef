@@ -83,3 +83,29 @@ measured differences: about 37% fewer words than `/compress/`, and no Hebrew pag
 which both page-one tools have. The findings doc also records that `/merge/` went from 36 to 7.3 with no
 change of ours, so part of this is Google re-weighing pages on its own schedule. Which difference
 matters is not known; with `/split/` stuck at 52, the cost of trying is low.
+
+## 2026-10-08 competitor read (English split pages, curl, saved HTML)
+
+| Page | Words | Modes named | Variant pages |
+| --- | --- | --- | --- |
+| ilovepdf | 448 | custom, fixed and smart ranges, by size, extract all or selected, merge ranges into one | none (extract and remove are separate tools) |
+| smallpdf | 706 | scissors, extract specific pages, several PDFs at once | none |
+| pdf24 | 822 | pages per PDF, even/odd, halve pages, custom | none |
+| sejda | 2263 | every page, every X pages, at chosen pages, discard bookmarks, custom names | by size, by text, by outline, in half, extract |
+| ihatepdf.cv | 779 | ranges, single pages, equal sections | by size, in half, by bookmarks, by text |
+| pdkef | 914 | ranges, thumbnails, one PDF or one per page | none |
+
+Adobe returned 403. Word count does not separate the ranking pages from ours (ilovepdf ranks on 448).
+
+**What every ranking competitor has and we do not: more than one way to split.** Our tool has exactly
+two output modes, one PDF or one per page (`src/tools/split/split.js`). Fixed "every N pages" is on
+three of five, by size on three, halve on three, even/odd on one, bookmarks on two. Compress and Merge,
+which rank, each have something a searcher recognises (target size, page-level arranging); Split has
+the baseline only. Inference: the gap is the tool, then the page that names it.
+
+Code inventory findings, same day: step 4 says "Click Split PDF", but the button reads "Download 1 PDF"
+or "Download N PDFs" (`PdfSplitTool.tsx` line 755). Unmentioned strengths: per-page rotate with undo,
+output prepared before the tap, Web Share on phones, the Compress hand-off. Bookmarks, form fields and
+document details are not carried into the parts (fresh `PDFDocument.create()`; unmeasured).
+
+Variant pages are new URLs, so they wait for the SEO-06 gate. Modes on `/split/` itself do not.
