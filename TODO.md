@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Redact: finish removal
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
-- [RED-59](backlog/tasks/RED-59.md) P2 · Metadata removal is a claim Redact has to show and explain, not just do (in progress)
 
 ### Search and languages
 

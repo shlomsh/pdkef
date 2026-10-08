@@ -1,8 +1,7 @@
 ---
 id: "RED-59"
 title: "Metadata removal is a claim Redact has to show and explain, not just do"
-status: "in_progress"
-horizon: "now"
+status: "done"
 priority: "P2"
 epic: "redact"
 depends_on: []
@@ -424,3 +423,30 @@ survived state (danger line, error report).
 **State.** `edits.details: Record<rowId, { action: 'delete' } | { action: 'alter', value: string }>`,
 per document in the draft (`extra.details`), validated. Replaces `keptAttachments`, Keep it / Drop it,
 `TracesBlock` and the TRACES_* copy, which are removed, not hidden.
+
+## 2026-10-08 rebuilt: kept unless the person changes them
+
+Built from the re-plan above (sketch v7) by Sonnet implementers on disjoint files, each fix test-first,
+three zero-context reviews, walked on the dev server at 375 and 390.
+
+- **Engine** (`src/editor/adapters/pdf/documentTraces.js`, ids in the import-free `detailEdits.js`):
+  `applyDetailEdits(doc, edits)` on both export paths. Text details delete or alter, dates, attachments,
+  scripts and the hidden set delete; editing a text or date also deletes the XMP copy, deleting Created
+  also deletes a folded Changed. Always gone, whatever the edits: `/Thumb`, `xmp:Thumbnails` and
+  `/PieceInfo`, since each can show what a mark covers. The flattened path copies details across with
+  `copyDocumentDetails`, which refuses any value whose object graph reaches a page (`reachesPage`: an
+  ordinary `/OpenAction [page /Fit]` once dragged the unredacted page into the output), registers copied
+  streams, and keeps a flattened page's comment attachments at document level.
+- **UI** (`src/tools/redact/details/`): one muted footer line under the last page, each piece in its own
+  `<bdi>`, following the edits; Review opens a `<dialog>` sheet with Edit and Delete per row (accessible
+  names per row, focus kept, closing commits a typed edit). After Download nothing is said unless
+  something changed, then "Details: title altered, author deleted." and the check reads the copy back; a
+  survivor (an edit, page pictures or app data) is the danger line and an error report. Edits ride in
+  the draft (`extra.details`, validated key by key).
+- **Docs**: FAQ, the two guides, the T table in `docs/redact-content-removal.md`, the editor rule.
+- **Tests**: units per id, per path, per row state; `redact-hidden-traces.spec.js` (untouched keeps
+  everything but the page pictures; edited is applied, said, survives a reload; the footer fits a phone).
+  `check:push` and `check:e2e` green after merging `origin/main`.
+- **Left as they are, low**: two document-level attachments with the same name are one row and go
+  together; app metadata on annotation appearance streams, fonts and patterns is neither read nor
+  deleted by Hidden; on the flattened path the output gets a new file ID rather than the source's.
