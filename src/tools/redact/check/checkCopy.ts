@@ -109,6 +109,7 @@ export function picturePagesNote(pages: readonly number[]): string | null {
     : `Pages ${pageList(pages)} are pictures, so look them over yourself.`;
 }
 
+/** The caller passes how many attachments the *saved* file still has (`saved.attachments.length`). */
 export function attachmentsNote(count: number): string | null {
   if (count <= 0) return null;
   return count === 1
@@ -121,4 +122,29 @@ export function unsolidNote(pages: readonly number[]): string | null {
   return pages.length === 1
     ? `A box on page ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`
     : `Boxes on pages ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`;
+}
+
+/** RED-59: the document-details read-back. */
+export const TRACES_LEAD = 'Your original file carried:';
+
+export const TRACES_READ_BACK = 'Read back from your download: none of it is there.';
+
+export const TRACES_NONE = 'Your original file carried no details about itself. Neither does your download.';
+
+export const TRACE_SURVIVED = 'Still in your download.';
+
+export const TRACES_SURVIVED_ALERT = "Don't share this copy yet.";
+
+export const KEEP_IT = 'Keep it in the download';
+
+export const DROP_IT = 'Drop it';
+
+export const KEPT = 'Kept in your download.';
+
+export const TRACES_ANNOUNCEMENT = "Checked your download: none of your original file's details are in it.";
+
+export const TRACES_SURVIVED_ANNOUNCEMENT = "Something from your original file is still in your download. Don't share this copy yet.";
+
+export function keptNote(name: string): string {
+  return `Kept "${truncated(name)}" in your download. Saved again and downloaded.`;
 }
