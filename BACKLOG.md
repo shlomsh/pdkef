@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 4 up next, 7 then, 16 waiting, 16 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 5 up next, 6 then, 16 waiting, 16 parked.
 
 ## Redact: finish removal
 
@@ -13,13 +13,13 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-57 | P1 | [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page | In progress |
+| RED-62 | P2 | [RED-62](backlog/tasks/RED-62.md) · Text drawn twice for a bold look reads as doubled letters under a box | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-56 | P2 | [RED-56](backlog/tasks/RED-56.md) · Redact: defer old-document dispose until after the pdfDocument prop swaps |  |
-| RED-62 | P2 | [RED-62](backlog/tasks/RED-62.md) · Text drawn twice for a bold look reads as doubled letters under a box |  |
 
 ### Parked
 
