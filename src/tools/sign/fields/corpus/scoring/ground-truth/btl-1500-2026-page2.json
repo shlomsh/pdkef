@@ -1,0 +1,603 @@
+{
+  "form": "btl-1500-2026",
+  "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+  "sourceUrl": "",
+  "pageIndex": 1,
+  "pageSize": {
+    "width": 612,
+    "height": 792
+  },
+  "render": {
+    "file": "btl-1500-2026-page2.png",
+    "width": 1275,
+    "height": 1650
+  },
+  "notes": "Supplied by Shlomi on 2026-10-08 as T1500.pdf. Bituach Leumi form בל/1500 (unemployment claim, 05.2026), PDF page 2 of 7, printed 'עמוד 1 מתוך 6' (pageIndex 1; page 1 is the instructions cover and has nothing to write): the header ID blank, section 1 (claimant details, marital status, children 18-24, addresses, phones, email, contact person, digital-notices consent) and section 2 (bank account). Flat Word export with a text layer, no AcroForm. Bounds are exact geometry, not eyeballed: ruled-cell interiors from a flood fill of the white regions of a 300 dpi render, comb ticks from the page's vector rects (collectPageInk as a geometry reader), underscore runs from the raster ink of the printed underscore glyphs, checkboxes from the ink of the ❑ glyph (10.08 pt square), then checked against the render with overlay.mjs. Conventions copied from btl-bl211-2015-page2 and -page7: tick combs are ONE target with cells (strip from the baseline to the regular tick tops, taller separator ticks excluded); a day/month/year tick comb is one date target (8 cells); a date on a blank underline is date, an ID or number on an underline is text; a plain underline is the 11 pt strip above the underscore run, as long as the run; a ruled cell that carries its caption inside (the name cells, the contact-person name cells) is bounded to the writing strip beneath the caption (caption baseline + 3.3 pt), a table input cell whose caption sits in a header row above is the whole interior and kind text, never table-cell; a checkbox is the printed square and single-choice groups (marital status, gender, account type, yes/no) are independent checkboxes, not radio; checkbox labels are the option word then ' / ' then the group caption or question, table-cell labels are the column caption then ' / ' then the table caption or row. New on this page: the email is two underlines either side of a printed @ and is annotated as two text targets; the three bank-owner name cells share one header caption and carry 'בעל חשבון N'; the repeated children rows carry a row number. Not annotated: the 'לשימוש פנימי בלבד' scan box (ID comb, document-type cells '0 0', pages cells), the 'חותמת קבלה' stamp box, the logo, the section badges, the grey section bars, the table header rows, the 'סוג החשבון' and 'מין' cells apart from their checkboxes, the bold 'נא לצרף אישור' notes and every pre-printed caption. Checkbox bounds are the printed square without the shadow (FORM-31 convention).",
+  "targets": [
+    {
+      "id": "t001",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4938,
+        "y": 0.0346,
+        "width": 0.1799,
+        "height": 0.0139
+      },
+      "label": "נא למלא מספר תעודת זהות"
+    },
+    {
+      "id": "t002",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7322,
+        "y": 0.2242,
+        "width": 0.1768,
+        "height": 0.0391
+      },
+      "label": "שם משפחה"
+    },
+    {
+      "id": "t003",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5263,
+        "y": 0.2242,
+        "width": 0.2023,
+        "height": 0.0391
+      },
+      "label": "שם משפחה קודם"
+    },
+    {
+      "id": "t004",
+      "kind": "text",
+      "bounds": {
+        "x": 0.34,
+        "y": 0.2242,
+        "width": 0.1827,
+        "height": 0.0391
+      },
+      "label": "שם פרטי"
+    },
+    {
+      "id": "t005",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.0817,
+        "y": 0.2458,
+        "width": 0.2469,
+        "height": 0.0093
+      },
+      "label": "מספר זהות",
+      "cells": 9,
+      "notes": "ticks 50.0 to 201.1 pt, 9 cells, the last is the check digit (ס\"ב) set off by a taller tick; strip is the regular tick height (7 pt), taller separator ticks excluded as in btl-bl211-2015-page2 t013"
+    },
+    {
+      "id": "t006",
+      "kind": "date",
+      "bounds": {
+        "x": 0.5912,
+        "y": 0.2774,
+        "width": 0.1606,
+        "height": 0.0153
+      },
+      "label": "תאריך לידה",
+      "cells": 8,
+      "notes": "DD MM YYYY, taller ticks after the day and month cells; captions יום חודש שנה printed beneath"
+    },
+    {
+      "id": "t007",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.4659,
+        "y": 0.27,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "זכר / מין"
+    },
+    {
+      "id": "t008",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.4682,
+        "y": 0.2896,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "נקבה / מין"
+    },
+    {
+      "id": "t009",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8797,
+        "y": 0.3322,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "רווק/ה / מצב משפחתי"
+    },
+    {
+      "id": "t010",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.7952,
+        "y": 0.3322,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "נשוי/אה / מצב משפחתי"
+    },
+    {
+      "id": "t011",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.7151,
+        "y": 0.3322,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אלמן/ה / מצב משפחתי"
+    },
+    {
+      "id": "t012",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6206,
+        "y": 0.3322,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "גרוש/ה / מצב משפחתי"
+    },
+    {
+      "id": "t013",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2235,
+        "y": 0.3322,
+        "width": 0.2,
+        "height": 0.0139
+      },
+      "label": "גרוש/ה – בחזקת מי הילדים?",
+      "notes": "blank after the גרוש/ה option"
+    },
+    {
+      "id": "t014",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8803,
+        "y": 0.3557,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "ידוע/ה בציבור / מצב משפחתי"
+    },
+    {
+      "id": "t015",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6634,
+        "y": 0.3752,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "לא / האם מתגוררים אתך ילדים חורגים"
+    },
+    {
+      "id": "t016",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.6126,
+        "y": 0.3752,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "כן / האם מתגוררים אתך ילדים חורגים"
+    },
+    {
+      "id": "t017",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7482,
+        "y": 0.3907,
+        "width": 0.0275,
+        "height": 0.0139
+      },
+      "label": "מספר ילדים חורגים"
+    },
+    {
+      "id": "t018",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5725,
+        "y": 0.4374,
+        "width": 0.1185,
+        "height": 0.0139
+      },
+      "label": "ת\"ז / תלמיד/ חייל / שירות לאומי 1"
+    },
+    {
+      "id": "t019",
+      "kind": "date",
+      "bounds": {
+        "x": 0.2886,
+        "y": 0.4374,
+        "width": 0.0817,
+        "height": 0.0139
+      },
+      "label": "תאריך שחרור / סיום לימודים 1"
+    },
+    {
+      "id": "t020",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5678,
+        "y": 0.4592,
+        "width": 0.1185,
+        "height": 0.0139
+      },
+      "label": "ת\"ז / תלמיד/ חייל / שירות לאומי 2"
+    },
+    {
+      "id": "t021",
+      "kind": "date",
+      "bounds": {
+        "x": 0.284,
+        "y": 0.4592,
+        "width": 0.0819,
+        "height": 0.0139
+      },
+      "label": "תאריך שחרור / סיום לימודים 2"
+    },
+    {
+      "id": "t022",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5678,
+        "y": 0.4813,
+        "width": 0.1185,
+        "height": 0.0139
+      },
+      "label": "ת\"ז / תלמיד/ חייל / שירות לאומי 3"
+    },
+    {
+      "id": "t023",
+      "kind": "date",
+      "bounds": {
+        "x": 0.284,
+        "y": 0.4813,
+        "width": 0.0819,
+        "height": 0.0139
+      },
+      "label": "תאריך שחרור / סיום לימודים 3"
+    },
+    {
+      "id": "t024",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6788,
+        "y": 0.5333,
+        "width": 0.2302,
+        "height": 0.0225
+      },
+      "label": "רחוב / תא דואר / כתובת (הרשומה במשרד הפנים)"
+    },
+    {
+      "id": "t025",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5902,
+        "y": 0.5333,
+        "width": 0.0851,
+        "height": 0.0225
+      },
+      "label": "מס' בית / כתובת (הרשומה במשרד הפנים)"
+    },
+    {
+      "id": "t026",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5051,
+        "y": 0.5333,
+        "width": 0.0815,
+        "height": 0.0225
+      },
+      "label": "כניסה / כתובת (הרשומה במשרד הפנים)"
+    },
+    {
+      "id": "t027",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4239,
+        "y": 0.5333,
+        "width": 0.0776,
+        "height": 0.0225
+      },
+      "label": "דירה / כתובת (הרשומה במשרד הפנים)"
+    },
+    {
+      "id": "t028",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1807,
+        "y": 0.5333,
+        "width": 0.2395,
+        "height": 0.0225
+      },
+      "label": "יישוב / כתובת (הרשומה במשרד הפנים)"
+    },
+    {
+      "id": "t029",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0748,
+        "y": 0.5333,
+        "width": 0.1023,
+        "height": 0.0225
+      },
+      "label": "מיקוד / כתובת (הרשומה במשרד הפנים)"
+    },
+    {
+      "id": "t030",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6781,
+        "y": 0.6024,
+        "width": 0.231,
+        "height": 0.0249
+      },
+      "label": "רחוב / תא דואר / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+    },
+    {
+      "id": "t031",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5902,
+        "y": 0.6024,
+        "width": 0.0843,
+        "height": 0.0249
+      },
+      "label": "מס' בית / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+    },
+    {
+      "id": "t032",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5051,
+        "y": 0.6024,
+        "width": 0.0815,
+        "height": 0.0249
+      },
+      "label": "כניסה / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+    },
+    {
+      "id": "t033",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4239,
+        "y": 0.6024,
+        "width": 0.0776,
+        "height": 0.0249
+      },
+      "label": "דירה / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+    },
+    {
+      "id": "t034",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1815,
+        "y": 0.6024,
+        "width": 0.2389,
+        "height": 0.0249
+      },
+      "label": "יישוב / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+    },
+    {
+      "id": "t035",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0748,
+        "y": 0.6024,
+        "width": 0.1031,
+        "height": 0.0249
+      },
+      "label": "מיקוד / מען למכתבים (אם שונה מהכתובת הרשומה למעלה)"
+    },
+    {
+      "id": "t036",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.6846,
+        "y": 0.6566,
+        "width": 0.2167,
+        "height": 0.0153
+      },
+      "label": "טלפון קווי",
+      "cells": 10,
+      "notes": "one 10-cell run, taller tick after the 3rd cell is an area-code separator, not a gap"
+    },
+    {
+      "id": "t037",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.4302,
+        "y": 0.6566,
+        "width": 0.2368,
+        "height": 0.0153
+      },
+      "label": "טלפון נייד",
+      "cells": 10,
+      "notes": "one 10-cell run, taller tick after the 3rd cell is an area-code separator, not a gap"
+    },
+    {
+      "id": "t038",
+      "kind": "text",
+      "bounds": {
+        "x": 0.24,
+        "y": 0.6546,
+        "width": 0.1725,
+        "height": 0.0139
+      },
+      "label": "דואר אלקטרוני / אחרי @",
+      "notes": "two blanks either side of a printed @: the domain part"
+    },
+    {
+      "id": "t039",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0918,
+        "y": 0.6546,
+        "width": 0.1275,
+        "height": 0.0139
+      },
+      "label": "דואר אלקטרוני / לפני @",
+      "notes": "two blanks either side of a printed @: the part before the @"
+    },
+    {
+      "id": "t040",
+      "kind": "text",
+      "bounds": {
+        "x": 0.633,
+        "y": 0.7131,
+        "width": 0.2761,
+        "height": 0.04
+      },
+      "label": "שם משפחה איש קשר"
+    },
+    {
+      "id": "t041",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3538,
+        "y": 0.7131,
+        "width": 0.2757,
+        "height": 0.04
+      },
+      "label": "שם פרטי איש קשר"
+    },
+    {
+      "id": "t042",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.084,
+        "y": 0.7379,
+        "width": 0.2562,
+        "height": 0.0152
+      },
+      "label": "מס' זהות איש קשר",
+      "cells": 9,
+      "notes": "ticks 51.4 to 208.2 pt, 9 cells, last is the check digit (ס\"ב) set off by a taller tick"
+    },
+    {
+      "id": "t043",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8848,
+        "y": 0.7597,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "אני מסרב לקבל הודעות הכוללות מידע אישי בערוצים הדיגיטליים (הודעות טקסט – SMS, דואר אלקטרוני), במקום דואר רגיל"
+    },
+    {
+      "id": "t044",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7306,
+        "y": 0.8569,
+        "width": 0.1796,
+        "height": 0.0275
+      },
+      "label": "שמות בעלי החשבון / בעל חשבון 1"
+    },
+    {
+      "id": "t045",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5075,
+        "y": 0.8569,
+        "width": 0.2196,
+        "height": 0.0275
+      },
+      "label": "שמות בעלי החשבון / בעל חשבון 2"
+    },
+    {
+      "id": "t046",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2835,
+        "y": 0.8569,
+        "width": 0.2204,
+        "height": 0.0275
+      },
+      "label": "שמות בעלי החשבון / בעל חשבון 3"
+    },
+    {
+      "id": "t047",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.2333,
+        "y": 0.8627,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "פרטי / סוג החשבון"
+    },
+    {
+      "id": "t048",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.1503,
+        "y": 0.8627,
+        "width": 0.0122,
+        "height": 0.0094
+      },
+      "label": "קיבוץ / סוג החשבון"
+    },
+    {
+      "id": "t049",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7306,
+        "y": 0.9067,
+        "width": 0.1796,
+        "height": 0.0275
+      },
+      "label": "שם הבנק"
+    },
+    {
+      "id": "t050",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3611,
+        "y": 0.9067,
+        "width": 0.3658,
+        "height": 0.0275
+      },
+      "label": "שם הסניף / כתובתו"
+    },
+    {
+      "id": "t051",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2835,
+        "y": 0.9067,
+        "width": 0.0742,
+        "height": 0.0275
+      },
+      "label": "מס' סניף"
+    },
+    {
+      "id": "t052",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0776,
+        "y": 0.9067,
+        "width": 0.2023,
+        "height": 0.0275
+      },
+      "label": "מספר החשבון"
+    }
+  ]
+}
