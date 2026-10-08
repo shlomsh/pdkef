@@ -220,6 +220,39 @@ describe('PdfSplitTool UI flow', () => {
     expect(container.querySelector(`.${styles['rotate-btn']}`).getAttribute('aria-label')).toBe('סיבוב עמוד 1');
   });
 
+  // The size ("1.0 MB") inside the Hebrew detail line must be bidi-isolated or
+  // it renders reversed; English stays untouched.
+  describe('the download detail line size', () => {
+    const openAndWait = async (props) => {
+      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+      URL.revokeObjectURL = vi.fn();
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      mockState.numPages = 5;
+      act(() => render(<PdfSplitTool {...props} />, container));
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      });
+      return container.querySelector(`.${styles['primary-detail']}`).textContent;
+    };
+
+    it('wraps the size in LRI/PDI in Hebrew', async () => {
+      const detail = await openAndWait({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
+      expect(detail).toMatch(/\u2066[^\u2066\u2069]*\d[^\u2066\u2069]*\u2069/);
+    });
+
+    it('adds no isolates in English', async () => {
+      const detail = await openAndWait({});
+      expect(detail).not.toContain('\u2066');
+      expect(detail).not.toContain('\u2069');
+    });
+  });
+
   it('shows a Hebrew page-range error', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
