@@ -11,6 +11,7 @@ import styles from './PdfSplitTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import * as pdfjsDist from 'pdfjs-dist';
+import { hebrewSplitMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 
 // Test split.js library. parsePageSelector's own cases moved to
 // src/lib/pageSelector.test.js (DEBT-23: it's shared with PDF to Image now).
@@ -187,6 +188,53 @@ describe('PdfSplitTool UI flow', () => {
     expect(Array.from(radios).map((r) => r.textContent)).toEqual(['One PDF', 'One PDF per page']);
     expect(radios[0].getAttribute('aria-checked')).toBe('true');
     expect(radios[1].getAttribute('aria-checked')).toBe('false');
+  });
+
+  // LOC: /he/split/ passes the Hebrew catalogue; nothing the island renders
+  // stays English, and the page-range field keeps digits readable in an RTL page.
+  it('renders Hebrew controls from the messages prop', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    mockState.numPages = 5;
+    act(() => render(<PdfSplitTool messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+    const text = container.textContent;
+    expect(text).toContain(hebrewSplitMessages.modeCombined);
+    expect(text).toContain(hebrewSplitMessages.modeSeparate);
+    expect(text).toContain(hebrewSplitMessages.selectAll);
+    expect(text).not.toContain('Select all');
+    expect(text).not.toContain('One PDF');
+    expect(container.querySelector(`.${styles.primary}`).textContent).toContain(hebrewSplitMessages.downloadOne);
+    const selector = container.querySelector('#page-selector-input');
+    expect(selector.getAttribute('dir')).toBe('ltr');
+    expect(selector.getAttribute('placeholder')).toBe(hebrewSplitMessages.pageSelectorPlaceholder);
+    expect(container.querySelector(`.${styles['rotate-btn']}`).getAttribute('aria-label')).toBe('סיבוב עמוד 1');
+  });
+
+  it('shows a Hebrew page-range error', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool messages={hebrewSplitMessages} />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const selector = container.querySelector('#page-selector-input');
+    await act(async () => {
+      selector.value = '9';
+      selector.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(container.querySelector('#page-selector-hint').textContent).toBe('עמוד 9 מחוץ לטווח (1-4)');
   });
 
   it('a toggled cell stays in place and the primary element reflects the count', async () => {

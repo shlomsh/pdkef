@@ -194,6 +194,11 @@
       "permanent": true
     },
     {
+      "source": "/he/split",
+      "destination": "/he/split/",
+      "permanent": true
+    },
+    {
       "source": "/he/sign",
       "destination": "/he/sign/",
       "permanent": true
