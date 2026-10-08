@@ -11,10 +11,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
 - [RED-59](backlog/tasks/RED-59.md) P2 · Metadata removal is a claim Redact has to show and explain, not just do (in progress)
 
-### Form detector accuracy
-
-- [FORM-33](backlog/tasks/FORM-33.md) P2 · Spike: FFDetr, a learned field detector, scored on Sign's corpus against today's detection (in progress)
-
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

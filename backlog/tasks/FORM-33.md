@@ -1,10 +1,9 @@
 ---
 id: "FORM-33"
 title: "Spike: FFDetr, a learned field detector, scored on Sign's corpus against today's detection"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "form-detection"
-horizon: "now"
 depends_on: []
 ---
 
@@ -47,11 +46,11 @@ corpus matcher, and reports per-page inference time.
 
 ## Acceptance
 
-- [ ] ONNX export with parity against PyTorch on the two reference rasters; size fp32 and int8.
-- [ ] All arms scored on all rows and variants, one table, read against FORM-32's.
-- [ ] A record under `docs/` with GO / NO-GO / REWORK for FFDetr as a Sign `FieldSource`, and the
+- [x] ONNX export with parity against PyTorch on the two reference rasters; size fp32 and int8. (fp32 holds parity exactly; dynamic int8 loses 2 of 109 and is not used.)
+- [x] All arms scored on all rows and variants, one table, read against FORM-32's.
+- [x] A record under `docs/` with GO / NO-GO / REWORK for FFDetr as a Sign `FieldSource`, and the
   phone-side cost it would carry.
-- [ ] No dependency, asset or product code change.
+- [x] No dependency, asset or product code change.
 
 ## 2026-10-08 Opt-in loading on the device
 
@@ -63,3 +62,12 @@ one-time, opt-in one, cached for offline use after. It does not change the accur
 spike answers. What it leaves open: phone inference time and memory at 1024px, hosting a 33-116MB
 file same-origin (Vercel file-size and bandwidth limits), and the prompt's copy (an offer, never a
 claim about what the form needs).
+
+## 2026-10-08 result: NO-GO for scans, REWORK for digital forms
+
+Record: [docs/form-33-ffdetr-spike.md](../../docs/form-33-ffdetr-spike.md). On the real 1970 scan it
+finds nothing at 0.5, and alone on rendered pages it trails raster ink plus Tesseract words on
+precision (43.5 / 52.9 against 39.0 / 79.4). Added to today's vector detector it lifts the 9 flat rows
+from 85.0 / 80.6 to 93.4 / 80.2, but 41 of the 50 extra matches are `btl-p7`, `hmrc-sa100` precision
+falls to 55.6%, CommonForms may contain corpus forms, and the model is 116MB gzipped. A decision needs a
+held-out corpus and a phone measurement; neither is opened here until Shlomi decides it is worth it.
