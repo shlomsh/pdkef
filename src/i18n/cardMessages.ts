@@ -27,7 +27,7 @@ const hebrewToolCards: Record<string, CardCopy> = {
   },
   redact: {
     title: 'טשטוש והשחרה',
-    description: 'טשטשו אזורים ב-PDF, השחירו פרטים פרטיים או מחקו טקסט ותמונות. הקובץ נשאר במכשיר שלכם.',
+    description: 'טשטשו מה שצריך ב-PDF, השחירו פרטים פרטיים או מחקו טקסט ותמונות. הקובץ נשאר במכשיר שלכם.',
   },
   merge: {
     title: 'איחוד PDF',

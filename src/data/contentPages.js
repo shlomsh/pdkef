@@ -87,7 +87,7 @@ export const landingPages = [
   {
     href: '/blur-vs-blackout-vs-delete-pdf/',
     label: 'Blur, blackout, or delete?',
-    blurb: 'A visual guide to each option, with automatic flattening explained.',
+    blurb: 'A visual guide to each option, and what saving a page as a picture means.',
     icon: Layers,
     hub: 'redact',
     sitemapPriority: '0.6',
@@ -96,7 +96,7 @@ export const landingPages = [
   {
     href: '/permanently-delete-text-from-pdf/',
     label: 'Delete text and images from a PDF',
-    blurb: 'Remove selectable elements, keep the remaining text, and know the limits.',
+    blurb: 'Delete text or an image and keep the rest of the page selectable.',
     icon: Trash2,
     hub: 'redact',
     sitemapPriority: '0.6',
