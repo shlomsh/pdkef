@@ -12,7 +12,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [DEBT-43](backlog/tasks/DEBT-43.md) P1 · The export guards bundle loadPdfjs's ?worker&url import (in progress)
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
 
 ### Search and languages

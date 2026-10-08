@@ -1,10 +1,9 @@
 ---
 id: "DEBT-43"
 title: "The export guards bundle loadPdfjs's ?worker&url import"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -42,6 +41,12 @@ future `?worker&url` import fails loudly instead of silently getting nothing.
 
 ## Acceptance
 
-- [ ] The red run reproduced locally before the fix (language acceptance, the esbuild error above).
-- [ ] `PLAYWRIGHT_PORT=4398 npm run check:e2e` green for `export-guards` (the render guard skips off
+- [x] The red run reproduced locally before the fix (language acceptance, the esbuild error above).
+- [x] `PLAYWRIGHT_PORT=4398 npm run check:e2e` green for `export-guards` (the render guard skips off
   Linux by design; its CI run is the proof for it).
+
+## Done
+
+*Closed 2026-10-08.* CI run 37819792308 on 4ba9afd1 (ubuntu-24.04) ran `export-guards` in full: language
+acceptance passed all 143 language/face combinations, and the render guard matched its baseline
+across 39 cases.
