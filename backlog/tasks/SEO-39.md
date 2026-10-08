@@ -1,12 +1,11 @@
 ---
 id: "SEO-39"
 title: "The 2026-10-08 Search Console read"
-status: "blocked"
+status: "in_progress"
 priority: "P1"
 epic: "search-and-languages"
+horizon: "now"
 depends_on: []
-waiting_on: "2026-10-08"
-needs: "The Search Console exports"
 ---
 
 # SEO-39 · The 2026-10-08 Search Console read

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 7 then, 21 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 6 up next, 7 then, 16 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -13,18 +13,13 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-57 | P1 | [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page | In progress |
+| RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-56 | P2 | [RED-56](backlog/tasks/RED-56.md) · Redact: defer old-document dispose until after the pdfDocument prop swaps |  |
-
-### Waiting
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on 2026-10-08. Needs Shlomi: The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase) |
 
 ## Sign: finish fill mode
 
@@ -85,6 +80,15 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 Mostly waiting on dated Search Console reads. Two small things can ship now.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks | In progress |
+| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue | In progress |
+| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools | In progress |
+| SEO-39 | P1 | [SEO-39](backlog/tasks/SEO-39.md) · The 2026-10-08 Search Console read | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -96,10 +100,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family | Waiting on 2026-11-08 |
-| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks | Waiting on 2026-10-08 |
-| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue | Waiting on 2026-10-08 |
-| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools | Waiting on 2026-10-08 |
-| SEO-39 | P1 | [SEO-39](backlog/tasks/SEO-39.md) · The 2026-10-08 Search Console read | Waiting on 2026-10-08. Needs Shlomi: The Search Console exports |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house | Waiting on 2026-11-06 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins | Waiting on LOC-17 and SEO-40 |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | Waiting on Shlomi's read-through. Needs Shlomi: Israeli portal size limits and a read-through of /he/ |

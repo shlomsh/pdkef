@@ -1,11 +1,11 @@
 ---
 id: "SEO-05"
 title: "Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue"
-status: "blocked"
+status: "in_progress"
 priority: "P1"
 epic: "search-and-languages"
+horizon: "now"
 depends_on: []
-waiting_on: "2026-10-08"
 ---
 
 # SEO-05 · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue

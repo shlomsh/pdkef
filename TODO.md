@@ -9,14 +9,17 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Redact: finish removal
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
+- [RED-46](backlog/tasks/RED-46.md) P2 · The Redact page speaks the tool's words, without losing what people search for (in progress)
+
+### Search and languages
+
+- [SEO-04](backlog/tasks/SEO-04.md) P1 · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks (in progress)
+- [SEO-05](backlog/tasks/SEO-05.md) P1 · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue (in progress)
+- [SEO-06](backlog/tasks/SEO-06.md) P1 · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools (in progress)
+- [SEO-39](backlog/tasks/SEO-39.md) P1 · The 2026-10-08 Search Console read (in progress)
 
 ## Waiting, by date
 
-- 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
-- 2026-10-08: [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue
-- 2026-10-08: [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools
-- 2026-10-08: [SEO-39](backlog/tasks/SEO-39.md) · The 2026-10-08 Search Console read
-- 2026-10-08: [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for
 - 2026-11-06: [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house
 - 2026-11-06: [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages
 - 2026-11-07: [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads
@@ -37,9 +40,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
-- [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
-- [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

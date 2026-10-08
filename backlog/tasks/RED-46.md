@@ -1,12 +1,11 @@
 ---
 id: "RED-46"
 title: "The Redact page speaks the tool's words, without losing what people search for"
-status: "blocked"
+status: "in_progress"
 priority: "P2"
 epic: "redact"
+horizon: "now"
 depends_on: []
-waiting_on: "2026-10-08"
-needs: "The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)"
 ---
 
 # RED-46 · The Redact page speaks the tool's words, without losing what people search for
