@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 6 up next, 8 then, 16 waiting, 16 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 5 up next, 9 then, 16 waiting, 16 parked.
 
 ## Redact: finish removal
 
@@ -51,17 +51,12 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| FORM-37 | P2 | [FORM-37](backlog/tasks/FORM-37.md) · BTL 1500's Wingdings checkboxes miss FORM-31's printed square | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | FORM-35 | P2 | [FORM-35](backlog/tasks/FORM-35.md) · Count how often Sign opens a page that is only an image, before building anything for scans |  |
+| FORM-38 | P3 | [FORM-38](backlog/tasks/FORM-38.md) · BTL 1500 checkboxes take the item number or a reversed parenthesis as their label |  |
 
 ### Parked
 
@@ -160,7 +155,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 19 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
-- Form detector accuracy: 16 done, 1 retired
+- Form detector accuracy: 17 done, 1 retired
 - Robustness and debt: 36 done, 3 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 3 done, 0 retired

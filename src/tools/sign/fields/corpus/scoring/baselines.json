@@ -670,17 +670,17 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-1500-2026.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-1500-2026-page2.json",
       "pageIndex": 1,
-      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 2 (printed 'עמוד 1 מתוך 6'). Checkboxes all but miss (0 on pages 2, 3, 4 and 6; 2 of 12 on page 5): the detector reports each '❑' as the glyph's advance by the font's ascent and descent (10.7 x 9.7pt) instead of FORM-31's printed square (7.4pt), IoU 0.38-0.45; the truth is the square, as on BL/211. FORM-37 holds the fix.",
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 2 (printed 'עמוד 1 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38).",
       "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
       "targets": 52,
       "candidates": 71,
-      "matched": 31,
-      "recall": 59.6,
-      "precision": 43.7,
+      "matched": 43,
+      "recall": 82.7,
+      "precision": 60.6,
       "labels": {
-        "rate": 83.9,
-        "evaluated": 31,
-        "correct": 26
+        "rate": 76.7,
+        "evaluated": 43,
+        "correct": 33
       },
       "byKind": {
         "text": {
@@ -708,12 +708,12 @@
           "matchedCandidates": 0
         },
         "checkbox": {
-          "recall": 0,
+          "recall": 100,
           "targets": 12,
-          "found": 0,
-          "precision": 0,
+          "found": 12,
+          "precision": 85.7,
           "candidates": 14,
-          "matchedCandidates": 0
+          "matchedCandidates": 12
         },
         "table-cell": {
           "recall": null,
@@ -729,17 +729,17 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-1500-2026.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-1500-2026-page3.json",
       "pageIndex": 2,
-      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 3 (printed 'עמוד 2 מתוך 6'). Checkboxes all but miss (0 on pages 2, 3, 4 and 6; 2 of 12 on page 5): the detector reports each '❑' as the glyph's advance by the font's ascent and descent (10.7 x 9.7pt) instead of FORM-31's printed square (7.4pt), IoU 0.38-0.45; the truth is the square, as on BL/211. FORM-37 holds the fix.",
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 3 (printed 'עמוד 2 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38).",
       "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
       "targets": 19,
       "candidates": 28,
-      "matched": 5,
-      "recall": 26.3,
-      "precision": 17.9,
+      "matched": 19,
+      "recall": 100,
+      "precision": 67.9,
       "labels": {
-        "rate": 80,
-        "evaluated": 5,
-        "correct": 4
+        "rate": 47.4,
+        "evaluated": 19,
+        "correct": 9
       },
       "byKind": {
         "text": {
@@ -759,12 +759,12 @@
           "matchedCandidates": 0
         },
         "checkbox": {
-          "recall": 0,
+          "recall": 100,
           "targets": 14,
-          "found": 0,
-          "precision": 0,
+          "found": 14,
+          "precision": 100,
           "candidates": 14,
-          "matchedCandidates": 0
+          "matchedCandidates": 14
         },
         "comb": {
           "recall": null,
@@ -788,17 +788,17 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-1500-2026.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-1500-2026-page4.json",
       "pageIndex": 3,
-      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 4 (printed 'עמוד 3 מתוך 6'). Checkboxes all but miss (0 on pages 2, 3, 4 and 6; 2 of 12 on page 5): the detector reports each '❑' as the glyph's advance by the font's ascent and descent (10.7 x 9.7pt) instead of FORM-31's printed square (7.4pt), IoU 0.38-0.45; the truth is the square, as on BL/211. FORM-37 holds the fix.",
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 4 (printed 'עמוד 3 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38).",
       "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
       "targets": 78,
       "candidates": 127,
-      "matched": 23,
-      "recall": 29.5,
-      "precision": 18.1,
+      "matched": 53,
+      "recall": 67.9,
+      "precision": 41.7,
       "labels": {
-        "rate": 60.9,
-        "evaluated": 23,
-        "correct": 14
+        "rate": 60.4,
+        "evaluated": 53,
+        "correct": 32
       },
       "byKind": {
         "text": {
@@ -826,12 +826,12 @@
           "matchedCandidates": 5
         },
         "checkbox": {
-          "recall": 0,
+          "recall": 100,
           "targets": 30,
-          "found": 0,
-          "precision": 0,
+          "found": 30,
+          "precision": 93.8,
           "candidates": 32,
-          "matchedCandidates": 0
+          "matchedCandidates": 30
         },
         "table-cell": {
           "recall": null,
@@ -847,17 +847,17 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-1500-2026.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-1500-2026-page5.json",
       "pageIndex": 4,
-      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 5 (printed 'עמוד 4 מתוך 6'). Checkboxes all but miss (0 on pages 2, 3, 4 and 6; 2 of 12 on page 5): the detector reports each '❑' as the glyph's advance by the font's ascent and descent (10.7 x 9.7pt) instead of FORM-31's printed square (7.4pt), IoU 0.38-0.45; the truth is the square, as on BL/211. FORM-37 holds the fix.",
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 5 (printed 'עמוד 4 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38).",
       "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
       "targets": 24,
       "candidates": 25,
-      "matched": 7,
-      "recall": 29.2,
-      "precision": 28,
+      "matched": 17,
+      "recall": 70.8,
+      "precision": 68,
       "labels": {
-        "rate": 71.4,
-        "evaluated": 7,
-        "correct": 5
+        "rate": 70.6,
+        "evaluated": 17,
+        "correct": 12
       },
       "byKind": {
         "text": {
@@ -869,12 +869,12 @@
           "matchedCandidates": 5
         },
         "checkbox": {
-          "recall": 16.7,
+          "recall": 100,
           "targets": 12,
-          "found": 2,
-          "precision": 16.7,
+          "found": 12,
+          "precision": 100,
           "candidates": 12,
-          "matchedCandidates": 2
+          "matchedCandidates": 12
         },
         "date": {
           "recall": 33.3,
@@ -906,17 +906,17 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/btl-1500-2026.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/btl-1500-2026-page6.json",
       "pageIndex": 5,
-      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 6 (printed 'עמוד 5 מתוך 6'). Checkboxes all but miss (0 on pages 2, 3, 4 and 6; 2 of 12 on page 5): the detector reports each '❑' as the glyph's advance by the font's ascent and descent (10.7 x 9.7pt) instead of FORM-31's printed square (7.4pt), IoU 0.38-0.45; the truth is the square, as on BL/211. FORM-37 holds the fix.",
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 6 (printed 'עמוד 5 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38).",
       "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
       "targets": 67,
       "candidates": 113,
-      "matched": 32,
-      "recall": 47.8,
-      "precision": 28.3,
+      "matched": 59,
+      "recall": 88.1,
+      "precision": 52.2,
       "labels": {
-        "rate": 78.1,
-        "evaluated": 32,
-        "correct": 25
+        "rate": 81.4,
+        "evaluated": 59,
+        "correct": 48
       },
       "byKind": {
         "text": {
@@ -944,12 +944,12 @@
           "matchedCandidates": 0
         },
         "checkbox": {
-          "recall": 0,
+          "recall": 100,
           "targets": 27,
-          "found": 0,
-          "precision": 0,
+          "found": 27,
+          "precision": 87.1,
           "candidates": 31,
-          "matchedCandidates": 0
+          "matchedCandidates": 27
         },
         "signature": {
           "recall": 0,
