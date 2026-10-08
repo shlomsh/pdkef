@@ -319,7 +319,31 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
   extra?: {
     actionHistory?: ActionHistoryEntry<TElement>[];
     carried?: Partial<DocumentStyle>;
+    /** RED-59: Redact's edits to the file's details, by detail id. */
+    details?: DetailEdits;
   };
+}
+
+/** RED-59: a detail edit is a delete or an alter with a string value. */
+export type DetailEdit = { action: 'delete' } | { action: 'alter'; value: string };
+export type DetailEdits = Record<string, DetailEdit>;
+
+/** Each key is checked on its own; anything unusable is dropped, a non-record is `{}`. */
+const UNSAFE_DETAIL_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function validateDetailEdits(value: unknown): DetailEdits {
+  // Null prototype: a stored key can never reach Object.prototype. A blank
+  // alter would blank the field on export, so it is dropped (value kept as given).
+  const out: DetailEdits = Object.create(null);
+  if (!isRecord(value)) return out;
+  for (const [id, edit] of Object.entries(value)) {
+    if (UNSAFE_DETAIL_KEYS.has(id) || !isRecord(edit)) continue;
+    if (edit.action === 'delete') out[id] = { action: 'delete' };
+    else if (edit.action === 'alter' && typeof edit.value === 'string' && edit.value.trim() !== '') {
+      out[id] = { action: 'alter', value: edit.value };
+    }
+  }
+  return out;
 }
 
 function isNonEmptyArrayBuffer(value: unknown): value is ArrayBuffer {
@@ -377,11 +401,13 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
     ? migrateLegacyCarried(record.extra, validateDocumentStyle(record.extra.carried))
     : undefined;
 
+  const details = validateDetailEdits(isRecord(record.extra) ? record.extra.details : undefined);
+
   return {
     fileName: record.fileName as string,
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried, details } : undefined,
   };
 }

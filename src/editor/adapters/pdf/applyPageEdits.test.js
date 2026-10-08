@@ -32,26 +32,41 @@ beforeEach(() => {
 
 
 describe('applyPageEdits', () => {
+  it('runs finish on the first pass only: the Delete step on the mixed path, never the flatten step', async () => {
+    const finish = () => {};
+    const details = { author: { action: 'delete' } };
+    await applyPageEdits(SOURCE, [deletion, box], undefined, { finish, details });
+    expect(deleteObjectsFromPdf.mock.calls[0][3]).toEqual({ finish, details });
+    expect(redactPdf.mock.calls[0][3]).toEqual({ details });
+    expect(redactPdf.mock.calls[0][3]).not.toHaveProperty('finish');
+  });
+
+  it('runs finish in the flatten step when there are no deletions', async () => {
+    const finish = () => {};
+    await applyPageEdits(SOURCE, [box], undefined, { finish });
+    expect(redactPdf.mock.calls[0][3]).toEqual({ finish });
+  });
+
   it('runs only redactPdf when there are no deletions, forwarding onProgress as-is', async () => {
     // Single phase: no scaling needed, so an omitted callback should stay
     // omitted rather than being wrapped into a no-op function.
     const result = await applyPageEdits(SOURCE, [box]);
     expect(deleteObjectsFromPdf).not.toHaveBeenCalled();
-    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [box], undefined);
+    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [box], undefined, {});
     expect(result).toBe(FINAL_RESULT);
   });
 
   it('runs only deleteObjectsFromPdf when there are no boxes, wrapping its output in the shared shape', async () => {
     const result = await applyPageEdits(SOURCE, [deletion]);
     expect(redactPdf).not.toHaveBeenCalled();
-    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], undefined);
+    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], undefined, {});
     expect(result).toEqual({ blob: AFTER_DELETIONS });
   });
 
   it('feeds the deletion pass output into redactPdf, not the original source', async () => {
     const result = await applyPageEdits(SOURCE, [deletion, box]);
-    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function));
-    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function));
+    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function), {});
+    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function), {});
     expect(result).toBe(FINAL_RESULT);
   });
 
@@ -72,8 +87,8 @@ describe('applyPageEdits', () => {
 
   it('splits mixed elements by type regardless of array order', async () => {
     await applyPageEdits(SOURCE, [box, deletion]);
-    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function));
-    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function));
+    expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], expect.any(Function), {});
+    expect(redactPdf).toHaveBeenCalledWith(AFTER_DELETIONS, [box], expect.any(Function), {});
   });
 
   it('scales the deletion phase to 0-0.4 and the redaction phase to 0.4-1 when both run', async () => {
@@ -108,6 +123,6 @@ describe('applyPageEdits', () => {
     // not something this function special-cases.
     await applyPageEdits(SOURCE, []);
     expect(deleteObjectsFromPdf).not.toHaveBeenCalled();
-    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [], undefined);
+    expect(redactPdf).toHaveBeenCalledWith(SOURCE, [], undefined, {});
   });
 });

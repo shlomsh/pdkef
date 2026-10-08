@@ -231,6 +231,25 @@ describe('validateDraftRecord', () => {
     expect(notARecord?.extra?.carried).toEqual({});
   });
 
+  it('RED-59: details keeps valid edits key by key and drops everything else', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [],
+      extra: { details: {
+        author: { action: 'delete' },
+        title: { action: 'alter', value: 'Declaration' },
+        subject: { action: 'alter', value: 4 },
+        keywords: { action: 'nope' },
+        hidden: 'delete',
+        made: null,
+      } },
+    };
+    expect(validateDraftRecord(record)?.extra?.details).toEqual({ author: { action: 'delete' }, title: { action: 'alter', value: 'Declaration' } });
+    for (const details of ['x', ['a'], null, undefined]) {
+      expect(validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: { details } })?.extra?.details).toEqual({});
+    }
+  });
+
+
   it('extra missing entirely leaves carried undefined, not {}', () => {
     const result = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [] });
     expect(result?.extra).toBeUndefined();
@@ -543,5 +562,54 @@ describe('carried blur strength (RED-40)', () => {
     expect(validateDocumentStyle({ blurStrength: 0.25 })).toEqual({ blurStrength: 0.25 });
     expect(validateDocumentStyle({ blurStrength: 'light' })).toEqual({ blurStrength: 0.3 });
     expect(validateDocumentStyle({ blurStrength: 'loud' })).toEqual({});
+  });
+});
+
+describe('remove-place history entries (RED-60)', () => {
+  const good = {
+    id: 'rp1', type: 'REMOVE_PLACE', operation: 'remove-place', pageIndex: 0,
+    description: 'Removed the title', timestamp: 5, place: { kind: 'title', text: 'secret' },
+  };
+  const rec = (actionHistory: unknown[]) => ({
+    fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION, elements: [], extra: { actionHistory },
+  });
+
+  it('survives validation, and a malformed one drops only itself', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const bad = { ...good, id: 'rp2', place: { kind: 7, text: 'x' } };
+    expect(validateDraftRecord(rec([good, bad]))?.extra?.actionHistory).toEqual([good]);
+    spy.mockRestore();
+  });
+
+  it('passes through migrateDraftRecord unchanged', () => {
+    const migrated = migrateDraftRecord(rec([good])) as Record<string, any>;
+    expect(migrated.extra.actionHistory).toEqual([good]);
+  });
+});
+
+describe('restoring extra.details (RED-59)', () => {
+  const restore = (detailsJson: string) => validateDraftRecord({
+    fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION, elements: [],
+    extra: { details: JSON.parse(detailsJson) },
+  })?.extra?.details as Record<string, unknown>;
+
+  it('keeps only usable edits and never lets a key reach the prototype', () => {
+    const result = restore(`{
+      "__proto__": {"action": "delete", "polluted": true},
+      "constructor": {"action": "delete"},
+      "prototype": {"action": "delete"},
+      "emptyAlter": {"action": "alter", "value": ""},
+      "blankAlter": {"action": "alter", "value": "  \\t "},
+      "numberAlter": {"action": "alter", "value": 5},
+      "title": {"action": "alter", "value": "  Quarterly  "},
+      "author": {"action": "delete"}
+    }`);
+    expect(Object.keys(result).sort()).toEqual(['author', 'title']);
+    expect(result.author).toEqual({ action: 'delete' });
+    expect(result.title).toEqual({ action: 'alter', value: '  Quarterly  ' });
+    expect(Object.getPrototypeOf(result)).toBeNull();
+    expect('polluted' in {}).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(false);
+    expect({ ...result }).toEqual({ author: { action: 'delete' }, title: { action: 'alter', value: '  Quarterly  ' } });
   });
 });

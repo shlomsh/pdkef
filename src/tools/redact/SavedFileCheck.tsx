@@ -1,8 +1,9 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
+import type { ChangePiece } from './details/describeDetails.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './SavedFileCheck.module.css';
 import {
-  attachmentsNote,
   canCover,
   canRemove,
   CHECK_FAILED,
@@ -10,6 +11,9 @@ import {
   CHECKING,
   COVER_IT,
   COVER_IT_NOTE,
+  DETAILS_CHANGED,
+  DETAILS_REVIEW,
+  DETAILS_SURVIVED,
   findingText,
   NO_MATCH,
   NOTHING_COVERED,
@@ -24,6 +28,25 @@ import type { InPlaceFinding } from './check/checkCopy.ts';
 import type { CheckTerm } from './check/types.ts';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 
+const MARK = '\u0001';
+
+/** The copy's sentence with each name in its own `<bdi>`, so a Hebrew name can't reorder its neighbours. */
+function withPieces<T>(sentence: (pieces: string) => string, pieces: readonly T[], render: (piece: T) => ComponentChildren) {
+  const [lead, tail] = sentence(MARK).split(MARK);
+  return (
+    <>
+      {lead}
+      {pieces.map((piece, i) => (
+        <>
+          {i > 0 && ', '}
+          {render(piece)}
+        </>
+      ))}
+      {tail}
+    </>
+  );
+}
+
 /**
  * RED-17: the check of the saved file, under the export actions. It reports
  * what it found and where; it never says a term is absent (checkCopy.ts).
@@ -35,6 +58,9 @@ export default function SavedFileCheck({
   onRemove,
   removing = false,
   note = null,
+  detailsChanged = [],
+  detailsSurvived = [],
+  onReviewDetails,
 }: {
   state: SavedFileCheckState;
   onSearch: (text: string) => void;
@@ -44,6 +70,11 @@ export default function SavedFileCheck({
   removing?: boolean;
   /** What the last Remove it did, said plainly. */
   note?: string | null;
+  /** RED-59: the person's detail changes, empty when none. */
+  detailsChanged?: readonly ChangePiece[];
+  /** RED-59: labels of edited details that are still in the saved file. */
+  detailsSurvived?: readonly string[];
+  onReviewDetails?: () => void;
 }) {
   const [query, setQuery] = useState('');
   if (state.status === 'idle') return null;
@@ -58,12 +89,23 @@ export default function SavedFileCheck({
   const results = [...outcome.results, ...typed];
   const unsolid = unsolidNote(outcome.unsolidPages);
   const pictures = picturePagesNote(outcome.context.saved.picturePages);
-  const attachments = attachmentsNote(outcome.context.saved.attachmentCount);
 
   return (
     <section className={styles.check} aria-label="Check of the saved file" data-saved-file-check>
       {unsolid && <p className={styles.danger} role="alert">{unsolid}</p>}
       {note && <p className={styles.note} role="status" data-check-removed>{note}</p>}
+      {detailsSurvived.length > 0 ? (
+        <p className={styles.danger} role="alert" data-details-survived>
+          {withPieces(DETAILS_SURVIVED, detailsSurvived, (label) => <bdi>{label}</bdi>)}
+        </p>
+      ) : (
+        detailsChanged.length > 0 && (
+          <p className={styles.details} data-details-changed>
+            {withPieces(DETAILS_CHANGED, detailsChanged, ({ name, verb }) => <><bdi>{name}</bdi> {verb}</>)}
+            <button type="button" className={styles.review} onClick={onReviewDetails}>{DETAILS_REVIEW}</button>
+          </p>
+        )
+      )}
       <p className={styles.lead}>{CHECK_LEAD}</p>
       {outcome.results.length === 0 && <p className={styles.note}>{NOTHING_COVERED}</p>}
       {results.length > 0 && (
@@ -98,7 +140,6 @@ export default function SavedFileCheck({
       )}
       {results.some(({ findings }) => findings.some(canCover)) && <p className={styles.note}>{COVER_IT_NOTE}</p>}
       {pictures && <p className={styles.note}>{pictures}</p>}
-      {attachments && <p className={styles.note}>{attachments}</p>}
       <form
         className={styles.search}
         onSubmit={(event) => {

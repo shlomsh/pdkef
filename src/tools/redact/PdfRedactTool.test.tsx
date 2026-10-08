@@ -139,13 +139,18 @@ const checkOverride = vi.hoisted(() => ({ current: null as null | ((args: never)
 // RED-25: the saved-file check runs the real hook unless a test overrides it.
 vi.mock('./useSavedFileCheck.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./useSavedFileCheck.ts')>();
-  return { default: (...args: Parameters<typeof actual.default>) => ((checkOverride.current ?? actual.default) as (...a: typeof args) => ReturnType<typeof actual.default>)(...args) };
+  return { ...actual, default: (...args: Parameters<typeof actual.default>) => ((checkOverride.current ?? actual.default) as (...a: typeof args) => ReturnType<typeof actual.default>)(...args) };
 });
-const mockedRemovePlace = vi.hoisted(() => vi.fn());
-vi.mock('./check/removePlace.ts', () => ({
-  removePlace: mockedRemovePlace,
-  PlaceNotFoundError: class PlaceNotFoundError extends Error {},
-}));
+// RED-59: jsdom cannot read a file's details, so the hook is steered per test (null = a file with none).
+const detailsOverride = vi.hoisted(() => ({ current: null as null | Record<string, unknown> }));
+vi.mock('./details/useDocumentDetails.ts', () => ({ useDocumentDetails: () => detailsOverride.current }));
+const authorTraces = {
+  title: 'Quarterly', author: 'Ada Lovelace', subject: null, keywords: null, creator: null, producer: null, creationDate: null, modDate: null,
+  otherInfoKeys: [], pieceInfo: false, xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
+  thumbnails: [], pageDetails: [],
+};
+const mockedRemovePlaces = vi.hoisted(() => vi.fn());
+vi.mock('./check/removePlaces.ts', () => ({ removePlaces: mockedRemovePlaces }));
 
 // RED-51: jsdom cannot read a page, so the ring sampler is steered per test.
 // The default is null (what jsdom gives today); the recorder is a plain
@@ -703,7 +708,7 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
-  it('RED-25: Remove it saves the file again without that place, downloads it, and checks it again', async () => {
+  it('RED-60: Remove it is a history step every export replays; Undo takes it back out', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -711,39 +716,109 @@ describe('PdfRedactTool UI flow', () => {
     const place = { kind: 'title', text: 'Secret title' };
     const term = { label: 'Secret', source: 'typed', finder: () => [] };
     const finding = { kind: 'in-place', place: 'title', text: 'Secret title', placeIndex: 0 };
+    const noTraces = {
+      title: null, author: null, subject: null, keywords: null, creator: null, producer: null, creationDate: null, modDate: null,
+      otherInfoKeys: [], pieceInfo: false, xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
+      thumbnails: [], pageDetails: [],
+    };
     const savedArgs: Array<Blob | null> = [];
     checkOverride.current = (args: { saved: Blob | null }) => {
       savedArgs.push(args.saved);
       const state = args.saved
-        ? { status: 'done', typed: [], outcome: { results: [{ term, findings: [finding] }], unsolidPages: [], context: { saved: { places: [place], picturePages: [], attachmentCount: 0 }, original: [] } } }
+        ? { status: 'done', typed: [], outcome: { results: [{ term, findings: [finding] }], unsolidPages: [], traces: { original: noTraces, saved: noTraces }, context: { saved: { places: [place], picturePages: [], attachmentCount: 0 }, original: [] } } }
         : { status: 'idle' };
       return { state, search: vi.fn() };
     };
-    mockedRemovePlace.mockResolvedValue(new Uint8Array([37, 80, 68, 70]));
+    const replayed = (callIndex: number) => {
+      const options = mockedRedactPdf.mock.calls[callIndex][3] as { finish: (doc: unknown) => void };
+      mockedRemovePlaces.mockClear();
+      options.finish('doc');
+      return mockedRemovePlaces.mock.calls.map((call) => call[1]);
+    };
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
-      const download = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
-      await act(async () => { download.click(); });
+      const buttons = () => Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`));
+      const download = () => required(buttons().find((button) => button.textContent.includes('Download')), 'Download button');
+      const callsBefore = mockedRedactPdf.mock.calls.length;
+      await act(async () => { download().click(); });
       await settleUntil('the export', () => container.querySelector('[data-saved-file-check]') !== null);
-      const downloadsBefore = (window.URL.createObjectURL as Mock).mock.calls.length;
+      expect(replayed(callsBefore)).toEqual([[]]);
       const exported = savedArgs[savedArgs.length - 1];
+      const downloadsBefore = (window.URL.createObjectURL as Mock).mock.calls.length;
 
       const remove = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-saved-file-check] button'))
         .find((button) => button.textContent === 'Remove it'), 'Remove it button');
       await act(async () => { remove.click(); });
-      await settleUntil('the saved file to change', () => savedArgs[savedArgs.length - 1] !== exported);
+      await settleUntil('the saved file again', () => container.querySelector('[data-check-removed]') !== null);
+      expect(savedArgs[savedArgs.length - 1]).not.toBe(exported);
 
-      expect(mockedRemovePlace).toHaveBeenCalledTimes(1);
-      expect(mockedRemovePlace.mock.calls[0][1]).toEqual(place);
+      expect(mockedRedactPdf.mock.calls.length).toBe(callsBefore + 2);
+      expect(replayed(callsBefore + 1)).toEqual([[place]]);
       expect((window.URL.createObjectURL as Mock).mock.calls.length).toBe(downloadsBefore + 1);
       expect(container.querySelector('[data-check-removed]')?.textContent).toBe('Removed the title. Saved again and downloaded.');
+
+      const undo = required(buttons().find((button) => button.title === 'Undo'), 'Undo button');
+      await act(async () => { undo.click(); });
+      await act(async () => { download().click(); });
+      await settleUntil('the export without the removal', () => mockedRedactPdf.mock.calls.length === callsBefore + 3);
+      expect(replayed(callsBefore + 2)).toEqual([[]]);
     } finally {
       checkOverride.current = null;
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
     }
+  });
+
+  describe('RED-59: the file\'s details', () => {
+    afterEach(() => { detailsOverride.current = null; });
+
+    it('shows no footer for a file without details', async () => {
+      await loadFileAndGetDrawArea();
+      expect(container.querySelector('[data-details-footer]')).toBeNull();
+    });
+
+    it('shows the footer once the details are read', async () => {
+      detailsOverride.current = authorTraces;
+      await loadFileAndGetDrawArea();
+      expect(query(container, '[data-details-footer]').textContent).toContain('Ada Lovelace');
+    });
+
+    it('the export receives the details edited in the sheet, and none when untouched', async () => {
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      const originalRevokeObjectURL = window.URL.revokeObjectURL;
+      window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      window.URL.revokeObjectURL = vi.fn();
+      try {
+        detailsOverride.current = authorTraces;
+        const drawArea = await loadFileAndGetDrawArea();
+        await drawBox(drawArea, 50, 200, 200, 500);
+        const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download')), 'Download button');
+        const callsBefore = mockedRedactPdf.mock.calls.length;
+        await act(async () => { download().click(); });
+        await settleUntil('the untouched export', () => mockedRedactPdf.mock.calls.length > callsBefore);
+        expect((mockedRedactPdf.mock.calls[callsBefore][3] as { details?: unknown }).details).toEqual({});
+
+        const review = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-details-footer] button'))
+          .find((button) => button.textContent === 'Review'), 'Review button');
+        await act(async () => { review.click(); });
+        const row = query(document.body, '[data-detail-row="author"]');
+        const del = required(Array.from(row.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === 'Delete'), 'Delete author');
+        await act(async () => { del.click(); });
+        expect(query(document.body, '[data-detail-row="author"]').getAttribute('data-detail-state')).toBe('deleted');
+        const done = required(Array.from(document.body.querySelectorAll<HTMLButtonElement>('dialog button')).find((b) => b.textContent === 'Done'), 'Done');
+        await act(async () => { done.click(); });
+
+        const callsMid = mockedRedactPdf.mock.calls.length;
+        await act(async () => { download().click(); });
+        await settleUntil('the export with the edit', () => mockedRedactPdf.mock.calls.length > callsMid);
+        expect((mockedRedactPdf.mock.calls[callsMid][3] as { details?: unknown }).details).toEqual({ author: { action: 'delete' } });
+      } finally {
+        window.URL.createObjectURL = originalCreateObjectURL;
+        window.URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
   });
 
   it('RED-31: Space peeks under every box, the Peek button shows it, and an export taken while peeking is unchanged', async () => {

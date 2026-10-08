@@ -11,6 +11,19 @@ import {
   pageList,
   picturePagesNote,
   unsolidNote,
+  DETAILS_TITLE,
+  DETAILS_REVIEW,
+  DETAIL_EDIT,
+  DETAIL_DELETE,
+  DETAIL_UNDO,
+  DETAIL_DONE,
+  DETAILS_CLOSE,
+  DETAIL_IMPLIED,
+  DETAILS_THUMBS,
+  DETAILS_CHANGED,
+  DETAILS_SURVIVED,
+  DETAILS_CHANGED_ANNOUNCEMENT,
+  DETAILS_SURVIVED_ANNOUNCEMENT,
 } from './checkCopy.ts';
 import type { Finding, PlaceKind } from './types.ts';
 
@@ -227,5 +240,27 @@ describe('Remove it copy', () => {
       const text = removedMessage({ kind, text: 'x' });
       expect(text).not.toMatch(/successfully|\u2014/);
     }
+  });
+});
+
+describe('details copy', () => {
+  it('has the agreed words', () => {
+    expect(DETAILS_TITLE).toBe('Details');
+    expect(DETAILS_REVIEW).toBe('Review');
+    expect(DETAIL_EDIT).toBe('Edit');
+    expect(DETAIL_DELETE).toBe('Delete');
+    expect(DETAIL_UNDO).toBe('Undo');
+    expect(DETAIL_DONE).toBe('Done');
+    expect(DETAILS_CLOSE).toBe('Done');
+    expect(DETAIL_IMPLIED).toBe('Goes with the changes above');
+    expect(DETAILS_THUMBS).toBe("Page pictures from before your marks go on their own, so a mark can't be seen through them.");
+    expect(DETAILS_CHANGED('title altered')).toBe('Details: title altered.');
+    expect(DETAILS_SURVIVED('Author, Title')).toBe("Still in your download: Author, Title. Don't share this copy yet.");
+    expect(DETAILS_CHANGED_ANNOUNCEMENT('title altered')).toBe('Checked your download. Details: title altered.');
+    expect(DETAILS_SURVIVED_ANNOUNCEMENT('Author')).toBe('Still in your download: Author.');
+  });
+
+  it('carries no em dash', () => {
+    for (const text of [DETAILS_THUMBS, DETAIL_IMPLIED, DETAILS_CHANGED('a'), DETAILS_SURVIVED('a')]) expect(text).not.toMatch(/\u2014/);
   });
 });

@@ -269,3 +269,22 @@ happened, and the design must never let the promise break silently.
 | RED-10 | Sign's Whiteout removes what it covers, through the same engine | RED-09 |
 
 RED-04 ships with the removal, not after it: removal and the as-saved view are one feature.
+
+## RED-59 (2026-10-08): the file's details
+
+A Redact download keeps the file's details as they came unless the person alters or deletes them from
+the line under the last page. The first RED-59 model, strip every detail and offer to keep attachments,
+was replaced on 2026-10-08 at Shlomi's call: the details are the person's to keep, alter or delete. The
+copy on `/redact/`, the Delete guide and the CamScanner guide traces to this table. Detail: RED-59.
+
+| # | Detail id | What the engine does |
+| --- | --- | --- |
+| T1 | `title`, `author`, `subject`, `keywords` | Kept; delete removes the Info key, alter sets the new value |
+| T2 | `made` (Creator, Producer) | Kept; delete removes both, alter sets Creator and removes Producer |
+| T3 | `created`, `changed` | Kept; delete removes CreationDate or ModDate (no alter) |
+| T4 | `attachment:<page>:<name>` (name tree, /AF, file-attachment comments) | Kept; delete removes that file only |
+| T5 | `scripts` (document scripts, open action, catalog and page /AA) | Kept; delete removes them (scripts inside form fields are left as they are) |
+| T6 | `hidden` (catalog and page and image /Metadata, other Info keys) | Kept; delete removes them, and editing any text or date detail deletes it too, since the XMP packet is a second copy |
+| T7 | Page thumbnails (/Thumb), XMP thumbnails (`xmp:Thumbnails`) and app data (/PieceInfo on the catalog, pages and images) | Always removed, whatever the edits: a picture or the app's own copy of the content from before the marks could show what a mark covers |
+| T9 | Any copied detail that reaches a page (flattened path) | Never copied: `reachesPage` refuses a value whose object graph holds a page, a page tree, an annotation or a page's content |
+| T8 | File ID | Left alone |

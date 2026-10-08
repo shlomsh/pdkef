@@ -4,7 +4,8 @@ import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFStream, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { readSavedFile } from './readSavedFile.ts';
-import { removePlace, PlaceNotFoundError } from './removePlace.ts';
+import { removePlaces } from './removePlaces.ts';
+import { dropUnreachable } from '../../../editor/adapters/pdf/reachability.js';
 import { locatePlaces } from './placeLocator.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 
@@ -91,7 +92,7 @@ async function buildFixture() {
 
   addOutline(doc);
 
-  ctx.assign(ctx.nextRef(), ctx.stream('')); // an unreachable object with nothing to read: no place, but removePlace drops it
+  ctx.assign(ctx.nextRef(), ctx.stream('')); // an unreachable object with nothing to read: no place, but the removal drops it
   const xmpRef = ctx.register(ctx.stream(XMP, { Type: 'Metadata', Subtype: 'XML' }));
   doc.catalog.set(PDFName.of('Metadata'), xmpRef);
 
@@ -108,6 +109,15 @@ async function read(bytes) {
   } finally {
     await loadingTask.destroy();
   }
+}
+
+
+/** What every export does with one "Remove it": replay it, drop what is unreachable, save. */
+async function removeAndSave(bytes, place) {
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  removePlaces(doc, [place]);
+  dropUnreachable(doc);
+  return new Uint8Array(await doc.save({ updateFieldAppearances: false }));
 }
 
 const label = (p) => `${p.kind}|${p.pageIndex ?? ''}|${p.text}`;
@@ -133,7 +143,7 @@ async function everythingIn(bytes) {
 }
 const contains = async (bytes, needle) => (await everythingIn(bytes)).includes(needle);
 
-describe('removePlace', () => {
+describe('removePlaces, saved the way an export saves', () => {
   it('lists the same places as readSavedFile (one locator, two readers)', async () => {
     const bytes = await buildFixture();
     const saved = await read(bytes);
@@ -158,7 +168,7 @@ describe('removePlace', () => {
     const skip = (p) => p.kind === 'metadata' || ['Alpha', 'Alpha-1'].includes(p.text);
     for (const [index, place] of before.places.entries()) {
       if (skip(place) || place.removable === false) continue;
-      const after = await read(await removePlace(bytes, place));
+      const after = await read(await removeAndSave(bytes, place));
       // Every removal also drops the parts no page shows (RED-49), so that place is gone too.
       const expected = before.places.filter((p, i) => i !== index && p.kind !== 'unused').map(label);
       expect(after.places.map(label), `after removing ${label(place)}`).toEqual(expected);
@@ -172,7 +182,7 @@ describe('removePlace', () => {
     async (secret) => {
       const bytes = await buildFixture();
       const kind = secret.split('-')[0];
-      const out = await removePlace(bytes, { kind, text: secret });
+      const out = await removeAndSave(bytes, { kind, text: secret });
       expect(await contains(bytes, secret)).toBe(true);
       expect(await contains(out, secret)).toBe(false);
     },
@@ -181,7 +191,7 @@ describe('removePlace', () => {
   it('removes XMP whole: the stream is gone from the bytes', async () => {
     const bytes = await buildFixture();
     expect(await contains(bytes, 'xmp-secret-title')).toBe(true);
-    const out = await removePlace(bytes, { kind: 'metadata', text: 'xmp-secret-title' });
+    const out = await removeAndSave(bytes, { kind: 'metadata', text: 'xmp-secret-title' });
     expect(await contains(out, 'xmp-secret-title')).toBe(false);
     const after = await read(out);
     expect(after.places.some((p) => p.kind === 'metadata')).toBe(false);
@@ -191,7 +201,7 @@ describe('removePlace', () => {
 
   it('removes a bookmark with its children, relinking siblings and fixing the counts', async () => {
     const bytes = await buildFixture();
-    const out = await removePlace(bytes, { kind: 'bookmark', text: 'Alpha' });
+    const out = await removeAndSave(bytes, { kind: 'bookmark', text: 'Alpha' });
     const after = await read(out);
     expect(after.places.filter((p) => p.kind === 'bookmark').map((p) => p.text)).toEqual(['Beta', 'Gamma']);
     expect(await contains(out, 'Alpha')).toBe(false);
@@ -208,7 +218,7 @@ describe('removePlace', () => {
 
   it('removes a nested bookmark and the parent forgets it', async () => {
     const bytes = await buildFixture();
-    const out = await removePlace(bytes, { kind: 'bookmark', text: 'Alpha-1' });
+    const out = await removeAndSave(bytes, { kind: 'bookmark', text: 'Alpha-1' });
     const after = await read(out);
     expect(after.places.filter((p) => p.kind === 'bookmark').map((p) => p.text)).toEqual(['Alpha', 'Beta', 'Gamma']);
     const doc = await PDFDocument.load(out, { updateMetadata: false });
@@ -229,19 +239,19 @@ describe('removePlace', () => {
     ctx.assign(itemRef, ctx.obj({ Title: PDFHexString.fromText('Only'), Parent: rootRef }));
     ctx.assign(rootRef, ctx.obj({ Type: 'Outlines', First: itemRef, Last: itemRef, Count: 1 }));
     doc.catalog.set(PDFName.of('Outlines'), rootRef);
-    const out = await removePlace(new Uint8Array(await doc.save()), { kind: 'bookmark', text: 'Only' });
+    const out = await removeAndSave(new Uint8Array(await doc.save()), { kind: 'bookmark', text: 'Only' });
     expect((await read(out)).places).toEqual([]);
   });
 
   it('removes one attachment from the name tree and its bytes; the other stays listed', async () => {
     const bytes = await buildFixture();
-    const out = await removePlace(bytes, { kind: 'attachment', text: 'attachment-one-secret.png' });
+    const out = await removeAndSave(bytes, { kind: 'attachment', text: 'attachment-one-secret.png' });
     const after = await read(out);
     expect(after.places.filter((p) => p.kind === 'attachment').map((p) => p.text)).toEqual(['attachment-two-secret.png']);
     expect(after.attachmentCount).toBe(1);
     expect(await contains(out, 'attachment-one-secret')).toBe(false);
     expect(await contains(out, 'attachment-two-secret')).toBe(true);
-    const last = await removePlace(out, { kind: 'attachment', text: 'attachment-two-secret.png' });
+    const last = await removeAndSave(out, { kind: 'attachment', text: 'attachment-two-secret.png' });
     const empty = await read(last);
     expect(empty.attachmentCount).toBe(0);
     expect(empty.places.some((p) => p.kind === 'attachment')).toBe(false);
@@ -250,7 +260,7 @@ describe('removePlace', () => {
   it('clears a field value and the picture of it', async () => {
     const bytes = await buildFixture();
     expect(await contains(bytes, 'field-secret-value')).toBe(true);
-    const out = await removePlace(bytes, { kind: 'field', text: 'field-secret-value', pageIndex: 0 });
+    const out = await removeAndSave(bytes, { kind: 'field', text: 'field-secret-value', pageIndex: 0 });
     expect(await contains(out, 'field-secret-value')).toBe(false);
     const after = await read(out);
     expect(after.places.some((p) => p.kind === 'field' && p.removable !== false)).toBe(false);
@@ -261,11 +271,11 @@ describe('removePlace', () => {
 
   it('takes a comment and a link off their own page only', async () => {
     const bytes = await buildFixture();
-    const out = await removePlace(bytes, { kind: 'comment', text: 'comment-two-secret', pageIndex: 1 });
+    const out = await removeAndSave(bytes, { kind: 'comment', text: 'comment-two-secret', pageIndex: 1 });
     const doc = await PDFDocument.load(out, { updateMetadata: false });
     expect(doc.getPages()[1].node.Annots()?.size() ?? 0).toBe(0);
     expect(doc.getPages()[0].node.Annots().size()).toBe(3);
-    const noLink = await removePlace(bytes, { kind: 'link', text: 'https://example.com/link-secret', pageIndex: 0 });
+    const noLink = await removeAndSave(bytes, { kind: 'link', text: 'https://example.com/link-secret', pageIndex: 0 });
     expect(await contains(noLink, 'link-secret')).toBe(false);
     expect(await contains(noLink, 'comment-secret')).toBe(true);
   });
@@ -284,7 +294,7 @@ describe('removePlace', () => {
     const bytes = new Uint8Array(await doc.save());
     const before = await read(bytes);
     const target = before.places.find((p) => p.text === 'note-body');
-    const out = await removePlace(bytes, target);
+    const out = await removeAndSave(bytes, target);
     expect(await contains(out, 'note-body')).toBe(false);
     expect(await contains(out, 'note-author')).toBe(false);
     expect(await contains(out, 'popup-body')).toBe(false);
@@ -293,19 +303,13 @@ describe('removePlace', () => {
 
   it('adds nothing of its own: no producer, no dates, other form pictures kept', async () => {
     const bytes = await buildFixture();
-    const out = await removePlace(bytes, { kind: 'author', text: 'author-secret' });
+    const out = await removeAndSave(bytes, { kind: 'author', text: 'author-secret' });
     const doc = await PDFDocument.load(out, { updateMetadata: false });
     const info = doc.context.lookup(doc.context.trailerInfo.Info);
     const original = await PDFDocument.load(bytes, { updateMetadata: false });
     const originalInfo = original.context.lookup(original.context.trailerInfo.Info);
     const keys = (dict) => [...dict.keys()].map((k) => k.asString()).sort();
     expect(keys(info)).toEqual(keys(originalInfo).filter((k) => k !== '/Author'));
-  });
-
-  it('refuses, naming the place, when it is not in the file', async () => {
-    const bytes = await buildFixture();
-    await expect(removePlace(bytes, { kind: 'title', text: 'not there' })).rejects.toBeInstanceOf(PlaceNotFoundError);
-    await expect(removePlace(bytes, { kind: 'comment', text: 'comment-secret', pageIndex: 1 })).rejects.toBeInstanceOf(PlaceNotFoundError);
   });
 
   it('removes the first of two identical places and leaves the second', async () => {
@@ -317,7 +321,55 @@ describe('removePlace', () => {
       })));
     }
     const bytes = new Uint8Array(await doc.save());
-    const out = await removePlace(bytes, { kind: 'comment', text: 'twin', pageIndex: 0 });
+    const out = await removeAndSave(bytes, { kind: 'comment', text: 'twin', pageIndex: 0 });
     expect((await read(out)).places.map(label)).toEqual(['comment|0|twin']);
+  });
+});
+
+const labels = (doc) => locatePlaces(doc).map((l) => `${l.place.kind}|${l.place.pageIndex ?? ''}|${l.place.text}`);
+
+describe('removePlaces on an open document', () => {
+  it('removes each removable kind and counts them', async () => {
+    const doc = await PDFDocument.load(await buildFixture(), { updateMetadata: false });
+    const wanted = [
+      { kind: 'title', text: 'title-secret' },
+      { kind: 'author', text: 'author-secret' },
+      { kind: 'subject', text: 'subject-secret' },
+      { kind: 'keywords', text: 'keywords-secret' },
+      { kind: 'field', text: 'field-secret-value', pageIndex: 0 },
+      { kind: 'link', text: 'https://example.com/link-secret', pageIndex: 0 },
+      { kind: 'comment', text: 'comment-secret', pageIndex: 0 },
+      { kind: 'attachment', text: 'attachment-one-secret.png' },
+    ];
+    expect(removePlaces(doc, wanted)).toBe(wanted.length);
+    // The orphaned appearance of the cleared field is the caller's dropUnreachable to take, so 'unused' is not judged here.
+    const left = labels(doc).filter((l) => !l.startsWith('unused')).join('\n');
+    for (const secret of ['title-secret', 'author-secret', 'subject-secret', 'keywords-secret', 'field-secret-value', 'link-secret', 'comment-secret', 'attachment-one-secret']) {
+      expect(left, secret).not.toContain(secret);
+    }
+    expect(left).toContain('attachment-two-secret.png');
+  });
+
+  it('skips a place that is no longer there, quietly', async () => {
+    const doc = await PDFDocument.load(await buildFixture(), { updateMetadata: false });
+    const before = labels(doc);
+    expect(removePlaces(doc, [{ kind: 'title', text: 'not there' }, { kind: 'comment', text: 'comment-secret', pageIndex: 5 }])).toBe(0);
+    expect(labels(doc)).toEqual(before);
+    expect(removePlaces(doc, [{ kind: 'title', text: 'title-secret' }, { kind: 'title', text: 'title-secret' }])).toBe(1);
+  });
+
+  it('two identical entries remove two identical places', async () => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([200, 200]);
+    for (const y of [10, 60, 110]) {
+      page.node.addAnnot(doc.context.register(doc.context.obj({
+        Type: 'Annot', Subtype: 'Text', Rect: [10, y, 30, y + 20], Contents: PDFString.of('twin'),
+      })));
+    }
+    const twin = { kind: 'comment', text: 'twin', pageIndex: 0 };
+    expect(removePlaces(doc, [twin, twin])).toBe(2);
+    expect(labels(doc)).toEqual(['comment|0|twin']);
+    expect(doc.getPages()[0].node.Annots().size()).toBe(1);
+    expect(doc.catalog.get(PDFName.of('Outlines'))).toBeUndefined();
   });
 });

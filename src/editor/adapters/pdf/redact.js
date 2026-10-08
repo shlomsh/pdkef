@@ -3,8 +3,12 @@ import { getPdfjs } from './pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
+import { dropUnreachable } from './reachability.js';
+import { applyDetailEdits, copyDocumentDetails } from './documentTraces.js';
 import { rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
 import { strokeInPixels } from '../../model/strokeGeometry.ts';
+
+/** @typedef {import('./documentTraces.js').DetailEdits} DetailEdits */
 
 /**
  * Builds a blurred copy of one box's source region, opaque even where the
@@ -169,10 +173,16 @@ function paintBoxes(ctx, viewport, canvas, pageElements) {
 
 /**
  * Writes the output document: untouched pages copied losslessly, covered
- * pages saved as their picture alone, with no text layer.
+ * pages saved as their picture alone, with no text layer. The source's
+ * details are copied over as they came (RED-59), then `finish` edits the
+ * output and the person's `details` edits are applied.
+ *
+ * @param {PDFDocument} sourceDoc
+ * @param {Map<number, {jpeg: Uint8Array, width: number, height: number}>} covered
+ * @param {{ finish?: (doc: PDFDocument) => void, details?: DetailEdits }} [options]
  */
-async function assemble(sourceDoc, covered) {
-  const newDoc = await PDFDocument.create();
+export async function assemble(sourceDoc, covered, options = {}) {
+  const newDoc = await PDFDocument.create({ updateMetadata: false });
   for (let i = 0; i < sourceDoc.getPageCount(); i++) {
     const page = covered.get(i);
     if (!page) {
@@ -182,6 +192,10 @@ async function assemble(sourceDoc, covered) {
     }
     await buildImageOnlyPage(newDoc, page.jpeg, page.width, page.height);
   }
+  copyDocumentDetails(sourceDoc, newDoc, { flattened: covered.keys(), edits: options.details });
+  options.finish?.(newDoc);
+  applyDetailEdits(newDoc, options.details ?? {});
+  dropUnreachable(newDoc);
   return newDoc.save();
 }
 
@@ -194,11 +208,12 @@ async function assemble(sourceDoc, covered) {
  * @param {File|Blob} file - The original PDF file
  * @param {Array} elements - Array of redaction box objects { pageIndex, left, top, width, height } in percentages
  * @param {Function} onProgress - Progress callback
+ * @param {{ finish?: (doc: PDFDocument) => void, details?: DetailEdits }} [options] see `assemble`
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
-export async function redactPdf(file, elements, onProgress) {
+export async function redactPdf(file, elements, onProgress, options = {}) {
   const bytes = await file.arrayBuffer();
-  const sourceDoc = await PDFDocument.load(bytes);
+  const sourceDoc = await PDFDocument.load(bytes, { updateMetadata: false });
 
   // We need pdf.js to render pages to an image canvas for flattening
   const pdfjs = await getPdfjs();
@@ -217,7 +232,7 @@ export async function redactPdf(file, elements, onProgress) {
   }
   await loadingTask.destroy();
 
-  const redactedBytes = await assemble(sourceDoc, covered);
+  const redactedBytes = await assemble(sourceDoc, covered, options);
 
   return { blob: new Blob([redactedBytes], { type: 'application/pdf' }) };
 }

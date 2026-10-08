@@ -28,8 +28,6 @@ export const REMOVE_IT = 'Remove it';
 
 export const REMOVING = 'Removing…';
 
-export const ALREADY_GONE = 'That was already gone.';
-
 export const COVER_IT_NOTE = 'Adding a box covers it in your next download. Download again to get the new copy.';
 
 /** "3", "3 and 7", "2, 5 and 9", from zero-based indexes. */
@@ -109,6 +107,7 @@ export function picturePagesNote(pages: readonly number[]): string | null {
     : `Pages ${pageList(pages)} are pictures, so look them over yourself.`;
 }
 
+/** The caller passes how many attachments the *saved* file still has (`saved.attachments.length`). */
 export function attachmentsNote(count: number): string | null {
   if (count <= 0) return null;
   return count === 1
@@ -122,3 +121,30 @@ export function unsolidNote(pages: readonly number[]): string | null {
     ? `A box on page ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`
     : `Boxes on pages ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`;
 }
+
+/** RED-59: the file's details are the person's to keep, alter or delete. */
+export const DETAILS_TITLE = 'Details';
+
+export const DETAILS_REVIEW = 'Review';
+
+export const DETAIL_EDIT = 'Edit';
+
+export const DETAIL_DELETE = 'Delete';
+
+export const DETAIL_UNDO = 'Undo';
+
+export const DETAIL_DONE = 'Done';
+
+export const DETAILS_CLOSE = 'Done';
+
+export const DETAIL_IMPLIED = 'Goes with the changes above';
+
+export const DETAILS_THUMBS = "Page pictures from before your marks go on their own, so a mark can't be seen through them.";
+
+export const DETAILS_CHANGED = (summary: string) => `Details: ${summary}.`;
+
+export const DETAILS_SURVIVED = (labels: string) => `Still in your download: ${labels}. Don't share this copy yet.`;
+
+export const DETAILS_CHANGED_ANNOUNCEMENT = (summary: string) => `Checked your download. Details: ${summary}.`;
+
+export const DETAILS_SURVIVED_ANNOUNCEMENT = (labels: string) => `Still in your download: ${labels}.`;
