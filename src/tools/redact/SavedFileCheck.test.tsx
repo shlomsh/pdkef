@@ -63,7 +63,7 @@ describe('SavedFileCheck details line', () => {
   afterEach(() => act(() => render(null, container)));
   const show = (extra: Record<string, unknown> = {}) =>
     act(() => render(
-      <SavedFileCheck state={stateWith([])} onSearch={vi.fn()} onCover={vi.fn()} detailsChanged="" detailsSurvived={[]} onReviewDetails={vi.fn()} {...extra} />,
+      <SavedFileCheck state={stateWith([])} onSearch={vi.fn()} onCover={vi.fn()} detailsChanged={[]} detailsSurvived={[]} onReviewDetails={vi.fn()} {...extra} />,
       container,
     ));
 
@@ -76,19 +76,21 @@ describe('SavedFileCheck details line', () => {
 
   it('says what changed and hands Review back', () => {
     const onReviewDetails = vi.fn();
-    show({ detailsChanged: 'title deleted', onReviewDetails });
+    show({ detailsChanged: ['title altered', 'author deleted'], onReviewDetails });
     const line = container.querySelector('[data-details-changed]') as HTMLElement;
-    expect(line.textContent).toContain(DETAILS_CHANGED('title deleted'));
+    expect(line.textContent).toContain(DETAILS_CHANGED('title altered, author deleted'));
+    expect([...line.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['title altered', 'author deleted']);
     const review = Array.from(line.querySelectorAll('button')).find((b) => b.textContent === DETAILS_REVIEW)!;
     act(() => review.click());
     expect(onReviewDetails).toHaveBeenCalledTimes(1);
   });
 
   it('turns an edit that did not take into an alert naming the details', () => {
-    show({ detailsChanged: 'title deleted', detailsSurvived: ['Title', 'Scripts'] });
+    show({ detailsChanged: ['title deleted'], detailsSurvived: ['Title', 'Scripts'] });
     const alert = container.querySelector('[data-details-survived]') as HTMLElement;
     expect(alert.getAttribute('role')).toBe('alert');
     expect(alert.textContent).toBe(DETAILS_SURVIVED('Title, Scripts'));
+    expect([...alert.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['Title', 'Scripts']);
     expect(container.querySelector('[data-details-changed]')).toBeNull();
   });
 });

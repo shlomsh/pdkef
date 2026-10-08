@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changesSummary, describeDetails, detailsSummary, survivedDetails } from './describeDetails.ts';
+import { changesPieces, changesSummary, describeDetails, detailsSummary, survivedDetails } from './describeDetails.ts';
 import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
 
 const empty = (): DocumentTraces => ({
@@ -83,7 +83,7 @@ describe('describeDetails', () => {
 
 describe('detailsSummary', () => {
   it('is empty when there are no rows', () => {
-    expect(detailsSummary([])).toBe('');
+    expect(detailsSummary([], {})).toEqual([]);
   });
 
   it('joins title, author, made and created, then files, scripts and hidden', () => {
@@ -92,15 +92,39 @@ describe('detailsSummary', () => {
       attachments: [{ name: 'a' }, { name: 'b' }], scripts: { document: true, pages: [] }, pieceInfo: true,
     };
     const created = rows(t).find((r) => r.id === 'created')!.text;
-    expect(detailsSummary(rows(t))).toBe(`T · A · Pages · ${created} · 2 attached files · scripts · hidden details`);
+    expect(detailsSummary(rows(t), {}).join(' · ')).toBe(`T · A · Pages · ${created} · 2 attached files · scripts · hidden details`);
   });
 
   it('shows only the app that made the file, not the library that wrote it', () => {
-    expect(detailsSummary(rows({ ...empty(), creator: 'Notes', producer: 'iOS Version 17.5 Quartz PDFContext' }))).toBe('Notes');
+    expect(detailsSummary(rows({ ...empty(), creator: 'Notes', producer: 'iOS Version 17.5 Quartz PDFContext' }), {})).toEqual(['Notes']);
   });
 
   it('one attached file is singular', () => {
-    expect(detailsSummary(rows({ ...empty(), attachments: [{ name: 'a', pageIndex: 0 }] }))).toBe('1 attached file');
+    expect(detailsSummary(rows({ ...empty(), attachments: [{ name: 'a', pageIndex: 0 }] }), {})).toEqual(['1 attached file']);
+  });
+});
+
+describe('detailsSummary follows the edits', () => {
+  const t = {
+    ...empty(), title: 'T', author: 'A', creator: 'Pages', creationDate: date('2026-10-07T09:14:00'),
+    attachments: [{ name: 'a' }, { name: 'b' }], xmp: { present: true, hasHistory: false },
+  };
+  const del = { action: 'delete' as const };
+  it('leaves a deleted detail out', () => {
+    expect(detailsSummary(rows(t), { author: del })).not.toContain('A');
+    expect(detailsSummary(rows(t), { 'attachment::a': del })).toContain('1 attached file');
+  });
+  it('shows the new value of an altered one', () => {
+    expect(detailsSummary(rows(t), { title: { action: 'alter', value: 'הצהרה' } })[0]).toBe('הצהרה');
+    expect(detailsSummary(rows(t), { made: { action: 'alter', value: 'Me' } })).toContain('Me');
+  });
+  it('leaves out the implied ones: hidden goes with any edited text, created takes changed along', () => {
+    expect(detailsSummary(rows(t), {})).toContain('hidden details');
+    expect(detailsSummary(rows(t), { title: del })).not.toContain('hidden details');
+    expect(detailsSummary(rows(t), { author: { action: 'alter', value: 'X' } })).not.toContain('hidden details');
+  });
+  it('returns pieces, not a joined string', () => {
+    expect(detailsSummary(rows({ ...empty(), title: 'a · b', author: 'c' }), {})).toEqual(['a · b', 'c']);
   });
 });
 
@@ -119,6 +143,10 @@ describe('changesSummary', () => {
       scripts: { action: 'delete' as const },
     };
     expect(changesSummary(rows(t), edits)).toBe('title altered, author deleted, app deleted, a.png deleted, scripts deleted');
+  });
+
+  it('gives the pieces for the UI to wrap one by one', () => {
+    expect(changesPieces(rows(t), { author: { action: 'delete' }, title: { action: 'alter', value: 'X' } })).toEqual(['title altered', 'author deleted']);
   });
 
   it('ignores edits for ids the file does not have', () => {
@@ -181,5 +209,16 @@ describe('survivedDetails', () => {
 
   it('ignores an alter on an id that only accepts delete', () => {
     expect(survivedDetails({ created: alter('x') }, { ...empty(), creationDate: date('2026-01-01T00:00:00') })).toEqual([]);
+  });
+
+  it('catches an implied Hidden delete that did not take, labelled from the row by the caller', () => {
+    const saved = { ...empty(), xmp: { present: true, hasHistory: false } };
+    expect(survivedDetails({ title: { action: 'alter', value: 'X' } }, { ...saved, title: 'X' })).toEqual(['hidden']);
+    expect(survivedDetails({ title: { action: 'alter', value: 'X' } }, { ...empty(), title: 'X' })).toEqual([]);
+  });
+
+  it('catches an implied Changed delete (from deleting Created) that did not take', () => {
+    const saved = { ...empty(), modDate: date('2026-01-01T00:00:00') };
+    expect(survivedDetails({ created: { action: 'delete' } }, saved)).toEqual(['changed']);
   });
 });

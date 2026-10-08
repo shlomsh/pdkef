@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { expandDetailEdits } from '../../../editor/adapters/pdf/documentTraces.js';
-import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/documentTraces.js';
+import { expandDetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
+import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
 import type { DetailRow } from './describeDetails.ts';
 import {
   DETAILS_CLOSE, DETAILS_THUMBS, DETAILS_TITLE, DETAIL_DELETE, DETAIL_DONE, DETAIL_EDIT, DETAIL_IMPLIED, DETAIL_UNDO,
@@ -16,6 +16,9 @@ interface Props {
   onClose: () => void;
 }
 
+const DELETED_PREFIX = 'Deleted: ';
+const ALTERED_PREFIX = 'Altered: ';
+
 type RowState = 'kept' | 'deleted' | 'altered' | 'implied' | 'editing';
 
 /**
@@ -30,6 +33,8 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const implied = expandDetailEdits(edits);
+  // Where focus goes once the row has re-rendered into its next state.
+  const pendingFocus = useRef<{ id: string; action: 'edit' | 'delete' | 'undo' } | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -50,8 +55,10 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
       if (event.key !== 'Escape') return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (editingId !== null) setEditingId(null);
-      else onClose();
+      if (editingId !== null) {
+        pendingFocus.current = { id: editingId, action: 'edit' };
+        setEditingId(null);
+      } else onClose();
     };
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
@@ -60,6 +67,17 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
   useEffect(() => {
     if (editingId !== null) inputRef.current?.focus();
   }, [editingId]);
+
+  // The button that was pressed is gone or changed, so focus follows the person to the row's next one.
+  useEffect(() => {
+    const target = pendingFocus.current;
+    if (!target || editingId !== null) return;
+    const button = dialogRef.current?.querySelector<HTMLElement>(`[data-detail-row="${CSS.escape(target.id)}"] [data-action="${target.action}"]`);
+    if (button) {
+      button.focus();
+      pendingFocus.current = null;
+    }
+  });
 
   const currentText = (row: DetailRow) => {
     const edit = edits[row.id];
@@ -73,6 +91,7 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
 
   const commit = (row: DetailRow) => {
     const value = draft.trim();
+    pendingFocus.current = { id: row.id, action: 'edit' };
     setEditingId(null);
     if (value === '' || value === row.text) onRestore(row.id);
     else if (value !== currentText(row)) onEdit(row.id, { action: 'alter', value });
@@ -85,6 +104,17 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
     if (edit?.action === 'alter') return 'altered';
     if (implied[row.id]?.action === 'delete') return 'implied';
     return 'kept';
+  };
+
+  // The accessible name carries the row ("Delete Title"); a comment attachment adds its file name.
+  const nameOf = (row: DetailRow) => (row.id.startsWith('attachment:') ? `${row.label} ${row.text}` : row.label);
+  const remove = (row: DetailRow) => {
+    pendingFocus.current = { id: row.id, action: 'undo' };
+    onEdit(row.id, { action: 'delete' });
+  };
+  const undo = (row: DetailRow) => {
+    pendingFocus.current = { id: row.id, action: row.editable ? 'edit' : 'delete' };
+    onRestore(row.id);
   };
 
   const value = (row: DetailRow, text: string) => (
@@ -117,29 +147,32 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
                     class={styles.input}
                     value={draft}
                     aria-label={row.label}
+                    dir="auto"
                     onInput={(event) => setDraft((event.target as HTMLInputElement).value)}
                     onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit(row); } }}
                   />
                   <span class={styles.actions}>
-                    <button type="button" class={styles.action} onClick={() => commit(row)}>{DETAIL_DONE}</button>
+                    <button type="button" class={styles.action} data-action="done" aria-label={`${DETAIL_DONE} ${nameOf(row)}`} onClick={() => commit(row)}>{DETAIL_DONE}</button>
                   </span>
                 </>
               ) : (
                 <>
                   <span class={styles.value}>
+                    {state === 'deleted' && <span class="sr-only">{DELETED_PREFIX}</span>}
+                    {state === 'altered' && <span class="sr-only">{ALTERED_PREFIX}</span>}
                     {struck ? <s>{value(row, row.text)}</s> : value(row, currentText(row))}
                     {state === 'implied' && <span class={styles.implied}>{DETAIL_IMPLIED}</span>}
                   </span>
                   <span class={styles.actions}>
                     {state === 'deleted' && (
-                      <button type="button" class={styles.action} onClick={() => onRestore(row.id)}>{DETAIL_UNDO}</button>
+                      <button type="button" class={styles.action} data-action="undo" aria-label={`${DETAIL_UNDO} ${nameOf(row)}`} onClick={() => undo(row)}>{DETAIL_UNDO}</button>
                     )}
                     {(state === 'kept' || state === 'altered') && (
                       <>
                         {row.editable && (
-                          <button type="button" class={styles.action} onClick={() => startEdit(row)}>{DETAIL_EDIT}</button>
+                          <button type="button" class={styles.action} data-action="edit" aria-label={`${DETAIL_EDIT} ${nameOf(row)}`} onClick={() => startEdit(row)}>{DETAIL_EDIT}</button>
                         )}
-                        <button type="button" class={styles.action} onClick={() => onEdit(row.id, { action: 'delete' })}>{DETAIL_DELETE}</button>
+                        <button type="button" class={styles.action} data-action="delete" aria-label={`${DETAIL_DELETE} ${nameOf(row)}`} onClick={() => remove(row)}>{DETAIL_DELETE}</button>
                       </>
                     )}
                   </span>

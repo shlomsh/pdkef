@@ -4,8 +4,9 @@
  * can keep, alter or delete, plus the two summary lines and the read-back
  * check. The UI wraps a row's `text` in `<bdi>` and a `iso` date in `<time>`.
  */
-import { attachmentDetailId } from '../../../editor/adapters/pdf/documentTraces.js';
-import type { DetailEdits, DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import { attachmentDetailId, expandDetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
+import type { DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
+import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
 
 export interface DetailRow {
   id: string;
@@ -87,22 +88,34 @@ export function describeDetails(traces: DocumentTraces, options: { locale: strin
   return rows;
 }
 
-/** The footer line under the last page. Empty when the file has no details (nothing is rendered then). */
-export function detailsSummary(rows: DetailRow[]): string {
-  if (rows.length === 0) return '';
-  const parts = ['title', 'author', 'made', 'created']
-    // Made with reads "app · library"; the footer names the app only.
-    .map((id) => rows.find((row) => row.id === id)?.text.split(' · ')[0])
+/**
+ * The footer line under the last page, as pieces (the UI wraps each in its own
+ * `<bdi>`). It follows the person's edits: a deleted detail, or one the engine
+ * deletes with it (`expandDetailEdits`), is left out; an altered one shows its
+ * new value. Empty when the file has no details (nothing is rendered then).
+ */
+export function detailsSummary(rows: DetailRow[], edits: DetailEdits): string[] {
+  if (rows.length === 0) return [];
+  const effective = expandDetailEdits(edits);
+  const kept = rows.filter((row) => effective[row.id]?.action !== 'delete');
+  const pieces = ['title', 'author', 'made', 'created']
+    .map((id) => {
+      const row = kept.find((r) => r.id === id);
+      if (!row) return undefined;
+      const edit = edits[id];
+      // Made with reads "app · library"; the footer names the app only.
+      return edit?.action === 'alter' ? edit.value : id === 'made' ? row.text.split(' · ')[0] : row.text;
+    })
     .filter((text): text is string => Boolean(text));
-  const attached = rows.filter((row) => row.id.startsWith('attachment:')).length;
-  if (attached > 0) parts.push(`${attached} attached ${attached === 1 ? 'file' : 'files'}`);
-  if (rows.some((row) => row.id === 'scripts')) parts.push('scripts');
-  if (rows.some((row) => row.id === 'hidden')) parts.push('hidden details');
-  return parts.join(' · ');
+  const attached = kept.filter((row) => row.id.startsWith('attachment:')).length;
+  if (attached > 0) pieces.push(`${attached} attached ${attached === 1 ? 'file' : 'files'}`);
+  if (kept.some((row) => row.id === 'scripts')) pieces.push('scripts');
+  if (kept.some((row) => row.id === 'hidden')) pieces.push('hidden details');
+  return pieces;
 }
 
-/** What the person changed, in row order. Only explicit edits (the implied Hidden row is not one). */
-export function changesSummary(rows: DetailRow[], edits: DetailEdits): string {
+/** What the person changed, in row order, one piece each. Only explicit edits (the implied Hidden row is not one). */
+export function changesPieces(rows: DetailRow[], edits: DetailEdits): string[] {
   const parts: string[] = [];
   for (const row of rows) {
     const edit = edits[row.id];
@@ -111,8 +124,10 @@ export function changesSummary(rows: DetailRow[], edits: DetailEdits): string {
     const name = row.id.startsWith('attachment:') ? row.text : row.id === 'made' ? 'app' : row.label.toLowerCase();
     parts.push(`${name} ${verb}`);
   }
-  return parts.join(', ');
+  return parts;
 }
+
+export const changesSummary = (rows: DetailRow[], edits: DetailEdits): string => changesPieces(rows, edits).join(', ');
 
 const isText = (id: string): id is (typeof TEXT_ROWS)[number][0] => TEXT_ROWS.some(([textId]) => textId === id);
 
@@ -124,10 +139,10 @@ function attachmentSurvives(id: string, saved: DocumentTraces): boolean {
   return saved.attachments.some((file) => file.name === name && file.pageIndex === pageIndex);
 }
 
-/** Ids of explicit edits that did not take, read back from the saved file. */
+/** Ids of edits that did not take, the implied ones too (Hidden, Changed), read back from the saved file. */
 export function survivedDetails(edits: DetailEdits, saved: DocumentTraces): string[] {
   const out: string[] = [];
-  for (const [id, edit] of Object.entries(edits)) {
+  for (const [id, edit] of Object.entries(expandDetailEdits(edits))) {
     let survived = false;
     if (isText(id)) {
       survived = edit.action === 'delete' ? Boolean(saved[id]) : saved[id] !== edit.value;
