@@ -268,3 +268,6 @@ guides never crawled. Insights shows `/he/merge/` still under the pre-09-17 מי
 title is unread until a recrawl (reindex requested from SEO-39's list). **`/he/sign/` has left the index**
 (indexed 09-11, absent from the Valid export, indexed count 22 to 21 on 09-22), probably "Crawled -
 currently not indexed"; URL Inspection on it is the next step, not another request.
+
+**2026-10-08, later:** indexing requested for `/he/merge/`, so the איחוד title can reach the index before
+the 11-06 read. URL Inspection run on `/he/sign/`.
