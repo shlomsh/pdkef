@@ -127,6 +127,9 @@ export const TRACES_LEAD = 'Your original file carried:';
 
 export const TRACES_READ_BACK = 'Read back from your download: none of it is there.';
 
+/** The read-back line once the person kept an attached file on purpose. */
+export const TRACES_READ_BACK_KEPT = 'Read back from your download: only what you kept is there.';
+
 export const TRACES_NONE = 'Your original file carried no details about itself. Neither does your download.';
 
 export const TRACE_SURVIVED = 'Still in your download.';

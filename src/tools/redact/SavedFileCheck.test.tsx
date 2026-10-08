@@ -134,6 +134,7 @@ describe('SavedFileCheck traces block', () => {
     expect(row.querySelector('s')).toBeNull();
     expect(container.querySelector('[data-trace-survived]')).toBeNull();
     expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).toContain('only what you kept is there');
   });
 
   it('offers no Keep it on a file attached in a page comment', () => {

@@ -8,6 +8,7 @@ import {
   TRACES_LEAD,
   TRACES_NONE,
   TRACES_READ_BACK,
+  TRACES_READ_BACK_KEPT,
   TRACES_SURVIVED_ALERT,
   TRACE_SURVIVED,
 } from './check/checkCopy.ts';
@@ -80,7 +81,7 @@ export default function TracesBlock({
       {survived.size > 0 ? (
         <p className={styles.danger} role="alert">{TRACES_SURVIVED_ALERT}</p>
       ) : (
-        <p className={styles.rb}>{TRACES_READ_BACK}</p>
+        <p className={styles.rb}>{rows.some((row) => row.attachment !== undefined && keptAttachments.includes(row.attachment)) ? TRACES_READ_BACK_KEPT : TRACES_READ_BACK}</p>
       )}
     </div>
   );
