@@ -6,9 +6,13 @@
 // distinguish "the person's input needs fixing" from any other failure
 // (a corrupt file, a render error) without matching on message text.
 export class PageSelectorError extends Error {
-  constructor(message) {
+  // `code` and `params` let a localized caller rebuild the message from its
+  // own catalogue; `message` stays the English text every other caller shows.
+  constructor(message, code, params) {
     super(message);
     this.name = 'PageSelectorError';
+    this.code = code;
+    this.params = params;
   }
 }
 
@@ -36,7 +40,7 @@ export function parsePageSelector(selector, pageCount) {
     if (openEndMatch) {
       const start = Number(openEndMatch[1]);
       if (start < 1 || start > pageCount) {
-        throw new PageSelectorError(`Page number ${start} out of range (1-${pageCount})`);
+        throw new PageSelectorError(`Page number ${start} out of range (1-${pageCount})`, 'outOfRange', { number: start, max: pageCount });
       }
       for (let n = start; n <= pageCount; n += 1) {
         pages.add(n);
@@ -49,7 +53,7 @@ export function parsePageSelector(selector, pageCount) {
     if (openStartMatch) {
       const end = Number(openStartMatch[1]);
       if (end < 1 || end > pageCount) {
-        throw new PageSelectorError(`Page number ${end} out of range (1-${pageCount})`);
+        throw new PageSelectorError(`Page number ${end} out of range (1-${pageCount})`, 'outOfRange', { number: end, max: pageCount });
       }
       for (let n = 1; n <= end; n += 1) {
         pages.add(n);
@@ -65,6 +69,8 @@ export function parsePageSelector(selector, pageCount) {
       if (start < 1 || start > pageCount || end < 1 || end > pageCount) {
         throw new PageSelectorError(
           `Range ${start}-${end} contains out of range page numbers (1-${pageCount})`,
+          'rangeOutOfRange',
+          { start, end, max: pageCount },
         );
       }
       if (start > end) [start, end] = [end, start];
@@ -78,18 +84,18 @@ export function parsePageSelector(selector, pageCount) {
     if (/^\d+$/.test(part)) {
       const num = Number(part);
       if (num < 1 || num > pageCount) {
-        throw new PageSelectorError(`Page number ${num} out of range (1-${pageCount})`);
+        throw new PageSelectorError(`Page number ${num} out of range (1-${pageCount})`, 'outOfRange', { number: num, max: pageCount });
       }
       pages.add(num);
       continue;
     }
 
-    throw new PageSelectorError(`Invalid page range or number: "${part}"`);
+    throw new PageSelectorError(`Invalid page range or number: "${part}"`, 'invalidPart', { part });
   }
 
   const inRange = [...pages].filter((n) => n >= 1 && n <= pageCount);
   if (inRange.length === 0) {
-    throw new PageSelectorError('No valid pages selected');
+    throw new PageSelectorError('No valid pages selected', 'noValidPages', {});
   }
   return inRange.sort((a, b) => a - b);
 }

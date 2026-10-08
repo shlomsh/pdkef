@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { englishSignMessages, hebrewSignMessages, signUpdateDescription } from './toolMessages';
+import {
+  englishSignMessages,
+  hebrewSignMessages,
+  signUpdateDescription,
+  englishSplitMessages,
+  hebrewSplitMessages,
+  getToolMessages,
+} from './toolMessages';
 
 describe('sign tool messages', () => {
   // LOC-09 stage 1: the English catalogue is the contract every existing
@@ -44,5 +51,34 @@ describe('signUpdateDescription', () => {
 
   it('names a text edit without interpolating the element label', () => {
     expect(signUpdateDescription(englishSignMessages, 'text', 'text')).toBe('Edited text');
+  });
+});
+
+describe('split tool messages', () => {
+  it('gives the Hebrew catalogue the exact same keys as the English one', () => {
+    expect(Object.keys(hebrewSplitMessages).sort()).toEqual(Object.keys(englishSplitMessages).sort());
+  });
+
+  it('marks the English catalogue LTR and the Hebrew catalogue RTL', () => {
+    expect([englishSplitMessages.lang, englishSplitMessages.dir]).toEqual(['en', 'ltr']);
+    expect([hebrewSplitMessages.lang, hebrewSplitMessages.dir]).toEqual(['he', 'rtl']);
+  });
+
+  it('every Hebrew value is a non-empty string with the same placeholders as English', () => {
+    const tokens = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
+    for (const [key, value] of Object.entries(hebrewSplitMessages)) {
+      expect(typeof value, key).toBe('string');
+      expect(value.length, key).toBeGreaterThan(0);
+      expect(tokens(value), key).toEqual(tokens((englishSplitMessages as any)[key]));
+    }
+  });
+
+  it('uses no em dashes', () => {
+    for (const [key, value] of Object.entries(hebrewSplitMessages)) expect(value, key).not.toContain('\u2014');
+  });
+
+  it('is served for split in both locales', () => {
+    expect(getToolMessages('split', 'en')).toBe(englishSplitMessages);
+    expect(getToolMessages('split', 'he')).toBe(hebrewSplitMessages);
   });
 });

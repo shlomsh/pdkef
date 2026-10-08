@@ -200,6 +200,8 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
  * tool's component actually has a reviewed message catalogue
  * (src/i18n/toolMessages.ts) and the .astro route below wires it up.
  *
+ * `split` joined with its own catalogue (SplitMessages) once /he/split/ was drafted.
+ *
  * `sign` joined LOC-16 (2026-09-13): LOC-09 shipped only the toolbar row
  * translated (stage 1) as a deliberately narrow pilot; LOC-16 stages 2-5
  * translated the rest of the editor (popovers, dialogs, element controls,
@@ -207,7 +209,7 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
  * `data-tool-controls-english` disclosure. Redact is the one tool still
  * behind that notice, since none of its editor strings have a catalogue yet.
  */
-export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress', 'sign']);
+export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress', 'split', 'sign']);
 
 /**
  * Every published page of one edition - the locale's home page, its tool

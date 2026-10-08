@@ -163,3 +163,32 @@ whether anything linked to `/merge/` and not `/split/` by then.
 **Reading:** most likely Google re-weighing the domain, page by page, on its own schedule. The one lever
 left that the data names is the hreflang cluster; a Hebrew `/he/split/` would test it, valued for the
 English page's signal, not for Hebrew traffic. Unproven, and LOC rules apply (docs/i18n-status/).
+## 2026-10-08 Hebrew vocabulary (Trends, Israel, past 12 months, Shlomi's screenshots)
+
+- `איחוד PDF` ~63 (the merge anchor), `פיצול PDF` ~8, `חיתוך PDF`, `הפרדת PDF` and `חילוץ עמודים PDF` ~0.
+- `split pdf` ~55 against `פיצול PDF` ~6; `פיצול קובץ PDF`, `חיתוך קובץ PDF` and `הפרדת עמודים PDF` ~0.
+- So Israelis mostly type the English query, and among Hebrew verbs only `פיצול` registers. The
+  `/he/split/` title and h1 lead with `פיצול PDF`; `חיתוך` and `הפרדת עמודים` drop out of the title
+  and stay once in the intro. The page's value is the hreflang cluster for English `/split/` and Israelis
+  who search `split pdf` with Hebrew settings, not Hebrew query volume.
+
+## 2026-10-08 validation before publishing /he/split/
+
+- **Technical, a local build with the page published:** pass. Reciprocal en, he and x-default hreflang
+  on both pages, the same structure as merge, sitemap alternates included. Canonicals are self-referencing,
+  there is no noindex, and the FAQ JSON-LD matches the page. `test:seo`, `test:redirects`, `test:csp` and
+  `test:lazy-modules` all pass. The only change to `/split/` is 3 alternate links and a footer language
+  link. On publish, add `he/split` to `PAGES` in `scripts/check-lazy-modules.js` and to Hebrew coverage
+  in `docs/i18n-status/data/i18n-status.json`.
+- **What Google says:** the localized-versions doc
+  (developers.google.com/search/docs/specialty/international/localized-versions) describes hreflang as
+  pointing users to the right version and says nothing about ranking. Illyes (2019, reported by SEJ)
+  called it not a ranking signal. I found no credible source that a localized page helps the original
+  rank.
+- **Our data:** `/merge/` stepped up on 09-26, 15 days after `/he/merge/` went live, with other changes
+  in between. `/compress/` was flat around its Hebrew publish. Nothing attributes rank to the cluster.
+
+**Verdict:** publishing is low risk and low upside for English `/split/`. It is a product decision (a
+Hebrew Split tool for Hebrew users), not an SEO lever, and SEO-44 does not count on it. If it is
+published, the read is `/split/` plus `/he/split/` over 28 days either side of the first recrawl, with
+`/merge/` and `/compress/` as controls.
