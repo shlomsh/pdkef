@@ -1,0 +1,54 @@
+---
+id: "FORM-33"
+title: "Spike: FFDetr, a learned field detector, scored on Sign's corpus against today's detection"
+status: "in_progress"
+priority: "P2"
+epic: "form-detection"
+horizon: "now"
+depends_on: []
+---
+
+# FORM-33 · Spike: FFDetr, a learned field detector, scored on Sign's corpus against today's detection
+
+## Why
+
+FORM-32 showed that on a scan the limit is geometry, not text: with perfect text the raster pass
+reaches 44.5% recall against 85.0% from vectors, and finds nothing on tinted boxes (`hmrc-sa100`) or
+dense combs (`thai-pnd90`). FFDetr (`jbarrow/FFDetr`, RF-DETR trained on CommonForms, weights
+Apache-2.0) predicts text inputs, choice buttons and signature areas straight from a page image. This
+spike measures it with the FORM-32 harness and rasters, so its numbers sit next to every FORM-32 arm.
+
+## Arms
+
+| Arm | Sources |
+| --- | --- |
+| F | FFDetr alone, on each raster variant (`clean300`, `clean200`, `phone`, `native`) |
+| BF | raster ink (FORM-32 arm B) plus FFDetr as a `FieldSource` appended last |
+| AF | production vector sources plus FFDetr on the `clean300` render: does it add to today? |
+
+Kinds map `text input` to `text`, `choice button` to `checkbox`, `signature` to `signature`. F is
+also swept over score thresholds 0.3 / 0.5 / 0.7.
+
+## Contract between the two pieces
+
+Scratch dir outside the repo; nothing is added to `package.json` and nothing reaches the tools.
+
+- `ffdetr/model.onnx` (fp32) and, if it holds parity, `ffdetr/model.int8.onnx`.
+- `ffdetr/meta.json`: `{rfdetrSize, params, inputSize, mean, std, classes, outputs, boxFormat,
+  scoreActivation, numQueries, fileBytes}` with `classes` in the model's own index order and
+  `outputs` naming each output tensor with its shape.
+- `ffdetr/reference/<row>-<variant>.json`: the PyTorch model's own detections on two rasters
+  (`practice-form-page1-clean300`, `health-page1-clean300`) as `{boxes: [{cls, score, left, top,
+  width, height}]}` in percent of the image, scores above 0.3. The Node side must reproduce them.
+
+Pieces: the Python export lives in the scratch dir (a throwaway venv); `scripts/spike/form-33/scoreFfdetr.mjs`
+runs the ONNX model with onnxruntime-node from a throwaway npm project, scores every arm with the
+corpus matcher, and reports per-page inference time.
+
+## Acceptance
+
+- [ ] ONNX export with parity against PyTorch on the two reference rasters; size fp32 and int8.
+- [ ] All arms scored on all rows and variants, one table, read against FORM-32's.
+- [ ] A record under `docs/` with GO / NO-GO / REWORK for FFDetr as a Sign `FieldSource`, and the
+  phone-side cost it would carry.
+- [ ] No dependency, asset or product code change.
