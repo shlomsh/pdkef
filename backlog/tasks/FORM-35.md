@@ -1,10 +1,10 @@
 ---
 id: "FORM-35"
 title: "Count how often Sign opens a page that is only an image, before building anything for scans"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "form-detection"
-horizon: "next"
+horizon: "now"
 depends_on: []
 ---
 
