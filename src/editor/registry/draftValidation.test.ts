@@ -586,3 +586,30 @@ describe('remove-place history entries (RED-60)', () => {
     expect(migrated.extra.actionHistory).toEqual([good]);
   });
 });
+
+describe('restoring extra.details (RED-59)', () => {
+  const restore = (detailsJson: string) => validateDraftRecord({
+    fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION, elements: [],
+    extra: { details: JSON.parse(detailsJson) },
+  })?.extra?.details as Record<string, unknown>;
+
+  it('keeps only usable edits and never lets a key reach the prototype', () => {
+    const result = restore(`{
+      "__proto__": {"action": "delete", "polluted": true},
+      "constructor": {"action": "delete"},
+      "prototype": {"action": "delete"},
+      "emptyAlter": {"action": "alter", "value": ""},
+      "blankAlter": {"action": "alter", "value": "  \\t "},
+      "numberAlter": {"action": "alter", "value": 5},
+      "title": {"action": "alter", "value": "  Quarterly  "},
+      "author": {"action": "delete"}
+    }`);
+    expect(Object.keys(result).sort()).toEqual(['author', 'title']);
+    expect(result.author).toEqual({ action: 'delete' });
+    expect(result.title).toEqual({ action: 'alter', value: '  Quarterly  ' });
+    expect(Object.getPrototypeOf(result)).toBeNull();
+    expect('polluted' in {}).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(false);
+    expect({ ...result }).toEqual({ author: { action: 'delete' }, title: { action: 'alter', value: '  Quarterly  ' } });
+  });
+});

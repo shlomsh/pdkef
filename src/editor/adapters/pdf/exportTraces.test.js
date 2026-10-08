@@ -3,10 +3,11 @@
 // Delete is run for real; the flattened path through `assemble`, which holds
 // everything `redactPdf` does after the canvas work.
 import { describe, it, expect } from 'vitest';
-import { PDFDocument, PDFName, decodePDFRawStream } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFDict, PDFStream, PDFString, StandardFonts, decodePDFRawStream } from '@cantoo/pdf-lib';
 import { deleteObjectsFromPdf } from './deleteObjects.js';
 import { assemble } from './redact.js';
-import { readDocumentTraces, attachmentDetailId } from './documentTraces.js';
+import { readDocumentTraces } from './documentTraces.js';
+import { attachmentDetailId } from './detailEdits.js';
 import { buildTracesFixture } from './tracesFixture.test-helper.js';
 
 const JPEG = Uint8Array.from(Buffer.from(
@@ -129,6 +130,12 @@ describe.each(Object.keys(paths))('%s export', (path) => {
     expect(names(t)).toContain('keep.txt');
   });
 
+  it('deleting created removes both dates', async () => {
+    const t = await reread(await run({ details: { created: del } }));
+    expect(t.creationDate).toBeNull();
+    expect(t.modDate).toBeNull();
+  });
+
   it('deleting scripts reads back none', async () => {
     const t = await reread(await run({ details: { scripts: del } }));
     expect(t.scripts).toEqual({ document: false, pages: [] });
@@ -161,5 +168,98 @@ describe.each(Object.keys(paths))('%s export', (path) => {
       subtypes.push(reloaded.context.lookup(annots.get(i)).get(PDFName.of('Subtype')).asString());
     }
     expect(subtypes).not.toContain('/Text');
+  });
+});
+
+// A comment's file on a page that became a picture survives at document level.
+describe('flattened path: a comment attachment on a covered page', () => {
+  const coverPage1 = async (details) => {
+    // The fixture's page 2 (index 1) carries the comment attachment; cover it.
+    const source = await PDFDocument.load(await sourceBytes(), { updateMetadata: false });
+    const out = await assemble(source, new Map([[1, { jpeg: JPEG, width: 300, height: 300 }]]), { details });
+    return reread(new Uint8Array(out));
+  };
+
+  it('is listed at document level when untouched', async () => {
+    const t = await coverPage1();
+    const comment = t.attachments.filter((a) => a.name === 'comment.txt');
+    expect(comment.length).toBeGreaterThan(0);
+    expect(comment.some((a) => a.pageIndex === undefined)).toBe(true);
+  });
+
+  it('is absent once its id is deleted', async () => {
+    const t = await coverPage1({ [attachmentDetailId({ name: 'comment.txt', pageIndex: 1 })]: del });
+    expect(names(t)).not.toContain('comment.txt');
+  });
+});
+
+// Nothing in the catalog may reach a page of the source: a covered page's text must not survive.
+describe('flattened path: catalog actions never drag in a source page', () => {
+  const SECRET = 'SECRET_PAGE_ONE_TEXT';
+  const pageObjects = (doc) =>
+    doc.context.enumerateIndirectObjects().filter(([, o]) => o instanceof PDFDict && o.get(PDFName.of('Type')) === PDFName.of('Page'));
+  const inflatedAll = (doc) =>
+    doc.context.enumerateIndirectObjects()
+      .filter(([, o]) => o instanceof PDFStream)
+      .map(([, o]) => { try { return Buffer.from(decodePDFRawStream(o).decode()).toString('latin1'); } catch { return ''; } })
+      .join('\n');
+
+  async function build(mutate) {
+    const doc = await PDFDocument.create({ updateMetadata: false });
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const p1 = doc.addPage([300, 300]);
+    p1.drawText(SECRET, { x: 20, y: 150, size: 12, font });
+    const p2 = doc.addPage([300, 300]);
+    mutate(doc, p1, p2);
+    const source = await PDFDocument.load(new Uint8Array(await doc.save({ useObjectStreams: false })), { updateMetadata: false });
+    const out = await assemble(source, new Map([[0, { jpeg: JPEG, width: 300, height: 300 }]]));
+    const bytes = new Uint8Array(out);
+    return { loaded: await PDFDocument.load(bytes, { updateMetadata: false }), bytes };
+  }
+  const expectClean = ({ loaded, bytes }) => {
+    expect(pageObjects(loaded)).toHaveLength(2);
+    expect(Buffer.from(bytes).toString('latin1')).not.toContain(SECRET);
+    expect(inflatedAll(loaded)).not.toContain(SECRET);
+  };
+  const goTo = (ctx, page) => ctx.obj({ Type: 'Action', S: 'GoTo', D: [page.ref, 'Fit'] });
+  const js = (ctx, m, next) => ctx.obj({ Type: 'Action', S: 'JavaScript', JS: PDFString.of(m), ...(next ? { Next: next } : {}) });
+
+  it('an /OpenAction to a page and a catalog /AA GoTo reach no source page', async () => {
+    const r = await build((doc, p1, p2) => {
+      const ctx = doc.context;
+      doc.catalog.set(PDFName.of('OpenAction'), ctx.obj([p1.ref, 'Fit']));
+      doc.catalog.set(PDFName.of('AA'), ctx.obj({ WC: goTo(ctx, p2), WS: js(ctx, 'KEPT_AA') }));
+    });
+    expectClean(r);
+    // the JavaScript entry of /AA is still there
+    expect(readDocumentTraces(r.loaded).scripts.document).toBe(true);
+  });
+
+  it('a JavaScript /OpenAction whose /Next is a GoTo reaches no source page', async () => {
+    const r = await build((doc, p1, p2) => {
+      const ctx = doc.context;
+      doc.catalog.set(PDFName.of('OpenAction'), js(ctx, 'OPEN', goTo(ctx, p1)));
+      doc.catalog.set(PDFName.of('AA'), ctx.obj({ WC: js(ctx, 'AA', ctx.obj([goTo(ctx, p2)])) }));
+    });
+    expectClean(r);
+  });
+
+  it('a named script whose /Next is a GoTo reaches no source page; a plain one is kept', async () => {
+    const r = await build((doc, p1) => {
+      const ctx = doc.context;
+      doc.catalog.set(PDFName.of('Names'), ctx.obj({
+        JavaScript: { Names: [PDFString.of('Bad'), js(ctx, 'BAD', goTo(ctx, p1)), PDFString.of('Good'), js(ctx, 'GOOD')] },
+      }));
+    });
+    expectClean(r);
+    expect(readDocumentTraces(r.loaded).scripts.document).toBe(true);
+  });
+
+  it('a plain JavaScript /OpenAction is kept', async () => {
+    const r = await build((doc) => {
+      doc.catalog.set(PDFName.of('OpenAction'), js(doc.context, 'OPEN'));
+    });
+    expectClean(r);
+    expect(readDocumentTraces(r.loaded).scripts.document).toBe(true);
   });
 });

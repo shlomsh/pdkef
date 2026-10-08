@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import {
-  readDocumentTraces, applyDetailEdits, copyDocumentDetails, expandDetailEdits, attachmentDetailId,
-  TEXT_DETAIL_IDS, DATE_DETAIL_IDS,
+  readDocumentTraces, applyDetailEdits, copyDocumentDetails,
 } from './documentTraces.js';
+import { attachmentDetailId } from './detailEdits.js';
 import { buildTracesFixture } from './tracesFixture.test-helper.js';
 
 const names = (t) => t.attachments.map((a) => a.name).sort();
@@ -72,35 +72,6 @@ const tracesAfter = async (edits) => {
   return { doc, traces: readDocumentTraces(doc) };
 };
 
-describe('detail ids', () => {
-  it('names the text and date ids and builds attachment ids', () => {
-    expect(TEXT_DETAIL_IDS).toEqual(['title', 'author', 'subject', 'keywords', 'made']);
-    expect(DATE_DETAIL_IDS).toEqual(['created', 'changed']);
-    expect(attachmentDetailId({ name: 'a.txt' })).toBe('attachment::a.txt');
-    expect(attachmentDetailId({ name: 'c.txt', pageIndex: 1 })).toBe('attachment:1:c.txt');
-    expect(attachmentDetailId({ name: 'z.txt', pageIndex: 0 })).toBe('attachment:0:z.txt');
-  });
-});
-
-describe('expandDetailEdits', () => {
-  it('adds hidden for a text or date edit, and only then', () => {
-    for (const id of [...TEXT_DETAIL_IDS, ...DATE_DETAIL_IDS]) {
-      expect(expandDetailEdits({ [id]: del })).toEqual({ [id]: del, hidden: del });
-    }
-    expect(expandDetailEdits({})).toEqual({});
-    expect(expandDetailEdits({ scripts: del })).toEqual({ scripts: del });
-    expect(expandDetailEdits({ 'attachment::a.txt': del })).toEqual({ 'attachment::a.txt': del });
-  });
-
-  it('leaves an explicit hidden edit alone and does not mutate its input', () => {
-    const edits = { title: del, hidden: del };
-    expect(expandDetailEdits(edits)).toEqual(edits);
-    const only = { title: del };
-    expandDetailEdits(only);
-    expect(only).toEqual({ title: del });
-  });
-});
-
 describe('applyDetailEdits', () => {
   it('with no edits only the thumbnails go', async () => {
     const before = readDocumentTraces((await buildTracesFixture()).doc);
@@ -131,12 +102,16 @@ describe('applyDetailEdits', () => {
     expect(traces.title).toBe('The Title');
   });
 
-  it.each([
-    ['created', 'creationDate', 'modDate'], ['changed', 'modDate', 'creationDate'],
-  ])('deletes %s only', async (id, gone, stays) => {
-    const { traces } = await tracesAfter({ [id]: del });
-    expect(traces[gone]).toBeNull();
-    expect(traces[stays]).not.toBeNull();
+  it('deletes changed only', async () => {
+    const { traces } = await tracesAfter({ changed: del });
+    expect(traces.modDate).toBeNull();
+    expect(traces.creationDate).not.toBeNull();
+  });
+
+  it('deleting created takes the changed date too, a row the person may never have seen', async () => {
+    const { traces } = await tracesAfter({ created: del });
+    expect(traces.creationDate).toBeNull();
+    expect(traces.modDate).toBeNull();
   });
 
   it.each([
