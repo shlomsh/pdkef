@@ -87,4 +87,31 @@ describe('buildPageText', () => {
     expect(page.items[0].rtl).toBe(true);
     expect(page.items[1].rtl).toBe(false);
   });
+
+  describe('text drawn twice for a bold look (RED-62)', () => {
+    it('reads an item drawn twice with a tiny offset once', () => {
+      const page = buildPageText(0, [
+        item('Hello', [1, 0, 0, 1, 0, 700], 30),
+        item('Hello', [1, 0, 0, 1, 0.4, 700.3], 30),
+      ]);
+      expect(page.text).toBe('Hello');
+      expect(page.items).toHaveLength(1);
+    });
+
+    it('keeps a genuine repeat a word apart', () => {
+      const page = buildPageText(0, [
+        item('Hello', [1, 0, 0, 1, 0, 700], 30),
+        item('Hello', [1, 0, 0, 1, 40, 700], 30),
+      ]);
+      expect(page.text).toBe('Hello Hello');
+    });
+
+    it('reads a Hebrew item drawn twice once', () => {
+      const page = buildPageText(0, [
+        item('כרטיס', [1, 0, 0, 1, 100, 700], 30, 12, { dir: 'rtl' }),
+        item('כרטיס', [1, 0, 0, 1, 100.5, 700], 30, 12, { dir: 'rtl' }),
+      ]);
+      expect(page.text).toBe('כרטיס');
+    });
+  });
 });

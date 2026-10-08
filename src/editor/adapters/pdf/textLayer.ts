@@ -42,6 +42,9 @@ const SIDE_INSET_SHARE = 0.3;
  * and still continue that word, in ems. */
 const SAME_LINE_EM = 0.2;
 const JOIN_GAP_EM = 0.25;
+/** RED-62: a glyph drawn again this close (in ems) to the same character is
+ * the second pass of text overprinted for a bold look, read once. */
+const OVERPRINT_EM = 0.15;
 /** Two glyphs belong to one word only at nearly the same size and angle. */
 const SAME_SHAPE = 0.01;
 
@@ -182,9 +185,44 @@ interface ReadingLine {
   words: PageGlyph[][];
 }
 
+/** Text drawn twice a hair apart to fake bold is one reading, not two:
+ * a glyph is dropped when an earlier one has the same character with its
+ * origin within `OVERPRINT_EM` of its own em. Reading only; the callers'
+ * glyph list is untouched, so deleting still removes both copies. */
+function withoutOverprints(glyphs: PageGlyph[]): PageGlyph[] {
+  // Kept glyphs are bucketed by character and a grid cell of their origin, the
+  // cell as wide as the widest reach, so a repeat is always in the 3x3 cells
+  // around a glyph: near linear instead of every glyph against every kept one.
+  let cell = 0;
+  for (const glyph of glyphs) cell = Math.max(cell, OVERPRINT_EM * Math.hypot(glyph.matrix[0], glyph.matrix[1]));
+  if (!(cell > 0)) cell = 1;
+  const buckets = new Map<string, PageGlyph[]>();
+  const kept: PageGlyph[] = [];
+  for (const glyph of glyphs) {
+    const [a, b, , , e, f] = glyph.matrix;
+    const reach = OVERPRINT_EM * Math.hypot(a, b);
+    const cx = Math.floor(e / cell);
+    const cy = Math.floor(f / cell);
+    let repeat = false;
+    for (let dx = -1; dx <= 1 && !repeat; dx += 1) {
+      for (let dy = -1; dy <= 1 && !repeat; dy += 1) {
+        const near = buckets.get(`${glyph.unicode}\u0000${cx + dx}\u0000${cy + dy}`);
+        repeat = near?.some((other) => Math.hypot(other.matrix[4] - e, other.matrix[5] - f) <= reach) ?? false;
+      }
+    }
+    if (repeat) continue;
+    kept.push(glyph);
+    const key = `${glyph.unicode}\u0000${cx}\u0000${cy}`;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(glyph);
+    else buckets.set(key, [glyph]);
+  }
+  return kept;
+}
+
 function readingLines(glyphs: PageGlyph[], geometry: PageGeometry): ReadingLine[] {
   const lines: ReadingLine[] = [];
-  for (const line of positionalLines(glyphs)) {
+  for (const line of positionalLines(withoutOverprints(glyphs))) {
     const words = positionalWords(line);
     if (words.length === 0) continue;
     lines.push({ top: Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0)), words });
