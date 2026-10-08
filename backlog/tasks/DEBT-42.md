@@ -38,11 +38,11 @@ against MDN browser-compat-data before anything is built on it.
 ## Acceptance
 
 - [ ] A unit test deletes each built-in, loads pdf.js, opens and renders a fixture, and was seen failing before the polyfill.
-- [ ] The polyfills are installed only when absent and never replace a native one.
-- [ ] pdf.js worker is covered, not only the main thread (checked in a real browser or e2e).
+- [x] The polyfills are installed only when absent and never replace a native one (`src/lib/pdfjsPolyfills.test.js`, a native sentinel survives the install).
+- [x] pdf.js worker is covered, not only the main thread (checked 2026-10-08 in Chromium 153 on a production build: every built-in deleted on the page and prepended to the worker, a PDF added on Compress; the wrapper worker ran clean, the unwrapped pdf.worker.min.mjs failed with "Iterator is not defined". An ad-hoc script, not a committed e2e).
 - [ ] Floors in `browserSupport.ts` match MDN browser-compat-data for what remains unpolyfilled, with the check date.
-- [ ] The registry matches the three groups above.
-- [ ] Bundle weight stays inside `test:weight`.
+- [x] The registry matches the three groups above (`scripts/errors-known.test.mjs`; DEBT-38 widened to any tool, new DEBT-42 entry, both `open` until a stamped build carries the fix).
+- [x] Bundle weight stays inside `test:weight` (worst page 183463 of 400000 brotli, 2026-10-08; test:csp and test:lazy-modules also pass).
 - [ ] Production: no report of this kind from a stamped build containing the fix, after a full UTC day.
 
 ## Not weighed
