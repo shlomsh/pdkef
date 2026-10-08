@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { checkSavedFile } from './check/checkSavedFile.ts';
 import type { CheckOutcome } from './check/runCheck.ts';
@@ -6,7 +6,7 @@ import type { CheckBox, CheckTerm, TermResult } from './check/types.ts';
 import { termFinder } from './find/finders.ts';
 import type { MeasureText } from './find/matchBoxes.ts';
 import { reportError } from '../../lib/errorReport.ts';
-import { changesSummary, survivedDetails } from './details/describeDetails.ts';
+import { changesSummary, survivedAlways, survivedDetails, survivorLabel } from './details/describeDetails.ts';
 import type { DetailRow } from './details/describeDetails.ts';
 import type { DetailEdits } from '../../editor/adapters/pdf/detailEdits.js';
 import { DETAILS_CHANGED_ANNOUNCEMENT, DETAILS_SURVIVED_ANNOUNCEMENT } from './check/checkCopy.ts';
@@ -56,6 +56,9 @@ export default function useSavedFileCheck({
 }) {
   const [state, setState] = useState<SavedFileCheckState>({ status: 'idle' });
   const [detailsSurvived, setDetailsSurvived] = useState<string[]>([]);
+  // The check reads the latest edits and rows when it finishes, without a new edit re-running it.
+  const latest = useRef({ detailEdits, detailRows });
+  latest.current = { detailEdits, detailRows };
 
   // Only a new export starts a check; the boxes and terms it reads are the
   // ones that export was made from, since any edit clears `saved` first.
@@ -76,10 +79,11 @@ export default function useSavedFileCheck({
         const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: findTerms, picturePages, measure });
         if (!current) return;
         setState({ status: 'done', outcome, typed: [] });
-        const labels = survivedDetails(detailEdits, outcome.traces.saved).map((id) => {
-          const row = detailRows.find((r) => r.id === id);
-          return !row ? id : id.startsWith('attachment:') ? row.text : row.label;
-        });
+        const { detailEdits, detailRows } = latest.current;
+        const labels = [
+          ...survivedDetails(detailEdits, outcome.traces.saved).map((id) => survivorLabel(id, detailRows)),
+          ...survivedAlways(outcome.traces.saved),
+        ];
         setDetailsSurvived(labels);
         const changes = changesSummary(detailRows, detailEdits);
         if (labels.length > 0) {

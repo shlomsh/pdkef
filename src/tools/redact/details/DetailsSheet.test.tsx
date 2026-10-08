@@ -192,6 +192,24 @@ describe('DetailsSheet actions', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('closing commits the active edit first: header Done, then onClose', () => {
+    const { el, onEdit, onClose } = mount();
+    click(byText(row(el, 'title'), DETAIL_EDIT));
+    type(row(el, 'title').querySelector('input') as HTMLInputElement, '  New title ');
+    click(byText(el, DETAILS_CLOSE));
+    expect(onEdit).toHaveBeenCalledWith('title', { action: 'alter', value: 'New title' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('a backdrop click while editing commits the edit too', () => {
+    const { el, onEdit, onClose } = mount();
+    click(byText(row(el, 'title'), DETAIL_EDIT));
+    type(row(el, 'title').querySelector('input') as HTMLInputElement, 'Typed');
+    click(el.querySelector('dialog')!);
+    expect(onEdit).toHaveBeenCalledWith('title', { action: 'alter', value: 'Typed' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('Delete edits with delete, Undo restores', () => {
     const { el, onEdit } = mount();
     click(byText(row(el, 'title'), DETAIL_DELETE));
