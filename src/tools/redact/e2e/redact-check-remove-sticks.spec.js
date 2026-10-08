@@ -56,7 +56,8 @@ test('a place removed from the saved file stays removed on the next Download', a
   const [first] = await Promise.all([page.waitForEvent('download'), download()]);
   const firstDoc = await savedPdf(first);
   expect(hasNote(firstDoc), 'the first download still carries the comment').toBe(true);
-  expect(hasAttachment(firstDoc), 'the first download still carries the attachment').toBe(true);
+  // RED-59: every export drops attached files unless the person keeps one.
+  expect(hasAttachment(firstDoc), 'the first download carries an attachment nobody kept').toBe(false);
 
   const check = page.locator('[data-saved-file-check]');
   const removeVia = async (term) => {
@@ -72,13 +73,9 @@ test('a place removed from the saved file stays removed on the next Download', a
 
   const afterNote = await removeVia(NOTE);
   expect(hasNote(afterNote), 'Remove it took the comment out').toBe(false);
-  const afterAttachment = await removeVia(ATTACHMENT);
-  expect(hasNote(afterAttachment)).toBe(false);
-  expect(hasAttachment(afterAttachment), 'Remove it took the attachment out').toBe(false);
 
   const [again] = await Promise.all([page.waitForEvent('download'), download()]);
   const againDoc = await savedPdf(again);
   expect.soft(hasNote(againDoc), 'the removed comment came back on the next Download').toBe(false);
-  expect.soft(hasAttachment(againDoc), 'the removed attachment came back on the next Download').toBe(false);
-  await expect.soft(check).not.toContainText('attached file');
+  expect.soft(hasAttachment(againDoc), 'an attachment came back on the next Download').toBe(false);
 });

@@ -142,3 +142,14 @@ describe('hasNoTraces', () => {
     expect(hasNoTraces(readDocumentTraces(doc))).toBe(false);
   });
 });
+
+describe('one attachment, one row', () => {
+  it('lists a file pdf-lib attached (name tree and /AF) once', async () => {
+    const { PDFDocument } = await import('@cantoo/pdf-lib');
+    const doc = await PDFDocument.create({ updateMetadata: false });
+    doc.addPage([100, 100]);
+    await doc.attach(new TextEncoder().encode('x'), 'once.txt', { mimeType: 'text/plain' });
+    const reloaded = await PDFDocument.load(await doc.save(), { updateMetadata: false });
+    expect(readDocumentTraces(reloaded).attachments).toEqual([{ name: 'once.txt' }]);
+  });
+});
