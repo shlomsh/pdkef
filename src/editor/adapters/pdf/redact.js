@@ -3,6 +3,8 @@ import { getPdfjs } from './pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
+import { dropUnreachable } from './reachability.js';
+import { stripDocumentTraces } from './documentTraces.js';
 import { rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
 import { strokeInPixels } from '../../model/strokeGeometry.ts';
 
@@ -169,10 +171,16 @@ function paintBoxes(ctx, viewport, canvas, pageElements) {
 
 /**
  * Writes the output document: untouched pages copied losslessly, covered
- * pages saved as their picture alone, with no text layer.
+ * pages saved as their picture alone, with no text layer. Nothing of the
+ * source's details, hidden parts or file ID is carried over (RED-59):
+ * `finish` edits the output first, then the traces are stripped.
+ *
+ * @param {PDFDocument} sourceDoc
+ * @param {Map<number, {jpeg: Uint8Array, width: number, height: number}>} covered
+ * @param {{ finish?: (doc: PDFDocument) => void, keepAttachments?: string[] }} [options]
  */
-async function assemble(sourceDoc, covered) {
-  const newDoc = await PDFDocument.create();
+export async function assemble(sourceDoc, covered, options = {}) {
+  const newDoc = await PDFDocument.create({ updateMetadata: false });
   for (let i = 0; i < sourceDoc.getPageCount(); i++) {
     const page = covered.get(i);
     if (!page) {
@@ -182,6 +190,9 @@ async function assemble(sourceDoc, covered) {
     }
     await buildImageOnlyPage(newDoc, page.jpeg, page.width, page.height);
   }
+  options.finish?.(newDoc);
+  stripDocumentTraces(newDoc, { keepAttachments: options.keepAttachments });
+  dropUnreachable(newDoc);
   return newDoc.save();
 }
 
@@ -194,11 +205,12 @@ async function assemble(sourceDoc, covered) {
  * @param {File|Blob} file - The original PDF file
  * @param {Array} elements - Array of redaction box objects { pageIndex, left, top, width, height } in percentages
  * @param {Function} onProgress - Progress callback
+ * @param {{ finish?: (doc: PDFDocument) => void, keepAttachments?: string[] }} [options] see `assemble`
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
-export async function redactPdf(file, elements, onProgress) {
+export async function redactPdf(file, elements, onProgress, options = {}) {
   const bytes = await file.arrayBuffer();
-  const sourceDoc = await PDFDocument.load(bytes);
+  const sourceDoc = await PDFDocument.load(bytes, { updateMetadata: false });
 
   // We need pdf.js to render pages to an image canvas for flattening
   const pdfjs = await getPdfjs();
@@ -217,7 +229,7 @@ export async function redactPdf(file, elements, onProgress) {
   }
   await loadingTask.destroy();
 
-  const redactedBytes = await assemble(sourceDoc, covered);
+  const redactedBytes = await assemble(sourceDoc, covered, options);
 
   return { blob: new Blob([redactedBytes], { type: 'application/pdf' }) };
 }
