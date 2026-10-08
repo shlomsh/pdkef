@@ -134,6 +134,12 @@ describe('text drawn twice for a bold look (RED-62)', () => {
     expect(wordsUnderBoxes(glyphs, geometry, [all])).toEqual([['aa']]);
   });
 
+  it('reads a word drawn three times in 0.1 em steps once', () => {
+    const glyphs = [0, 1, 2].flatMap((step) => makeLine('Employee', { x: step }));
+    expect(textInReadingOrder(glyphs, geometry)).toBe('Employee');
+    expect(wordsUnderBoxes(glyphs, geometry, [all])).toEqual([['Employee']]);
+  });
+
   it('keeps the glyph list itself untouched', () => {
     const glyphs = overprint('Hello');
     textInReadingOrder(glyphs, geometry);

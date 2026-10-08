@@ -100,10 +100,9 @@ function needsSeparator(prev: TextItemLike, cur: TextItemLike, rtl: boolean): bo
   return gap > 0.15 * height && !alreadyHasSpace;
 }
 
-/** True when `item` repeats `kept`: the same text at nearly the same place and
+/** True when `item` repeats `kept` (callers have matched their trimmed text): the same text at nearly the same place and
  * size, which is how a PDF fakes bold (the run drawn twice, a hair apart). */
 function overprints(kept: TextItemLike, item: TextItemLike): boolean {
-  if (kept.str.trim() !== item.str.trim()) return false;
   const height = Math.max(kept.height, item.height);
   if (height <= 0 || Math.abs(kept.height - item.height) > 0.05 * height) return false;
   const reach = 0.15 * height;
@@ -118,9 +117,22 @@ function overprints(kept: TextItemLike, item: TextItemLike): boolean {
  */
 export function buildPageText(pageIndex: number, items: TextItemLike[]): PageText {
   const entries: Entry[] = [];
+  // Every item seen so far (kept or dropped) by trimmed text, so a lookup only
+  // compares same-text items and a triple draw in small steps chains: a copy of
+  // a dropped copy is dropped too.
+  const seen = new Map<string, TextItemLike[]>();
   items.forEach((item, index) => {
-    if (typeof item.str !== 'string' || item.str.trim() === '') return;
-    if (entries.some((kept) => overprints(kept.item, item))) return;
+    if (typeof item.str !== 'string') return;
+    const key = item.str.trim();
+    if (key === '') return;
+    const bucket = seen.get(key);
+    if (bucket) {
+      const drop = bucket.some((earlier) => overprints(earlier, item));
+      bucket.push(item);
+      if (drop) return;
+    } else {
+      seen.set(key, [item]);
+    }
     entries.push({ item, index });
   });
 
