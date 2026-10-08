@@ -56,6 +56,40 @@ describe('parseCsv', () => {
     const rows = parseCsv(`${QUERIES_CSV}\n`);
     expect(rows).toHaveLength(6);
   });
+
+  it('keeps a quoted field with an embedded newline in one row', () => {
+    const csv = [
+      'Top queries,Clicks,Impressions,CTR,Position',
+      'blur pdf,41,995,4.12%,7.62',
+      '"your file was not uploaded because it exceeds the 1024 kb size limit(max ',
+      'size of per page in pdf is 100 kb).",0,1,0%,5',
+      'pdf,0,1,0%,4',
+    ].join('\n');
+    const rows = parseCsv(csv);
+    expect(rows).toHaveLength(3);
+    expect(rows[1]['Top queries']).toBe(
+      'your file was not uploaded because it exceeds the 1024 kb size limit(max \nsize of per page in pdf is 100 kb).',
+    );
+    expect(rows[1].Impressions).toBe('1');
+  });
+
+  it('keeps a quoted field with an embedded comma in one cell', () => {
+    const rows = parseCsv('Top queries,Clicks,Impressions,CTR,Position\n"merge, combine pdf",1,10,10%,3');
+    expect(rows[0]['Top queries']).toBe('merge, combine pdf');
+    expect(rows[0].Position).toBe('3');
+  });
+
+  it('unescapes a doubled quote inside a quoted field', () => {
+    const rows = parseCsv('Top queries,Clicks,Impressions,CTR,Position\n"say ""hi""",0,2,0%,9');
+    expect(rows[0]['Top queries']).toBe('say "hi"');
+    expect(rows[0].Impressions).toBe('2');
+  });
+
+  it('parses CRLF line endings', () => {
+    const rows = parseCsv('Top queries,Clicks,Impressions,CTR,Position\r\na,1,2,3%,4\r\nb,5,6,7%,8\r\n');
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toEqual({ 'Top queries': 'b', Clicks: '5', Impressions: '6', CTR: '7%', Position: '8' });
+  });
 });
 
 describe('weightedPosition', () => {
