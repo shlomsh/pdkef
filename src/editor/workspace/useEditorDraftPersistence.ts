@@ -2,6 +2,7 @@ import { useMemo } from 'preact/hooks';
 import { clearDraftHintAttribute, useDraftPersistence } from '../../lib/drafts/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
+import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
 
@@ -10,7 +11,7 @@ interface DraftRecord {
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements?: unknown[];
-  extra?: { actionHistory?: unknown[]; carried?: Partial<DocumentStyle> };
+  extra?: { actionHistory?: unknown[]; carried?: Partial<DocumentStyle>; details?: DetailEdits };
 }
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
@@ -22,6 +23,8 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   /** The document-carried style (SIGN-33). Sign's whole style; Redact carries
    * only its brush mode and size (RED-32), and only once the person chose. */
   carried?: Partial<DocumentStyle> | null;
+  /** RED-59: Redact's edits to the file's details. Sign passes none. */
+  details?: DetailEdits;
   status: string;
   /** Explicitly supplied by the editor's document baseline/revision contract. */
   isDirty: boolean;
@@ -40,6 +43,8 @@ export interface EditorDraftInitialState<TElement extends HistoryElement> {
   actionHistory: ActionHistoryEntry<TElement>[];
   /** SIGN-33 (Sign) and RED-32 (Redact's brush); absent for a fresh pick. */
   carried?: Partial<DocumentStyle>;
+  /** RED-59: Redact only. */
+  details?: DetailEdits;
 }
 
 /**
@@ -54,6 +59,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   elements,
   actionHistory,
   carried,
+  details,
   status,
   isDirty,
   loadStartedRef,
@@ -74,8 +80,9 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     () => ({
       actionHistory,
       carried: carried ?? undefined,
+      ...(details ? { details } : {}),
     }),
-    [actionHistory, carried],
+    [actionHistory, carried, details],
   );
 
   return useDraftPersistence({
@@ -125,6 +132,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
           elements: validated.elements,
           actionHistory: validated.extra?.actionHistory || [],
           carried: validated.extra?.carried,
+          details: validated.extra?.details ?? {},
         },
         true,
       );

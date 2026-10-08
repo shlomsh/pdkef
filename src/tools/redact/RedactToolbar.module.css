@@ -75,8 +75,16 @@
   text-align: center;
 }
 
-/* The phone's five-per-row grid gives each control ~52px: "Download" and
-   "Whiteout" need the smaller size to sit inside it with air on both sides. */
+/* On a phone the grid stays two rows (the editor card's height guard), so a
+   control can be as narrow as 44.9px at 390px with eleven controls (RED-61,
+   Shlomi's call 2026-10-08: two rows, smaller labels). The label is 0.66rem
+   unless its control is too narrow for the widest label: "Download" is 4.94px
+   of text per pixel of font size in SF and wider on Linux, so the size is the
+   control's width less 8px (padding, border, air) over 5.2, never above
+   0.66rem. 100cqi is the toolbar's content box (it is the `toolbar` container). */
 @media (max-width: 480px) {
-  .bar.bar.bar button { font-size: 0.66rem; padding-inline: 0.125rem; }
+  .bar.bar.bar button {
+    font-size: min(0.66rem, calc(((100cqi - (var(--controls-per-row, 6) - 1) * var(--toolbar-gap)) / var(--controls-per-row, 6) - 8px) / 5.2));
+    padding-inline: 0.125rem;
+  }
 }

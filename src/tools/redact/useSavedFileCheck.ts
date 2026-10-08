@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { checkSavedFile } from './check/checkSavedFile.ts';
 import type { CheckOutcome } from './check/runCheck.ts';
@@ -6,6 +6,16 @@ import type { CheckBox, CheckTerm, TermResult } from './check/types.ts';
 import { termFinder } from './find/finders.ts';
 import type { MeasureText } from './find/matchBoxes.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { changesSummary, survivedAlways, survivedDetails, survivorLabel } from './details/describeDetails.ts';
+import type { DetailRow } from './details/describeDetails.ts';
+import type { DetailEdits } from '../../editor/adapters/pdf/detailEdits.js';
+import { DETAILS_CHANGED_ANNOUNCEMENT, DETAILS_SURVIVED_ANNOUNCEMENT } from './check/checkCopy.ts';
+
+/** en-GB reads "7 Oct 09:14", the approved form for a plain English page. */
+export function traceLocale(): string {
+  const lang = document.documentElement.lang;
+  return !lang || lang === 'en' ? 'en-GB' : lang;
+}
 
 export type SavedFileCheckState =
   | { status: 'idle' }
@@ -20,36 +30,68 @@ export type SavedFileCheckState =
  */
 export default function useSavedFileCheck({
   pdfDocument,
+  originalFile,
   saved,
   boxes,
   findTerms,
   picturePages,
   measure,
+  announce,
+  detailEdits,
+  detailRows,
 }: {
   pdfDocument: PDFDocumentProxy | null;
+  /** RED-59: the file as opened, read once per run to compare its traces. */
+  originalFile: File | null;
   saved: Blob | null;
   boxes: CheckBox[];
   findTerms: CheckTerm[];
   picturePages: number[];
   measure?: MeasureText;
+  /** Says the traces verdict once a check finishes. */
+  announce?: (message: string) => void;
+  /** RED-59: what the person edited; read back against the saved file. */
+  detailEdits: DetailEdits;
+  detailRows: DetailRow[];
 }) {
   const [state, setState] = useState<SavedFileCheckState>({ status: 'idle' });
+  const [detailsSurvived, setDetailsSurvived] = useState<string[]>([]);
+  // The check reads the latest edits and rows when it finishes, without a new edit re-running it.
+  const latest = useRef({ detailEdits, detailRows });
+  latest.current = { detailEdits, detailRows };
 
   // Only a new export starts a check; the boxes and terms it reads are the
   // ones that export was made from, since any edit clears `saved` first.
   useEffect(() => {
-    if (!saved || !pdfDocument) {
+    if (!saved || !pdfDocument || !originalFile) {
       setState({ status: 'idle' });
+      setDetailsSurvived([]);
       return;
     }
     let current = true;
     setState({ status: 'checking' });
+    setDetailsSurvived([]);
     (async () => {
       try {
         const savedBytes = new Uint8Array(await saved.arrayBuffer());
+        const originalBytes = new Uint8Array(await originalFile.arrayBuffer());
         const { runSavedFileCheck } = await import('./check/runCheck.ts');
-        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, boxes, extraTerms: findTerms, picturePages, measure });
-        if (current) setState({ status: 'done', outcome, typed: [] });
+        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: findTerms, picturePages, measure });
+        if (!current) return;
+        setState({ status: 'done', outcome, typed: [] });
+        const { detailEdits, detailRows } = latest.current;
+        const labels = [
+          ...survivedDetails(detailEdits, outcome.traces.saved).map((id) => survivorLabel(id, detailRows)),
+          ...survivedAlways(outcome.traces.saved),
+        ];
+        setDetailsSurvived(labels);
+        const changes = changesSummary(detailRows, detailEdits);
+        if (labels.length > 0) {
+          announce?.(DETAILS_SURVIVED_ANNOUNCEMENT(labels.join(', ')));
+          reportError('redact', new Error('trace survived export'), 'export_trace_survived');
+        } else if (changes) {
+          announce?.(DETAILS_CHANGED_ANNOUNCEMENT(changes));
+        }
       } catch (error) {
         reportError('redact', error, 'check_saved_file');
         console.error('Redact could not check the saved file', error);
@@ -59,7 +101,7 @@ export default function useSavedFileCheck({
     return () => {
       current = false;
     };
-  }, [saved, pdfDocument]);
+  }, [saved, pdfDocument, originalFile]);
 
   const search = (text: string) => {
     const label = text.trim();
@@ -69,5 +111,5 @@ export default function useSavedFileCheck({
     setState({ ...state, typed: [...state.typed.filter((entry) => entry.term.label !== label), result] });
   };
 
-  return { state, search };
+  return { state, search, detailsSurvived };
 }

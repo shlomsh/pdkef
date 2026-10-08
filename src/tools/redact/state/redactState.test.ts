@@ -9,11 +9,13 @@ import {
   isFullscreenActive,
   redactReducer,
   restoredNoteVisible,
+  selectDetailEdits,
+  selectRemovedPlaces,
   type EditCommit,
   type RedactAction,
   type RedactState,
 } from './redactState.ts';
-import { captureAddedElement, captureElementSnapshots, createActionEntry } from '../../../editor/model/actionHistory.ts';
+import { captureAddedElement, captureElementSnapshots, createActionEntry, type PlaceHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import type { RedactElement } from '../redactElements.ts';
 import type { CheckTerm } from '../check/types.ts';
@@ -612,5 +614,64 @@ describe('EDIT_COMMITTED history coalescing', () => {
     expect(s.edits.history.past[0].operation).toBe('add');
     expect(s.edits.elements[0].left).toBe(1);
     expect(s.edits.documentRevision).toBe(revisionBefore + 1);
+  });
+});
+
+describe('RED-60: Remove it is an undoable edit', () => {
+  const placeEntry = (id = 'rp1', text = 'secret'): PlaceHistoryEntry => ({
+    id, type: 'REMOVE_PLACE', operation: 'remove-place', pageIndex: 0,
+    description: `Removed ${text}`, timestamp: 1, place: { kind: 'title', text },
+  });
+
+  it('PLACE_REMOVED pushes the entry, clears the future, bumps the revision and announces', () => {
+    let s = load();
+    s = run(s, addCommit([box('a')]), { type: 'UNDO' });
+    expect(canRedo(s)).toBe(true);
+    const rev = s.edits.documentRevision;
+    s = run(s, { type: 'PLACE_REMOVED', entry: placeEntry() });
+    expect(s.edits.history.past[0].id).toBe('rp1');
+    expect(s.edits.history.future).toEqual([]);
+    expect(s.edits.documentRevision).toBe(rev + 1);
+    expect(s.view.announcement).toBe('Removed secret');
+    expect(selectRemovedPlaces(s)).toEqual([{ kind: 'title', text: 'secret' }]);
+  });
+
+  it('undo leaves elements alone and drops the place; redo brings it back', () => {
+    let s = load(fresh(), { elements: [box('a')] });
+    s = run(s, { type: 'PLACE_REMOVED', entry: placeEntry() });
+    const rev = s.edits.documentRevision;
+    s = run(s, { type: 'UNDO' });
+    expect(s.edits.elements.map((e) => e.id)).toEqual(['a']);
+    expect(selectRemovedPlaces(s)).toEqual([]);
+    expect(s.edits.documentRevision).toBe(rev + 1);
+    s = run(s, { type: 'REDO' });
+    expect(s.edits.elements.map((e) => e.id)).toEqual(['a']);
+    expect(selectRemovedPlaces(s)).toHaveLength(1);
+  });
+
+  it('details start empty; DETAIL_EDITED and DETAIL_RESTORED set and clear one id without a revision bump', () => {
+    let s = load();
+    expect(s.edits.details).toEqual({});
+    const rev = s.edits.documentRevision;
+    s = run(s, { type: 'DETAIL_EDITED', id: 'author', edit: { action: 'delete' } }, { type: 'DETAIL_EDITED', id: 'title', edit: { action: 'alter', value: 'X' } });
+    expect(selectDetailEdits(s)).toEqual({ author: { action: 'delete' }, title: { action: 'alter', value: 'X' } });
+    s = run(s, { type: 'DETAIL_EDITED', id: 'title', edit: { action: 'delete' } });
+    expect(s.edits.details.title).toEqual({ action: 'delete' });
+    s = run(s, { type: 'DETAIL_RESTORED', id: 'author' }, { type: 'DETAIL_RESTORED', id: 'zzz' });
+    expect(Object.keys(s.edits.details)).toEqual(['title']);
+    expect(s.edits.documentRevision).toBe(rev);
+  });
+
+  it('DETAILS_COMMITTED bumps the revision and nothing else', () => {
+    const s = run(load(), { type: 'DETAIL_EDITED', id: 'author', edit: { action: 'delete' } });
+    const done = run(s, { type: 'DETAILS_COMMITTED' });
+    expect(done.edits.documentRevision).toBe(s.edits.documentRevision + 1);
+    expect(done.edits.details).toEqual(s.edits.details);
+  });
+
+  it('FILE_INITIALIZED takes a details preset, else starts empty', () => {
+    expect(load(fresh(), { details: { author: { action: 'delete' } } }).edits.details).toEqual({ author: { action: 'delete' } });
+    const s = run(load(fresh(), { details: { author: { action: 'delete' } } }), { type: 'FILE_INITIALIZED', file, restored: false, elements: [], past: [], carried: undefined, brush: INIT.brush, activeColor: INIT.activeColor, activeBlurStrength: INIT.activeBlurStrength });
+    expect(s.edits.details).toEqual({});
   });
 });

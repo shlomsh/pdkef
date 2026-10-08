@@ -1,0 +1,53 @@
+---
+id: "RED-61"
+title: "Redact toolbar at 390: six per row clips Blackout, Whiteout and Download"
+status: "done"
+priority: "P2"
+epic: "redact"
+depends_on: []
+---
+
+# RED-61 · Redact toolbar at 390: six per row clips Blackout, Whiteout and Download
+
+Filed 2026-10-08 from Shlomi's screenshot during the RED-59 review. Already on `main` (measured
+against `origin/main` 6fbe1022 and the RED-59 branch: identical numbers).
+
+## Measured (390x844, after a Delete export, eleven controls)
+
+| Button | Button width | Text width | Overhang per side |
+| --- | --- | --- | --- |
+| Blackout | 44.9 | 46.0 | 1.6px clipped |
+| Whiteout | 44.9 | 48.1 | 2.6px clipped |
+| Download | 44.9 | 52.2 | 4.6px clipped |
+
+Layout at 390 is 6+5; at 375 and 360 it is 4+4+3 with at least 3px spare per side. The eleven-control
+rule (`src/editor-ui/SignToolbar.module.css`, `--controls-per-row: 6` under the 531px container query)
+holds six per row down to the 44px touch floor, where a 390 phone's toolbar gives each control 44.9px.
+`src/tools/redact/RedactToolbar.module.css`'s 480px rule (0.66rem, 2px padding) assumed "about 52px"
+per control, which 390 does not give. Script and shots: scratchpad `toolbar-clip/`.
+
+## Fix
+
+Eleven controls step down from six per row to four (4+4+3, the balanced count editor.md names) where
+six no longer give the widest label its width: the threshold is the toolbar content width at which six
+of `widest label + padding + border + 2px air` plus five gaps fit. Sign (twelve) is unchanged. Guard:
+an e2e that, after an export, walks every toolbar button at 360, 375, 390, 414 and 430 and asserts the
+label's `Range` extent sits inside the button's border box on both sides (per `.claude/rules/tests.md`:
+a property, not a pixel count), red at 390 first.
+
+## 2026-10-08 fixed
+
+Guard `redact-toolbar-labels-fit.spec.js` was red at 390 (Blackout, Whiteout, Download), 414 and 430
+(Download) before the fix. `SignToolbar.module.css` steps the eleven-count toolbar from six per row to
+four under a 395px container query (6 × 62 + 5 × 4.8 = 396.0, one pixel below). After: 4+4+3 at every
+width from 360 to 430, narrowest button 62.2px at 360. Sign's 20 toolbar guards unchanged. Measured on
+macOS; CI's Linux run is the second check (tests.md).
+
+## 2026-10-08 revised: two rows, smaller labels
+
+The four-per-row step failed `e2e/tool-toolbars/toolbar-phone-row.spec.js` in `check:e2e`: Redact's card
+went to 213px against its 170px ceiling, and the `:nth-child(11 of ...)` selector also matched Sign's
+twelve controls (196px). Shlomi chose two rows with smaller labels over three rows or clipped labels. The
+shared toolbar CSS is back to `main`'s; Redact's phone label is `min(0.66rem, (control width - 8px) / 5.2)`,
+7.1px at 390px. Measured at 390px: every label inside its button with SF (Download 4.3px clear each side)
+and with Verdana forced as the Linux proxy (Download 2.6px). All 34 toolbar guards green.

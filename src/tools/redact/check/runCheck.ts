@@ -6,7 +6,10 @@
  * The result keeps its `context` so a term the person types later is checked
  * with the pure `checkSavedFile` alone, without reading the file again.
  */
+import { PDFDocument, ParseSpeeds } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { readDocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
 import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
 import { readGlyphs } from '../../../editor/adapters/pdf/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
@@ -35,6 +38,8 @@ export interface CheckOutcome {
   results: TermResult[];
   /** Pages with a Blackout or Whiteout that didn't come out one flat colour. */
   unsolidPages: number[];
+  /** RED-59: what the original file said about itself, and what the saved one still does. */
+  traces: { original: DocumentTraces; saved: DocumentTraces };
 }
 
 const isTextItem = (item: object): item is TextItemLike => typeof (item as TextItemLike).str === 'string';
@@ -49,6 +54,7 @@ const createCanvas = (width: number, height: number) => {
 export async function runSavedFileCheck({
   originalDoc,
   savedBytes,
+  originalBytes,
   boxes,
   extraTerms,
   picturePages,
@@ -56,6 +62,7 @@ export async function runSavedFileCheck({
 }: {
   originalDoc: PDFDocumentProxy;
   savedBytes: Uint8Array;
+  originalBytes: Uint8Array;
   boxes: CheckBox[];
   /** Find searches used on this document. */
   extraTerms: CheckTerm[];
@@ -100,7 +107,10 @@ export async function runSavedFileCheck({
 
     const context = { original, boxes, saved, measure };
     const terms = [...coveredTerms(coveredPages), ...extraTerms];
-    return { context, results: checkSavedFile({ ...context, terms }), unsolidPages };
+    const readTraces = async (bytes: Uint8Array) =>
+      readDocumentTraces(await PDFDocument.load(bytes, { updateMetadata: false, parseSpeed: ParseSpeeds.Fastest }));
+    const traces = { original: await readTraces(originalBytes), saved: await readTraces(savedBytes) };
+    return { context, results: checkSavedFile({ ...context, terms }), unsolidPages, traces };
   } finally {
     void loadingTask.destroy();
   }
