@@ -4,7 +4,7 @@ title: "External signals: the work that moves the constraint and does not live i
 status: "open"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "next"
+horizon: "now"
 order: 1
 depends_on: []
 ---
@@ -166,3 +166,10 @@ over the search proxy if one becomes accessible.
 ## 2026-10-01 board cleanup
 
 - Status in_progress -> open: this is a permanent background ticket, not active work.
+
+## 2026-10-08: the effort moves here
+
+SEO-06's Week 4 gate failed (none of the nine crawled, all fifteen Discovered URLs still N/A), so new-URL
+work stops and this ticket is the work that can move the constraint. Horizon set to now. The same read
+saw the domain re-weighed without any change of ours: `/merge/` went from position 36 to 7.3 and
+`/compress/` held page-one boundary on four times the impressions (SEO-39).

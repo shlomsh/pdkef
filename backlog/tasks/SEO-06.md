@@ -1,10 +1,9 @@
 ---
 id: "SEO-06"
 title: "Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "now"
 depends_on: ["SEO-01"]
 ---
 
@@ -284,3 +283,32 @@ priority, not a fault we can fix in the page. Inspection only, no indexing reque
 
 For the 2026-10-08 read: Search Console Settings -> Crawl stats -> By URL, which shows whether Googlebot
 requested any of the 15 at all. No new URLs until one of the 15 is crawled.
+
+## The Week 4 gate, read 2026-10-08
+
+Shlomi's screenshot of Page indexing -> "Discovered - currently not indexed" (2026-10-08): fifteen URLs,
+**every one with `Last crawled` N/A**, the same fifteen as on 10-02. The nine:
+
+| URL | Coverage state 2026-10-08 |
+| --- | --- |
+| `/blur-vs-blackout-vs-delete-pdf/` | Discovered - currently not indexed, never crawled |
+| `/edit-pdf/` | Discovered - currently not indexed, never crawled |
+| `/image-to-pdf/` | Discovered - currently not indexed, never crawled |
+| `/install-pdf-app/` | Discovered - currently not indexed, never crawled |
+| `/offline-pdf-form-filler/` | Discovered - currently not indexed, never crawled |
+| `/open-source-pdf-editor/` | Discovered - currently not indexed, never crawled |
+| `/pdf-to-image/` | Discovered - currently not indexed, never crawled |
+| `/permanently-delete-text-from-pdf/` | Discovered - currently not indexed, never crawled |
+| `/sign-pdf-no-signup/` | Discovered - currently not indexed, never crawled |
+
+The other six in the list: `/pdf-wont-compress-to-100kb/`, `/sign-pdf-in-your-language/`,
+`/id/kompres-pdf-di-bawah-1-mb/` and the `/he/` editions of `install-pdf-app`, `open-source-pdf-editor`
+and `sign-pdf-no-signup`. `/remove-camscanner-watermark-from-pdf/` (SEO-38, live 09-28) is in neither
+the Valid nor the Discovered list yet.
+
+**The gate failed: none of the nine has been crawled.** As this ticket says, new-URL work stops and the
+effort moves to SEO-03. SEO-20, 22, 23 and 24 stay blocked on this gate, which now reads "until one of
+the fifteen is crawled". Recorded in the findings doc (sections 1, 3.4 and 4).
+
+**Status: done.** Every acceptance line holds, the last one being this recheck. `/edit-pdf/` got no
+content work, as recorded above.

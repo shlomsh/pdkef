@@ -93,3 +93,20 @@ Blocked 2026-10-01 on Shlomi's picks from the findings above, and the 2026-10-08
 - The two optional facts (document details left out; the saved-file check) are skipped.
 - The Hebrew card's "אזורים" becomes "מה שצריך": "טשטשו מה שצריך ב-PDF, השחירו פרטים פרטיים או מחקו טקסט ותמונות. הקובץ נשאר במכשיר שלכם."
 - Ship after the 2026-10-08 Search Console read, so new body copy does not blur its measurement of the 2026-09-17 change. If that export shows a retired term carrying real impressions, put it back plainly and explained before shipping.
+
+## The 2026-10-08 query check, and the change
+
+The 10-08 three-month `Queries.csv` (every query with two or more impressions is in it) has **no query
+containing flatten, text layer, permanent, white out, remove text, metadata, erase, area or element**.
+The nearest rows are `pdf masking online` (5 at 37.8) and `remove blur from pdf online free` (7 at 8.7),
+neither a retired term. So nothing goes back in, and the copy shipped as decided.
+
+Shipped on `claude/seo-39-read`: `c4d4cea0` (the table's rewrites in `src/data/tools.js`, the two blurbs
+in `src/data/contentPages.js`, the Hebrew card in `src/i18n/cardMessages.ts`) and `98958218`. FAQ 6
+keeps SEO-41's Sign clause (shipped 10-01, after the table was written), so "flatten" stays inside that
+one entry. Title, h1 and meta description unchanged. `src/data/redactCopy.test.js` pins the retired words
+(seen failing first, 13 of 13). Fresh review found no wrong field and no broken string. Full ci.yml chain
+green locally, Playwright on port 4791.
+
+Left: the push to main, then an indexing request for `/redact/` (first on SEO-39's reindex list). The
+two guide pages are [RED-58](RED-58.md).

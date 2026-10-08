@@ -260,3 +260,11 @@ Same export by country: Israel is second by clicks (22 clicks, 369 impressions, 
 clicks land on English pages or come through anonymized queries; some may be our own testing. Next
 instrument: the same export filtered to Israel (Pages and Queries tabs).
 Indexing requested for `/he/sign/` on 2026-09-24 after the deploy.
+
+## 2026-10-08 crawl state
+
+`/he/compress/` and `/he/merge/` last crawled 09-11, `/he/` 09-17, four OS guides 09-13; the three `/he/`
+guides never crawled. Insights shows `/he/merge/` still under the pre-09-17 מיזוג title, so the איחוד
+title is unread until a recrawl (reindex requested from SEO-39's list). **`/he/sign/` has left the index**
+(indexed 09-11, absent from the Valid export, indexed count 22 to 21 on 09-22), probably "Crawled -
+currently not indexed"; URL Inspection on it is the next step, not another request.
