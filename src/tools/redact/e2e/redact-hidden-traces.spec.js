@@ -122,12 +122,12 @@ test.describe('Redact keeps the file\'s details unless the person changes them',
       await expect(sheet).toBeVisible();
     };
     await openSheet();
-    await sheet.locator('[data-detail-row="author"]').getByRole('button', { name: 'Delete', exact: true }).click();
+    await sheet.locator('[data-detail-row="author"]').getByRole('button', { name: 'Delete Author', exact: true }).click();
     await expect(sheet.locator('[data-detail-row="author"]')).toHaveAttribute('data-detail-state', 'deleted');
     const title = sheet.locator('[data-detail-row="title"]');
-    await title.getByRole('button', { name: 'Edit', exact: true }).click();
+    await title.getByRole('button', { name: 'Edit Title', exact: true }).click();
     await title.locator('input').fill('Declaration');
-    await title.getByRole('button', { name: 'Done', exact: true }).click();
+    await title.getByRole('button', { name: 'Done Title', exact: true }).click();
     await expect(title).toHaveAttribute('data-detail-state', 'altered');
     await sheet.getByRole('button', { name: 'Done', exact: true }).first().click();
     await expect(sheet).toHaveCount(0);

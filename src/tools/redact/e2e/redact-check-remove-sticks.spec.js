@@ -8,7 +8,7 @@ import { PDFDocument, PDFName, PDFString, StandardFonts } from '@cantoo/pdf-lib'
 // browser runs the whole chain (real export, real check, real removal, real
 // second export), so this is the one guard for it. The comment is the kind
 // RED-59's "every download drops document details and attachments" does not
-// cover; the attachment is the case seen on 2026-10-08.
+// cover. Since RED-59's re-plan the attachment is kept unless the person deletes it in Review.
 
 const NOTE = 'note-secret-777';
 const ATTACHMENT = 'original-unredacted.pdf';
@@ -56,8 +56,8 @@ test('a place removed from the saved file stays removed on the next Download', a
   const [first] = await Promise.all([page.waitForEvent('download'), download()]);
   const firstDoc = await savedPdf(first);
   expect(hasNote(firstDoc), 'the first download still carries the comment').toBe(true);
-  // RED-59: every export drops attached files unless the person keeps one.
-  expect(hasAttachment(firstDoc), 'the first download carries an attachment nobody kept').toBe(false);
+  // RED-59: the file's details, attachments included, stay as they came unless the person changes them.
+  expect(hasAttachment(firstDoc), 'the first download kept the attached file').toBe(true);
 
   const check = page.locator('[data-saved-file-check]');
   const removeVia = async (term) => {
@@ -77,7 +77,7 @@ test('a place removed from the saved file stays removed on the next Download', a
   const [again] = await Promise.all([page.waitForEvent('download'), download()]);
   const againDoc = await savedPdf(again);
   expect.soft(hasNote(againDoc), 'the removed comment came back on the next Download').toBe(false);
-  expect.soft(hasAttachment(againDoc), 'an attachment came back on the next Download').toBe(false);
+  expect.soft(hasAttachment(againDoc), 'the next Download still keeps the attached file').toBe(true);
 
   // RED-60: the removal is part of the saved work, so it survives a reload too.
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
