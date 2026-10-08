@@ -10,6 +10,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
 
+### Form detector accuracy
+
+- [FORM-36](backlog/tasks/FORM-36.md) P2 · Add BTL 1500 (05.2026) to the scored corpus: a held-out Hebrew Word form (in progress)
+
 ### Robustness and debt
 
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)

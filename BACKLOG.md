@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 5 up next, 8 then, 16 waiting, 16 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 6 up next, 8 then, 16 waiting, 16 parked.
 
 ## Redact: finish removal
 
@@ -50,6 +50,12 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 ## Form detector accuracy
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| FORM-36 | P2 | [FORM-36](backlog/tasks/FORM-36.md) · Add BTL 1500 (05.2026) to the scored corpus: a held-out Hebrew Word form | In progress |
 
 ### Then, in order
 
