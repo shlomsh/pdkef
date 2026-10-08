@@ -53,9 +53,11 @@ corpus matcher, and reports per-page inference time.
   phone-side cost it would carry.
 - [ ] No dependency, asset or product code change.
 
-## 2026-10-08 Shlomi: ask before running it
+## 2026-10-08 Opt-in loading on the device
 
-If it earns its place, the model loads only when the person agrees, on a page that has no text layer
+Shlomi asked about sending a scan to a hosted model (Hugging Face) with the person's permission.
+That breaks the first invariant (no file bytes leave the device), so the on-device form of the same
+idea is recorded instead. If it earns its place, the model loads only when the person agrees, on a page that has no text layer
 and no vector ink (a scan or photo). That turns the download from a cost every visitor pays into a
 one-time, opt-in one, cached for offline use after. It does not change the accuracy question this
 spike answers. What it leaves open: phone inference time and memory at 1024px, hosting a 33-116MB
