@@ -75,6 +75,8 @@ export function signUpdateDescription(t: SignMessages, kind: ElementUpdateKind, 
 }
 
 export interface MergeMessages {
+  /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */
+  dir: 'ltr' | 'rtl';
   skippedOne: string;
   skippedMany: string;
   addPageNumbers: string;
@@ -214,6 +216,7 @@ export interface MergeMessages {
 }
 
 const englishMergeMessages: MergeMessages = {
+  dir: 'ltr',
   skippedOne: 'Skipped "{name}" - not a PDF.',
   skippedMany: 'Skipped {count} files - not PDFs.',
   addPageNumbers: 'Add page numbers',
@@ -323,6 +326,7 @@ const englishMergeMessages: MergeMessages = {
 // island catalogue LOC-03 will ship. Do not treat these values as approved
 // copy; the merge.yaml fixture they pair with is a draft for the same reason.
 const hebrewMergeMessages: MergeMessages = {
+  dir: 'rtl',
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
   addPageNumbers: 'הוספת מספרי עמודים',
@@ -429,6 +433,8 @@ const hebrewMergeMessages: MergeMessages = {
 };
 
 export interface CompressMessages {
+  /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */
+  dir: 'ltr' | 'rtl';
   skippedOne: string;
   skippedMany: string;
   compressionOptionsLabel: string;
@@ -557,6 +563,7 @@ export interface CompressMessages {
 }
 
 const englishCompressMessages: CompressMessages = {
+  dir: 'ltr',
   skippedOne: 'Skipped "{name}" - not a PDF, JPG or PNG.',
   skippedMany: 'Skipped {count} files - not PDF, JPG or PNG files.',
   compressionOptionsLabel: 'Compression Options',
@@ -689,6 +696,7 @@ const mergeMessages: Partial<Record<DocumentationLocaleId, MergeMessages>> = {
 // ("כיווץ" as the lead term, "PDF" and file-size units left in Latin script,
 // matching every incumbent on the Hebrew SERPs).
 const hebrewCompressMessages: CompressMessages = {
+  dir: 'rtl',
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF, JPG או PNG.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF, JPG או PNG.',
   compressionOptionsLabel: 'אפשרויות כיווץ',

@@ -14,6 +14,13 @@ export function formatFileSize(bytes) {
   return `${value.toFixed(value < 10 ? 1 : 0)} ${UNITS[unitIndex]}`;
 }
 
+// Isolates a left-to-right run (a file size like "1.0 MB") inside right-to-left
+// text with LRI ... PDI, so the bidi algorithm cannot reorder its words.
+// `dir` is the catalogue's `dir`; anything but 'rtl' returns the text as is.
+export function isolateLtr(text, dir) {
+  return dir === 'rtl' ? `\u2066${text}\u2069` : text;
+}
+
 const DEFAULT_PAGE_MESSAGES = {
   pageCountOne: '1 page',
   pageCountOther: '{count} pages',
