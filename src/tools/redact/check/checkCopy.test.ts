@@ -11,6 +11,17 @@ import {
   pageList,
   picturePagesNote,
   unsolidNote,
+  TRACES_LEAD,
+  TRACES_READ_BACK,
+  TRACES_NONE,
+  TRACE_SURVIVED,
+  TRACES_SURVIVED_ALERT,
+  KEEP_IT,
+  DROP_IT,
+  KEPT,
+  TRACES_ANNOUNCEMENT,
+  TRACES_SURVIVED_ANNOUNCEMENT,
+  keptNote,
 } from './checkCopy.ts';
 import type { Finding, PlaceKind } from './types.ts';
 
@@ -226,6 +237,33 @@ describe('Remove it copy', () => {
     for (const kind of ['comment', 'link', 'author', 'subject', 'keywords'] as const) {
       const text = removedMessage({ kind, text: 'x' });
       expect(text).not.toMatch(/successfully|\u2014/);
+    }
+  });
+});
+
+describe('traces copy', () => {
+  it('has the agreed words', () => {
+    expect(TRACES_LEAD).toBe('Your original file carried:');
+    expect(TRACES_READ_BACK).toBe('Read back from your download: none of it is there.');
+    expect(TRACES_NONE).toBe('Your original file carried no details about itself. Neither does your download.');
+    expect(TRACE_SURVIVED).toBe('Still in your download.');
+    expect(TRACES_SURVIVED_ALERT).toBe("Don't share this copy yet.");
+    expect(KEEP_IT).toBe('Keep it in the download');
+    expect(DROP_IT).toBe('Drop it');
+    expect(KEPT).toBe('Kept in your download.');
+    expect(TRACES_ANNOUNCEMENT).toBe("Checked your download: none of your original file's details are in it.");
+    expect(TRACES_SURVIVED_ANNOUNCEMENT).toBe("Something from your original file is still in your download. Don't share this copy yet.");
+  });
+
+  it('keptNote names the file, truncated', () => {
+    expect(keptNote('a.pdf')).toBe('Kept "a.pdf" in your download. Saved again and downloaded.');
+    expect(keptNote('x'.repeat(80))).toContain('…');
+  });
+
+  it('the closing lines carry no forbidden pattern', () => {
+    const forbidden = [/not in the (saved )?file/i, /isn't there/i, /\bclean\b/i, /all clear/i, /\bsafe\b(?! to share)/i, /no secrets?/i, /nothing (was )?found/i];
+    for (const text of [TRACES_READ_BACK, TRACES_NONE, TRACES_ANNOUNCEMENT, keptNote('a.pdf')]) {
+      for (const pattern of forbidden) expect(text).not.toMatch(pattern);
     }
   });
 });
