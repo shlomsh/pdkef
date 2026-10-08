@@ -6,17 +6,40 @@
 // file has no CLI entry point of its own and does nothing when imported.
 import { LOCALIZED_PATH_PREFIXES, PILOT_COUNTRY_BY_PREFIX } from '../src/i18n/localePrefixes.js';
 
-// These exports never quote fields (no commas inside values), so a plain
-// split is safe and avoids pulling in a CSV parser dependency. Moved here
-// unchanged from the original seo-refresh.mjs (SEO-02).
+// Search Console quotes a field when it contains a comma, a quote or a
+// newline (quotes doubled inside), so this is a small RFC 4180 reader.
 export function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines[0].split(',');
-  return lines.slice(1).map((line) => {
-    const cells = line.split(',');
+  const records = [];
+  let cells = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch !== '"') cell += ch;
+      else if (text[i + 1] === '"') cell += text[i++];
+      else quoted = false;
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ',') {
+      cells.push(cell);
+      cell = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      cells.push(cell);
+      records.push(cells);
+      cells = [];
+      cell = '';
+    } else {
+      cell += ch;
+    }
+  }
+  if (cell !== '' || cells.length > 0) records.push([...cells, cell]);
+  const [header, ...body] = records;
+  return body.map((record) => {
     const row = {};
     header.forEach((key, i) => {
-      row[key] = cells[i];
+      row[key] = record[i];
     });
     return row;
   });
