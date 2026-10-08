@@ -1,10 +1,9 @@
 ---
 id: "RED-46"
 title: "The Redact page speaks the tool's words, without losing what people search for"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "now"
 depends_on: []
 ---
 
@@ -110,3 +109,6 @@ green locally, Playwright on port 4791.
 
 Left: the push to main, then an indexing request for `/redact/` (first on SEO-39's reindex list). The
 two guide pages are [RED-58](RED-58.md).
+
+**Done 2026-10-08.** Pushed to main (`fca0f026`); the live page serves build `fca0f02` with the new copy,
+and Shlomi requested indexing for `/redact/` the same day.
