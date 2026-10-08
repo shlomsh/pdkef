@@ -1,12 +1,10 @@
 ---
 id: "RED-60"
 title: "A place removed from the saved file stays removed on every later Download"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "now"
 depends_on: []
-needs: "Your call on the four decisions below"
 ---
 
 # RED-60 · A place removed from the saved file stays removed on every later Download
@@ -100,3 +98,14 @@ the attachment came back, and the "attached file" note came back.
 - A removal survives a reload: recorded, tab closed, file reopened from recents, Download, still gone.
   A unit over the draft record if it can prove it; otherwise the spec gains one reload step.
 - `check:push` green; `test:module-boundaries` shows no new editor-to-tool edge.
+
+## 2026-10-08 built (with RED-59)
+
+Decisions 1 to 4 as recommended. A removal is a `remove-place` history entry (`actionHistory.ts`,
+no element, `pageIndex` 0 for a document-level place), derived into `removedPlaces(past)`, saved with
+the history, undone and redone like any edit. Every export replays `removePlaces(doc, places)` through
+`applyPageEdits`'s `finish` seam on its first pass. Remove it records the entry and runs the normal
+export (parked until the revision bump settles, so the invalidation effect cannot retire it). The RED-25
+byte patch (`removePlace.ts`) is gone; its tests moved onto `removePlaces`. The guard
+`redact-check-remove-sticks.spec.js` is green, tightened for RED-59 (the first download no longer
+carries an attachment) and extended with a reload step.
