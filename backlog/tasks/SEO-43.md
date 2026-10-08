@@ -1,10 +1,9 @@
 ---
 id: "SEO-43"
 title: "Redact's check lists creator, producer and dates, the metadata that says the most about you"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "redact"
-horizon: "next"
 ---
 
 # SEO-43 · New tool: see and remove what a PDF's metadata says about you
@@ -65,3 +64,8 @@ Shlomi's screenshot, worldwide, past 12 months, read off the chart: `compress pd
 sit at or below flatten's noise floor (SEO-21). **Decision: no standalone page.** The scope is option 1:
 add Creator, Producer, CreationDate and ModDate to Redact's check as places it shows and removes, with a
 unit test per key seen failing first.
+
+## 2026-10-08 retired into RED-59
+
+Shlomi: removing metadata is a strong claim that the tool has to show and the docs have to explain.
+That whole outcome now lives in RED-59, which carries this ticket's findings.
