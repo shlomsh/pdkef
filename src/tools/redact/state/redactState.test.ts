@@ -9,11 +9,12 @@ import {
   isFullscreenActive,
   redactReducer,
   restoredNoteVisible,
+  selectRemovedPlaces,
   type EditCommit,
   type RedactAction,
   type RedactState,
 } from './redactState.ts';
-import { captureAddedElement, captureElementSnapshots, createActionEntry } from '../../../editor/model/actionHistory.ts';
+import { captureAddedElement, captureElementSnapshots, createActionEntry, type PlaceHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import type { RedactElement } from '../redactElements.ts';
 import type { CheckTerm } from '../check/types.ts';
@@ -612,5 +613,57 @@ describe('EDIT_COMMITTED history coalescing', () => {
     expect(s.edits.history.past[0].operation).toBe('add');
     expect(s.edits.elements[0].left).toBe(1);
     expect(s.edits.documentRevision).toBe(revisionBefore + 1);
+  });
+});
+
+describe('RED-60: Remove it is an undoable edit', () => {
+  const placeEntry = (id = 'rp1', text = 'secret'): PlaceHistoryEntry => ({
+    id, type: 'REMOVE_PLACE', operation: 'remove-place', pageIndex: 0,
+    description: `Removed ${text}`, timestamp: 1, place: { kind: 'title', text },
+  });
+
+  it('PLACE_REMOVED pushes the entry, clears the future, bumps the revision and announces', () => {
+    let s = load();
+    s = run(s, addCommit([box('a')]), { type: 'UNDO' });
+    expect(canRedo(s)).toBe(true);
+    const rev = s.edits.documentRevision;
+    s = run(s, { type: 'PLACE_REMOVED', entry: placeEntry() });
+    expect(s.edits.history.past[0].id).toBe('rp1');
+    expect(s.edits.history.future).toEqual([]);
+    expect(s.edits.documentRevision).toBe(rev + 1);
+    expect(s.view.announcement).toBe('Removed secret');
+    expect(selectRemovedPlaces(s)).toEqual([{ kind: 'title', text: 'secret' }]);
+  });
+
+  it('undo leaves elements alone and drops the place; redo brings it back', () => {
+    let s = load(fresh(), { elements: [box('a')] });
+    s = run(s, { type: 'PLACE_REMOVED', entry: placeEntry() });
+    const rev = s.edits.documentRevision;
+    s = run(s, { type: 'UNDO' });
+    expect(s.edits.elements.map((e) => e.id)).toEqual(['a']);
+    expect(selectRemovedPlaces(s)).toEqual([]);
+    expect(s.edits.documentRevision).toBe(rev + 1);
+    s = run(s, { type: 'REDO' });
+    expect(s.edits.elements.map((e) => e.id)).toEqual(['a']);
+    expect(selectRemovedPlaces(s)).toHaveLength(1);
+  });
+
+  it('keptAttachments starts empty and toggles per name, bumping the revision', () => {
+    let s = load();
+    expect(s.edits.keptAttachments).toEqual([]);
+    const rev = s.edits.documentRevision;
+    s = run(s, { type: 'ATTACHMENT_KEPT', name: 'a.png' }, { type: 'ATTACHMENT_KEPT', name: 'a.png' }, { type: 'ATTACHMENT_KEPT', name: 'b.png' });
+    expect(s.edits.keptAttachments).toEqual(['a.png', 'b.png']);
+    expect(s.edits.documentRevision).toBe(rev + 3);
+    s = run(s, { type: 'ATTACHMENT_DROPPED', name: 'a.png' });
+    expect(s.edits.keptAttachments).toEqual(['b.png']);
+    s = run(s, { type: 'ATTACHMENT_DROPPED', name: 'zzz' });
+    expect(s.edits.keptAttachments).toEqual(['b.png']);
+  });
+
+  it('FILE_INITIALIZED takes a keptAttachments preset, else starts empty', () => {
+    expect(load(fresh(), { keptAttachments: ['x.pdf'] }).edits.keptAttachments).toEqual(['x.pdf']);
+    const s = run(load(fresh(), { keptAttachments: ['x.pdf'] }), { type: 'FILE_INITIALIZED', file, restored: false, elements: [], past: [], carried: undefined, brush: INIT.brush, activeColor: INIT.activeColor, activeBlurStrength: INIT.activeBlurStrength });
+    expect(s.edits.keptAttachments).toEqual([]);
   });
 });
