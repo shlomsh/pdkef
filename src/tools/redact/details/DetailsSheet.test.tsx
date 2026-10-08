@@ -1,9 +1,10 @@
 import { render } from 'preact';
+import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DetailsSheet } from './DetailsSheet.tsx';
 import type { DetailRow } from './describeDetails.ts';
-import type { DetailEdits } from '../../../editor/adapters/pdf/documentTraces.js';
+import type { DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
 import {
   DETAILS_THUMBS, DETAIL_DELETE, DETAIL_DONE, DETAIL_EDIT, DETAIL_IMPLIED, DETAIL_UNDO, DETAILS_CLOSE,
 } from '../check/checkCopy.ts';
@@ -79,6 +80,71 @@ describe('DetailsSheet rows', () => {
   it('has the thumbs line', () => {
     const { el } = mount();
     expect(el.textContent).toContain(DETAILS_THUMBS);
+  });
+});
+
+describe('DetailsSheet accessibility', () => {
+  it('gives every action the row label in its accessible name', () => {
+    const { el } = mount({ title: { action: 'delete' } });
+    expect(byText(row(el, 'title'), DETAIL_UNDO).getAttribute('aria-label')).toBe('Undo Title');
+    expect(byText(row(el, 'author'), DETAIL_EDIT).getAttribute('aria-label')).toBe('Edit Author');
+    expect(byText(row(el, 'author'), DETAIL_DELETE).getAttribute('aria-label')).toBe('Delete Author');
+    click(byText(row(el, 'author'), DETAIL_EDIT));
+    expect(byText(row(el, 'author'), DETAIL_DONE).getAttribute('aria-label')).toBe('Done Author');
+  });
+
+  it('prefixes a deleted value with Deleted: and an altered one with Altered: for a screen reader', () => {
+    const { el } = mount({ title: { action: 'delete' }, author: { action: 'alter', value: 'X' } });
+    expect(row(el, 'title').querySelector('.sr-only')!.textContent).toBe('Deleted: ');
+    expect(row(el, 'author').querySelector('.sr-only')!.textContent).toBe('Altered: ');
+    expect(row(el, 'created').querySelector('.sr-only')).toBeNull();
+  });
+
+  it('the edit input reads its own direction', () => {
+    const { el } = mount();
+    click(byText(row(el, 'author'), DETAIL_EDIT));
+    expect((row(el, 'author').querySelector('input') as HTMLInputElement).getAttribute('dir')).toBe('auto');
+  });
+
+  function Stateful() {
+    const [edits, setEdits] = useState<DetailEdits>({});
+    return (
+      <DetailsSheet
+        open rows={ROWS} edits={edits}
+        onEdit={(id, edit) => setEdits((e) => ({ ...e, [id]: edit }))}
+        onRestore={(id) => setEdits((e) => { const n = { ...e }; delete n[id]; return n; })}
+        onClose={() => {}}
+      />
+    );
+  }
+  const mountStateful = () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => { render(<Stateful />, host!); });
+    return host;
+  };
+
+  it('moves focus to Undo after Delete, then to Edit (or Delete when not editable) after Undo', () => {
+    const el = mountStateful();
+    click(byText(row(el, 'title'), DETAIL_DELETE));
+    expect(document.activeElement).toBe(byText(row(el, 'title'), DETAIL_UNDO));
+    click(byText(row(el, 'title'), DETAIL_UNDO));
+    expect(document.activeElement).toBe(byText(row(el, 'title'), DETAIL_EDIT));
+    click(byText(row(el, 'created'), DETAIL_DELETE));
+    expect(document.activeElement).toBe(byText(row(el, 'created'), DETAIL_UNDO));
+    click(byText(row(el, 'created'), DETAIL_UNDO));
+    expect(document.activeElement).toBe(byText(row(el, 'created'), DETAIL_DELETE));
+  });
+
+  it('moves focus to the row Edit after Done and after Escape in an edit', () => {
+    const el = mountStateful();
+    click(byText(row(el, 'title'), DETAIL_EDIT));
+    type(row(el, 'title').querySelector('input') as HTMLInputElement, 'New');
+    click(byText(row(el, 'title'), DETAIL_DONE));
+    expect(document.activeElement).toBe(byText(row(el, 'title'), DETAIL_EDIT));
+    click(byText(row(el, 'author'), DETAIL_EDIT));
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    expect(document.activeElement).toBe(byText(row(el, 'author'), DETAIL_EDIT));
   });
 });
 

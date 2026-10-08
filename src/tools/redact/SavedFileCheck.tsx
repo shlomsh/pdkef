@@ -26,6 +26,25 @@ import type { InPlaceFinding } from './check/checkCopy.ts';
 import type { CheckTerm } from './check/types.ts';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 
+const MARK = '\u0001';
+
+/** The copy's sentence with each name in its own `<bdi>`, so a Hebrew name can't reorder its neighbours. */
+function withPieces(sentence: (pieces: string) => string, pieces: readonly string[]) {
+  const [lead, tail] = sentence(MARK).split(MARK);
+  return (
+    <>
+      {lead}
+      {pieces.map((piece, i) => (
+        <>
+          {i > 0 && ', '}
+          <bdi>{piece}</bdi>
+        </>
+      ))}
+      {tail}
+    </>
+  );
+}
+
 /**
  * RED-17: the check of the saved file, under the export actions. It reports
  * what it found and where; it never says a term is absent (checkCopy.ts).
@@ -37,7 +56,7 @@ export default function SavedFileCheck({
   onRemove,
   removing = false,
   note = null,
-  detailsChanged = '',
+  detailsChanged = [],
   detailsSurvived = [],
   onReviewDetails,
 }: {
@@ -50,7 +69,7 @@ export default function SavedFileCheck({
   /** What the last Remove it did, said plainly. */
   note?: string | null;
   /** RED-59: the person's detail changes in words, '' when none. */
-  detailsChanged?: string;
+  detailsChanged?: readonly string[];
   /** RED-59: labels of edited details that are still in the saved file. */
   detailsSurvived?: readonly string[];
   onReviewDetails?: () => void;
@@ -75,12 +94,12 @@ export default function SavedFileCheck({
       {note && <p className={styles.note} role="status" data-check-removed>{note}</p>}
       {detailsSurvived.length > 0 ? (
         <p className={styles.danger} role="alert" data-details-survived>
-          <bdi>{DETAILS_SURVIVED(detailsSurvived.join(', '))}</bdi>
+          {withPieces(DETAILS_SURVIVED, detailsSurvived)}
         </p>
       ) : (
-        detailsChanged && (
+        detailsChanged.length > 0 && (
           <p className={styles.details} data-details-changed>
-            <bdi>{DETAILS_CHANGED(detailsChanged)}</bdi>
+            {withPieces(DETAILS_CHANGED, detailsChanged)}
             <button type="button" className={styles.review} onClick={onReviewDetails}>{DETAILS_REVIEW}</button>
           </p>
         )

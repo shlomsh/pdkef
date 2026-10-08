@@ -38,8 +38,8 @@ import { removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
 import { DetailsFooter } from './details/DetailsFooter.tsx';
 import { DetailsSheet } from './details/DetailsSheet.tsx';
 import { useDocumentDetails } from './details/useDocumentDetails.ts';
-import { describeDetails, detailsSummary, changesSummary } from './details/describeDetails.ts';
-import type { DetailEdits } from '../../editor/adapters/pdf/documentTraces.js';
+import { describeDetails, detailsSummary, changesPieces } from './details/describeDetails.ts';
+import type { DetailEdits } from '../../editor/adapters/pdf/detailEdits.js';
 import useSavedFileCheck, { traceLocale } from './useSavedFileCheck.ts';
 import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
@@ -1282,7 +1282,7 @@ export default function PdfRedactTool() {
             ))}
           </div>
 
-          <DetailsFooter summary={detailsSummary(rows)} onReview={openDetails} />
+          <DetailsFooter summary={detailsSummary(rows, state.edits.details)} onReview={openDetails} />
 
           {/* RED-36: the one finish row - what will be saved, Download (with
               its progress while saving), what was saved, then Compress it and
@@ -1306,7 +1306,7 @@ export default function PdfRedactTool() {
                 {errorDetail}
               </ErrorMessage>
             )}
-            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} detailsChanged={changesSummary(rows, state.edits.details)} detailsSurvived={savedCheck.detailsSurvived} onReviewDetails={openDetails} />
+            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} detailsChanged={changesPieces(rows, state.edits.details)} detailsSurvived={savedCheck.detailsSurvived} onReviewDetails={openDetails} />
           </RedactFinish>
         </div>
       )}
