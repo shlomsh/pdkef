@@ -623,6 +623,9 @@ const GLYPH_NOISE_RE = /^[a-zA-Z]{1,3}(\s+[a-zA-Z]{1,3})*$/;
 const MAX_LABEL_CHARS = 25;
 /** How far above a lone box (points) its caption may sit and still be its caption (SNG-10). */
 const LONE_CAPTION_GAP = 12;
+
+/** Closed cells a column must hold before a far header still names its empty ones (FORM-34). */
+const MIN_REPEATING_COLUMN_ROWS = 4;
 /**
  * Hebrew, Arabic and their supplements. A side carve keeps the blank on the
  * left, the shape an RTL caption hugging the right wall leaves; an LTR caption
@@ -787,6 +790,7 @@ function tickBoxCell(cell, geometry, textItems) {
  * @property {TextPoints[]} textItemsPoints every text run on the page, in PDF points
  * @property {TextPoints[]} ownText the runs whose bulk sits inside this cell
  * @property {Map<string, number>} closedColumnCounts closed cells per column key
+ * @property {Map<string, number>} emptyColumnCounts closed cells with no text of their own, per column key
  * @property {(cell: ClosedCell) => string} columnKey
  * @property {(cell: ClosedCell) => boolean} isStackedRow
  */
@@ -878,12 +882,13 @@ export function resolveLoneSquare(cell, { geometry, textItemsPoints, ownText }) 
 /**
  * A lone rectangle is as likely a panel or photo box as a field, so it must
  * hold no text and carry a short caption right on it before it is trusted
- * (SNG-10). A passing box is not resolved here: it falls through to the general
+ * (SNG-10), except that the caption may sit far above a box in a column of
+ * four or more empty closed cells repeating under one header (FORM-34). A passing box is not resolved here: it falls through to the general
  * resolver for its bounds and kind.
  *
  * @type {CellResolver}
  */
-export function resolveLoneBox(cell, { textItemsPoints, ownText, isStackedRow }) {
+export function resolveLoneBox(cell, { textItemsPoints, ownText, isStackedRow, emptyColumnCounts, columnKey }) {
   // A row of a stack has a rule between it and its neighbour, so only a
   // genuinely lone box is judged here.
   if (!cell.lone || isStackedRow(cell)) return undefined;
@@ -894,7 +899,11 @@ export function resolveLoneBox(cell, { textItemsPoints, ownText, isStackedRow })
   // field: precision first (SNG-10).
   if (ownText.length > 0) return null;
   const caption = headerAbove(cell, textItemsPoints);
-  if (!caption || caption.y0 - cell.top > LONE_CAPTION_GAP) return null;
+  if (!caption) return null;
+  // A column of empty cells repeating under one header is a table, so the
+  // header may sit far above its lower rows (FORM-34).
+  const repeating = (emptyColumnCounts.get(columnKey(cell)) || 0) >= MIN_REPEATING_COLUMN_ROWS;
+  if (caption.y0 - cell.top > LONE_CAPTION_GAP && !repeating) return null;
   if (caption.str.trim().length > MAX_LABEL_CHARS) return null;
   return undefined;
 }
@@ -964,6 +973,14 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     const key = columnKey(cell);
     closedColumnCounts.set(key, (closedColumnCounts.get(key) || 0) + 1);
   }
+  // The FORM-34 repeating-column rule counts only cells with no text of their own.
+  /** @type {Map<string, number>} */
+  const emptyColumnCounts = new Map();
+  for (const cell of closedCells) {
+    if (textInsideCell(cell, textItemsPoints).length > 0) continue;
+    const key = columnKey(cell);
+    emptyColumnCounts.set(key, (emptyColumnCounts.get(key) || 0) + 1);
+  }
 
   // A row of a stack: an abutting cell in its own column, about as tall. Equal
   // rows repeating down a column are a divided box, where a ledge or underline
@@ -976,7 +993,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   // First pass classifies each cell; the table-cell count needs the whole population.
   /** @type {ResolvedCell[]} */
   const resolved = [];
-  const shared = { geometry, textItemsPoints, closedColumnCounts, columnKey, isStackedRow };
+  const shared = { geometry, textItemsPoints, closedColumnCounts, emptyColumnCounts, columnKey, isStackedRow };
   for (const cell of closedCells) {
     const context = { ...shared, ownText: textInsideCell(cell, textItemsPoints) };
     for (const resolver of CELL_RESOLVERS) {

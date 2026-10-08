@@ -58,8 +58,10 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
   reading `/CreationDate`. `src/lib/sort.js`: `sortByName` (locale-numeric) and `sortByDate`, a
   cascade of filename date → PDF creation date → `File.lastModified`. The File API cannot read OS
   birth time and `lastModified` changes on copy/download, so it is deliberately last.
-- `src/lib/thumbnails.js`: lazy `pdfjs-dist` page-1 render. The worker is
-  `new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url)`, bundled same-origin, never a CDN.
+- `src/lib/thumbnails.js`: lazy `pdfjs-dist` page-1 render. Every `import('pdfjs-dist')` goes through
+  `src/lib/loadPdfjs.js` (the caller keeps its own `import()` so test mocks reach it), which installs
+  the built-ins old browsers lack (`pdfjsPolyfills.js`, DEBT-42) and points pdf.js at `pdfjsWorker.js`,
+  a Vite `?worker&url` wrapper that installs them in the worker first. Bundled same-origin, never a CDN.
 
 ## Catching errors
 

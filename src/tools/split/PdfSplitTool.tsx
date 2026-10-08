@@ -17,6 +17,7 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize, isolateLtr } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
+import { loadPdfjs } from '../../lib/loadPdfjs.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -35,14 +36,9 @@ function withSlot(template: string, slot: string, node: any) {
 }
 
 let pdfjsLib: any;
+
 async function getPdfjs() {
-  if (!pdfjsLib) {
-    pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url,
-    ).href;
-  }
+  pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
   return pdfjsLib;
 }
 

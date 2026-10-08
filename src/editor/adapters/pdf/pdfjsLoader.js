@@ -1,9 +1,10 @@
+import { loadPdfjs } from '../../../lib/loadPdfjs.js';
+
 /** @type {typeof import('pdfjs-dist') | undefined} */
 let pdfjsLib;
 export async function getPdfjs() {
   if (!pdfjsLib) {
-    pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
+    pdfjsLib = await loadPdfjs(() => import('pdfjs-dist'));
   }
   return pdfjsLib;
 }

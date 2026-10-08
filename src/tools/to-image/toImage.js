@@ -1,22 +1,15 @@
 // Renders every page of a PDF to an image Blob (PNG or JPEG) using PDF.js.
 // Loaded lazily (dynamic import) so it never blocks the initial page paint.
-// The worker URL uses Vite's native `new URL(..., import.meta.url)` asset
-// pattern (see thumbnails.js) so it's bundled as a same-origin asset, never
-// fetched from a CDN.
+// The worker is a same-origin bundled asset, never fetched from a CDN (see loadPdfjs.js).
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { parsePageSelector } from '../../lib/pageSelector.js';
+import { loadPdfjs } from '../../lib/loadPdfjs.js';
 
 let pdfjsLib;
 
 async function getPdfjs() {
-  if (!pdfjsLib) {
-    pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url,
-    ).href;
-  }
+  pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
   return pdfjsLib;
 }
 
