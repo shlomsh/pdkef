@@ -178,7 +178,7 @@
     "width": 0.0155,
     "height": 0.012
    },
-   "label": "Section 1.  Employee Information and Attestation.    2.  A noncitizen of the United States. (See Instructions)"
+   "label": "Section 1.  Employee Information and Attestation.    2.  A noncitizen national of the United States (See Instructions.)"
   },
   {
    "id": "t016",
@@ -189,7 +189,7 @@
     "width": 0.0155,
     "height": 0.012
    },
-   "label": "Section 1.  Employee Information and Attestation. 3. A lawful permanent resident."
+   "label": "Section 1.  Employee Information and Attestation. 3. A lawful permanent resident (Enter USCIS or A-Number.)"
   },
   {
    "id": "t017",
