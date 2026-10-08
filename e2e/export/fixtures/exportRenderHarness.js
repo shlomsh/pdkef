@@ -288,7 +288,7 @@ export async function buildSignBundle(bundleFilename) {
     platform: 'browser',
     jsx: 'automatic',
     jsxImportSource: 'preact',
-    plugins: [cssModuleStubPlugin],
+    plugins: [cssModuleStubPlugin, workerUrlStubPlugin],
     write: false,
   });
   const bundlePath = join(distDir, bundleFilename);
@@ -315,6 +315,23 @@ const cssModuleStubPlugin = {
   },
 };
 
+/**
+ * `loadPdfjs.js` imports the pdf.js worker as `./pdfjsWorker.js?worker&url`, a
+ * Vite suffix esbuild cannot resolve. The harness never uses that URL: it sets
+ * `workerSrc` itself from the built worker (`findPdfWorkerUrl`), so the import
+ * becomes an empty string here.
+ */
+const workerUrlStubPlugin = {
+  name: 'worker-url-stub',
+  setup(b) {
+    b.onResolve({ filter: /\?worker&url$/ }, (args) => ({ path: args.path, namespace: 'worker-url-stub' }));
+    b.onLoad({ filter: /.*/, namespace: 'worker-url-stub' }, () => ({
+      contents: "export default '';",
+      loader: 'js',
+    }));
+  },
+};
+
 export function removeSignBundle(bundlePath) {
   if (bundlePath) rmSync(bundlePath, { force: true });
 }
@@ -322,15 +339,14 @@ export function removeSignBundle(bundlePath) {
 /**
  * The already-built, content-hashed pdf.js worker Astro emitted, as a
  * same-origin URL. pdf.js needs an explicit `workerSrc` here because
- * `sign.js`'s own `getPdfjs()` resolves it through Vite's
- * `new URL(..., import.meta.url)` asset pattern, which esbuild does not
- * implement - it would produce a URL that 404s, and pdf.js would then fall
- * back to a fake worker that cannot load in an IIFE bundle.
+ * `loadPdfjs.js` resolves it through Vite's `?worker&url` import, which esbuild
+ * does not implement (`workerUrlStubPlugin` stubs it out) - left unset, pdf.js
+ * would fall back to a fake worker that cannot load in an IIFE bundle.
  */
 export function findPdfWorkerUrl() {
   const astroDir = join(process.cwd(), 'dist', '_astro');
   const matches = existsSync(astroDir)
-    ? readdirSync(astroDir).filter((name) => /^pdf\.worker\.min\..*\.mjs$/.test(name))
+    ? readdirSync(astroDir).filter((name) => /^pdfjsWorker-.*\.js$/.test(name))
     : [];
   if (matches.length !== 1) {
     throw new Error(`Expected exactly one built pdf.js worker in dist/_astro, found ${matches.length}. Run \`npm run build\`.`);
