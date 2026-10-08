@@ -1,7 +1,7 @@
 ---
 id: "RED-60"
 title: "A place removed from the saved file stays removed on every later Download"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "redact"
 horizon: "now"
