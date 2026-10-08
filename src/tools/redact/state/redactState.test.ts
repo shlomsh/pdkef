@@ -9,6 +9,7 @@ import {
   isFullscreenActive,
   redactReducer,
   restoredNoteVisible,
+  selectDetailEdits,
   selectRemovedPlaces,
   type EditCommit,
   type RedactAction,
@@ -648,22 +649,29 @@ describe('RED-60: Remove it is an undoable edit', () => {
     expect(selectRemovedPlaces(s)).toHaveLength(1);
   });
 
-  it('keptAttachments starts empty and toggles per name, bumping the revision', () => {
+  it('details start empty; DETAIL_EDITED and DETAIL_RESTORED set and clear one id without a revision bump', () => {
     let s = load();
-    expect(s.edits.keptAttachments).toEqual([]);
+    expect(s.edits.details).toEqual({});
     const rev = s.edits.documentRevision;
-    s = run(s, { type: 'ATTACHMENT_KEPT', name: 'a.png' }, { type: 'ATTACHMENT_KEPT', name: 'a.png' }, { type: 'ATTACHMENT_KEPT', name: 'b.png' });
-    expect(s.edits.keptAttachments).toEqual(['a.png', 'b.png']);
-    expect(s.edits.documentRevision).toBe(rev + 3);
-    s = run(s, { type: 'ATTACHMENT_DROPPED', name: 'a.png' });
-    expect(s.edits.keptAttachments).toEqual(['b.png']);
-    s = run(s, { type: 'ATTACHMENT_DROPPED', name: 'zzz' });
-    expect(s.edits.keptAttachments).toEqual(['b.png']);
+    s = run(s, { type: 'DETAIL_EDITED', id: 'author', edit: { action: 'delete' } }, { type: 'DETAIL_EDITED', id: 'title', edit: { action: 'alter', value: 'X' } });
+    expect(selectDetailEdits(s)).toEqual({ author: { action: 'delete' }, title: { action: 'alter', value: 'X' } });
+    s = run(s, { type: 'DETAIL_EDITED', id: 'title', edit: { action: 'delete' } });
+    expect(s.edits.details.title).toEqual({ action: 'delete' });
+    s = run(s, { type: 'DETAIL_RESTORED', id: 'author' }, { type: 'DETAIL_RESTORED', id: 'zzz' });
+    expect(Object.keys(s.edits.details)).toEqual(['title']);
+    expect(s.edits.documentRevision).toBe(rev);
   });
 
-  it('FILE_INITIALIZED takes a keptAttachments preset, else starts empty', () => {
-    expect(load(fresh(), { keptAttachments: ['x.pdf'] }).edits.keptAttachments).toEqual(['x.pdf']);
-    const s = run(load(fresh(), { keptAttachments: ['x.pdf'] }), { type: 'FILE_INITIALIZED', file, restored: false, elements: [], past: [], carried: undefined, brush: INIT.brush, activeColor: INIT.activeColor, activeBlurStrength: INIT.activeBlurStrength });
-    expect(s.edits.keptAttachments).toEqual([]);
+  it('DETAILS_COMMITTED bumps the revision and nothing else', () => {
+    const s = run(load(), { type: 'DETAIL_EDITED', id: 'author', edit: { action: 'delete' } });
+    const done = run(s, { type: 'DETAILS_COMMITTED' });
+    expect(done.edits.documentRevision).toBe(s.edits.documentRevision + 1);
+    expect(done.edits.details).toEqual(s.edits.details);
+  });
+
+  it('FILE_INITIALIZED takes a details preset, else starts empty', () => {
+    expect(load(fresh(), { details: { author: { action: 'delete' } } }).edits.details).toEqual({ author: { action: 'delete' } });
+    const s = run(load(fresh(), { details: { author: { action: 'delete' } } }), { type: 'FILE_INITIALIZED', file, restored: false, elements: [], past: [], carried: undefined, brush: INIT.brush, activeColor: INIT.activeColor, activeBlurStrength: INIT.activeBlurStrength });
+    expect(s.edits.details).toEqual({});
   });
 });

@@ -34,9 +34,10 @@ beforeEach(() => {
 describe('applyPageEdits', () => {
   it('runs finish on the first pass only: the Delete step on the mixed path, never the flatten step', async () => {
     const finish = () => {};
-    await applyPageEdits(SOURCE, [deletion, box], undefined, { finish, keepAttachments: ['a.txt'] });
-    expect(deleteObjectsFromPdf.mock.calls[0][3]).toEqual({ finish, keepAttachments: ['a.txt'] });
-    expect(redactPdf.mock.calls[0][3]).toEqual({ keepAttachments: ['a.txt'] });
+    const details = { author: { action: 'delete' } };
+    await applyPageEdits(SOURCE, [deletion, box], undefined, { finish, details });
+    expect(deleteObjectsFromPdf.mock.calls[0][3]).toEqual({ finish, details });
+    expect(redactPdf.mock.calls[0][3]).toEqual({ details });
     expect(redactPdf.mock.calls[0][3]).not.toHaveProperty('finish');
   });
 

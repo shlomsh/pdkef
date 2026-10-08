@@ -69,9 +69,11 @@ describe('redact page copy', () => {
     expect(getToolCardCopy('he', 'redact').description).not.toContain('אזורים');
   });
 
-  it('has a FAQ entry on hidden details that promises every download', () => {
-    const entry = redact.faq.find((e) => e.question === "Does Redact remove the file's hidden details?");
+  it('has a FAQ entry saying the file\'s details are kept unless the person changes them', () => {
+    const entry = redact.faq.find((e) => e.question === "What about the file's details, like author and title?");
     expect(entry).toBeTruthy();
-    expect(entry.answer).toContain('every download');
+    expect(entry.answer).toContain('keeps them as they came, unless you change them');
+    expect(entry.answer).toContain('cached picture of a page');
+    expect(entry.answer).not.toContain('every download');
   });
 });

@@ -1,7 +1,8 @@
 ---
 id: "RED-59"
 title: "Metadata removal is a claim Redact has to show and explain, not just do"
-status: "done"
+status: "in_progress"
+horizon: "now"
 priority: "P2"
 epic: "redact"
 depends_on: []
@@ -388,3 +389,38 @@ agent and walked on the dev server at 390 and 1280.
 - **Review findings fixed**: a kept file counted as survived (false error report), replay on both passes of
   a mixed export, Keep it offered on a comment a flattened page cannot keep, catalog `/PieceInfo`
   unread, and pdf-lib reaching `/redact/`'s first paint through `hasNoTraces` (caught by `test:lazy-modules`).
+
+## 2026-10-08 re-planned: the details are yours to keep, alter or delete
+
+Shlomi rejected the built presentation and its premise: "redact does not mean anonymize or obfuscate".
+A person with a bank slip or a health declaration marks some of what is on the page, not all of it, and
+the file's details get the same treatment. Sketch v7 (https://claude.ai/artifact/4F91rByrrsZ71Fwe144Ryj),
+his calls in order: not dominant, at the document's foot, out of the workflow unless something was
+changed; no "Every page keeps its text" line when nothing changed; a detail is never "blacked out", it is
+either deleted or altered, two visible actions.
+
+**The model.** Nothing in the file's details changes unless the person changes it. The export keeps every
+detail as it came, with one exception that is page redaction, not a detail choice: a cached page picture
+from before the marks (`/Thumb`) always goes, because a mark can be seen through it. The sheet says so in
+one line.
+
+**Rows** (derived from `readDocumentTraces`, in this order, only rows with something in them): Title,
+Author, Subject, Keywords (text, Edit or Delete); Made with (creator and producer, Edit or Delete); Created,
+Changed (dates, Delete only); Attached, one per file (Delete only); Scripts (Delete only); Hidden, one row
+for the second copy of the details (XMP), the app's own notes (catalog and page `/PieceInfo`, other Info
+keys, page and image `/Metadata`) (Delete only). Altering or deleting any text row also deletes the XMP
+copy, since it would still carry the old value; the Hidden row then shows as deleted with "goes with the
+changes above" and no Undo.
+
+**Where.** One muted line under the last page, in the page-count's voice, the values joined by " · ", with
+"Review" as the only way in. Review opens a sheet (`<dialog>`, `showModal()`): each row label, value, Edit
+and Delete; a deleted row struck through with Undo; an edited row an input with Done. Done closes.
+
+**Saved state.** Untouched: exactly today's saved state, no mention. Changed: one line in the footer's
+voice, "Details: author deleted, title altered." with Review, and the check reads the download back:
+every deleted row absent, every altered row carrying its new value. A detail that survived is the existing
+survived state (danger line, error report).
+
+**State.** `edits.details: Record<rowId, { action: 'delete' } | { action: 'alter', value: string }>`,
+per document in the draft (`extra.details`), validated. Replaces `keptAttachments`, Keep it / Drop it,
+`TracesBlock` and the TRACES_* copy, which are removed, not hidden.

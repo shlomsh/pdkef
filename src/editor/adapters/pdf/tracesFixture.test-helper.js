@@ -73,6 +73,8 @@ export async function buildTracesFixture() {
   const info = doc.getInfoDict();
   doc.setTitle('The Title');
   doc.setAuthor('The Author');
+  doc.setSubject('The Subject');
+  doc.setKeywords(['alpha', 'beta']);
   doc.setProducer('Some Producer');
   doc.setCreator('Some Creator');
   doc.setCreationDate(new Date(Date.UTC(2026, 2, 7, 14, 15, 2)));

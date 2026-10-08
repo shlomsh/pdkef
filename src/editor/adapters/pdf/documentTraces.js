@@ -1,16 +1,14 @@
 /**
- * RED-59: what a PDF says about itself and holds hidden, read and stripped as
- * one list of trace kinds, so reading and stripping can never disagree. Pure
- * pdf-lib; no UI, no words. The words live in Redact's `check/describeTraces.ts`.
+ * RED-59: what a PDF says about itself and holds hidden, read as one list of
+ * trace kinds and edited by detail id (kept as it came, altered or deleted by
+ * the person). Pure pdf-lib; no UI, no words. The words live in Redact's
+ * `details/describeDetails.ts`.
  *
- * Measured 2026-10-08 (backlog/tasks/RED-59.md, step 1 and the gate): a Delete
- * export kept attachments, scripts, page-level and object-level details and the
- * file ID; a flattened export stamped pdf-lib's name and the export time and
- * kept page-level details on untouched pages. Every export now runs
- * `stripDocumentTraces` right before its save.
+ * An export keeps every detail unless the person edits it; the one thing that
+ * always goes is `/Thumb`, a cached picture of the page from before the marks.
  */
 import {
-  PDFArray, PDFDict, PDFHexString, PDFName, PDFRef, PDFStream, PDFString, decodePDFRawStream,
+  PDFArray, PDFDict, PDFHexString, PDFName, PDFObjectCopier, PDFRef, PDFStream, PDFString, decodePDFRawStream,
 } from '@cantoo/pdf-lib';
 import { parsePdfDate } from './pdfDate.js';
 
@@ -19,6 +17,16 @@ import { parsePdfDate } from './pdfDate.js';
 const N = PDFName.of;
 const INFO_KEYS = ['Title', 'Author', 'Subject', 'Keywords', 'Creator', 'Producer'];
 const MAX_FORM_DEPTH = 8;
+
+/** Detail ids that accept delete or alter. */
+export const TEXT_DETAIL_IDS = ['title', 'author', 'subject', 'keywords', 'made'];
+/** Detail ids that accept delete only, like attachments, 'scripts' and 'hidden'. */
+export const DATE_DETAIL_IDS = ['created', 'changed'];
+/** The detail id of an attached file: `attachment:<pageIndex or empty>:<name>`. */
+export const attachmentDetailId = (file) => `attachment:${file.pageIndex ?? ''}:${file.name}`;
+
+/** @typedef {{ action: 'delete' } | { action: 'alter', value: string }} DetailEdit */
+/** @typedef {Record<string, DetailEdit>} DetailEdits Keyed by detail id. */
 
 const asDict = (ctx, o) => {
   const v = o instanceof PDFRef ? ctx.lookup(o) : o;
@@ -211,137 +219,174 @@ export function readDocumentTraces(doc) {
 }
 
 /**
- * Removes every trace kind from the document and gives it a fresh random file
- * ID, leaving nothing of the original's details, attachments, scripts,
- * thumbnails or page-level details. Field-level scripts are left alone. The
- * caller runs `dropUnreachable` afterwards and saves with `updateMetadata: false`.
- * @param {PDFDocument} doc
- * @param {{ keepAttachments?: readonly string[], randomBytes?: (n: number) => Uint8Array }} [options]
- *   `keepAttachments` names attached files the person chose to keep (RED-59, by
- *   name); `randomBytes` is for tests, default `crypto.getRandomValues`.
+ * Adds `hidden: delete` when a text or date detail is edited, because the XMP
+ * packet is a second copy of the same details and would keep the old value.
+ * Pure; returns the input unchanged when nothing needs adding.
+ * @param {DetailEdits} edits
+ * @returns {DetailEdits}
  */
-export function stripDocumentTraces(doc, options = {}) {
+export function expandDetailEdits(edits) {
+  const touched = [...TEXT_DETAIL_IDS, ...DATE_DETAIL_IDS].some((id) => edits[id]);
+  return touched && !edits.hidden ? { ...edits, hidden: { action: 'delete' } } : edits;
+}
+
+const isDelete = (edit) => edit?.action === 'delete';
+const attachmentKey = (pageIndex, name) => `${pageIndex ?? ''}:${name}`;
+
+/** Sets or removes an Info key as an edit says; `alter` needs a string value. */
+function editInfoKey(info, key, edit) {
+  if (!info || !edit) return;
+  if (isDelete(edit)) info.delete(N(key));
+  else if (edit.action === 'alter' && typeof edit.value === 'string') info.set(N(key), PDFHexString.fromText(edit.value));
+}
+
+/**
+ * Applies the person's edits to the document, and always removes every page's
+ * `/Thumb`. Everything else is left as it came, the trailer ID included.
+ * `alter` is honoured on the text ids only. The caller runs `dropUnreachable`
+ * afterwards and saves with `updateMetadata: false`.
+ * @param {PDFDocument} doc
+ * @param {DetailEdits} edits
+ */
+export function applyDetailEdits(doc, edits) {
   const ctx = doc.context;
-  const keep = new Set(options.keepAttachments ?? []);
-  const randomBytes = options.randomBytes ?? ((n) => crypto.getRandomValues(new Uint8Array(n)));
-
+  const all = expandDetailEdits(edits ?? {});
   const info = infoDict(doc);
-  if (info) for (const key of [...info.keys()]) info.delete(key);
-  doc.catalog.delete(N('Metadata'));
-  doc.catalog.delete(N('PieceInfo'));
 
-  // Attachments: drop each entry not kept, from the name tree, /AF and comments.
+  for (const page of doc.getPages()) page.node.delete(N('Thumb'));
+
+  for (const [id, key] of [['title', 'Title'], ['author', 'Author'], ['subject', 'Subject'], ['keywords', 'Keywords']]) {
+    editInfoKey(info, key, all[id]);
+  }
+  if (info && all.made) {
+    editInfoKey(info, 'Creator', all.made);
+    info.delete(N('Producer'));
+  }
+  if (isDelete(all.created)) info?.delete(N('CreationDate'));
+  if (isDelete(all.changed)) info?.delete(N('ModDate'));
+
+  const dropped = new Set(
+    Object.entries(all).filter(([id, e]) => id.startsWith('attachment:') && isDelete(e)).map(([id]) => id),
+  );
+  if (dropped.size > 0) removeAttachments(doc, dropped);
+
+  if (isDelete(all.scripts)) {
+    const names = asDict(ctx, doc.catalog.get(N('Names')));
+    if (names) {
+      names.delete(N('JavaScript'));
+      if (names.keys().length === 0) doc.catalog.delete(N('Names'));
+    }
+    if (isJavaScriptAction(ctx, doc.catalog.get(N('OpenAction')))) doc.catalog.delete(N('OpenAction'));
+    doc.catalog.delete(N('AA'));
+    for (const page of doc.getPages()) page.node.delete(N('AA'));
+  }
+
+  if (isDelete(all.hidden)) {
+    doc.catalog.delete(N('Metadata'));
+    doc.catalog.delete(N('PieceInfo'));
+    if (info) {
+      const standard = new Set([...INFO_KEYS, 'CreationDate', 'ModDate']);
+      for (const key of [...info.keys()]) if (!standard.has(key.asString().slice(1))) info.delete(key);
+    }
+    for (const page of doc.getPages()) {
+      page.node.delete(N('Metadata'));
+      page.node.delete(N('PieceInfo'));
+      for (const xo of pageXObjects(doc, page.node)) {
+        xo.delete(N('Metadata'));
+        xo.delete(N('PieceInfo'));
+      }
+    }
+  }
+}
+
+/** Removes the files whose detail ids are in `dropped` from the name tree, /AF and page comments. */
+function removeAttachments(doc, dropped) {
+  const ctx = doc.context;
+  const goes = (pageIndex, name) => dropped.has(`attachment:${pageIndex ?? ''}:${name}`);
+
   const names = asDict(ctx, doc.catalog.get(N('Names')));
   if (names) {
     const tree = names.get(N('EmbeddedFiles'));
     const drops = [];
     walkNameTree(ctx, tree, (pairs, i) => {
-      if (!keep.has(fileName(ctx, pairs.get(i + 1), textOf(pairs.get(i)) ?? 'attachment'))) drops.push([pairs, i]);
+      if (goes(undefined, fileName(ctx, pairs.get(i + 1), textOf(pairs.get(i)) ?? 'attachment'))) drops.push([pairs, i]);
     });
     for (const [pairs, i] of drops.reverse()) {
       // Reverse order keeps earlier indexes valid within one array.
       pairs.remove(i + 1);
       pairs.remove(i);
     }
-    let left = false;
-    walkNameTree(ctx, tree, () => { left = true; });
-    if (!left) names.delete(N('EmbeddedFiles'));
-    names.delete(N('JavaScript'));
-    if (names.keys().length === 0) doc.catalog.delete(N('Names'));
+    if (drops.length > 0) {
+      let left = false;
+      walkNameTree(ctx, tree, () => { left = true; });
+      if (!left) names.delete(N('EmbeddedFiles'));
+      if (names.keys().length === 0) doc.catalog.delete(N('Names'));
+    }
   }
   const af = resolve(ctx, doc.catalog.get(N('AF')));
   if (af instanceof PDFArray) {
     for (let i = af.size() - 1; i >= 0; i--) {
-      if (!keep.has(fileName(ctx, af.get(i), 'attachment'))) af.remove(i);
+      if (goes(undefined, fileName(ctx, af.get(i), 'attachment'))) af.remove(i);
     }
     if (af.size() === 0) doc.catalog.delete(N('AF'));
-  } else {
-    doc.catalog.delete(N('AF'));
   }
-  const annotDrops = fileAttachmentAnnots(doc).filter((a) => !keep.has(a.name));
+  const annotDrops = fileAttachmentAnnots(doc).filter((a) => goes(a.pageIndex, a.name));
   for (const a of annotDrops.reverse()) a.annots.remove(a.index);
-
-  // Scripts.
-  doc.catalog.delete(N('AA'));
-  if (isJavaScriptAction(ctx, doc.catalog.get(N('OpenAction')))) doc.catalog.delete(N('OpenAction'));
-
-  for (const page of doc.getPages()) {
-    for (const key of ['AA', 'Thumb', 'Metadata', 'PieceInfo']) page.node.delete(N(key));
-    for (const xo of pageXObjects(doc, page.node)) {
-      xo.delete(N('Metadata'));
-      xo.delete(N('PieceInfo'));
-    }
-  }
-
-  const id = () => PDFHexString.of(
-    [...randomBytes(16)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase(),
-  );
-  ctx.trailerInfo.ID = ctx.obj([id(), id()]);
 }
 
 /**
- * Copies the named attached files from `sourceDoc` (its EmbeddedFiles name tree
- * and catalog `/AF`) into `targetDoc`, bytes, name, type, description and dates,
- * for an export that builds a new document instead of editing the source. A name
- * found twice is copied once; a name not found is skipped.
+ * For an export that builds a new document (the flattened path): copies every
+ * Info key, the catalog XMP and `/PieceInfo`, document scripts (`/Names
+ * /JavaScript`, `/OpenAction`, catalog `/AA`) and every document-level
+ * attachment from `sourceDoc` into `targetDoc`. Page-level items stay behind:
+ * a flattened page is a picture and those belong to the old page.
  * @param {PDFDocument} sourceDoc
  * @param {PDFDocument} targetDoc
- * @param {readonly string[] | undefined} names
  */
-export function copyKeptAttachments(sourceDoc, targetDoc, names) {
-  const keep = new Set(names ?? []);
-  if (keep.size === 0) return;
+export function copyDocumentDetails(sourceDoc, targetDoc) {
   const ctx = sourceDoc.context;
-  const specs = [];
+  const copier = PDFObjectCopier.for(ctx, targetDoc.context);
+
+  const info = infoDict(sourceDoc);
+  if (info) {
+    const targetInfo = targetDoc.getInfoDict();
+    for (const [key, value] of info.entries()) targetInfo.set(key, copier.copy(resolve(ctx, value)));
+  }
+  for (const key of ['Metadata', 'PieceInfo', 'OpenAction', 'AA']) {
+    const value = sourceDoc.catalog.get(N(key));
+    if (value !== undefined) targetDoc.catalog.set(N(key), copier.copy(resolve(ctx, value)));
+  }
   const sourceNames = asDict(ctx, sourceDoc.catalog.get(N('Names')));
+  const js = sourceNames?.get(N('JavaScript'));
+  if (js !== undefined) {
+    const targetNames = asDict(targetDoc.context, targetDoc.catalog.get(N('Names')))
+      ?? targetDoc.context.obj({});
+    targetNames.set(N('JavaScript'), copier.copy(resolve(ctx, js)));
+    targetDoc.catalog.set(N('Names'), targetNames);
+  }
+
+  // File specifications are copied as they are, bytes included. pdf-lib's own
+  // `attach()` embeds lazily at save, after the edits would have run.
+  const tctx = targetDoc.context;
+  const copySpec = (spec) => {
+    const copied = copier.copy(spec);
+    return copied instanceof PDFRef ? copied : tctx.register(copied);
+  };
+  const entries = [];
   if (sourceNames) {
     walkNameTree(ctx, sourceNames.get(N('EmbeddedFiles')), (pairs, i) => {
-      specs.push([fileName(ctx, pairs.get(i + 1), textOf(pairs.get(i)) ?? 'attachment'), pairs.get(i + 1)]);
+      entries.push(PDFString.of(textOf(pairs.get(i)) ?? 'attachment'), copySpec(pairs.get(i + 1)));
     });
+  }
+  if (entries.length > 0) {
+    const targetNames = asDict(tctx, targetDoc.catalog.get(N('Names'))) ?? tctx.obj({});
+    targetNames.set(N('EmbeddedFiles'), tctx.obj({ Names: entries }));
+    targetDoc.catalog.set(N('Names'), targetNames);
   }
   const af = resolve(ctx, sourceDoc.catalog.get(N('AF')));
-  if (af instanceof PDFArray) {
-    for (let i = 0; i < af.size(); i++) specs.push([fileName(ctx, af.get(i), 'attachment'), af.get(i)]);
+  if (af instanceof PDFArray && af.size() > 0) {
+    const copies = [];
+    for (let i = 0; i < af.size(); i++) copies.push(copySpec(af.get(i)));
+    targetDoc.catalog.set(N('AF'), tctx.obj(copies));
   }
-  const done = new Set();
-  for (const [name, spec] of specs) {
-    if (!keep.has(name) || done.has(name)) continue;
-    const ef = asDict(ctx, asDict(ctx, spec)?.get(N('EF')));
-    const stream = ef && (resolve(ctx, ef.get(N('UF'))) ?? resolve(ctx, ef.get(N('F'))));
-    if (!(stream instanceof PDFStream)) continue;
-    const bytes = safe(() => (stream.dict.has(N('Filter')) ? decodePDFRawStream(stream).decode() : stream.getContents()));
-    if (!bytes) continue;
-    done.add(name);
-    const params = asDict(ctx, stream.dict.get(N('Params')));
-    const date = (key) => {
-      const t = params && textOf(resolve(ctx, params.get(N(key))));
-      const m = t && /^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/.exec(t);
-      return m ? new Date(Date.UTC(+m[1], (+m[2] || 1) - 1, +m[3] || 1, +m[4] || 0, +m[5] || 0, +m[6] || 0)) : undefined;
-    };
-    const subtype = stream.dict.get(N('Subtype'));
-    const description = asDict(ctx, spec)?.get(N('Desc'));
-    targetDoc.attach(bytes, name, {
-      mimeType: subtype instanceof PDFName ? subtype.decodeText().replace(/#2F/gi, '/') : undefined,
-      description: textOf(description) ?? undefined,
-      creationDate: date('CreationDate'),
-      modificationDate: date('ModDate'),
-    });
-  }
-}
-
-/** True when nothing in `traces` is set: no detail, nothing attached or hidden. */
-export function hasNoTraces(traces) {
-  return (
-    INFO_KEYS.every((k) => traces[k.toLowerCase()] === null) &&
-    traces.creationDate === null &&
-    traces.modDate === null &&
-    traces.otherInfoKeys.length === 0 &&
-    !traces.xmp.present &&
-    traces.attachments.length === 0 &&
-    !traces.scripts.document &&
-    traces.scripts.pages.length === 0 &&
-    !traces.pieceInfo &&
-    traces.thumbnails.length === 0 &&
-    traces.pageDetails.length === 0
-  );
 }

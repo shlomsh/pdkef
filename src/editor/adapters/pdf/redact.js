@@ -4,9 +4,11 @@ import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
 import { dropUnreachable } from './reachability.js';
-import { stripDocumentTraces, copyKeptAttachments } from './documentTraces.js';
+import { applyDetailEdits, copyDocumentDetails } from './documentTraces.js';
 import { rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
 import { strokeInPixels } from '../../model/strokeGeometry.ts';
+
+/** @typedef {import('./documentTraces.js').DetailEdits} DetailEdits */
 
 /**
  * Builds a blurred copy of one box's source region, opaque even where the
@@ -171,13 +173,13 @@ function paintBoxes(ctx, viewport, canvas, pageElements) {
 
 /**
  * Writes the output document: untouched pages copied losslessly, covered
- * pages saved as their picture alone, with no text layer. Nothing of the
- * source's details, hidden parts or file ID is carried over (RED-59):
- * `finish` edits the output first, then the traces are stripped.
+ * pages saved as their picture alone, with no text layer. The source's
+ * details are copied over as they came (RED-59), then `finish` edits the
+ * output and the person's `details` edits are applied.
  *
  * @param {PDFDocument} sourceDoc
  * @param {Map<number, {jpeg: Uint8Array, width: number, height: number}>} covered
- * @param {{ finish?: (doc: PDFDocument) => void, keepAttachments?: string[] }} [options]
+ * @param {{ finish?: (doc: PDFDocument) => void, details?: DetailEdits }} [options]
  */
 export async function assemble(sourceDoc, covered, options = {}) {
   const newDoc = await PDFDocument.create({ updateMetadata: false });
@@ -190,9 +192,9 @@ export async function assemble(sourceDoc, covered, options = {}) {
     }
     await buildImageOnlyPage(newDoc, page.jpeg, page.width, page.height);
   }
-  copyKeptAttachments(sourceDoc, newDoc, options.keepAttachments);
+  copyDocumentDetails(sourceDoc, newDoc);
   options.finish?.(newDoc);
-  stripDocumentTraces(newDoc, { keepAttachments: options.keepAttachments });
+  applyDetailEdits(newDoc, options.details ?? {});
   dropUnreachable(newDoc);
   return newDoc.save();
 }
@@ -206,7 +208,7 @@ export async function assemble(sourceDoc, covered, options = {}) {
  * @param {File|Blob} file - The original PDF file
  * @param {Array} elements - Array of redaction box objects { pageIndex, left, top, width, height } in percentages
  * @param {Function} onProgress - Progress callback
- * @param {{ finish?: (doc: PDFDocument) => void, keepAttachments?: string[] }} [options] see `assemble`
+ * @param {{ finish?: (doc: PDFDocument) => void, details?: DetailEdits }} [options] see `assemble`
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
 export async function redactPdf(file, elements, onProgress, options = {}) {

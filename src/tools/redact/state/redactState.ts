@@ -33,6 +33,7 @@ import type { BrushSettings } from '../BrushControls.tsx';
 import type { CheckTerm } from '../check/types.ts';
 import type { FinishPhase } from '../finishState.ts';
 import type { RedactElement } from '../redactElements.ts';
+import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/documentTraces.js';
 
 export type RedactStatus = 'idle' | 'loading' | 'editing' | 'redacting' | 'error';
 
@@ -86,8 +87,8 @@ export interface RedactState {
     /** The revision a load or restore captured; draft saving is dirty past it. */
     draftBaselineRevision: number;
     undoAction: RedactUndoChip | null;
-    /** RED-60: attachments the person chose to keep, by name. Rides in the draft's `extra.keptAttachments`. */
-    keptAttachments: string[];
+    /** RED-59: the person's edits to the file's details, by detail id. Rides in the draft's `extra.details`. */
+    details: DetailEdits;
   };
   tool: {
     activeStyle: RedactToolType | null;
@@ -148,7 +149,7 @@ export function initialRedactState(init: RedactInitialValues): RedactState {
       documentRevision: 0,
       draftBaselineRevision: 0,
       undoAction: null,
-      keptAttachments: [],
+      details: {},
     },
     tool: {
       activeStyle: null,
@@ -189,8 +190,8 @@ export type RedactAction =
       /** The restored past; a restored draft never has a redoable future. */
       past: ActionHistoryEntry<RedactElement>[];
       carried: Partial<DocumentStyle> | undefined;
-      /** Restored attachment choices; absent starts empty. */
-      keptAttachments?: string[];
+      /** Restored detail edits; absent starts empty. */
+      details?: DetailEdits;
       brush: BrushSettings;
       activeColor: string;
       activeBlurStrength: BlurStrength;
@@ -203,8 +204,9 @@ export type RedactAction =
   // Edits
   | ({ type: 'EDIT_COMMITTED' } & EditCommit<RedactElement>)
   | { type: 'PLACE_REMOVED'; entry: PlaceHistoryEntry }
-  | { type: 'ATTACHMENT_KEPT'; name: string }
-  | { type: 'ATTACHMENT_DROPPED'; name: string }
+  | { type: 'DETAIL_EDITED'; id: string; edit: DetailEdit }
+  | { type: 'DETAIL_RESTORED'; id: string }
+  | { type: 'DETAILS_COMMITTED' }
   | { type: 'UNDO'; entryId?: string }
   | { type: 'REDO' }
   | { type: 'UNDO_CHIP_SHOWN'; message: string; entryId: string; extra?: RedactUndoChip['extra'] }
@@ -266,6 +268,8 @@ export function restoredNoteVisible(state: RedactState): boolean {
 }
 
 /** RED-60: the places "Remove it" took out, in order; every export replays them. */
+export const selectDetailEdits = (state: RedactState): DetailEdits => state.edits.details;
+
 export const selectRemovedPlaces = (state: RedactState): HistoryPlace[] => removedPlaces(state.edits.history.past);
 
 export function canRedo(state: RedactState): boolean {
@@ -372,7 +376,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           ...afterTool.edits,
           elements: action.elements,
           history: { past: action.past, future: [] },
-          keptAttachments: action.keptAttachments ?? [],
+          details: action.details ?? {},
           draftBaselineRevision: afterTool.edits.documentRevision,
         },
         tool: {
@@ -430,18 +434,15 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
         },
         view: { ...state.view, announcement: action.entry.description },
       };
-    case 'ATTACHMENT_KEPT': {
-      const { keptAttachments } = state.edits;
-      return withEdits(state, {
-        keptAttachments: keptAttachments.includes(action.name) ? keptAttachments : [...keptAttachments, action.name],
-        documentRevision: state.edits.documentRevision + 1,
-      });
+    case 'DETAIL_EDITED':
+      return withEdits(state, { details: { ...state.edits.details, [action.id]: action.edit } });
+    case 'DETAIL_RESTORED': {
+      if (!(action.id in state.edits.details)) return state;
+      const { [action.id]: _removed, ...rest } = state.edits.details;
+      return withEdits(state, { details: rest });
     }
-    case 'ATTACHMENT_DROPPED':
-      return withEdits(state, {
-        keptAttachments: state.edits.keptAttachments.filter((name) => name !== action.name),
-        documentRevision: state.edits.documentRevision + 1,
-      });
+    case 'DETAILS_COMMITTED':
+      return withEdits(state, { documentRevision: state.edits.documentRevision + 1 });
     case 'UNDO': {
       const { past, future } = state.edits.history;
       const reverted = action.entryId === undefined

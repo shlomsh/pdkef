@@ -270,17 +270,20 @@ happened, and the design must never let the promise break silently.
 
 RED-04 ships with the removal, not after it: removal and the as-saved view are one feature.
 
-## RED-59 (2026-10-08): hidden traces
+## RED-59 (2026-10-08): the file's details
 
-Every Redact download (Delete, flattened, mixed, and Remove it) carries none of the following. The
+A Redact download keeps the file's details as they came unless the person alters or deletes them from
+the line under the last page. The first RED-59 model, strip every detail and offer to keep attachments,
+was replaced on 2026-10-08 at Shlomi's call: the details are the person's to keep, alter or delete. The
 copy on `/redact/`, the Delete guide and the CamScanner guide traces to this table. Detail: RED-59.
 
-| # | Trace | After download |
+| # | Detail id | What the engine does |
 | --- | --- | --- |
-| T1 | Title, author, subject, keywords and every other Info entry | Gone |
-| T2 | Creator, producer, dates | None, nothing stamped |
-| T3 | Catalog XMP | Gone |
-| T4 | Files attached anywhere (name tree, /AF, file-attachment comments) | Gone, unless the person chose "Keep it in the download" for that file |
-| T5 | Document scripts, open action, page open/close/print scripts | Gone (scripts inside form fields are left as they are) |
-| T6 | Page-level and image-level details (/Metadata, /PieceInfo) and page thumbnails | Gone |
-| T7 | File ID | A new random one (not mentioned in the copy) |
+| T1 | `title`, `author`, `subject`, `keywords` | Kept; delete removes the Info key, alter sets the new value |
+| T2 | `made` (Creator, Producer) | Kept; delete removes both, alter sets Creator and removes Producer |
+| T3 | `created`, `changed` | Kept; delete removes CreationDate or ModDate (no alter) |
+| T4 | `attachment:<page>:<name>` (name tree, /AF, file-attachment comments) | Kept; delete removes that file only |
+| T5 | `scripts` (document scripts, open action, catalog and page /AA) | Kept; delete removes them (scripts inside form fields are left as they are) |
+| T6 | `hidden` (catalog and page and image /Metadata, /PieceInfo, other Info keys) | Kept; delete removes them, and editing any text or date detail deletes it too, since the XMP packet is a second copy |
+| T7 | Page thumbnails (/Thumb) | Always removed, a cached picture from before the marks |
+| T8 | File ID | Left alone |
