@@ -109,3 +109,24 @@ output prepared before the tap, Web Share on phones, the Compress hand-off. Book
 document details are not carried into the parts (fresh `PDFDocument.create()`; unmeasured).
 
 Variant pages are new URLs, so they wait for the SEO-06 gate. Modes on `/split/` itself do not.
+
+## 2026-10-08 what the two ranking pages actually rank for
+
+- **`/compress/`** (Search Console export, 28 days): 42 clicks / 1,812 impressions at 9.36, almost all on
+  `compress pdf to 100kb` and its variants (451 impressions on the top row alone), mostly Indonesia and
+  India. Two rows are pasted portal errors ("exceeds the 1024 kb size limit"). `compress pdf` itself has
+  no row. Compress owns a specific need, not the head term.
+- **`/merge/`** (SEO-39): 11 / 2,216 at 7.3 on head terms, `merge pdf online` 511 at 5.2 and
+  `merge pdf free` 377 at 6.7. The climb from 36 came on a title Google held from before 09-12, so not
+  from copy. It followed the Merge rebuild (MERGE epic, landed 09-13). Correlation only.
+- **`/he/merge/`** (export sent by mistake for `/merge/`, kept): 7 / 849 at 14.3, Israel, position
+  30 to 9 between 09-12 and 10-05.
+- **"split pdf" SERP** (Shlomi's screenshot, 2026-10-08): iLovePDF, Smallpdf, **ihatepdf.cv at 3** (title
+  "Split PDF Online Free - Extract Pages, No Upload"), Jotform, PDF24, PDFAid, Pipefile (in-browser,
+  no upload), pdfFiller, PDF.io. A young in-browser site ranks third, so the head term is reachable.
+
+**Reading:** a head term is reachable on this domain (Merge, 5.2), and a niche can be owned outright
+(Compress, 100KB). Both point at the tool, not the copy: Split has the baseline only. The candidate that
+does both is **split by size**: the same portal-limit audience Compress already serves, a mode three of
+five competitors name, and a natural "still too big? split it" hand-off from Compress. Pending: the
+Trends read of the split modes.
