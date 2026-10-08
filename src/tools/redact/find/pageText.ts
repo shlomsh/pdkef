@@ -100,6 +100,16 @@ function needsSeparator(prev: TextItemLike, cur: TextItemLike, rtl: boolean): bo
   return gap > 0.15 * height && !alreadyHasSpace;
 }
 
+/** True when `item` repeats `kept`: the same text at nearly the same place and
+ * size, which is how a PDF fakes bold (the run drawn twice, a hair apart). */
+function overprints(kept: TextItemLike, item: TextItemLike): boolean {
+  if (kept.str.trim() !== item.str.trim()) return false;
+  const height = Math.max(kept.height, item.height);
+  if (height <= 0 || Math.abs(kept.height - item.height) > 0.05 * height) return false;
+  const reach = 0.15 * height;
+  return Math.abs(kept.transform[4] - item.transform[4]) <= reach && Math.abs(kept.transform[5] - item.transform[5]) <= reach;
+}
+
 /**
  * Builds one page's searchable text in reading order: upright items grouped
  * into baseline lines (top to bottom, each ordered right-to-left or
@@ -110,6 +120,7 @@ export function buildPageText(pageIndex: number, items: TextItemLike[]): PageTex
   const entries: Entry[] = [];
   items.forEach((item, index) => {
     if (typeof item.str !== 'string' || item.str.trim() === '') return;
+    if (entries.some((kept) => overprints(kept.item, item))) return;
     entries.push({ item, index });
   });
 

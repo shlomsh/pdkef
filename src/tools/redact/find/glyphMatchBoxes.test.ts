@@ -37,6 +37,15 @@ const pageOf = (text: string, items: PlacedItem[]): PageText => ({ pageIndex: 0,
 const pt = (percent: number, of: number) => (percent / 100) * of;
 
 describe('mapItemGlyphs', () => {
+  it('ignores the copy of a glyph overprinted for a bold look (RED-62)', () => {
+    const glyphs = line('Hello');
+    const shifted = line('Hello', { x: 100.4, y: 700.3 });
+    const both = [...glyphs, ...shifted];
+    const mapped = mapItemGlyphs(itemFor('Hello', glyphs), 'Hello', both);
+    expect(mapped).not.toBeNull();
+    expect(mapped!.map((glyph) => glyph?.matrix[4])).toEqual(glyphs.map((glyph) => glyph.matrix[4]));
+  });
+
   it('maps an LTR item character by character, skipping spaces', () => {
     const glyphs = line('ab cd');
     const mapped = mapItemGlyphs(itemFor('ab cd', glyphs), 'ab cd', glyphs);

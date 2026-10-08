@@ -22,6 +22,8 @@ export const GLYPH_BUDGET = 400_000;
 /** How far off the item's baseline a glyph's origin may sit and still belong
  * to it, as a share of the item's height (superscripts rise by a few tenths). */
 const OFF_BASELINE = 0.5;
+/** A glyph this close (in ems) to an identical one is the same glyph overprinted. */
+const OVERPRINT = 0.15;
 /** Slack along the baseline, as a share of the item's height. */
 const ALONG_SLACK = 0.01;
 
@@ -122,8 +124,21 @@ export function mapItemGlyphs(item: PlacedItem, str: string, candidates: readonl
   }
   onItem.sort((p, q) => p.along - q.along);
 
-  const visual: Placed[] = [];
+  // A glyph drawn again over itself (faked bold) is one glyph.
+  const kept: PageGlyph[] = [];
   for (const { glyph } of onItem) {
+    const em = Math.hypot(glyph.matrix[0], glyph.matrix[1]) || item.height;
+    const repeat = kept.some(
+      (other) =>
+        other.unicode === glyph.unicode &&
+        Math.abs(other.matrix[4] - glyph.matrix[4]) <= OVERPRINT * em &&
+        Math.abs(other.matrix[5] - glyph.matrix[5]) <= OVERPRINT * em,
+    );
+    if (!repeat) kept.push(glyph);
+  }
+
+  const visual: Placed[] = [];
+  for (const glyph of kept) {
     for (const ch of glyphText(glyph)) {
       if (!IGNORED.test(ch)) visual.push({ ch, glyph });
     }

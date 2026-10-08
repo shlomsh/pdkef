@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry } from '../../geometry/coords.ts';
-import { wordsUnderBoxes, type PercentBox } from './textLayer.ts';
+import { textInReadingOrder, wordsUnderBoxes, type PercentBox } from './textLayer.ts';
 import type { PageGlyph } from './pageGlyphs.ts';
 
 const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
@@ -103,5 +103,67 @@ describe('wordsUnderBoxes', () => {
     const boxes = [box(18, 37, 390, 405), box(200, 210, 390, 405)];
     const words = wordsUnderBoxes(glyphs, geometry, boxes);
     expect(words).toEqual([['bbb'], []]);
+  });
+});
+
+describe('text drawn twice for a bold look (RED-62)', () => {
+  const overprint = (chars: string, offset = 0.3) => {
+    const first = makeLine(chars);
+    const second = makeLine(chars, { x: offset, y: 400 + offset });
+    // Stream order as a producer writes it: copy one, then copy two.
+    return [...first, ...second];
+  };
+  const all = box(0, 100, 390, 405);
+
+  it('reads a Latin word drawn twice once', () => {
+    expect(textInReadingOrder(overprint('Hello'), geometry)).toBe('Hello');
+    expect(wordsUnderBoxes(overprint('Hello'), geometry, [all])).toEqual([['Hello']]);
+  });
+
+  it('reads a Hebrew word drawn twice once, in order', () => {
+    expect(wordsUnderBoxes(overprint('מולש'), geometry, [all])).toEqual([['שלומ']]);
+    expect(textInReadingOrder(overprint('מולש'), geometry)).toBe('שלומ');
+  });
+
+  it('keeps the double letter of a word drawn once', () => {
+    expect(wordsUnderBoxes(makeLine('Hello'), geometry, [all])).toEqual([['Hello']]);
+  });
+
+  it('keeps both copies of a character drawn half an em apart', () => {
+    const glyphs = [...makeLine('a'), ...makeLine('a', { x: 5 })];
+    expect(wordsUnderBoxes(glyphs, geometry, [all])).toEqual([['aa']]);
+  });
+
+  it('keeps the glyph list itself untouched', () => {
+    const glyphs = overprint('Hello');
+    textInReadingOrder(glyphs, geometry);
+    expect(glyphs).toHaveLength(10);
+  });
+
+  it('does not compare every glyph with every other on a big page', () => {
+    // One long line, so only the overprint pass (not line grouping) calls hypot per glyph pair.
+    const glyphs: PageGlyph[] = [];
+    for (let i = 0; i < 20000; i += 1) {
+      glyphs.push({
+        unicode: 'abcdefghij'[i % 10],
+        isSpace: false,
+        matrix: [10, 0, 0, 10, i * 3, 100 + (i % 7) * 0.1],
+        width: 0.5,
+      });
+    }
+    // A counting wrapper (not vi.spyOn, which records every call), so a quadratic run fails instead
+    // of exhausting memory recording millions of calls.
+    const real = Math.hypot;
+    let calls = 0;
+    Math.hypot = (...values: number[]) => {
+      calls += 1;
+      return real(...values);
+    };
+    try {
+      textInReadingOrder(glyphs, geometry);
+      expect(calls).toBeLessThan(200000);
+    } finally {
+      Math.hypot = real;
+    }
   });
 });
