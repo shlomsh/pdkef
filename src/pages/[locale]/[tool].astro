@@ -24,6 +24,7 @@ import { getShellMessages, getToolMessages } from '../../i18n/toolMessages';
 import { toolsBySlug } from '../../data/tools.js';
 import PdfMergeTool from '../../tools/merge/PdfMergeTool.tsx';
 import PdfCompressTool from '../../tools/compress/PdfCompressTool.tsx';
+import PdfSplitTool from '../../tools/split/PdfSplitTool.tsx';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 // LOC-03: only /sign/ renders text in the bundled font catalogue (typed
 // signatures, text elements, the font picker) - see sign.astro's identical
@@ -94,5 +95,6 @@ if (context.entry && (context.entry as any).data?.status === 'published' && isla
 >
   {toolSlug === 'merge' && <PdfMergeTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
   {toolSlug === 'compress' && <PdfCompressTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
+  {toolSlug === 'split' && <PdfSplitTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
   {toolSlug === 'sign' && <PdfSignTool client:load shellMessages={shellMessages} messages={toolMessages as any} />}
 </ToolPageLayout>
