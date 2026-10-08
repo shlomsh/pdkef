@@ -43,10 +43,10 @@ export default function TracesBlock({
     return <p className={styles.rb} data-traces>{TRACES_NONE}</p>;
   }
   const rows = describeTraces(traces.original, { locale: locale ?? navigator.language, now: now ?? new Date() });
-  const survived = survivedRows(rows, traces.saved);
+  const survived = survivedRows(rows, traces.saved, keptAttachments);
   return (
     <div data-traces>
-      <h3 className={styles.tracesLead}>{TRACES_LEAD}</h3>
+      <h2 className={styles.tracesLead}>{TRACES_LEAD}</h2>
       <ul className={styles.traces}>
         {rows.map((row) => {
           const bad = survived.has(row.id);
@@ -63,13 +63,14 @@ export default function TracesBlock({
             >
               {bad && <span className={styles.mark} aria-hidden="true">!</span>}
               {struck && <span className={styles.mark} aria-hidden="true">{'✓'}</span>}
+              {struck && <span className="sr-only">Gone: </span>}
               {struck ? <s>{body}</s> : <span>{body}</span>}
               {bad && <strong> {TRACE_SURVIVED}</strong>}
               {kept && <span className={styles.note}>{KEPT}</span>}
               {kept && onDropAttachment && name !== undefined && (
                 <button type="button" className={styles.cover} onClick={() => onDropAttachment(name)}>{DROP_IT}</button>
               )}
-              {!kept && !bad && name !== undefined && onKeepAttachment && (
+              {!kept && !bad && name !== undefined && row.pageIndex === undefined && onKeepAttachment && (
                 <button type="button" className={styles.cover} onClick={() => onKeepAttachment(name)}>{KEEP_IT}</button>
               )}
             </li>

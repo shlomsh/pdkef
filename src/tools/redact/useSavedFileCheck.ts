@@ -36,6 +36,7 @@ export default function useSavedFileCheck({
   picturePages,
   measure,
   announce,
+  keptAttachments = [],
 }: {
   pdfDocument: PDFDocumentProxy | null;
   /** RED-59: the file as opened, read once per run to compare its traces. */
@@ -47,6 +48,8 @@ export default function useSavedFileCheck({
   measure?: MeasureText;
   /** Says the traces verdict once a check finishes. */
   announce?: (message: string) => void;
+  /** RED-60: attachments the person kept; their survival is expected. */
+  keptAttachments?: readonly string[];
 }) {
   const [state, setState] = useState<SavedFileCheckState>({ status: 'idle' });
 
@@ -69,7 +72,7 @@ export default function useSavedFileCheck({
         setState({ status: 'done', outcome, typed: [] });
         const { original, saved: after } = outcome.traces;
         const rows = describeTraces(original, { locale: traceLocale(), now: new Date() });
-        if (survivedRows(rows, after).size > 0) {
+        if (survivedRows(rows, after, keptAttachments).size > 0) {
           announce?.(TRACES_SURVIVED_ANNOUNCEMENT);
           reportError('redact', new Error('trace survived export'), 'export_trace_survived');
         } else if (!hasNoTraces(original)) {

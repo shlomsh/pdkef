@@ -4,7 +4,7 @@ import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces
 
 const empty = (): DocumentTraces => ({
   title: null, author: null, subject: null, keywords: null, creator: null, producer: null,
-  creationDate: null, modDate: null, otherInfoKeys: [] as string[],
+  creationDate: null, modDate: null, pieceInfo: false, otherInfoKeys: [] as string[],
   xmp: { present: false, hasHistory: false },
   attachments: [] as Array<{ name: string; pageIndex?: number }>,
   scripts: { document: false, pages: [] as number[] },
@@ -16,6 +16,13 @@ const flat = (row: TraceRow) => row.parts.map((p) => p.text).join('');
 const one = (traces: DocumentTraces, o = opts) => describeTraces(traces, o).map(flat);
 
 describe('describeTraces', () => {
+  it('pieceInfo: a row for details the app stored on the file itself', () => {
+    expect(one({ ...empty(), pieceInfo: true })).toEqual(['Hidden details the app stored in the file']);
+    const rows = describeTraces({ ...empty(), pieceInfo: true }, opts);
+    expect(survivedRows(rows, { ...empty(), pieceInfo: true })).toEqual(new Set(['pieceInfo']));
+    expect(survivedRows(rows, empty())).toEqual(new Set());
+  });
+
   it('gives no rows for an empty file', () => {
     expect(describeTraces(empty(), opts)).toEqual([]);
   });
@@ -135,5 +142,14 @@ describe('survivedRows', () => {
     expect(ids.has(byName('a.pdf'))).toBe(false);
     expect(ids.has(rows.find((r) => r.kind === 'titled')!.id)).toBe(false);
     expect(survivedRows(rows, { ...saved, title: 'T' }).has(rows.find((r) => r.kind === 'titled')!.id)).toBe(true);
+  });
+
+  it('does not count a kept attachment as survived', () => {
+    const rows = describeTraces({ ...empty(), attachments: [{ name: 'a.pdf' }, { name: 'b.pdf' }] }, opts);
+    const saved = { ...empty(), attachments: [{ name: 'a.pdf' }, { name: 'b.pdf' }] };
+    const ids = survivedRows(rows, saved, ['a.pdf']);
+    const byName = (n: string) => rows.find((r) => r.attachment === n)!.id;
+    expect(ids.has(byName('a.pdf'))).toBe(false);
+    expect(ids.has(byName('b.pdf'))).toBe(true);
   });
 });
