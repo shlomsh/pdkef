@@ -145,7 +145,7 @@ const hebrewMessages = {
   crossLinksHeading: 'עוד כלי PDF',
   crossLinksSubhead: 'כל אחד מהם רץ על המכשיר שלכם, בחינם, בלי להעלות שום דבר.',
   howItWorks: 'איך זה עובד',
-  freeForEveryone: 'חינם לכולם',
+  freeForEveryone: 'בחינם, ללא תנאים',
   openSourceNote:
     'הקוד פתוח ברישיון MIT, אז כל אחד יכול לקרוא אותו, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">לעשות לו fork ב-GitHub</a> או לשתף אותו. כלים פשוטים ל-PDF צריכים להיות חינם לכולם.',
   socialImageAlt: 'PDkef - כלים חינמיים ל-PDF שפועלים במלואם בדפדפן שלך.',
