@@ -19,7 +19,7 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-56 | P2 | [RED-56](backlog/tasks/RED-56.md) · Redact: defer old-document dispose until after the pdfDocument prop swaps |  |
-| SEO-43 | P2 | [SEO-43](backlog/tasks/SEO-43.md) · Redact's check lists creator, producer and dates, the metadata that says the most about you |  |
+| RED-59 | P2 | [RED-59](backlog/tasks/RED-59.md) · Metadata removal is a claim Redact has to show and explain, not just do |  |
 
 ### Parked
 
@@ -140,7 +140,7 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 16 done, 0 retired
+- Redact: finish removal: 16 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 12 done, 1 retired
 - Robustness and debt: 36 done, 3 retired
