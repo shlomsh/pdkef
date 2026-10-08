@@ -9,6 +9,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Redact: finish removal
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
+- [RED-60](backlog/tasks/RED-60.md) P1 · A place removed from the saved file stays removed on every later Download
 - [RED-59](backlog/tasks/RED-59.md) P2 · Metadata removal is a claim Redact has to show and explain, not just do (in progress)
 
 ### Search and languages
@@ -39,6 +40,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
+- [RED-60](backlog/tasks/RED-60.md) · Your call on the four decisions below
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
