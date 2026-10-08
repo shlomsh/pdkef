@@ -446,7 +446,7 @@ export const tools = [
       { question: 'Are my files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your PDF never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'What is the difference between PNG and JPG?', answer: 'PNG keeps a transparent background and is lossless, which is best for text-heavy or graphic pages. JPG uses a white background and smaller file sizes, which works well for photos and scans.' },
       { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file. "Download all" saves them one at a time rather than as a single zip file, since this tool has no zip library bundled - your browser may ask to allow multiple downloads the first time. You can also choose "Single combined image" to stack every page into one tall image instead.' },
-      { question: 'Can I turn a scanned worksheet or slide deck into images?', answer: 'Yes. Upload the PDF, choose JPG or PNG, and each page - a scanned worksheet, presentation slide, or contract page - becomes its own image file ready to share or embed.' },
+      { question: 'Can I turn a scanned worksheet or slide deck into images?', answer: 'Yes. Open the PDF, choose JPG or PNG, and each page - a scanned worksheet, presentation slide, or contract page - becomes its own image file ready to share or embed.' },
       { question: 'Can I convert just a few pages instead of the whole PDF?', answer: 'Yes. Type the pages you want in the page selector, for example 1-3, 5, or 8- for page 8 to the end, and only those pages convert. Useful for pulling one diagram or photo out of a long scanned document without converting the rest.' },
       { question: 'What resolution do the images come out at?', answer: 'Pick Standard (about 72 DPI, the smallest files, fine for screens), High (about 144 DPI, sharp for most printing, and the default) or Maximum (about 216 DPI, best for zooming in or large prints). The setting controls how many pixels each page is rendered at, so a higher one gives you a sharper and larger image.' },
     ],
@@ -524,7 +524,7 @@ export const tools = [
     faqSketch: 'arcs',
     faqIconPos: 'bl',
     steps: [
-      { title: 'Upload your PDF', text: 'Select the PDF file you want to split or drag-and-drop it into the tool.' },
+      { title: 'Open your PDF', text: 'Select the PDF file you want to split or drag-and-drop it into the tool.' },
       { title: 'Choose split mode', text: 'Extract your pages into a single combined PDF, or split each page into a separate PDF.' },
       { title: 'Select pages', text: 'Click the page thumbnails or type page numbers and ranges (e.g., 1-3, 5, 8-).' },
       { title: 'Split and download', text: 'Click Split PDF and download the files.' },
@@ -670,13 +670,13 @@ export const tools = [
     faqSketch: 'grid',
     faqIconPos: 'br',
     steps: [
-      { title: 'Upload your PDF', text: 'Select or drag-and-drop the file you want to protect or unlock.' },
+      { title: 'Open your PDF', text: 'Select or drag-and-drop the file you want to protect or unlock.' },
       { title: 'Enter a password', text: 'Type the current password to remove it, or set a new one to add protection.' },
       { title: 'Save and download', text: 'Click the button and save a copy with the password added or removed.' },
     ],
     faq: [
       { question: 'Is my PDF or its password uploaded anywhere?', answer: 'No. Nothing is uploaded. The password and the file are processed on your device, in your browser, whether you are adding or removing protection, and neither leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
-      { question: 'How do I add a password to a PDF?', answer: 'Upload a PDF that is not already encrypted and the tool switches to protect mode automatically. Set the password you want, click Protect PDF, and download a copy that requires that password to open.' },
+      { question: 'How do I add a password to a PDF?', answer: 'Open a PDF that is not already encrypted and the tool switches to protect mode automatically. Set the password you want, click Protect PDF, and download a copy that requires that password to open.' },
       { question: 'Do I need to know the PDF password to unlock it?', answer: 'Yes. To remove a password you must already know it - this tool does not crack, guess, or recover unknown passwords. To add a password, you choose it yourself.' },
       { question: 'What if I enter the wrong password?', answer: 'You will see an error and can try again. No file data is sent anywhere when this happens, so there is no risk in retrying.' },
       { question: 'Is there a limit on file size?', answer: "No artificial limit. Both protecting and unlocking run entirely on your device, so the only constraint is your device's available memory." },
