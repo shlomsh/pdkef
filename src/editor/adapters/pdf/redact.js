@@ -192,7 +192,7 @@ export async function assemble(sourceDoc, covered, options = {}) {
     }
     await buildImageOnlyPage(newDoc, page.jpeg, page.width, page.height);
   }
-  copyDocumentDetails(sourceDoc, newDoc);
+  copyDocumentDetails(sourceDoc, newDoc, { flattened: covered.keys(), edits: options.details });
   options.finish?.(newDoc);
   applyDetailEdits(newDoc, options.details ?? {});
   dropUnreachable(newDoc);

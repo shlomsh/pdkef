@@ -329,13 +329,19 @@ export type DetailEdit = { action: 'delete' } | { action: 'alter'; value: string
 export type DetailEdits = Record<string, DetailEdit>;
 
 /** Each key is checked on its own; anything unusable is dropped, a non-record is `{}`. */
+const UNSAFE_DETAIL_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function validateDetailEdits(value: unknown): DetailEdits {
-  const out: DetailEdits = {};
+  // Null prototype: a stored key can never reach Object.prototype. A blank
+  // alter would blank the field on export, so it is dropped (value kept as given).
+  const out: DetailEdits = Object.create(null);
   if (!isRecord(value)) return out;
   for (const [id, edit] of Object.entries(value)) {
-    if (!isRecord(edit)) continue;
+    if (UNSAFE_DETAIL_KEYS.has(id) || !isRecord(edit)) continue;
     if (edit.action === 'delete') out[id] = { action: 'delete' };
-    else if (edit.action === 'alter' && typeof edit.value === 'string') out[id] = { action: 'alter', value: edit.value };
+    else if (edit.action === 'alter' && typeof edit.value === 'string' && edit.value.trim() !== '') {
+      out[id] = { action: 'alter', value: edit.value };
+    }
   }
   return out;
 }

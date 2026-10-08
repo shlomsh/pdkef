@@ -11,6 +11,7 @@ import {
   PDFArray, PDFDict, PDFHexString, PDFName, PDFObjectCopier, PDFRef, PDFStream, PDFString, decodePDFRawStream,
 } from '@cantoo/pdf-lib';
 import { parsePdfDate } from './pdfDate.js';
+import { expandDetailEdits } from './detailEdits.js';
 
 /** @typedef {import('@cantoo/pdf-lib').PDFDocument} PDFDocument */
 
@@ -18,15 +19,8 @@ const N = PDFName.of;
 const INFO_KEYS = ['Title', 'Author', 'Subject', 'Keywords', 'Creator', 'Producer'];
 const MAX_FORM_DEPTH = 8;
 
-/** Detail ids that accept delete or alter. */
-export const TEXT_DETAIL_IDS = ['title', 'author', 'subject', 'keywords', 'made'];
-/** Detail ids that accept delete only, like attachments, 'scripts' and 'hidden'. */
-export const DATE_DETAIL_IDS = ['created', 'changed'];
-/** The detail id of an attached file: `attachment:<pageIndex or empty>:<name>`. */
-export const attachmentDetailId = (file) => `attachment:${file.pageIndex ?? ''}:${file.name}`;
-
-/** @typedef {{ action: 'delete' } | { action: 'alter', value: string }} DetailEdit */
-/** @typedef {Record<string, DetailEdit>} DetailEdits Keyed by detail id. */
+/** @typedef {import('./detailEdits.js').DetailEdit} DetailEdit */
+/** @typedef {import('./detailEdits.js').DetailEdits} DetailEdits */
 
 const asDict = (ctx, o) => {
   const v = o instanceof PDFRef ? ctx.lookup(o) : o;
@@ -218,18 +212,6 @@ export function readDocumentTraces(doc) {
   };
 }
 
-/**
- * Adds `hidden: delete` when a text or date detail is edited, because the XMP
- * packet is a second copy of the same details and would keep the old value.
- * Pure; returns the input unchanged when nothing needs adding.
- * @param {DetailEdits} edits
- * @returns {DetailEdits}
- */
-export function expandDetailEdits(edits) {
-  const touched = [...TEXT_DETAIL_IDS, ...DATE_DETAIL_IDS].some((id) => edits[id]);
-  return touched && !edits.hidden ? { ...edits, hidden: { action: 'delete' } } : edits;
-}
-
 const isDelete = (edit) => edit?.action === 'delete';
 const attachmentKey = (pageIndex, name) => `${pageIndex ?? ''}:${name}`;
 
@@ -335,15 +317,39 @@ function removeAttachments(doc, dropped) {
 }
 
 /**
+ * True when an action is JavaScript and every action it chains to (`/Next`, a
+ * dict or an array of dicts) is too. Anything else, a GoTo above all, can
+ * reference a page, and a page of the source must never come along.
+ */
+function isJavaScriptOnly(ctx, o, seen = new Set()) {
+  const d = asDict(ctx, o);
+  if (!d || seen.has(d) || d.get(N('S')) !== N('JavaScript')) return false;
+  seen.add(d);
+  const next = resolve(ctx, d.get(N('Next')));
+  if (next === undefined) return true;
+  if (next instanceof PDFArray) {
+    for (let i = 0; i < next.size(); i++) if (!isJavaScriptOnly(ctx, next.get(i), seen)) return false;
+    return true;
+  }
+  return isJavaScriptOnly(ctx, next, seen);
+}
+
+/**
  * For an export that builds a new document (the flattened path): copies every
- * Info key, the catalog XMP and `/PieceInfo`, document scripts (`/Names
- * /JavaScript`, `/OpenAction`, catalog `/AA`) and every document-level
- * attachment from `sourceDoc` into `targetDoc`. Page-level items stay behind:
- * a flattened page is a picture and those belong to the old page.
+ * Info key, the catalog XMP and `/PieceInfo`, document scripts and every
+ * document-level attachment from `sourceDoc` into `targetDoc`. Only
+ * JavaScript-only actions are copied (`/OpenAction`, entries of catalog `/AA`,
+ * `/Names /JavaScript`): any other action can point at a page of the source,
+ * and copying it would drag the unredacted page along. Page-level items stay
+ * behind (a flattened page is a picture), except a file attached in a comment
+ * on a flattened page: the person kept it, so it moves to the document level.
  * @param {PDFDocument} sourceDoc
  * @param {PDFDocument} targetDoc
+ * @param {{ flattened?: Iterable<number>, edits?: DetailEdits }} [options]
+ *   `flattened`: source page indexes that were rebuilt as pictures. `edits`:
+ *   the person's edits, so a comment attachment they deleted is not carried over.
  */
-export function copyDocumentDetails(sourceDoc, targetDoc) {
+export function copyDocumentDetails(sourceDoc, targetDoc, options = {}) {
   const ctx = sourceDoc.context;
   const copier = PDFObjectCopier.for(ctx, targetDoc.context);
 
@@ -352,41 +358,70 @@ export function copyDocumentDetails(sourceDoc, targetDoc) {
     const targetInfo = targetDoc.getInfoDict();
     for (const [key, value] of info.entries()) targetInfo.set(key, copier.copy(resolve(ctx, value)));
   }
-  for (const key of ['Metadata', 'PieceInfo', 'OpenAction', 'AA']) {
+  for (const key of ['Metadata', 'PieceInfo']) {
     const value = sourceDoc.catalog.get(N(key));
     if (value !== undefined) targetDoc.catalog.set(N(key), copier.copy(resolve(ctx, value)));
   }
-  const sourceNames = asDict(ctx, sourceDoc.catalog.get(N('Names')));
-  const js = sourceNames?.get(N('JavaScript'));
-  if (js !== undefined) {
-    const targetNames = asDict(targetDoc.context, targetDoc.catalog.get(N('Names')))
-      ?? targetDoc.context.obj({});
-    targetNames.set(N('JavaScript'), copier.copy(resolve(ctx, js)));
-    targetDoc.catalog.set(N('Names'), targetNames);
+  const open = sourceDoc.catalog.get(N('OpenAction'));
+  if (open !== undefined && isJavaScriptOnly(ctx, open)) {
+    targetDoc.catalog.set(N('OpenAction'), copier.copy(resolve(ctx, open)));
   }
+  const sourceAA = asDict(ctx, sourceDoc.catalog.get(N('AA')));
+  if (sourceAA) {
+    const kept = targetDoc.context.obj({});
+    for (const [key, value] of sourceAA.entries()) {
+      if (isJavaScriptOnly(ctx, value)) kept.set(key, copier.copy(resolve(ctx, value)));
+    }
+    if (kept.keys().length > 0) targetDoc.catalog.set(N('AA'), kept);
+  }
+
+  const sourceNames = asDict(ctx, sourceDoc.catalog.get(N('Names')));
+  const tctx = targetDoc.context;
+  const targetNames = () => {
+    const existing = asDict(tctx, targetDoc.catalog.get(N('Names')));
+    if (existing) return existing;
+    const created = tctx.obj({});
+    targetDoc.catalog.set(N('Names'), created);
+    return created;
+  };
+  const scripts = [];
+  if (sourceNames) {
+    walkNameTree(ctx, sourceNames.get(N('JavaScript')), (pairs, i) => {
+      const action = pairs.get(i + 1);
+      if (isJavaScriptOnly(ctx, action)) {
+        scripts.push(PDFString.of(textOf(pairs.get(i)) ?? 'script'), copier.copy(resolve(ctx, action)));
+      }
+    });
+  }
+  if (scripts.length > 0) targetNames().set(N('JavaScript'), tctx.obj({ Names: scripts }));
 
   // File specifications are copied as they are, bytes included. pdf-lib's own
   // `attach()` embeds lazily at save, after the edits would have run.
-  const tctx = targetDoc.context;
   const copySpec = (spec) => {
     const copied = copier.copy(spec);
     return copied instanceof PDFRef ? copied : tctx.register(copied);
   };
   const entries = [];
+  const specs = [];
   if (sourceNames) {
     walkNameTree(ctx, sourceNames.get(N('EmbeddedFiles')), (pairs, i) => {
       entries.push(PDFString.of(textOf(pairs.get(i)) ?? 'attachment'), copySpec(pairs.get(i + 1)));
     });
   }
-  if (entries.length > 0) {
-    const targetNames = asDict(tctx, targetDoc.catalog.get(N('Names'))) ?? tctx.obj({});
-    targetNames.set(N('EmbeddedFiles'), tctx.obj({ Names: entries }));
-    targetDoc.catalog.set(N('Names'), targetNames);
-  }
   const af = resolve(ctx, sourceDoc.catalog.get(N('AF')));
-  if (af instanceof PDFArray && af.size() > 0) {
-    const copies = [];
-    for (let i = 0; i < af.size(); i++) copies.push(copySpec(af.get(i)));
-    targetDoc.catalog.set(N('AF'), tctx.obj(copies));
+  if (af instanceof PDFArray) {
+    for (let i = 0; i < af.size(); i++) specs.push(copySpec(af.get(i)));
   }
+  const flattened = new Set(options.flattened ?? []);
+  if (flattened.size > 0) {
+    for (const a of fileAttachmentAnnots(sourceDoc)) {
+      if (!flattened.has(a.pageIndex) || isDelete(options.edits?.[`attachment:${a.pageIndex}:${a.name}`])) continue;
+      const annot = asDict(ctx, a.annots.get(a.index));
+      const spec = copySpec(annot.get(N('FS')));
+      entries.push(PDFString.of(a.name), spec);
+      specs.push(spec);
+    }
+  }
+  if (entries.length > 0) targetNames().set(N('EmbeddedFiles'), tctx.obj({ Names: entries }));
+  if (specs.length > 0) targetDoc.catalog.set(N('AF'), tctx.obj(specs));
 }
