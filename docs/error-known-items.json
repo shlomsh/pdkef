@@ -73,8 +73,8 @@
       "name": "ReferenceError",
       "module": "pdf"
     },
-    "open": true,
-    "note": "any tool, any step: a ReferenceError from the pdf.js chunk is a built-in the browser lacks; old browsers are told once a file is added, and DEBT-42 polyfills the global (set fixedIn once a stamped build carries it)"
+    "fixedIn": "7fcbfb1a",
+    "note": "any tool, any step: a ReferenceError from the pdf.js chunk is a built-in the browser lacks; old browsers are told once a file is added, and DEBT-42 polyfills the global from 7fcbfb1a"
   },
   {
     "id": "DEBT-42",
@@ -85,7 +85,7 @@
       "step": ["load_document", "render_page", "read_glyphs"],
       "module": "pdf"
     },
-    "open": true,
-    "note": "seen on Chromium 141 at render_page and read_glyphs; polyfilled in src/lib/pdfjsPolyfills.js on the page and in the worker, set fixedIn to the landing commit"
+    "fixedIn": "7fcbfb1a",
+    "note": "seen on Chromium 141 at render_page and read_glyphs; polyfilled in src/lib/pdfjsPolyfills.js on the page and in the worker from 7fcbfb1a"
   }
 ]
