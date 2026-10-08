@@ -1,10 +1,10 @@
 ---
 id: "FORM-38"
 title: "BTL 1500 checkboxes take the item number or a reversed parenthesis as their label"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "form-detection"
-horizon: "next"
+horizon: "now"
 depends_on: ["FORM-37"]
 ---
 

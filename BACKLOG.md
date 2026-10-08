@@ -50,12 +50,17 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| FORM-38 | P3 | [FORM-38](backlog/tasks/FORM-38.md) · BTL 1500 checkboxes take the item number or a reversed parenthesis as their label | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | FORM-35 | P2 | [FORM-35](backlog/tasks/FORM-35.md) · Count how often Sign opens a page that is only an image, before building anything for scans |  |
-| FORM-38 | P3 | [FORM-38](backlog/tasks/FORM-38.md) · BTL 1500 checkboxes take the item number or a reversed parenthesis as their label |  |
 
 ### Parked
 
