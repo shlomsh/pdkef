@@ -32,6 +32,20 @@ beforeEach(() => {
 
 
 describe('applyPageEdits', () => {
+  it('runs finish on the first pass only: the Delete step on the mixed path, never the flatten step', async () => {
+    const finish = () => {};
+    await applyPageEdits(SOURCE, [deletion, box], undefined, { finish, keepAttachments: ['a.txt'] });
+    expect(deleteObjectsFromPdf.mock.calls[0][3]).toEqual({ finish, keepAttachments: ['a.txt'] });
+    expect(redactPdf.mock.calls[0][3]).toEqual({ keepAttachments: ['a.txt'] });
+    expect(redactPdf.mock.calls[0][3]).not.toHaveProperty('finish');
+  });
+
+  it('runs finish in the flatten step when there are no deletions', async () => {
+    const finish = () => {};
+    await applyPageEdits(SOURCE, [box], undefined, { finish });
+    expect(redactPdf.mock.calls[0][3]).toEqual({ finish });
+  });
+
   it('runs only redactPdf when there are no deletions, forwarding onProgress as-is', async () => {
     // Single phase: no scaling needed, so an omitted callback should stay
     // omitted rather than being wrapped into a no-op function.

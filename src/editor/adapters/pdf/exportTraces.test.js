@@ -37,6 +37,14 @@ describe.each(Object.keys(paths))('%s export', (path) => {
     expect(hasNoTraces(readDocumentTraces(reloaded))).toBe(true);
   });
 
+  it('drops a catalog /PieceInfo', async () => {
+    const fixture = await buildTracesFixture();
+    fixture.doc.catalog.set(PDFName.of('PieceInfo'), fixture.doc.context.obj({ App: { Private: 'x' } }));
+    const out = await paths[path](await fixture.save());
+    const reloaded = await PDFDocument.load(out, { updateMetadata: false });
+    expect(readDocumentTraces(reloaded).pieceInfo).toBe(false);
+  });
+
   it('writes no pdf-lib name or dates into Info, and no custom key', async () => {
     const out = await run();
     const text = Buffer.from(out).toString('latin1');

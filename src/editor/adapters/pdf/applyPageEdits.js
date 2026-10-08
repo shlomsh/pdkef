@@ -21,7 +21,9 @@ import { deleteObjectsFromPdf } from './deleteObjects.js';
  * @param {(progress: number) => void} [onProgress]
  * @param {{ finish?: (doc: import('@cantoo/pdf-lib').PDFDocument) => void, keepAttachments?: string[] }} [options]
  *   RED-59: `finish` edits the output document before its traces are stripped;
- *   `keepAttachments` names attached files to keep. Passed to both steps.
+ *   `keepAttachments` names attached files to keep. `finish` runs on the first
+ *   pass only (Delete when there are deletions, else the flatten), so a replay
+ *   never runs twice; `keepAttachments` goes to both steps.
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
 export async function applyPageEdits(file, elements, onProgress, options = {}) {
@@ -32,6 +34,7 @@ export async function applyPageEdits(file, elements, onProgress, options = {}) {
     return redactPdf(file, boxes, onProgress, options);
   }
 
+  const { finish: _finish, ...secondPass } = options;
   const hasBoxes = boxes.length > 0;
   const deleted = await deleteObjectsFromPdf(
     file,
@@ -42,5 +45,5 @@ export async function applyPageEdits(file, elements, onProgress, options = {}) {
 
   if (!hasBoxes) return { blob: deleted };
 
-  return redactPdf(deleted, boxes, (p) => onProgress?.(0.4 + p * 0.6), options);
+  return redactPdf(deleted, boxes, (p) => onProgress?.(0.4 + p * 0.6), secondPass);
 }
