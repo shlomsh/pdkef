@@ -163,3 +163,11 @@ whether anything linked to `/merge/` and not `/split/` by then.
 **Reading:** most likely Google re-weighing the domain, page by page, on its own schedule. The one lever
 left that the data names is the hreflang cluster; a Hebrew `/he/split/` would test it, valued for the
 English page's signal, not for Hebrew traffic. Unproven, and LOC rules apply (docs/i18n-status/).
+## 2026-10-08 Hebrew vocabulary (Trends, Israel, past 12 months, Shlomi's screenshots)
+
+- `איחוד PDF` ~63 (the merge anchor), `פיצול PDF` ~8, `חיתוך PDF`, `הפרדת PDF` and `חילוץ עמודים PDF` ~0.
+- `split pdf` ~55 against `פיצול PDF` ~6; `פיצול קובץ PDF`, `חיתוך קובץ PDF` and `הפרדת עמודים PDF` ~0.
+- So Israelis mostly type the English query, and among Hebrew verbs only `פיצול` registers. The
+  `/he/split/` title and h1 lead with `פיצול PDF`; `חיתוך` and `הפרדת עמודים` drop out of the title
+  and stay once in the intro. The page's value is the hreflang cluster for English `/split/` and Israelis
+  who search `split pdf` with Hebrew settings, not Hebrew query volume.
