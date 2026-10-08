@@ -18,6 +18,11 @@ describe('toPageTextRuns', () => {
     expect(only).toEqual({ str: 'שלום', left: 25, top: 20, width: 20, height: 5 });
   });
 
+  it("keeps pdf.js's reading direction, which places a blank inside a right-to-left run (FORM-34)", () => {
+    const [only] = toPageTextRuns([{ ...run('____ :שם', 50, 300, 40, 20), dir: 'rtl' }], geometry);
+    expect(only.dir).toBe('rtl');
+  });
+
   it('skips marked-content entries and blank runs, which carry no glyphs', () => {
     const items = [
       { type: 'beginMarkedContent' },

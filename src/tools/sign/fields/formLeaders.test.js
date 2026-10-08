@@ -18,6 +18,46 @@ describe('detectLeaderCandidates', () => {
     expect(field.height).toBe(4);
   });
 
+  it('reads a run of underscores as a leader, like dots', () => {
+    // An underscore falls back to 0.55 of the height: 2.2 per underscore at height 4, 22 for ten.
+    const [field, ...rest] = detectLeaderCandidates(0, [run(`Name${'_'.repeat(10)}`, { width: 30 })]);
+    expect(rest).toEqual([]);
+    expect(field).toMatchObject({ label: 'Name', source: 'form-leaders' });
+    expect(field.left).toBeCloseTo(18, 5);
+    expect(field.width).toBeCloseTo(22, 5);
+  });
+
+  it('puts the underscores of a right-to-left run at its left end, after the label in reading order', () => {
+    const [field, ...rest] = detectLeaderCandidates(0, [
+      { ...run(`שם: ${'_'.repeat(10)}`, { width: 30 }), dir: 'rtl' },
+    ]);
+    expect(rest).toEqual([]);
+    expect(field.label).toBe('שם');
+    expect(field.left).toBeCloseTo(10, 5);
+    expect(field.width).toBeCloseTo(22, 5);
+  });
+
+  it('does not read underscores inside a word or identifier as a blank', () => {
+    expect(detectLeaderCandidates(0, [run('see https://x.com/a_____b', { width: 50 })])).toEqual([]);
+    expect(detectLeaderCandidates(0, [run('MAX_____VALUE here', { width: 40 })])).toEqual([]);
+    expect(detectLeaderCandidates(0, [{ ...run(`שם:${'_'.repeat(6)}`, { width: 20 }), dir: 'rtl' }])).toHaveLength(1);
+    expect(detectLeaderCandidates(0, [run(`Name ${'_'.repeat(6)}`, { width: 20 })])).toHaveLength(1);
+  });
+
+  it('places the blanks of a Hebrew run with no direction right-to-left, the first in the string rightmost', () => {
+    const fields = detectLeaderCandidates(0, [run('שם ______ ת.ז ______', { width: 50 })]);
+    expect(fields.map((field) => field.left).sort((a, b) => a - b)).toEqual([expect.closeTo(10, 5), expect.closeTo(37.95, 5)]);
+  });
+
+  it('finds both blanks of an underscore run that carries two', () => {
+    const fields = detectLeaderCandidates(0, [run(`Zip ${'_'.repeat(8)} Phone ${'_'.repeat(8)}`, { width: 50 })]);
+    expect(fields.map((field) => field.label)).toEqual(['Zip', 'Phone']);
+  });
+
+  it('does not count three underscores as a leader', () => {
+    expect(detectLeaderCandidates(0, [run('Initial ___', { width: 20 })])).toEqual([]);
+  });
+
   it('reads the kind off the label', () => {
     expect(leaderKind('ลงชื่อ')).toBe('signature');
     expect(leaderKind('Signature')).toBe('signature');
@@ -40,6 +80,14 @@ describe('detectLeaderCandidates', () => {
       run(dots(12), { left: 22, width: 14.4 }),
     ]);
     expect(field).toMatchObject({ kind: 'signature', label: 'Signature' });
+  });
+
+  it('names a left-to-right leader from the run on its left, not the unit that follows the dots', () => {
+    const [field] = detectLeaderCandidates(0, [
+      run('Name', { left: 5, width: 8 }),
+      run(`${dots(12)}THB`, { left: 14, width: 20 }),
+    ]);
+    expect(field.label).toBe('Name');
   });
 
   it('ignores an ellipsis and a leader too short to write in', () => {
@@ -119,5 +167,82 @@ describe('detectLeaderCandidates', () => {
     ]);
     const field = fields.find((found) => found.label === 'Id');
     expect(field.width).toBeCloseTo(20, 5);
+  });
+
+  describe('naming a blank', () => {
+    const blank = '_'.repeat(10);
+
+    it('takes a right-to-left blank\'s caption from the run to its right, ahead of one to its left', () => {
+      const [field] = detectLeaderCandidates(0, [
+        run('ישן', { left: 5, width: 8 }),
+        { ...run(blank, { left: 30, width: 22 }), dir: 'rtl' },
+        run('תאריך', { left: 54, width: 8 }),
+      ]);
+      expect(field.label).toBe('תאריך');
+    });
+
+    it('keeps a left-to-right dotted leader\'s left label ahead of a run to its right', () => {
+      const [field] = detectLeaderCandidates(0, [
+        run('Name', { left: 5, width: 8 }),
+        run(dots(12), { left: 14, width: 14.4 }),
+        run('Other', { left: 30, width: 8 }),
+      ]);
+      expect(field.label).toBe('Name');
+    });
+
+    it('falls back to the run on the other side when the preferred side has none', () => {
+      const [field] = detectLeaderCandidates(0, [
+        run('Name', { left: 5, width: 8 }),
+        { ...run(blank, { left: 14, width: 22 }), dir: 'rtl' },
+      ]);
+      expect(field.label).toBe('Name');
+    });
+
+    it('takes the caption that follows the underscores in the same run when nothing precedes them', () => {
+      const [field, ...rest] = detectLeaderCandidates(0, [
+        run(`${blank} מספר פקס`, { width: 40 }),
+      ]);
+      expect(rest).toEqual([]);
+      expect(field.label).toBe('מספר פקס');
+    });
+
+    it('takes a caption printed just under the blank, inside its span', () => {
+      const [field] = detectLeaderCandidates(0, [
+        run(blank, { left: 10, top: 20, width: 22 }),
+        run('Doctor', { left: 14, top: 24.5, width: 8 }),
+      ]);
+      expect(field.label).toBe('Doctor');
+    });
+
+    it('ignores a run below that does not sit under the blank or is a line away', () => {
+      const [field] = detectLeaderCandidates(0, [
+        run(blank, { left: 10, top: 20, width: 22 }),
+        run('Aside', { left: 60, top: 24.5, width: 8 }),
+        run('Far', { left: 14, top: 40, width: 8 }),
+      ]);
+      expect(field.label).toBeUndefined();
+    });
+
+    it('trims leading and trailing punctuation from a label', () => {
+      const [field] = detectLeaderCandidates(0, [run(`.שם: ${blank}`, { width: 30 })]);
+      expect(field.label).toBe('שם');
+      const [other] = detectLeaderCandidates(0, [run(`Name?, ${dots(10)}`, { width: 30 })]);
+      expect(other.label).toBe('Name');
+    });
+
+    it('never names a blank with a stray underscore', () => {
+      const [field] = detectLeaderCandidates(0, [
+        { ...run(`_ ${blank}`, { left: 30, width: 24 }), dir: 'rtl' },
+        run('סיבה', { left: 56, width: 8 }),
+      ]);
+      expect(field.label).toBe('סיבה');
+    });
+
+    it('keeps the dots inside an abbreviation', () => {
+      const [field] = detectLeaderCandidates(0, [run(`ת.ז: ${blank}`, { width: 30 })]);
+      expect(field.label).toBe('ת.ז');
+      const [thai] = detectLeaderCandidates(0, [run(`พ.ศ ${dots(10)}`, { width: 30 })]);
+      expect(thai.label).toBe('พ.ศ');
+    });
   });
 });
