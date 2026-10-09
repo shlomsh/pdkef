@@ -11,9 +11,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const flat = (obj) => Object.entries(obj ?? {}).flatMap(([k, v]) => [k, String(v)]);
 
-const X = 'redact|TypeError|pdf.Zn9K1YuS.js:44:99875|read_glyphs|chromium-143';
+const X = 'redact|TypeError|redact.Zn9K1YuS.js:44:99875|apply_boxes|chromium-143';
 const Y = 'drafts|QuotaExceededError|useDraftPersistence.AbCdEfGh.js:1:2|save|chromium-150';
-const SAMPLE_X = JSON.stringify({ stack: ['pdf.Zn9K1YuS.js:44:99875'], step: 'read_glyphs', tool: '/redact/', installed: false, sw: true, age: 'under_1m', actions: [], engine: 'chromium-143' });
+const SAMPLE_X = JSON.stringify({ stack: ['redact.Zn9K1YuS.js:44:99875'], step: 'apply_boxes', tool: '/redact/', installed: false, sw: true, age: 'under_1m', actions: [], engine: 'chromium-143' });
 
 // The pipeline body is 6n commands in a fixed order: [errors, sample] per day, then events, usage, errorTotal, usageTotal per day.
 function repliesFor(commandCount, days) {
@@ -65,10 +65,10 @@ describe('errors-read wiring', () => {
     expect(code).toBe(0);
     const lines = stdout.split('\n');
     expect(lines[0]).toMatch(/^Needs attention \(\d+\)$/);
-    expect(stdout).toContain('UNKNOWN  2x redact TypeError read_glyphs on redact (chromium-143)');
+    expect(stdout).toContain('UNKNOWN  2x redact TypeError apply_boxes on redact (chromium-143)');
     expect(stdout).toContain('RISING  redact: failed 11 of 21 started (52%), none failed earlier');
     // The window is one day: yesterday's fingerprint and starts are history, not counts.
-    expect(stdout).toContain('2 | redact | TypeError | pdf.Zn9K1YuS.js:44:99875 | read_glyphs | chromium-143');
+    expect(stdout).toContain('2 | redact | TypeError | redact.Zn9K1YuS.js:44:99875 | apply_boxes | chromium-143');
     expect(stdout).not.toContain('7 | drafts');
     expect(stdout).toMatch(/redact \| 0 \| 21 \| 0 \| 11 \|/);
     expect(stdout).toContain('window 1 day, history 3');
