@@ -13,7 +13,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
-- [ENC-15](backlog/tasks/ENC-15.md) P2 · Encrypted-PDF errors from pdf-lib travel as error reports under a minified name (in progress)
 
 ### Search and languages
 

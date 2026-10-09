@@ -1,10 +1,9 @@
 ---
 id: "ENC-15"
 title: "Encrypted-PDF errors from pdf-lib travel as error reports under a minified name"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -20,3 +19,8 @@ encrypted PDF is the person's file, not our defect, and must never be reported.
 
 No error report is built for pdf-lib's encrypted-file error, whatever its class name; the registry's
 ENC-02 entry also matches `details_read`.
+
+## Outcome
+
+`toErrorReport` drops the error by name or by its message (unit test in `src/lib/errorReport.test.ts`);
+ENC-02 matches `details_read`. Shipped with CRITICAL_VERSION 5 so open tabs take the fix now.
