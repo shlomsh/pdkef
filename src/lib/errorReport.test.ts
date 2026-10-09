@@ -42,6 +42,15 @@ describe('toErrorReport', () => {
     expect(toErrorReport('uncaught', 'a string', 'save_draft', CTX)).toBeNull();
     expect(toErrorReport('uncaught', { name: 'TypeError' }, 'save_draft', CTX)).toBeNull();
   });
+  it('drops the pdf-lib encrypted-file error under a minified name, keeps an unrelated unnamed error', () => {
+    const enc = errorAt(
+      'PdfRedactTool.Ab12Cd.js:1:1',
+      'Input document to `PDFDocument.load` is encrypted. You can use `PDFDocument.load(..., { ignoreEncryption: true })` if you wish to load the document anyways.',
+      'fm',
+    );
+    expect(toErrorReport('redact', enc, 'details_read', CTX)).toBeNull();
+    expect(toErrorReport('redact', errorAt('PdfRedactTool.Ab12Cd.js:1:1', 'something else broke'), 'details_read', CTX)).not.toBeNull();
+  });
   it('cuts 12 frames to 8 and skips frames from other origins', () => {
     const e = new TypeError('x');
     const lines = Array.from({ length: 12 }, (_, i) => `    at f (https://pdkef.com/_astro/A.js:${i + 1}:1)\n    at g (https://cdn.x/o.js:${i}:1)`);

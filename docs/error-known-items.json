@@ -46,7 +46,7 @@
     "title": "Redact on a protected PDF",
     "match": {
       "area": "redact",
-      "step": ["export", "list_objects"],
+      "step": ["export", "list_objects", "details_read"],
       "slug": "redact",
       "module": "pdf-lib"
     },

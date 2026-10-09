@@ -41,6 +41,14 @@ export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * pdf-lib's encrypted-file error. Matched by message as well as name because
+ * the production bundle minifies the class name (it arrived as `fm`).
+ */
+function isPdfLibEncryptedError(error: Error): boolean {
+  return error.name === 'EncryptedPDFError' || error.message.includes('`PDFDocument.load` is encrypted');
+}
+
+/**
  * The report for this error, or null when it should not travel: an ignored
  * name, or no frame inside our own built output (an extension's error, or a
  * dev build). Pure: the page facts come in as `context`.
@@ -53,7 +61,7 @@ export function toErrorReport(
 ): ErrorReport | null {
   if (!(error instanceof Error)) return null;
   const name = errorName(error);
-  if (IGNORED_ERROR_NAMES.has(name)) return null;
+  if (IGNORED_ERROR_NAMES.has(name) || isPdfLibEncryptedError(error)) return null;
   const stack = stackFrames(error, MAX_FRAMES);
   if (stack.length === 0) return null;
   return parseErrorReport({ area, name, stack, step, ...context });
