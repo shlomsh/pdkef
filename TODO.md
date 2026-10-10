@@ -12,7 +12,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [DEBT-44](backlog/tasks/DEBT-44.md) P1 · Every counted failure leaves a trace in the error reports (in progress)
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
 
 ### Search and languages

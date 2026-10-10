@@ -1,11 +1,9 @@
 ---
 id: "DEBT-44"
 title: "Every counted failure leaves a trace in the error reports"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -37,3 +35,14 @@ by decision (cache first keeps the app offline).
   (`rejects:<day>`), within the existing command budget.
 - `npm run errors:read` prints both, and the usage table sums stamped and unstamped events.
 - One contract test feeds the browser's real output through `POST` and asserts what is stored.
+
+## Outcome
+
+The browser sends a drop record for every report it will not send (`toDropRecord` in
+`src/lib/errorReport.ts`), with its own per-page cap so a page past its report cap still leaves a
+trace; uncaught noise from outside our code sends none. Usage events carry the build. The endpoint
+counts drop records under `drops:<day>` (sharing the error cap) and every refused body under
+`rejects:<day>` by reason and engine (its own cap of 200); the budget is about 438K commands a month.
+`errors:read` prints both tables, failures by build, and an `UNTRACED` verdict for a tool whose
+failures left neither. `src/site-lib/reportContract.test.ts` sends the browser's real output through
+the real endpoint. The daily read confirms it in production.
