@@ -29,6 +29,9 @@ const freshPoster = async (make) => {
   const { POST: fresh } = await import('../../api/report.ts');
   return (value) => fresh(make(value));
 };
+// The fields HINCRBY'd on rejects:<day>, across every pipeline sent.
+const rejectCounts = (spy) =>
+  sentPipelines(spy).flat().filter(([name, key]) => name === 'HINCRBY' && String(key).startsWith('rejects:')).map(([, , field]) => field);
 const jsonRequest = (value) => new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(value) });
 
 // What each path sends: [INCR], then (first count of the day: EXPIRE on the total, then) the counting commands.
@@ -111,12 +114,12 @@ describe('/api/report stays silent', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('answers 204 without calling out when the body is over the byte limit', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  it('answers 204 and counts a body over the byte limit as an oversize reject', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
     const big = JSON.stringify({ ...report, name: 'A'.repeat(3000) });
     const res = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: big }));
     expect(res.status).toBe(204);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(rejectCounts(fetchSpy)).toEqual(['oversize|other']);
   });
 
   it('stores exactly one sample, with only the sample keys', async () => {
@@ -147,17 +150,115 @@ describe('/api/report stays silent', () => {
   it.each([
     ['an unknown action name', ['add_files', 'not_a_real_action']],
     ['11 names', Array(11).fill('add_files')],
-  ])('answers 204 with no store call for %s', async (_, actions) => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  ])('answers 204 and counts %s as a bad_report reject, never as a report', async (_, actions) => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
     const res = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify({ ...report, actions }) }));
     expect(res.status).toBe(204);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(rejectCounts(fetchSpy)).toEqual(['bad_report|other']);
+    expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('errors:');
   });
 
-  it('answers an empty 204 to junk, and 405 only to a method no beacon uses', async () => {
+  it('answers an empty 204 to junk (counted as bad_json), and 405 only to a method no beacon uses', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
     const junk = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: '{' }));
     expect(junk.status).toBe(204);
+    expect(await junk.text()).toBe('');
+    expect(rejectCounts(fetchSpy)).toEqual(['bad_json|other']);
     expect(GET().status).toBe(405);
+  });
+
+  describe('rejected bodies', () => {
+    const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Version/17.5 Safari/604.1';
+    const send = (send, text, headers = {}) =>
+      send(new Request('https://pdkef.com/api/report', { method: 'POST', headers: { 'user-agent': ua, ...headers }, body: text }));
+    const cases = {
+      'bad_json|ios-17': '{',
+      'bad_report|ios-17': JSON.stringify({ ...report, step: 'not a step!' }),
+      'bad_drop|ios-17': JSON.stringify({ kind: 'dropped', area: 'nope' }),
+      'bad_event|ios-17': JSON.stringify({ name: 'tool_result_ready', properties: { tool: 'nope' } }),
+      'bad_other|ios-17': JSON.stringify({ hello: 'world' }),
+      'oversize|ios-17': JSON.stringify({ ...report, name: 'A'.repeat(3000) }),
+    };
+    for (const [field, text] of Object.entries(cases)) {
+      it(`counts ${field.split('|')[0]} with its engine, as rejects:<day> after rejects:total:<day>`, async () => {
+        const poster = await freshPoster((t) => t);
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+        expect((await send(poster, text)).status).toBe(204);
+        const calls = sentPipelines(fetchSpy);
+        expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^rejects:total:\d{4}-\d{2}-\d{2}$/)]]);
+        expect(calls[1][0][0]).toBe('EXPIRE');
+        expect(calls[1].slice(1).map((c) => c[0])).toEqual(['HINCRBY', 'EXPIRE']);
+        expect(calls[1][1][1]).toMatch(/^rejects:\d{4}-\d{2}-\d{2}$/);
+        expect(calls[1][1][2]).toBe(field);
+      });
+    }
+
+    it('counts an oversize content-length without reading the body', async () => {
+      const poster = await freshPoster((t) => t);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      await send(poster, '{}', { 'content-length': '9999' });
+      expect(rejectCounts(fetchSpy)).toEqual(['oversize|ios-17']);
+    });
+
+    it('past the reject cap counts nothing, and the next reject makes no store call', async () => {
+      const poster = await freshPoster((t) => t);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(201));
+      expect((await send(poster, '{')).status).toBe(204);
+      expect(sentPipelines(fetchSpy)).toEqual([[['INCR', expect.stringMatching(/^rejects:total:/)]]]);
+      expect((await send(poster, '{')).status).toBe(204);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('counts the 200th reject of the day', async () => {
+      const poster = await freshPoster((t) => t);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(200));
+      await send(poster, '{');
+      expect(rejectCounts(fetchSpy)).toEqual(['bad_json|ios-17']);
+    });
+
+    it('makes no store call when the store is not configured', async () => {
+      delete process.env.KV_REST_API_URL;
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      expect((await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: '{' }))).status).toBe(204);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps the reject cap apart from the error cap', async () => {
+      const poster = await freshPoster((t) => t);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_u, init) => {
+        const first = JSON.parse(init.body)[0][1];
+        return new Response(JSON.stringify([{ result: first.startsWith('rejects:') ? 1 : 9999 }, { result: 1 }]), { status: 200 });
+      });
+      await send(poster, '{');
+      expect(rejectCounts(fetchSpy)).toEqual(['bad_json|ios-17']);
+    });
+  });
+
+  describe('drop records', () => {
+    const drop = { kind: 'dropped', area: 'drafts', step: 'export', reason: 'ignored', type: 'DOMException', name: 'AbortError' };
+    const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Version/17.5 Safari/604.1';
+    const postDrop = (poster) =>
+      poster(new Request('https://pdkef.com/api/report', { method: 'POST', headers: { 'user-agent': ua }, body: JSON.stringify(drop) }));
+
+    it('runs the error cap, then exactly one HINCRBY on drops:<day> and an EXPIRE, no HSET', async () => {
+      const poster = await freshPoster((t) => t);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      expect((await postDrop(poster)).status).toBe(204);
+      const calls = sentPipelines(fetchSpy);
+      expect(calls).toHaveLength(2);
+      expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^errors:total:/)]]);
+      expect(calls[1].map((c) => c[0])).toEqual(['EXPIRE', 'HINCRBY', 'EXPIRE']);
+      expect(calls[1][1][1]).toMatch(/^drops:\d{4}-\d{2}-\d{2}$/);
+      expect(calls[1][1][2]).toBe('drafts|export|ignored|DOMException|AbortError|-|ios-17');
+      expect(JSON.stringify(calls)).not.toContain('rejects:');
+    });
+
+    it('past the error cap is not counted', async () => {
+      const poster = await freshPoster((t) => t);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1001));
+      await postDrop(poster);
+      expect(sentPipelines(fetchSpy)).toEqual([[['INCR', expect.stringMatching(/^errors:total:/)]]]);
+    });
   });
 
   describe('maintenance events', () => {
@@ -205,10 +306,11 @@ describe('/api/report stays silent', () => {
       'both report and event keys': { ...report, ...event },
     };
     for (const [what, value] of Object.entries(rejected)) {
-      it(`answers 204 without calling out for ${what}`, async () => {
-        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      it(`answers 204 and counts a reject, not an event, for ${what}`, async () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
         expect((await postJson(value)).status).toBe(204);
-        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(rejectCounts(fetchSpy).length).toBe(1);
+        expect(JSON.stringify(sentPipelines(fetchSpy))).not.toMatch(/events:|errors:/);
       });
     }
   });
@@ -274,11 +376,19 @@ describe('/api/report stays silent', () => {
       expect(hincrbyKeys(fetchSpy)).toEqual(['errors']);
     });
 
-    it('answers 204 without calling out for an extra property', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    it('stores a build-stamped event under a three-part field', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const stamped = { name: 'tool_operation_failed', properties: { tool: 'redact', build: '08e10cf' } };
+      expect((await postUsage(stamped)).status).toBe(204);
+      const hincrbys = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body)).filter(([name]) => name === 'HINCRBY');
+      expect(hincrbys).toEqual([['HINCRBY', expect.stringMatching(/^usage:\d{4}-\d{2}-\d{2}$/), 'tool_operation_failed|redact|08e10cf', 1]]);
+    });
+
+    it('counts an event with an extra property as a bad_event reject, not as usage', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
       const extra = { ...usage, properties: { ...usage.properties, note: 'x' } };
       expect((await postUsage(extra)).status).toBe(204);
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
     });
   });
 });
