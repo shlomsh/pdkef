@@ -173,7 +173,7 @@ export function failuresByBuild(perDay, windowDays) {
 }
 
 // Mirror ERROR_AREAS in src/lib/errorReportSchema.ts (a script cannot import TS).
-const AREAS = new Set(['pdf_render', 'pdf_tool_run', 'chunk_load', 'drafts', 'handoff', 'fonts', 'redact', 'sign_export', 'sign_form_detection', 'uncaught']);
+export const AREAS = new Set(['pdf_render', 'pdf_tool_run', 'chunk_load', 'drafts', 'handoff', 'fonts', 'redact', 'sign_export', 'sign_form_detection', 'uncaught']);
 
 // Tools that failed in the window while their area has no error report and no drop record in the window.
 // A tool's area is its own name when that is an area (redact), else pdf_tool_run.

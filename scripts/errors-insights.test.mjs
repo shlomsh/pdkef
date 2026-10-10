@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AREAS,
   RISING,
   addUntraced,
   failuresByBuild,
@@ -294,5 +295,16 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
       'Needs attention (3)', '  A', '  RISING  x', '  UNTRACED  redact: 4 failures left no report and no drop record', 'Known, not actionable (1)', '  k',
     ]);
     expect(addUntraced(['x'], [])).toEqual(['x']);
+  });
+});
+
+describe('AREAS mirrors the schema (DEBT-44)', () => {
+  it('lists exactly ERROR_AREAS from src/lib/errorReportSchema.ts', async () => {
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync(new URL('../src/lib/errorReportSchema.ts', import.meta.url), 'utf8');
+    const block = /export const ERROR_AREAS = \[([\s\S]*?)\] as const;/.exec(source)[1];
+    const areas = [...block.matchAll(/^\s*'([a-z_]+)'/gm)].map((m) => m[1]);
+    expect(areas.length).toBeGreaterThan(0);
+    expect([...AREAS].sort()).toEqual(areas.sort());
   });
 });

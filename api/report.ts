@@ -94,16 +94,19 @@ export async function POST(request: Request): Promise<Response> {
       return NO_CONTENT();
     }
     const body = await request.text();
+    // An oversize or unparseable body parses as nothing and is counted as a reject below.
     let json: unknown;
-    try {
-      json = JSON.parse(body);
-    } catch {
-      json = undefined;
+    if (body.length <= MAX_REPORT_BYTES) {
+      try {
+        json = JSON.parse(body);
+      } catch {
+        // expected: bad JSON is a reject, counted below
+      }
     }
-    const report = body.length > MAX_REPORT_BYTES ? null : parseErrorReport(json);
-    const event = report || body.length > MAX_REPORT_BYTES ? null : parseMaintenanceEvent(json);
-    const drop = report || event || body.length > MAX_REPORT_BYTES ? null : parseDropRecord(json);
-    const usage = report || event || drop || body.length > MAX_REPORT_BYTES ? null : parseUsageEvent(json);
+    const report = parseErrorReport(json);
+    const event = report ? null : parseMaintenanceEvent(json);
+    const drop = report || event ? null : parseDropRecord(json);
+    const usage = report || event || drop ? null : parseUsageEvent(json);
     if (!store) return NO_CONTENT();
     if (!report && !event && !drop && !usage) {
       await countReject(store, request, declared, body);
