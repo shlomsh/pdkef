@@ -103,7 +103,7 @@ describe('errors-read wiring', () => {
     }];
     const { stdout } = await readWith(['--days', '1', '--history', '2'], (n) => repliesFor(n, one));
     const at = (s) => stdout.indexOf(s);
-    expect(stdout).toMatch(/^WARNING: .*rejects.*200/m);
+    expect(stdout).toMatch(/^WARNING: .*endpoint rejects/m);
     expect(stdout).toContain('Reports not sent (drop records)');
     expect(stdout).toContain('count | area | step | reason | type | name | build | engine');
     expect(stdout).toContain('3 | sign_export | export | non_error | TypeError | - | - | chromium-143');
