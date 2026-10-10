@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ACTIONS,
   MAX_ACTIONS,
+  MAX_DROPS_PER_PAGE,
   MAX_FRAMES,
   MAX_REPORT_BYTES,
   MAX_REPORTS_PER_PAGE,
@@ -12,6 +13,7 @@ import {
   sendBeacon,
   resetErrorReportingForTests,
   setReportingEnabledForTests,
+  toDropRecord,
   toErrorReport,
   type PageContext,
 } from './errorReport.ts';
@@ -155,9 +157,10 @@ describe('reportError', () => {
     reportError('uncaught', e, 'save_draft');
     expect(beacon).toHaveBeenCalledTimes(1);
   });
-  it('drops pdf.js cancellation', () => {
+  it('drops pdf.js cancellation as a report, leaving only a drop record', async () => {
     reportError('pdf_render', errorAt('C.js:1:2', 'x', 'RenderingCancelledException'), 'save_draft');
-    expect(beacon).not.toHaveBeenCalled();
+    expect(beacon).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(await (beacon.mock.calls[0]![1] as Blob).text())).toMatchObject({ kind: 'dropped', reason: 'ignored' });
   });
   it('caps the total per page', () => {
     for (let i = 0; i < MAX_REPORTS_PER_PAGE + 5; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`), 'save_draft');
@@ -370,5 +373,81 @@ describe('translated field (SIGN-40)', () => {
   });
   it('toErrorReport carries translated', () => {
     expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'x', { ...CTX, translated: true })?.translated).toBe(true);
+  });
+});
+
+describe('toDropRecord (DEBT-44)', () => {
+  const noFrame = (e: Error): Error => {
+    e.stack = `${e.name}: x\n    at f (chrome-extension://abc/inject.js:1:2)`;
+    return e;
+  };
+  it('maps a thrown string, null and other non-errors to non_error', () => {
+    expect(toDropRecord('redact', 'boom', 'export')).toEqual({ kind: 'dropped', area: 'redact', step: 'export', reason: 'non_error', type: 'string' });
+    expect(toDropRecord('redact', null, 'export')?.type).toBe('null');
+    expect(toDropRecord('redact', { name: 'TypeError' }, 'export')?.type).toBe('object');
+  });
+  it('maps a DOMException with no built frame to no_frame, keeping a listed name', () => {
+    const e = noFrame(new DOMException('x', 'NotReadableError'));
+    expect(toDropRecord('redact', e, 'export')).toMatchObject({ reason: 'no_frame', type: 'DOMException', name: 'NotReadableError' });
+  });
+  it('maps an ignored name to ignored', () => {
+    const e = errorAt('A.js:1:1', 'x', 'AbortError');
+    expect(toDropRecord('drafts', e, 'save_draft')).toMatchObject({ reason: 'ignored', type: 'TypeError', name: 'AbortError' });
+  });
+  it('maps pdf-lib encrypted error under a minified name to encrypted / EncryptedPDFError', () => {
+    const e = errorAt('A.js:1:1', 'Input to `PDFDocument.load` is encrypted.', 'fm');
+    expect(toDropRecord('redact', e, 'details_read')).toMatchObject({ reason: 'encrypted', name: 'EncryptedPDFError' });
+  });
+  it('omits a name that is not on the list, and types by class', () => {
+    const plain = noFrame(new Error('x'));
+    const r = toDropRecord('drafts', plain, 'save_draft');
+    expect(r).toMatchObject({ reason: 'no_frame', type: 'Error' });
+    expect('name' in (r as object)).toBe(false);
+    class MyErr extends Error {}
+    expect(toDropRecord('drafts', noFrame(new MyErr('x')), 'save_draft')?.type).toBe('custom');
+    expect(toDropRecord('drafts', noFrame(new RangeError('x')), 'save_draft')?.type).toBe('RangeError');
+  });
+  it('carries build only when given, and is null for a bad step', () => {
+    expect(toDropRecord('drafts', 's', 'save_draft', 'abc1234')?.build).toBe('abc1234');
+    expect('build' in (toDropRecord('drafts', 's', 'save_draft') as object)).toBe(false);
+    expect(toDropRecord('drafts', 's', 'has space')).toBeNull();
+  });
+});
+
+describe('reportError drop records (DEBT-44)', () => {
+  const beacon = vi.fn((..._args: unknown[]) => true);
+  const bodies = async () => Promise.all(beacon.mock.calls.map(([, b]) => (b as Blob).text().then(JSON.parse)));
+  beforeEach(() => {
+    beacon.mockReset();
+    beacon.mockReturnValue(true);
+    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
+    setReportingEnabledForTests(true);
+    resetErrorReportingForTests();
+  });
+  it('sends a drop record for a string throw', async () => {
+    reportError('redact', 'boom', 'export');
+    expect(await bodies()).toEqual([{ kind: 'dropped', area: 'redact', step: 'export', reason: 'non_error', type: 'string' }]);
+  });
+  it('sends a drop record for an Error with no built frame', async () => {
+    const e = new DOMException('x', 'NotReadableError');
+    e.stack = 'NotReadableError: x\n    at f (chrome-extension://abc/i.js:1:2)';
+    reportError('redact', e, 'export');
+    expect(await bodies()).toMatchObject([{ kind: 'dropped', reason: 'no_frame', type: 'DOMException', name: 'NotReadableError' }]);
+  });
+  it('sends each distinct drop once per page', () => {
+    reportError('redact', 'a', 'export');
+    reportError('redact', 'b', 'export');
+    reportError('redact', 'c', 'other_step');
+    expect(beacon).toHaveBeenCalledTimes(2);
+  });
+  it('caps drops per page', () => {
+    for (let i = 0; i < MAX_DROPS_PER_PAGE + 5; i++) reportError('redact', 's', `step_${String.fromCharCode(97 + i)}`);
+    expect(beacon).toHaveBeenCalledTimes(MAX_DROPS_PER_PAGE);
+  });
+  it('sends nothing new for a deduplicated report', () => {
+    const e = errorAt('D.js:1:2');
+    reportError('drafts', e, 'save_draft');
+    reportError('drafts', e, 'save_draft');
+    expect(beacon).toHaveBeenCalledTimes(1);
   });
 });

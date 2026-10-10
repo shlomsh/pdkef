@@ -17,7 +17,10 @@ beforeEach(() => {
   resetUsageEventsForTests();
 });
 
-afterEach(() => setReportingEnabledForTests(false));
+afterEach(() => {
+  setReportingEnabledForTests(false);
+  vi.unstubAllGlobals();
+});
 
 describe('reportToolLifecycleEvent', () => {
   it('posts one JSON blob to /api/report', async () => {
@@ -50,5 +53,18 @@ describe('reportToolLifecycleEvent', () => {
       throw new Error('boom');
     });
     expect(() => reportToolLifecycleEvent('tool_result_ready', 'merge')).not.toThrow();
+  });
+
+  it('adds the build commit when the page carries one, and only then', async () => {
+    const page = (content: string | null) =>
+      vi.stubGlobal('document', {
+        querySelector: () => (content === null ? null : { getAttribute: () => content }),
+      });
+    page('08e10cf');
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    expect(JSON.parse(await (beacon.mock.calls[0]![1] as Blob).text()).properties).toEqual({ tool: 'merge', build: '08e10cf' });
+    page(null);
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    expect(JSON.parse(await (beacon.mock.calls[1]![1] as Blob).text()).properties).toEqual({ tool: 'merge' });
   });
 });

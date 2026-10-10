@@ -9,7 +9,7 @@
  * Hobby did not record them as Vercel custom events.
  */
 
-import { sendBeacon } from './errorReport.ts';
+import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { parseUsageEvent, type AnalyticsTool, type ToolLifecycleEvent } from './usageEventSchema';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
@@ -32,7 +32,8 @@ export function resetUsageEventsForTests(): void {
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
 export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: AnalyticsTool): void {
   try {
-    const parsed = parseUsageEvent({ name: event, properties: { tool } });
+    const build = readBuildCommit();
+    const parsed = parseUsageEvent({ name: event, properties: { tool, ...(build ? { build } : {}) } });
     if (!parsed || handedOff >= MAX_USAGE_EVENTS_PER_PAGE) return;
     if (sendBeacon(parsed)) handedOff += 1;
   } catch {
