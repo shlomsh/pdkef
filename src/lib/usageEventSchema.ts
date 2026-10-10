@@ -40,7 +40,17 @@ export const TOOL_LIFECYCLE_EVENTS = [
 ] as const;
 export type ToolLifecycleEvent = (typeof TOOL_LIFECYCLE_EVENTS)[number];
 
-export type UsageEvent = Readonly<{ name: ToolLifecycleEvent; properties: Readonly<{ tool: AnalyticsTool }> }>;
+/**
+ * `build` (DEBT-44): the 7-character commit the page was built from, as in an error report, so a
+ * day's failures can be told apart by release. Optional: a build without the stamp, or a cached
+ * older build, sends `{tool}` alone.
+ */
+export type UsageEvent = Readonly<{
+  name: ToolLifecycleEvent;
+  properties: Readonly<{ tool: AnalyticsTool; build?: string }>;
+}>;
+
+const BUILD = /^[0-9a-f]{7}$/;
 
 const has = (list: readonly string[], value: unknown): boolean =>
   typeof value === 'string' && list.includes(value);
@@ -55,22 +65,32 @@ function exactKeys(value: object, keys: readonly string[]): boolean {
 }
 
 /**
- * Accepts exactly `{name, properties: {tool}}` with both values off their
- * lists, and nothing else. Run on both sides, like `parseErrorReport`.
+ * Accepts exactly `{name, properties: {tool}}` or `{name, properties: {tool, build}}`, with every
+ * value off its list or in its shape, and nothing else. Run on both sides, like `parseErrorReport`.
  */
 export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (!isPlainObject(value) || !exactKeys(value, ['name', 'properties'])) return null;
   const { name, properties } = value;
   if (!has(TOOL_LIFECYCLE_EVENTS, name)) return null;
-  if (!isPlainObject(properties) || !exactKeys(properties, ['tool'])) return null;
+  if (!isPlainObject(properties)) return null;
+  const stamped = 'build' in properties;
+  if (!exactKeys(properties, stamped ? ['tool', 'build'] : ['tool'])) return null;
   if (!has(ANALYTICS_TOOLS, properties.tool)) return null;
+  if (stamped && (typeof properties.build !== 'string' || !BUILD.test(properties.build))) return null;
   return Object.freeze({
     name: name as ToolLifecycleEvent,
-    properties: Object.freeze({ tool: properties.tool as AnalyticsTool }),
+    properties: Object.freeze({
+      tool: properties.tool as AnalyticsTool,
+      ...(stamped ? { build: properties.build as string } : {}),
+    }),
   });
 }
 
-/** The counter field an event is stored under: `tool_result_ready|merge`. */
+/**
+ * The counter field an event is stored under: `tool_result_ready|merge`, or with its build
+ * `tool_result_ready|merge|08e10cf`. `errors:read` sums both shapes per tool.
+ */
 export function usageEventField(event: UsageEvent): string {
-  return `${event.name}|${event.properties.tool}`;
+  const { tool, build } = event.properties;
+  return build ? `${event.name}|${tool}|${build}` : `${event.name}|${tool}`;
 }

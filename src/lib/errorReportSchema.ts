@@ -170,3 +170,104 @@ export function pageAge(ms: number): PageAge {
   if (ms < 600_000) return 'under_10m';
   return 'over_10m';
 }
+
+/**
+ * A drop record (DEBT-44): what the browser sends instead of a report it will not send, so a counted
+ * failure always leaves a trace. A Redact export failed five times on 10 Oct 2026 with no report at
+ * all, and nothing could say why. Same privacy bar as a report, smaller: no stack, no message, no
+ * page facts beyond `build`; every value an identifier our code wrote or an entry on a closed list.
+ * - `reason`: why no report went: not an `Error` (`non_error`), no frame inside `/_astro/`
+ *   (`no_frame`), a name on `IGNORED_NAMES` (`ignored`), pdf-lib's encrypted-file error
+ *   (`encrypted`), or a report `parseErrorReport` refused (`invalid`);
+ * - `type`: what was thrown, coarsely: a built-in error class, `custom` for any other `Error`
+ *   subclass, or the `typeof` of anything that is not an `Error`;
+ * - `name`: only when the error's name is on `DROP_NAMES`, so a minified or invented name never travels;
+ * - `area`, `step`, `build`: as in a report.
+ * A deduplicated or capped report is not a drop: its cause already travelled.
+ */
+export const DROP_REASONS = ['non_error', 'no_frame', 'ignored', 'encrypted', 'invalid'] as const;
+export type DropReason = (typeof DROP_REASONS)[number];
+
+export const DROP_TYPES = [
+  'Error', 'TypeError', 'RangeError', 'ReferenceError', 'SyntaxError', 'URIError', 'EvalError',
+  'AggregateError', 'DOMException', 'custom',
+  'string', 'number', 'bigint', 'boolean', 'symbol', 'undefined', 'object', 'function', 'null',
+] as const;
+export type DropType = (typeof DROP_TYPES)[number];
+
+/**
+ * Failures of the environment or of the person's own file, never of our code: a cancelled
+ * operation, full or blocked storage, a refused permission, an encrypted, damaged or missing PDF.
+ * `errorReport.ts` drops a report for these names (as reason `ignored`).
+ */
+export const IGNORED_NAMES = [
+  'AbortError',
+  'QuotaExceededError',
+  'NotAllowedError',
+  'SecurityError',
+  'PasswordException',
+  'InvalidPDFException',
+  'MissingPDFException',
+  // pdf.js: a damaged file, a failed range request, and a render or load
+  // cancelled because the person moved on.
+  'FormatError',
+  'UnexpectedResponseException',
+  'RenderingCancelledException',
+  'AbortException',
+] as const;
+
+/** Names a drop record may carry: the ignored ones, pdf-lib's encrypted error and the common DOMException names. */
+export const DROP_NAMES = [
+  ...IGNORED_NAMES,
+  'EncryptedPDFError',
+  'NotReadableError', 'NotFoundError', 'NotSupportedError', 'InvalidStateError', 'InvalidAccessError',
+  'DataCloneError', 'DataError', 'NetworkError', 'TimeoutError', 'OperationError', 'UnknownError',
+  'EncodingError', 'TransactionInactiveError', 'ReadOnlyError', 'VersionError', 'ConstraintError',
+] as const;
+
+export type DropRecord = Readonly<{
+  kind: 'dropped';
+  area: ErrorArea;
+  step: string;
+  reason: DropReason;
+  type: DropType;
+  name?: string;
+  build?: string;
+}>;
+
+const DROP_KEYS: ReadonlySet<string> = new Set(['kind', 'area', 'step', 'reason', 'type', 'name', 'build']);
+const DROP_REASON_SET: ReadonlySet<string> = new Set(DROP_REASONS);
+const DROP_TYPE_SET: ReadonlySet<string> = new Set(DROP_TYPES);
+const DROP_NAME_SET: ReadonlySet<string> = new Set(DROP_NAMES);
+
+/**
+ * Accepts exactly a drop record: the five required keys, optional `name` and `build`, nothing else.
+ * Run on both sides, like `parseErrorReport`.
+ */
+export function parseDropRecord(value: unknown): DropRecord | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  if (!Object.keys(value).every((key) => DROP_KEYS.has(key))) return null;
+  const { kind, area, step, reason, type, name, build } = value as Record<string, unknown>;
+  if (kind !== 'dropped') return null;
+  if (typeof area !== 'string' || !AREAS.has(area)) return null;
+  if (typeof step !== 'string' || !STEP.test(step)) return null;
+  if (typeof reason !== 'string' || !DROP_REASON_SET.has(reason)) return null;
+  if (typeof type !== 'string' || !DROP_TYPE_SET.has(type)) return null;
+  if ('name' in value && (typeof name !== 'string' || !DROP_NAME_SET.has(name))) return null;
+  if ('build' in value && (typeof build !== 'string' || !BUILD.test(build))) return null;
+  return Object.freeze({
+    kind: 'dropped' as const,
+    area: area as ErrorArea,
+    step,
+    reason: reason as DropReason,
+    type: type as DropType,
+    ...('name' in value ? { name: name as string } : {}),
+    ...('build' in value ? { build: build as string } : {}),
+  });
+}
+
+/** The counter field a drop record is stored under; an absent `name` or `build` reads `-`. */
+export function dropRecordField(record: DropRecord, engine: string): string {
+  const { area, step, reason, type, name, build } = record;
+  return `${area}|${step}|${reason}|${type}|${name ?? '-'}|${build ?? '-'}|${engine}`;
+}
