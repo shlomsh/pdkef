@@ -1,7 +1,10 @@
 // Vercel Function: receives the anonymous error reports of src/lib/errorReport.ts
 // and counts them in Upstash Redis (DEBT-17), keeping the latest example of
-// each (DEBT-27), and also counts Sign's maintenance events (counts only, no
-// sample), and per-tool usage (counts only, no engine, no sample). The second request-time component after middleware.ts; Astro
+// each (DEBT-27), and also counts Sign's maintenance events and the reports a
+// tool chose not to send (drop records, DEBT-44; counts only, no sample),
+// per-tool usage (counts only, no engine, no sample), and every body it
+// refuses (oversize, bad JSON, a shape no parser accepts), by reason and
+// engine under its own small daily cap. The second request-time component after middleware.ts; Astro
 // itself stays output 'static' with no adapter, so this is a plain function
 // under api/. It never sees a PDF byte: a report is positions in our own code,
 // identifiers, flags and a bucket, validated by parseErrorReport.
@@ -13,19 +16,25 @@
 // tool. Stored: counts per day, plus the latest validated example of each,
 // with an engine bucket - no IP, no full user agent, no time finer than the
 // day. Nothing from the request is logged.
-import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReportSchema.js';
+import { MAX_REPORT_BYTES, parseDropRecord, parseErrorReport } from '../src/lib/errorReportSchema.js';
 import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
 import { parseUsageEvent } from '../src/lib/usageEventSchema.js';
 import {
   DAILY_CAP,
+  REJECT_DAILY_CAP,
   USAGE_DAILY_CAP,
   capCommands,
   countCommands,
+  dropCommands,
   dayKey,
   engineBucket,
   errorTotalKey,
   eventCommands,
   readEnv,
+  rejectCapCommands,
+  rejectCommands,
+  rejectReason,
+  rejectTotalKey,
   usageCapCommands,
   usageCommands,
   usageTotalKey,
@@ -55,19 +64,51 @@ async function pipeline(
 // forged reports costs no store calls at all.
 let cappedDay = '';
 let cappedUsageDay = '';
+let cappedRejectDay = '';
+
+// Counts a refused body by reason and engine, under its own cap. Errors here are the caller's to swallow.
+async function countReject(
+  store: { url: string; token: string },
+  request: Request,
+  declared: number,
+  body: string | undefined,
+): Promise<void> {
+  const day = dayKey(new Date());
+  if (day === cappedRejectDay) return;
+  const [total] = await pipeline(store, rejectCapCommands(day));
+  if (typeof total?.result !== 'number') return;
+  if (total.result > REJECT_DAILY_CAP) {
+    cappedRejectDay = day;
+    return;
+  }
+  const engine = engineBucket(request.headers.get('user-agent') ?? '');
+  await pipeline(store, withDayExpiry(rejectTotalKey(day), total.result, rejectCommands(rejectReason(declared, body), engine, day)));
+}
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const declared = Number(request.headers.get('content-length') ?? 0);
-    if (declared > MAX_REPORT_BYTES) return NO_CONTENT();
-    const body = await request.text();
-    if (body.length > MAX_REPORT_BYTES) return NO_CONTENT();
-    const json: unknown = JSON.parse(body);
-    const report = parseErrorReport(json);
-    const event = report ? null : parseMaintenanceEvent(json);
-    const usage = report || event ? null : parseUsageEvent(json);
     const store = readEnv(process.env);
-    if ((!report && !event && !usage) || !store) return NO_CONTENT();
+    const declared = Number(request.headers.get('content-length') ?? 0);
+    if (declared > MAX_REPORT_BYTES) {
+      if (store) await countReject(store, request, declared, undefined);
+      return NO_CONTENT();
+    }
+    const body = await request.text();
+    let json: unknown;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      json = undefined;
+    }
+    const report = body.length > MAX_REPORT_BYTES ? null : parseErrorReport(json);
+    const event = report || body.length > MAX_REPORT_BYTES ? null : parseMaintenanceEvent(json);
+    const drop = report || event || body.length > MAX_REPORT_BYTES ? null : parseDropRecord(json);
+    const usage = report || event || drop || body.length > MAX_REPORT_BYTES ? null : parseUsageEvent(json);
+    if (!store) return NO_CONTENT();
+    if (!report && !event && !drop && !usage) {
+      await countReject(store, request, declared, body);
+      return NO_CONTENT();
+    }
 
     const day = dayKey(new Date());
     if (usage) {
@@ -84,7 +125,11 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof total?.result === 'number' && total.result > DAILY_CAP) cappedDay = day;
     else if (typeof total?.result === 'number') {
       const engine = engineBucket(request.headers.get('user-agent') ?? '');
-      const counting = report ? countCommands(report, engine, day) : eventCommands(event!, engine, day);
+      const counting = report
+        ? countCommands(report, engine, day)
+        : drop
+          ? dropCommands(drop, engine, day)
+          : eventCommands(event!, engine, day);
       await pipeline(store, withDayExpiry(errorTotalKey(day), total.result, counting));
     }
   } catch {

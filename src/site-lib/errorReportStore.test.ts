@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   DAILY_CAP,
+  REJECT_DAILY_CAP,
   USAGE_DAILY_CAP,
   capCommands,
+  dropCommands,
+  rejectCapCommands,
+  rejectCommands,
+  rejectReason,
   countCommands,
   dayKey,
   engineBucket,
@@ -157,5 +162,44 @@ describe('withDayExpiry', () => {
   it('puts the total expiry first on the first count of the day only', () => {
     expect(withDayExpiry('errors:total:d', 1, [...counting])).toEqual([['EXPIRE', 'errors:total:d', 7776000], ...counting]);
     expect(withDayExpiry('errors:total:d', 7, [...counting])).toEqual(counting);
+  });
+});
+
+describe('dropCommands', () => {
+  const record = { kind: 'dropped', area: 'drafts', step: 'export', reason: 'ignored', type: 'DOMException', name: 'AbortError', build: '08e10cf' } as const;
+  it('counts one field under drops:<day>, with an expiry and no sample', () => {
+    expect(dropCommands(record, 'ios-17', '2026-10-01')).toEqual([
+      ['HINCRBY', 'drops:2026-10-01', 'drafts|export|ignored|DOMException|AbortError|08e10cf|ios-17', 1],
+      ['EXPIRE', 'drops:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+  });
+});
+
+describe('rejectReason', () => {
+  it('names oversize by the declared length or the body', () => {
+    expect(rejectReason(5000, undefined)).toBe('oversize');
+    expect(rejectReason(0, 'x'.repeat(3000))).toBe('oversize');
+  });
+  it('names unparseable JSON bad_json', () => {
+    expect(rejectReason(1, '{')).toBe('bad_json');
+  });
+  it('classifies valid JSON that no parser accepts by its telling key', () => {
+    expect(rejectReason(1, '{"stack":[]}')).toBe('bad_report');
+    expect(rejectReason(1, '{"kind":"dropped"}')).toBe('bad_drop');
+    expect(rejectReason(1, '{"properties":{}}')).toBe('bad_event');
+    expect(rejectReason(1, '{"x":1}')).toBe('bad_other');
+    expect(rejectReason(1, '[1]')).toBe('bad_other');
+    expect(rejectReason(1, 'null')).toBe('bad_other');
+  });
+});
+
+describe('reject commands', () => {
+  it('counts a day total with its own cap, then one field under rejects:<day>', () => {
+    expect(REJECT_DAILY_CAP).toBe(200);
+    expect(rejectCapCommands('2026-10-01')).toEqual([['INCR', 'rejects:total:2026-10-01']]);
+    expect(rejectCommands('bad_json', 'other', '2026-10-01')).toEqual([
+      ['HINCRBY', 'rejects:2026-10-01', 'bad_json|other', 1],
+      ['EXPIRE', 'rejects:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
   });
 });
