@@ -6,10 +6,16 @@
 
 import { errorName, stackFrames } from './errorIdentity.ts';
 import {
+  DROP_NAMES,
   ERROR_REPORT_PATH,
+  IGNORED_NAMES,
+  dropRecordField,
   pageAge,
+  parseDropRecord,
   parseErrorReport,
   type ErrorArea,
+  type DropRecord,
+  type DropType,
   type ErrorReport,
   type PageContext,
   MAX_FRAMES,
@@ -18,27 +24,7 @@ import {
 export * from './errorReportSchema.ts';
 import { recentActions } from './actionTrail.ts';
 
-/**
- * Failures of the environment or of the person's own file, never of our code:
- * a cancelled operation, full or blocked storage, a refused permission, an
- * encrypted, damaged or missing PDF. Reporting them would bury the defects
- * this exists to find.
- */
-export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set([
-  'AbortError',
-  'QuotaExceededError',
-  'NotAllowedError',
-  'SecurityError',
-  'PasswordException',
-  'InvalidPDFException',
-  'MissingPDFException',
-  // pdf.js: a damaged file, a failed range request, and a render or load
-  // cancelled because the person moved on.
-  'FormatError',
-  'UnexpectedResponseException',
-  'RenderingCancelledException',
-  'AbortException',
-]);
+export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set<string>(IGNORED_NAMES);
 
 /**
  * pdf-lib's encrypted-file error. Matched by message as well as name because
@@ -65,6 +51,49 @@ export function toErrorReport(
   const stack = stackFrames(error, MAX_FRAMES);
   if (stack.length === 0) return null;
   return parseErrorReport({ area, name, stack, step, ...context });
+}
+
+const DROP_NAME_SET: ReadonlySet<string> = new Set(DROP_NAMES);
+
+/** What was thrown, coarsely: the built-in class (most specific first), `custom` for any other subclass. */
+function dropType(error: unknown): DropType {
+  if (!(error instanceof Error)) return error === null ? 'null' : (typeof error as DropType);
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) return 'DOMException';
+  const builtIns: [string, ErrorConstructor][] = [
+    ['TypeError', TypeError], ['RangeError', RangeError], ['ReferenceError', ReferenceError],
+    ['SyntaxError', SyntaxError], ['URIError', URIError], ['EvalError', EvalError],
+  ];
+  for (const [type, ctor] of builtIns) if (error instanceof ctor) return type as DropType;
+  if (typeof AggregateError !== 'undefined' && error instanceof AggregateError) return 'AggregateError';
+  return error.constructor === Error ? 'Error' : 'custom';
+}
+
+/**
+ * The drop record for an error `toErrorReport` returned null for (DEBT-44), so a counted failure
+ * always leaves a trace. Mirrors `toErrorReport`'s order to name the reason. Pure; null when the
+ * schema refuses it, so the browser never sends what the endpoint would refuse.
+ */
+export function toDropRecord(area: ErrorArea, error: unknown, step: string, build?: string): DropRecord | null {
+  let reason: DropRecord['reason'] = 'invalid';
+  let name: string | undefined;
+  if (!(error instanceof Error)) reason = 'non_error';
+  else {
+    name = errorName(error);
+    if (IGNORED_ERROR_NAMES.has(name)) reason = 'ignored';
+    else if (isPdfLibEncryptedError(error)) {
+      reason = 'encrypted';
+      name = 'EncryptedPDFError'; // the real name is minified
+    } else if (stackFrames(error, MAX_FRAMES).length === 0) reason = 'no_frame';
+  }
+  return parseDropRecord({
+    kind: 'dropped',
+    area,
+    step,
+    reason,
+    type: dropType(error),
+    ...(name !== undefined && DROP_NAME_SET.has(name) ? { name } : {}),
+    ...(build ? { build } : {}),
+  });
 }
 
 /**
@@ -127,7 +156,10 @@ export function reportError(area: ErrorArea, error: unknown, step: string): void
     if (!canSend()) return;
     if (sent.size >= MAX_REPORTS_PER_PAGE) return;
     const report = toErrorReport(area, error, step, readPageContext());
-    if (!report) return;
+    if (!report) {
+      sendDrop(toDropRecord(area, error, step, readBuildCommit()));
+      return;
+    }
     // Keyed on the step, so two call sites over one shared throw site stay two.
     // An uncaught error is the exception: if its throw site was already
     // reported from a catch, the escape is the same defect, not a new one.
@@ -140,6 +172,15 @@ export function reportError(area: ErrorArea, error: unknown, step: string): void
   } catch {
     // expected: Reporting must never change what the caller does next.
   }
+}
+
+/** A drop record, at most once per distinct record and `MAX_DROPS_PER_PAGE` per page; its own budget. */
+function sendDrop(record: DropRecord | null): void {
+  if (!record || drops.size >= MAX_DROPS_PER_PAGE) return;
+  const key = dropRecordField(record, '');
+  if (drops.has(key)) return;
+  drops.add(key);
+  sendBeacon(record);
 }
 
 function canSend(): boolean {
@@ -166,10 +207,12 @@ export function sendBeacon(payload: object): boolean {
 }
 
 export const MAX_REPORTS_PER_PAGE = 10;
+export const MAX_DROPS_PER_PAGE = 10;
 
 // Module state, so a page load is the unit of "once" and of the cap.
 const sent = new Set<string>();
 const sentSites = new Set<string>();
+const drops = new Set<string>();
 // `import.meta.env` exists only under Vite; Playwright specs and scripts import
 // modules that reach this one under plain Node, where reading it would throw at
 // import time.
@@ -182,6 +225,7 @@ export function setReportingEnabledForTests(value: boolean): void {
 export function resetErrorReportingForTests(): void {
   sent.clear();
   sentSites.clear();
+  drops.clear();
 }
 
 let installed = false;
