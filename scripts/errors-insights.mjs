@@ -172,11 +172,13 @@ export function failuresByBuild(perDay, windowDays) {
     });
 }
 
-// Mirror ERROR_AREAS in src/lib/errorReportSchema.ts (a script cannot import TS).
-export const AREAS = new Set(['pdf_render', 'pdf_tool_run', 'chunk_load', 'drafts', 'handoff', 'fonts', 'redact', 'sign_export', 'sign_form_detection', 'uncaught']);
 
-// Tools that failed in the window while their area has no error report and no drop record in the window.
-// A tool's area is its own name when that is an area (redact), else pdf_tool_run.
+// The areas a tool reports under: Redact and Sign have their own, every other tool uses pdf_tool_run.
+// Names off ERROR_AREAS in src/lib/errorReportSchema.ts (a script cannot import TS; a test pins them).
+export const TOOL_AREAS = { redact: ['redact'], sign: ['sign_export', 'sign_form_detection'] };
+
+// Tools that failed in the window while none of their areas has an error report or a drop record in
+// the window. Coarse on purpose: any step in the area counts as a trace, since usage has no step.
 export function untracedTools(perDay, windowDays) {
   const win = perDay.slice(0, windowDays);
   const traced = new Set();
@@ -186,7 +188,8 @@ export function untracedTools(perDay, windowDays) {
   }
   const out = [];
   for (const [tool, w] of sumByTool(win)) {
-    if (w.failed > 0 && !traced.has(AREAS.has(tool) ? tool : 'pdf_tool_run')) out.push({ tool, failed: w.failed });
+    const areas = TOOL_AREAS[tool] ?? ['pdf_tool_run'];
+    if (w.failed > 0 && !areas.some((area) => traced.has(area))) out.push({ tool, failed: w.failed });
   }
   return out.sort((a, b) => b.failed - a.failed || a.tool.localeCompare(b.tool));
 }

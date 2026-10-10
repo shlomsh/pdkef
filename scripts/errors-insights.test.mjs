@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AREAS,
   RISING,
+  TOOL_AREAS,
   addUntraced,
   failuresByBuild,
   fingerprintHistory,
@@ -279,6 +279,12 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
     const traced = [{ ...failing[0], drops: new Map([['redact|apply|ignored|TypeError|-|-|e', 1]]) }];
     expect(untracedTools(traced, 1)).toEqual([]);
   });
+  it('Sign is traced by its own areas, not pdf_tool_run', () => {
+    const sign = [day('d1', { usage: { 'tool_operation_failed|sign': 2 }, counts: { 'pdf_tool_run|E|c.js:1:1|s|e': 1 } })];
+    expect(untracedTools(sign, 1)).toEqual([{ tool: 'sign', failed: 2 }]);
+    sign[0].counts = new Map([['sign_export|E|c.js:1:1|s|e', 1]]);
+    expect(untracedTools(sign, 1)).toEqual([]);
+  });
   it('only the window counts', () => {
     const history = [day('d1'), day('d2', { counts: { 'redact|E|c.js:1:1|s|e': 1 } })];
     history[0].usage = new Map([['tool_operation_failed|redact', 3]]);
@@ -298,13 +304,13 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
   });
 });
 
-describe('AREAS mirrors the schema (DEBT-44)', () => {
-  it('lists exactly ERROR_AREAS from src/lib/errorReportSchema.ts', async () => {
+describe('TOOL_AREAS names real areas (DEBT-44)', () => {
+  it('every area is on ERROR_AREAS in src/lib/errorReportSchema.ts', async () => {
     const { readFileSync } = await import('node:fs');
     const source = readFileSync(new URL('../src/lib/errorReportSchema.ts', import.meta.url), 'utf8');
     const block = /export const ERROR_AREAS = \[([\s\S]*?)\] as const;/.exec(source)[1];
     const areas = [...block.matchAll(/^\s*'([a-z_]+)'/gm)].map((m) => m[1]);
-    expect(areas.length).toBeGreaterThan(0);
-    expect([...AREAS].sort()).toEqual(areas.sort());
+    expect(areas).toContain('pdf_tool_run');
+    for (const area of Object.values(TOOL_AREAS).flat()) expect(areas).toContain(area);
   });
 });

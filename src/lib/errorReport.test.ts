@@ -444,6 +444,15 @@ describe('reportError drop records (DEBT-44)', () => {
     for (let i = 0; i < MAX_DROPS_PER_PAGE + 5; i++) reportError('redact', 's', `step_${String.fromCharCode(97 + i)}`);
     expect(beacon).toHaveBeenCalledTimes(MAX_DROPS_PER_PAGE);
   });
+  it('still sends a drop record once the page has used its report cap', async () => {
+    for (let i = 0; i < MAX_REPORTS_PER_PAGE; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`), 'save_draft');
+    reportError('redact', 'boom', 'export');
+    expect((await bodies()).at(-1)).toMatchObject({ kind: 'dropped', area: 'redact', reason: 'non_error' });
+  });
+  it('sends no drop record for an uncaught error outside our code (extension noise has no failure to explain)', () => {
+    reportError('uncaught', 'boom', 'unhandled_rejection');
+    expect(beacon).not.toHaveBeenCalled();
+  });
   it('sends nothing new for a deduplicated report', () => {
     const e = errorAt('D.js:1:2');
     reportError('drafts', e, 'save_draft');
