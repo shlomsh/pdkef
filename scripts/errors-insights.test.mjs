@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   RISING,
+  addUntraced,
+  failuresByBuild,
   fingerprintHistory,
   parseDayReplies,
   sliceWindow,
   toolRates,
+  untracedTools,
 } from './errors-insights.mjs';
 
 const flat = (obj) => Object.entries(obj).flatMap(([k, v]) => [k, String(v)]);
@@ -21,6 +24,9 @@ function build(days) {
   for (const d of days) replies.push(ok(flat(d.usage || {})));
   for (const d of days) replies.push(ok(d.errorTotal == null ? null : String(d.errorTotal)));
   for (const d of days) replies.push(ok(d.usageTotal == null ? null : String(d.usageTotal)));
+  for (const d of days) replies.push(ok(flat(d.drops || {})));
+  for (const d of days) replies.push(ok(flat(d.rejects || {})));
+  for (const d of days) replies.push(ok(d.rejectsTotal == null ? null : String(d.rejectsTotal)));
   return replies;
 }
 
@@ -29,6 +35,7 @@ const day = (d, o = {}) => ({
   counts: new Map(Object.entries(o.counts || {})),
   samples: new Map(Object.entries(o.samples || {})),
   usage: new Map(Object.entries(o.usage || {})),
+  drops: new Map(Object.entries(o.drops || {})),
   errorTotal: 0,
   usageTotal: 0,
 });
@@ -189,6 +196,9 @@ describe('sliceWindow', () => {
     for (let i = 0; i < n; i++) r.push({ result: `usage${i}` });
     for (let i = 0; i < n; i++) r.push({ result: `etotal${i}` });
     for (let i = 0; i < n; i++) r.push({ result: `utotal${i}` });
+    for (let i = 0; i < n; i++) r.push({ result: `drops${i}` });
+    for (let i = 0; i < n; i++) r.push({ result: `rejects${i}` });
+    for (let i = 0; i < n; i++) r.push({ result: `rtotal${i}` });
     return r;
   };
   it('keeps the first n days of every block, in the layout a window of n days would have fetched', () => {
@@ -198,7 +208,7 @@ describe('sliceWindow', () => {
     expect(sliceWindow(layout(3), 3, 3)).toEqual(layout(3));
   });
   it('tolerates short or non-array replies', () => {
-    expect(sliceWindow(undefined, 3, 2)).toHaveLength(12);
+    expect(sliceWindow(undefined, 3, 2)).toHaveLength(2 * 2 + 7 * 2);
     // A consumer destructures `{ result }`, so a missing reply must come back as an empty one, not undefined.
     expect(sliceWindow([], 3, 2).every((x) => x && x.result === null)).toBe(true);
   });
@@ -232,5 +242,57 @@ describe('toolRates, baselines that cannot be trusted', () => {
     const r = by(toolRates([day('w', { usage: u(0, 4) }), day('h', { usage: u(20, 2) })], 1), 't');
     expect(r.flag).toBe(true);
     expect(r.why).toContain('no starts recorded');
+  });
+});
+
+describe('DEBT-44: drops, rejects and build-stamped usage', () => {
+  it('parseDayReplies reads drops, rejects and the rejects total', () => {
+    const [d] = parseDayReplies(
+      build([{ drops: { 'redact|apply|ignored|TypeError|-|-|chromium-143': 2 }, rejects: { 'oversize|chromium-143': 1 }, rejectsTotal: 4 }]),
+      ['d1'],
+    );
+    expect(d.drops.get('redact|apply|ignored|TypeError|-|-|chromium-143')).toBe(2);
+    expect(d.rejects.get('oversize|chromium-143')).toBe(1);
+    expect(d.rejectsTotal).toBe(4);
+    expect(parseDayReplies([], ['d1'])[0].rejectsTotal).toBe(0);
+  });
+
+  it('toolRates sums stamped and unstamped usage into one tool', () => {
+    const rows = toolRates([day('d1', { usage: { 'tool_operation_started|redact': 6, 'tool_operation_started|redact|08e10cf': 4, 'tool_operation_failed|redact|08e10cf': 3, 'tool_operation_failed|redact': 2 } })], 1);
+    expect(rows.map((r) => r.tool)).toEqual(['redact']);
+    expect(rows[0].window).toMatchObject({ started: 10, failed: 5 });
+  });
+
+  it('failuresByBuild lists stamped builds and unstamped, only for tools that failed', () => {
+    const lines = failuresByBuild([day('d1', { usage: { 'tool_operation_failed|redact|08e10cf': 3, 'tool_operation_failed|redact': 2, 'tool_operation_failed|sign|aaaaaaa': 1, 'tool_operation_started|merge': 9 } })], 1);
+    expect(lines).toEqual(['redact: failed 5 (08e10cf 3, unstamped 2)', 'sign: failed 1 (aaaaaaa 1)']);
+    expect(failuresByBuild([day('d1')], 1)).toEqual([]);
+  });
+
+  const failing = [day('d1', { usage: { 'tool_operation_failed|redact': 4, 'tool_operation_failed|merge': 3 }, counts: { 'pdf_tool_run|E|c.js:1:1|s|e': 1 } })];
+  it('untracedTools flags a failing tool with no report and no drop record in its area', () => {
+    expect(untracedTools(failing, 1)).toEqual([{ tool: 'redact', failed: 4 }]);
+    // merge is not an area, so pdf_tool_run is its area, which has a report
+  });
+  it('a drop record in the area counts as a trace', () => {
+    const traced = [{ ...failing[0], drops: new Map([['redact|apply|ignored|TypeError|-|-|e', 1]]) }];
+    expect(untracedTools(traced, 1)).toEqual([]);
+  });
+  it('only the window counts', () => {
+    const history = [day('d1'), day('d2', { counts: { 'redact|E|c.js:1:1|s|e': 1 } })];
+    history[0].usage = new Map([['tool_operation_failed|redact', 3]]);
+    expect(untracedTools(history, 1)).toEqual([{ tool: 'redact', failed: 3 }]);
+  });
+
+  it('addUntraced puts lines under Needs attention and fixes the count', () => {
+    const u = [{ tool: 'redact', failed: 4 }];
+    expect(addUntraced(['Needs attention: nothing'], u)).toEqual([
+      'Needs attention (1)',
+      '  UNTRACED  redact: 4 failures left no report and no drop record',
+    ]);
+    expect(addUntraced(['Needs attention (2)', '  A', '  RISING  x', 'Known, not actionable (1)', '  k'], u)).toEqual([
+      'Needs attention (3)', '  A', '  RISING  x', '  UNTRACED  redact: 4 failures left no report and no drop record', 'Known, not actionable (1)', '  k',
+    ]);
+    expect(addUntraced(['x'], [])).toEqual(['x']);
   });
 });
