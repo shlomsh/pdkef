@@ -15,9 +15,10 @@ const X = 'redact|TypeError|redact.Zn9K1YuS.js:44:99875|apply_boxes|chromium-143
 const Y = 'drafts|QuotaExceededError|useDraftPersistence.AbCdEfGh.js:1:2|save|chromium-150';
 const SAMPLE_X = JSON.stringify({ stack: ['redact.Zn9K1YuS.js:44:99875'], step: 'apply_boxes', tool: '/redact/', installed: false, sw: true, age: 'under_1m', actions: [], engine: 'chromium-143' });
 
-// The pipeline body is 6n commands in a fixed order: [errors, sample] per day, then events, usage, errorTotal, usageTotal per day.
+// The pipeline body is 9n commands in a fixed order: [errors, sample] per day, then events, usage, errorTotal,
+// usageTotal, drops, rejects, rejectsTotal per day.
 function repliesFor(commandCount, days) {
-  const n = commandCount / 6;
+  const n = commandCount / 9;
   const at = (i) => days[i] ?? {};
   const out = [];
   for (let i = 0; i < n; i++) out.push({ result: flat(at(i).counts) }, { result: flat(at(i).samples) });
@@ -25,6 +26,9 @@ function repliesFor(commandCount, days) {
   for (let i = 0; i < n; i++) out.push({ result: flat(at(i).usage) });
   for (let i = 0; i < n; i++) out.push({ result: at(i).errorTotal == null ? null : String(at(i).errorTotal) });
   for (let i = 0; i < n; i++) out.push({ result: at(i).usageTotal == null ? null : String(at(i).usageTotal) });
+  for (let i = 0; i < n; i++) out.push({ result: flat(at(i).drops) });
+  for (let i = 0; i < n; i++) out.push({ result: flat(at(i).rejects) });
+  for (let i = 0; i < n; i++) out.push({ result: at(i).rejectsTotal == null ? null : String(at(i).rejectsTotal) });
   return out;
 }
 
@@ -87,6 +91,34 @@ describe('errors-read wiring', () => {
     const lines = stdout.split('\n');
     expect(lines[0]).toMatch(/^WARNING: .* reached the daily cap/);
     expect(lines.findIndex((l) => l.startsWith('Needs attention'))).toBeGreaterThan(0);
+  });
+
+  it('prints drop records, endpoint rejects, build-stamped failures and untraced tools', async () => {
+    const D = 'sign_export|export|non_error|TypeError|-|-|chromium-143';
+    const one = [{
+      drops: { [D]: 3 },
+      rejects: { 'oversize|chromium-143': 2 },
+      rejectsTotal: 250,
+      usage: { 'tool_operation_started|redact|08e10cf': 4, 'tool_operation_failed|redact|08e10cf': 3, 'tool_operation_failed|redact': 2 },
+    }];
+    const { stdout } = await readWith(['--days', '1', '--history', '2'], (n) => repliesFor(n, one));
+    const at = (s) => stdout.indexOf(s);
+    expect(stdout).toMatch(/^WARNING: .*rejects.*200/m);
+    expect(stdout).toContain('Reports not sent (drop records)');
+    expect(stdout).toContain('count | area | step | reason | type | name | build | engine');
+    expect(stdout).toContain('3 | sign_export | export | non_error | TypeError | - | - | chromium-143');
+    expect(stdout).toContain('Rejected by the endpoint');
+    expect(stdout).toContain('2 | oversize | chromium-143');
+    expect(at('Reports not sent')).toBeGreaterThan(at('count | area | name | frame'));
+    expect(at('Reports not sent')).toBeLessThan(at('Sign maintenance events'));
+    expect(stdout).toContain('redact: failed 5 (08e10cf 3, unstamped 2)');
+    expect(stdout).toContain('UNTRACED  redact: 5 failures left no report and no drop record');
+    expect(stdout).toMatch(/redact \| 0 \| 4 \| 0 \| 5 \|/);
+  });
+
+  it('says none when nothing was dropped or rejected', async () => {
+    const { stdout } = await readWith(['--days', '2', '--history', '3'], (n) => repliesFor(n, []));
+    expect(stdout).toContain('(none in the last 2 days)');
   });
 
   it('a short reply array does not crash the reader', async () => {

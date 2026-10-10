@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
-import { fingerprintHistory, parseDayReplies, sliceWindow, toolRates } from './errors-insights.mjs';
+import { addUntraced, failuresByBuild, fingerprintHistory, parseDayReplies, sliceWindow, toolRates, untracedTools } from './errors-insights.mjs';
 import { validateRegistry } from './errors-known.mjs';
 import { renderTriage, triage } from './errors-triage.mjs';
 
@@ -15,13 +15,13 @@ import { renderTriage, triage } from './errors-triage.mjs';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runGit = (args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] });
 
-// usage:<day> holds `<event>|<tool>` -> count. Sums the days into one row per tool,
+// usage:<day> holds `<event>|<tool>` or `<event>|<tool>|<build>` -> count. Sums the days into one row per tool,
 // sorted by accepted descending; ready/accepted is a whole percent, or '-' without accepted.
 function sumUsage(results) {
   const byTool = new Map();
   for (const result of results) {
     for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
-      const [event, tool] = String(result[n]).split('|');
+      const [event, tool] = String(result[n]).split('|'); // a third part is the build, summed into the tool
       const col = { tool_file_accepted: 0, tool_operation_started: 1, tool_result_ready: 2, tool_operation_failed: 3 }[event];
       if (col === undefined || !tool) continue;
       const row = byTool.get(tool) ?? [0, 0, 0, 0];
@@ -53,6 +53,8 @@ function envFromFile() {
 // Mirror DAILY_CAP and USAGE_DAILY_CAP in src/site-lib/errorReportStore.ts (a script cannot import TS).
 const DAILY_CAP = 1000;
 const USAGE_DAILY_CAP = 3000;
+// Mirror REJECTS_DAILY_CAP in src/site-lib/errorReportStore.ts too.
+const REJECTS_DAILY_CAP = 200;
 
 const env = { ...envFromFile(), ...process.env };
 const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
@@ -79,6 +81,9 @@ const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
     ...allKeys.map((d) => ['HGETALL', `usage:${d}`]),
     ...allKeys.map((d) => ['GET', `errors:total:${d}`]),
     ...allKeys.map((d) => ['GET', `usage:total:${d}`]),
+    ...allKeys.map((d) => ['HGETALL', `drops:${d}`]),
+    ...allKeys.map((d) => ['HGETALL', `rejects:${d}`]),
+    ...allKeys.map((d) => ['GET', `rejects:total:${d}`]),
   ]),
 });
 if (!res.ok) {
@@ -99,6 +104,9 @@ const eventReplies = replies.slice(keys.length * 2, keys.length * 3);
 const usageReplies = replies.slice(keys.length * 3, keys.length * 4);
 const errorTotals = replies.slice(keys.length * 4, keys.length * 5).map((r) => Number(r?.result) || 0);
 const usageTotals = replies.slice(keys.length * 5, keys.length * 6).map((r) => Number(r?.result) || 0);
+const dropReplies = replies.slice(keys.length * 6, keys.length * 7);
+const rejectReplies = replies.slice(keys.length * 7, keys.length * 8);
+const rejectTotals = replies.slice(keys.length * 8, keys.length * 9).map((r) => Number(r?.result) || 0);
 replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
   const isSample = idx % 2 === 1;
   for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
@@ -114,13 +122,14 @@ const table = [...rows].sort((a, b) => b[1] - a[1]);
 // all-clear by accident: a store that answered with errors or too little, or a day that hit its cap.
 const problems = [];
 const badReplies = Array.isArray(fetched) ? fetched.filter((r) => !r || r.error !== undefined).length : 0;
-if (!Array.isArray(fetched) || badReplies || fetched.length < allKeys.length * 6) {
-  problems.push(`WARNING: the store returned errors or too little (${badReplies} bad of ${Array.isArray(fetched) ? fetched.length : 0} replies, ${allKeys.length * 6} expected), so this read is incomplete`);
+if (!Array.isArray(fetched) || badReplies || fetched.length < allKeys.length * 9) {
+  problems.push(`WARNING: the store returned errors or too little (${badReplies} bad of ${Array.isArray(fetched) ? fetched.length : 0} replies, ${allKeys.length * 9} expected), so this read is incomplete`);
 }
 // The total is the INCR count, so a day past the cap reads above it; later events that day went uncounted.
 keys.forEach((day, n) => {
   if (errorTotals[n] > DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${DAILY_CAP} error reports and Sign events; later ones that day were not counted`);
   if (usageTotals[n] > USAGE_DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${USAGE_DAILY_CAP} tool usage events; later ones that day were not counted`);
+  if (rejectTotals[n] > REJECTS_DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${REJECTS_DAILY_CAP} endpoint rejects; later ones that day were not counted`);
 });
 for (const line of problems) console.log(line);
 
@@ -155,7 +164,7 @@ try {
   console.log(`${REGISTRY} could not be read (${error.message}); treating every report as unknown`);
 }
 const verdicts = triage({ table, samples, history: fingerprintHistory(perDay, days), entries: knownItems, run: runGit });
-for (const line of renderTriage(verdicts, toolRates(perDay, days))) console.log(line);
+for (const line of addUntraced(renderTriage(verdicts, toolRates(perDay, days)), untracedTools(perDay, days))) console.log(line);
 console.log(`(window ${days} day${days === 1 ? '' : 's'}, history ${history}; today is a partial UTC day; a fingerprint includes its chunk hash, so a rebuilt chunk reads as a new one)\n`);
 const verdictByField = new Map([...verdicts.needs, ...verdicts.known].map((item) => [item.field, item.verdict]));
 
@@ -172,6 +181,27 @@ for (const [field, count] of table) {
   for (const line of sampleLines(sample, runGit)) console.log(line);
 }
 if (!table.length) console.log(`(no reports in the last ${days} days)`);
+
+// Sums `field -> count` hashes over the window, biggest first.
+function sumCounts(results) {
+  const sums = new Map();
+  for (const result of results) {
+    for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) sums.set(result[n], (sums.get(result[n]) ?? 0) + (Number(result[n + 1]) || 0));
+  }
+  return [...sums].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+console.log('\nReports not sent (drop records)');
+const dropRows = sumCounts(dropReplies.map((r) => r.result));
+if (dropRows.length) {
+  console.log('count | area | step | reason | type | name | build | engine');
+  for (const [field, count] of dropRows) console.log(`${count} | ${field.split('|').join(' | ')}`);
+} else console.log(`(none in the last ${days} days)`);
+console.log('\nRejected by the endpoint');
+const rejectRows = sumCounts(rejectReplies.map((r) => r.result));
+if (rejectRows.length) {
+  console.log('count | reason | engine');
+  for (const [field, count] of rejectRows) console.log(`${count} | ${field.split('|').join(' | ')}`);
+} else console.log(`(none in the last ${days} days)`);
 
 // Sign's maintenance events: events:<day> holds `name|outcome|detail...|engine` -> count.
 function sumEvents(results) {
@@ -203,3 +233,8 @@ if (usageRows.length) {
   console.log('tool | accepted | started | ready | failed | ready/accepted');
   for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
+const buildLines = failuresByBuild(perDay, days);
+if (buildLines.length) {
+  console.log('\nFailures by build');
+  for (const line of buildLines) console.log(line);
+}
