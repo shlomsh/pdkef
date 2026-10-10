@@ -154,6 +154,11 @@
 .o-moon { fill: var(--color-citron); }
 .the-o[data-sky='golden'] :is(.o-sun, .o-sun-halo),
 .the-o[data-sky='night'] :is(.o-stars, .o-moon) { display: inline; }
+/* The window's shade, in the night card's colour with a pull at its foot. It
+   covers the window while the O grows into it, then rises; at rest it is up,
+   a strip across the top of the window. */
+.o-shade { position: absolute; inset: 0; background: var(--bg); translate: 0 -84%; }
+.o-shade::after { content: ''; position: absolute; inset: auto 30% 6%; height: 3%; border-radius: var(--radius-pill); background: var(--color-muted); }
 .o-cloud { position: absolute; aspect-ratio: 64 / 28; fill: var(--cloud); opacity: var(--cloud-alpha); }
 .o-cloud.c1 { --drift: 0.75; top: 33%; inset-inline-start: 22%; width: 34%; }
 .o-cloud.c2 { --drift: 0.45; top: 52%; inset-inline-start: 56%; width: 19%; scale: -1 1; }
@@ -251,6 +256,7 @@
 /* Touchdown: the nose is still up from the flare, then it settles. */
 @keyframes o-touch { from { rotate: -9deg; translate: calc(var(--B) * -0.12) 0; } }
 @keyframes o-wipe { from { clip-path: circle(0 at var(--wx) var(--wy)); } to { clip-path: circle(var(--wr) at var(--wx) var(--wy)); } }
+@keyframes o-shade { from { translate: 0 0; } }
 @keyframes o-drift { from { translate: calc(var(--R) * var(--drift) * -1 * var(--dir)) 0; } to { translate: calc(var(--R) * var(--drift) * var(--dir)) 0; } }
 @keyframes o-fade { from { opacity: 0; } }
 /* The offline celebration: the toggle pops and gains its ring, the burst flies
@@ -270,11 +276,15 @@
     /* The beats are stacked layers; only the link in the lit card takes a click. */
     .o-beat { pointer-events: none; }
     .o-more { pointer-events: auto; }
-    .o-stage, .o-art, .o-ring, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
+    .o-stage, .o-art, .o-ring, .o-shade, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
 
     .o-beat:not(.b1, .bf) > .o-art { animation-name: o-wipe; animation-timing-function: var(--ease-in-out); }
 
     .o-ring { animation-name: o-path, o-shape; animation-timing-function: var(--ease-in-out); animation-range: contain 0% contain 100%; }
+    /* In the window card the ring keeps the O's frame until it grows into the
+       window, so the O the night card opens around is the O of "Open". */
+    .b5 .o-ring { animation-name: o-path, o-shape, o-frame; }
+    .o-shade { animation-name: o-shade; animation-timing-function: var(--ease-in-out); }
     .o-cloud { animation-name: o-drift; }
     /* Airplane mode turns on, and then its plane takes off. */
     .o-mode-on { animation-name: o-switch; animation-timing-function: var(--ease-in-out); }

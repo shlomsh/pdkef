@@ -47,9 +47,14 @@ prototypes and nine sketched directions.
   every animation range. Its unit test holds the story's promises: each change into a card takes at
   least a screen, every card rests a screen and a half with its words lit before the next change,
   and the last sentence is up a screen before the plane lands on it.
-- **The stage pins for about seventeen screens.** Each change (a colour wipe, a full screen; the ring
+- **The stage pins for about eighteen screens.** Each change (a colour wipe, a full screen; the ring
   changing shape, 1.2 screens) runs, then the card's words fade in and it rests. The flight takes about two
   and a half screens, and the landed plane rests before the page moves on.
+- **The O is kept, then becomes the window.** The night card opens around the O of "Open source",
+  which stays the same size and weight inside it. Only once the card is fully open does the O grow
+  into the window (its frame thinning as it goes), covered by a night-coloured shade with a pull at
+  its foot. The shade rises over a screen as the window finishes, and "Works offline" fades in while
+  it rises, as in the first prototype. Airplane mode switches on once the shade is up.
 - **Geometry is scrubbed, words are timed.** Every copy of the ring runs the same path keyframes over
   the whole pin (one continuous shape), and each card is a full layer revealed by a `clip-path` circle,
   all driven by scroll position. The words are not scrubbed: once a ring settles, a held beat, then
