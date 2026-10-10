@@ -107,3 +107,20 @@ describe('the three wire schemas never file one kind as another', () => {
     }
   });
 });
+
+describe('parseUsageEvent with a build stamp (DEBT-44)', () => {
+  const stamped = { name: 'tool_operation_failed', properties: { tool: 'redact', build: '08e10cf' } };
+  it('accepts a stamped event and files it under its build', () => {
+    expect(parseUsageEvent(stamped)).toEqual(stamped);
+    expect(usageEventField(parseUsageEvent(stamped)!)).toBe('tool_operation_failed|redact|08e10cf');
+  });
+  it('still accepts and files an unstamped event as before', () => {
+    expect(usageEventField(parseUsageEvent(ev('tool_operation_failed', 'redact'))!)).toBe('tool_operation_failed|redact');
+  });
+  it.each([['HEAD'], ['08E10CF'], ['08e10cfa'], [7]])('rejects build %s', (build) => {
+    expect(parseUsageEvent({ name: 'tool_operation_failed', properties: { tool: 'redact', build } })).toBeNull();
+  });
+  it('rejects any other extra property', () => {
+    expect(parseUsageEvent({ name: 'tool_operation_failed', properties: { tool: 'redact', build: '08e10cf', file: 'a' } })).toBeNull();
+  });
+});

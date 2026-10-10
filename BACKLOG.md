@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 5 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 6 up next, 6 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -67,6 +67,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-44 | P1 | [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports | In progress |
 | DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | In progress |
 
 ### Waiting
