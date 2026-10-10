@@ -154,12 +154,13 @@ function safely<T>(read: () => T, fallback: T): T {
 export function reportError(area: ErrorArea, error: unknown, step: string): void {
   try {
     if (!canSend()) return;
-    if (sent.size >= MAX_REPORTS_PER_PAGE) return;
     const report = toErrorReport(area, error, step, readPageContext());
     if (!report) {
-      sendDrop(toDropRecord(area, error, step, readBuildCommit()));
+      // A window error outside our code is extension noise, with no counted failure to explain.
+      if (area !== 'uncaught') sendDrop(toDropRecord(area, error, step, readBuildCommit()));
       return;
     }
+    if (sent.size >= MAX_REPORTS_PER_PAGE) return;
     // Keyed on the step, so two call sites over one shared throw site stay two.
     // An uncaught error is the exception: if its throw site was already
     // reported from a catch, the escape is the same defect, not a new one.

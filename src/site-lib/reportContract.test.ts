@@ -11,15 +11,19 @@ import { reportToolLifecycleEvent, resetUsageEventsForTests } from '../lib/produ
 // the shared schemas; this one proves that what the browser sends is what the endpoint stores, so a
 // change on one side cannot silently turn the other's traffic into nothing.
 
+// No @types/node in this repo; vitest runs this file under Node.
+declare const process: { env: Record<string, string | undefined> };
+
 const beacons: Blob[] = [];
 
 const deliver = async (): Promise<unknown[][]> => {
-  const fetchSpy = vi.fn(async () => new Response(JSON.stringify([{ result: 2 }, { result: 1 }]), { status: 200 }));
+  const fetchSpy = vi.fn(async (_url: string, _init: RequestInit) =>
+    new Response(JSON.stringify([{ result: 2 }, { result: 1 }]), { status: 200 }));
   vi.stubGlobal('fetch', fetchSpy);
   for (const blob of beacons.splice(0)) {
     await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: await blob.text() }));
   }
-  return fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse((init as RequestInit).body as string));
+  return fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body as string) as unknown[][]);
 };
 
 const counted = (commands: unknown[][], prefix: string) =>
@@ -59,13 +63,19 @@ describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {
     expect(fields[0]).toMatch(/^redact\|TypeError\|PdfRedactTool\.Ab12Cd\.js:1:2\|export\|/);
   });
 
+  const encrypted = new Error('Input document to `PDFDocument.load` is encrypted');
+  encrypted.name = 'fm';
+  const aborted = new DOMException('x', 'AbortError');
+  // The beacon carries no user agent here, so the engine bucket is `other`.
   it.each([
-    ['a string throw', 'boom', 'redact|export|non_error|string|-|08e10cf|'],
-    ['an error with no frame of ours', new DOMException('x', 'NotReadableError'), 'redact|export|no_frame|DOMException|NotReadableError|08e10cf|'],
+    ['a string throw', 'boom', 'redact|export|non_error|string|-|08e10cf|other'],
+    ['an error with no frame of ours', new DOMException('x', 'NotReadableError'), 'redact|export|no_frame|DOMException|NotReadableError|08e10cf|other'],
+    ['an ignored name', aborted, 'redact|export|ignored|DOMException|AbortError|08e10cf|other'],
+    ['the encrypted-file error under a minified name', encrypted, 'redact|export|encrypted|Error|EncryptedPDFError|08e10cf|other'],
   ])('%s is counted as a drop record', async (_what, thrown, field) => {
     reportError('redact', thrown, 'export');
     const commands = await deliver();
-    expect(counted(commands, 'drops:')).toEqual([expect.stringContaining(field)]);
+    expect(counted(commands, 'drops:')).toEqual([field]);
     expect(counted(commands, 'rejects:')).toEqual([]);
   });
 
