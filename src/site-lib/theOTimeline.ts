@@ -16,7 +16,11 @@ export const PACE = {
   beat: 9,
   // The zero starts rounding into the O this far into card 4's wipe.
   morphIntoWipe: 0.75,
-  // Airplane mode switches on this long after the window's words light.
+  // The window's shade starts rising this far into the O's change into the
+  // window, and takes this long; the window's words light while it rises.
+  shadeIntoMorph: 0.7,
+  shade: 100,
+  // Airplane mode switches on this long after the shade is up.
   toggleAfter: 30,
   toggle: 9,
   // The flight, from take-off: each waypoint of o-fly, then touchdown. The
@@ -41,6 +45,7 @@ export interface TheOTimeline {
   wipes: Record<2 | 3 | 4 | 5 | 6, Span>;
   intoO: Span;
   intoWindow: Span;
+  shade: Span;
   clouds: Span;
   toggle: Span;
   takeoff: number;
@@ -62,11 +67,14 @@ export function theOTimeline(pace: Pace = PACE): TheOTimeline {
   const b4 = span(nextChange(), pace.wipe);
   const intoO = span(b4[0] + pace.wipe * pace.morphIntoWipe, pace.morph);
   lit.push(intoO[1] + pace.beat);
+  // The O stays the O while the night card opens around it, then it grows
+  // into the window, whose shade rises as it finishes.
   const b5 = span(nextChange(), pace.wipe);
-  const intoWindow = span(b5[0], pace.morph);
+  const intoWindow = span(b5[1], pace.morph);
+  const shade = span(intoWindow[0] + pace.morph * pace.shadeIntoMorph, pace.shade);
   lit.push(intoWindow[1] + pace.beat);
 
-  const toggle = span(lit[4] + pace.toggleAfter, pace.toggle);
+  const toggle = span(shade[1] + pace.toggleAfter, pace.toggle);
   const takeoff = nextChange();
   const at = (offset: number) => takeoff + offset;
   const waypoints = {
@@ -86,9 +94,10 @@ export function theOTimeline(pace: Pace = PACE): TheOTimeline {
     wipes: { 2: b2, 3: b3, 4: b4, 5: b5, 6: b6 },
     intoO,
     intoWindow,
-    // The clouds drift from the moment the window is mostly open until the
-    // last card has covered it.
-    clouds: [b5[0] + pace.wipe * pace.morphIntoWipe, b6[1]],
+    shade,
+    // The clouds drift from the moment the shade starts rising until the last
+    // card has covered the window.
+    clouds: [shade[0], b6[1]],
     toggle,
     takeoff,
     waypoints,
@@ -121,6 +130,10 @@ export function theOTimelineCss(timeline: TheOTimeline = theOTimeline()): string
   ${pct(intoO[1])}, ${pct(intoWindow[0])} { scale: var(--o-sx) var(--o-sy); }
   ${pct(intoWindow[1])}, 100% { scale: 1.04 1.3; }
 }
+@keyframes o-frame {
+  0%, ${pct(intoWindow[0])} { border-width: calc(var(--R) * 0.16) calc(var(--R) * 0.21); border-radius: 50%; }
+  ${pct(intoWindow[1])}, 100% { border-width: calc(var(--R) * 0.12) calc(var(--R) * 0.15); border-radius: 46% / 40%; }
+}
 @keyframes o-fly {
   0%, ${pct(timeline.takeoff)} { translate: 0 0; rotate: 0deg; scale: 1; }
   ${pct(w.climb)} { translate: var(--f1-tx) var(--f1-ty); rotate: -20deg; scale: 1.15; }
@@ -140,6 +153,7 @@ ${lit.map((svh, i) => `  ${pct(svh)} { --o-lit: ${i + 1}; }`).join('\n')}
     .o-track { height: calc(${timeline.total}svh + 100svh - var(--home-nav-height, 0px)); }
 ${Object.entries(wipes).map(([n, wipe]) => `    .b${n} > .o-art { animation-range: ${range(wipe)}; }`).join('\n')}
     .o-cloud { animation-range: ${range(timeline.clouds)}; }
+    .o-shade { animation-range: ${range(timeline.shade)}; }
     .o-mode-on { animation-range: ${range(timeline.toggle)}; }
     .o-mode .o-plane { animation-range: ${from(timeline.takeoff)}; }
     .o-flight { animation-range: contain 0% contain 100%, ${from(timeline.takeoff)}; }

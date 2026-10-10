@@ -28,8 +28,20 @@ describe('theOTimeline', () => {
     expect(timeline.intoWindow[1] - timeline.intoWindow[0]).toBeGreaterThanOrEqual(SCREEN);
   });
 
+  it('keeps the O as it is until the night card has opened around it', () => {
+    expect(timeline.intoWindow[0]).toBeGreaterThanOrEqual(timeline.wipes[5][1]);
+  });
+
+  it('raises the shade as the window finishes, and lights its words while it rises', () => {
+    expect(timeline.shade[0]).toBeGreaterThan(timeline.intoWindow[0]);
+    expect(timeline.shade[0]).toBeLessThan(timeline.intoWindow[1]);
+    expect(timeline.shade[1] - timeline.shade[0]).toBeGreaterThanOrEqual(SCREEN);
+    expect(timeline.lit[4]).toBeGreaterThan(timeline.shade[0]);
+    expect(timeline.lit[4]).toBeLessThan(timeline.shade[1]);
+  });
+
   it('switches airplane mode on while the window rests, before take-off', () => {
-    expect(timeline.toggle[0]).toBeGreaterThan(timeline.lit[4]);
+    expect(timeline.toggle[0]).toBeGreaterThan(timeline.shade[1]);
     expect(timeline.toggle[1]).toBeLessThan(timeline.takeoff);
   });
 
@@ -62,6 +74,11 @@ describe('theOTimelineCss', () => {
     const ranges = [...css.matchAll(/animation-range: ([^;]+);/g)].flatMap((match) => match[1].split(','));
     expect(ranges.length).toBeGreaterThan(8);
     ranges.forEach((range) => expect(range.trim()).toMatch(/^contain [\d.]+% contain [\d.]+%$/));
+  });
+
+  it('changes the O into the window frame and raises the shade on the timeline', () => {
+    expect(css).toContain('@keyframes o-frame');
+    expect(css).toMatch(/\.o-shade \{ animation-range: contain [\d.]+% contain [\d.]+%; \}/);
   });
 
   it('cues each card and the landing', () => {

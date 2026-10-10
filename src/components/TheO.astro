@@ -20,7 +20,7 @@
 //   and comes down the clear lane at the end of the staggered last sentence
 //   (end-aligned and trimmed to its baseline with text-box), touching down on
 //   its baseline after "them". The flight is its own layer above the beats.
-// - Motion: the stage pins for about seventeen screens, about two and a half
+// - Motion: the stage pins for about eighteen screens, about two and a half
 //   per card (the change into it, its words, then a rest of a screen and a half,
 //   so every card pauses before the next change starts) and two and a half for
 //   the plane's flight. The pacing is one table, src/site-lib/theOTimeline.ts,
@@ -34,6 +34,9 @@
 //   are lit) and the fade runs in time, so it always completes. (Moving the
 //   ring itself on timed cues was tried and dropped: a fast scroll stacked the
 //   moves up and skipped the window and the landing.)
+// - The night card opens around the O, which stays the O until the card is
+//   open, then grows into the window under a closed shade that rises as the
+//   window finishes; the words fade in while it rises.
 // - The window beat enacts its own line: flat vector clouds drift across the
 //   visitor's own sky (day, golden or night by their clock, theOSky.ts), and
 //   the airplane-mode toggle beside the line switches on, drawn the way a
@@ -154,6 +157,7 @@ const stars = [
               <svg class="o-cloud c1" viewBox="0 0 64 28" focusable="false"><circle cx="18" cy="17" r="9"></circle><circle cx="33" cy="12" r="12"></circle><circle cx="48" cy="17" r="8"></circle><rect x="4" y="16" width="56" height="12" rx="6"></rect></svg>
               <svg class="o-cloud c2" viewBox="0 0 64 28" focusable="false"><circle cx="18" cy="17" r="9"></circle><circle cx="33" cy="12" r="12"></circle><circle cx="48" cy="17" r="8"></circle><rect x="4" y="16" width="56" height="12" rx="6"></rect></svg>
             </span>
+            <span class="o-shade"></span>
           </span>
           <div class="o-text">
             <p class="o-word"><span class="o-rise">{story.offline.word}</span></p>
