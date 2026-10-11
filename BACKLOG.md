@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 7 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 47 live: 8 up next, 6 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -130,6 +130,12 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 ## Polish
 
 Small, independent, good for a spare hour.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SITE-42 | P2 | [SITE-42](backlog/tasks/SITE-42.md) · Home: picked files wake the toolbar, which becomes the tool chooser | Needs Shlomi: Pick the copy, and try the rough build on your iPhone |
 
 ### Then, in order
 
