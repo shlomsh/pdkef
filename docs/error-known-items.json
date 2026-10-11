@@ -87,5 +87,18 @@
     },
     "fixedIn": "7fcbfb1a",
     "note": "seen on Chromium 141 at render_page and read_glyphs; polyfilled in src/lib/pdfjsPolyfills.js on the page and in the worker from 7fcbfb1a"
+  },
+  {
+    "id": "RED-63",
+    "ticket": "RED-63",
+    "title": "Redact saved-file check: NotReadableError reading the saved Blob after download (iOS)",
+    "match": {
+      "area": "redact",
+      "name": "NotReadableError",
+      "step": "check_saved_file",
+      "slug": "redact"
+    },
+    "open": true,
+    "note": "iOS invalidates the saved Blob once the download starts; the check now falls back quietly. Set fixedIn to the landing commit"
   }
 ]

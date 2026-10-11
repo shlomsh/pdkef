@@ -72,9 +72,24 @@ export default function useSavedFileCheck({
     setState({ status: 'checking' });
     setDetailsSurvived([]);
     (async () => {
+      let savedBytes: Uint8Array;
+      let originalBytes: Uint8Array;
       try {
-        const savedBytes = new Uint8Array(await saved.arrayBuffer());
-        const originalBytes = new Uint8Array(await originalFile.arrayBuffer());
+        savedBytes = new Uint8Array(await saved.arrayBuffer());
+        originalBytes = new Uint8Array(await originalFile.arrayBuffer());
+      } catch (error) {
+        // expected: NotReadableError on a Blob or File we hold is the environment (iOS invalidates the
+        // saved Blob once its download starts), not our code. The check did not run, so say nothing.
+        if ((error as { name?: string } | null)?.name === 'NotReadableError') {
+          if (current) setState({ status: 'idle' });
+          return;
+        }
+        reportError('redact', error, 'check_saved_file');
+        console.error('Redact could not read the saved file', error);
+        if (current) setState({ status: 'failed' });
+        return;
+      }
+      try {
         const { runSavedFileCheck } = await import('./check/runCheck.ts');
         const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: findTerms, picturePages, measure });
         if (!current) return;
