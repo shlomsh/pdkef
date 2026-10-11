@@ -790,7 +790,7 @@ export default function PdfRedactTool() {
   // pages text search can't see.
   const checkBoxes: CheckBox[] = checkBoxesFromElements(elements);
   // RED-59: what the file says about itself, as it was opened.
-  const traces = useDocumentDetails(file);
+  const traces = useDocumentDetails(file, pdfDocument !== null);
   const rows = useMemo(() => (traces ? describeDetails(traces, { locale: traceLocale(), now: new Date() }) : []), [traces]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsAtOpenRef = useRef<DetailEdits>({});
