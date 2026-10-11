@@ -1282,7 +1282,7 @@ export default function PdfRedactTool() {
             ))}
           </div>
 
-          <DetailsFooter summary={detailsSummary(rows, state.edits.details)} onReview={openDetails} />
+          <DetailsFooter summary={detailsSummary(rows, state.edits.details)} onReview={openDetails} reading={traces === null} />
 
           {/* RED-36: the one finish row - what will be saved, Download (with
               its progress while saving), what was saved, then Compress it and

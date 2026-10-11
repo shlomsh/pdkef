@@ -31,4 +31,13 @@ describe('DetailsFooter', () => {
     const el = mount(<DetailsFooter summary={[]} onReview={() => {}} />);
     expect(el.innerHTML).toBe('');
   });
+
+  it('holds the line while reading, hidden from assistive tech, and shows nothing once read empty', () => {
+    const el = mount(<DetailsFooter summary={[]} onReview={() => {}} reading />);
+    const hold = el.querySelector('[data-details-reading]')!;
+    expect(hold.getAttribute('aria-hidden')).toBe('true');
+    expect(el.querySelector('[data-details-footer]')).toBeNull();
+    act(() => { render(<DetailsFooter summary={[]} onReview={() => {}} />, el); });
+    expect(el.querySelector('[data-details-reading]')).toBeNull();
+  });
 });
