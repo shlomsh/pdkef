@@ -9,6 +9,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Redact: finish removal
 
 - [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
+- [RED-63](backlog/tasks/RED-63.md) P2 · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS
+- [RED-64](backlog/tasks/RED-64.md) P2 · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib
 
 ### Robustness and debt
 
