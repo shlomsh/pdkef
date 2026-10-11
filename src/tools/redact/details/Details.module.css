@@ -15,6 +15,13 @@
   color: var(--color-muted);
 }
 
+.reading {
+  /* The review button's height (content box, so the padding and border sit on top as they do on the filled line), so the line does not grow when the summary arrives. */
+  box-sizing: content-box;
+  min-block-size: 44px;
+  border-block-end-color: transparent;
+}
+
 .summary {
   flex: 0 1 auto;
   min-inline-size: 0;
