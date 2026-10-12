@@ -51,6 +51,7 @@ vi.mock('./merge.js', () => {
 // (loaded through a dynamic import) needs to mount quietly with no draft.
 vi.mock('../../lib/drafts/draftStore.js', () => ({
   saveHandoff: vi.fn(async () => true),
+  takeHandoff: vi.fn(async () => null),
   loadDraft: vi.fn(async () => null),
   deleteDraft: vi.fn(async () => true),
   saveDraft: vi.fn(async () => true),
@@ -95,6 +96,8 @@ describe('PdfMergeTool UI flow', () => {
     mergeLib.inspectPdf.mockClear();
     draftStore.saveHandoff.mockClear();
     draftStore.deleteDraft.mockClear();
+    draftStore.takeHandoff.mockReset();
+    draftStore.takeHandoff.mockImplementation(async () => null);
     draftStore.loadDraft.mockReset();
     draftStore.loadDraft.mockImplementation(async () => null);
     // Same reason loadDraft gets reset above: vi.mock factory mocks keep
@@ -815,6 +818,64 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => startAgain.click());
     expect(clearDraft).toHaveBeenCalledTimes(1);
     expect(fileNames()).toEqual([]);
+  });
+
+  // SITE-42: the home launcher hands several files to Merge as a fresh set.
+  describe('a hand-off from the home page (SITE-42)', () => {
+    const handoffRecord = (...names) => ({
+      files: names.map((fileName) => ({ fileName, fileType: 'application/pdf', fileBytes: new ArrayBuffer(8) })),
+    });
+    const restoreOf = (...names) => ({
+      files: names.map((n) => makePdfFile(n)),
+      plan: names.flatMap((_, i) => [0, 1].map((p) => ({ key: `${i}:${p}`, fileId: i, pageIndex: p, rotation: 0, skipped: false }))),
+      options: { addPageNumbers: false },
+      outputName: null,
+    });
+
+    it('loads the handed-off files as the set, in pick order, named like a manual pick', async () => {
+      draftStore.takeHandoff.mockResolvedValueOnce(handoffRecord('c.pdf', 'a.pdf', 'b.pdf'));
+      mount();
+      await act(async () => { await flush(20); });
+      expect(draftStore.takeHandoff).toHaveBeenCalledWith('merge');
+      expect(fileNames()).toEqual(['c.pdf', 'a.pdf', 'b.pdf']);
+      await settle();
+      expect(container.textContent).toContain('merged_c.pdf');
+    });
+
+    it('wins over a restore that lands after it, and leaves the saved set alone', async () => {
+      draftStore.takeHandoff.mockResolvedValueOnce(handoffRecord('new1.pdf', 'new2.pdf'));
+      const clearDraft = vi.fn(async () => true);
+      mount();
+      await act(async () => { await flush(20); });
+      await act(async () => {
+        draftProbe.props.registerClear(clearDraft);
+        draftProbe.props.onRestore(restoreOf('old1.pdf', 'old2.pdf'));
+        await flush(10);
+      });
+      expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
+      expect(draftProbe.props.entries.map((e) => e.file.name)).toEqual(['new1.pdf', 'new2.pdf']);
+      expect(clearDraft).not.toHaveBeenCalled();
+      expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+    });
+
+    it('replaces a restore that landed first instead of appending to it', async () => {
+      let release;
+      draftStore.takeHandoff.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+      const clearDraft = vi.fn(async () => true);
+      mount();
+      await act(async () => { await flush(10); });
+      await act(async () => {
+        draftProbe.props.registerClear(clearDraft);
+        draftProbe.props.onRestore(restoreOf('old1.pdf', 'old2.pdf'));
+        await flush(10);
+      });
+      expect(fileNames()).toEqual(['old1.pdf', 'old2.pdf']);
+      await act(async () => { release(handoffRecord('new1.pdf', 'new2.pdf')); await flush(20); });
+      expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
+      expect(container.textContent).not.toContain('Picked up where you left off');
+      expect(clearDraft).not.toHaveBeenCalled();
+      expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+    });
   });
 
   it('keeps visible mobile controls outside the sortable chip list', async () => {
