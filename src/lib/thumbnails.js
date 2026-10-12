@@ -138,14 +138,28 @@ async function renderPageToDataUrl(page, opts = {}) {
 /**
  * Photos (JPEG/PNG) in Merge are one page each, so the thumbnail paths below
  * branch to this instead of pdf.js. The bitmap is decoded with
- * `imageOrientation: 'none'` on purpose: the merged PDF embeds the stored
- * pixels as they are (pdf-lib applies no EXIF rotation), so the preview must
- * not apply it either. White prefill for the same reason as a PDF page: a
- * transparent PNG sits on paper.
+ * `imageOrientation: 'from-image'` on purpose: the merged PDF honours a JPEG's
+ * EXIF orientation too (imagePage.js sets the page's /Rotate), so preview and
+ * output agree and a phone photo shows upright. White prefill for the same
+ * reason as a PDF page: a transparent PNG sits on paper.
+ *
+ * The decode is sized to the thumbnail (`resizeWidth`) where the engine
+ * supports it, and the bitmap lives only for one draw, so many photos in a
+ * list never hold their full-size pixels.
  */
 const isPhoto = (file) => deriveFileKind(file) === 'image';
 
-const decodePhoto = (file) => createImageBitmap(file, { imageOrientation: 'none' });
+async function decodePhoto(file, width) {
+  try {
+    return await createImageBitmap(file, {
+      imageOrientation: 'from-image',
+      resizeWidth: width,
+      resizeQuality: 'high',
+    });
+  } catch { // expected: engines without resize options reject them, decode at full size instead
+    return createImageBitmap(file, { imageOrientation: 'from-image' });
+  }
+}
 
 function abortError() {
   return new DOMException('Thumbnail render aborted', 'AbortError');
@@ -165,19 +179,28 @@ function renderBitmapToDataUrl(bitmap, opts = {}) {
   return { dataUrl: canvas.toDataURL(type, quality), width: canvas.width, height: canvas.height };
 }
 
-async function openPhotoSource(file) {
-  const bitmap = await decodePhoto(file);
+// Decodes, draws and closes the bitmap in one go, so nothing is held between calls.
+async function renderPhoto(file, opts = {}) {
+  if (opts.signal?.aborted) throw abortError();
+  const bitmap = await decodePhoto(file, opts.width ?? TARGET_WIDTH);
+  try {
+    return renderBitmapToDataUrl(bitmap, opts);
+  } finally {
+    bitmap.close();
+  }
+}
+
+function openPhotoSource(file) {
   let destroyed = false;
   return {
     pageCount: 1,
     async render(pageIndex, opts = {}) {
       if (destroyed) throw new Error('openThumbnailSource: render() called after destroy()');
       if (pageIndex !== 0) throw new RangeError(`A photo has one page, asked for index ${pageIndex}`);
-      return renderBitmapToDataUrl(bitmap, opts).dataUrl;
+      return (await renderPhoto(file, opts)).dataUrl;
     },
     async destroy() {
       destroyed = true;
-      bitmap.close();
     },
   };
 }
@@ -207,12 +230,7 @@ async function openPhotoSource(file) {
  */
 export async function renderThumbnailWithMeta(file, opts = {}) {
   if (isPhoto(file)) {
-    const bitmap = await decodePhoto(file);
-    try {
-      return { ...renderBitmapToDataUrl(bitmap, opts), pageCount: 1 };
-    } finally {
-      bitmap.close();
-    }
+    return { ...(await renderPhoto(file, opts)), pageCount: 1 };
   }
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();

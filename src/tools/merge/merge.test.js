@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreationDate } from './merge.js';
@@ -413,6 +413,14 @@ describe('mergePdfs library integration with real fixtures', () => {
       expect(pages[1].getRotation().angle).toBe(0);
     });
 
+    it('adds the user rotation to the EXIF rotation of a photo page', async () => {
+      const exif = getPhotoFile('photo-exif-6.jpg', 'image/jpeg');
+      const plan = [{ fileIndex: 0, pageIndex: 0, rotation: 90, skipped: false }];
+      const blob = await mergePdfs([exif], { plan });
+      const doc = await PDFDocument.load(await blob.arrayBuffer());
+      expect(doc.getPages()[0].getRotation().angle).toBe(180);
+    });
+
     it('merges photos without a plan, in file order, and numbers their pages', async () => {
       const blob = await mergePdfs([jpg(), getFixtureFile('num-2.pdf'), png()], { addPageNumbers: true });
       const { pageCount, pageTexts } = await getPdfPageTexts(blob);
@@ -439,6 +447,28 @@ describe('mergePdfs library integration with real fixtures', () => {
     it('inspectPdf reports a photo as one unencrypted page', async () => {
       expect(await inspectPdf(jpg())).toEqual({ pageCount: 1, encrypted: false, creationDate: null });
       expect(await inspectPdf(png())).toEqual({ pageCount: 1, encrypted: false, creationDate: null });
+    });
+
+    it('inspects a photo by its signature without embedding it', async () => {
+      const embedPng = vi.spyOn(PDFDocument.prototype, 'embedPng');
+      const embedJpg = vi.spyOn(PDFDocument.prototype, 'embedJpg');
+      try {
+        await inspectPdf(jpg());
+        await inspectPdf(png());
+        expect(embedPng).not.toHaveBeenCalled();
+        expect(embedJpg).not.toHaveBeenCalled();
+      } finally {
+        embedPng.mockRestore();
+        embedJpg.mockRestore();
+      }
+    });
+
+    it('rejects a .jpg or .png holding PDF bytes from inspectPdf', async () => {
+      const pdfBytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-1.pdf'));
+      const fakeJpg = new File([pdfBytes], 'fake.jpg', { type: 'image/jpeg' });
+      const fakePng = new File([pdfBytes], 'fake.png', { type: 'image/png' });
+      await expect(inspectPdf(fakeJpg, 2)).rejects.toMatchObject({ fileIndex: 2, reason: 'unreadable' });
+      await expect(inspectPdf(fakePng)).rejects.toMatchObject({ reason: 'unreadable' });
     });
 
     it('rejects a corrupt .jpg as unreadable, from inspectPdf and mergePdfs', async () => {
