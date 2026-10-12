@@ -564,12 +564,16 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
        would also space the gutters and pull the content narrower. Expressing
        it here rather than in a wrapper is what lets the demo be a sibling
        *after* the dock in source order while still rendering beside the
-       launcher. */
+       launcher. The demo column has a 480px floor because the stage needs a
+       150px note column, a 28px gap and a phone of at least 300px (up to
+       360px on tall windows); without it grid growth gave the launcher
+       column its full 588px and the demo 332px at 1024px, and the phone
+       overflowed the page (SITE-43). */
     grid-template-columns:
       [full-start] minmax(32px, 1fr)
       [content-start] minmax(312px, 588px)
       40px
-      minmax(0, 588px) [content-end]
+      minmax(480px, 588px) [content-end]
       minmax(32px, 1fr) [full-end];
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
@@ -839,14 +843,15 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      block axis explicitly clipped while preserving the familiar sideways
      scroll pattern on narrow screens.
 
-     928px is the dock's own width at desktop sizing - nine 80px cards, eight
-     20px gaps, 48px of padding - so 960px is the first round step that
-     clears it. Below that the scroll comes back and the tooltips clip again,
-     which is the right trade: those widths are phones and small tablets,
-     where there is no hover to show a tooltip with and a sideways-scrolling
-     dock is the familiar pattern. */
+     The dock is ten 80px cards, nine gaps and 48px of padding, so the full
+     20px gap needs 1028px. From 960px the gap narrows fluidly (down to 12px
+     at 960px) instead of the dock overflowing the page (SITE-43). 960px is
+     the first round step that fits. Below that the scroll comes back and the
+     tooltips clip again, which is the right trade: those widths are phones
+     and small tablets, where there is no hover to show a tooltip with and a
+     sideways-scrolling dock is the familiar pattern. */
   @media (min-width: 960px) {
-    .home-dock { overflow: visible; }
+    .home-dock { overflow: visible; gap: clamp(8px, calc((100% - 800px) / 9), 20px); }
   }
 
   @media (max-width: 959.98px) {
@@ -1152,7 +1157,8 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     position: absolute;
     bottom: calc(100% + 14px);
     left: 50%;
-    transform: translateX(-50%) translateY(4px) scale(0.95);
+    --tip-x: -50%;
+    transform: translateX(var(--tip-x)) translateY(4px) scale(0.95);
     opacity: 0;
     visibility: hidden;
     background: var(--color-surface);
@@ -1186,9 +1192,16 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   .app-card:focus-visible .app-tooltip {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateX(var(--tip-x)) translateY(0) scale(1);
     transition: opacity 0.5s ease-out 0.4s, visibility 0.5s ease-out 0.4s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
   }
+
+  /* The end tools' tooltips line up with their card's outer edge so they never
+     hang past the page; the arrow stays over the card's centre (80px card, 12px arrow). */
+  .app-card:first-child .app-tooltip { left: auto; inset-inline-start: 0; --tip-x: 0px; }
+  .app-card:last-child .app-tooltip { left: auto; inset-inline-end: 0; --tip-x: 0px; }
+  .app-card:first-child .app-tooltip::after { left: auto; inset-inline-start: 34px; transform: none; }
+  .app-card:last-child .app-tooltip::after { left: auto; inset-inline-end: 34px; transform: none; }
 
   /* --- Card parallax --------------------------------------------------
      Depth on the story cards below the first screen: each card's

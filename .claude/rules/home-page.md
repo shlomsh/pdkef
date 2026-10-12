@@ -46,7 +46,8 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   a screen-tall story; desktop moves the demo beside the launcher purely by naming areas. The desktop
   grid is full-bleed (`minmax(32px, 1fr)` gutters, two 588px columns, a 40px gap column: the old 1280px
   block to the pixel) rather than a wrapper, because a wrapper would force the demo before the dock in
-  the DOM. Tell: a script that re-parents the hero after hydration. It shipped once and was **0.243 of
+  the DOM. The demo column is `minmax(480px, 588px)`: its stage needs a 150px note, a 28px gap and a
+  300-360px phone, and with a zero floor the phone overflowed the page at 1024px (SITE-43). Tell: a script that re-parents the hero after hydration. It shipped once and was **0.243 of
   a 0.244 CLS**, and it re-entered `astro-island` four times per load; only `@astrojs/preact`'s
   `!element.hasAttribute("ssr")` bail kept that from a second mount.
 - **Which element pins differs per breakpoint, by design.** Desktop pins the whole hero
