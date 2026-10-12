@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
 import { saveHandoff, setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
@@ -18,6 +19,76 @@ import type { RecentFilesMessages } from '../i18n/toolMessages';
    logic. */
 function readHomeRecents(): RecentFileItem[] {
   return readRecentFiles().map((entry: any) => ({ ...entry, cacheId: entry.id })).slice(0, 6);
+}
+
+/** The closing launcher cannot light a toolbar it has scrolled away from, so it sends the pick up to the first screen's island. */
+export const LAUNCHER_PICK_EVENT = 'pdkef:launcher-pick';
+
+const TYPE_BY_EXTENSION: Record<string, string> = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+/** Edit PDF Pages filters strictly by type, so a file the browser left untyped gets one from its extension. */
+export const fileTypeOf = (file: File) =>
+  file.type || TYPE_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? ''] || 'application/pdf';
+
+type Choice = { files: File[]; tools: string[] };
+type Opening = { count: number; tool: string };
+
+/** What the tile says. Pure, so the four states are testable without a DOM. */
+export function tileCopy(
+  state: { choice: Choice | null; opening: Opening | null; busy: boolean },
+  messages: FileDropzoneMessages,
+) {
+  if (state.opening) {
+    return {
+      title: formatMessage(messages.fileCount, { count: state.opening.count }),
+      line: formatMessage(messages.openingTool, { tool: state.opening.tool }),
+      choosing: false,
+    };
+  }
+  if (state.choice) return { title: state.choice.files[0].name, line: messages.pickAToolBelow, choosing: true };
+  return { title: state.busy ? messages.opening : messages.chooseFiles, line: messages.orDropThenPick, choosing: false };
+}
+
+/* The toolbar belongs to the page, not to this island: its links are static
+   anchors that work without JavaScript, and while files wait the island only
+   marks them with attributes (CSS dims, rings and fades from there). All of
+   that DOM wiring lives in these helpers. */
+const dockLinks = () => [...document.querySelectorAll<HTMLAnchorElement>('.home-dock a[data-tool]')];
+const dockLink = (tool: string) => dockLinks().find(link => link.dataset.tool === tool);
+const linkLabel = (link: HTMLAnchorElement | undefined, fallback: string) =>
+  link?.querySelector('.app-label')?.textContent?.trim() || fallback;
+
+function restDock() {
+  document.querySelector('.home-hero')?.removeAttribute('data-picking');
+  dockLinks().forEach(link => link.removeAttribute('data-fits'));
+}
+
+/** Marks the links that fit and returns the first one in dock order. */
+function lightDock(tools: string[]) {
+  document.querySelector('.home-hero')?.setAttribute('data-picking', '');
+  const fits = dockLinks().filter(link => tools.includes(link.dataset.tool ?? ''));
+  fits.forEach(link => link.setAttribute('data-fits', ''));
+  return fits[0];
+}
+
+const DOCK_FADE_CLEARANCE = 56;
+
+/* Scrolls the dock itself, never the page. scrollIntoView also scrolls the
+   overflow-hidden ancestors of the pinned hero, which pushed the header down
+   under a blank band the first time this was built. */
+function wakeDock(tools: string[]) {
+  const first = lightDock(tools);
+  const dock = first?.closest<HTMLElement>('.home-dock');
+  if (!first || !dock) return undefined;
+  // Clear of the 40px edge fade at the dock's start, which is the right on an RTL page.
+  const link = first.getBoundingClientRect();
+  const box = dock.getBoundingClientRect();
+  const left = getComputedStyle(dock).direction === 'rtl'
+    ? dock.scrollLeft + link.right - box.right + DOCK_FADE_CLEARANCE
+    : dock.scrollLeft + link.left - box.left - DOCK_FADE_CLEARANCE;
+  const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  dock.scrollTo({ left, behavior: calm ? 'instant' : 'smooth' });
+  first.focus({ preventScroll: true });
+  return first;
 }
 
 export default function FileDropzone({
@@ -58,34 +129,60 @@ export default function FileDropzone({
   // Disables every tile, the picker and the drop target while it is set, so it
   // is the hook's flag rather than a plain useState (../lib/useNavigatingAway.ts).
   const [busy, setBusy] = useNavigatingAway();
+  // SITE-42: one file waits for a tool in the toolbar (`choice`), or several
+  // are on their way to the one tool that takes them (`opening`). Both start
+  // empty so the server render and the first client render agree.
+  const [choice, setChoice] = useState<Choice | null>(null);
+  const [opening, setOpening] = useState<Opening | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
 
   // MEM-03: no more "Open this instead?" - once work lives on the entry
   // rather than a per-tool draft slot, opening a file here overwrites
   // nothing, so a hand-off is just park-the-bytes-then-navigate.
-  const handOff = async (file: File, tool = toolTarget) => {
+  const handOff = async (files: File[], tool = toolTarget, href = toolHref(tool)) => {
     setBusy(true);
     try {
-      const saved = await saveHandoff(tool, {
-        fileName: file.name, fileType: file.type || 'application/pdf', fileBytes: await file.arrayBuffer(),
-      });
+      const records = await Promise.all(files.map(async file => ({
+        fileName: file.name, fileType: fileTypeOf(file), fileBytes: await file.arrayBuffer(),
+      })));
+      const saved = await saveHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records });
       if (!saved) throw new Error('handoff');
-      window.location.href = withFillModeParam(toolHref(tool), window.location.search);
+      window.location.href = withFillModeParam(href, window.location.search);
     } catch {
       // expected: the user sees handoffFailed, and saveHandoff reports its own failure
       setError(messages.handoffFailed);
+      setOpening(null);
+      restDock();
       setBusy(false);
     }
+  };
+  const leftOutNote = (skipped: File[]) =>
+    skipped.length ? formatMessage(messages.leftOut, { names: skipped.map(file => file.name).join(', ') }) : '';
+  const enterChoice = (route: Extract<FileRoute, { kind: 'choose' }>) => {
+    setError(leftOutNote(route.skipped));
+    setChoice({ files: route.files, tools: route.tools });
   };
   const handleFiles = async (files: FileList | File[]) => {
     const incoming = Array.from(files || []);
     if (!incoming.length || busy) return;
-    if (incoming.length > 1) { setError(messages.multipleFilesPicked); return; }
-    const file = incoming[0];
-    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { setError(messages.notAPdf); return; }
-    setError('');
-    await handOff(file);
+    const route = routeFiles(incoming);
+    if (route.kind === 'none') {
+      setError(route.reason === 'mixed' ? messages.mixedKinds : messages.unsupportedFiles);
+      return;
+    }
+    if (route.kind === 'choose') {
+      if (!final) { enterChoice(route); return; }
+      // The closing launcher wakes nothing itself: it scrolls up and lets the first screen take the pick.
+      document.querySelector<HTMLElement>('[data-workspace-return]')?.click();
+      window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: incoming } }));
+      return;
+    }
+    setError(leftOutNote(route.skipped));
+    const link = dockLink(route.tool);
+    setOpening({ count: route.files.length, tool: linkLabel(link, tools.find(t => t.slug === route.tool)?.gridTitle ?? route.tool) });
+    if (!final) lightDock([route.tool]);
+    await handOff(route.files, route.tool, link?.getAttribute('href') ?? undefined);
   };
   // Opening a recent tile is a pointer move and a navigation, nothing more.
   // The entry already holds the bytes and the work; the tool restores itself
@@ -152,6 +249,45 @@ export default function FileDropzone({
     });
     return () => cleanups.forEach(cleanup => cleanup());
   }, [busy, final]);
+  // Waiting for a tool: light the toolbar, and let a lit link, Escape or the
+  // tile end the wait. One dock listener, present only while waiting; a dimmed
+  // link is never intercepted, it stays a plain link to its page.
+  useEffect(() => {
+    if (!choice) return;
+    wakeDock(choice.tools);
+    const dock = document.querySelector('.home-dock');
+    const pickTool = (event: Event) => {
+      const link = (event.target as Element).closest<HTMLAnchorElement>('a[data-fits]');
+      if (!link || busy) return;
+      event.preventDefault();
+      void handOff(choice.files, link.dataset.tool, link.getAttribute('href') ?? undefined);
+    };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setChoice(null); };
+    dock?.addEventListener('click', pickTool);
+    document.addEventListener('keydown', escape);
+    return () => {
+      dock?.removeEventListener('click', pickTool);
+      document.removeEventListener('keydown', escape);
+      restDock();
+    };
+  }, [choice]);
+  // The closing launcher's pick, and a page restored from the back/forward cache.
+  useEffect(() => {
+    if (final) return;
+    const picked = (event: Event) => {
+      const route = routeFiles((event as CustomEvent<{ files: File[] }>).detail.files);
+      if (route.kind === 'choose') enterChoice(route);
+    };
+    const restored = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      setChoice(null);
+      setOpening(null);
+      restDock();
+    };
+    window.addEventListener(LAUNCHER_PICK_EVENT, picked);
+    window.addEventListener('pageshow', restored);
+    return () => { window.removeEventListener(LAUNCHER_PICK_EVENT, picked); window.removeEventListener('pageshow', restored); };
+  }, [final]);
   useEffect(() => {
     const refresh = () => setRecents(readHomeRecents());
     refresh();
@@ -163,13 +299,17 @@ export default function FileDropzone({
     try {
       const response = await fetch('/images/redaction-guide/sample.pdf');
       if (!response.ok) throw new Error('sample');
-      await handleFiles([new File([await response.blob()], SAMPLE_FILE_NAME, { type: 'application/pdf' })]);
+      if (busy) return;
+      setError('');
+      // The practice document is Sign's own, so it skips the routing.
+      await handOff([new File([await response.blob()], SAMPLE_FILE_NAME, { type: 'application/pdf' })]);
     } catch {
       // expected: a same-origin fetch can fail offline, the user sees sampleLoadFailed
       setError(messages.sampleLoadFailed);
     }
   };
   const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
+  const { title, line, choosing } = tileCopy({ choice, opening, busy }, messages);
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
       {!final && <RecentFiles
@@ -209,18 +349,25 @@ export default function FileDropzone({
         <strong>{SAMPLE_FILE_NAME}</strong>
         <span>{formatMessage(messages.practiceDocumentCaption, { tool: resolvedToolDisplayName })}</span>
       </button>}
-      <button type="button" class={styles.tile} data-home-picker disabled={busy} onClick={() => input.current?.click()}>
+      <button type="button" class={styles.tile} data-home-picker data-picking={choice ? '' : undefined} disabled={busy}
+        onClick={() => { setChoice(null); input.current?.click(); }}>
         <svg width="36" height="42" viewBox="0 0 36 42" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path d="M6 2h16l9 9v28H6zM22 2v10h9M12 26h13M18.5 19.5v13" />
         </svg>
-        <strong>{busy ? messages.opening : messages.chooseFiles}</strong>
-        <span>{messages.orDropPdfsHere}</span>
+        <strong class={styles.title}><bdi class={styles.name}>{title}</bdi>{choosing && <em class={styles.change}>{messages.change}</em>}</strong>
+        <span>{line}</span>
+        <svg class={styles.arrow} viewBox="0 0 40 72" aria-hidden="true" focusable="false">
+          <path pathLength={1} d="M36 6C22 2 8 8 7 22C6 34 16 38 18 30C20 22 6 22 7 40C8 52 13 60 16 67" />
+          <path pathLength={1} d="M7 61L15.8 67.6L19 56.5" />
+        </svg>
       </button>
-      <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={event => {
+      <input ref={input} type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png" hidden onChange={event => {
         const files = Array.from(event.currentTarget.files || []);
         event.currentTarget.value = '';
         void handleFiles(files);
       }} />
+      {/* Always present, so a screen reader hears the prompt when it fills in; visually hidden. */}
+      <span class="sr-only" aria-live="polite">{choice ? messages.pickAToolBelow : ''}</span>
       {error && <p class={styles.error} role="alert">{error}</p>}
     </div>
   );

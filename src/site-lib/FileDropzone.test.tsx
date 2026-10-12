@@ -2,7 +2,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import FileDropzone from './FileDropzone.tsx';
+import FileDropzone, { tileCopy, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
+import { englishFileDropzoneMessages as en } from '../i18n/toolMessages';
 import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
@@ -56,8 +57,9 @@ describe('FileDropzone', () => {
     mount();
     expect(container.querySelector('[data-home-picker]').tagName).toBe('BUTTON');
     const input = container.querySelector('input[type="file"]');
-    expect(input.multiple).toBe(false);
-    expect(input.accept).toContain('application/pdf');
+    // SITE-42: several files, PDFs and JPEG/PNG photos, routed by routeFiles.
+    expect(input.multiple).toBe(true);
+    expect(input.accept).toBe('application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png');
   });
 
   describe('recent-file card', () => {
@@ -86,7 +88,7 @@ describe('FileDropzone', () => {
       expect(container.querySelector('button[aria-label^="Open recent PDF"]')).not.toBeNull();
       expect(container.querySelector('button[aria-label^="Open bundled sample PDF"]')).toBeNull();
       expect(container.textContent).not.toContain('Drop PDFs here');
-      expect(container.textContent).toContain('or drop PDFs here');
+      expect(container.textContent).toContain('or drop them here, then pick a tool below');
     });
 
     it('renders the starter document before it reads browser storage', async () => {
@@ -278,6 +280,23 @@ describe('FileDropzone', () => {
   describe('handing a dropped file to a tool (toolTarget)', () => {
     const pdf = () => new File(['%PDF-1.4'], 'contract.pdf', { type: 'application/pdf' });
 
+    // SITE-42: one PDF no longer goes straight to toolTarget; it waits for a
+    // click on a lit toolbar link, so these tests give it a one-link dock and
+    // make that click. The hand-off record and failure handling are unchanged.
+    let hero;
+    beforeEach(() => {
+      hero = document.createElement('div');
+      hero.className = 'home-hero';
+      hero.innerHTML = '<nav class="home-dock"><a class="app-card" data-tool="sign" href="/sign/"><div class="app-label">Sign PDF</div></a></nav>';
+      hero.querySelector('.home-dock').scrollTo = vi.fn();
+      document.body.appendChild(hero);
+    });
+    afterEach(() => hero.remove());
+    const chooseSign = () => act(async () => {
+      hero.querySelector('a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
     function mountTarget() {
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
       return container;
@@ -286,6 +305,7 @@ describe('FileDropzone', () => {
     it('parks the file in a handoff, never in the tool\'s draft', async () => {
       const dropzone = mountTarget();
       await dropOn(dropzone, [pdf()]);
+      await chooseSign();
 
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       const [tool, record] = saveHandoff.mock.calls[0];
@@ -312,6 +332,7 @@ describe('FileDropzone', () => {
         setInputFiles(input, [pdf()]);
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
+      await chooseSign();
 
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       expect(saveHandoff.mock.calls[0][0]).toBe('sign');
@@ -327,6 +348,7 @@ describe('FileDropzone', () => {
     it('hands a dropped file straight to the target tool, with no confirmation', async () => {
       const dropzone = mountTarget();
       await dropOn(dropzone, [pdf()]);
+      await chooseSign();
 
       expect(container.querySelector('dialog')).toBeNull();
       expect(saveHandoff).toHaveBeenCalledTimes(1);
@@ -343,15 +365,281 @@ describe('FileDropzone', () => {
       saveHandoff.mockResolvedValue(false);
       const area = mountTarget();
       await dropOn(area, [pdf()]);
+      await chooseSign();
       expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not save this file');
     });
 
-    it('does not silently discard extra dropped documents', async () => {
+    // SITE-42: used to assert the "use Merge PDF below" error; several PDFs
+    // now go straight to Merge (see the routing describe below).
+    it('sends several dropped PDFs to Merge instead of refusing them', async () => {
       const area = mountTarget();
       await dropOn(area, [pdf(), pdf()]);
-      expect(saveHandoff).not.toHaveBeenCalled();
-      expect(container.querySelector('[role="alert"]').textContent).toContain('Merge PDF');
+      expect(saveHandoff).toHaveBeenCalledTimes(1);
+      expect(saveHandoff.mock.calls[0][0]).toBe('merge');
+      expect(container.querySelector('[role="alert"]')).toBeNull();
     });
 
+  });
+
+  describe('tileCopy', () => {
+    const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+    it('rest, busy, choosing and opening each get their own title and line', () => {
+      expect(tileCopy({ choice: null, opening: null, busy: false }, en)).toEqual({ title: 'Choose files', line: en.orDropThenPick, choosing: false });
+      expect(tileCopy({ choice: null, opening: null, busy: true }, en)).toMatchObject({ title: 'Opening…', choosing: false });
+      expect(tileCopy({ choice: { files: [file], tools: ['sign'] }, opening: null, busy: false }, en))
+        .toEqual({ title: 'a.pdf', line: 'Now pick a tool below', choosing: true });
+      expect(tileCopy({ choice: null, opening: { count: 3, tool: 'Merge PDF' }, busy: true }, en))
+        .toEqual({ title: '3 files', line: 'Opening Merge PDF…', choosing: false });
+    });
+  });
+
+  describe('routing picked files (SITE-42)', () => {
+    const LABELS = {
+      redact: 'Redact PDF', sign: 'Sign PDF', merge: 'Merge PDF', 'image-to-pdf': 'Image to PDF', 'pdf-to-image': 'PDF to Image',
+      split: 'Split PDF', compress: 'Compress PDF', 'compress-image': 'Compress Image', unlock: 'Unlock PDF', 'edit-pdf': 'Edit PDF Pages',
+    };
+    const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' });
+    const photo = (name = 'p.jpg') => new File(['jpg'], name, { type: 'image/jpeg' });
+    let hero, dock, back, realLocation, scrollIntoView;
+    const link = (tool) => dock.querySelector(`[data-tool="${tool}"]`);
+    const picker = () => container.querySelector('[data-home-picker]');
+    const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const pick = async (files, root = container) => {
+      await act(async () => {
+        setInputFiles(root.querySelector('input[type="file"]'), files);
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    };
+    const lit = () => [...dock.querySelectorAll('[data-fits]')].map((a) => a.dataset.tool);
+
+    beforeEach(() => {
+      hero = document.createElement('div');
+      hero.className = 'home-hero';
+      hero.innerHTML = '<nav class="home-dock">' + Object.entries(LABELS).map(([t, l]) =>
+        `<a class="app-card" data-tool="${t}" href="/${t}/"><div class="app-label">${l}</div></a>`).join('') + '</nav>';
+      document.body.appendChild(hero);
+      dock = hero.querySelector('.home-dock');
+      dock.scrollTo = vi.fn();
+      back = document.createElement('a');
+      back.setAttribute('data-workspace-return', '');
+      back.href = '#home-tour';
+      back.addEventListener('click', (e) => e.preventDefault());
+      document.body.appendChild(back);
+      realLocation = Object.getOwnPropertyDescriptor(window, 'location');
+      Object.defineProperty(window, 'location', { configurable: true, value: { href: '/', search: '' } });
+      scrollIntoView = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
+    });
+    afterEach(() => {
+      hero.remove();
+      back.remove();
+      Object.defineProperty(window, 'location', realLocation);
+      delete Element.prototype.scrollIntoView;
+    });
+
+    it('opens Merge for several PDFs, lighting it on the way', async () => {
+      mount();
+      await pick([pdf('a.pdf'), pdf('b.pdf')]);
+      expect(saveHandoff).toHaveBeenCalledTimes(1);
+      const [key, record] = saveHandoff.mock.calls[0];
+      expect(key).toBe('merge');
+      expect(record.files.map((f) => f.fileName)).toEqual(['a.pdf', 'b.pdf']);
+      expect(record.files[0].fileType).toBe('application/pdf');
+      expect(record.files[0].fileBytes.byteLength).toBeGreaterThan(0);
+      expect(window.location.href).toBe('/merge/');
+      expect(hero.hasAttribute('data-picking')).toBe(true);
+      expect(lit()).toEqual(['merge']);
+      expect(picker().textContent).toContain('2 files');
+      expect(picker().textContent).toContain('Opening Merge PDF…');
+    });
+
+    it('opens Image to PDF for several photos, naming types from extensions when the browser gives none', async () => {
+      mount();
+      await pick([new File(['x'], 'one.JPG'), new File(['y'], 'two.png')]);
+      const [key, record] = saveHandoff.mock.calls[0];
+      expect(key).toBe('image-to-pdf');
+      expect(record.files.map((f) => f.fileType)).toEqual(['image/jpeg', 'image/png']);
+      expect(window.location.href).toBe('/image-to-pdf/');
+    });
+
+    it('keeps the fill-mode param on the way out', async () => {
+      window.location.search = '?next=0';
+      mount();
+      await pick([pdf(), pdf('b.pdf')]);
+      expect(window.location.href).toBe('/merge/?next=0');
+    });
+
+    it('waits for a choice on one PDF: attributes, name, prompt, focus on the first lit link in dock order', async () => {
+      mount();
+      await pick([pdf('contract.pdf')]);
+      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(hero.hasAttribute('data-picking')).toBe(true);
+      expect(picker().hasAttribute('data-picking')).toBe(true);
+      expect(lit()).toEqual(['redact', 'sign', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'edit-pdf']);
+      expect(picker().textContent).toContain('contract.pdf');
+      expect(picker().textContent).toContain('Change');
+      expect(picker().textContent).toContain('Now pick a tool below');
+      expect(container.querySelector('[aria-live="polite"]').textContent).toBe('Now pick a tool below');
+      expect(document.activeElement).toBe(link('redact'));
+      expect(dock.scrollTo).toHaveBeenCalledTimes(1);
+      expect(dock.scrollTo.mock.calls[0][0]).toMatchObject({ left: expect.any(Number) });
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    // The dock's edge fades are 40px wide at either end: the first lit tool
+    // lands clear of the start fade, and on an RTL page the start is the right.
+    it.each([
+      ['ltr', { left: 300, right: 380 }, -56 + 300],
+      ['rtl', { left: 20, right: 100 }, 100 - 375 + 56],
+    ])('scrolls the first lit tool clear of the start edge fade (%s)', async (direction, rect, expected) => {
+      dock.style.direction = direction;
+      dock.getBoundingClientRect = () => ({ left: 0, right: 375 }) as DOMRect;
+      link('image-to-pdf').getBoundingClientRect = () => rect as DOMRect;
+      mount();
+      await pick([new File(['x'], 'photo.jpg', { type: 'image/jpeg' })]);
+      expect(dock.scrollTo.mock.calls[0][0].left).toBe(expected);
+    });
+
+    it('lights the two image tools for one photo', async () => {
+      mount();
+      await pick([photo()]);
+      expect(lit()).toEqual(['image-to-pdf', 'compress-image']);
+      expect(document.activeElement).toBe(link('image-to-pdf'));
+    });
+
+    it('hands the file to the clicked lit tool, Compress Image under the compress key', async () => {
+      mount();
+      await pick([photo('p.jpg')]);
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      await act(async () => { link('compress-image').dispatchEvent(click); await new Promise((r) => setTimeout(r, 0)); });
+      expect(click.defaultPrevented).toBe(true);
+      const [key, record] = saveHandoff.mock.calls[0];
+      expect(key).toBe('compress');
+      expect(record.fileName).toBe('p.jpg');
+      expect(record.fileType).toBe('image/jpeg');
+      expect(window.location.href).toBe('/compress-image/');
+    });
+
+    it('leaves a dimmed link a plain link', async () => {
+      mount();
+      await pick([pdf()]);
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      await act(async () => { link('image-to-pdf').dispatchEvent(click); await flush(); });
+      expect(click.defaultPrevented).toBe(false);
+      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(window.location.href).toBe('/');
+    });
+
+    const expectRest = () => {
+      expect(hero.hasAttribute('data-picking')).toBe(false);
+      expect(picker().hasAttribute('data-picking')).toBe(false);
+      expect(lit()).toEqual([]);
+      expect(picker().textContent).toContain('Choose files');
+      expect(container.querySelector('[aria-live="polite"]').textContent).toBe('');
+    };
+
+    it('returns to rest on Escape, and stops listening for it and for dock clicks', async () => {
+      mount();
+      await pick([pdf()]);
+      await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      expectRest();
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      await act(async () => { link('sign').dispatchEvent(click); await flush(); });
+      expect(click.defaultPrevented).toBe(false);
+      expect(saveHandoff).not.toHaveBeenCalled();
+    });
+
+    it('returns to rest on a tile click and opens the picker again', async () => {
+      mount();
+      await pick([pdf()]);
+      const open = vi.spyOn(container.querySelector('input[type="file"]'), 'click');
+      await act(async () => { picker().click(); });
+      expectRest();
+      expect(open).toHaveBeenCalled();
+    });
+
+    it('returns to rest when the page comes back from the back/forward cache', async () => {
+      mount();
+      await pick([pdf(), pdf('b.pdf')]);
+      expect(picker().disabled).toBe(true);
+      await act(async () => { const e = new Event('pageshow'); e.persisted = true; window.dispatchEvent(e); });
+      expectRest();
+      expect(picker().disabled).toBe(false);
+    });
+
+    it('says PDFs and photos go to different tools, and opens nothing', async () => {
+      mount();
+      await pick([pdf(), photo()]);
+      expect(container.querySelector('[role="alert"]').textContent).toBe(en.mixedKinds);
+      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(lit()).toEqual([]);
+      expect(hero.hasAttribute('data-picking')).toBe(false);
+    });
+
+    it('says what it takes when nothing is usable, and opens nothing', async () => {
+      mount();
+      await pick([new File(['x'], 'notes.txt', { type: 'text/plain' })]);
+      expect(container.querySelector('[role="alert"]').textContent).toBe('Choose PDFs, or JPEG and PNG photos.');
+      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(lit()).toEqual([]);
+    });
+
+    it('names what it left out alongside the routed outcome', async () => {
+      mount();
+      await pick([pdf(), new File(['x'], 'a.txt', { type: 'text/plain' }), new File(['x'], 'b.docx')]);
+      expect(container.querySelector('[role="alert"]').textContent).toBe('Left out: a.txt, b.docx');
+      expect(lit()).toHaveLength(8);
+    });
+
+    it('still opens the practice document in Sign directly', async () => {
+      vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['%PDF'])) })));
+      mount();
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => {
+        container.querySelector('button[aria-label^="Open bundled sample PDF"]').click();
+        await new Promise((r) => setTimeout(r, 10));
+      });
+      vi.unstubAllGlobals();
+      expect(saveHandoff.mock.calls[0][0]).toBe('sign');
+      expect(saveHandoff.mock.calls[0][1].fileName).toBe('PDkef practice form.pdf');
+      expect(window.location.href).toBe('/sign/');
+      expect(lit()).toEqual([]);
+    });
+
+    it('closing launcher: several files open directly', async () => {
+      mount({ final: true });
+      await pick([photo(), photo('q.png')]);
+      expect(saveHandoff.mock.calls[0][0]).toBe('image-to-pdf');
+      expect(window.location.href).toBe('/image-to-pdf/');
+    });
+
+    it('closing launcher: one file clicks the return link and tells the first screen, waking nothing itself', async () => {
+      const clicked = vi.fn();
+      back.addEventListener('click', clicked);
+      const heard = vi.fn();
+      window.addEventListener(LAUNCHER_PICK_EVENT, heard);
+      mount({ final: true });
+      const f = pdf('far.pdf');
+      await pick([f]);
+      window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
+      expect(clicked).toHaveBeenCalledTimes(1);
+      expect(heard).toHaveBeenCalledTimes(1);
+      expect(heard.mock.calls[0][0].detail.files).toEqual([f]);
+      expect(LAUNCHER_PICK_EVENT).toBe('pdkef:launcher-pick');
+      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(lit()).toEqual([]);
+      expect(hero.hasAttribute('data-picking')).toBe(false);
+    });
+
+    it('the first-screen launcher enters the waiting state on that event', async () => {
+      mount();
+      await act(async () => {
+        window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: [pdf('far.pdf')] } }));
+      });
+      expect(picker().textContent).toContain('far.pdf');
+      expect(lit()).toHaveLength(8);
+      expect(document.activeElement).toBe(link('redact'));
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
   });
 });

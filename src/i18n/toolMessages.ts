@@ -1792,13 +1792,22 @@ export function getShellMessages(locale: DocumentationLocaleId): ShellMessages |
  */
 export interface FileDropzoneMessages {
   handoffFailed: string;
-  multipleFilesPicked: string;
-  notAPdf: string;
   recentFileUnavailable: string;
   sampleLoadFailed: string;
   opening: string;
   chooseFiles: string;
-  orDropPdfsHere: string;
+  orDropThenPick: string;
+  /** SITE-42: the tile while one file waits for a tool in the toolbar. */
+  pickAToolBelow: string;
+  change: string;
+  /** '{count}' placeholder. */
+  fileCount: string;
+  /** '{tool}' is the toolbar link's own (localized) label. */
+  openingTool: string;
+  /** '{names}' placeholder, comma-separated. */
+  leftOut: string;
+  mixedKinds: string;
+  unsupportedFiles: string;
   /** '{tool}' is filled from the `toolDisplayName` prop, so the destination
    * tool's name is never hardcoded to English ("Sign & Fill") - docs/
    * home-page-localization-plan.md, section 2 row 21. */
@@ -1807,13 +1816,18 @@ export interface FileDropzoneMessages {
 
 const englishFileDropzoneMessages: FileDropzoneMessages = {
   handoffFailed: 'PDkef could not save this file on your device. Please try again.',
-  multipleFilesPicked: 'Choose one PDF here, or use Merge PDF below for several files.',
-  notAPdf: 'Please choose a PDF file.',
   recentFileUnavailable: 'That recent file is no longer available in this browser.',
   sampleLoadFailed: 'The sample could not be loaded. Please try again or choose your own PDF.',
   opening: 'Opening…',
   chooseFiles: 'Choose files',
-  orDropPdfsHere: 'or drop PDFs here',
+  orDropThenPick: 'or drop them here, then pick a tool below',
+  pickAToolBelow: 'Now pick a tool below',
+  change: 'Change',
+  fileCount: '{count} files',
+  openingTool: 'Opening {tool}…',
+  leftOut: 'Left out: {names}',
+  mixedKinds: 'PDFs and photos go to different tools. Choose one kind at a time.',
+  unsupportedFiles: 'Choose PDFs, or JPEG and PNG photos.',
   practiceDocumentCaption: 'Practice document · opens in {tool}',
 };
 
@@ -1827,13 +1841,18 @@ const englishFileDropzoneMessages: FileDropzoneMessages = {
 // reviewNotes. Do not treat these values as approved copy.
 const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   handoffFailed: 'לא הצלחנו לשמור את הקובץ הזה במכשיר שלכם. נסו שוב.',
-  multipleFilesPicked: 'בחרו כאן קובץ PDF אחד, או השתמשו באיחוד PDF למטה בשביל כמה קבצים.',
-  notAPdf: 'בחרו קובץ PDF.',
   recentFileUnavailable: 'הקובץ הזה כבר לא זמין בדפדפן הזה.',
   sampleLoadFailed: 'לא הצלחנו לטעון את קובץ הדוגמה. נסו שוב או בחרו קובץ PDF משלכם.',
   opening: 'פותחים…',
   chooseFiles: 'בחירת קבצים',
-  orDropPdfsHere: 'או גררו לכאן קבצי PDF',
+  orDropThenPick: 'או גררו לכאן, ואז בחרו כלי למטה',
+  pickAToolBelow: 'עכשיו בחרו כלי למטה',
+  change: 'החלפה',
+  fileCount: '{count} קבצים',
+  openingTool: 'פותחים את {tool}…',
+  leftOut: 'לא נכללו: {names}',
+  mixedKinds: 'קבצי PDF ותמונות נפתחים בכלים שונים. בחרו סוג אחד בכל פעם.',
+  unsupportedFiles: 'בחרו קבצי PDF, או תמונות JPEG ו-PNG.',
   practiceDocumentCaption: 'מסמך לתרגול · נפתח בכלי {tool}',
 };
 
