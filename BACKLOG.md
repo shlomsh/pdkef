@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 9 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 47 live: 8 up next, 6 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -135,7 +135,6 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| MERGE-21 | P2 | [MERGE-21](backlog/tasks/MERGE-21.md) · A long output name with no break points runs past the card on a phone | In progress |
 | SITE-42 | P2 | [SITE-42](backlog/tasks/SITE-42.md) · Home: picked files wake the toolbar, which becomes the tool chooser | Needs Shlomi: Pick the copy, and try the rough build on your iPhone |
 
 ### Then, in order
@@ -160,7 +159,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 39 done, 3 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 3 done, 0 retired
+- Polish: 4 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
