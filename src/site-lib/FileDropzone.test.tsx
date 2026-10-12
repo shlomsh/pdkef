@@ -519,7 +519,8 @@ describe('FileDropzone', () => {
       expect(dock.scrollTo.mock.calls[0][0].left).toBe(expected);
     });
 
-    it('lights the two image tools for one photo', async () => {
+    // Merge takes photos too, but only alongside a PDF does the toolbar offer it (MERGE-22).
+    it('lights the two image tools for one photo, not Merge', async () => {
       mount();
       await pick([photo()]);
       expect(lit()).toEqual(['image-to-pdf', 'compress-image']);
@@ -586,17 +587,16 @@ describe('FileDropzone', () => {
       expect(picker().disabled).toBe(false);
     });
 
-    it('says PDFs and photos go to different tools, and opens nothing', async () => {
+    it('opens Merge for PDFs and photos together, one multi record in pick order', async () => {
       mount();
-      await pick([pdf(), photo()]);
-      expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(en.mixedKinds);
-      expect(container.querySelector('[data-home-picker] [data-tone="note"]').getAttribute('title')).toBe(en.mixedKinds);
-      expect(container.querySelector('[role="alert"]')).toBeNull();
-      expect(container.querySelector('p')).toBeNull();
-      expect(container.querySelector('span[aria-live]').getAttribute('aria-live')).toBe('assertive');
-      expect(saveHandoff).not.toHaveBeenCalled();
-      expect(lit()).toEqual([]);
-      expect(hero.hasAttribute('data-picking')).toBe(false);
+      await pick([photo('p.jpg'), pdf('a.pdf')]);
+      expect(saveHandoff).toHaveBeenCalledTimes(1);
+      const [key, record] = saveHandoff.mock.calls[0];
+      expect(key).toBe('merge');
+      expect(record.files.map((f) => f.fileName)).toEqual(['p.jpg', 'a.pdf']);
+      expect(record.files.map((f) => f.fileType)).toEqual(['image/jpeg', 'application/pdf']);
+      expect(window.location.href).toBe('/merge/');
+      expect(lit()).toEqual(['merge']);
     });
 
     it('says what it takes when nothing is usable, and opens nothing', async () => {
@@ -632,9 +632,9 @@ describe('FileDropzone', () => {
 
     it('closing launcher: several files open directly', async () => {
       mount({ final: true });
-      await pick([photo(), photo('q.png')]);
-      expect(saveHandoff.mock.calls[0][0]).toBe('image-to-pdf');
-      expect(window.location.href).toBe('/image-to-pdf/');
+      await pick([pdf(), photo('q.png')]);
+      expect(saveHandoff.mock.calls[0][0]).toBe('merge');
+      expect(window.location.href).toBe('/merge/');
     });
 
     it('closing launcher: one file clicks the return link and tells the first screen, waking nothing itself', async () => {
@@ -759,7 +759,7 @@ describe('FileDropzone', () => {
 
       it('clears an earlier error when the closing launcher passes one file up', async () => {
         mount({ final: true });
-        await pick([pdf(), photo()]);
+        await pick([new File(['x'], 'notes.txt', { type: 'text/plain' })]);
         expect(container.querySelector('[data-tone="note"]')).not.toBeNull();
         await pick([pdf('far.pdf')]);
         expect(container.querySelector('[data-tone="note"]')).toBeNull();

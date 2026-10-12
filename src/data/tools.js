@@ -394,7 +394,7 @@ export const tools = [
     faqSketch: 'grid',
     faqIconPos: 'bl',
     steps: [
-      { title: 'Add your PDFs', text: 'Select or drag-and-drop the files you want to combine.' },
+      { title: 'Add your PDFs and photos', text: 'Select or drag-and-drop the PDFs, or JPEG and PNG photos, you want to combine.' },
       { title: 'Arrange them', text: 'Sort by name or date, drag files into the order you want, or work on the pages themselves: every page of the result is shown below the list, and you can drag one anywhere, rotate it or skip it.' },
       { title: 'Download', text: 'Check Add page numbers if you want them, then tap Download. The merged file is built on your device as you go, so it is ready when you are.' },
     ],
@@ -406,6 +406,7 @@ export const tools = [
       { question: 'Can I combine scanned receipts or reports into one PDF?', answer: 'Yes - this is one of the most common uses. Add each scanned page or report PDF, reorder them, and merge into a single file for an expense report, portfolio, or ebook.' },
       { question: 'Can I add PDFs from Google Drive, Dropbox or iCloud?', answer: 'Yes, through your device\'s own file picker, so PDkef never connects to those services. On Android, tap Choose files and pick Google Drive from the list next to Downloads. On iPhone or iPad, open Choose files, then Browse, and your Drive, Dropbox or iCloud Drive appears once its app is installed. On a Mac or Windows PC, install the Drive, Dropbox or OneDrive desktop app and its folder shows up in the file picker like any other folder.' },
       { question: 'What happens to my files if I close the tab partway through?', answer: 'Nothing is lost. As you add files, reorder them, or rotate and skip pages, the tool auto-saves your file set, page order, rotations, and skips to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. A very large set of files may not fit in your browser\'s local storage; if that happens the tool tells you the draft could not be saved rather than pretending it was, and merging itself keeps working either way. Saved drafts expire after 28 days without a change. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
+      { question: 'Can I merge photos with PDFs?', answer: 'Yes. Add JPEG or PNG photos beside your PDFs and each photo becomes one page, the size of the photo, in the order you set. It all happens on your device.' },
     ],
   },
 

@@ -160,7 +160,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
-    expect(dropzone.textContent).toContain('Drop PDFs here');
+    expect(dropzone.textContent).toContain('Drop PDFs or photos here');
   });
 
   // Item 5 (Shlomi's follow-up, 2026-09-13): Merge always opts into the
@@ -172,7 +172,9 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone.getAttribute('data-variant')).toBe('band');
-    expect(dropzone.textContent).toContain('Drop PDFs here, or paste');
+    expect(dropzone.textContent).toContain('Drop PDFs or photos here, or paste');
+    // MERGE-22: the headline a phone shows (the band copy is desktop-only) names photos too.
+    expect(dropzone.querySelector('strong').textContent).toBe('Drop PDFs or photos here');
     expect(dropzone.textContent).toContain('Your pages appear here, in order, before you download. Files never leave your device.');
     expect(dropzone.textContent).toContain('Choose files');
   });
@@ -188,7 +190,7 @@ describe('PdfMergeTool UI flow', () => {
     const box = downloadBox();
     expect(box.getAttribute('data-state')).toBe('one-file');
     expect(box.hasAttribute('disabled')).toBe(false);
-    expect(box.textContent).toContain('Add one more PDF to merge');
+    expect(box.textContent).toContain('Add one more file to merge');
     expect(downloadLink()).toBeNull();
     expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
 
@@ -395,13 +397,44 @@ describe('PdfMergeTool UI flow', () => {
     expect(downloadLink()).not.toBeNull();
   });
 
-  it('accepts a .pdf with an empty MIME type and still skips a real non-PDF (MERGE-02)', async () => {
+  it('accepts a .pdf and photos with an empty MIME type and still skips a real non-photo (MERGE-02, MERGE-22)', async () => {
     mount();
-    await loadFiles([makePdfFile('typeless.pdf', { type: '' }), makePdfFile('report.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), makePdfFile('photo.png', { type: 'image/png' })]);
+    await loadFiles([
+      makePdfFile('typeless.pdf', { type: '' }),
+      makePdfFile('report.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }),
+      makePdfFile('photo.png', { type: 'image/png' }),
+      makePdfFile('scan.jpg', { type: '' }),
+      makePdfFile('notes.txt', { type: 'text/plain' }),
+    ]);
 
-    expect(fileNames()).toEqual(['typeless.pdf']);
+    expect(fileNames()).toEqual(['typeless.pdf', 'photo.png', 'scan.jpg']);
     const hint = container.querySelector(`.${pdfToolStyles['hint-message']}`);
     expect(hint.textContent).toContain('Skipped 2 files');
+  });
+
+  it('takes a mixed pick in pick order and gives each photo one plan page (MERGE-22)', async () => {
+    pageCounts.set('b.pdf', { pageCount: 3, encrypted: false });
+    pageCounts.set('shot.jpg', { pageCount: 1, encrypted: false });
+    pageCounts.set('pic.png', { pageCount: 1, encrypted: false });
+    mount();
+    await loadFiles([
+      makePdfFile('a.pdf'),
+      makePdfFile('shot.jpg', { type: 'image/jpeg' }),
+      makePdfFile('b.pdf'),
+      makePdfFile('pic.png', { type: 'image/png' }),
+    ]);
+    await settle();
+    expect(fileNames()).toEqual(['a.pdf', 'shot.jpg', 'b.pdf', 'pic.png']);
+    const planned = draftProbe.props.plan.map((p) => draftProbe.props.entries.find((e) => e.id === p.fileId).file.name);
+    expect(planned).toEqual(['a.pdf', 'a.pdf', 'shot.jpg', 'b.pdf', 'b.pdf', 'b.pdf', 'pic.png']);
+  });
+
+  it('lets the file picker choose JPEG and PNG photos beside PDFs (MERGE-22)', () => {
+    mount();
+    const accept = container.querySelector('input[type="file"]').getAttribute('accept');
+    expect(accept).toContain('application/pdf');
+    expect(accept).toContain('image/jpeg');
+    expect(accept).toContain('image/png');
   });
 
   it('removes a file and offers Undo, which puts it back at its old position (MERGE-07)', async () => {
@@ -840,6 +873,18 @@ describe('PdfMergeTool UI flow', () => {
       expect(fileNames()).toEqual(['c.pdf', 'a.pdf', 'b.pdf']);
       await settle();
       expect(container.textContent).toContain('merged_c.pdf');
+    });
+
+    it('lands a PDF and a photo from the home page in order (MERGE-22)', async () => {
+      draftStore.takeHandoff.mockResolvedValueOnce({
+        files: [
+          { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(8) },
+          { fileName: 'snap.jpg', fileType: 'image/jpeg', fileBytes: new ArrayBuffer(8) },
+        ],
+      });
+      mount();
+      await act(async () => { await flush(20); });
+      expect(fileNames()).toEqual(['a.pdf', 'snap.jpg']);
     });
 
     it('wins over a restore that lands after it, and leaves the saved set alone', async () => {

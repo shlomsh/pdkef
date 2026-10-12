@@ -650,20 +650,20 @@ export default function PdfMergeTool({
 
   const addFiles = useCallback((fileList: FileList | File[], options: { force?: boolean } = {}) => {
     const incoming = Array.from(fileList);
-    // MERGE-02: classify through deriveFileKind, which falls back to the
+    // MERGE-02, MERGE-22: classify through deriveFileKind, which falls back to the
     // extension when a drag source or picker hands over a File with an
     // empty `type` - the exact case Compress already accepts.
-    const pdfFiles = incoming.filter((f) => deriveFileKind(f) === 'pdf');
-    const rejected = incoming.filter((f) => deriveFileKind(f) !== 'pdf');
+    const known = incoming.filter((f) => deriveFileKind(f) !== null);
+    const rejected = incoming.filter((f) => deriveFileKind(f) === null);
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
 
     // MERGE-07: a file with the same name and size as one already in the
     // list is almost always the same file picked twice; nudge, do not refuse.
-    let accepted = pdfFiles;
+    let accepted = known;
     if (!options.force) {
-      const dupes = pdfFiles.filter((f) => entries.some((e) => e.file.name === f.name && e.file.size === f.size));
+      const dupes = known.filter((f) => entries.some((e) => e.file.name === f.name && e.file.size === f.size));
       setDuplicates(dupes);
-      accepted = pdfFiles.filter((f) => !dupes.includes(f));
+      accepted = known.filter((f) => !dupes.includes(f));
     } else {
       setDuplicates([]);
     }
@@ -1229,6 +1229,7 @@ export default function PdfMergeTool({
 
   return (
     <BasePdfTool
+      accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png"
       hasFiles={hasFiles}
       analyticsTool="merge"
       analyticsStatus={analyticsStatus}
@@ -1243,6 +1244,7 @@ export default function PdfMergeTool({
       emptyVariant="band"
       showCloudDriveHint
       emptyBandHeading={t.emptyHeading}
+      emptyStateMessage={t.dropHere}
       emptyBandBody={t.emptyBody}
       checkingDraft={!hasFiles && draftState.isRestoring}
       hideIdentity

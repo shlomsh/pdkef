@@ -205,6 +205,8 @@ export interface MergeMessages {
   /** Shlomi's follow-up (2026-09-13): the desktop-only empty-state band
    * (BasePdfTool's `emptyVariant="band"`, DropzoneEmptyState's band copy). */
   emptyHeading: string;
+  /** The empty state's own headline, the one a phone shows (MERGE-22: photos too). */
+  dropHere: string;
   emptyBody: string;
   /** Same follow-up, item 6: a small always-in-the-DOM tooltip word inside
    * each page action button (rotate/skip/open), shown on hover/focus - the
@@ -217,25 +219,25 @@ export interface MergeMessages {
 
 const englishMergeMessages: MergeMessages = {
   dir: 'ltr',
-  skippedOne: 'Skipped "{name}" - not a PDF.',
-  skippedMany: 'Skipped {count} files - not PDFs.',
+  skippedOne: 'Skipped "{name}" - not a PDF or a JPEG or PNG photo.',
+  skippedMany: 'Skipped {count} files - not PDFs or JPEG or PNG photos.',
   addPageNumbers: 'Add page numbers',
   reorderHint: 'Drag a file by its handle to reorder, or focus a file and press the arrow up or down keys to move it.',
   dragHandleLabel: '{name}, position {position} of {total}. Drag, or press arrow up or down to move.',
   removeLabel: 'Remove {name}',
-  addOneMore: 'Add one more PDF to merge',
+  addOneMore: 'Add one more file to merge',
   mergedReady: 'Your merged PDF is ready.',
   filesAddedOne: '1 file added.',
   filesAddedMany: '{count} files added.',
   fileRemoved: '{name} removed.',
   fileMovedTo: '{name} moved to position {position} of {total}.',
   filesReordered: 'Files reordered.',
-  cleared: 'Cleared. Add PDFs to start again.',
+  cleared: 'Cleared. Add PDFs or photos to start again.',
   sharedSuccessfully: 'Merged PDF shared successfully.',
   sharingCanceled: 'Sharing canceled. Your merged PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
-  fileSummaryOne: '1 PDF',
-  fileSummaryMany: '{count} PDFs',
+  fileSummaryOne: '1 file',
+  fileSummaryMany: '{count} files',
   sortLabel: 'Sort',
   sortFilesLabel: 'File order',
   sortAsAdded: 'As added',
@@ -248,7 +250,7 @@ const englishMergeMessages: MergeMessages = {
   downloadLabel: 'Download merged PDF',
   preparing: 'Preparing…',
   startAgain: 'Start again',
-  errorUnreadable: '"{name}" could not be read. It may be damaged, or not a PDF after all.',
+  errorUnreadable: '"{name}" could not be read. It may be damaged.',
   errorEncrypted: '"{name}" is password-protected. Remove the password first, on your device, then add it again.',
   unlockLink: 'Open Unlock',
   removeAndMergeRest: 'Remove it and merge the rest',
@@ -313,7 +315,8 @@ const englishMergeMessages: MergeMessages = {
   pageMovedUndo: 'Moved page {number}',
   dropAnywhereNote: 'Drop anywhere, or paste',
   moreOptions: 'More options',
-  emptyHeading: 'Drop PDFs here, or paste',
+  emptyHeading: 'Drop PDFs or photos here, or paste',
+  dropHere: 'Drop PDFs or photos here',
   emptyBody: 'Your pages appear here, in order, before you download. Files never leave your device.',
   tipRotate: 'Rotate',
   tipSkip: 'Hide',
@@ -327,25 +330,25 @@ const englishMergeMessages: MergeMessages = {
 // copy; the merge.yaml fixture they pair with is a draft for the same reason.
 const hebrewMergeMessages: MergeMessages = {
   dir: 'rtl',
-  skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
-  skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
+  skippedOne: 'דילגנו על "{name}" - זה לא PDF ולא תמונת JPEG או PNG.',
+  skippedMany: 'דילגנו על {count} קבצים - הם לא PDF ולא תמונות JPEG או PNG.',
   addPageNumbers: 'הוספת מספרי עמודים',
   reorderHint: 'גררו קובץ מהידית שלו כדי לסדר מחדש, או התמקדו בקובץ ולחצו על חץ למעלה או למטה כדי להזיז אותו.',
   dragHandleLabel: '{name}, מקום {position} מתוך {total}. גררו, או לחצו על חץ למעלה או למטה כדי להזיז.',
   removeLabel: 'הסרת {name}',
-  addOneMore: 'הוסיפו עוד PDF אחד כדי לאחד',
+  addOneMore: 'הוסיפו עוד קובץ אחד כדי לאחד',
   mergedReady: 'ה-PDF המאוחד מוכן.',
   filesAddedOne: 'נוסף קובץ אחד.',
   filesAddedMany: 'נוספו {count} קבצים.',
   fileRemoved: '{name} הוסר.',
   fileMovedTo: '{name} עבר למקום {position} מתוך {total}.',
   filesReordered: 'הקבצים סודרו מחדש.',
-  cleared: 'הרשימה נוקתה. הוסיפו קבצי PDF כדי להתחיל מחדש.',
+  cleared: 'הרשימה נוקתה. הוסיפו קבצי PDF או תמונות כדי להתחיל מחדש.',
   sharedSuccessfully: 'ה-PDF המאוחד שותף.',
   sharingCanceled: 'השיתוף בוטל. ה-PDF המאוחד עדיין מוכן.',
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
-  fileSummaryOne: 'PDF אחד',
-  fileSummaryMany: '{count} קבצי PDF',
+  fileSummaryOne: 'קובץ אחד',
+  fileSummaryMany: '{count} קבצים',
   // MERGE-02..12 (2026-09-13): AI draft, not reviewed copy, same caveat as
   // the rest of this catalogue. Flagged for Shlomi's review in the epic report.
   sortLabel: 'מיון',
@@ -360,7 +363,7 @@ const hebrewMergeMessages: MergeMessages = {
   downloadLabel: 'הורדת ה-PDF המאוחד',
   preparing: 'מכינים…',
   startAgain: 'להתחיל מחדש',
-  errorUnreadable: 'לא הצלחנו לקרוא את "{name}". ייתכן שהקובץ פגום, או שהוא בכלל לא PDF.',
+  errorUnreadable: 'לא הצלחנו לקרוא את "{name}". ייתכן שהקובץ פגום.',
   errorEncrypted: '"{name}" מוגן בסיסמה. הסירו קודם את הסיסמה, על המכשיר שלכם, ואז הוסיפו אותו שוב.',
   unlockLink: 'לפתיחת כלי ההסרה',
   removeAndMergeRest: 'להסיר אותו ולאחד את השאר',
@@ -424,7 +427,8 @@ const hebrewMergeMessages: MergeMessages = {
   pageMovedUndo: 'הוזז עמוד {number}',
   dropAnywhereNote: 'שחררו בכל מקום, או הדביקו',
   moreOptions: 'עוד אפשרויות',
-  emptyHeading: 'שחררו כאן קבצי PDF, או הדביקו',
+  emptyHeading: 'שחררו כאן קבצי PDF או תמונות, או הדביקו',
+  dropHere: 'גררו לכאן קבצי PDF או תמונות',
   emptyBody: 'העמודים שלכם יופיעו כאן, לפי הסדר, לפני ההורדה. הקבצים לא עוזבים את המכשיר שלכם.',
   tipRotate: 'סיבוב',
   tipSkip: 'הסתרה',
@@ -1806,7 +1810,6 @@ export interface FileDropzoneMessages {
   openingTool: string;
   /** '{names}' placeholder, comma-separated. */
   leftOut: string;
-  mixedKinds: string;
   unsupportedFiles: string;
   /** '{tool}' is filled from the `toolDisplayName` prop, so the destination
    * tool's name is never hardcoded to English ("Sign & Fill") - docs/
@@ -1826,7 +1829,6 @@ const englishFileDropzoneMessages: FileDropzoneMessages = {
   fileCount: '{count} files',
   openingTool: 'Opening {tool}…',
   leftOut: 'Left out: {names}',
-  mixedKinds: 'PDFs and photos go to different tools. Choose one kind at a time.',
   unsupportedFiles: 'Choose PDFs, or JPEG and PNG photos.',
   practiceDocumentCaption: 'Practice document · opens in {tool}',
 };
@@ -1851,7 +1853,6 @@ const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   fileCount: '{count} קבצים',
   openingTool: 'פותחים את {tool}…',
   leftOut: 'לא נכללו: {names}',
-  mixedKinds: 'קבצי PDF ותמונות נפתחים בכלים שונים. בחרו סוג אחד בכל פעם.',
   unsupportedFiles: 'בחרו קבצי PDF, או תמונות JPEG ו-PNG.',
   practiceDocumentCaption: 'מסמך לתרגול · נפתח בכלי {tool}',
 };

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { tools } from '../data/tools.js';
-import { IMAGE_TOOLS, PDF_TOOLS, handoffKeyFor, routeFiles } from './routeFiles';
+import { handoffKeyFor, routeFiles } from './routeFiles';
 
 const f = (name: string, type = '') => new File(['x'], name, { type });
+const PDF_TOOLS = ['sign', 'redact', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'edit-pdf'];
 const names = (files: File[]) => files.map((x) => x.name);
 
 describe('routeFiles', () => {
@@ -13,12 +14,13 @@ describe('routeFiles', () => {
     ['one pdf plus skipped', [f('n.txt', 'text/plain'), f('a.pdf'), f('p.heic')], 'choose', [...PDF_TOOLS], ['a.pdf'], ['n.txt', 'p.heic']],
     ['two pdfs keep order', [f('b.pdf'), f('a.PDF', 'application/pdf')], 'open', 'merge', ['b.pdf', 'a.PDF'], []],
     ['two pdfs plus skipped', [f('x.txt'), f('b.pdf'), f('y.heic'), f('a.pdf')], 'open', 'merge', ['b.pdf', 'a.pdf'], ['x.txt', 'y.heic']],
-    ['one photo by type', [f('p', 'image/png')], 'choose', [...IMAGE_TOOLS], ['p'], []],
-    ['one photo uppercase ext', [f('P.JPEG')], 'choose', [...IMAGE_TOOLS], ['P.JPEG'], []],
-    ['one photo plus skipped', [f('p.jpg'), f('n.txt')], 'choose', [...IMAGE_TOOLS], ['p.jpg'], ['n.txt']],
+    ['one photo by type', [f('p', 'image/png')], 'choose', ['image-to-pdf', 'compress-image'], ['p'], []],
+    ['one photo uppercase ext', [f('P.JPEG')], 'choose', ['image-to-pdf', 'compress-image'], ['P.JPEG'], []],
+    ['one photo plus skipped', [f('p.jpg'), f('n.txt')], 'choose', ['image-to-pdf', 'compress-image'], ['p.jpg'], ['n.txt']],
     ['two photos keep order', [f('z.PNG'), f('a.jpg', 'image/jpeg')], 'open', 'image-to-pdf', ['z.PNG', 'a.jpg'], []],
     ['two photos plus skipped', [f('s.heic'), f('z.png'), f('a.JPG')], 'open', 'image-to-pdf', ['z.png', 'a.JPG'], ['s.heic']],
-    ['pdf and photo', [f('a.pdf'), f('p.jpg'), f('n.txt')], 'none', 'mixed', [], ['n.txt']],
+    ['pdf and photo', [f('a.pdf'), f('p.jpg'), f('n.txt')], 'open', 'merge', ['a.pdf', 'p.jpg'], ['n.txt']],
+    ['photo, pdf, photo keep pick order', [f('p.jpg'), f('a.pdf'), f('q.PNG')], 'open', 'merge', ['p.jpg', 'a.pdf', 'q.PNG'], []],
     ['only unsupported', [f('n.txt'), f('p.heic')], 'none', 'unsupported', [], ['n.txt', 'p.heic']],
   ] as const)('%s', (_label, input, kind, what, files, skipped) => {
     const r = routeFiles(input);
@@ -30,8 +32,13 @@ describe('routeFiles', () => {
     expect(names(r.skipped)).toEqual(skipped);
   });
 
-  it('covers exactly the slugs in the tool registry', () => {
-    expect(new Set([...PDF_TOOLS, ...IMAGE_TOOLS])).toEqual(new Set(tools.map((t: { slug: string }) => t.slug)));
+  it('lists choices in src/data/tools.js order', () => {
+    const order = tools.map((t: { slug: string }) => t.slug);
+    for (const input of [[f('a.pdf')], [f('p.jpg')]]) {
+      const r = routeFiles(input);
+      if (r.kind !== 'choose') throw new Error('expected choose');
+      expect(r.tools).toEqual(order.filter((s: string) => r.tools.includes(s as never)));
+    }
   });
 });
 

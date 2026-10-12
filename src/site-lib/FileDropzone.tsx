@@ -51,7 +51,10 @@ export function tileCopy(
   if (state.opening) {
     return withLine(state.opening.title, formatMessage(messages.openingTool, { tool: state.opening.tool }), false);
   }
-  if (state.choice) return withLine(state.choice.files[0].name, messages.pickAToolBelow, true);
+  if (state.choice) {
+    const { files } = state.choice;
+    return withLine(files.length === 1 ? files[0].name : formatMessage(messages.fileCount, { count: files.length }), messages.pickAToolBelow, true);
+  }
   return withLine(state.busy ? messages.opening : messages.chooseFiles, messages.orDropThenPick, false);
 }
 
@@ -182,7 +185,7 @@ export default function FileDropzone({
     if (!incoming.length || busy) return;
     const route = routeFiles(incoming);
     if (route.kind === 'none') {
-      setError(route.reason === 'mixed' ? messages.mixedKinds : messages.unsupportedFiles);
+      setError(messages.unsupportedFiles);
       return;
     }
     if (route.kind === 'choose' && final) {
@@ -289,7 +292,7 @@ export default function FileDropzone({
       event.preventDefault();
       if (handing.current) return;
       const tool = link.dataset.tool ?? '';
-      setOpening({ title: choice.files[0].name, tool: linkLabel(link, tool) });
+      setOpening({ title: choice.files.length === 1 ? choice.files[0].name : formatMessage(messages.fileCount, { count: choice.files.length }), tool: linkLabel(link, tool) });
       void handOff(choice.files, tool, link.getAttribute('href') ?? undefined).then(ok => { if (!ok) setOpening(null); });
     };
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setChoice(null); };
@@ -346,7 +349,7 @@ export default function FileDropzone({
   };
   const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
   const { title, line, tone, choosing } = tileCopy({ choice, opening, busy, note: error }, messages);
-  const failed = [messages.handoffFailed, messages.sampleLoadFailed, messages.mixedKinds, messages.unsupportedFiles].includes(error);
+  const failed = [messages.handoffFailed, messages.sampleLoadFailed, messages.unsupportedFiles].includes(error);
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
       {!final && <RecentFiles

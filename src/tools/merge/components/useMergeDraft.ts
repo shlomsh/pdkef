@@ -6,6 +6,7 @@ import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts
 import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
 import { reportError } from '../../../lib/errorReport.ts';
+import { mimeTypeOf } from '../../../lib/fileKind.js';
 import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
@@ -241,7 +242,7 @@ export function useMergeDraft({
   ) => {
     const files = await Promise.all(entries.map(async (entry) => ({
       fileName: entry.file.name,
-      fileType: entry.file.type || 'application/pdf',
+      fileType: mimeTypeOf(entry.file) ?? 'application/pdf',
       fileBytes: await getFileBytes(entry),
     })));
     const indexOfEntryId = new Map(entries.map((entry, index) => [entry.id, index]));

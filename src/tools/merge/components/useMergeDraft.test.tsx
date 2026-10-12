@@ -343,6 +343,25 @@ describe('useMergeDraft', () => {
     expect(record.fileCount).toBe(2);
   });
 
+  it('saves an untyped photo as image/jpeg and restores it as one (MERGE-22)', async () => {
+    const photo = new File(['jpeg bytes'], 'photo.jpg', { type: '' });
+    const entries = [baseEntry(1, 'a.pdf', 1), { id: 2, file: photo, pageCount: 1, thumbnail: null, error: null }];
+    const plan = [
+      { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+      { key: '2:0', fileId: 2, pageIndex: 0, rotation: 0, skipped: false },
+    ];
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({ entries, plan }));
+    await flushDebounce();
+    const record = await loadDraft('merge');
+    expect(record.files.map((f) => f.fileType)).toEqual(['application/pdf', 'image/jpeg']);
+
+    act(() => render(null, container));
+    const onRestore = vi.fn();
+    await mount({ current: null }, baseOptions({ onRestore }));
+    expect(onRestore.mock.calls[0][0].files.map((f) => f.type)).toEqual(['application/pdf', 'image/jpeg']);
+  });
+
   it('autosaves the renamed output name once one is set, and it comes back on restore', async () => {
     const entries = [baseEntry(10, 'invoice.pdf', 1)];
     const plan = planForFile(10, 1);

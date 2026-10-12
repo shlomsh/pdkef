@@ -35,7 +35,7 @@ describe('DownloadElement', () => {
     const onChooseFiles = vi.fn();
     mount({ state: 'one-file', onChooseFiles, chooseFilesLabel: 'Choose files' });
     const el = box();
-    expect(el.textContent).toContain('Add one more PDF to merge');
+    expect(el.textContent).toContain('Add one more file to merge');
     expect(el.hasAttribute('disabled')).toBe(false);
     expect(el.getAttribute('href')).toBeNull();
     // The box itself is never a control in this state: no role, no tab
