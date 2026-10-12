@@ -6,7 +6,7 @@ priority: "P2"
 epic: "polish"
 horizon: "now"
 depends_on: []
-needs: "Decide D1-D4 below before T6 starts"
+needs: "Decide D1-D3 below before T6 starts"
 ---
 
 # SITE-42 · Home: picked files wake the toolbar, which becomes the tool chooser
@@ -48,6 +48,72 @@ it opens straight away.
 - The toolbar stays static links that work without JavaScript; the island only marks them while
   files wait.
 
+## Approved UI (Shlomi, 2026-10-12)
+
+Shlomi tried the first attempt's build and approved its waiting-state design and its long file
+name handling. Rebuild them exactly as below; they are recovered from the rolled-back commit, not
+re-derived.
+
+**The waiting tile.** The tile's dashed border turns solid. The name is bold on the first line,
+then "Change" (underlined, `--color-primary-text`, 0.78rem, weight 500, never shrinks), then
+"Now pick a tool below" on the second line. A long name ends in an ellipsis; a Hebrew name reads
+right to left as one unit (`תעודת זהות וספח (2).pdf`).
+
+```css
+/* FileDropzone.module.css: in the existing `.launcher > .tile` rule */
+grid-template-columns: 32px minmax(0, max-content);   /* was 32px auto */
+
+.launcher > .tile[data-picking] { overflow: visible; border-style: solid; padding-inline-start: 52px; }
+.title { display: flex; align-items: baseline; min-width: 0; }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change { flex: none; margin-inline-start: 0.6em; font-style: normal; font-weight: 500;
+  font-size: 0.78rem; color: var(--color-primary-text); text-decoration: underline; text-underline-offset: 2px; }
+```
+
+```tsx
+<strong class={styles.title}><bdi class={styles.name}>{title}</bdi>{choosing && <em class={styles.change}>{messages.change}</em>}</strong>
+<span>{line}</span>
+```
+
+**The arrow.** Hand-drawn, with a small loop, in the demo's annotation ink, at the tile's start
+side, reaching down out of the tile toward the toolbar's start where the first lit tool sits.
+Always in the DOM inside the tile button, revealed and drawn on like a pen stroke (shaft, then
+head); no animation under reduced motion; mirrored on RTL pages.
+
+```tsx
+<svg class={styles.arrow} viewBox="0 0 40 72" aria-hidden="true" focusable="false">
+  <path pathLength={1} d="M36 6C22 2 8 8 7 22C6 34 16 38 18 30C20 22 6 22 7 40C8 52 13 60 16 67" />
+  <path pathLength={1} d="M7 61L15.8 67.6L19 56.5" />
+</svg>
+```
+
+```css
+.launcher > .tile > .arrow { position: absolute; z-index: 2; inset-inline-start: 3%; bottom: -24px;
+  width: 34px; height: 62px; overflow: visible; fill: none; stroke: var(--color-annotation);
+  stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; rotate: -6deg; opacity: 0; pointer-events: none; }
+.launcher > .tile > .arrow path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.launcher > .tile[data-picking] > .arrow { opacity: 1; }
+.launcher > .tile[data-picking] > .arrow path { animation: arrow-draw 460ms var(--ease-out) 120ms forwards; }
+.launcher > .tile[data-picking] > .arrow path + path { animation-duration: 180ms; animation-delay: 560ms; }
+@keyframes arrow-draw { to { stroke-dashoffset: 0; } }
+:global(html[dir='rtl']) .launcher > .tile > .arrow { transform: scaleX(-1); }
+@media (prefers-reduced-motion: reduce) { .launcher > .tile[data-picking] > .arrow path { animation: none; stroke-dashoffset: 0; } }
+```
+
+**The woken toolbar.** Lit tools keep their tile and take a 3px citron ring, with no lift; the
+rest drop to 0.35 opacity. The edge-fade strips reach over the dock's block padding.
+
+```css
+/* HomePageLayout.astro, after `.app-card:active .app-tile` */
+.app-card { transition: opacity 0.3s var(--ease-out); }
+.home-hero[data-picking] .app-card:not([data-fits]) { opacity: 0.35; }
+.home-hero[data-picking] .app-card[data-fits] .app-tile {
+  box-shadow: 0 0 0 3px var(--home-citron), 0 12px 20px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
+}
+/* in the `.home-dock::before, .home-dock::after` strip rule, after `align-self: stretch;` */
+margin-block: -10px;
+```
+
 ## Decisions for Shlomi (before T6)
 
 - **D1 · Copy.** Drafts, English and Hebrew: "or drop them here, then pick a tool below", "Now pick
@@ -58,9 +124,6 @@ it opens straight away.
   there that needs a choice scrolls back to the first screen (as its own "back" link to
   `#home-tour` already does) and wakes the toolbar there.
 - **D3 · A mixed pick.** Recommended: say PDFs and photos go to different tools, open nothing.
-- **D4 · The arrow.** Recommended: the hand-drawn looped arrow in the demo's annotation ink, drawn
-  on like a pen stroke, from the tile's start side down to the toolbar's start, where the first
-  lit tool sits.
 
 ## What the first attempt taught (2026-10-12)
 
@@ -108,9 +171,9 @@ stage by name. The lead reads every diff and integrates each piece as it lands.
 | T2 | Multi-file hand-off record, `useHandoffFilesIntake`, round-trip tests | `draftStore.js`, `useHandoffIntake.ts`, their tests | implementer | |
 | T3 | Merge takes a hand-off as a fresh set in pick order; a late restore cannot overwrite it; the saved set stays in recents | `PdfMergeTool.tsx`, its test | implementer | T2 |
 | T4 | Image to PDF (several), PDF to Image and Edit PDF Pages (one) take a hand-off through their own pick path | the three islands, their tests | implementer | T2 |
-| T5 | Dock: `data-tool` on links; waking styles (citron ring, no lift, dimmed 0.35); edge strips over the block padding | `HomePageLayout.astro` | implementer | |
+| T5 | Dock: `data-tool` on links; the approved toolbar styles above, verbatim | `HomePageLayout.astro` | implementer | |
 | T6 | Launcher island: `multiple`, accept PDFs and JPEG/PNG; route through T1; waiting state; dock wiring (click on a lit tool, focus, scroll the first lit tool into view, Escape, `pageshow` restore); sample opens Sign; D2 for the closing launcher; strings en + he (D1) | `FileDropzone.tsx`, `.test.tsx`, `toolMessages.ts` | implementer | T1, T2, T5, D1-D3 |
-| T7 | Tile visuals: the arrow (D4) and its draw-on, name truncation and `<bdi>`, arrow gutter | `FileDropzone.tsx`, `.module.css` | lead | T6 |
+| T7 | Tile visuals: the approved tile and arrow above, verbatim | `FileDropzone.tsx`, `.module.css` | implementer | T6 |
 | T8 | Guards (rendered geometry only, the rest is unit): phone toolbar brings the lit image tools into view; a long and a Hebrew name stay inside the tile and clear of the arrow; Back from a tool shows the home page at rest (extend `e2e/home/back-navigation.spec.js`, real bfcache) | `e2e/home/` | implementer | T6, T7 |
 | T9 | Path matrix on `build` + `preview`, phone and desktop: one PDF to each of the eight tools, one photo to each image tool, two PDFs, two photos, mixed, Escape, Change, dimmed link, both launchers, scrolled-down layout (T0), edge fades at both ends, no console errors | scratchpad script | lead | T3-T8 |
 | T10 | Review by a fresh subagent with no shared context, every objection quoting its line | | reviewer | T9 |
