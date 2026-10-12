@@ -14,6 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [MEM-14](backlog/tasks/MEM-14.md) P1 · Opening a second file in Sign gives the first file's recent tile the second file's thumbnail (in progress)
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
 
 ### Search and languages

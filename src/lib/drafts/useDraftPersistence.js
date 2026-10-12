@@ -266,8 +266,8 @@ export function useDraftPersistence({
   // fire-and-forget: it dynamically imports pdf.js, so it must never sit in
   // front of the first autosave. A save that beats it just writes no preview,
   // and the next one (700ms later, at the next edit) carries it - or, if the
-  // visitor changes nothing more, attachDraftPreview below writes it straight
-  // into the hint instead. Without that second path a document that was opened
+  // visitor changes nothing more, cacheRecentFile below writes it straight
+  // into this file's row instead. Without that second path a document that was opened
   // and then left alone kept a resume card with no thumbnail for as long as the
   // draft lived, because the preview only ever reached storage as a side effect
   // of saving again.
@@ -288,16 +288,18 @@ export function useDraftPersistence({
         previewRef.current = dataUrl;
         // The cache write upgrades the source entry with a thumbnail once it
         // is ready. It is independent of autosave, so merely opening a PDF is
-        // enough for it to appear among the home page's recent files.
+        // enough for it to appear among the home page's recent files. It
+        // keys the preview by this file's own content hash. Never follow it
+        // with attachDraftPreview here: that writes to whatever entry the
+        // pointer names, and cacheRecentFile only moves the pointer to this
+        // file once it has hashed and stored it, so the previous file's tile
+        // took this file's thumbnail (MEM-14).
         if (fileBytes) void cacheRecentFile(tool, {
           fileName: file.name,
           fileType: file.type || 'application/pdf',
           fileBytes,
           preview: dataUrl,
         });
-        // Only lands if a draft hint already exists, so this cannot invent
-        // metadata for a document that was never saved or has since gone.
-        attachDraftPreview(tool, dataUrl);
       })
       .catch(() => {
         // expected: A preview is decoration. An encrypted or malformed PDF that pdf.js
@@ -307,7 +309,7 @@ export function useDraftPersistence({
       cancelled = true;
     };
     // `tool` is a literal per mounted editor and never changes, so listing it
-    // costs no extra runs; it is here because attachDraftPreview reads it.
+    // costs no extra runs; it is here because cacheRecentFile reads it.
   }, [enabled, file, tool]);
 
   // Debounced autosave on edit-state changes while editing.
