@@ -30,7 +30,7 @@ export const fileTypeOf = (file: File) =>
   file.type || TYPE_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? ''] || 'application/pdf';
 
 type Choice = { files: File[]; tools: string[] };
-type Opening = { count: number; tool: string };
+type Opening = { title: string; tool: string };
 
 /** What the tile says. Pure, so the four states are testable without a DOM. */
 export function tileCopy(
@@ -39,7 +39,7 @@ export function tileCopy(
 ) {
   if (state.opening) {
     return {
-      title: formatMessage(messages.fileCount, { count: state.opening.count }),
+      title: state.opening.title,
       line: formatMessage(messages.openingTool, { tool: state.opening.tool }),
       choosing: false,
     };
@@ -136,11 +136,17 @@ export default function FileDropzone({
   const [opening, setOpening] = useState<Opening | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  // Set synchronously on the first accepted click on a lit tool, so a second
+  // click before the first hand-off settles cannot write an orphan hand-off.
+  const handing = useRef(false);
 
   // MEM-03: no more "Open this instead?" - once work lives on the entry
   // rather than a per-tool draft slot, opening a file here overwrites
   // nothing, so a hand-off is just park-the-bytes-then-navigate.
+  // Resolves true once navigation is under way. On failure it shows the error
+  // and frees the page, and leaves the dock and the tile's copy to the caller.
   const handOff = async (files: File[], tool = toolTarget, href = toolHref(tool)) => {
+    handing.current = true;
     setBusy(true);
     try {
       const records = await Promise.all(files.map(async file => ({
@@ -149,12 +155,13 @@ export default function FileDropzone({
       const saved = await saveHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records });
       if (!saved) throw new Error('handoff');
       window.location.href = withFillModeParam(href, window.location.search);
+      return true;
     } catch {
       // expected: the user sees handoffFailed, and saveHandoff reports its own failure
       setError(messages.handoffFailed);
-      setOpening(null);
-      restDock();
+      handing.current = false;
       setBusy(false);
+      return false;
     }
   };
   const leftOutNote = (skipped: File[]) =>
@@ -174,15 +181,19 @@ export default function FileDropzone({
     if (route.kind === 'choose') {
       if (!final) { enterChoice(route); return; }
       // The closing launcher wakes nothing itself: it scrolls up and lets the first screen take the pick.
+      setError(leftOutNote(route.skipped));
       document.querySelector<HTMLElement>('[data-workspace-return]')?.click();
       window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: incoming } }));
       return;
     }
     setError(leftOutNote(route.skipped));
     const link = dockLink(route.tool);
-    setOpening({ count: route.files.length, tool: linkLabel(link, tools.find(t => t.slug === route.tool)?.gridTitle ?? route.tool) });
+    setOpening({ title: formatMessage(messages.fileCount, { count: route.files.length }), tool: linkLabel(link, tools.find(t => t.slug === route.tool)?.gridTitle ?? route.tool) });
     if (!final) lightDock([route.tool]);
-    await handOff(route.files, route.tool, link?.getAttribute('href') ?? undefined);
+    if (!await handOff(route.files, route.tool, link?.getAttribute('href') ?? undefined)) {
+      setOpening(null);
+      restDock();
+    }
   };
   // Opening a recent tile is a pointer move and a navigation, nothing more.
   // The entry already holds the bytes and the work; the tool restores itself
@@ -258,9 +269,13 @@ export default function FileDropzone({
     const dock = document.querySelector('.home-dock');
     const pickTool = (event: Event) => {
       const link = (event.target as Element).closest<HTMLAnchorElement>('a[data-fits]');
-      if (!link || busy) return;
+      const { metaKey, ctrlKey, shiftKey, altKey, button } = event as MouseEvent;
+      if (!link || metaKey || ctrlKey || shiftKey || altKey || button !== 0) return;
       event.preventDefault();
-      void handOff(choice.files, link.dataset.tool, link.getAttribute('href') ?? undefined);
+      if (handing.current) return;
+      const tool = link.dataset.tool ?? '';
+      setOpening({ title: choice.files[0].name, tool: linkLabel(link, tool) });
+      void handOff(choice.files, tool, link.getAttribute('href') ?? undefined).then(ok => { if (!ok) setOpening(null); });
     };
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setChoice(null); };
     dock?.addEventListener('click', pickTool);
@@ -356,10 +371,10 @@ export default function FileDropzone({
         </svg>
         <strong class={styles.title}><bdi class={styles.name}>{title}</bdi>{choosing && <em class={styles.change}>{messages.change}</em>}</strong>
         <span>{line}</span>
-        <svg class={styles.arrow} viewBox="0 0 40 72" aria-hidden="true" focusable="false">
+        {!final && <svg class={styles.arrow} viewBox="0 0 40 72" aria-hidden="true" focusable="false">
           <path pathLength={1} d="M36 6C22 2 8 8 7 22C6 34 16 38 18 30C20 22 6 22 7 40C8 52 13 60 16 67" />
           <path pathLength={1} d="M7 61L15.8 67.6L19 56.5" />
-        </svg>
+        </svg>}
       </button>
       <input ref={input} type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png" hidden onChange={event => {
         const files = Array.from(event.currentTarget.files || []);

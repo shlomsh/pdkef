@@ -388,8 +388,10 @@ describe('FileDropzone', () => {
       expect(tileCopy({ choice: null, opening: null, busy: true }, en)).toMatchObject({ title: 'Opening…', choosing: false });
       expect(tileCopy({ choice: { files: [file], tools: ['sign'] }, opening: null, busy: false }, en))
         .toEqual({ title: 'a.pdf', line: 'Now pick a tool below', choosing: true });
-      expect(tileCopy({ choice: null, opening: { count: 3, tool: 'Merge PDF' }, busy: true }, en))
+      expect(tileCopy({ choice: null, opening: { title: '3 files', tool: 'Merge PDF' }, busy: true }, en))
         .toEqual({ title: '3 files', line: 'Opening Merge PDF…', choosing: false });
+      expect(tileCopy({ choice: null, opening: { title: 'a.pdf', tool: 'Sign PDF' }, busy: true }, en))
+        .toEqual({ title: 'a.pdf', line: 'Opening Sign PDF…', choosing: false });
     });
   });
 
@@ -640,6 +642,84 @@ describe('FileDropzone', () => {
       expect(lit()).toHaveLength(8);
       expect(document.activeElement).toBe(link('redact'));
       expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    describe('review findings', () => {
+      const ARROW = 'svg[viewBox="0 0 40 72"]';
+      const clickLink = (tool, init = {}) => {
+        const click = new MouseEvent('click', { bubbles: true, cancelable: true, ...init });
+        return act(async () => { link(tool).dispatchEvent(click); await flush(); }).then(() => click);
+      };
+
+      it('draws the tile arrow on the first screen only, not in the closing launcher', () => {
+        mount();
+        expect(picker().querySelector(ARROW)).not.toBeNull();
+        act(() => render(null, container));
+        mount({ final: true });
+        expect(picker().querySelector(ARROW)).toBeNull();
+      });
+
+      it('keeps waiting, lit and retryable when the hand-off of a clicked tool fails', async () => {
+        mount();
+        await pick([pdf('contract.pdf')]);
+        saveHandoff.mockResolvedValueOnce(false);
+        await clickLink('sign');
+        expect(hero.hasAttribute('data-picking')).toBe(true);
+        expect(lit()).toHaveLength(8);
+        expect(container.querySelector('[role="alert"]').textContent).toBe(en.handoffFailed);
+        expect(picker().disabled).toBe(false);
+        expect(picker().textContent).toContain('Now pick a tool below');
+        await clickLink('sign');
+        expect(saveHandoff).toHaveBeenCalledTimes(2);
+        expect(window.location.href).toBe('/sign/');
+      });
+
+      it('rests the dock and the tile when the hand-off of several files fails', async () => {
+        mount();
+        saveHandoff.mockResolvedValueOnce(false);
+        await pick([pdf('a.pdf'), pdf('b.pdf')]);
+        expect(hero.hasAttribute('data-picking')).toBe(false);
+        expect(lit()).toEqual([]);
+        expect(picker().disabled).toBe(false);
+        expect(picker().textContent).toContain('Choose files');
+      });
+
+      it('hands off once when a second lit tool is clicked while the first is in flight', async () => {
+        mount();
+        await pick([pdf()]);
+        saveHandoff.mockReturnValue(new Promise(() => {}));
+        await clickLink('sign');
+        await clickLink('merge');
+        expect(saveHandoff).toHaveBeenCalledTimes(1);
+      });
+
+      it('tells the person which tool is opening, with the file name, after a click', async () => {
+        mount();
+        await pick([pdf('contract.pdf')]);
+        saveHandoff.mockReturnValue(new Promise(() => {}));
+        await clickLink('sign');
+        expect(picker().textContent).toContain('contract.pdf');
+        expect(picker().textContent).toContain('Opening Sign PDF…');
+        expect(picker().textContent).not.toContain('Change');
+        expect(picker().textContent).not.toContain('1 files');
+      });
+
+      it('clears an earlier error when the closing launcher passes one file up', async () => {
+        mount({ final: true });
+        await pick([pdf(), photo()]);
+        expect(container.querySelector('[role="alert"]')).not.toBeNull();
+        await pick([pdf('far.pdf')]);
+        expect(container.querySelector('[role="alert"]')).toBeNull();
+      });
+
+      it.each([['ctrl', { ctrlKey: true }], ['meta', { metaKey: true }], ['shift', { shiftKey: true }], ['alt', { altKey: true }], ['middle button', { button: 1 }]])(
+        'leaves a %s-click on a lit tool to the browser', async (_, init) => {
+          mount();
+          await pick([pdf()]);
+          const click = await clickLink('sign', init);
+          expect(click.defaultPrevented).toBe(false);
+          expect(saveHandoff).not.toHaveBeenCalled();
+        });
     });
   });
 });
