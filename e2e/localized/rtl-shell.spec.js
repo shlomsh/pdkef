@@ -77,7 +77,7 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
   // A one-file list has nothing to reorder, so its drag handle is correctly
   // absent. The Download element still asks for one more in Hebrew.
   await expect(row.locator('[role="button"]')).toHaveCount(0);
-  await expect(page.locator('[data-state="one-file"]')).toContainText('הוסיפו עוד PDF אחד כדי לאחד');
+  await expect(page.locator('[data-state="one-file"]')).toContainText('הוסיפו עוד קובץ אחד כדי לאחד');
   await page.setInputFiles('input[type=file]', {
     name: 'second.pdf',
     mimeType: 'application/pdf',
