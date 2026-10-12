@@ -24,6 +24,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
+- [MERGE-22](backlog/tasks/MERGE-22.md) P2 · Merge takes photos too, each one a page, so PDFs and photos picked together have a home (in progress)
 - [SITE-42](backlog/tasks/SITE-42.md) P2 · Home: picked files wake the toolbar, which becomes the tool chooser (in progress)
 
 ## Waiting, by date

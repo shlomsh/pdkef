@@ -1,10 +1,10 @@
 ---
 id: "MERGE-22"
 title: "Merge takes photos too, each one a page, so PDFs and photos picked together have a home"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "polish"
-horizon: "next"
+horizon: "now"
 depends_on: []
 ---
 
