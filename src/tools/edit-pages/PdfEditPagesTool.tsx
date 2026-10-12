@@ -17,6 +17,7 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
+import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
 interface EditPage {
@@ -153,6 +154,11 @@ export default function PdfEditPagesTool() {
       setAnnouncement('Failed to load PDF file.');
     }
   }, [reset, amend, file]);
+
+  // SITE-42: files picked on the home page arrive as a hand-off, collected on
+  // mount and sent down the same path a manual pick takes. This tool restores
+  // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
+  useHandoffIntake('edit-pdf', (f) => handleFilesAdded([f]));
 
   const togglePage = useCallback((pageNum: number) => {
     commit((current: EditState) => {

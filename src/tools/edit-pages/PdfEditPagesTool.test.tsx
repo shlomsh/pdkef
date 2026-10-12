@@ -47,6 +47,15 @@ vi.mock('./editPages.js', () => {
   };
 });
 
+
+const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
+
+// SITE-42: the home page hands picked files over through the draft store's hand-off slot.
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  takeHandoff: takeHandoffMock,
+}));
+
 describe('PdfEditPagesTool UI flow', () => {
   let container;
 
@@ -301,5 +310,25 @@ describe('PdfEditPagesTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;
     nativeShare.restore();
+  });
+
+  it('loads a PDF handed off from the home page as if picked', async () => {
+    takeHandoffMock.mockResolvedValueOnce({
+      fileName: 'handed.pdf',
+      fileType: 'application/pdf',
+      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfEditPagesTool />, container);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(takeHandoffMock).toHaveBeenCalledWith('edit-pdf');
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
+    expect(fileBar.textContent).toContain('handed.pdf');
+    expect(container.querySelectorAll(`.${pageGridStyles['page-card']}`).length).toBe(3);
   });
 });

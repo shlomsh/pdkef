@@ -17,6 +17,15 @@ function makeImageFile(name, type = 'image/png') {
   return new File(['fake-image-bytes'], name, { type });
 }
 
+
+const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
+
+// SITE-42: the home page hands picked files over through the draft store's hand-off slot.
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  takeHandoff: takeHandoffMock,
+}));
+
 vi.mock('./imageToPdf.js', () => ({
   imagesToPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4'], { type: 'application/pdf' }))),
   UnsupportedImageError: class UnsupportedImageError extends Error {},
@@ -185,5 +194,21 @@ describe('PdfImageToPdfTool UI flow', () => {
       await new Promise((r) => setTimeout(r, 20));
     });
     expect(recentActions()).toEqual(['add_files', 'remove_file', 'export']);
+  });
+
+  it('loads photos handed off from the home page, in pick order', async () => {
+    takeHandoffMock.mockResolvedValueOnce({
+      files: [
+        { fileName: 'first.jpg', fileType: 'image/jpeg', fileBytes: new Uint8Array(2).buffer },
+        { fileName: 'second.png', fileType: 'image/png', fileBytes: new Uint8Array(3).buffer },
+      ],
+    });
+    mount();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(takeHandoffMock).toHaveBeenCalledWith('image-to-pdf');
+    const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
+    expect(fileNames).toEqual(['first.jpg', 'second.png']);
   });
 });
