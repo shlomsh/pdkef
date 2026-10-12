@@ -637,6 +637,7 @@ describe('FileDropzone', () => {
       mount();
       await act(async () => {
         window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: [pdf('far.pdf')] } }));
+        await new Promise((r) => setTimeout(r, 0));
       });
       expect(picker().textContent).toContain('far.pdf');
       expect(lit()).toHaveLength(8);
@@ -681,6 +682,35 @@ describe('FileDropzone', () => {
         expect(hero.hasAttribute('data-picking')).toBe(false);
         expect(lit()).toEqual([]);
         expect(picker().disabled).toBe(false);
+        expect(picker().textContent).toContain('Choose files');
+      });
+
+      it('hands off the bytes read at pick time, even when the picked file stops being readable while it waits', async () => {
+        mount();
+        const f = pdf('contract.pdf');
+        const read = f.arrayBuffer.bind(f);
+        let readable = true;
+        f.arrayBuffer = () => (readable ? read() : Promise.reject(new DOMException('gone', 'NotReadableError')));
+        await pick([f]);
+        readable = false;
+        expect(lit()).toHaveLength(8);
+        await clickLink('sign');
+        expect(saveHandoff).toHaveBeenCalledTimes(1);
+        const [key, record] = saveHandoff.mock.calls[0];
+        expect(key).toBe('sign');
+        expect(record.fileName).toBe('contract.pdf');
+        expect(new TextDecoder().decode(record.fileBytes)).toBe('%PDF');
+        expect(window.location.href).toBe('/sign/');
+      });
+
+      it('says so right away, and lights nothing, when a picked file cannot be read', async () => {
+        mount();
+        const f = pdf('contract.pdf');
+        f.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
+        await pick([f]);
+        expect(container.querySelector('[role="alert"]').textContent).toBe(en.handoffFailed);
+        expect(hero.hasAttribute('data-picking')).toBe(false);
+        expect(lit()).toEqual([]);
         expect(picker().textContent).toContain('Choose files');
       });
 

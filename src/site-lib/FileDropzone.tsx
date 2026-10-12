@@ -29,6 +29,13 @@ const TYPE_BY_EXTENSION: Record<string, string> = { pdf: 'application/pdf', jpg:
 export const fileTypeOf = (file: File) =>
   file.type || TYPE_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? ''] || 'application/pdf';
 
+/* The bytes are read when the file is picked, not when a tool is tapped: an iOS file from the Files
+   picker can stop being readable while it waits for a tool. Everything after this works on the copies. */
+async function readCopies(files: File[]): Promise<File[]> {
+  return Promise.all(files.map(async file =>
+    new File([await file.arrayBuffer()], file.name, { type: fileTypeOf(file), lastModified: file.lastModified })));
+}
+
 type Choice = { files: File[]; tools: string[] };
 type Opening = { title: string; tool: string };
 
@@ -178,19 +185,27 @@ export default function FileDropzone({
       setError(route.reason === 'mixed' ? messages.mixedKinds : messages.unsupportedFiles);
       return;
     }
-    if (route.kind === 'choose') {
-      if (!final) { enterChoice(route); return; }
-      // The closing launcher wakes nothing itself: it scrolls up and lets the first screen take the pick.
+    if (route.kind === 'choose' && final) {
+      // The closing launcher wakes nothing itself: it scrolls up and lets the first screen take the pick (and read it).
       setError(leftOutNote(route.skipped));
       document.querySelector<HTMLElement>('[data-workspace-return]')?.click();
       window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: incoming } }));
       return;
     }
+    let copies: File[];
+    try {
+      copies = await readCopies(route.files);
+    } catch {
+      // expected: an unreadable pick shows handoffFailed and leaves the page at rest
+      setError(messages.handoffFailed);
+      return;
+    }
+    if (route.kind === 'choose') { enterChoice({ ...route, files: copies }); return; }
     setError(leftOutNote(route.skipped));
     const link = dockLink(route.tool);
-    setOpening({ title: formatMessage(messages.fileCount, { count: route.files.length }), tool: linkLabel(link, tools.find(t => t.slug === route.tool)?.gridTitle ?? route.tool) });
+    setOpening({ title: formatMessage(messages.fileCount, { count: copies.length }), tool: linkLabel(link, tools.find(t => t.slug === route.tool)?.gridTitle ?? route.tool) });
     if (!final) lightDock([route.tool]);
-    if (!await handOff(route.files, route.tool, link?.getAttribute('href') ?? undefined)) {
+    if (!await handOff(copies, route.tool, link?.getAttribute('href') ?? undefined)) {
       setOpening(null);
       restDock();
     }
@@ -289,9 +304,15 @@ export default function FileDropzone({
   // The closing launcher's pick, and a page restored from the back/forward cache.
   useEffect(() => {
     if (final) return;
-    const picked = (event: Event) => {
+    const picked = async (event: Event) => {
       const route = routeFiles((event as CustomEvent<{ files: File[] }>).detail.files);
-      if (route.kind === 'choose') enterChoice(route);
+      if (route.kind !== 'choose') return;
+      try {
+        enterChoice({ ...route, files: await readCopies(route.files) });
+      } catch {
+        // expected: an unreadable pick shows handoffFailed and leaves the page at rest
+        setError(messages.handoffFailed);
+      }
     };
     const restored = (event: PageTransitionEvent) => {
       if (!event.persisted) return;
