@@ -32,7 +32,11 @@ test.describe('home demo fits its column on desktop windows', () => {
           const describe = (el, r) =>
             `${el.tagName.toLowerCase()}.${String(el.getAttribute('class') || '').trim()} `
             + `[${Math.round(r.left)}..${Math.round(r.right)}]`;
-          const els = document.querySelectorAll('.demo-track [data-hero-track="sign"] *');
+          // The stage's own children (note, rail, phone) are what the column
+          // has to hold. Not their descendants: a truncated file name inside
+          // the phone keeps its full-length rect behind its ellipsis, and on
+          // Linux fonts that rect runs past the phone it is clipped by.
+          const els = document.querySelectorAll('.demo-track [data-hero-track="sign"] [data-hero-stage] > *');
           for (const el of els) {
             const r = el.getBoundingClientRect();
             if (r.width === 0) continue;
