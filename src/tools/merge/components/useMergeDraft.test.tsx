@@ -242,6 +242,56 @@ describe('useMergeDraft', () => {
     expect((await loadDraft('merge')).revision).toBe(afterEdit.revision);
   });
 
+  // SITE-42: a home-page hand-off beats the restore. The island declines a
+  // restore that lands after it, or replaces one that landed first; either way
+  // the handed-off set has no stored record and must save like any new set.
+  const storeOldDraft = () => saveDraft('merge', {
+    files: [{ fileName: 'old.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('A').buffer }],
+    plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+    options: { addPageNumbers: false }, fileName: 'merged_old', schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+  });
+
+  it('saves a set that arrives after a restore the island declined', async () => {
+    await storeOldDraft();
+    const apiRef = { current: null };
+    const declined = vi.fn();
+    await mount(apiRef, baseOptions({ onRestore: declined, autosaveDebounceMs: 40 }));
+    expect(declined).toHaveBeenCalledTimes(1);
+    act(() => {
+      render(<Harness apiRef={apiRef} options={baseOptions({
+        onRestore: declined,
+        autosaveDebounceMs: 40,
+        entries: [baseEntry(0, 'new.pdf')],
+        plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+      })} />, container);
+    });
+    await flushDebounce(150);
+    expect((await loadDraft('merge')).files.map((f) => f.fileName)).toEqual(['new.pdf']);
+  });
+
+  it('saves a hand-off that replaces a restore still being hydrated', async () => {
+    await storeOldDraft();
+    const apiRef = { current: null };
+    function ReplacedHarness() {
+      const [files, setFiles] = useState([]);
+      const [hydrated, setHydrated] = useState(false);
+      apiRef.current = { replace: (file) => { setFiles([file]); setHydrated(true); } };
+      useMergeDraft(baseOptions({
+        autosaveDebounceMs: 40,
+        restoreHydrationComplete: hydrated,
+        entries: files.map((file, id) => ({ id, file, pageCount: 1, thumbnail: null, error: null })),
+        plan: files.map((_, id) => ({ key: `${id}:0`, fileId: id, pageIndex: 0, rotation: 0, skipped: false })),
+        onRestore: (restored) => setFiles(restored.files),
+      }));
+      return null;
+    }
+    act(() => render(<ReplacedHarness />, container));
+    await act(async () => { await wait(80); });
+    act(() => apiRef.current.replace(makeFile('new.pdf')));
+    await flushDebounce(150);
+    expect((await loadDraft('merge')).files.map((f) => f.fileName)).toEqual(['new.pdf']);
+  });
+
   it('treats a stored record with an out-of-range plan fileId as no draft: nothing restored, the record deleted, the hint attribute cleared', async () => {
     await saveDraft('merge', {
       files: [{ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('A').buffer }],

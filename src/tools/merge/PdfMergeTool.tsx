@@ -692,6 +692,33 @@ export default function PdfMergeTool({
     );
   }, [entries, plan, insertEntries, t.filesAddedOne, t.filesAddedMany]);
 
+  // Everything on screen that belongs to the current set, shared by Clear all
+  // and a home-page hand-off so the two cannot drift. It never touches the
+  // saved draft: Clear all deletes that itself, a hand-off must not.
+  const clearWorkspace = useCallback(() => {
+    setModel({ entries: [], plan: [] });
+    clearPrepared();
+    setRejectedFiles([]);
+    setDuplicates([]);
+    clearUndo();
+    setTap('idle');
+    setPendingDownload(false);
+    setDownloadedOnce(false);
+    setSortMode('added');
+    setRenderedCount(0);
+    setShowPickedUpSentence(false);
+    setIsRestoredWorkspace(false);
+    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
+    setShowShortcutsHint(false);
+    shortcutsShownRef.current = false;
+    if (shortcutsTimerRef.current) clearTimeout(shortcutsTimerRef.current);
+    pendingPlanIndexRef.current.clear();
+    // MERGE-11: the next set of files gets the automatic output name again,
+    // not the previous set's.
+    setCustomOutputName(null);
+    setIsRenamingOutputName(false);
+  }, [clearPrepared, clearUndo]);
+
   // SITE-42: several files picked on the home page arrive as a brand-new set,
   // through addFiles like a manual pick. Whatever a restore already put on
   // screen is replaced, but the saved set is NOT cleared (no reset(), no
@@ -700,12 +727,8 @@ export default function PdfMergeTool({
   // (draftStore's sourceIdForFiles), never reused from the current pointer.
   useHandoffFilesIntake('merge', (files) => {
     handedOffRef.current = true;
-    setModel({ entries: [], plan: [] });
-    setIsRestoredWorkspace(false);
+    clearWorkspace();
     setRestoreHydrationComplete(true);
-    setShowPickedUpSentence(false);
-    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
-    setCustomOutputName(null);
     setAddPageNumbers(readRememberedOptions().addPageNumbers);
     addFiles(files, { force: true });
   });
@@ -751,31 +774,11 @@ export default function PdfMergeTool({
   }, []);
 
   const reset = useCallback(() => {
-    setModel({ entries: [], plan: [] });
-    clearPrepared();
-    setRejectedFiles([]);
-    setDuplicates([]);
-    clearUndo();
-    setTap('idle');
-    setPendingDownload(false);
-    setDownloadedOnce(false);
-    setSortMode('added');
-    setRenderedCount(0);
-    setShowPickedUpSentence(false);
-    setIsRestoredWorkspace(false);
-    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
-    setShowShortcutsHint(false);
-    shortcutsShownRef.current = false;
-    if (shortcutsTimerRef.current) clearTimeout(shortcutsTimerRef.current);
-    pendingPlanIndexRef.current.clear();
-    // MERGE-11: Clear all resets the renamed output name - the next set of
-    // files gets the automatic name again, not the previous set's.
-    setCustomOutputName(null);
-    setIsRenamingOutputName(false);
+    clearWorkspace();
     void clearDraftRef.current?.();
     setAnnouncement(t.cleared);
     recordAction('clear_all');
-  }, [clearPrepared, clearUndo, t.cleared]);
+  }, [clearWorkspace, t.cleared]);
 
   const reorderEntries = useCallback((next: FileEntry[], message: string) => {
     setModel((current) => ({ entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) }));

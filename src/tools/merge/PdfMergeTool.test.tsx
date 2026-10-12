@@ -876,6 +876,31 @@ describe('PdfMergeTool UI flow', () => {
       expect(clearDraft).not.toHaveBeenCalled();
       expect(draftStore.deleteDraft).not.toHaveBeenCalled();
     });
+
+    it('clears everything else the replaced set left behind: sort mode and undo', async () => {
+      let release;
+      draftStore.takeHandoff.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+      mount();
+      await act(async () => { await flush(10); });
+      await act(async () => {
+        draftProbe.props.onRestore(restoreOf('b.pdf', 'a.pdf', 'c.pdf'));
+        await flush(10);
+      });
+      const trigger = () => container.querySelector(`button.${railStyles['sort-trigger']}`);
+      await act(async () => { trigger().click(); });
+      const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === 'Name A to Z');
+      await act(async () => { option.click(); });
+      await act(async () => {
+        container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(trigger().textContent).toContain('Name A to Z');
+      expect(container.querySelector(`.${docStyles['undo-chip']}`)).not.toBeNull();
+
+      await act(async () => { release(handoffRecord('z.pdf', 'y.pdf')); await flush(20); });
+      expect(fileNames()).toEqual(['z.pdf', 'y.pdf']);
+      expect(trigger().textContent).not.toContain('Name A to Z');
+      expect(container.querySelector(`.${docStyles['undo-chip']}`)).toBeNull();
+    });
   });
 
   it('keeps visible mobile controls outside the sortable chip list', async () => {
