@@ -451,7 +451,11 @@
    The dashed placeholders already show what is still rendering there, so the
    figure is desktop-only. MERGE-11: the name itself wraps to two lines here
    rather than truncate - `.doc-heading` wraps onto a second line and `.name`
-   stops ellipsising and clipping to one line. */
+   stops ellipsising and clipping to one line. MERGE-21: a name with no
+   break opportunity at all ("merged_Statement_20260730163241_123456789_...",
+   an underscore is not one) ran past the card and scrolled the page
+   sideways, so it may break between any two characters, and only when a
+   word is wider than the line. */
 @media (max-width: 767px) {
   .doc-heading {
     flex-wrap: wrap;
@@ -460,6 +464,7 @@
   .name {
     overflow: visible;
     white-space: normal;
+    overflow-wrap: anywhere;
     text-overflow: clip;
     min-width: 0;
     max-width: 100%;
