@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 8 up next, 7 then, 16 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 7 up next, 7 then, 16 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -69,7 +69,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-46 | P1 | [DEBT-46](backlog/tasks/DEBT-46.md) · Split reports started for its automatic prepare, not for a saved result |  |
 | DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | In progress |
 
 ### Then, in order
@@ -159,7 +158,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 20 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 41 done, 3 retired
+- Robustness and debt: 42 done, 3 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 7 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

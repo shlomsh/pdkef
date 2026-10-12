@@ -57,7 +57,7 @@ standard Vercel property allowance and makes breakdowns consistent.
 | Event | When it fires | What it answers |
 | --- | --- | --- |
 | `tool_file_accepted` | A valid local input is accepted by a tool | Which tool visitors actually begin using |
-| `tool_operation_started` | The user starts merge, compress, conversion, edit, unlock/protect, signing, or redaction. For Merge, which has no explicit Merge step since MERGE-12, this is the tap on Download; the background pre-merges that make Download instant are not counted | Where an accepted file becomes active work |
+| `tool_operation_started` | The user starts merge, compress, conversion, edit, unlock/protect, signing, or redaction. For Merge, which has no explicit Merge step since MERGE-12, this is the tap on Download; the background pre-merges that make Download instant are not counted. Split (DEBT-46) works the same way | Where an accepted file becomes active work |
 | `tool_result_ready` | Local processing completes and an output is ready | Successful completions by tool |
 | `tool_operation_failed` | A processing operation reaches a known failure state | Aggregate failure pressure by tool |
 
@@ -154,3 +154,4 @@ additions if their question remains unanswered:
 | 2026-10-01 | Widen anonymous error reports (DEBT-27): the chain of positions in our code, a step label, the page path, installed, service worker and page age, and the latest full example of each distinct error per day. | A single position was too little to troubleshoot from. Every added field is a position in our own code, a closed list, a bucket or a flag; still never a message, a document, a filename, text, an IP address or an identifier. |
 | 2026-10-01 | Move the four lifecycle events from Vercel custom events to `/api/report` (DEBT-28). | Hobby never recorded custom events, so the funnel had never been seen; daily per-tool counts on our own address keep the same allowlist and add no browser detail. |
 | 2026-10-02 | Error reports carry the last 10 UI action names (DEBT-31). | A crash's trigger was inferred from code, not read from the report (the DEBT-30 Merge crash); closed list of names, no free text, in memory until an error is reported. |
+| 2026-10-04 | Split (DEBT-46) counts `tool_operation_started` on the Download tap or a completed Share and `tool_result_ready` when that download or share is delivered; idle prepares after each option change are not counted. | Production showed 1 accepted, 6 started, 0 ready on 2026-10-04 from background rebuilds, which made the funnel unreadable. Same model as Merge. |
