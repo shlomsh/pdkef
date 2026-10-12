@@ -24,7 +24,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [SITE-42](backlog/tasks/SITE-42.md) P2 · Home: picked files wake the toolbar, which becomes the tool chooser
+- [SITE-42](backlog/tasks/SITE-42.md) P2 · Home: picked files wake the toolbar, which becomes the tool chooser (in progress)
 
 ## Waiting, by date
 

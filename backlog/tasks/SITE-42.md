@@ -1,7 +1,7 @@
 ---
 id: "SITE-42"
 title: "Home: picked files wake the toolbar, which becomes the tool chooser"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "polish"
 horizon: "now"
