@@ -135,7 +135,7 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SITE-42 | P2 | [SITE-42](backlog/tasks/SITE-42.md) · Home: picked files wake the toolbar, which becomes the tool chooser | Needs Shlomi: Pick the copy, and try the rough build on your iPhone |
+| SITE-42 | P2 | [SITE-42](backlog/tasks/SITE-42.md) · Home: picked files wake the toolbar, which becomes the tool chooser | Needs Shlomi: Decide D1-D4 below before T6 starts |
 
 ### Then, in order
 
