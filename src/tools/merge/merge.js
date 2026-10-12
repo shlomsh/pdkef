@@ -2,7 +2,7 @@ import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/p
 import { mergedFileName, mergedTitle } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
-import { addImagePage } from '../../lib/imagePage.js';
+import { addImagePage, hasImageSignature } from '../../lib/imagePage.js';
 import { deriveFileKind, mimeTypeOf } from '../../lib/fileKind.js';
 
 export { mergedFileName, mergedTitle };
@@ -70,6 +70,15 @@ export async function inspectPdf(file, fileIndex = 0) {
     });
   }
 
+  // A photo is one page by definition: its signature is all inspection needs,
+  // and the (costly) embed happens once, in the merge itself.
+  if (deriveFileKind(file) === 'image') {
+    if (hasImageSignature(new Uint8Array(bytes), mimeTypeOf(file))) {
+      return { pageCount: 1, encrypted: false, creationDate: null };
+    }
+    throw new MergeFileError(`Could not parse photo at index ${fileIndex}`, { fileIndex, reason: 'unreadable' });
+  }
+
   const { PDFDocument } = await getPdfLib();
 
   let doc;
@@ -82,9 +91,6 @@ export async function inspectPdf(file, fileIndex = 0) {
       cause,
     });
   }
-
-  // A photo carries no date of its own (the throwaway doc's is just "now").
-  if (deriveFileKind(file) === 'image') return { pageCount: 1, encrypted: false, creationDate: null };
 
   const date = doc.getCreationDate();
   const creationDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date.getTime() : null;
