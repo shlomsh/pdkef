@@ -119,6 +119,15 @@ Decided: D1 the drafts as written, D2 as recommended, D3 option 1 (say so, open 
 takes PDFs and photos together today; Merge taking photos is its own ticket, MERGE-22, and neither
 blocks the other.
 
+Later the same day, after QA and two fresh reviews:
+- **Notes live in the tile.** A note (a failure, "Left out: ...") replaces the tile's second line in red
+  instead of inserting a row, so the first screen never moves. Two visually hidden live regions carry
+  failures (assertive) and "Left out" plus the prompt (polite).
+- **Bytes are read at pick time.** An iOS file from the Files picker can stop being readable while it
+  waits for a tool; unreadable files are named under "Left out" and the rest carry on.
+- **MERGE-22 was pulled into this branch.** A PDF-and-photo pick now opens Merge (the D3 note is gone).
+  Merge is offered for photos only alongside a PDF: photos alone keep going to Image to PDF.
+
 
 - **D1 · Copy.** Drafts, English and Hebrew: "or drop them here, then pick a tool below", "Now pick
   a tool below", "Change", "{count} files", "Opening {tool}...", "Left out: {names}", "PDFs and

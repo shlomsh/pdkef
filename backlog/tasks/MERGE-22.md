@@ -31,4 +31,9 @@ table test), and Merge's own picker and drop target accept photos.
 - The default output name when the first file is a photo (`merged_<first>.pdf` today).
 - Draft memory: a photo in a saved set needs the same bytes-derived entry id as a PDF.
 
-Independent of SITE-42: neither blocks the other.
+Built inside SITE-42's branch at Shlomi's request (2026-10-12). Decided while building:
+- Page size is Image to PDF's rule, shared through `src/lib/imagePage.js`; a JPEG's EXIF orientation
+  becomes the page's rotation, so phone photos come out upright in both tools.
+- The output name stays `merged_<first>.pdf`; a photo-first set is `merged_<photo name>.pdf`.
+- A saved set stores each photo's real type (`mimeTypeOf`), so an untyped `.jpg` restores as a photo.
+- The home toolbar offers Merge for photos only alongside a PDF.
