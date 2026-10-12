@@ -1,10 +1,9 @@
 ---
 id: "MERGE-21"
 title: "A long output name with no break points runs past the card on a phone"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 
