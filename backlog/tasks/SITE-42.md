@@ -6,7 +6,6 @@ priority: "P2"
 epic: "polish"
 horizon: "now"
 depends_on: []
-needs: "Decide D1-D3 below before T6 starts"
 ---
 
 # SITE-42 · Home: picked files wake the toolbar, which becomes the tool chooser
@@ -114,7 +113,12 @@ rest drop to 0.35 opacity. The edge-fade strips reach over the dock's block padd
 margin-block: -10px;
 ```
 
-## Decisions for Shlomi (before T6)
+## Decisions (Shlomi, 2026-10-12)
+
+Decided: D1 the drafts as written, D2 as recommended, D3 option 1 (say so, open nothing). No tool
+takes PDFs and photos together today; Merge taking photos is its own ticket, MERGE-22, and neither
+blocks the other.
+
 
 - **D1 · Copy.** Drafts, English and Hebrew: "or drop them here, then pick a tool below", "Now pick
   a tool below", "Change", "{count} files", "Opening {tool}...", "Left out: {names}", "PDFs and
