@@ -12,6 +12,7 @@ import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
@@ -78,6 +79,11 @@ export default function PdfToImageTool() {
     resetOutput();
     recordAction('add_files');
   };
+
+  // SITE-42: files picked on the home page arrive as a hand-off, collected on
+  // mount and sent down the same path a manual pick takes. This tool restores
+  // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
+  useHandoffIntake('pdf-to-image', (f) => handleFilesAdded([f]));
 
   const handlePageSelectorChange = (next: string) => {
     setPageSelector(next);

@@ -15,6 +15,7 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
+import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
 let nextId = 0;
@@ -98,6 +99,11 @@ export default function PdfImageToPdfTool() {
     );
     recordAction('add_files');
   }, []);
+
+  // SITE-42: files picked on the home page arrive as a hand-off, collected on
+  // mount and sent down the same path a manual pick takes. This tool restores
+  // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
+  useHandoffFilesIntake('image-to-pdf', (files) => addFiles(files));
 
   const removeEntry = useCallback((id: number) => {
     setEntries((current) => {

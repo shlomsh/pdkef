@@ -38,6 +38,15 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
+
+const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
+
+// SITE-42: the home page hands picked files over through the draft store's hand-off slot.
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  takeHandoff: takeHandoffMock,
+}));
+
 describe('PdfToImageTool UI flow', () => {
   let container;
 
@@ -374,5 +383,23 @@ describe('PdfToImageTool UI flow', () => {
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(recentActions()).toEqual(['add_files', 'change_setting', 'export']);
+  });
+
+  it('loads a PDF handed off from the home page as if picked', async () => {
+    takeHandoffMock.mockResolvedValueOnce({
+      fileName: 'handed.pdf',
+      fileType: 'application/pdf',
+      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool />, container);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(takeHandoffMock).toHaveBeenCalledWith('pdf-to-image');
+    expect(container.textContent).toContain('handed.pdf');
   });
 });
