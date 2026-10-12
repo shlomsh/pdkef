@@ -684,6 +684,17 @@ describe('FileDropzone', () => {
         expect(picker().querySelector(ARROW)).toBeNull();
       });
 
+      // Real Mobile Safari never runs a second, later draw-on animation on the head
+      // path (only its round cap shows, as a dot), so shaft and head are one path
+      // drawn in one stroke; the same drawing, revealed shaft first, then head.
+      it('draws the arrow as one stroke, shaft then head', () => {
+        mount();
+        const paths = picker().querySelectorAll(`${ARROW} path`);
+        expect(paths).toHaveLength(1);
+        expect(paths[0].getAttribute('d')).toMatch(/^M36 6C.*16 67M7 61L15\.8 67\.6L19 56\.5$/);
+        expect(paths[0].getAttribute('pathLength')).toBe('1');
+      });
+
       it('keeps waiting, lit and retryable when the hand-off of a clicked tool fails', async () => {
         mount();
         await pick([pdf('contract.pdf')]);
