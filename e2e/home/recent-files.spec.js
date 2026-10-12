@@ -76,7 +76,7 @@ test.describe('home launcher shell', () => {
 
     const launcher = page.locator('#home-files');
     await expect(launcher.getByText('Choose files', { exact: true })).toBeVisible();
-    await expect(launcher.getByText('or drop PDFs here', { exact: true })).toBeVisible();
+    await expect(launcher.getByText('or drop them here, then pick a tool below', { exact: true })).toBeVisible();
     await expect(launcher.getByRole('button', { name: /Open bundled sample PDF/ })).toBeVisible();
     await expect(launcher.locator('img')).toHaveAttribute('src', '/images/redaction-guide/sample-preview.jpg');
   });
