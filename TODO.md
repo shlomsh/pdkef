@@ -22,11 +22,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-42](backlog/tasks/SEO-42.md) P2 · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console (in progress)
 - [SEO-44](backlog/tasks/SEO-44.md) P2 · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 
-### Polish
-
-- [MERGE-22](backlog/tasks/MERGE-22.md) P2 · Merge takes photos too, each one a page, so PDFs and photos picked together have a home (in progress)
-- [SITE-42](backlog/tasks/SITE-42.md) P2 · Home: picked files wake the toolbar, which becomes the tool chooser (in progress)
-
 ## Waiting, by date
 
 - 2026-11-06: [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house

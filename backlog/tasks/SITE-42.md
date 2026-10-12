@@ -1,10 +1,9 @@
 ---
 id: "SITE-42"
 title: "Home: picked files wake the toolbar, which becomes the tool chooser"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 

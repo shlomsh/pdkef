@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 9 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 7 up next, 6 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -131,13 +131,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 Small, independent, good for a spare hour.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| MERGE-22 | P2 | [MERGE-22](backlog/tasks/MERGE-22.md) · Merge takes photos too, each one a page, so PDFs and photos picked together have a home | In progress |
-| SITE-42 | P2 | [SITE-42](backlog/tasks/SITE-42.md) · Home: picked files wake the toolbar, which becomes the tool chooser | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -160,7 +153,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 40 done, 3 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 4 done, 0 retired
+- Polish: 6 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
