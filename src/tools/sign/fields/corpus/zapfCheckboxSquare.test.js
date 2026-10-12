@@ -74,6 +74,7 @@ beforeAll(async () => {
     wasmUrl: `${path.join(pdfjsDir, 'wasm')}${path.sep}`,
     cMapPacked: true,
     useSystemFonts: false,
+    fontExtraProperties: true,
   });
   const textRuns = [];
   try {
