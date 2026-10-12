@@ -59,7 +59,11 @@ function makeWorker(status: Status = { ready: true, busy: 1 }) {
   return worker;
 }
 
-function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?: any } = {}) {
+// `active` is a worker that was already active before this page asked to
+// register (a hard reload); `activatesOnRegister` is a first install whose
+// worker has already activated by the time register() resolves (WebKit does
+// that on a fast machine), so reg.active is set but no worker predates the page.
+function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?: any; activatesOnRegister?: any } = {}) {
   const line = document.createElement('p');
   line.hidden = true;
   line.innerHTML = '<button type="button" data-app-update-dismiss></button>';
@@ -70,7 +74,11 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?:
   reg.update = vi.fn(() => Promise.resolve());
   const sw: any = new Emitter();
   sw.controller = opts.controller === false ? null : {};
-  sw.register = vi.fn(async () => reg);
+  sw.getRegistration = vi.fn(async () => (opts.active ? reg : undefined));
+  sw.register = vi.fn(async () => {
+    if (opts.activatesOnRegister) reg.active = opts.activatesOnRegister;
+    return reg;
+  });
   const doc: any = new Emitter();
   doc.visibilityState = 'visible';
   const win: any = new Emitter();
@@ -457,6 +465,19 @@ describe('controllerchange', () => {
     tab.sw.emit('controllerchange');
     await vi.advanceTimersByTimeAsync(5000);
     expect(tab.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('a first install whose worker is already active when register() resolves is still a first install', async () => {
+    // DEBT-45: WebKit can resolve register() after install and activation, so
+    // reg.active is set though no worker existed before this page. Reloading
+    // there raced the person's first click (a recent tile's navigation to
+    // /sign/ against the page's own reload of /).
+    const tab = makeTab(new Bus(), { controller: false, activatesOnRegister: {} });
+    await tab.start();
+    tab.sw.controller = {};
+    tab.sw.emit('controllerchange');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(tab.reload).not.toHaveBeenCalled();
   });
 
   it('an uncontrolled tab with no active worker ignores the first claim', async () => {
