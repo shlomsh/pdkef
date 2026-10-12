@@ -17,8 +17,9 @@ reviewNotes: >-
   and drafts FAQ are AI drafts. 09-17: איחוד leads on Shlomi's native read,
   מיזוג stays as the synonym. 09-19: English h1, subhead and FAQ reworded
   (SEO-36), hash refreshed. 10-01: English gained the Drive, Dropbox and
-  iCloud FAQ (MERGE-18); its Hebrew answer is an AI draft pending review.
-sourceHash: 'fnv1a64:169d71efa5638bb9'
+  iCloud FAQ (MERGE-18); its Hebrew answer is an AI draft pending review. 10-12:
+  English gained photos in step 1 and a photos FAQ (MERGE-22); the Hebrew for both is an AI draft pending review, hash refreshed.
+sourceHash: 'fnv1a64:cf62c3ff7e016247'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -39,8 +40,8 @@ freeNoteLead: >-
   אחדו כמה קבצי PDF שתרצו, בכל סדר, בלי סימן מים ובלי הגבלת עמודים. האיחוד
   רץ על המכשיר שלכם, אז אין מה להעלות ואין מכסות.
 steps:
-  - title: 'הוסיפו את קבצי ה-PDF'
-    text: 'בחרו קבצים, או גררו ושחררו כאן את הקבצים שרוצים לאחד.'
+  - title: 'הוסיפו את קבצי ה-PDF והתמונות'
+    text: 'בחרו קבצי PDF או תמונות JPEG ו-PNG, או גררו ושחררו כאן את מה שרוצים לאחד.'
   - title: 'סדרו אותם'
     text: 'מיינו לפי שם או תאריך, או גררו כל קובץ למקום הרצוי.'
   - title: 'הורידו'
@@ -86,3 +87,7 @@ faq:
       להעמיד פנים שכן, והאיחוד עצמו ממשיך לעבוד בכל מקרה. טיוטות שמורות פגות
       תוקף אחרי 28 יום בלי שינוי. במכשיר משותף, נקו את נתוני האתר בסיום; זה
       גם מוחק טיוטות שמורות והעדפות.
+  - question: 'אפשר לאחד תמונות עם קבצי PDF?'
+    answer: >-
+      כן. הוסיפו תמונות JPEG או PNG לצד קבצי ה-PDF, וכל תמונה הופכת לעמוד
+      אחד, בגודל התמונה, לפי הסדר שקבעתם. הכול קורה על המכשיר שלכם.
