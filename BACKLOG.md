@@ -153,7 +153,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 41 done, 3 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 6 done, 0 retired
+- Polish: 7 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
