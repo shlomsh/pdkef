@@ -1,10 +1,9 @@
 ---
 id: "MEM-14"
 title: "Opening a second file in Sign gives the first file's recent tile the second file's thumbnail"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -40,3 +39,11 @@ Each recent row keeps the preview of its own file: the preview effect writes its
   passes after it.
 - On a production build (`npm run build` + preview on a non-4173 port), the reproduction above leaves
   two tiles with two different thumbnails, in Chromium and WebKit.
+
+## Done (2026-10-12)
+
+The preview effect no longer calls `attachDraftPreview`; `cacheRecentFile` alone writes the preview,
+keyed by the file's own hash. The new real-store test in `useDraftPersistence.test.jsx` failed on the
+old hook with alpha's row holding bravo's preview, and passes now. On a production build (preview on
+port 4637) a scripted run of the reproduction showed the same thumbnail on both tiles with the old hook
+in Chromium and WebKit, and two different thumbnails with the fix in both.
