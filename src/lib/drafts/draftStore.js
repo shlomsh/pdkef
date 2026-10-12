@@ -177,6 +177,11 @@ export const HANDOFF_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
 // the restore path skipped it and the dropped file was lost too. Nothing outside
 // this file may write to a tool's entry on a tool's behalf.
 const handoffKey = (tool) => `handoff:${tool}`;
+// One file, or (SITE-42) a non-empty `files` list where every entry has its bytes.
+const isValidHandoff = (record) =>
+  Array.isArray(record.files)
+    ? record.files.length > 0 && record.files.every((f) => f && f.fileBytes)
+    : Boolean(record.fileBytes);
 
 /**
  * Park a dropped file for a tool to collect after the navigation that follows.
@@ -188,14 +193,16 @@ const handoffKey = (tool) => `handoff:${tool}`;
  * 'sign' or 'split' after a merge, under that target tool's own key, so
  * `{ fileName, fileType, fileBytes }` is the whole contract regardless of
  * which tool wrote it or which tool is about to take it - a handoff carries
- * one file, never Merge's multi-file entry shape.
+ * one file, or (SITE-42, the home page's launcher handing several picked files to
+ * Merge or Image to PDF) a `files` list in pick order.
  *
  * @param {string} tool - 'sign' | 'redact' | 'compress' | 'split' (the target tool's key)
  * `from` names the sending tool when the hand-off is a detour the person will come back from:
  * Redact sends a protected file to Unlock with `from: 'redact'`, and Unlock leads back there
  * (docs/ux-design-guidelines.md section 13). Receivers that do not use it ignore it.
  *
- * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer, from?: string }} record
+ * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer, from?: string }
+ *   | { files: Array<{ fileName: string, fileType?: string, fileBytes: ArrayBuffer }>, from?: string }} record
  * @returns {Promise<boolean>} true if written
  */
 export async function saveHandoff(tool, record) {
@@ -219,6 +226,11 @@ export async function saveHandoff(tool, record) {
  * leaving it behind would re-open the same file on every later visit to the tool,
  * and would do it over whatever the user had since started.
  *
+ * Returns the record only if it is a valid single record (has `fileBytes`) or a valid
+ * multi record (a non-empty `files` list, every entry with `fileBytes`). A multi record
+ * reaches only tools that take several files (Merge, Image to PDF) or the hooks in
+ * useHandoffIntake.ts.
+ *
  * @param {string} tool - the target tool's own key, e.g. 'sign' when Merge (MERGE-14)
  *   hands its output there
  * @returns {Promise<object|null>}
@@ -235,7 +247,7 @@ export async function takeHandoff(tool) {
     if (typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS) {
       return null;
     }
-    return record.fileBytes ? record : null;
+    return isValidHandoff(record) ? record : null;
   } catch (e) {
     reportStoreError('handoff', e, 'take_handoff');
     console.error('draftStore.takeHandoff failed:', e);

@@ -12,7 +12,7 @@ import {
   MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
   readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry, clearCurrentEntry,
-  sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges,
+  sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges, saveHandoff, takeHandoff,
 } from './draftStore.js';
 
 // Structured clone (what a real IndexedDB put/get round-trips through, and
@@ -885,5 +885,46 @@ describe('isStoragePersisted', () => {
       storage: { persisted: () => Promise.reject(new Error('denied')) },
     });
     expect(await isStoragePersisted()).toBe('unknown');
+  });
+});
+
+describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.stubGlobal('crypto', webcrypto);
+    indexedDB = new IDBFactory();
+  });
+
+  it('round-trips a single record and consumes it', async () => {
+    expect(await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytesOf('one'), from: 'home' })).toBe(true);
+    const taken = await takeHandoff('sign');
+    expect(taken.fileName).toBe('a.pdf');
+    expect(taken.from).toBe('home');
+    expect(text(taken.fileBytes)).toBe('one');
+    expect(await takeHandoff('sign')).toBeNull();
+  });
+
+  it('round-trips a multi record with its files in pick order', async () => {
+    const files = [
+      { fileName: 'b.pdf', fileType: 'application/pdf', fileBytes: bytesOf('bee') },
+      { fileName: 'c.png', fileType: 'image/png', fileBytes: bytesOf('sea') },
+    ];
+    expect(await saveHandoff('merge', { files, from: 'home' })).toBe(true);
+    const taken = await takeHandoff('merge');
+    expect(taken.from).toBe('home');
+    expect(taken.files.map((f) => f.fileName)).toEqual(['b.pdf', 'c.png']);
+    expect(taken.files.map((f) => text(f.fileBytes))).toEqual(['bee', 'sea']);
+    expect(await takeHandoff('merge')).toBeNull();
+  });
+
+  it('returns null for a multi record with no files', async () => {
+    await saveHandoff('merge', { files: [] });
+    expect(await takeHandoff('merge')).toBeNull();
+  });
+
+  it('returns null for a multi record with an entry missing its bytes', async () => {
+    await saveHandoff('merge', { files: [{ fileName: 'a.pdf', fileBytes: bytesOf('x') }, { fileName: 'b.pdf' }] });
+    expect(await takeHandoff('merge')).toBeNull();
   });
 });

@@ -1,6 +1,22 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { takeHandoff } from './drafts/draftStore.js';
 
+type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
+type HandoffRecord = Partial<HandoffFile> & { files?: Partial<HandoffFile>[]; from?: string };
+
+/**
+ * Every file a hand-off record carries, in order: one for a single record, all of
+ * `files` for a multi record (SITE-42), `[]` for anything invalid.
+ */
+export function filesFromHandoff(record: HandoffRecord | null | undefined): File[] {
+  if (!record) return [];
+  const entries = Array.isArray(record.files) ? record.files : [record];
+  if (entries.length === 0 || !entries.every((e) => e && e.fileBytes)) return [];
+  return entries.map(
+    (e) => new File([e.fileBytes as ArrayBuffer], e.fileName as string, { type: e.fileType || 'application/pdf' }),
+  );
+}
+
 /**
  * MERGE-14: collect a pending hand-off for `tool` on mount and hand the
  * rebuilt File to `onFile`.
@@ -19,30 +35,35 @@ import { takeHandoff } from './drafts/draftStore.js';
  * `from` is the sending tool, when its record names one (Redact does, so Unlock can lead the person
  * back once the file is open). A receiver that has no use for it ignores the second argument.
  *
+ * A multi-file record hands `onFile` its first file; `useHandoffFilesIntake` gets them all.
+ *
  * Runs once per mount (`[tool]` deps only, via the `onFile` ref below) - a
  * result that resolves after unmount is dropped rather than calling a
  * callback whose owner is already gone.
  */
 export function useHandoffIntake(tool: string, onFile: (file: File, from?: string) => void): void {
-  // Keeping only the latest `onFile` in a ref, rather than in the effect's
+  useHandoffFilesIntake(tool, (files, from) => onFile(files[0], from));
+}
+
+/** Like `useHandoffIntake`, but hands over every file of the hand-off (a single record gives `[file]`). */
+export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], from?: string) => void): void {
+  // Keeping only the latest callback in a ref, rather than in the effect's
   // dependency array, is what lets the effect depend on `[tool]` alone -
   // otherwise a tool that recreates its callback every render (as both
   // PdfCompressTool and PdfSplitTool do, since handleFilesAdded closes over
   // render-scoped state) would re-run this effect, and re-collect from a
   // store that already deleted the record, every render.
-  const onFileRef = useRef(onFile);
-  onFileRef.current = onFile;
+  const onFilesRef = useRef(onFiles);
+  onFilesRef.current = onFiles;
 
   useEffect(() => {
     let cancelled = false;
 
     takeHandoff(tool).then((value) => {
       if (cancelled || !value) return;
-      const record = value as { fileName: string; fileType?: string; fileBytes: ArrayBuffer; from?: string };
-      const file = new File([record.fileBytes], record.fileName, {
-        type: record.fileType || 'application/pdf',
-      });
-      onFileRef.current(file, record.from);
+      const record = value as HandoffRecord;
+      const files = filesFromHandoff(record);
+      if (files.length > 0) onFilesRef.current(files, record.from);
     });
 
     return () => {
