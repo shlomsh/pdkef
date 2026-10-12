@@ -51,6 +51,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
-- [SITE-42](backlog/tasks/SITE-42.md) · Decide D1-D4 below before T6 starts
+- [SITE-42](backlog/tasks/SITE-42.md) · Decide D1-D3 below before T6 starts
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
