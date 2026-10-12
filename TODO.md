@@ -24,6 +24,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
+- [MERGE-21](backlog/tasks/MERGE-21.md) P2 · A long output name with no break points runs past the card on a phone (in progress)
 - [SITE-42](backlog/tasks/SITE-42.md) P2 · Home: picked files wake the toolbar, which becomes the tool chooser
 
 ## Waiting, by date
