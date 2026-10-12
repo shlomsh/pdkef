@@ -1801,6 +1801,8 @@ export interface FileDropzoneMessages {
   opening: string;
   chooseFiles: string;
   orDropThenPick: string;
+  /** The closing launcher's resting line: no toolbar sits below it. */
+  orDropThem: string;
   /** SITE-42: the tile while one file waits for a tool in the toolbar. */
   pickAToolBelow: string;
   change: string;
@@ -1824,6 +1826,7 @@ const englishFileDropzoneMessages: FileDropzoneMessages = {
   opening: 'Opening…',
   chooseFiles: 'Choose files',
   orDropThenPick: 'or drop them here, then pick a tool below',
+  orDropThem: 'or drop them here',
   pickAToolBelow: 'Now pick a tool below',
   change: 'Change',
   fileCount: '{count} files',
@@ -1848,6 +1851,7 @@ const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   opening: 'פותחים…',
   chooseFiles: 'בחירת קבצים',
   orDropThenPick: 'או גררו לכאן, ואז בחרו כלי למטה',
+  orDropThem: 'או גררו לכאן',
   pickAToolBelow: 'עכשיו בחרו כלי למטה',
   change: 'החלפה',
   fileCount: '{count} קבצים',

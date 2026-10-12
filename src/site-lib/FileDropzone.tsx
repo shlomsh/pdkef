@@ -31,9 +31,29 @@ export const fileTypeOf = (file: File) =>
 
 /* The bytes are read when the file is picked, not when a tool is tapped: an iOS file from the Files
    picker can stop being readable while it waits for a tool. Everything after this works on the copies. */
-async function readCopies(files: File[]): Promise<File[]> {
-  return Promise.all(files.map(async file =>
+/* Each file on its own: one that cannot be read is named, the rest carry on. */
+async function readCopies(files: File[]): Promise<{ copies: File[]; unreadable: File[] }> {
+  const settled = await Promise.allSettled(files.map(async file =>
     new File([await file.arrayBuffer()], file.name, { type: fileTypeOf(file), lastModified: file.lastModified })));
+  return {
+    copies: settled.flatMap(result => (result.status === 'fulfilled' ? [result.value] : [])),
+    unreadable: files.filter((_, index) => settled[index].status === 'rejected'),
+  };
+}
+
+/** Each name in its own bidi isolate (U+2068 ... U+2069), so a Hebrew name beside a Latin one keeps its place in the list. */
+export const isolateNames = (files: readonly { name: string }[]) =>
+  files.map(file => `\u2068${file.name}\u2069`).join(', ');
+
+/** What the two screen-reader regions say: failures at once, everything else politely, the prompt last. Pure. */
+export function liveMessages(
+  state: { note: string; failed: boolean; waiting: boolean },
+  messages: FileDropzoneMessages,
+) {
+  return {
+    alert: state.failed ? state.note : '',
+    status: [state.failed ? '' : state.note, state.waiting ? messages.pickAToolBelow : ''].filter(Boolean).join('. '),
+  };
 }
 
 type Choice = { files: File[]; tools: string[] };
@@ -42,7 +62,7 @@ type Opening = { title: string; tool: string };
 /** What the tile says. Pure, so the states are testable without a DOM. A note (a failure or a
     "Left out" list) takes the second line in every state; the title stays. */
 export function tileCopy(
-  state: { choice: Choice | null; opening: Opening | null; busy: boolean; note?: string },
+  state: { choice: Choice | null; opening: Opening | null; busy: boolean; note?: string; final?: boolean },
   messages: FileDropzoneMessages,
 ) {
   const tone = state.note ? 'note' as const : 'plain' as const;
@@ -55,7 +75,7 @@ export function tileCopy(
     const { files } = state.choice;
     return withLine(files.length === 1 ? files[0].name : formatMessage(messages.fileCount, { count: files.length }), messages.pickAToolBelow, true);
   }
-  return withLine(state.busy ? messages.opening : messages.chooseFiles, messages.orDropThenPick, false);
+  return withLine(state.busy ? messages.opening : messages.chooseFiles, state.final ? messages.orDropThem : messages.orDropThenPick, false);
 }
 
 /* The toolbar belongs to the page, not to this island: its links are static
@@ -144,8 +164,13 @@ export default function FileDropzone({
   // empty so the server render and the first client render agree.
   const [choice, setChoice] = useState<Choice | null>(null);
   const [opening, setOpening] = useState<Opening | null>(null);
+  // The picked bytes are being read. Not a navigation, so a plain flag: it shows the busy tile
+  // but never blocks a newer pick.
+  const [reading, setReading] = useState(false);
+  const latestPick = useRef(0);
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const tile = useRef<HTMLButtonElement>(null);
   // Set synchronously on the first accepted click on a lit tool, so a second
   // click before the first hand-off settles cannot write an orphan hand-off.
   const handing = useRef(false);
@@ -175,7 +200,7 @@ export default function FileDropzone({
     }
   };
   const leftOutNote = (skipped: File[]) =>
-    skipped.length ? formatMessage(messages.leftOut, { names: skipped.map(file => file.name).join(', ') }) : '';
+    skipped.length ? formatMessage(messages.leftOut, { names: isolateNames(skipped) }) : '';
   const enterChoice = (route: Extract<FileRoute, { kind: 'choose' }>) => {
     setError(leftOutNote(route.skipped));
     setChoice({ files: route.files, tools: route.tools });
@@ -183,32 +208,38 @@ export default function FileDropzone({
   const handleFiles = async (files: FileList | File[]) => {
     const incoming = Array.from(files || []);
     if (!incoming.length || busy) return;
-    const route = routeFiles(incoming);
-    if (route.kind === 'none') {
+    const first = routeFiles(incoming);
+    if (first.kind === 'none') {
       setError(messages.unsupportedFiles);
       return;
     }
+    // Reading comes first, and the newest pick wins: a slower, older read is dropped.
+    const pick = ++latestPick.current;
+    setChoice(null);
+    setReading(true);
+    const { copies, unreadable } = await readCopies(first.files);
+    if (pick !== latestPick.current) return;
+    setReading(false);
+    const skipped = [...first.skipped, ...unreadable];
+    if (!copies.length) {
+      setError(leftOutNote(skipped));
+      return;
+    }
+    const route = routeFiles(copies);
+    if (route.kind === 'none') return;
     if (route.kind === 'choose' && final) {
-      // The closing launcher wakes nothing itself: it scrolls up and lets the first screen take the pick (and read it).
-      setError(leftOutNote(route.skipped));
+      // The closing launcher wakes nothing itself: it scrolls up, and the first screen shows what was left out.
+      setError('');
       document.querySelector<HTMLElement>('[data-workspace-return]')?.click();
-      window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: incoming } }));
+      window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: copies, skipped } }));
       return;
     }
-    let copies: File[];
-    try {
-      copies = await readCopies(route.files);
-    } catch {
-      // expected: an unreadable pick shows handoffFailed and leaves the page at rest
-      setError(messages.handoffFailed);
-      return;
-    }
-    if (route.kind === 'choose') { enterChoice({ ...route, files: copies }); return; }
-    setError(leftOutNote(route.skipped));
+    if (route.kind === 'choose') { enterChoice({ ...route, skipped }); return; }
+    setError(leftOutNote(skipped));
     const link = dockLink(route.tool);
     setOpening({ title: formatMessage(messages.fileCount, { count: copies.length }), tool: linkLabel(link, tools.find(t => t.slug === route.tool)?.gridTitle ?? route.tool) });
     if (!final) lightDock([route.tool]);
-    if (!await handOff(copies, route.tool, link?.getAttribute('href') ?? undefined)) {
+    if (!await handOff(route.files, route.tool, link?.getAttribute('href') ?? undefined)) {
       setOpening(null);
       restDock();
     }
@@ -295,7 +326,13 @@ export default function FileDropzone({
       setOpening({ title: choice.files.length === 1 ? choice.files[0].name : formatMessage(messages.fileCount, { count: choice.files.length }), tool: linkLabel(link, tool) });
       void handOff(choice.files, tool, link.getAttribute('href') ?? undefined).then(ok => { if (!ok) setOpening(null); });
     };
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setChoice(null); };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if ((document.activeElement as Element | null)?.closest?.('dialog[open]')) return;
+      setChoice(null);
+      setError('');
+      tile.current?.focus({ preventScroll: true });
+    };
     dock?.addEventListener('click', pickTool);
     document.addEventListener('keydown', escape);
     return () => {
@@ -304,27 +341,24 @@ export default function FileDropzone({
       restDock();
     };
   }, [choice]);
-  // The closing launcher's pick, and a page restored from the back/forward cache.
+  // A page restored from the back/forward cache comes back with its state: every flag of the
+  // navigation that left is reset here. The closing launcher's pick comes up from the far end.
   useEffect(() => {
-    if (final) return;
-    const picked = async (event: Event) => {
-      const route = routeFiles((event as CustomEvent<{ files: File[] }>).detail.files);
-      if (route.kind !== 'choose') return;
-      try {
-        enterChoice({ ...route, files: await readCopies(route.files) });
-      } catch {
-        // expected: an unreadable pick shows handoffFailed and leaves the page at rest
-        setError(messages.handoffFailed);
-      }
-    };
     const restored = (event: PageTransitionEvent) => {
       if (!event.persisted) return;
+      handing.current = false;
       setChoice(null);
       setOpening(null);
+      setError('');
       restDock();
     };
-    window.addEventListener(LAUNCHER_PICK_EVENT, picked);
     window.addEventListener('pageshow', restored);
+    const picked = (event: Event) => {
+      const { files, skipped = [] } = (event as CustomEvent<{ files: File[]; skipped?: File[] }>).detail;
+      const route = routeFiles(files);
+      if (route.kind === 'choose') enterChoice({ ...route, skipped: [...route.skipped, ...skipped] });
+    };
+    if (!final) window.addEventListener(LAUNCHER_PICK_EVENT, picked);
     return () => { window.removeEventListener(LAUNCHER_PICK_EVENT, picked); window.removeEventListener('pageshow', restored); };
   }, [final]);
   useEffect(() => {
@@ -348,8 +382,9 @@ export default function FileDropzone({
     }
   };
   const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
-  const { title, line, tone, choosing } = tileCopy({ choice, opening, busy, note: error }, messages);
+  const { title, line, tone, choosing } = tileCopy({ choice, opening, busy: busy || reading, note: error, final }, messages);
   const failed = [messages.handoffFailed, messages.sampleLoadFailed, messages.unsupportedFiles].includes(error);
+  const live = liveMessages({ note: error, failed, waiting: !!choice && !opening }, messages);
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
       {!final && <RecentFiles
@@ -389,8 +424,8 @@ export default function FileDropzone({
         <strong>{SAMPLE_FILE_NAME}</strong>
         <span>{formatMessage(messages.practiceDocumentCaption, { tool: resolvedToolDisplayName })}</span>
       </button>}
-      <button type="button" class={styles.tile} data-home-picker data-picking={choice ? '' : undefined} disabled={busy}
-        onClick={() => { setChoice(null); input.current?.click(); }}>
+      <button type="button" ref={tile} class={styles.tile} data-home-picker data-picking={choice ? '' : undefined} disabled={busy}
+        onClick={() => { setChoice(null); setError(''); input.current?.click(); }}>
         <svg width="36" height="42" viewBox="0 0 36 42" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path d="M6 2h16l9 9v28H6zM22 2v10h9M12 26h13M18.5 19.5v13" />
         </svg>
@@ -407,8 +442,9 @@ export default function FileDropzone({
         event.currentTarget.value = '';
         void handleFiles(files);
       }} />
-      {/* Always present, so a screen reader hears the prompt when it fills in; visually hidden. */}
-      <span class="sr-only" aria-live={failed ? 'assertive' : 'polite'}>{error || (choice ? messages.pickAToolBelow : '')}</span>
+      {/* Always present, so a screen reader hears them fill in; visually hidden. Failures interrupt, the rest waits its turn. */}
+      <span class="sr-only" aria-live="assertive">{live.alert}</span>
+      <span class="sr-only" aria-live="polite">{live.status}</span>
     </div>
   );
 }

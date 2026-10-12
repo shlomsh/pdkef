@@ -1,8 +1,9 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import FileDropzone, { tileCopy, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
+import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from '../i18n/toolMessages';
 import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
@@ -610,8 +611,9 @@ describe('FileDropzone', () => {
     it('names what it left out alongside the routed outcome', async () => {
       mount();
       await pick([pdf(), new File(['x'], 'a.txt', { type: 'text/plain' }), new File(['x'], 'b.docx')]);
-      expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe('Left out: a.txt, b.docx');
-      expect(container.querySelector('span[aria-live]').getAttribute('aria-live')).toBe('polite');
+      expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(`Left out: ${isolateNames([{ name: 'a.txt' }, { name: 'b.docx' }])}`);
+      expect(container.querySelector('[aria-live="polite"]').textContent).toContain('Left out:');
+      expect(container.querySelector('[aria-live="assertive"]').textContent).toBe('');
       expect(lit()).toHaveLength(8);
     });
 
@@ -648,7 +650,7 @@ describe('FileDropzone', () => {
       window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
       expect(clicked).toHaveBeenCalledTimes(1);
       expect(heard).toHaveBeenCalledTimes(1);
-      expect(heard.mock.calls[0][0].detail.files).toEqual([f]);
+      expect(heard.mock.calls[0][0].detail.files.map((x) => x.name)).toEqual(['far.pdf']);
       expect(LAUNCHER_PICK_EVENT).toBe('pdkef:launcher-pick');
       expect(saveHandoff).not.toHaveBeenCalled();
       expect(lit()).toEqual([]);
@@ -726,12 +728,12 @@ describe('FileDropzone', () => {
         expect(window.location.href).toBe('/sign/');
       });
 
-      it('says so right away, and lights nothing, when a picked file cannot be read', async () => {
+      it('names a picked file that cannot be read, and lights nothing', async () => {
         mount();
         const f = pdf('contract.pdf');
         f.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
         await pick([f]);
-        expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(en.handoffFailed);
+        expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(`Left out: ${isolateNames([f])}`);
         expect(hero.hasAttribute('data-picking')).toBe(false);
         expect(lit()).toEqual([]);
         expect(picker().textContent).toContain('Choose files');
@@ -763,6 +765,172 @@ describe('FileDropzone', () => {
         expect(container.querySelector('[data-tone="note"]')).not.toBeNull();
         await pick([pdf('far.pdf')]);
         expect(container.querySelector('[data-tone="note"]')).toBeNull();
+      });
+
+      const restore = () => act(async () => { const e = new Event('pageshow'); e.persisted = true; window.dispatchEvent(e); });
+      const txt = (name = 'a.txt') => new File(['x'], name, { type: 'text/plain' });
+      const noteOf = () => container.querySelector('[data-home-picker] [data-tone="note"]');
+      const unreadable = (name) => { const f = pdf(name); f.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotReadableError')); return f; };
+      const escape = (init = {}) => act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true, ...init })); });
+
+      it('lets a lit tool open again after a restore from the back/forward cache', async () => {
+        mount();
+        await pick([pdf('a.pdf')]);
+        await clickLink('sign');
+        expect(saveHandoff).toHaveBeenCalledTimes(1);
+        await restore();
+        await pick([pdf('b.pdf')]);
+        await clickLink('sign');
+        expect(saveHandoff).toHaveBeenCalledTimes(2);
+      });
+
+      it('styles the note with a selector at least as specific as `.tile span`', () => {
+        const css = readFileSync('src/site-lib/FileDropzone.module.css', 'utf8');
+        expect(css).toMatch(/\.tile\s+\.note\s*\{[^}]*var\(--color-danger\)/);
+      });
+
+      it('clears the note on Escape, on the tile click, and on a restore', async () => {
+        mount();
+        await pick([pdf(), txt()]);
+        expect(noteOf()).not.toBeNull();
+        await escape();
+        expect(noteOf()).toBeNull();
+        await pick([pdf(), txt()]);
+        await act(async () => { picker().click(); });
+        expect(noteOf()).toBeNull();
+        await pick([pdf('a.pdf'), pdf('b.pdf'), txt()]);
+        expect(noteOf()).not.toBeNull();
+        await restore();
+        expect(noteOf()).toBeNull();
+      });
+
+      it('speaks failures assertively and the left-out list with the prompt politely', async () => {
+        mount();
+        const polite = () => container.querySelector('[aria-live="polite"]').textContent;
+        const assertive = () => container.querySelector('[aria-live="assertive"]').textContent;
+        expect(assertive()).toBe('');
+        await pick([pdf('c.pdf'), txt()]);
+        expect(polite()).toBe(`Left out: ${isolateNames([txt()])}. Now pick a tool below`);
+        expect(assertive()).toBe('');
+        saveHandoff.mockResolvedValueOnce(false);
+        await clickLink('sign');
+        expect(assertive()).toBe(en.handoffFailed);
+        expect(polite()).toBe('Now pick a tool below');
+      });
+
+      it('closing launcher: rests on "or drop them here", sets no note on a choice, and passes the left-out files up', async () => {
+        const heard = vi.fn();
+        window.addEventListener(LAUNCHER_PICK_EVENT, heard);
+        mount({ final: true });
+        expect(picker().textContent).toContain('or drop them here');
+        expect(picker().textContent).not.toContain('pick a tool below');
+        await pick([pdf('far.pdf'), txt('b.txt')]);
+        window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
+        expect(noteOf()).toBeNull();
+        expect(heard.mock.calls[0][0].detail.skipped.map((x) => x.name)).toEqual(['b.txt']);
+      });
+
+      it('closing launcher: sends read copies, and the first screen does not read them again', async () => {
+        const heard = vi.fn();
+        window.addEventListener(LAUNCHER_PICK_EVENT, heard);
+        mount({ final: true });
+        const f = pdf('far.pdf');
+        await pick([f]);
+        window.removeEventListener(LAUNCHER_PICK_EVENT, heard);
+        const sent = heard.mock.calls[0][0].detail.files[0];
+        expect(sent).not.toBe(f);
+        expect(new TextDecoder().decode(await sent.arrayBuffer())).toBe('%PDF');
+        act(() => render(null, container));
+        mount();
+        const gone = pdf('far.pdf');
+        gone.arrayBuffer = () => Promise.reject(new Error('gone'));
+        await act(async () => { window.dispatchEvent(new CustomEvent(LAUNCHER_PICK_EVENT, { detail: { files: [gone], skipped: [] } })); await flush(); });
+        expect(lit()).toHaveLength(8);
+      });
+
+      it('ends the wait when several files open instead, so a failed hand-off does not say "pick a tool"', async () => {
+        mount();
+        await pick([pdf('one.pdf')]);
+        saveHandoff.mockResolvedValueOnce(false);
+        await pick([pdf('a.pdf'), pdf('b.pdf')]);
+        expect(picker().textContent).not.toContain('Now pick a tool below');
+        expect(picker().textContent).toContain('Choose files');
+        expect(lit()).toEqual([]);
+      });
+
+      it('shows the busy tile while the bytes are read', async () => {
+        mount();
+        let finish;
+        const slow = pdf('slow.pdf');
+        slow.arrayBuffer = () => new Promise((r) => { finish = () => r(new ArrayBuffer(4)); });
+        await pick([slow]);
+        expect(picker().textContent).toContain('Opening…');
+        await act(async () => { finish(); await flush(); });
+        expect(picker().textContent).toContain('slow.pdf');
+        expect(picker().textContent).not.toContain('Opening…');
+      });
+
+      it('lets a newer pick win over a slower, older read', async () => {
+        mount();
+        let finish;
+        const slow = pdf('old.pdf');
+        slow.arrayBuffer = () => new Promise((r) => { finish = () => r(new ArrayBuffer(4)); });
+        await pick([slow]);
+        await pick([pdf('new.pdf')]);
+        await act(async () => { finish(); await flush(); });
+        expect(picker().textContent).toContain('new.pdf');
+        expect(picker().textContent).not.toContain('old.pdf');
+      });
+
+      it('routes the readable files again and names the unreadable ones', async () => {
+        mount();
+        await pick([pdf('good.pdf'), unreadable('bad.pdf')]);
+        expect(lit()).toHaveLength(8);
+        expect(picker().textContent).toContain('good.pdf');
+        expect(noteOf().textContent).toBe(`Left out: ${isolateNames([{ name: 'bad.pdf' }])}`);
+        await pick([pdf('g1.pdf'), pdf('g2.pdf'), unreadable('bad.pdf')]);
+        expect(saveHandoff.mock.calls[0][0]).toBe('merge');
+        expect(saveHandoff.mock.calls[0][1].files.map((f) => f.fileName)).toEqual(['g1.pdf', 'g2.pdf']);
+      });
+
+      it('shows only the left-out note when nothing can be read', async () => {
+        mount();
+        await pick([unreadable('a.pdf'), unreadable('b.pdf')]);
+        expect(noteOf().textContent).toBe(`Left out: ${isolateNames([{ name: 'a.pdf' }, { name: 'b.pdf' }])}`);
+        expect(noteOf().textContent).not.toContain(en.handoffFailed);
+        expect(lit()).toEqual([]);
+        expect(saveHandoff).not.toHaveBeenCalled();
+      });
+
+      it('ignores an Escape someone already handled, or one pressed inside an open dialog', async () => {
+        mount();
+        await pick([pdf()]);
+        const stop = (e) => e.preventDefault();
+        window.addEventListener('keydown', stop, true);
+        await escape();
+        window.removeEventListener('keydown', stop, true);
+        expect(lit()).toHaveLength(8);
+        const dialog = document.createElement('dialog');
+        dialog.setAttribute('open', '');
+        dialog.innerHTML = '<button>ok</button>';
+        document.body.appendChild(dialog);
+        dialog.querySelector('button').focus();
+        await escape();
+        dialog.remove();
+        expect(lit()).toHaveLength(8);
+      });
+
+      it('moves focus back to the tile after Escape', async () => {
+        mount();
+        await pick([pdf()]);
+        expect(document.activeElement).toBe(link('redact'));
+        await escape();
+        expect(document.activeElement).toBe(picker());
+      });
+
+      it('isolates each name for bidi so mixed Hebrew and Latin names keep their order', () => {
+        expect(isolateNames([{ name: 'a.txt' }, { name: 'דוח.docx' }])).toBe('⁨a.txt⁩, ⁨דוח.docx⁩');
+        expect(isolateNames([])).toBe('');
       });
 
       it.each([['ctrl', { ctrlKey: true }], ['meta', { metaKey: true }], ['shift', { shiftKey: true }], ['alt', { altKey: true }], ['middle button', { button: 1 }]])(

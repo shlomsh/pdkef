@@ -86,8 +86,9 @@
 @media (max-width: 560px) {
   .final { grid-template-columns: minmax(0, 1fr); }
 }
-/* A note takes the tile's second line: it never adds a row, and a long list stops at two lines. */
-.note { color: var(--color-danger); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+/* A note takes the tile's second line: it never adds a row, and a long list stops at two lines.
+   `.tile span` sets the muted colour, so this needs `.tile` too to out-rank it. */
+.tile .note { color: var(--color-danger); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
   line-clamp: 2; overflow: hidden; }
 @media (max-width: 767px) {
   /* Six recent documents plus the picker need three rows on a phone. Three
