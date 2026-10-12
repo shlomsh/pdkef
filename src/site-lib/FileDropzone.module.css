@@ -83,12 +83,12 @@
 .sample strong { font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
 .sample span { font-size: 0.76rem; font-weight: 400; color: var(--color-muted); }
 .sample-page { width: 64px; height: 84px; flex: none; filter: drop-shadow(0 4px 4px var(--color-border)); }
-/* The error is a full-width row under both cards, not a third column. */
-.final > .error { grid-column: 1 / -1; justify-self: center; }
 @media (max-width: 560px) {
   .final { grid-template-columns: minmax(0, 1fr); }
 }
-.error { max-width: 360px; font-size: 0.85rem; color: var(--color-danger); }
+/* A note takes the tile's second line: it never adds a row, and a long list stops at two lines. */
+.note { color: var(--color-danger); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  line-clamp: 2; overflow: hidden; }
 @media (max-width: 767px) {
   /* Six recent documents plus the picker need three rows on a phone. Three
      compact columns avoid turning the picker into a fourth row, which is what
@@ -152,7 +152,6 @@
 @keyframes arrow-draw { to { stroke-dashoffset: 0; } }
 :global(html[dir='rtl']) .launcher > .tile > .arrow { transform: scaleX(-1); }
 @media (prefers-reduced-motion: reduce) { .launcher > .tile[data-picking] > .arrow path { animation: none; stroke-dashoffset: 0; } }
-.launcher > .error { grid-column: 1 / -1; }
 
 /* Two rows reserved from first paint so real recents land in place, top
    aligned with the picker right under them; the picker never shrinks and
