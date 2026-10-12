@@ -337,4 +337,42 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     expect(hit.dataCaptionFor).toBeNull();
     expect(hit.dataKey).not.toBeNull();
   });
+
+  /* MERGE-21 (iPhone, 2026-10-12): a bank export named with digits, letters
+     and underscores has no line-break opportunity anywhere, so the output-name
+     heading drew on one line past the white document's right edge and the
+     page scrolled sideways. The name's text is measured with a Range: the
+     span's own box is clamped to the card, only its ink overflows. */
+  test('a long name with no break points wraps inside the card', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/merge/');
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+    const names = ['Statement_20260730163241_123456789_AccountSummary.pdf', 'Statement_20260815091502_123456789_AccountSummary.pdf'];
+    const files = await Promise.all(names.map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name),
+    })));
+    await page.locator('input[type="file"]').setInputFiles(files);
+
+    const name = page.locator('#merge-pages-heading span[contenteditable]').first();
+    await expect(name).toHaveText('merged_Statement_20260730163241_123456789_AccountSummary', { timeout: 10_000 });
+
+    const layout = await name.evaluate((el) => {
+      const card = el.closest('[class*="_document_"]');
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const text = range.getBoundingClientRect();
+      const box = card.getBoundingClientRect();
+      return {
+        overflowLeft: box.left - text.left,
+        overflowRight: text.right - box.right,
+        pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    expect.soft(layout.overflowRight).toBeLessThanOrEqual(0);
+    expect.soft(layout.overflowLeft).toBeLessThanOrEqual(0);
+    expect.soft(layout.pageOverflow).toBeLessThanOrEqual(0);
+  });
 });
