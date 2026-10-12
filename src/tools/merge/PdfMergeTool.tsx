@@ -21,6 +21,7 @@ import { deriveFileKind } from '../../lib/fileKind.js';
 import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize, isolateLtr } from '../../lib/format.js';
+import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
@@ -384,6 +385,7 @@ export default function PdfMergeTool({
     () => ({ isRestoring: hasMergeDraftHint(), draftSaveState: 'idle' }),
   );
   const clearDraftRef = useRef<(() => Promise<boolean>) | null>(null);
+  const handedOffRef = useRef(false);
   const restoreScrollPendingRef = useRef(false);
   const [restoreHydrationComplete, setRestoreHydrationComplete] = useState(true);
   // Persists for this mounted workspace after a valid restore. The page shell
@@ -555,6 +557,9 @@ export default function PdfMergeTool({
   // the id, which is what the stored plan's fileId already is), then the same
   // inspection a fresh pick gets, for thumbnails and to re-check each file.
   const onDraftRestore = useCallback((restored: MergeDraftRestore) => {
+    // SITE-42: files handed off from the home page are the newest intent and
+    // win; a restore resolving after them must not overwrite or join them.
+    if (handedOffRef.current) return;
     restoreScrollPendingRef.current = true;
     const restoredEntries = restored.files.map((file) => toEntry(file));
     const idByIndex = restoredEntries.map((e) => e.id);
@@ -686,6 +691,24 @@ export default function PdfMergeTool({
       newEntries.length === 1 ? t.filesAddedOne : formatMessage(t.filesAddedMany, { count: newEntries.length }),
     );
   }, [entries, plan, insertEntries, t.filesAddedOne, t.filesAddedMany]);
+
+  // SITE-42: several files picked on the home page arrive as a brand-new set,
+  // through addFiles like a manual pick. Whatever a restore already put on
+  // screen is replaced, but the saved set is NOT cleared (no reset(), no
+  // clearDraftRef): it stays in the shared recents, and the new set saves as
+  // its own entry because an entry's id is derived from its files' bytes
+  // (draftStore's sourceIdForFiles), never reused from the current pointer.
+  useHandoffFilesIntake('merge', (files) => {
+    handedOffRef.current = true;
+    setModel({ entries: [], plan: [] });
+    setIsRestoredWorkspace(false);
+    setRestoreHydrationComplete(true);
+    setShowPickedUpSentence(false);
+    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
+    setCustomOutputName(null);
+    setAddPageNumbers(readRememberedOptions().addPageNumbers);
+    addFiles(files, { force: true });
+  });
 
   const removeEntry = useCallback((id: number) => {
     setModel((current) => {
