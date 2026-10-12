@@ -124,7 +124,7 @@
   grid-column: 1 / -1;
   min-height: 76px;
   display: grid;
-  grid-template-columns: 32px auto;
+  grid-template-columns: 32px minmax(0, max-content);
   justify-content: center;
   gap: 2px 12px;
   padding: 12px 16px;
@@ -136,6 +136,22 @@
   width: 28px;
   height: 34px;
 }
+.launcher > .tile[data-picking] { overflow: visible; border-style: solid; padding-inline-start: 52px; }
+.title { display: flex; align-items: baseline; min-width: 0; }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change { flex: none; margin-inline-start: 0.6em; font-style: normal; font-weight: 500;
+  font-size: 0.78rem; color: var(--color-primary-text); text-decoration: underline; text-underline-offset: 2px; }
+
+.launcher > .tile > .arrow { position: absolute; z-index: 2; inset-inline-start: 3%; bottom: -24px;
+  width: 34px; height: 62px; overflow: visible; fill: none; stroke: var(--color-annotation);
+  stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; rotate: -6deg; opacity: 0; pointer-events: none; }
+.launcher > .tile > .arrow path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.launcher > .tile[data-picking] > .arrow { opacity: 1; }
+.launcher > .tile[data-picking] > .arrow path { animation: arrow-draw 460ms var(--ease-out) 120ms forwards; }
+.launcher > .tile[data-picking] > .arrow path + path { animation-duration: 180ms; animation-delay: 560ms; }
+@keyframes arrow-draw { to { stroke-dashoffset: 0; } }
+:global(html[dir='rtl']) .launcher > .tile > .arrow { transform: scaleX(-1); }
+@media (prefers-reduced-motion: reduce) { .launcher > .tile[data-picking] > .arrow path { animation: none; stroke-dashoffset: 0; } }
 .launcher > .error { grid-column: 1 / -1; }
 
 /* Two rows reserved from first paint so real recents land in place, top
