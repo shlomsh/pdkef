@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveFileKind } from './fileKind.js';
+import { deriveFileKind, mimeTypeOf } from './fileKind.js';
 
 function makeFile(name, type) {
   return new File([''], name, { type });
@@ -36,5 +36,20 @@ describe('deriveFileKind', () => {
 
   it('returns null for a null file', () => {
     expect(deriveFileKind(null)).toBeNull();
+  });
+});
+
+describe('mimeTypeOf (MERGE-22)', () => {
+  it.each([
+    [new File(['x'], 'a.pdf', { type: 'application/pdf' }), 'application/pdf'],
+    [new File(['x'], 'a.PDF'), 'application/pdf'],
+    [new File(['x'], 'p.JPG'), 'image/jpeg'],
+    [new File(['x'], 'p.jpeg'), 'image/jpeg'],
+    [new File(['x'], 'p.png'), 'image/png'],
+    [new File(['x'], 'p.png', { type: 'image/png' }), 'image/png'],
+    [new File(['x'], 'notes.txt'), null],
+    [new File(['x'], 'notes.txt', { type: 'text/plain' }), null],
+  ])('%s -> %s', (file, expected) => {
+    expect(mimeTypeOf(file)).toBe(expected);
   });
 });

@@ -19,3 +19,19 @@ export function deriveFileKind(file) {
   }
   return null;
 }
+
+/**
+ * The MIME type a known file should carry, so bytes saved and rebuilt later
+ * (hand-offs, Merge's saved sets) keep their kind even when the browser handed
+ * over an untyped File. Same rules as deriveFileKind; null for anything else.
+ *
+ * @param {File | null | undefined} file
+ * @returns {'application/pdf' | 'image/jpeg' | 'image/png' | null}
+ */
+export function mimeTypeOf(file) {
+  const kind = deriveFileKind(file);
+  if (kind === 'pdf') return 'application/pdf';
+  if (kind !== 'image') return null;
+  if (file.type) return file.type;
+  return /\.png$/i.test(file.name) ? 'image/png' : 'image/jpeg';
+}
