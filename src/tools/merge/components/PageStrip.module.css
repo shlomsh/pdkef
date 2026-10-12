@@ -221,6 +221,10 @@
 .thumb-box {
   position: relative;
   width: var(--cell-w, 104px);
+  /* A very wide page (a panorama photo, MERGE-22) asks for more than its two
+     columns; it letterboxes inside its own cell instead of covering its
+     neighbours. */
+  max-width: 100%;
   height: var(--cell-h, 138px);
   display: flex;
   align-items: center;
