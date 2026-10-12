@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 47 live: 8 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 8 up next, 7 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -143,6 +143,7 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
+| MERGE-22 | P2 | [MERGE-22](backlog/tasks/MERGE-22.md) · Merge takes photos too, each one a page, so PDFs and photos picked together have a home |  |
 
 ### Parked
 
