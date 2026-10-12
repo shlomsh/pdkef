@@ -2,7 +2,7 @@
 export const RUNTIME_LICENSE_PACKAGES = [
   {
     "name": "@astrojs/preact",
-    "version": "6.0.5",
+    "version": "6.0.6",
     "license": "MIT",
     "url": "https://docs.astro.build/en/guides/integrations-guide/preact/"
   },
@@ -50,13 +50,13 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@preact/signals",
-    "version": "2.9.2",
+    "version": "2.11.3",
     "license": "MIT",
     "url": "https://preactjs.com"
   },
   {
     "name": "@preact/signals-core",
-    "version": "1.14.3",
+    "version": "1.14.4",
     "license": "MIT",
     "url": "https://preactjs.com"
   },
@@ -80,7 +80,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.3.5",
+    "version": "7.3.8",
     "license": "MIT",
     "url": "https://astro.build"
   },

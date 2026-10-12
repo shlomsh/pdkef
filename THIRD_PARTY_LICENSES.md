@@ -19,7 +19,7 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 
 | Package | Locked version | License |
 | --- | --- | --- |
-| [@astrojs/preact](https://docs.astro.build/en/guides/integrations-guide/preact/) | 6.0.5 | MIT |
+| [@astrojs/preact](https://docs.astro.build/en/guides/integrations-guide/preact/) | 6.0.6 | MIT |
 | [@cantoo/pdf-lib](https://pdf-lib.js.org) | 2.11.1 | MIT |
 | [@floating-ui/core](https://floating-ui.com) | 1.8.0 | MIT |
 | [@floating-ui/dom](https://floating-ui.com) | 1.8.0 | MIT |
@@ -27,12 +27,12 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@floating-ui/react-dom](https://floating-ui.com/docs/react-dom) | 2.1.9 | MIT |
 | [@floating-ui/utils](https://floating-ui.com) | 0.2.12 | MIT |
 | [@pdf-lib/fontkit](https://github.com/Hopding/fontkit) | 1.1.1 | MIT |
-| [@preact/signals](https://preactjs.com) | 2.9.2 | MIT |
-| [@preact/signals-core](https://preactjs.com) | 1.14.3 | MIT |
+| [@preact/signals](https://preactjs.com) | 2.11.3 | MIT |
+| [@preact/signals-core](https://preactjs.com) | 1.14.4 | MIT |
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
 | [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.9.9 | Apache-2.0 |
 | [@vercel/speed-insights](https://github.com/vercel/speed-insights) | 2.0.0 | Apache-2.0 |
-| [astro](https://astro.build) | 7.3.5 | MIT |
+| [astro](https://astro.build) | 7.3.8 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
 | [culori](git@github.com:Evercoder/culori) | 4.0.2 | MIT |
 | [fflate](https://101arrowz.github.io/fflate) | 0.8.3 | MIT |
@@ -51,7 +51,7 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 
 ## Runtime package notices
 
-### @astrojs/preact (6.0.5) - MIT
+### @astrojs/preact (6.0.6) - MIT
 
 withastro
 
@@ -286,7 +286,7 @@ Andrew Dillon <andrew.dillon.j@gmail.com>
 
 The published package metadata declares `MIT`. Its upstream license notice is <https://github.com/Hopding/fontkit/blob/master/LICENSE>.
 
-### @preact/signals (2.9.2) - MIT
+### @preact/signals (2.11.3) - MIT
 
 See upstream notice
 
@@ -314,7 +314,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @preact/signals-core (1.14.3) - MIT
+### @preact/signals-core (1.14.4) - MIT
 
 See upstream notice
 
@@ -775,7 +775,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### astro (7.3.5) - MIT
+### astro (7.3.8) - MIT
 
 withastro
 
