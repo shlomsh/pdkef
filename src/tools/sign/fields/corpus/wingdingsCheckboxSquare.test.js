@@ -91,6 +91,7 @@ async function measure({ form, family, text, contour }) {
     wasmUrl: `${path.join(pdfjsDir, 'wasm')}${path.sep}`,
     cMapPacked: true,
     useSystemFonts: false,
+    fontExtraProperties: true,
   });
   const expected = [];
   const textRuns = [];

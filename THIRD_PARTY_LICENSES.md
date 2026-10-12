@@ -30,17 +30,17 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@preact/signals](https://preactjs.com) | 2.11.3 | MIT |
 | [@preact/signals-core](https://preactjs.com) | 1.14.4 | MIT |
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
-| [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.9.9 | Apache-2.0 |
+| [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.9.11 | Apache-2.0 |
 | [@vercel/speed-insights](https://github.com/vercel/speed-insights) | 2.0.0 | Apache-2.0 |
 | [astro](https://astro.build) | 7.3.8 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
 | [culori](git@github.com:Evercoder/culori) | 4.0.2 | MIT |
 | [fflate](https://101arrowz.github.io/fflate) | 0.8.3 | MIT |
 | [html-entities](https://github.com/mdevils/html-entities) | 2.6.0 | MIT |
-| [lucide-preact](https://lucide.dev) | 1.49.0 | ISC |
+| [lucide-preact](https://lucide.dev) | 1.54.0 | ISC |
 | [node-html-better-parser](https://github.com/Sharcoux/node-html-parser) | 1.5.9 | MIT |
 | [pako](https://github.com/nodeca/pako) | 1.0.11 | (MIT AND Zlib) |
-| [pdfjs-dist](https://mozilla.github.io/pdf.js/) | 6.3.289 | Apache-2.0 |
+| [pdfjs-dist](https://mozilla.github.io/pdf.js/) | 6.4.299 | Apache-2.0 |
 | [preact](https://preactjs.com) | 10.29.8 | MIT |
 | [regenerator-runtime](https://github.com/facebook/regenerator/tree/main/packages/runtime) | 0.14.1 | MIT |
 | [require-from-string](https://github.com/floatdrop/require-from-string) | 2.0.2 | MIT |
@@ -370,7 +370,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### @vercel/functions (3.9.9) - Apache-2.0
+### @vercel/functions (3.9.11) - Apache-2.0
 
 See upstream notice
 
@@ -952,7 +952,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### lucide-preact (1.49.0) - ISC
+### lucide-preact (1.54.0) - ISC
 
 Eric Fennis
 
@@ -1044,7 +1044,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### pdfjs-dist (6.3.289) - Apache-2.0
+### pdfjs-dist (6.4.299) - Apache-2.0
 
 See upstream notice
 
