@@ -13,6 +13,12 @@ import { setInputFiles } from '../../test/setInputFiles.js';
 import * as pdfjsDist from 'pdfjs-dist';
 import { hebrewSplitMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 
+const { lifecycleSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn() }));
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: lifecycleSpy,
+}));
+
 // Test split.js library. parsePageSelector's own cases moved to
 // src/lib/pageSelector.test.js (DEBT-23: it's shared with PDF to Image now).
 describe('split.js library helpers', () => {
@@ -882,6 +888,100 @@ describe('PdfSplitTool UI flow', () => {
 import fs from 'fs';
 import path from 'path';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+// DEBT-46: the funnel counts the person's Download or Share, not each idle prepare.
+describe('PdfSplitTool usage events (DEBT-46)', () => {
+  let container;
+  const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+  const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
+  const primary = () => container.querySelector(`.${styles.primary}`);
+
+  async function openFixture() {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    mockState.numPages = 5;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
+    const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [file]);
+    });
+    await wait(50);
+  }
+  const toggleFirstCell = () => act(async () => container.querySelectorAll(`.${styles.cell}`)[0].click());
+
+  beforeEach(() => {
+    lifecycleSpy.mockClear();
+    resetActionTrailForTests();
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    container = null;
+    mockState.numPages = 4;
+    vi.restoreAllMocks();
+  });
+
+  it('reports no start for the background prepare after an option change', async () => {
+    await openFixture();
+    await wait(600);
+    await toggleFirstCell();
+    await wait(600);
+    const separate = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent === 'One PDF per page');
+    await act(async () => separate.click());
+    await wait(600);
+    expect(primary().getAttribute('data-state')).toBe('ready');
+    expect(events('tool_operation_started')).toBe(0);
+    expect(events('tool_result_ready')).toBe(0);
+  });
+
+  it('reports started then ready for a Download tap, again after a change', async () => {
+    await openFixture();
+    await wait(600);
+    await act(async () => primary().click());
+    await wait(50);
+    expect(events('tool_operation_started')).toBe(1);
+    expect(events('tool_result_ready')).toBe(1);
+
+    await toggleFirstCell();
+    await wait(600);
+    expect(events('tool_operation_started')).toBe(1);
+    await act(async () => primary().click());
+    await wait(50);
+    expect(events('tool_operation_started')).toBe(2);
+    expect(events('tool_result_ready')).toBe(2);
+  });
+
+  it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
+    await openFixture();
+    expect(primary().getAttribute('data-state')).toBe('preparing');
+    await act(async () => primary().click());
+    expect(events('tool_operation_started')).toBe(1);
+    expect(events('tool_result_ready')).toBe(0);
+    await wait(600);
+    expect(primary().getAttribute('data-state')).toBe('saved');
+    expect(events('tool_operation_started')).toBe(1);
+    expect(events('tool_result_ready')).toBe(1);
+  });
+
+  it('reports started then ready for a shared result', async () => {
+    const nativeShare = mockNativeFileShare();
+    await openFixture();
+    await wait(600);
+    const shareButton = Array.from(container.querySelectorAll(`.${styles['next-step']}`))
+      .find((b) => b.textContent.includes('Share'));
+    await act(async () => shareButton.click());
+    await wait(50);
+    expect(nativeShare.share).toHaveBeenCalled();
+    expect(events('tool_operation_started')).toBe(1);
+    expect(events('tool_result_ready')).toBe(1);
+    nativeShare.restore();
+  });
+});
 
 describe('splitPdf library integration with real fixtures', () => {
   function getFixtureFile(name) {

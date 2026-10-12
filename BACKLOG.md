@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 46 live: 7 up next, 6 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 7 up next, 7 then, 16 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -71,6 +71,12 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | In progress |
 
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
+
 ### Waiting
 
 | ID | P | Task | Note |
@@ -87,6 +93,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
 | ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
+| DEBT-48 | P3 | [DEBT-48](backlog/tasks/DEBT-48.md) · The usage funnel can say how many sessions finished, not only how many runs | Needs Shlomi: A decision on a once-per-page-load flag in the usage event shape |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
@@ -151,7 +158,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 20 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 41 done, 3 retired
+- Robustness and debt: 42 done, 3 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 7 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

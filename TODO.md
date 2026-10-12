@@ -47,5 +47,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
+- [DEBT-48](backlog/tasks/DEBT-48.md) · A decision on a once-per-page-load flag in the usage event shape
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

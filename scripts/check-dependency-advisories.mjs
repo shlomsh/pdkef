@@ -88,16 +88,38 @@ try {
   process.exit();
 }
 
+const vulnerabilities = report.vulnerabilities ?? {};
+
+// A package npm flags only because it depends on another flagged package has no
+// advisory of its own (`via` holds the dependency's name). It is covered when
+// every flagged package it chains to is itself fully covered by an exception.
+function coveredByChain(packageName, seen = new Set()) {
+  if (seen.has(packageName)) return false;
+  seen.add(packageName);
+  const via = vulnerabilities[packageName]?.via;
+  if (!Array.isArray(via) || !via.length) return false;
+  return via.every((entry) => {
+    if (typeof entry === 'string') return coveredByChain(entry, seen);
+    if (!HIGH_SEVERITIES.has(entry?.severity)) return true;
+    const id = advisoryId(entry);
+    return Boolean(id && activeException(exceptions, packageName, id));
+  });
+}
+
 const outstanding = [];
 const excepted = [];
-for (const [packageName, vulnerability] of Object.entries(report.vulnerabilities ?? {})) {
+for (const [packageName, vulnerability] of Object.entries(vulnerabilities)) {
   if (!HIGH_SEVERITIES.has(vulnerability.severity)) continue;
 
   const advisories = (Array.isArray(vulnerability.via) ? vulnerability.via : [])
     .filter((via) => via && typeof via === 'object' && HIGH_SEVERITIES.has(via.severity));
 
   if (!advisories.length) {
-    outstanding.push(`${packageName} (${vulnerability.severity}; advisory ID unavailable)`);
+    if (coveredByChain(packageName)) {
+      excepted.push(`${packageName} (${vulnerability.severity}; only through an excepted dependency)`);
+    } else {
+      outstanding.push(`${packageName} (${vulnerability.severity}; advisory ID unavailable)`);
+    }
     continue;
   }
 
