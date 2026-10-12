@@ -30,4 +30,11 @@ describe('imagesToPdf', () => {
     const file = new File([new Uint8Array([1, 2, 3])], 'doc.gif', { type: 'image/gif' });
     await expect(imagesToPdf([file])).rejects.toBeInstanceOf(UnsupportedImageError);
   });
+
+  it('takes an untyped .png by its extension', async () => {
+    const bytes = Uint8Array.from(atob(PNG_1X1_BASE64), (c) => c.charCodeAt(0));
+    const blob = await imagesToPdf([new File([bytes], 'photo.png')]);
+    const doc = await PDFDocument.load(await blob.arrayBuffer());
+    expect(doc.getPageCount()).toBe(1);
+  });
 });

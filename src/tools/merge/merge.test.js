@@ -387,4 +387,64 @@ describe('mergePdfs library integration with real fixtures', () => {
       expect(reloaded.catalog.get(PDFName.of('Outlines'))).toBeUndefined();
     });
   });
+
+  describe('MERGE-22 photos as pages', () => {
+    function getPhotoFile(name, type) {
+      const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__', name));
+      return new File([buffer], name, { type });
+    }
+    const jpg = () => getPhotoFile('photo-1.jpg', 'image/jpeg');
+    const png = () => getPhotoFile('photo-2.png', 'image/png');
+
+    it('puts photo pages where the plan says, sized to the photo pixels, with rotation applied', async () => {
+      const files = [getFixtureFile('num-2.pdf'), jpg(), png()];
+      const plan = [
+        { fileIndex: 2, pageIndex: 0, rotation: 90, skipped: false },
+        { fileIndex: 0, pageIndex: 0, rotation: 0, skipped: false },
+        { fileIndex: 1, pageIndex: 0, rotation: 0, skipped: false },
+      ];
+      const blob = await mergePdfs(files, { plan });
+      const doc = await PDFDocument.load(await blob.arrayBuffer());
+      const pages = doc.getPages();
+      expect(pages).toHaveLength(3);
+      expect(pages[0].getSize()).toEqual({ width: 40, height: 80 });
+      expect(pages[0].getRotation().angle).toBe(90);
+      expect(pages[2].getSize()).toEqual({ width: 60, height: 40 });
+      expect(pages[1].getRotation().angle).toBe(0);
+    });
+
+    it('merges photos without a plan, in file order, and numbers their pages', async () => {
+      const blob = await mergePdfs([jpg(), getFixtureFile('num-2.pdf'), png()], { addPageNumbers: true });
+      const { pageCount, pageTexts } = await getPdfPageTexts(blob);
+      expect(pageCount).toBe(3);
+      expect(pageTexts[0]).toBe('1');
+      expect(pageTexts[1]).toContain('2');
+      expect(pageTexts[2]).toBe('3');
+    });
+
+    it('names bookmarks for photos without the extension', async () => {
+      const blob = await mergePdfs([jpg(), png(), getFixtureFile('num-2.pdf')], { bookmarks: true });
+      const reloaded = await PDFDocument.load(await blob.arrayBuffer());
+      const outlines = reloaded.context.lookup(reloaded.catalog.get(PDFName.of('Outlines')));
+      const titles = [];
+      let ref = outlines.get(PDFName.of('First'));
+      while (ref) {
+        const item = reloaded.context.lookup(ref);
+        titles.push(item.get(PDFName.of('Title')).decodeText());
+        ref = item.get(PDFName.of('Next'));
+      }
+      expect(titles).toEqual(['photo-1', 'photo-2', 'num-2']);
+    });
+
+    it('inspectPdf reports a photo as one unencrypted page', async () => {
+      expect(await inspectPdf(jpg())).toEqual({ pageCount: 1, encrypted: false, creationDate: null });
+      expect(await inspectPdf(png())).toEqual({ pageCount: 1, encrypted: false, creationDate: null });
+    });
+
+    it('rejects a corrupt .jpg as unreadable, from inspectPdf and mergePdfs', async () => {
+      const bad = new File(['not a jpeg'], 'bad.jpg', { type: 'image/jpeg' });
+      await expect(inspectPdf(bad, 4)).rejects.toMatchObject({ name: 'MergeFileError', fileIndex: 4, reason: 'unreadable' });
+      await expect(mergePdfs([getFixtureFile('num-1.pdf'), bad])).rejects.toMatchObject({ fileIndex: 1, reason: 'unreadable' });
+    });
+  });
 });

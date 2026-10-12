@@ -1,12 +1,8 @@
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { addImagePage, UnsupportedImageError } from '../../lib/imagePage.js';
+import { mimeTypeOf } from '../../lib/fileKind.js';
 
-export class UnsupportedImageError extends Error {
-  constructor(fileName) {
-    super(`Unsupported image type: ${fileName}`);
-    this.name = 'UnsupportedImageError';
-    this.fileName = fileName;
-  }
-}
+export { UnsupportedImageError };
 
 // Combines image files into a single PDF, one image per page. Each page is
 // sized to match its image's pixel dimensions exactly (1 image pixel = 1 PDF
@@ -20,17 +16,7 @@ export async function imagesToPdf(files, onProgress) {
     const file = files[i];
     const bytes = await file.arrayBuffer();
 
-    let image;
-    if (file.type === 'image/png') {
-      image = await pdf.embedPng(bytes);
-    } else if (file.type === 'image/jpeg') {
-      image = await pdf.embedJpg(bytes);
-    } else {
-      throw new UnsupportedImageError(file.name);
-    }
-
-    const page = pdf.addPage([image.width, image.height]);
-    page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+    await addImagePage(pdf, bytes, mimeTypeOf(file), file.name);
     onProgress?.((i + 1) / files.length);
   }
 
