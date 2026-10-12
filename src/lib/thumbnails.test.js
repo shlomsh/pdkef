@@ -303,4 +303,81 @@ describe('thumbnails.js', () => {
       expect(dataUrl).toBe('data:image/png;base64,x');
     });
   });
+  describe('photos (JPEG/PNG)', () => {
+    const closeSpy = vi.fn();
+    let decodeSpy;
+    let toDataUrlArgs;
+
+    beforeEach(() => {
+      closeSpy.mockClear();
+      toDataUrlArgs = [];
+      decodeSpy = vi.fn(() => Promise.resolve({ width: 400, height: 200, close: closeSpy }));
+      globalThis.createImageBitmap = decodeSpy;
+      HTMLCanvasElement.prototype.toDataURL = function toDataURL(type, quality) {
+        toDataUrlArgs.push([type, quality]);
+        return `data:${type};base64,photo`;
+      };
+      contexts.length = 0;
+      HTMLCanvasElement.prototype.getContext = function getContext() {
+        const ctx = makeRecordingContext();
+        ctx.drawImage = vi.fn();
+        return ctx;
+      };
+    });
+
+    afterEach(() => {
+      delete globalThis.createImageBitmap;
+    });
+
+    const photo = () => new File([new Uint8Array(4)], 'cat.jpg', { type: 'image/jpeg' });
+
+    it('renderThumbnailWithMeta draws the stored pixels scaled to width, never touching pdf.js', async () => {
+      const { renderThumbnailWithMeta } = await import('./thumbnails.js');
+      const result = await renderThumbnailWithMeta(photo(), { width: 100, type: 'image/jpeg', quality: 0.7 });
+
+      expect(decodeSpy).toHaveBeenCalledWith(expect.any(File), { imageOrientation: 'none' });
+      expect(result).toEqual({ dataUrl: 'data:image/jpeg;base64,photo', pageCount: 1, width: 100, height: 50 });
+      expect(toDataUrlArgs).toEqual([['image/jpeg', 0.7]]);
+      expect(contexts[0].drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 100, 50);
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+      expect(mockState.getDocumentCalls).toEqual([]);
+    });
+
+    it('renderThumbnail returns the data URL string', async () => {
+      const { renderThumbnail } = await import('./thumbnails.js');
+      expect(await renderThumbnail(photo())).toBe('data:image/png;base64,photo');
+      expect(mockState.getDocumentCalls).toEqual([]);
+    });
+
+    it('openThumbnailSource gives a one-page source whose destroy closes the bitmap', async () => {
+      const { openThumbnailSource } = await import('./thumbnails.js');
+      const source = await openThumbnailSource(photo());
+
+      expect(source.pageCount).toBe(1);
+      expect(await source.render(0, { width: 80, type: 'image/png' })).toBe('data:image/png;base64,photo');
+      await expect(source.render(1)).rejects.toThrow();
+      expect(closeSpy).not.toHaveBeenCalled();
+      await source.destroy();
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+      expect(mockState.getDocumentCalls).toEqual([]);
+    });
+
+    it('renderPdfThumbnails reports the photo as page 1 of 1', async () => {
+      const { renderPdfThumbnails } = await import('./thumbnails.js');
+      const calls = [];
+      const count = await renderPdfThumbnails(photo(), (n, url) => calls.push([n, url]));
+      expect(count).toBe(1);
+      expect(calls).toEqual([[1, 'data:image/png;base64,photo']]);
+    });
+
+    it('honours an already-aborted signal and still closes the bitmap', async () => {
+      const { renderThumbnailWithMeta } = await import('./thumbnails.js');
+      const controller = new AbortController();
+      controller.abort();
+      await expect(renderThumbnailWithMeta(photo(), { signal: controller.signal })).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

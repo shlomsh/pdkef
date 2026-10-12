@@ -6,6 +6,7 @@
 import { getPdfRenderContext } from './pdfRender.js';
 import { PDFJS_WASM_URL } from './pdfjsWasm.js';
 import { loadPdfjs } from './loadPdfjs.js';
+import { deriveFileKind } from './fileKind.js';
 
 let pdfjsLib;
 
@@ -135,6 +136,53 @@ async function renderPageToDataUrl(page, opts = {}) {
 }
 
 /**
+ * Photos (JPEG/PNG) in Merge are one page each, so the thumbnail paths below
+ * branch to this instead of pdf.js. The bitmap is decoded with
+ * `imageOrientation: 'none'` on purpose: the merged PDF embeds the stored
+ * pixels as they are (pdf-lib applies no EXIF rotation), so the preview must
+ * not apply it either. White prefill for the same reason as a PDF page: a
+ * transparent PNG sits on paper.
+ */
+const isPhoto = (file) => deriveFileKind(file) === 'image';
+
+const decodePhoto = (file) => createImageBitmap(file, { imageOrientation: 'none' });
+
+function abortError() {
+  return new DOMException('Thumbnail render aborted', 'AbortError');
+}
+
+function renderBitmapToDataUrl(bitmap, opts = {}) {
+  const { width = TARGET_WIDTH, type = 'image/png', quality, signal } = opts;
+  if (signal?.aborted) throw abortError();
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = Math.max(1, Math.floor((bitmap.height * width) / bitmap.width));
+  const context = canvas.getContext('2d');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return { dataUrl: canvas.toDataURL(type, quality), width: canvas.width, height: canvas.height };
+}
+
+async function openPhotoSource(file) {
+  const bitmap = await decodePhoto(file);
+  let destroyed = false;
+  return {
+    pageCount: 1,
+    async render(pageIndex, opts = {}) {
+      if (destroyed) throw new Error('openThumbnailSource: render() called after destroy()');
+      if (pageIndex !== 0) throw new RangeError(`A photo has one page, asked for index ${pageIndex}`);
+      return renderBitmapToDataUrl(bitmap, opts).dataUrl;
+    },
+    async destroy() {
+      destroyed = true;
+      bitmap.close();
+    },
+  };
+}
+
+/**
  * Render page 1 to a data URL, plus the metadata callers occasionally need
  * alongside it (how many pages the file has, and the pixel size the canvas
  * actually came out at, which is a rounded-down function of `width` and the
@@ -158,6 +206,14 @@ async function renderPageToDataUrl(page, opts = {}) {
  * @returns {Promise<{ dataUrl: string, pageCount: number, width: number, height: number }>}
  */
 export async function renderThumbnailWithMeta(file, opts = {}) {
+  if (isPhoto(file)) {
+    const bitmap = await decodePhoto(file);
+    try {
+      return { ...renderBitmapToDataUrl(bitmap, opts), pageCount: 1 };
+    } finally {
+      bitmap.close();
+    }
+  }
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
   const loadingTask = openDocument(lib, bytes);
@@ -242,6 +298,7 @@ export function renderComparePreview(fileOrBlob, width = COMPARE_PREVIEW_WIDTH) 
  * }>}
  */
 export async function openThumbnailSource(file) {
+  if (isPhoto(file)) return openPhotoSource(file);
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
   const loadingTask = openDocument(lib, bytes);
