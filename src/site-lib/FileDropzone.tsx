@@ -433,8 +433,8 @@ export default function FileDropzone({
         <span class={tone === 'note' ? styles.note : undefined} data-tone={tone === 'note' ? 'note' : undefined}
           title={tone === 'note' ? line : undefined}>{line}</span>
         {!final && <svg class={styles.arrow} viewBox="0 0 40 72" aria-hidden="true" focusable="false">
-          <path pathLength={1} d="M36 6C22 2 8 8 7 22C6 34 16 38 18 30C20 22 6 22 7 40C8 52 13 60 16 67" />
-          <path pathLength={1} d="M7 61L15.8 67.6L19 56.5" />
+          {/* One path, shaft then head: Mobile Safari never runs a second, later draw-on on a separate head path. */}
+          <path pathLength={1} d="M36 6C22 2 8 8 7 22C6 34 16 38 18 30C20 22 6 22 7 40C8 52 13 60 16 67M7 61L15.8 67.6L19 56.5" />
         </svg>}
       </button>
       <input ref={input} type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png" hidden onChange={event => {

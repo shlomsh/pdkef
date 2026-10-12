@@ -148,8 +148,7 @@
   stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; rotate: -6deg; opacity: 0; pointer-events: none; }
 .launcher > .tile > .arrow path { stroke-dasharray: 1; stroke-dashoffset: 1; }
 .launcher > .tile[data-picking] > .arrow { opacity: 1; }
-.launcher > .tile[data-picking] > .arrow path { animation: arrow-draw 460ms var(--ease-out) 120ms forwards; }
-.launcher > .tile[data-picking] > .arrow path + path { animation-duration: 180ms; animation-delay: 560ms; }
+.launcher > .tile[data-picking] > .arrow path { animation: arrow-draw 640ms var(--ease-out) 120ms forwards; }
 @keyframes arrow-draw { to { stroke-dashoffset: 0; } }
 :global(html[dir='rtl']) .launcher > .tile > .arrow { transform: scaleX(-1); }
 @media (prefers-reduced-motion: reduce) { .launcher > .tile[data-picking] > .arrow path { animation: none; stroke-dashoffset: 0; } }
