@@ -247,3 +247,34 @@ test('a rotated landscape source thumbnail fills its portrait cell, not clamped 
   expect(Math.abs(imgRect.width - boxRect.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(imgRect.height - boxRect.height)).toBeLessThanOrEqual(1);
 });
+
+for (const viewport of [{ width: 375, height: 812 }, { width: 1280, height: 800 }]) {
+  test(`a very wide photo page stays inside its cell and the grid at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/merge/');
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await page.locator('input[type="file"]').setInputFiles([
+      'public/images/redaction-guide/sample.pdf',
+      'public/images/redaction-guide/blackout-before.jpg',
+    ]);
+    await expect(cards(page)).toHaveCount(2, { timeout: 15_000 });
+    await expect(cards(page).locator('img')).toHaveCount(2, { timeout: 15_000 });
+
+    const gridBox = await page.locator('ul[class*="grid"][data-grouped]').boundingBox();
+    const measured = await cards(page).evaluateAll((lis) =>
+      lis.map((li) => {
+        const box = li.querySelector('[class*="thumb-box"]').getBoundingClientRect();
+        const cell = li.getBoundingClientRect();
+        return { boxLeft: box.left, boxRight: box.right, boxWidth: box.width, liLeft: cell.left, liRight: cell.right };
+      }),
+    );
+    for (const m of measured) {
+      expect(m.boxLeft, `thumb box ${m.boxWidth}px wide vs cell ${m.liRight - m.liLeft}px`).toBeGreaterThanOrEqual(m.liLeft - 0.5);
+      expect(m.boxRight, `thumb box ${m.boxWidth}px wide vs cell ${m.liRight - m.liLeft}px`).toBeLessThanOrEqual(m.liRight + 0.5);
+      expect(m.boxLeft).toBeGreaterThanOrEqual(gridBox.x - 0.5);
+      expect(m.boxRight).toBeLessThanOrEqual(gridBox.x + gridBox.width + 0.5);
+    }
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+}
