@@ -134,6 +134,7 @@ export interface WorkerMessageEvent { data?: { type?: string }; ports?: readonly
 interface ContainerLike {
   controller: unknown;
   register(url: string): Promise<RegistrationLike>;
+  getRegistration?(): Promise<RegistrationLike | undefined>;
   addEventListener(type: 'controllerchange', listener: () => void): void;
   addEventListener(type: 'message', listener: (event: WorkerMessageEvent) => void): void;
   startMessages?(): void;
@@ -286,7 +287,11 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   // A browser that refuses or blocks workers (private modes, enterprise
   // policy, Playwright's serviceWorkers: 'block') gets no worker and no line.
   let registered: RegistrationLike | undefined;
+  let activeBeforeRegister = false;
   try {
+    // Asked before register(): once it resolves, an active worker may be the
+    // one this very visit just installed (WebKit can resolve it that late).
+    activeBeforeRegister = !!(await serviceWorker.getRegistration?.())?.active;
     registered = await serviceWorker.register('/sw.js');
   } catch {
     // expected: the browser refuses workers here; the site works without one
@@ -294,9 +299,12 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   }
   if (!registered) return;
   const reg = registered;
-  // Uncontrolled beside an active worker (a hard reload): not a first visit,
-  // so the next claim is an update this tab must reload for.
-  if (reg.active) controlled = true;
+  // Uncontrolled beside a worker that predates this page (a hard reload): not
+  // a first visit, so the next claim is an update this tab must reload for.
+  // Not `reg.active` alone: a first visit's own worker can be active by now,
+  // and its claim must not reload the page under the person's first click
+  // (DEBT-45).
+  if (activeBeforeRegister) controlled = true;
 
   // One question to the waiting worker; null when it does not answer in time.
   function ask(worker: WorkerLike, message: unknown, timeoutMs: number): Promise<StatusReply | null> {
