@@ -366,7 +366,8 @@ describe('FileDropzone', () => {
       const area = mountTarget();
       await dropOn(area, [pdf()]);
       await chooseSign();
-      expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not save this file');
+      expect(container.querySelector('[data-home-picker] [data-tone="note"]')?.textContent).toContain('could not save this file');
+      expect(container.querySelector('[role="alert"]')).toBeNull();
     });
 
     // SITE-42: used to assert the "use Merge PDF below" error; several PDFs
@@ -382,16 +383,32 @@ describe('FileDropzone', () => {
   });
 
   describe('tileCopy', () => {
+    const noteFile = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+    it('a note replaces the line in every state and leaves the title alone', () => {
+      const note = 'Left out: a.txt';
+      expect(tileCopy({ choice: null, opening: null, busy: false, note }, en))
+        .toEqual({ title: 'Choose files', line: note, tone: 'note', choosing: false });
+      expect(tileCopy({ choice: null, opening: null, busy: true, note }, en))
+        .toEqual({ title: 'Opening…', line: note, tone: 'note', choosing: false });
+      expect(tileCopy({ choice: { files: [noteFile], tools: ['sign'] }, opening: null, busy: false, note }, en))
+        .toEqual({ title: 'a.pdf', line: note, tone: 'note', choosing: true });
+      expect(tileCopy({ choice: null, opening: { title: 'a.pdf', tool: 'Sign PDF' }, busy: true, note }, en))
+        .toEqual({ title: 'a.pdf', line: note, tone: 'note', choosing: false });
+    });
+    it('an empty note changes nothing', () => {
+      expect(tileCopy({ choice: null, opening: null, busy: false, note: '' }, en))
+        .toEqual({ title: 'Choose files', line: en.orDropThenPick, tone: 'plain', choosing: false });
+    });
     const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
     it('rest, busy, choosing and opening each get their own title and line', () => {
-      expect(tileCopy({ choice: null, opening: null, busy: false }, en)).toEqual({ title: 'Choose files', line: en.orDropThenPick, choosing: false });
+      expect(tileCopy({ choice: null, opening: null, busy: false }, en)).toEqual({ title: 'Choose files', line: en.orDropThenPick, tone: 'plain', choosing: false });
       expect(tileCopy({ choice: null, opening: null, busy: true }, en)).toMatchObject({ title: 'Opening…', choosing: false });
       expect(tileCopy({ choice: { files: [file], tools: ['sign'] }, opening: null, busy: false }, en))
-        .toEqual({ title: 'a.pdf', line: 'Now pick a tool below', choosing: true });
+        .toEqual({ title: 'a.pdf', line: 'Now pick a tool below', tone: 'plain', choosing: true });
       expect(tileCopy({ choice: null, opening: { title: '3 files', tool: 'Merge PDF' }, busy: true }, en))
-        .toEqual({ title: '3 files', line: 'Opening Merge PDF…', choosing: false });
+        .toEqual({ title: '3 files', line: 'Opening Merge PDF…', tone: 'plain', choosing: false });
       expect(tileCopy({ choice: null, opening: { title: 'a.pdf', tool: 'Sign PDF' }, busy: true }, en))
-        .toEqual({ title: 'a.pdf', line: 'Opening Sign PDF…', choosing: false });
+        .toEqual({ title: 'a.pdf', line: 'Opening Sign PDF…', tone: 'plain', choosing: false });
     });
   });
 
@@ -572,7 +589,11 @@ describe('FileDropzone', () => {
     it('says PDFs and photos go to different tools, and opens nothing', async () => {
       mount();
       await pick([pdf(), photo()]);
-      expect(container.querySelector('[role="alert"]').textContent).toBe(en.mixedKinds);
+      expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(en.mixedKinds);
+      expect(container.querySelector('[data-home-picker] [data-tone="note"]').getAttribute('title')).toBe(en.mixedKinds);
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+      expect(container.querySelector('p')).toBeNull();
+      expect(container.querySelector('span[aria-live]').getAttribute('aria-live')).toBe('assertive');
       expect(saveHandoff).not.toHaveBeenCalled();
       expect(lit()).toEqual([]);
       expect(hero.hasAttribute('data-picking')).toBe(false);
@@ -581,7 +602,7 @@ describe('FileDropzone', () => {
     it('says what it takes when nothing is usable, and opens nothing', async () => {
       mount();
       await pick([new File(['x'], 'notes.txt', { type: 'text/plain' })]);
-      expect(container.querySelector('[role="alert"]').textContent).toBe('Choose PDFs, or JPEG and PNG photos.');
+      expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe('Choose PDFs, or JPEG and PNG photos.');
       expect(saveHandoff).not.toHaveBeenCalled();
       expect(lit()).toEqual([]);
     });
@@ -589,7 +610,8 @@ describe('FileDropzone', () => {
     it('names what it left out alongside the routed outcome', async () => {
       mount();
       await pick([pdf(), new File(['x'], 'a.txt', { type: 'text/plain' }), new File(['x'], 'b.docx')]);
-      expect(container.querySelector('[role="alert"]').textContent).toBe('Left out: a.txt, b.docx');
+      expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe('Left out: a.txt, b.docx');
+      expect(container.querySelector('span[aria-live]').getAttribute('aria-live')).toBe('polite');
       expect(lit()).toHaveLength(8);
     });
 
@@ -667,9 +689,10 @@ describe('FileDropzone', () => {
         await clickLink('sign');
         expect(hero.hasAttribute('data-picking')).toBe(true);
         expect(lit()).toHaveLength(8);
-        expect(container.querySelector('[role="alert"]').textContent).toBe(en.handoffFailed);
+        expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(en.handoffFailed);
         expect(picker().disabled).toBe(false);
-        expect(picker().textContent).toContain('Now pick a tool below');
+        expect(picker().textContent).toContain('contract.pdf');
+        expect(picker().textContent).toContain(en.handoffFailed);
         await clickLink('sign');
         expect(saveHandoff).toHaveBeenCalledTimes(2);
         expect(window.location.href).toBe('/sign/');
@@ -708,7 +731,7 @@ describe('FileDropzone', () => {
         const f = pdf('contract.pdf');
         f.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotReadableError'));
         await pick([f]);
-        expect(container.querySelector('[role="alert"]').textContent).toBe(en.handoffFailed);
+        expect(container.querySelector('[data-home-picker] [data-tone="note"]').textContent).toBe(en.handoffFailed);
         expect(hero.hasAttribute('data-picking')).toBe(false);
         expect(lit()).toEqual([]);
         expect(picker().textContent).toContain('Choose files');
@@ -737,9 +760,9 @@ describe('FileDropzone', () => {
       it('clears an earlier error when the closing launcher passes one file up', async () => {
         mount({ final: true });
         await pick([pdf(), photo()]);
-        expect(container.querySelector('[role="alert"]')).not.toBeNull();
+        expect(container.querySelector('[data-tone="note"]')).not.toBeNull();
         await pick([pdf('far.pdf')]);
-        expect(container.querySelector('[role="alert"]')).toBeNull();
+        expect(container.querySelector('[data-tone="note"]')).toBeNull();
       });
 
       it.each([['ctrl', { ctrlKey: true }], ['meta', { metaKey: true }], ['shift', { shiftKey: true }], ['alt', { altKey: true }], ['middle button', { button: 1 }]])(

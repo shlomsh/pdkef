@@ -39,20 +39,20 @@ async function readCopies(files: File[]): Promise<File[]> {
 type Choice = { files: File[]; tools: string[] };
 type Opening = { title: string; tool: string };
 
-/** What the tile says. Pure, so the four states are testable without a DOM. */
+/** What the tile says. Pure, so the states are testable without a DOM. A note (a failure or a
+    "Left out" list) takes the second line in every state; the title stays. */
 export function tileCopy(
-  state: { choice: Choice | null; opening: Opening | null; busy: boolean },
+  state: { choice: Choice | null; opening: Opening | null; busy: boolean; note?: string },
   messages: FileDropzoneMessages,
 ) {
+  const tone = state.note ? 'note' as const : 'plain' as const;
+  const withLine = (title: string, line: string, choosing: boolean) =>
+    ({ title, line: state.note || line, tone, choosing });
   if (state.opening) {
-    return {
-      title: state.opening.title,
-      line: formatMessage(messages.openingTool, { tool: state.opening.tool }),
-      choosing: false,
-    };
+    return withLine(state.opening.title, formatMessage(messages.openingTool, { tool: state.opening.tool }), false);
   }
-  if (state.choice) return { title: state.choice.files[0].name, line: messages.pickAToolBelow, choosing: true };
-  return { title: state.busy ? messages.opening : messages.chooseFiles, line: messages.orDropThenPick, choosing: false };
+  if (state.choice) return withLine(state.choice.files[0].name, messages.pickAToolBelow, true);
+  return withLine(state.busy ? messages.opening : messages.chooseFiles, messages.orDropThenPick, false);
 }
 
 /* The toolbar belongs to the page, not to this island: its links are static
@@ -345,7 +345,8 @@ export default function FileDropzone({
     }
   };
   const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
-  const { title, line, choosing } = tileCopy({ choice, opening, busy }, messages);
+  const { title, line, tone, choosing } = tileCopy({ choice, opening, busy, note: error }, messages);
+  const failed = [messages.handoffFailed, messages.sampleLoadFailed, messages.mixedKinds, messages.unsupportedFiles].includes(error);
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
       {!final && <RecentFiles
@@ -391,7 +392,8 @@ export default function FileDropzone({
           <path d="M6 2h16l9 9v28H6zM22 2v10h9M12 26h13M18.5 19.5v13" />
         </svg>
         <strong class={styles.title}><bdi class={styles.name}>{title}</bdi>{choosing && <em class={styles.change}>{messages.change}</em>}</strong>
-        <span>{line}</span>
+        <span class={tone === 'note' ? styles.note : undefined} data-tone={tone === 'note' ? 'note' : undefined}
+          title={tone === 'note' ? line : undefined}>{line}</span>
         {!final && <svg class={styles.arrow} viewBox="0 0 40 72" aria-hidden="true" focusable="false">
           <path pathLength={1} d="M36 6C22 2 8 8 7 22C6 34 16 38 18 30C20 22 6 22 7 40C8 52 13 60 16 67" />
           <path pathLength={1} d="M7 61L15.8 67.6L19 56.5" />
@@ -403,8 +405,7 @@ export default function FileDropzone({
         void handleFiles(files);
       }} />
       {/* Always present, so a screen reader hears the prompt when it fills in; visually hidden. */}
-      <span class="sr-only" aria-live="polite">{choice ? messages.pickAToolBelow : ''}</span>
-      {error && <p class={styles.error} role="alert">{error}</p>}
+      <span class="sr-only" aria-live={failed ? 'assertive' : 'polite'}>{error || (choice ? messages.pickAToolBelow : '')}</span>
     </div>
   );
 }
