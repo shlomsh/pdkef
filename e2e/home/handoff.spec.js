@@ -74,6 +74,12 @@ async function dropOnHomeDropzone(page, { name, bytes }) {
   await dropArea(page).dispatchEvent('drop', { dataTransfer });
 }
 
+// SITE-42: one dropped PDF waits for a tool; a click on the lit Sign link is
+// what hands it off.
+async function openInSign(page) {
+  await page.locator('.home-dock a[data-tool="sign"][data-fits]').click();
+}
+
 // Writes a draft the way the Sign tool's autosave would, so the "there is
 // something to lose" branch can be set up without driving a whole signing
 // session first. Mirrors useDraftPersistence's buildRecord shape exactly - if
@@ -170,6 +176,7 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
       name: 'dropped-on-home.pdf',
       bytes: await makePdfBuffer('Dropped on the home page'),
     });
+    await openInSign(page);
 
     // '/sign/' with the slash: that is the canonical URL this site serves (see
     // CLAUDE.md, URL canonicalization), and the handoff now navigates straight
@@ -191,8 +198,9 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
       name: 'dropped-on-home.pdf',
       bytes: await makePdfBuffer('Dropped on the home page'),
     });
+    await openInSign(page);
 
-    // MEM-03: no warning, ever - the dropped file hands off straight away.
+    // MEM-03: no warning, ever - the dropped file hands off once Sign is picked.
     await expect(page.getByRole('dialog')).toHaveCount(0);
     // '/sign/' with the slash: that is the canonical URL this site serves (see
     // CLAUDE.md, URL canonicalization), and the handoff now navigates straight

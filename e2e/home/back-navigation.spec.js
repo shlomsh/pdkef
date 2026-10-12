@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 // The one place the back/forward cache is exercised. Everything else in this
@@ -70,4 +71,31 @@ test('a Back to the launcher can still open the next document', async ({ page })
   await page.waitForURL('**/sign/');
   expect(await page.evaluate(() => localStorage.getItem('pdf-toolkit:workspace:current:sign')))
     .toBe('sha256:entry-b');
+});
+
+// SITE-42: the waiting state is attributes on the page and a state
+// in the island, and a bfcache restore brings both back as they were left. The
+// launcher has to come back at rest, not still waiting for a tool.
+test('a Back from a tool picked in the toolbar finds the launcher at rest', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => { window.__restoreProbe = 'picked'; });
+  await page.locator('.home-hero [data-home-picker]').waitFor();
+  await page.locator('.home-hero input[type="file"]').setInputFiles({
+    name: 'sample.pdf',
+    mimeType: 'application/pdf',
+    buffer: readFileSync('public/images/redaction-guide/sample.pdf'),
+  });
+  await expect(page.locator('.home-hero')).toHaveAttribute('data-picking', '');
+  await page.locator('.home-dock a[data-tool="split"][data-fits]').click();
+  await page.waitForURL('**/split/');
+
+  await page.goBack({ waitUntil: 'commit' });
+  expect(await page.evaluate(() => window.__restoreProbe)).toBe('picked');
+
+  const tile = page.locator('.home-hero [data-home-picker]');
+  await expect(page.locator('.home-hero')).not.toHaveAttribute('data-picking');
+  await expect(tile).not.toHaveAttribute('data-picking');
+  await expect(page.locator('.home-dock a[data-fits]')).toHaveCount(0);
+  await expect(tile).toBeEnabled();
+  await expect(tile).toContainText('Choose files');
 });
