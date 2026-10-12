@@ -180,7 +180,16 @@ export function useMergeDraft({
   // and "Draft saved" on every resumed workspace. The next autosave effect
   // it is consumed once the parent has finished deriving the restored
   // workspace. Actual edits after that still take the normal path.
-  const skipRestoredSnapshotAutosaveRef = useRef(false);
+  // Holds the restored files rather than a bare boolean: the skip only applies
+  // while the live entries are still that restored set. A restore the island
+  // declined (a home-page hand-off won) or a set that replaced it (SITE-42)
+  // is a new snapshot with no stored record, so it must save normally.
+  const restoredFilesRef = useRef<File[] | null>(null);
+  const isRestoredSet = (list: MergeDraftEntry[]) => (
+    restoredFilesRef.current !== null
+    && list.length > 0
+    && list.every((entry) => restoredFilesRef.current!.includes(entry.file))
+  );
   // The revision the flag above was consumed at. That snapshot is the stored
   // record itself, so it never gets a write of its own; the derived state
   // below must keep reading it as idle on every later render, not only on
@@ -303,7 +312,7 @@ export function useMergeDraft({
       clearTimeout(timeoutId);
       const restore = parseRestorableRecord(record);
       if (restore) {
-        skipRestoredSnapshotAutosaveRef.current = true;
+        restoredFilesRef.current = restore.files;
         latest.current.onRestore(restore);
       } else {
         // No usable draft: draftStore already cleared the localStorage hint
@@ -330,9 +339,10 @@ export function useMergeDraft({
   // when that revision actually moves.
   useEffect(() => {
     if (!enabled || latest.current.entries.length === 0) return undefined;
-    if (skipRestoredSnapshotAutosaveRef.current) {
+    if (!isRestoredSet(latest.current.entries)) restoredFilesRef.current = null;
+    if (restoredFilesRef.current) {
       if (!restoreHydrationComplete) return undefined;
-      skipRestoredSnapshotAutosaveRef.current = false;
+      restoredFilesRef.current = null;
       // The stored record already represents this whole reconstructed
       // snapshot. Mark its revision settled so a later pagehide/visibility
       // flush cannot turn reopening a tab into a second write.
@@ -357,7 +367,7 @@ export function useMergeDraft({
   useEffect(() => {
     if (!enabled) return undefined;
     const flush = (): Promise<unknown> | undefined => {
-      if (restoreInProgressRef.current || skipRestoredSnapshotAutosaveRef.current) return undefined;
+      if (restoreInProgressRef.current || isRestoredSet(latest.current.entries)) return undefined;
       const { entries, plan, options, title, outputName } = latest.current;
       if (entries.length === 0) return undefined;
       const revision = revisionRef.current;
@@ -405,7 +415,7 @@ export function useMergeDraft({
   // deliberately have no scheduled write. Expose that honestly as idle too:
   // the revision mismatch below would otherwise render a misleading
   // "Saving draft…" chip despite the autosave/flush guards above.
-  const restoredSnapshotIsClean = skipRestoredSnapshotAutosaveRef.current
+  const restoredSnapshotIsClean = isRestoredSet(entries)
     || settledRestoredRevisionRef.current === currentRevision;
   // sourceChanged (via the revision bump above) runs during render, before an
   // in-flight write's completion can paint over it - derive pending for the
