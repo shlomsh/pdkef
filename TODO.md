@@ -14,6 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [DEBT-46](backlog/tasks/DEBT-46.md) P1 · Split reports started for its automatic prepare, not for a saved result
 - [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
 
 ### Search and languages
@@ -47,5 +48,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
+- [DEBT-48](backlog/tasks/DEBT-48.md) · A decision on a once-per-page-load flag in the usage event shape
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
