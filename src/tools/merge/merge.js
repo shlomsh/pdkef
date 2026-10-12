@@ -2,15 +2,26 @@ import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/p
 import { mergedFileName, mergedTitle } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { addImagePage } from '../../lib/imagePage.js';
+import { deriveFileKind, mimeTypeOf } from '../../lib/fileKind.js';
 
 export { mergedFileName, mergedTitle };
 
 // MERGE-15: the title for a source file's outline entry - its own file name
-// with a trailing ".pdf" dropped, since the extension is implied by "this is
+// with a trailing ".pdf" (or photo extension) dropped, since the extension is implied by "this is
 // a bookmark in a PDF" and every other tool's own naming (mergedFileName
 // etc.) already treats ".pdf" as noise rather than part of the name.
 function fileOutlineTitle(fileName) {
-  return /\.pdf$/i.test(fileName) ? fileName.slice(0, -4) : fileName;
+  return fileName.replace(/\.(pdf|jpe?g|png)$/i, '');
+}
+
+// A photo takes part in a merge as a one-page source document, sized by the
+// shared Image to PDF rule; a PDF is loaded as itself.
+async function loadSourceDoc(PDFDocument, file, bytes) {
+  if (deriveFileKind(file) !== 'image') return PDFDocument.load(bytes, { ignoreEncryption: true });
+  const doc = await PDFDocument.create();
+  await addImagePage(doc, bytes, mimeTypeOf(file));
+  return doc;
 }
 
 // Thrown by inspectPdf()/mergePdfs() for a source file that can't take part
@@ -63,7 +74,7 @@ export async function inspectPdf(file, fileIndex = 0) {
 
   let doc;
   try {
-    doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    doc = await loadSourceDoc(PDFDocument, file, bytes);
   } catch (cause) {
     throw new MergeFileError(`Could not parse PDF at index ${fileIndex}`, {
       fileIndex,
@@ -71,6 +82,9 @@ export async function inspectPdf(file, fileIndex = 0) {
       cause,
     });
   }
+
+  // A photo carries no date of its own (the throwaway doc's is just "now").
+  if (deriveFileKind(file) === 'image') return { pageCount: 1, encrypted: false, creationDate: null };
 
   const date = doc.getCreationDate();
   const creationDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date.getTime() : null;
@@ -198,7 +212,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
     let source;
     try {
       const bytes = await file.arrayBuffer();
-      source = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      source = await loadSourceDoc(PDFDocument, file, bytes);
     } catch (cause) {
       throw new MergeFileError(`Could not read file at index ${fileIndex}`, {
         fileIndex,
