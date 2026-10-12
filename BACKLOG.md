@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 8 up next, 7 then, 16 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 9 up next, 7 then, 16 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -69,6 +69,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| MEM-14 | P1 | [MEM-14](backlog/tasks/MEM-14.md) · Opening a second file in Sign gives the first file's recent tile the second file's thumbnail | In progress |
 | DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | In progress |
 
 ### Waiting

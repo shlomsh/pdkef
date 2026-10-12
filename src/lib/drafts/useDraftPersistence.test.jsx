@@ -543,4 +543,43 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     expect(signRecord.elements).toEqual([{ id: 'sig-1' }]);
     expect(signRecord.extra).toEqual({ actionHistory: ['sign-edit'] });
   });
+
+  // MEM-14: opening a second file kept the first file's tile on the home
+  // page but gave it the second file's thumbnail. The preview landed on
+  // whatever entry the pointer named, and the pointer only moves to the new
+  // file once cacheRecentFile has hashed and stored it.
+  it('opening a second file leaves the first file its own preview', async () => {
+    const { renderDraftPreview: realRenderDraftPreview } = await import('../thumbnails.js');
+    const alphaBytes = new TextEncoder().encode('%PDF-1.4 alpha').buffer;
+    const bravoBytes = new TextEncoder().encode('%PDF-1.4 bravo').buffer;
+    const props = (name, fileBytes) => ({
+      tool: 'sign',
+      enabled: true,
+      file: new File(['x'], name, { type: 'application/pdf' }),
+      fileBytes,
+      elements: [],
+      extra: {},
+      status: 'editing',
+      onRestore: () => {},
+    });
+    const apiRef = { current: null };
+
+    realRenderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,alpha');
+    await act(async () => {
+      render(<RealHarness apiRef={apiRef} props={props('qa-alpha.pdf', alphaBytes)} />, container);
+    });
+    await flushReal();
+
+    realRenderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,bravo');
+    await act(async () => {
+      render(<RealHarness apiRef={apiRef} props={props('qa-bravo.pdf', bravoBytes)} />, container);
+    });
+    await flushReal();
+
+    const previews = Object.fromEntries(realDraftStore.readRecentFiles().map((entry) => [entry.fileName, entry.preview]));
+    expect(previews).toEqual({
+      'qa-alpha.pdf': 'data:image/jpeg;base64,alpha',
+      'qa-bravo.pdf': 'data:image/jpeg;base64,bravo',
+    });
+  });
 });
