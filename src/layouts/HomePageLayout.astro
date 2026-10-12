@@ -217,7 +217,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         </div>
         <nav class="home-dock" aria-label={messages.toolDockAriaLabel}>
             {homeTools.map((tool) => (
-              <a href={tool.href} data-accent={tool.accent} class="app-card">
+              <a href={tool.href} data-accent={tool.accent} data-tool={tool.slug} class="app-card">
                 <div class="app-tile">
                   <tool.icon strokeWidth={1.5} />
                 </div>
@@ -881,6 +881,10 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         position: sticky;
         flex: 0 0 40px;
         align-self: stretch;
+        /* The dock has 10px of block padding and align-self: stretch sizes a
+           strip to the content box only, so without this a lit tool's ring
+           pokes out above and below the fade at either end (SITE-42). */
+        margin-block: -10px;
         z-index: 1;
         pointer-events: none;
         /* The resting state is "no strip", and the animation is the only
@@ -1136,6 +1140,12 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     scale: 0.95;
     box-shadow: 0 4px 10px -4px var(--color-primary-ring);
     transition: translate 0.1s ease, scale 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .app-card { transition: opacity 0.3s var(--ease-out); }
+  .home-hero[data-picking] .app-card:not([data-fits]) { opacity: 0.35; }
+  .home-hero[data-picking] .app-card[data-fits] .app-tile {
+    box-shadow: 0 0 0 3px var(--home-citron), 0 12px 20px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
   }
 
   .app-tooltip {
