@@ -214,7 +214,9 @@ driver and prints PASS / FAIL per scenario: tap a field (focus, keyboard up, no 
 type, the keyboard's Next, tap outside, and pinch then Next (zoom kept). Screenshots go to
 `$TMPDIR/pdkef-ios-gate/`.
 - Needs Xcode, a booted iPhone simulator, the preview on 4173 (`npm run build && npm run preview`), and
-  the driver once: `APPIUM_HOME=node_modules/.cache/appium npx appium driver install xcuitest@12.13.2`.
+  the driver once: `node scripts/ios-gate/install-driver.mjs` (it installs xcuitest into `node_modules/.cache/appium`
+  and pins that cache's `shell-quote` to a patched release; the cache sits outside the lockfile, so the repo's
+  override and `npm audit` do not cover it).
 - Run it by hand before a release and after a Sign mobile change. It is not in `check:push` or CI.
 - The pinch scenario drives Appium's `mobile: pinch` and passes or fails on the app (SNG-20): a pinch
   does not dismiss the keyboard, and Next holds the zoom. It reloads the page first, because the tap
