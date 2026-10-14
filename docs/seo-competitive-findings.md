@@ -524,7 +524,9 @@ Monthly, plus after any ticket that claims a ranking or CTR change. Last: 2026-1
    every indexed URL) and write the dates into `docs/seo-last-crawled.json`; a URL absent from it is
    not indexed, and only the Not-indexed export says whether it was crawled. Run
    `npm run seo:crawl-staleness`, update 3.4. The printed stale list is the reindex queue; submit each
-   once (one URL per day may hit the quota).
+   once (one URL per day may hit the quota). Run it before every indexing request: its lead column
+   flags a tool page whose title or h1 leading phrase changed since the last crawl, and that request
+   is a deliberate act (SEO-45).
 4. **Before reading any CTR as a verdict**, check that the indexed SERP title matches the live one for
    that page (section 2, first lesson). A stale index makes a flat CTR mean "not yet crawled".
 5. **Manual columns**: "Who is above us" in 3.5 from Shlomi's Google screenshots, with Bing/DuckDuckGo
