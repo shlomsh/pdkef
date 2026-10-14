@@ -86,7 +86,8 @@ const FONT_GUARDS_SHARD_1 = [
 ];
 
 // The specs that assert a wall-clock budget (Download ready under 1.6s,
-// thumbnails within 2.5s, the compress preview under 8s at 4x CPU throttle).
+// thumbnails within 2.5s, the compress preview under 8s at 4x CPU throttle, the hero's
+// zero layout shift at 6x).
 // A budget measured while another worker is burning the same CPUs is noise:
 // merge-ready-time read 1838ms on CI's 4 vCPUs with two workers against a
 // 1600ms budget it clears alone. They run as the `perf` project, always with
@@ -106,6 +107,8 @@ const PERF_BUDGETS = [
   // src/tools/compress/e2e/compare-preview.spec.js (once ARCH-17 moves it),
   // with nothing to rewrite when that move lands.
   '**/compress/**/compare-preview.spec.js',
+  // The layout-shift reading under 6x CPU throttling moves with machine load.
+  '**/tool-hero-throttled-cls.spec.js',
 ];
 
 export default defineConfig({
