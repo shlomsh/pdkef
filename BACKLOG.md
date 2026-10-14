@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 51 live: 5 up next, 7 then, 21 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 53 live: 6 up next, 8 then, 21 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -65,11 +65,18 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| DEBT-44 | P1 | [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports |  |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
+| DEBT-51 | P2 | [DEBT-51](backlog/tasks/DEBT-51.md) · Redact export: a file gone from disk after opening says so, instead of Try again |  |
 
 ### Waiting
 
@@ -161,7 +168,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 20 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 44 done, 3 retired
+- Robustness and debt: 43 done, 3 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 7 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

@@ -1,9 +1,10 @@
 ---
 id: "DEBT-44"
 title: "Every counted failure leaves a trace in the error reports"
-status: "done"
+status: "open"
 priority: "P1"
 epic: "robustness"
+horizon: "now"
 depends_on: []
 ---
 
@@ -46,3 +47,21 @@ counts drop records under `drops:<day>` (sharing the error cap) and every refuse
 `errors:read` prints both tables, failures by build, and an `UNTRACED` verdict for a tool whose
 failures left neither. `src/site-lib/reportContract.test.ts` sends the browser's real output through
 the real endpoint. The daily read confirms it in production.
+
+## Reopened 2026-10-14
+
+The outcome does not hold for Merge. The daily read of 14 Oct printed `UNTRACED merge: 1 failure left no
+report and no drop record` (build 03e7d2e). Merge counts `tool_operation_failed` whenever a file card
+carries an error (`analyticsStatus` in `src/tools/merge/PdfMergeTool.tsx`), and its file inspection sets
+that error inside a `.catch` marked `// expected` (unreadable) or from `inspectPdf`'s `encrypted` flag.
+Neither path calls `reportError`, so a person's protected or unreadable file is counted as a failure and
+leaves no trace. That a flagged file caused this one failure is inferred: it is the only Merge failure
+path that sends nothing.
+
+- [ ] A Merge file the inspection flags as encrypted or unreadable leaves a drop record with its reason
+  (or stops counting as `tool_operation_failed`, if the funnel should not count a person's file),
+  decided in this ticket and stated here.
+- [ ] Every other tool is checked for the same shape: a counted failure whose catch neither reports nor
+  drops. The list and the result go here.
+- [ ] A unit test seen failing first covers Merge's flagged-file path.
+- [ ] The daily read shows no `UNTRACED` line for a full UTC day on a stamped build with the fix.
