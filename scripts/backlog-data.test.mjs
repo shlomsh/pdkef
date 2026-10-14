@@ -98,7 +98,7 @@ describe('validateTasks', () => {
     for (const status of ['open', 'in_progress', 'blocked']) {
       const extra = status === 'blocked' ? { horizon: undefined, waiting_on: 'x' } : {};
       const errors = validateTasks([task('A-01', { status, epic: 'old', ...extra })], registry);
-      expect(errors).toEqual([expect.stringContaining(`${status} tickets cannot sit in the closed epic "old"; move it to one of the six lanes (`)]);
+      expect(errors).toEqual([expect.stringContaining(`${status} tickets cannot sit in the closed epic "old"; move it to one of the lanes (`)]);
     }
     expect(validateTasks([task('A-01', { status: 'done', epic: 'old', horizon: undefined })], registry)).toEqual([]);
   });
@@ -143,8 +143,8 @@ describe('parseTask', () => {
 });
 
 describe('the registry', () => {
-  it('has the six lanes in order, every legacy epic closed, and no key twice', () => {
-    expect(lanes.map((lane) => lane.key)).toEqual(['redact', 'sign-fill-mode', 'form-detection', 'robustness', 'search-and-languages', 'polish']);
+  it('has the lanes in order, every legacy epic closed, and no key twice', () => {
+    expect(lanes.map((lane) => lane.key)).toEqual(['redact', 'sign-fill-mode', 'tool-pages', 'form-detection', 'robustness', 'search-and-languages', 'polish']);
     expect(lanes.every((lane) => lane.why)).toBe(true);
     expect(closedEpics.length).toBeGreaterThan(0);
     expect(closedEpics.every((epic) => epic.closed)).toBe(true);

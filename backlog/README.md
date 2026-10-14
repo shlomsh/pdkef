@@ -22,7 +22,7 @@ A blocked ticket swaps `horizon`/`order` for `waiting_on: "2026-10-08"`. Any tic
 | --- | --- |
 | `status` | open, in_progress, blocked, done, retired |
 | `priority` | P1, P2, P3 |
-| `epic` | live work: one of the six lanes below. Done or retired: any registered epic |
+| `epic` | live work: one of the lanes below. Done or retired: any registered epic |
 | `horizon` | now, next, later. Required for open and in_progress, not allowed otherwise |
 | `order` | optional positive integer: position inside its board column |
 | `waiting_on` | required for blocked, not allowed otherwise. A real ISO date or short text |
@@ -34,7 +34,7 @@ needs. Leave out an optional key that has no value. `phase` became `horizon` (no
 
 ## Lanes
 
-Open, in-progress and blocked tickets live in one of six lanes (the display order below). Each is one
+Open, in-progress and blocked tickets live in one of seven lanes (the display order below). Each is one
 row in `scripts/backlog-epics.mjs`, which also registers every earlier epic as a closed epic so done
 and retired tickets keep validating. A live ticket in a closed epic fails validation.
 
@@ -42,6 +42,7 @@ and retired tickets keep validating. A live ticket in a closed epic fails valida
 | --- | --- |
 | `redact` | Redact: finish removal |
 | `sign-fill-mode` | Sign: finish fill mode |
+| `tool-pages` | Tool pages: show the verb |
 | `form-detection` | Form detector accuracy |
 | `robustness` | Robustness and debt |
 | `search-and-languages` | Search and languages |

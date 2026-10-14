@@ -1,0 +1,472 @@
+<title>Tool Page Sketches</title>
+<style>
+/* Layout: control strip and notes, then a desktop frame (switchable screen size) and a phone frame rendering the same live sketch. */
+:root{
+  --c-bg:#f3f1ec; --c-card:#ffffff; --c-fg:#16302f; --c-muted:#5a6f6c; --c-line:#dcd8cf; --c-accent:#007979; --c-accent-fg:#ffffff; --c-bezel:#1c2423;
+  --f-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,Roboto,sans-serif;
+  --f-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  /* PDkef tokens, fixed inside the frames */
+  --bg:#faf7f1; --text:#0b4c4c; --night:#062b2b; --muted:#276460; --muted-light:#8fdccf; --border:#dfe6e2; --border-strong:#6fbeb2;
+  --primary:#007979; --primary-hover:#006868; --primary-soft:#eef6f3; --primary-tint:#c3f0e6;
+  --citron:#efffa6; --airplane:#ff9500; --white:#ffffff; --sun:#ffcf8a; --hill:#2f8f86;
+  --mint:color-mix(in srgb,var(--primary-tint) 55%,var(--bg));
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c-bg:#0e1514;--c-card:#162120;--c-fg:#e4eeec;--c-muted:#9db2ae;--c-line:#2a3836;--c-accent:#5fc9bb;--c-accent-fg:#062b2b;color-scheme:dark}}
+:root[data-theme="dark"]{--c-bg:#0e1514;--c-card:#162120;--c-fg:#e4eeec;--c-muted:#9db2ae;--c-line:#2a3836;--c-accent:#5fc9bb;--c-accent-fg:#062b2b;color-scheme:dark}
+body{background:var(--c-bg);color:var(--c-fg);font:15px/1.5 var(--f-ui)}
+
+/* ---------- chrome ---------- */
+.shell{max-width:1520px;margin:0 auto;padding:22px 16px 64px}
+.top{display:grid;gap:8px;max-width:960px}
+.top h1{margin:0;font-size:24px;line-height:1.15;letter-spacing:-.02em;text-wrap:balance}
+.top p{margin:0;color:var(--c-muted)}
+.try{margin:0;padding-left:18px;color:var(--c-muted);display:grid;gap:2px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding-block:12px;margin-top:12px;background:var(--c-bg)}
+@media (min-width:900px){.controls{position:sticky;top:env(safe-area-inset-top,0px);z-index:10}}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid var(--c-line);border-radius:11px;background:var(--c-card)}
+.seg button,.tbtn{appearance:none;border:0;background:none;color:var(--c-fg);font:600 13px/1 var(--f-ui);padding:9px 12px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"],.tbtn[aria-pressed="true"]{background:var(--c-accent);color:var(--c-accent-fg)}
+.tbtn{border:1px solid var(--c-line);background:var(--c-card);border-radius:11px;padding:12px 14px}
+.seg button:focus-visible,.tbtn:focus-visible{outline:2px solid var(--c-accent);outline-offset:2px}
+.frames{display:grid;gap:22px;align-items:start;margin-top:6px}
+@media (min-width:1100px){.frames{grid-template-columns:minmax(0,1fr) 340px}}
+@media (max-width:700px){.frames .phone{order:-1}}
+.frame{margin:0;min-width:0}
+.frame figcaption{font-size:12px;font-weight:600;color:var(--c-muted);margin-bottom:8px}
+.viewport{box-sizing:border-box;position:relative;width:100%;overflow:hidden;border:1px solid var(--c-line);border-radius:12px;background:var(--bg);box-shadow:0 18px 40px -28px rgba(0,0,0,.45)}
+.phone .viewport{max-width:390px;border-radius:30px;border:6px solid var(--c-bezel)}
+.screen{position:absolute;left:0;top:0;transform-origin:0 0;overflow-y:auto;overflow-x:hidden;background:var(--bg);scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+
+/* ---------- page (inside the frames) ---------- */
+.page{position:relative;container-type:inline-size;min-height:100%;background:var(--bg);color:var(--text);font:15px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased}
+.page *,.page *::before,.page *::after{box-sizing:border-box}
+.page svg{display:block}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+@container (min-width:1024px){.wrap{padding:0 64px}}
+
+.bar{border-bottom:1px solid var(--border);background:var(--bg)}
+.bar .wrap{display:flex;align-items:center;gap:10px;height:56px}
+.logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(140deg,var(--muted-light),var(--primary));flex:none}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.015em}
+.crumb{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.chips{margin-left:auto;display:flex;gap:6px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;font-weight:600;white-space:nowrap}
+.chip svg{width:14px;height:14px}
+.chip.on{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 30%,transparent)}
+@container (max-width:640px){.chip .lbl{display:none}.chip{width:30px;height:30px;padding:0;justify-content:center}}
+
+.first{position:relative;background:linear-gradient(180deg,var(--bg) 0,var(--mint) 36%,var(--mint) 74%,var(--bg) 100%)}
+.first::after{content:"";position:absolute;inset:0;pointer-events:none;background:rgba(0,121,121,.06);box-shadow:inset 0 0 0 2px rgba(0,121,121,.32);opacity:0;transition:opacity .25s ease}
+.s-drag .first::after{opacity:1}
+.first > .wrap{position:relative;z-index:1}
+
+/* empty state: the first screen is one composed hero */
+.fs{display:grid;gap:20px;padding-block:26px 22px}
+@container (min-width:1024px){.fs{min-height:var(--fs);grid-template-rows:1fr auto;padding-block:28px 22px}}
+.hgrid{display:grid;gap:18px;grid-template-areas:"text" "stage" "act";align-content:center}
+@container (min-width:1024px){.hgrid{grid-template-columns:minmax(0,5fr) minmax(0,7fr);grid-template-areas:"text stage" "act stage";column-gap:56px;row-gap:0;align-items:center}}
+.text{grid-area:text;min-width:0}
+@container (min-width:1024px){.text{align-self:end}}
+.act{grid-area:act;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+@container (min-width:1024px){.act{align-self:start;margin-top:30px}}
+.stage{grid-area:stage;min-width:0}
+
+.tile{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--white);background:linear-gradient(150deg,var(--muted-light),var(--border-strong));margin-bottom:16px}
+.tile svg{width:19px;height:19px}
+.h{font-weight:800;letter-spacing:-.035em;line-height:1;text-wrap:balance}
+.h .big{display:block;font-size:40px}
+.h .tail{display:block;margin-top:10px;font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--muted)}
+@container (min-width:1024px){.h .big{font-size:60px}.h .tail{font-size:21px;margin-top:12px}}
+.sub{margin:16px 0 0;max-width:62ch;font-size:15px;line-height:1.55}
+@container (min-width:1024px){.sub{font-size:17px;margin-top:22px;max-width:44ch}}
+.acc{background:linear-gradient(var(--citron),var(--citron)) 0 88%/100% .45em no-repeat}
+
+.btn{display:inline-flex;align-items:center;height:46px;padding:0 20px;border-radius:12px;background:var(--primary);color:var(--white);font-weight:650;font-size:15px;cursor:pointer;user-select:none;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.08),0 8px 18px -10px rgba(0,121,121,.6)}
+.btn:hover{background:var(--primary-hover)}
+@container (min-width:1024px){.act .btn{height:52px;padding:0 26px;font-size:16px;border-radius:14px}}
+.btn.ghost{background:var(--white);color:var(--primary);box-shadow:0 0 0 1px var(--border-strong)}
+.again{font-size:13px;color:var(--muted);text-decoration:underline;cursor:pointer}
+
+.sheet{position:relative;background:var(--white);border-radius:22px;padding:16px 20px 22px;display:grid;gap:12px;justify-items:center;text-align:center;box-shadow:0 1px 0 rgba(11,76,76,.06),0 26px 50px -32px rgba(6,43,43,.45);transition:box-shadow .3s ease,transform .3s var(--ease)}
+@container (min-width:1024px){.sheet{border-radius:30px;padding:24px 32px 32px;min-height:var(--stage);align-content:center}}
+.s-drag .sheet{box-shadow:0 0 0 3px var(--primary),0 30px 60px -30px rgba(6,43,43,.5);transform:translateY(-2px)}
+.cap{display:grid;gap:4px;justify-items:center}
+.dt{font-size:18px;font-weight:700;letter-spacing:-.015em;line-height:1.25}
+@container (min-width:1024px){.dt{font-size:20px}}
+.dt .d,.s-drag .dt .n{display:none}
+.s-drag .dt .d{display:inline}
+.db{margin:0;color:var(--muted);font-size:14px;max-width:44ch}
+
+.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 20px}
+.air{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--muted)}
+.air svg{width:16px;height:16px;flex:none;color:var(--primary)}
+.down{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:650;color:var(--primary);cursor:pointer}
+.down svg{width:15px;height:15px}
+
+/* the verb: one paper stage, scaled to the hero on desktop */
+.vstage{position:relative;width:100%;height:178px}
+@container (min-width:1024px){.vstage{height:calc(236px * var(--k))}}
+.verb{position:absolute;inset:0;transition:translate .35s var(--ease)}
+@container (min-width:1024px){.verb{inset:auto;left:50%;top:50%;width:420px;height:236px;margin:-118px 0 0 -210px;scale:var(--k)}}
+.s-drag .verb{translate:0 -10px}
+.verb::after{content:"";position:absolute;left:18%;right:18%;bottom:22px;height:14px;border-radius:50%;background:radial-gradient(closest-side,rgba(6,43,43,.10),transparent)}
+.pg,.ph{position:absolute;left:50%;top:50%;width:58px;height:76px;margin:-40px 0 0 -29px;border-radius:4px;background:var(--white);box-shadow:0 0 0 1px var(--border),0 8px 16px -10px rgba(6,43,43,.4);font-style:normal}
+@container (min-width:900px){.pg,.ph{width:70px;height:92px;margin:-48px 0 0 -35px}}
+.pg::before{content:"";position:absolute;inset:16px 10px auto;height:30px;background:repeating-linear-gradient(to bottom,var(--border) 0 3px,transparent 3px 8px)}
+.pg::after{content:"";position:absolute;left:10px;top:8px;width:22px;height:3px;border-radius:2px;background:var(--border-strong)}
+.pg.a::after{background:var(--primary)}
+.pg.b::after{background:var(--airplane)}
+.lab{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:600 11px/1 var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+@keyframes fade{from{opacity:0;translate:0 6px}}
+
+.verb .pg{translate:var(--x1,0px) var(--y1,0px);rotate:var(--r1,0deg)}
+@keyframes mv{from{translate:var(--x0) var(--y0);rotate:var(--r0)}}
+@keyframes arc{0%{translate:var(--x0) var(--y0);rotate:var(--r0)}50%{translate:calc((var(--x0) + var(--x1)) / 2) var(--ym);rotate:var(--r1)}100%{translate:var(--x1) var(--y1);rotate:var(--r1)}}
+.play .v-merge .pg{animation:mv .9s var(--ease) var(--d,0s) both}
+.play .v-merge .pg.arc{animation:arc 1s var(--ease) var(--d,0s) both}
+.play .v-merge .lab{animation:fade .5s ease 2s both}
+
+.v-img .ph{translate:var(--x1) 0}
+.ph b,.th.photo b{position:absolute;inset:8px 7px 26px;border-radius:2px;background:radial-gradient(circle at 72% 28%,var(--sun) 0 5px,transparent 6px),linear-gradient(155deg,transparent 52%,var(--hill) 52% 74%,var(--primary) 74%),linear-gradient(var(--primary-tint),var(--primary-soft));box-shadow:0 0 0 1px rgba(11,76,76,.06)}
+.v-img .ph::after{content:"";position:absolute;left:8px;right:8px;bottom:9px;height:10px;background:repeating-linear-gradient(to bottom,var(--border) 0 2px,transparent 2px 5px)}
+@keyframes drop{0%{translate:var(--x1) -150px;rotate:var(--r0);opacity:0}12%{opacity:1}58%{translate:var(--x1) 0;rotate:calc(var(--r0) / 4)}72%,100%{translate:var(--x1) 0;rotate:0deg}}
+@keyframes pageUp{0%,60%{background-color:rgba(255,255,255,0);box-shadow:0 0 0 0 rgba(0,0,0,0),0 0 0 0 rgba(0,0,0,0)}}
+@keyframes photoIn{0%,60%{inset:0}}
+@keyframes linesIn{0%,70%{opacity:0}}
+.play .v-img .ph{animation:drop 1.3s var(--ease) var(--d) both,pageUp 1.3s ease var(--d) both}
+.play .v-img .ph b{animation:photoIn 1.3s var(--ease) var(--d) both}
+.play .v-img .ph::after{animation:linesIn 1.3s ease var(--d) both}
+.play .v-img .lab{animation:fade .5s ease 2.3s both}
+
+.v-unlock .pg.big{width:92px;height:120px;margin:-64px 0 0 -46px}
+@container (min-width:900px){.v-unlock .pg.big{width:112px;height:146px;margin:-78px 0 0 -56px}}
+.v-unlock .pg.big::before{height:62px;inset:20px 14px auto}
+.hatch{position:absolute;inset:0;border-radius:4px;background:repeating-linear-gradient(45deg,rgba(11,76,76,.14) 0 4px,transparent 4px 9px),rgba(238,246,243,.75);clip-path:inset(0 0 100% 0)}
+.lock{position:absolute;left:50%;top:50%;width:40px;height:46px;margin:-27px 0 0 -20px;color:var(--text);--lx:40px;--ly:-54px;transform:translate(var(--lx),var(--ly)) scale(.62)}
+@container (min-width:900px){.lock{--lx:50px;--ly:-66px}}
+.lock .shackle{transform-box:fill-box;transform-origin:100% 100%;transform:translateY(-5px) rotate(32deg)}
+@keyframes lockMove{0%,58%{transform:translate(0,0) scale(1)}}
+@keyframes shackleOpen{0%,22%{transform:translateY(0) rotate(0deg)}40%{transform:translateY(-5px) rotate(0deg)}}
+@keyframes unhatch{0%,45%{clip-path:inset(0 0 0 0)}}
+.play .v-unlock .lock{animation:lockMove 1.9s var(--ease) .2s both}
+.play .v-unlock .shackle{animation:shackleOpen 1.9s var(--ease) .2s both}
+.play .v-unlock .hatch{animation:unhatch 1.9s var(--ease) .2s both}
+.play .v-unlock .lab{animation:fade .5s ease 2.1s both}
+
+.v-edit .e1{translate:-88px 0}
+.v-edit .e2{translate:-38px -26px;opacity:0;scale:.86}
+.v-edit .e3{translate:0 0;rotate:90deg;scale:.76}
+.v-edit .e4{translate:88px 0}
+@keyframes e1{0%,62%{translate:-114px 0}}
+@keyframes e2{0%,40%{translate:-38px 0;opacity:1;scale:1}52%{translate:-38px -12px;opacity:1;scale:1}}
+@keyframes e3{0%,8%{translate:38px 0;rotate:0deg;scale:1}22%{translate:38px -18px;rotate:0deg;scale:.9}34%{translate:38px -18px;rotate:90deg;scale:.76}44%,62%{translate:38px 0;rotate:90deg;scale:.76}}
+@keyframes e4{0%,62%{translate:114px 0}}
+.play .v-edit .e1{animation:e1 2.8s var(--ease) .3s both}
+.play .v-edit .e2{animation:e2 2.8s var(--ease) .3s both}
+.play .v-edit .e3{animation:e3 2.8s var(--ease) .3s both}
+.play .v-edit .e4{animation:e4 2.8s var(--ease) .3s both}
+
+/* after drop: the same screen becomes the workspace */
+.work{position:relative;display:grid;gap:18px;padding-block:18px 22px;align-content:start}
+@container (min-width:1024px){.work{min-height:var(--fs);grid-template-rows:auto 1fr auto;gap:22px;padding-block:22px}}
+.mini{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.mini .tile{width:30px;height:30px;margin:0;border-radius:9px}
+.mini .tile svg{width:16px;height:16px}
+.mini .h .big{font-size:24px;letter-spacing:-.025em}
+.count{color:var(--muted);font-size:14px;font-weight:600}
+.mini .sp{flex:1}
+@container (max-width:640px){.mini .sp{flex-basis:100%;height:0}}
+.tray{display:flex;flex-wrap:wrap;gap:22px 18px;align-content:start;padding:20px 18px 30px;border-radius:22px;background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(11,76,76,.06)}
+@container (min-width:1024px){.tray{gap:30px 26px;padding:30px 30px 40px}}
+.th{position:relative;width:76px;height:100px;background:var(--white);border-radius:4px;box-shadow:0 0 0 1px var(--border),0 10px 18px -12px rgba(6,43,43,.4);font-style:normal;flex:none}
+@container (min-width:1024px){.th{width:148px;height:192px}}
+.th::before{content:"";position:absolute;inset:18px 12px auto;height:44px;background:repeating-linear-gradient(to bottom,var(--border) 0 3px,transparent 3px 8px)}
+.th.a::after,.th.b::after{content:"";position:absolute;left:12px;top:9px;width:26px;height:3px;border-radius:2px;background:var(--primary)}
+.th.b::after{background:var(--airplane)}
+.th.photo::before{display:none}
+.th em{position:absolute;left:0;right:0;bottom:-20px;text-align:center;font:600 10.5px/1 var(--f-mono);color:var(--muted);font-style:normal}
+.th.locked{display:grid;place-items:center}
+.th.locked::before{display:none}
+.th.locked svg{width:30px;height:30px;color:var(--text)}
+@keyframes rise{from{opacity:0;translate:0 14px;scale:.96}}
+.play .work .th{animation:rise .5s var(--ease) calc(var(--i) * 70ms + .05s) both}
+.play .work .mini{animation:fade .4s ease both}
+.panel{display:grid;justify-items:center;align-content:center;gap:14px;text-align:center;padding:24px 0}
+.panel .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.field{display:inline-flex;align-items:center;height:46px;min-width:200px;padding:0 14px;border-radius:12px;border:1px solid var(--border-strong);background:var(--white);color:var(--muted);font-size:14px}
+.letgo{position:absolute;left:50%;top:50%;translate:-50% -50%;padding:12px 20px;border-radius:999px;background:var(--primary);color:var(--white);font-weight:700;font-size:15px;opacity:0;transition:opacity .2s ease;pointer-events:none;white-space:nowrap;box-shadow:0 14px 30px -14px rgba(0,121,121,.8)}
+.s-drag .letgo{opacity:1}
+
+/* below the first screen */
+.below{padding:56px 0 84px}
+.below .note{margin:0 0 18px;font-size:13.5px;color:var(--muted);max-width:64ch}
+.card{border-radius:22px;border:1px solid var(--primary-tint);background:linear-gradient(135deg,var(--primary-soft),var(--bg));padding:26px 26px 30px}
+.card + .card{margin-top:18px}
+.card small{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--primary)}
+.card .h2{margin-top:8px;font-size:24px;font-weight:800;letter-spacing:-.025em;line-height:1.15;text-wrap:balance}
+.ln{display:block;height:9px;border-radius:5px;background:color-mix(in srgb,var(--text) 9%,transparent);margin-top:14px;max-width:640px}
+.ln.s{max-width:380px}
+@container (min-width:1024px){.card{padding:40px 48px}.card .h2{font-size:32px}}
+
+@media (prefers-reduced-motion:reduce){.page *,.page *::before,.page *::after{animation:none!important;transition:none!important}}
+</style>
+
+<div class="shell">
+  <header class="top">
+    <h1>Show the verb, full height</h1>
+    <p>The chosen direction with a full-height desktop hero: headline and action on the left, the tool's verb on the right, sized to the screen with a floor and a cap. Rough on purpose. The words are today's copy, moved, not rewritten.</p>
+    <ul class="try">
+      <li>Watch the first two seconds on each tool, then press Replay.</li>
+      <li>Drag a real file anywhere over the desktop frame, or press Drag over.</li>
+      <li>Press Choose files, or drop a file, to see the same screen become the workspace with the headline shrunk to one line.</li>
+      <li>Switch the desktop size: the hero fills a laptop screen and stops growing on a big monitor, so the next section peeks in.</li>
+    </ul>
+  </header>
+
+  <div class="controls">
+    <div class="seg" data-key="tool" role="group" aria-label="Tool">
+      <button type="button" data-v="merge">Merge</button>
+      <button type="button" data-v="img">Image to PDF</button>
+      <button type="button" data-v="unlock">Unlock</button>
+      <button type="button" data-v="edit">Edit PDF</button>
+    </div>
+    <div class="seg" data-key="st" role="group" aria-label="State">
+      <button type="button" data-v="empty">Empty</button>
+      <button type="button" data-v="after">After drop</button>
+    </div>
+    <button type="button" class="tbtn" id="drag" aria-pressed="false">Drag over</button>
+    <div class="seg" data-key="size" role="group" aria-label="Desktop size">
+      <button type="button" data-v="1280x680">Small laptop</button>
+      <button type="button" data-v="1440x820">Laptop</button>
+      <button type="button" data-v="1920x1040">Desktop</button>
+      <button type="button" data-v="2560x1300">Big monitor</button>
+    </div>
+    <button type="button" class="tbtn" id="replay">Replay</button>
+  </div>
+
+  <div class="frames">
+    <figure class="frame desk-frame">
+      <figcaption id="deskCap">Desktop</figcaption>
+      <div class="viewport"><div class="screen" id="deskScreen" data-w="1440" data-h="820"><div class="page"></div></div></div>
+    </figure>
+    <figure class="frame phone">
+      <figcaption>Phone, 390 × 844</figcaption>
+      <div class="viewport"><div class="screen" data-w="390" data-h="844"><div class="page"></div></div></div>
+    </figure>
+  </div>
+</div>
+
+<script>
+(() => {
+  const svg = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+  const I = {
+    shield: svg('<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>'),
+    star: svg('<path d="M11.5 2.8a.6.6 0 0 1 1 0l2.6 5.3 5.8.8a.6.6 0 0 1 .3 1l-4.2 4.1 1 5.8a.6.6 0 0 1-.8.6L12 17.7l-5.2 2.7a.6.6 0 0 1-.8-.6l1-5.8-4.2-4.1a.6.6 0 0 1 .3-1l5.8-.8z"/>'),
+    code: svg('<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>'),
+    plane: svg('<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>'),
+    down: svg('<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>'),
+    merge: svg('<path d="m8 6 4-4 4 4"/><path d="M12 2v10.3a4 4 0 0 1-1.17 2.87L4 22"/><path d="m20 22-5-5"/>'),
+    image: svg('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'),
+    lock: svg('<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+    edit: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>')
+  };
+
+  const T = {
+    merge: { key: 'merge', glyph: 'merge', crumb: 'Merge PDF', big: 'Merge PDF', tail: 'Online Free: Combine Files in Your Browser',
+      sub: 'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional. Free, open source, and your files stay on your device.',
+      drop: 'Drop PDFs or photos here, or paste', body: 'Your pages appear here, in order, before you download. Files never leave your device.',
+      btn: 'Choose files', many: true,
+      note: "Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.",
+      about: 'How to merge PDF files online for free', count: '5 pages from 2 files', add: 'Add files', action: 'Download merged_report.pdf',
+      thumbs: ['a', 'a', 'a', 'b', 'b'] },
+    img: { key: 'img', glyph: 'image', crumb: 'Image to PDF', big: 'Image to PDF', tail: 'Online Free: Combine JPG & PNG',
+      sub: 'Combine JPG or PNG images into a single PDF in any order - scanned pages, photographed slides, or screenshots. Free, open source, and your images stay on your device.',
+      drop: 'Drop images here', body: 'Private. Files never leave your device.', btn: 'Choose files', many: true,
+      about: 'How to combine images into a PDF online for free', count: '3 pages', add: 'Add images', action: 'Download PDF',
+      thumbs: ['photo', 'photo', 'photo'] },
+    unlock: { key: 'unlock', glyph: 'lock', crumb: 'Protect & Unlock PDF', big: 'Unlock or Protect a PDF', tail: 'Free',
+      sub: 'Add a password to protect a PDF, or remove one you already know - the tool detects which you need. Free, open source, and your file stays on your device.',
+      drop: 'Drop PDF here to unlock', body: 'Private. Files never leave your device.', btn: 'Choose file', many: false,
+      about: 'How to unlock or password-protect a PDF online for free' },
+    edit: { key: 'edit', glyph: 'edit', crumb: 'Edit PDF', big: 'Edit PDF', tail: 'Online Free: Rotate, Reorder, Remove Pages',
+      sub: 'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF. Free, open source, and your file stays on your device.',
+      drop: 'Drop PDF here', body: 'Private. Files never leave your device.', btn: 'Choose file', many: false,
+      about: 'How to edit a PDF online for free', count: '6 pages', add: 'Page numbers', action: 'Download PDF',
+      thumbs: ['', '', '', '', '', ''] }
+  };
+
+  const S = { tool: 'merge', st: 'empty', drag: false, size: '1440x820' };
+  try {
+    const saved = JSON.parse(localStorage.getItem('pdkef-sketch-v2') || '{}');
+    if (T[saved.tool]) S.tool = saved.tool;
+    if (/^\d+x\d+$/.test(saved.size || '')) S.size = saved.size;
+  } catch (e) {}
+
+  const pages = [...document.querySelectorAll('.page')];
+  const deskScreen = document.getElementById('deskScreen');
+  const AIR = `<p class="air">${I.plane}<span>Turn on airplane mode and give it a try. It still works.</span></p>`;
+
+  const pg = (cls, vars) => `<i class="pg ${cls}" style="${vars}"></i>`;
+  const VERB = {
+    merge: () => pg('a', '--x0:-90px;--y0:0px;--x1:-10px;--y1:0px;--r0:-3deg;--r1:-2deg;--d:.35s')
+      + pg('a', '--x0:-86px;--y0:-4px;--x1:-6px;--y1:-4px;--r0:-1deg;--r1:0deg;--d:.35s')
+      + pg('a', '--x0:-82px;--y0:-8px;--x1:-2px;--y1:-8px;--r0:1deg;--r1:1deg;--d:.35s')
+      + pg('b arc', '--x0:64px;--y0:0px;--x1:2px;--y1:-12px;--r0:5deg;--r1:-1deg;--ym:-50px;--d:.8s')
+      + pg('b arc', '--x0:68px;--y0:-4px;--x1:6px;--y1:-16px;--r0:7deg;--r1:2deg;--ym:-58px;--d:1s')
+      + '<span class="lab">merged_report.pdf</span>',
+    img: () => [[-80, -16, .25], [0, 12, .6], [80, -8, .95]]
+      .map(([x, r, d]) => `<i class="ph" style="--x1:${x}px;--r0:${r}deg;--d:${d}s"><b></b></i>`).join('')
+      + '<span class="lab">3 photos, one PDF</span>',
+    unlock: () => '<i class="pg big"><span class="hatch"></span></i>'
+      + '<svg class="lock" viewBox="0 0 40 46" aria-hidden="true"><path class="shackle" d="M12 22v-8a8 8 0 0 1 16 0v8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><rect x="6" y="20" width="28" height="23" rx="5" fill="currentColor"/><circle cx="20" cy="30" r="3.2" fill="#fff"/><rect x="18.8" y="30" width="2.4" height="6.5" rx="1.2" fill="#fff"/></svg>'
+      + '<span class="lab">Unlocked</span>',
+    edit: () => [1, 2, 3, 4].map((n) => `<i class="pg e${n}"></i>`).join('')
+  };
+
+  function heroScreen(t) {
+    const sub = t.sub.replace('on your device', '<span class="acc">on your device</span>');
+    const letGo = t.many ? 'Let go to add your files' : 'Let go to add your file';
+    return `<div class="wrap fs"><div class="hgrid">`
+      + `<div class="text"><div class="tile">${I[t.glyph]}</div><div class="h"><span class="big">${t.big}</span><span class="tail">${t.tail}</span></div><p class="sub">${sub}</p></div>`
+      + `<div class="stage"><div class="sheet"><div class="vstage"><div class="verb v-${t.key}">${VERB[t.key]()}</div></div>`
+      + `<div class="cap"><strong class="dt"><span class="n">${t.drop}</span><span class="d">${letGo}</span></strong><p class="db">${t.body}</p></div></div></div>`
+      + `<div class="act"><span class="btn" data-act="pick">${t.btn}</span></div>`
+      + `</div><div class="foot">${AIR}<a class="down" data-act="down">How it works ${I.down}</a></div></div>`;
+  }
+
+  function workScreen(t) {
+    const head = `<span class="tile">${I[t.glyph]}</span><div class="h"><span class="big">${t.big}</span></div>`;
+    if (t.key === 'unlock') {
+      return `<div class="wrap fs work"><div class="mini">${head}<span class="sp"></span><a class="again" data-act="reset">Start over</a></div>`
+        + `<div class="tray panel"><i class="th locked" style="--i:0">${I.lock}</i><strong class="dt">report.pdf has a password</strong><div class="row"><span class="field">Password</span><span class="btn">Unlock</span></div></div>`
+        + `<div class="foot">${AIR}<a class="down" data-act="down">How it works ${I.down}</a></div><span class="letgo">Let go to open it</span></div>`;
+    }
+    const thumbs = t.thumbs.map((c, i) => `<i class="th ${c}" style="--i:${i}">${c === 'photo' ? '<b></b>' : ''}<em>${String(i + 1).padStart(2, '0')}</em></i>`).join('');
+    return `<div class="wrap fs work"><div class="mini">${head}<span class="count">${t.count}</span><span class="sp"></span><a class="again" data-act="reset">Start over</a><span class="btn ghost">${t.add}</span><span class="btn">${t.action}</span></div>`
+      + `<div class="tray">${thumbs}</div><div class="foot">${AIR}<a class="down" data-act="down">How it works ${I.down}</a></div><span class="letgo">Let go to add them</span></div>`;
+  }
+
+  function pageHTML() {
+    const t = T[S.tool];
+    const chips = `<div class="chips"><span class="chip on">${I.shield}<span class="lbl">On-device</span></span><span class="chip">${I.star}<span class="lbl">Star us on GitHub</span></span><span class="chip">${I.code}<span class="lbl">Open source</span></span><span class="chip">${I.plane}<span class="lbl">Works offline</span></span></div>`;
+    const bar = `<header class="bar"><div class="wrap"><span class="logo"></span><span class="brand">PDkef</span><span class="crumb">› ${t.crumb}</span>${chips}</div></header>`;
+    const first = `<div class="first">${S.st === 'after' ? workScreen(t) : heroScreen(t)}</div>`;
+    const below = `<section class="below"><div class="wrap">${t.note ? `<p class="note">${t.note}</p>` : ''}`
+      + `<div class="card"><small>How it works</small><div class="h2">${t.about}</div><span class="ln"></span><span class="ln"></span><span class="ln s"></span></div>`
+      + `<div class="card"><small>Questions</small><div class="h2">Frequently asked</div><span class="ln"></span><span class="ln s"></span></div></div></section>`;
+    return bar + first + below;
+  }
+
+  // Production would use calc(100svh - bar) inside a clamp(); the sketch derives the same numbers from each frame's height.
+  function sizeVars(page, h) {
+    const fs = Math.max(600, Math.min(900, h - 57));
+    const stage = Math.max(380, Math.min(580, fs - 150));
+    const k = Math.max(1, Math.min(1.6, (stage - 130) / 236));
+    page.style.setProperty('--fs', `${fs}px`);
+    page.style.setProperty('--stage', `${stage}px`);
+    page.style.setProperty('--k', k.toFixed(3));
+  }
+
+  function fit() {
+    document.querySelectorAll('.viewport').forEach((vp) => {
+      const sc = vp.firstElementChild;
+      const w = +sc.dataset.w, h = +sc.dataset.h;
+      const s = Math.min(1, vp.clientWidth / w);
+      sc.style.width = `${w}px`;
+      sc.style.height = `${h}px`;
+      sc.style.transform = `scale(${s})`;
+      vp.style.height = `${Math.round(h * s)}px`;
+      sizeVars(sc.firstElementChild, h);
+    });
+  }
+
+  function sync() {
+    document.querySelectorAll('.seg').forEach((seg) => {
+      seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(S[seg.dataset.key] === b.dataset.v)));
+    });
+    document.getElementById('drag').setAttribute('aria-pressed', String(S.drag));
+    const [w, h] = S.size.split('x');
+    document.getElementById('deskCap').textContent = `Desktop, ${w} × ${h}`;
+  }
+
+  function replay() {
+    pages.forEach((p) => { p.classList.remove('play'); void p.offsetWidth; p.classList.add('play'); });
+  }
+
+  function render() {
+    const html = pageHTML();
+    pages.forEach((p) => {
+      p.className = `page s-${S.st}${S.drag ? ' s-drag' : ''}`;
+      p.innerHTML = html;
+      p.closest('.screen').scrollTop = 0;
+    });
+    sync();
+    replay();
+    try { localStorage.setItem('pdkef-sketch-v2', JSON.stringify({ tool: S.tool, size: S.size })); } catch (e) {}
+  }
+
+  // Dragging only flips a class, so the tint, lift and caption change transition instead of re-rendering.
+  function setDrag(on) {
+    if (S.drag === on) return;
+    S.drag = on;
+    pages.forEach((p) => p.classList.toggle('s-drag', on));
+    sync();
+  }
+
+  function setSize(v) {
+    S.size = v;
+    const [w, h] = v.split('x');
+    deskScreen.dataset.w = w;
+    deskScreen.dataset.h = h;
+    fit();
+    sync();
+    try { localStorage.setItem('pdkef-sketch-v2', JSON.stringify({ tool: S.tool, size: S.size })); } catch (e) {}
+  }
+
+  document.querySelectorAll('.seg').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      const key = seg.dataset.key;
+      if (key === 'size') { setSize(b.dataset.v); return; }
+      S[key] = b.dataset.v;
+      S.drag = false;
+      render();
+    });
+  });
+  document.getElementById('drag').addEventListener('click', () => setDrag(!S.drag));
+  document.getElementById('replay').addEventListener('click', () => {
+    if (S.st !== 'empty' || S.drag) { S.st = 'empty'; S.drag = false; render(); } else replay();
+  });
+
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-act]');
+    if (!a) return;
+    const act = a.dataset.act;
+    if (act === 'pick') { S.st = 'after'; S.drag = false; render(); }
+    else if (act === 'reset') { S.st = 'empty'; S.drag = false; render(); }
+    else if (act === 'down') {
+      const sc = a.closest('.screen');
+      const target = sc.querySelector('.below');
+      sc.scrollTo({ top: target.offsetTop - 8, behavior: 'smooth' });
+    }
+  });
+
+  let leaveTimer = null;
+  document.querySelectorAll('.viewport').forEach((vp) => {
+    vp.addEventListener('dragenter', (e) => { e.preventDefault(); clearTimeout(leaveTimer); setDrag(true); });
+    vp.addEventListener('dragover', (e) => { e.preventDefault(); clearTimeout(leaveTimer); });
+    vp.addEventListener('dragleave', () => { clearTimeout(leaveTimer); leaveTimer = setTimeout(() => setDrag(false), 90); });
+    vp.addEventListener('drop', (e) => { e.preventDefault(); clearTimeout(leaveTimer); S.st = 'after'; S.drag = false; render(); });
+  });
+
+  const [w0, h0] = S.size.split('x');
+  deskScreen.dataset.w = w0;
+  deskScreen.dataset.h = h0;
+  new ResizeObserver(fit).observe(document.querySelector('.frames'));
+  fit();
+  render();
+})();
+</script>

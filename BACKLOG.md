@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 52 live: 4 up next, 7 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 8 then, 24 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -47,6 +47,29 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |  |
+
+## Tool pages: show the verb
+
+Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| HERO-02 | P1 | [HERO-02](backlog/tasks/HERO-02.md) · One full-height first screen on desktop for the page-grid tools |  |
+| HERO-03 | P1 | [HERO-03](backlog/tasks/HERO-03.md) · Each page-grid tool acts out its job in the empty state |  |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| HERO-04 | P2 | [HERO-04](backlog/tasks/HERO-04.md) · Drop a file anywhere on a page-grid tool's page | Needs Shlomi: Approve the drag-over caption, in English and Hebrew |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| HERO-05 | P2 | [HERO-05](backlog/tasks/HERO-05.md) · Sign and Redact on the same first screen |  |
 
 ## Form detector accuracy
 
@@ -161,6 +184,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 20 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
+- Tool pages: show the verb: 1 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 43 done, 3 retired
 - Search and languages: 7 done, 0 retired

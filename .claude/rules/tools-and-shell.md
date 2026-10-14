@@ -115,7 +115,7 @@ settled on the Merge rebuild and the questions to ask of the next tool. One line
 9. Bidi is part of the design, not a fix: direction, isolation and start/end alignment from the start.
 10. Speed is part of the experience: the first visible row before the heavy work starts.
 11. Drafts are a quiet feature: a status line, never a banner or a modal.
-12. Empty state is a band, not a void: a short band with ghost outlines, never a viewport-filling box.
+12. The empty state is the hero: one full-height desktop first screen where the tool acts out its job, never an empty box ([record](../../docs/tool-hero-show-the-verb.md)).
 13. Cross-tool hand-offs, and the reverse: quiet next-tool verbs, and sibling tools linked from errors.
 14. How we review: measure in a real browser, rank findings, verify touch on a real phone.
 

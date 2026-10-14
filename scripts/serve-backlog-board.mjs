@@ -476,7 +476,7 @@ ${css}</style>
   <header>
     <span class="eyebrow">Read-only live view · source: backlog/tasks · <span class="live-status" id="live" aria-live="polite">Connecting…</span></span>
     <h1>PDkef Board</h1>
-    <p class="lede">Live work only, in six lanes. Within each lane, "Then, in order" is the real order to do things in.</p>
+    <p class="lede">Live work only, in ${lanes.length} lanes. Within each lane, "Then, in order" is the real order to do things in.</p>
     <p class="error" id="error" role="alert" hidden></p>
   </header>
 
