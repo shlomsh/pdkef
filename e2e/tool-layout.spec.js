@@ -340,6 +340,43 @@ test('does not vertically centre a short tool card below the hero on mobile', as
   expect(Math.abs(cardBox.y - (heroBox.y + heroBox.height))).toBeLessThanOrEqual(40);
 });
 
+// DropzoneEmptyState server-renders a phone and a desktop wording and CSS shows one: at each
+// width exactly one span per slot (heading, privacy line) has a box, and it is the right one.
+test("Merge's sheet shows exactly one wording variant per width", async ({ page }) => {
+  const cases = [
+    {
+      size: { width: 390, height: 844 },
+      heading: 'Drop PDFs or photos here',
+      body: 'Private. Files never leave your device.',
+    },
+    {
+      size: { width: 1440, height: 820 },
+      heading: 'Drop PDFs or photos here, or paste',
+      body: 'Your pages appear here, in order, before you download. Files never leave your device.',
+    },
+  ];
+  for (const { size, heading, body } of cases) {
+    await page.setViewportSize(size);
+    await page.goto('/merge');
+    const sheet = page.locator('[data-empty-state]');
+    await expect(sheet).toBeVisible();
+    const slots = { heading: sheet.locator('strong > span'), body: sheet.locator('p > span') };
+    for (const [slot, expected] of [
+      ['heading', heading],
+      ['body', body],
+    ]) {
+      const spans = slots[slot];
+      expect(await spans.count(), `${size.width}px ${slot}: both variants are in the markup`).toBe(2);
+      const shown = [];
+      for (const span of await spans.all()) {
+        const box = await span.boundingBox();
+        if (box && box.width > 0 && box.height > 0) shown.push((await span.textContent()).trim());
+      }
+      expect(shown, `${size.width}px ${slot}`).toEqual([expected]);
+    }
+  }
+});
+
 test('redaction guide images load without page overflow on desktop and mobile', async ({ page }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
