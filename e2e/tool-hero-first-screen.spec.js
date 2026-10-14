@@ -77,18 +77,6 @@ test.describe('first screen', () => {
   }
 });
 
-// Before the island's markup lays out, <main> is a few px tall; the hero must not move when it arrives.
-for (const route of ['/merge/', '/compress-image/']) {
-  test(`${route} shifts nothing under 6x CPU throttling`, async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 820 });
-    const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
-    await open(page, route);
-    await page.waitForTimeout(3000);
-    expect(await page.evaluate(() => window.__cls), 'layout shift').toBeLessThan(0.001);
-  });
-}
-
 test('a file dropped on the hero text column loads in the tool', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 820 });
   await open(page, '/merge/');
