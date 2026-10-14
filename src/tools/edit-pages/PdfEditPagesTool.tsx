@@ -58,7 +58,6 @@ export default function PdfEditPagesTool() {
   // Wire up SortableJS on the grid whenever pages are loaded
   useEffect(() => {
     if (!gridRef.current || pages.length === 0) return;
-    sortableRef.current?.destroy();
     sortableRef.current = Sortable.create(gridRef.current, {
       animation: 200,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -87,7 +86,17 @@ export default function PdfEditPagesTool() {
         setAnnouncement(`Page moved from position ${(evt.oldIndex as number) + 1} to ${(evt.newIndex as number) + 1}.`);
       },
     });
-    return () => sortableRef.current?.destroy();
+    return () => {
+      const instance = sortableRef.current;
+      sortableRef.current = null;
+      try {
+        instance?.destroy();
+      } catch {
+        // expected: the grid element is already gone by the time this cleanup runs
+        // (replacing the file unmounts it first) and sortablejs's destroy() throws
+        // when it writes to the removed element. Nothing is left to tear down.
+      }
+    };
   }, [pages.length > 0, commit]);
 
   const resetOutput = () => {

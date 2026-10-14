@@ -1,5 +1,5 @@
 import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
-import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
+import { extractPageObjects, getPageContentBytes, ContentStreamDecodeError } from './pdfObjects.js';
 import { tokenize } from './contentStream.js';
 import { dropUnreachable } from './reachability.js';
 import { applyDetailEdits } from './documentTraces.js';
@@ -650,6 +650,8 @@ export async function listDeletableObjects(file) {
       const { objects } = extractPageObjects(doc.getPage(i), i);
       all.push(...objects);
     } catch (err) {
+      // expected: a damaged content stream is the person's file, not our bug; the page just offers nothing to click.
+      if (err instanceof ContentStreamDecodeError) continue;
       reportError('redact', err, 'list_objects');
       console.error(`Could not read deletable objects on page ${i + 1}`, err);
     }
