@@ -76,9 +76,10 @@ const {
 const resolved = await getLocalizedToolContext(tool.slug, locale);
 const alternates = Astro.props.alternates ?? resolved.alternates;
 const variants = Astro.props.variants ?? resolved.variants;
+// Sign and Redact are the editors: no page-grid first screen (`data-layout`), no airplane line below.
+const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
-const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
 ---
 
@@ -126,6 +127,11 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         no draft feature (merge, split, ...) just look up a key that's never
         set — harmless.
 
+        The last check reads the hand-off marker `saveHandoff` leaves in
+        sessionStorage (src/lib/handoffPending.ts, HERO-02): a hand-off is in
+        IndexedDB, which this script cannot read, so the key is how the page
+        knows a file is about to arrive. useHandoffIntake clears it.
+
         Comments go here, never inside the script: its text ships verbatim to
         every tool page. One that used to live there, on the catch around the
         recent-files read: the entry index is an optimisation, not the source
@@ -156,6 +162,9 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
             } else if (slug === 'merge') {
               document.documentElement.setAttribute('data-merge-restore', '1');
             }
+          }
+          if (sessionStorage.getItem('pdkef:handoff-pending:' + slug)) {
+            document.documentElement.setAttribute('data-handoff-pending', '1');
           }
         } catch (e) {}
       })();
@@ -335,7 +344,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         --first-screen: clamp(600px, calc(100svh - 3.5rem), 900px);
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) {
+      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) {
         display: grid;
         grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
         /* Row 1 is the first screen's own height (block padding 2.5rem, footer 2.5rem),
@@ -349,7 +358,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         padding-inline: max(2rem, calc((100% - 1280px) / 2 + 2rem));
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > :global(.tool-hero) {
+      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > :global(.tool-hero) {
         grid-column: 1;
         grid-row: 1;
         align-self: center;
@@ -358,7 +367,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         padding: 0;
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main {
+      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main {
         grid-column: 2;
         grid-row: 1 / 3;
         /* Top-aligned: <main> is a few px tall until the island's markup is parsed,
@@ -367,11 +376,14 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         /* <main>'s utilities are `!important` and sit in a layer, and for
            important declarations the layered ones win, so its 1.5rem side and
            1.25rem bottom padding cannot be zeroed here. Negative margins take
-           them back, so the island's edge is the column's edge. */
+           them back, so the island's edge is the column's edge. global.css's
+           `main { width: 100% }` would pin the width to the column and leave the
+           box 48px short of its end edge, so the width is auto here. */
         margin: 0 -1.5rem -1.25rem;
+        width: auto;
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {
+      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {
         grid-column: 1;
         grid-row: 3;
         align-self: center;
@@ -381,7 +393,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         text-align: start;
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-how-link] {
+      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-how-link] {
         display: inline-flex;
         grid-column: 2;
         grid-row: 3;
@@ -435,6 +447,25 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
     :global(html[data-merge-restore]:has([data-merge-workspace-ready])) .tool-stage main,
     :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-tool-followups],
     :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-airplane-note] {
+      visibility: visible;
+    }
+
+    /* A hand-off is on its way (HERO-02, src/lib/handoffPending.ts): the page
+       behaves like a Merge restore. The desktop grid is off and the hero is
+       condensed from first paint (ToolHero.astro), and the empty sheet, the
+       static stream and the airplane line stay out of paint until the tool
+       shows its file, so nothing is painted that the arriving file replaces.
+       useHandoffIntake removes the attribute once the tool has a file, or
+       at once when there was nothing to consume (a stale key). */
+    :global(html[data-handoff-pending]) .tool-stage main,
+    :global(html[data-handoff-pending]) [data-tool-followups],
+    :global(html[data-handoff-pending]) [data-airplane-note] {
+      visibility: hidden;
+    }
+
+    :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) .tool-stage main,
+    :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) [data-tool-followups],
+    :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) [data-airplane-note] {
       visibility: visible;
     }
 

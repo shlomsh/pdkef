@@ -266,3 +266,97 @@ test.describe('Merge restore', () => {
     expect(cls, 'layout shift over the restore').toBeLessThan(0.01);
   });
 });
+
+// A hand-off (the home launcher, Merge to Compress, Redact to Unlock) is read from IndexedDB, which
+// the pre-paint script cannot see. saveHandoff therefore also leaves a sessionStorage key
+// (src/lib/handoffPending.ts) that sets html[data-handoff-pending] before first paint, and the page
+// holds the loaded layout from the start. Measured before the marker: a file landed 100-300ms after
+// the empty two-column first screen had painted, CLS 0.32 at 1440x820.
+const SAMPLE_HERO = () => {
+  window.__cls = 0;
+  window.__heroHeights = [];
+  new PerformanceObserver((list) => {
+    for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
+  }).observe({ type: 'layout-shift', buffered: true });
+  const sample = () => {
+    const hero = document.querySelector('.tool-hero');
+    if (hero) {
+      const h = Math.round(hero.getBoundingClientRect().height * 2) / 2;
+      if (window.__heroHeights[window.__heroHeights.length - 1] !== h) window.__heroHeights.push(h);
+    }
+  };
+  new MutationObserver(sample).observe(document, { childList: true, subtree: true, attributes: true });
+  const loop = () => { sample(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+};
+
+test.describe('hand-off arrival', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('the home launcher to Split lands loaded with one hero height and no layout shift', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width: 1440, height: 820 });
+    await page.addInitScript(SAMPLE_HERO);
+    await page.goto('/');
+    await page.locator('[data-home-picker]').first().waitFor();
+    const fits = page.locator('.home-dock a[data-tool="split"][data-fits]');
+    // The drop listener is registered a paint after the picker renders: drop until the dock lights Split.
+    await expect(async () => {
+      const dt = await page.evaluateHandle((bytes) => {
+        const d = new DataTransfer();
+        d.items.add(new File([new Uint8Array(bytes)], 'num-1.pdf', { type: 'application/pdf' }));
+        return d;
+      }, [...PDF]);
+      await page.locator('[data-working-area]').first().dispatchEvent('drop', { dataTransfer: dt });
+      await expect(fits).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15_000 });
+    await fits.click();
+    await page.waitForURL(/\/split\/?$/);
+    await expect(page.locator('[data-tool-loaded], [data-tool-shell]').first()).toBeVisible({ timeout: 20_000 });
+    await page.waitForTimeout(1000);
+    const { cls, heights, pending, key } = await page.evaluate(() => ({
+      cls: window.__cls,
+      heights: window.__heroHeights,
+      pending: document.documentElement.hasAttribute('data-handoff-pending'),
+      key: sessionStorage.getItem('pdkef:handoff-pending:split'),
+    }));
+    expect(heights, 'hero height from first paint to the loaded tool').toHaveLength(1);
+    expect(cls, 'layout shift over the hand-off').toBeLessThan(0.01);
+    expect(pending, 'the pending attribute is released once the file shows').toBe(false);
+    expect(key, 'the one-shot storage key is consumed').toBeNull();
+  });
+
+  test('a stale marker with no stored hand-off releases and shows the empty first screen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 820 });
+    await page.addInitScript(() => {
+      try { sessionStorage.setItem('pdkef:handoff-pending:compress', '1'); } catch { /* private mode */ }
+    });
+    await page.addInitScript(SAMPLE_HERO);
+    await page.goto('/compress/');
+    await expect(page.locator(HYDRATED)).toBeVisible();
+    await expect(page.locator('html')).not.toHaveAttribute('data-handoff-pending', /.*/);
+    expect(await page.evaluate(() => sessionStorage.getItem('pdkef:handoff-pending:compress')), 'stale key cleared').toBeNull();
+    expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'empty first screen').toBe('grid');
+    await page.waitForTimeout(500);
+    // Releasing moves the condensed hero to its centred place in the grid: one move, measured 0.049
+    // at 1440x820. A stale key needs a hand-off whose navigation never finished, so it is allowed
+    // that one shift and no more (the tool column is hidden until the release, so it adds none).
+    expect(await page.evaluate(() => window.__cls), 'layout shift releasing a stale marker').toBeLessThan(0.06);
+  });
+});
+
+// The sheet's end edge is the column's end edge: the How it works link ends at the column edge, so
+// the sheet (main) must end there too, not 48px short of it.
+for (const [route, dir] of [['/merge/', 'ltr'], ['/he/merge/', 'rtl']]) {
+  test(`${route} sheet ends at the column edge (${dir})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 820 });
+    await open(page, route);
+    const edges = await page.evaluate(() => {
+      const sheet = document.querySelector('.tool-stage [data-empty-state]').getBoundingClientRect();
+      const link = document.querySelector('[data-how-link]').getBoundingClientRect();
+      return { sheetLeft: sheet.left, sheetRight: sheet.right, linkLeft: link.left, linkRight: link.right };
+    });
+    if (dir === 'ltr') expect(Math.abs(edges.sheetRight - edges.linkRight), 'sheet right vs link right').toBeLessThanOrEqual(1);
+    else expect(Math.abs(edges.sheetLeft - edges.linkLeft), 'sheet left vs link left').toBeLessThanOrEqual(1);
+  });
+}

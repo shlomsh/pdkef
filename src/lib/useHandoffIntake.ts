@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { takeHandoff } from './drafts/draftStore.js';
+import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from './handoffPending.ts';
 
 type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
 type HandoffRecord = Partial<HandoffFile> & { files?: Partial<HandoffFile>[]; from?: string };
@@ -58,16 +59,27 @@ export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], fro
 
   useEffect(() => {
     let cancelled = false;
+    let cancelRelease = () => {};
 
+    // The pre-paint script held the page back for a hand-off (HERO-02, handoffPending.ts). The
+    // storage key is a one-shot and goes as soon as the hand-off is read; the page is released when
+    // the tool shows its file, or at once when there is nothing to consume (a stale marker).
     takeHandoff(tool).then((value) => {
-      if (cancelled || !value) return;
-      const record = value as HandoffRecord;
-      const files = filesFromHandoff(record);
-      if (files.length > 0) onFilesRef.current(files, record.from);
+      clearHandoffPending(tool);
+      const record = value as HandoffRecord | null;
+      const files = record ? filesFromHandoff(record) : [];
+      if (files.length === 0) {
+        releaseHandoffPending();
+        return;
+      }
+      if (cancelled) return;
+      cancelRelease = releaseHandoffPendingWhenLoaded();
+      onFilesRef.current(files, record?.from);
     });
 
     return () => {
       cancelled = true;
+      cancelRelease();
     };
   }, [tool]);
 }

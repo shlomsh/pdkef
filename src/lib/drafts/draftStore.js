@@ -1,5 +1,6 @@
 import { reportError } from '../errorReport.ts';
 import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
+import { markHandoffPending } from '../handoffPending.ts';
 
 // The catches below also cover opening the database, which fails in private or
 // locked-down windows (InvalidStateError, UnknownError). That is the
@@ -211,6 +212,8 @@ export async function saveHandoff(tool, record) {
     await withStore('readwrite', (store) => {
       store.put({ ...record, tool: handoffKey(tool), savedAt: Date.now() });
     });
+    // The page this hand-off opens reads this before it paints (handoffPending.ts).
+    markHandoffPending(tool);
     return true;
   } catch (e) {
     reportStoreError('handoff', e, 'save_handoff');
