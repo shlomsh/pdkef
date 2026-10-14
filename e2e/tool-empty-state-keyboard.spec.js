@@ -21,24 +21,28 @@ const toolRoutes = [
 ];
 
 const PICKER = '[data-empty-state] label:has(input[type="file"])';
+// The server-rendered empty state also matches PICKER. On a slow runner a Tab can land on that
+// copy before hydration, and hydration then swaps the dropzone for the draft-check placeholder and
+// back, destroying the focused input (CI run 38621971567, 3 of 12). Only a hydrated island counts.
+const HYDRATED_PICKER = `astro-island:not([ssr]) ${PICKER}`;
 const PDF = { name: 'keyboard.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n') };
 
 async function open(page, route) {
   await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
   await page.goto(route);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  await expect(page.locator(PICKER), route).toBeVisible();
+  await expect(page.locator(HYDRATED_PICKER), route).toBeVisible();
 }
+
+const focusedIsPickerInput = (page) => page.evaluate(() => {
+  const a = document.activeElement;
+  return a instanceof HTMLInputElement && a.type === 'file' && !!a.closest('[data-empty-state]');
+});
 
 // Tab from the top of the page until focus lands on the picker's input.
 async function tabToPicker(page) {
   for (let i = 0; i < 60; i += 1) {
     await page.keyboard.press('Tab');
-    const onInput = await page.evaluate(() => {
-      const a = document.activeElement;
-      return a instanceof HTMLInputElement && a.type === 'file' && !!a.closest('[data-empty-state]');
-    });
-    if (onInput) return i + 1;
+    if (await focusedIsPickerInput(page)) return i + 1;
   }
   return -1;
 }
@@ -58,6 +62,7 @@ for (const route of toolRoutes) {
     await expectRing(page, `${route}: keyboard focus shows the ring`);
 
     for (const key of ['Enter', 'Space']) {
+      expect(await focusedIsPickerInput(page), `${route}: focus is still on the file input before ${key}`).toBe(true);
       const chooser = page.waitForEvent('filechooser', { timeout: 5_000 });
       await page.keyboard.press(key);
       await (await chooser).setFiles([]);
@@ -84,6 +89,7 @@ test('the focus ring shows for keyboard focus only, not after a mouse click', as
 test('a file chosen through the keyboard-focused input still reaches the tool', async ({ page }) => {
   await open(page, '/unlock/');
   expect(await tabToPicker(page)).toBeGreaterThan(0);
+  expect(await focusedIsPickerInput(page), 'focus is still on the file input before Enter').toBe(true);
   const chooser = page.waitForEvent('filechooser');
   await page.keyboard.press('Enter');
   await (await chooser).setFiles(PDF);
