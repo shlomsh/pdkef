@@ -32,3 +32,21 @@ needs: "Approve the drag-over caption, in English and Hebrew"
 
 - Unit: the depth counter, including nested enters and a leave to outside the window.
 - Playwright (chromium): a file dropped on the hero's text column loads in the tool.
+
+## Progress
+
+*2026-10-15.* Landed in `a2f97f15`:
+
+- `useWindowFileDrop({ enabled, onDrop })` in `src/shell/useWindowFileDrop.ts`, with the pure depth
+  counter in `src/shell/fileDragDepth.ts` and unit tests for both; `BasePdfTool.test.tsx` covers the
+  wiring.
+- `BasePdfTool` sets `data-dragging` on its card and routes a drop to `receiveDrop`, so accept filters
+  and the replace confirmation are unchanged. The opt-out is the `dropAnywhere` prop; Sign and Redact
+  pass false until HERO-05.
+- Static CSS tints the stage with an inset primary ring (`ToolPageLayout.astro`) and lifts the verb
+  (`src/shell/verb/paper.module.css`).
+- Playwright (from `909f6299`): a file dropped on the hero's subhead loads in the tool, and a drag over
+  the h1 on Image to PDF rings the stage.
+
+Left: the drag-over caption ("Let go to add your files", "your file" for a one-file tool, English and
+Hebrew). It waits for approval of the copy.

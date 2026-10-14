@@ -40,3 +40,25 @@ Protect, Compress Image. Sign and Redact are HERO-05.
   fully visible, How it works starts below the fold at the first two, no horizontal overflow.
 - `e2e/tool-layout.spec.js` and the phone specs stay green unchanged.
 - `test:seo`, `test:css`, `test:weight` and `test:csp` green on a production build.
+
+## Progress
+
+*2026-10-15.* Landed on the branch:
+
+- `bce07cee` the `h1Name` field per tool and locale, and `splitHeroTitle`, with the join-back unit tests.
+- `5c9bd584` the quiet On-device chip on tool pages, and a plane on Works offline.
+- `110a437d` the two-column desktop first screen (`ToolPageLayout.astro`, `ToolHero.astro`): footer row,
+  How it works link, Merge's no-limit note moved to just above How it works. Gated on
+  `.tool-stage[data-layout='hero']:has([data-empty-state])` and off under `html[data-draft-hint]` and
+  `html[data-merge-restore]`.
+- `8a31ed3c` after a file loads, the desktop hero condenses to the icon and the tool's name, on the same
+  signals as the older condense rules, and the loaded card keeps `calc(var(--first-screen) - 5.5rem)`.
+  This reverses the 2026-09-12 decision to keep page-grid heroes full on desktop.
+- `909f6299` `e2e/tool-hero-first-screen.spec.js`, and `e2e/tool-layout.spec.js` checks the stacked eight
+  on their own terms.
+- `7dee4a35` the screen-tall sheet only on the page-grid first screen; Compress and Compress Image take
+  their content's height, Sign and Redact keep a content-height sheet.
+- `fillViewport` was removed with the sheet rework in `a1da04b1`.
+
+Left: `styling.md`'s paper line (the sheet is `--color-surface`), and `test:seo`, `test:css`,
+`test:weight` and `test:csp` on a production build.

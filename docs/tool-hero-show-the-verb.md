@@ -1,6 +1,6 @@
 # Show the verb: a tool page's first screen
 
-**Status:** chosen 2026-10-14, not built yet. Lane `tool-pages`, tickets
+**Status:** chosen 2026-10-14. The layout, the sheet, four verbs, drop anywhere and the first-screen guard are built (2026-10-15); the other four verbs and the drag-over caption are not. Lane `tool-pages`, tickets
 [HERO-01](../backlog/tasks/HERO-01.md) to [HERO-05](../backlog/tasks/HERO-05.md).
 **Sketch:** [`docs/tool-hero-sketch/index.html`](./tool-hero-sketch/index.html), the source of the
 private artifact Shlomi reviewed (https://claude.ai/artifact/FMqEhG9ujBDNoFPE3VjsqN). It is rough on
@@ -84,29 +84,51 @@ deletes `fillViewport` and its CSS.
   the two parts join back to the h1 for every tool and locale. Title, description and JSON-LD do not
   change.
 
+**As built (2026-10-15).**
+- The empty state is one sheet (`src/shell/DropzoneEmptyState.tsx`, `src/shell/Dropzone.module.css`): the
+  tool's verb in an art slot, the heading, a quiet line with an inline check mark, then Choose files.
+  The checking-draft placeholder wears the same sheet, so nothing resizes when the check settles.
+- The sheet takes the first screen's height (`min(36rem, --first-screen - 9rem)`) only inside the
+  page-grid two-column layout. Compress and Compress Image (one island, `compact`) take their content's
+  height, because their quality choices sit under the sheet. Sign and Redact keep their stacked page
+  with a content-height sheet until HERO-05.
+- The two-column grid applies on `.tool-stage[data-layout='hero']:has([data-empty-state])` and is off
+  under `html[data-draft-hint]` and `html[data-merge-restore]`, so a restoring page keeps the geometry it
+  already reserves (`src/layouts/ToolPageLayout.astro`). `--first-screen` is defined once on
+  `.tool-stage`. The footer row and the How it works link are placed on that grid.
+
 The phone layout (under 1024px) keeps today's order (hero, then the card, then the airplane line) and
 today's phone first-viewport behaviour; it picks up the basics and the verb only.
 
 ## After a drop: the same screen is the workspace
 
-- The hero condenses through the mechanism that exists today (`data-hero-condensable`, the per-tool
-  `condenseOnLoad` flag in `src/data/tools.js`) to one line: tile and h1. The subhead stays in the DOM.
-- The tool card keeps the first-screen height as its `min-height`, so nothing below jumps up and the
+- On desktop the hero condenses to the icon and the tool's name (`src/components/ToolHero.astro`). It
+  uses the same signals as the existing condense rules: `html[data-view-density='condensed']` together
+  with `[data-tool-shell]` or `[data-tool-loaded]`. The rest of the h1 and the subhead are hidden, not
+  removed, so the h1's text content is unchanged.
+- This reverses the 2026-09-12 decision to keep page-grid heroes full on desktop. The full hero now
+  belongs to the empty first screen, where it is the point; once a file is in, the workspace gets the
+  room.
+- The loaded card keeps `calc(var(--first-screen) - 5.5rem)` as its `min-height`
+  (`src/shell/PdfTool.module.css`), 5.5rem being the condensed hero, so nothing below jumps up and the
   page does not shrink under the pointer.
 - Every loaded state is otherwise unchanged; guideline headings 1 to 3 still govern it.
 
 ## Drop anywhere
 
-- The island listens on `window` for `dragenter`, `dragover`, `dragleave` and `drop`, and acts only when
-  `dataTransfer.types` includes `Files`, so Merge's page reordering and text drags pass through.
-- A depth counter flips state only on the enter and leave edges, never per `dragover` event, in the
-  spirit of the gesture golden rule. The counter is a pure function with its own unit test.
-- The island sets `data-dragging` on its own root. Static CSS on `.tool-stage:has([data-dragging])`
-  tints the first screen and lifts the verb; no island code touches the static DOM.
-- A drop routes to the handlers that exist (`DropzoneEmptyState`'s `onDrop`, `BasePdfTool`'s
-  `onWorkspaceDrop`), so accept filters and the replace confirmation behave as they do now.
-- The page-grid tools get it first (HERO-04). Sign and Redact get it with HERO-05, since a drop over an
-  open editor needs its own answer.
+- `useWindowFileDrop({ enabled, onDrop })` (`src/shell/useWindowFileDrop.ts`) listens on `window` for
+  `dragenter`, `dragover`, `dragleave` and `drop`, and acts only when the drag carries `Files`, so
+  Merge's page reordering and text drags pass through. A drop an element already took is left alone.
+- A depth counter (`src/shell/fileDragDepth.ts`, pure, with its own unit test) flips state only on the
+  enter and leave edges, never per `dragover`, in the spirit of the gesture golden rule.
+- `BasePdfTool` calls the hook with `receiveDrop` and sets `data-dragging` on its card. Static CSS on
+  `.tool-stage[data-layout='hero']:has([data-dragging])` tints the stage with an inset primary ring and
+  lifts the verb; no island code touches the static DOM.
+- The opt-out is the `dropAnywhere` prop on `BasePdfTool` (default true). Sign and Redact pass false
+  until HERO-05, since a drop over an open editor needs its own answer.
+- A drop routes to the handlers that exist, so accept filters and the replace confirmation behave as
+  they do now.
+- Not built yet: the drag-over caption ("Let go to add your files"). It waits for approval of the copy.
 
 ## The verb
 
@@ -123,6 +145,10 @@ today's phone first-viewport behaviour; it picks up the basics and the verb only
 | Sign | a hand-drawn stroke writes across a signature line | HERO-05 |
 | Redact | a black bar sweeps across a line of text | HERO-05 |
 
+- **Built (2026-10-15):** Merge, Image to PDF, Unlock or Protect and Edit Pages, each in
+  `src/tools/<tool>/verb/` with a unit test. The shared pieces are in `src/shell/verb/` (`VerbStage` and
+  `paper.module.css`: the box, the floor shadow, the page and photo). Unlock's lock and hatch live in
+  its own folder, because only it uses them.
 - **One motion style.** Plays once per page load, about two seconds, and ends on a still frame that
   explains the tool on its own. Paper pages with one shadow, the existing `--ease-emphasized` curve, no
   loops. Dragging a file over lifts the verb; it never replays.
@@ -155,16 +181,23 @@ section's own heading. Everything else is today's copy, moved.
 
 ## Guards
 
-- **One Playwright spec, chromium only.**
-  - The first screen at 1280x680, 1440x820 and 1920x1040: the h1, the sheet and Choose files are fully
-    visible, How it works starts below the fold at the first two sizes, there is no horizontal
-    overflow, and layout shift stays at 0 while the verb plays.
-  - A file dropped on the hero's text column loads in the tool.
-  - Under reduced motion the verb shows its last frame with no running animation.
-- **Unchanged and green.** The phone layout specs, and `e2e/tool-layout.spec.js`: the app bar stays
-  `body > div > div`.
-- **Unit tests.** The h1 split joins back to the h1 for every tool and locale; the drag-depth counter;
-  every page-grid tool passes an `emptyArt`.
+- **Built: `e2e/tool-hero-first-screen.spec.js`, chromium only.** It asserts:
+  - On each of the eight page-grid routes at 1440x820 (Merge and Image to PDF also at 1280x680 and
+    1920x1040): the h1, the sheet and Choose files sit fully inside the viewport, `#how-it-works` starts
+    at or below the fold (at the first two sizes), there is no horizontal overflow, and layout shift
+    stays under 0.001 over 2.5 seconds while the verb plays.
+  - A file dropped on the hero's subhead, after a `dragenter` that sets `data-dragging`, loads in the
+    tool, and `data-dragging` is gone afterwards.
+  - Under reduced motion, Merge's and Unlock's verbs are visible with no running animation in the sheet.
+  - A drag over the h1 on Image to PDF puts an inset ring on `.tool-stage`, and a `dragleave` takes it
+    off.
+- **`e2e/tool-layout.spec.js`** keeps its box and icon-row checks for Sign and Redact, and checks the
+  stacked eight on their own terms: the icon ends before the h1 begins and shares its start edge, and
+  the title row still lines up with the brand. `merge-layout.spec.js` follows the new hero.
+- **Unchanged and green.** The phone layout specs.
+- **Unit tests.** Built: the h1 split joins back to the h1 for every tool and locale; the drag-depth
+  counter and the hook; each built verb renders. Still to add, once all eight verbs exist: every
+  page-grid tool passes an `emptyArt`.
 - **Before handover.** A scripted path matrix on a production build (`npm run build && npm run
   preview`): the eight page-grid tools, three desktop sizes plus the phone, empty, dragging and loaded,
   with the console checked for CSP violations.
@@ -175,17 +208,20 @@ Team-lead mode, as CLAUDE.md describes: the contract first, disjoint files per i
 integrated and checked by the lead as it lands, and a fresh zero-context reviewer at the end.
 
 **The contract, written before any brief:**
-- The layout: `ToolPageLayout`'s `.tool-stage` becomes a desktop grid with three areas: `hero`, `card`
-  and `foot`. It is two columns while the island's root carries `data-empty` and one column once a
-  file is loaded. `--first-screen` is defined once on `.tool-stage`.
-- The island: `BasePdfTool` gains `emptyArt?: ComponentChild` and sets `data-empty` and `data-dragging`
-  on its root. `DropzoneEmptyState` renders `emptyArt` in the sheet, in place of the file-plus icon and
-  Merge's ghost band.
+- The layout: `ToolPageLayout`'s `.tool-stage` becomes a desktop grid, with the existing children (hero,
+  `main`, airplane line, How it works link) placed by grid row and column, not by named areas. It is
+  two columns while `.tool-stage[data-layout='hero']` contains `[data-empty-state]` and the page is not
+  restoring (`data-draft-hint`, `data-merge-restore`), and the usual single column once a file is
+  loaded. `--first-screen` is defined once on `.tool-stage`.
+- The island: `BasePdfTool` gains `emptyArt?: ComponentChild` and sets `data-dragging` on its card
+  while a file is over the window. There is no `data-empty` marker: the sheet's own `data-empty-state`
+  is the signal. `DropzoneEmptyState` renders `emptyArt` in the sheet, in place of the file-plus icon
+  and Merge's ghost band.
 - A verb: a Preact component with no props and no state, markup only, built from the shell's paper
   pieces, with its CSS module beside it. Its base styles are the last frame.
 
-**Waves:**
-1. Three pieces in parallel, each with its own files.
+**Waves** (1 and 2 are done; 3 is in progress):
+1. Done. Three pieces in parallel, each with its own files.
    - The layout and the basics: `ToolPageLayout.astro`, `ToolHero.astro`, `AppBar.astro`,
      `TrustChips.astro`, the h1 split fields in `src/data/tools.js` and `src/i18n/localizedTools.ts`.
      This is HERO-02.
@@ -193,12 +229,12 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
      This is HERO-03.
    - The drop-anywhere hook and its pure counter: a new `src/shell/useWindowFileDrop.ts` and its test.
      This is HERO-04.
-2. One writer wires `BasePdfTool` and `DropzoneEmptyState` to `emptyArt`, `data-empty` and the hook.
-   Meanwhile the Image to PDF, Unlock and Edit Pages verbs are built in parallel, each in its own tool
-   folder.
-3. The other four page-grid verbs: written pitches and one rough sketch round, Shlomi picks, then a
-   parallel build.
-4. The guards, the guideline and rule updates, the production path matrix, and the fresh review.
+2. Done. One writer wired `BasePdfTool` and `DropzoneEmptyState` to `emptyArt` and the hook, and the
+   Merge, Image to PDF, Unlock and Edit Pages verbs were built, each in its own tool folder.
+3. The other four page-grid verbs (Split, Compress, PDF to Image, Compress Image): written pitches and
+   one rough sketch round, in progress. Shlomi picks, then a parallel build.
+4. The first-screen guard is built. Still to do: the guideline and rule updates, the production path
+   matrix, and the fresh review.
 5. HERO-05, Sign and Redact, on the same frame.
 
 ## Open questions

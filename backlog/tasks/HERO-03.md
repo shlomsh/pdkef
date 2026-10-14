@@ -32,3 +32,21 @@ depends_on: ["HERO-02"]
 - Playwright (chromium): layout shift stays at 0 while the verb plays; under reduced motion the verb
   shows its last frame with no running animation.
 - `test:weight` and the CSS ratchets do not rise: each page ships only its own verb.
+
+## Progress
+
+*2026-10-15.* Landed on the branch:
+
+- `a1da04b1` the empty state is one sheet with an art slot (`DropzoneEmptyState.tsx`,
+  `Dropzone.module.css`); `BasePdfTool` takes `emptyArt`. The checking-draft placeholder wears the same
+  sheet.
+- `baf5d34a` the shared paper pieces in `src/shell/verb/` and the Merge, Image to PDF, Unlock or Protect
+  and Edit Pages verbs in `src/tools/<tool>/verb/`, each with a unit test. Unlock's lock and hatch live
+  in its own folder, since only it uses them.
+- `2eb5b3e4` the sheet's quiet line is a text block with an inline check mark.
+- `e2e/tool-hero-first-screen.spec.js` (from `909f6299`) covers layout shift while the verb plays and
+  the reduced-motion last frame, for Merge and Unlock.
+
+Left: the Split, Compress, PDF to Image and Compress Image verbs (written pitches and a rough sketch
+round are in progress, then Shlomi picks), the unit test that every page-grid tool passes an `emptyArt`
+(it needs all eight), and `test:weight` and the CSS ratchets on a production build.
