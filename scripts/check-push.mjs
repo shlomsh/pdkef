@@ -225,7 +225,8 @@ export function stageSteps(steps) {
 // ---------------------------------------------------------------------------
 // Everything below this line is I/O: git/npm/npx subprocesses, console
 // output. Not unit tested, by design - reachesDist() and planSteps() above
-// are the pure logic scripts/check-push.test.mjs pins.
+// are the pure logic scripts/check-push.test.mjs pins, as is runStageWith()'s
+// close handling (fake children).
 
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -328,33 +329,37 @@ function computeScope() {
 
 // Run one stage's steps concurrently (bounded by the CPU count), buffering each
 // step's output and printing it only for a failure. The first failure kills
-// the rest of the stage.
-function runStage(ids, passthroughArgs) {
+// the rest of the stage. `spawnStep(id)` returns a child-process-like object
+// (stdout/stderr emitters, kill(), a `close` event) so the close handling is
+// testable without real subprocesses.
+export function runStageWith(ids, { spawnStep, limit = Math.max(2, availableParallelism()), log = console.error } = {}) {
   return new Promise((resolve) => {
     const queue = [...ids];
     const results = [];
     const running = new Set();
     let failed = false;
-    const limit = Math.max(2, availableParallelism());
     const pump = () => {
       while (!failed && running.size < limit && queue.length > 0) {
         const id = queue.shift();
         const t0 = Date.now();
-        const child = spawn('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+        const child = spawnStep(id);
         let out = '';
         child.stdout.on('data', (d) => (out += d));
         child.stderr.on('data', (d) => (out += d));
         running.add(child);
         child.on('close', (code, signal) => {
           running.delete(child);
-          if (signal && failed) return;
-          const seconds = (Date.now() - t0) / 1000;
-          results.push({ id, seconds, status: code ?? 1 });
-          console.error(`[check:push] ${id}: ${seconds.toFixed(1)}s${code === 0 ? '' : ` (exit ${code})`}`);
-          if (code !== 0 && !failed) {
-            failed = true;
-            console.error(`\n--- ${id} output ---\n${out}`);
-            for (const other of running) other.kill();
+          // A sibling killed after a failure leaves no result, but it must still
+          // fall through to the resolve check below: it may be the last to close.
+          if (!(signal && failed)) {
+            const seconds = (Date.now() - t0) / 1000;
+            results.push({ id, seconds, status: code ?? 1 });
+            log(`[check:push] ${id}: ${seconds.toFixed(1)}s${code === 0 ? '' : ` (exit ${code})`}`);
+            if (code !== 0 && !failed) {
+              failed = true;
+              log(`\n--- ${id} output ---\n${out}`);
+              for (const other of running) other.kill();
+            }
           }
           if (running.size === 0 && (queue.length === 0 || failed)) resolve({ results, failed });
           else pump();
@@ -363,6 +368,11 @@ function runStage(ids, passthroughArgs) {
     };
     pump();
   });
+}
+
+function runStage(ids, passthroughArgs) {
+  const spawnStep = (id) => spawn('node', [fileURLToPath(import.meta.url), '--step', id, ...passthroughArgs], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  return runStageWith(ids, { spawnStep });
 }
 
 async function main() {
@@ -416,5 +426,14 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
-  main();
+  // An unsettled or rejected run must never read as success. main() always ends
+  // in process.exit, so the event loop emptying first means it never finished.
+  process.on('beforeExit', () => {
+    console.error('[check:push] stopped before finishing; treating as a failure.');
+    process.exit(1);
+  });
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
