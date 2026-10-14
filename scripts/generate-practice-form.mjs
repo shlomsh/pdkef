@@ -39,10 +39,10 @@ import {
  * uses; `readColorTokens()`/`resolvePalette()` below read that file at generation time and resolve
  * those names to real `#rrggbb` hex, failing loudly if a token is missing or is anything other than
  * a literal hex colour (a `var()`/`rgba()`/`color-mix()` value this generator cannot evaluate). The
- * header also embeds the app's own logo - `practice-form-logo.png`, a 96x96 derivative of
- * `src/assets/logo.png` committed next to this script (that 512x512 master would bloat the PDF for
- * a mark drawn at ~20pt). It was made once, by hand, with macOS's built-in `sips`:
- * `sips -Z 96 src/assets/logo.png --out scripts/practice-form-logo.png`. Re-run that if the logo
+ * header also embeds the app's own logo - `practice-form-logo.png`, a 192x192 derivative of
+ * `src/assets/logo.png` committed next to this script (that 512x512 master would bloat the PDF, ~198 KB embedded against ~45 KB
+ * for the 192px one, for a mark drawn at ~20pt; 192px keeps it sharp when zoomed). It was made once, by hand, with macOS's built-in `sips`:
+ * `sips -Z 192 src/assets/logo.png --out scripts/practice-form-logo.png`. Re-run that if the logo
  * itself ever changes; there is no build step that regenerates it.
  */
 
