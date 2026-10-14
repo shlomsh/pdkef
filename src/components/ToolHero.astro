@@ -340,15 +340,17 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      phone), and it is kept there, unchanged, for exactly that reason. At
      1024px and up the fold-away's own stated purpose - fit the page in a
      desktop viewport after a file is picked - is now met a different way: the
-     dropzone/identity-row box below is a fixed 168px on desktop instead of
+     loaded card's identity row below is a compact row on desktop instead of
      the ~320px stacked dropzone that used to sit there (see
-     Dropzone.module.css and ToolShell.module.css), which still buys back
-     more vertical space than this fold-away used to cost. See the fit
+     ToolShell.module.css), and the HERO-02 fold below (one row of tile and
+     name) takes the hero's own height back, which together buy back more
+     vertical space than this fold-away used to cost. See the fit
      numbers this traded against in pick-stability.mjs's report. Confirm the
      fit again before ever reverting this split. */
   @media (max-width: 1023px) {
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
-    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable] {
+    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-condensable] {
       padding-bottom: 0.75rem;
 
       /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
@@ -360,7 +362,8 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     }
 
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub] {
+    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-condensable] [data-hero-sub] {
       display: none;
     }
   }
@@ -422,6 +425,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable],
     :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable],
     :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable],
     :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] {
       --hero-icon: 2rem;
       padding-top: 1rem;
@@ -431,6 +435,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
     :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
     :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
     :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row] {
       flex-direction: row;
       align-items: center;
@@ -441,6 +446,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
     :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
     :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
     :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name] {
       font-size: 1.6rem;
     }
@@ -448,6 +454,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
     :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
     :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub],
     :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-sub] {
       display: none;
     }
@@ -456,6 +463,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
     :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
     :global(html[data-view-density='condensed'][data-merge-restore]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
+    :global(html[data-view-density='condensed'][data-handoff-pending]) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest],
     :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-rest] {
       position: absolute;
       width: 1px;

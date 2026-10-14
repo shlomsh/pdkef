@@ -102,6 +102,32 @@ describe('useHandoffFilesIntake', () => {
     expect(onFiles).not.toHaveBeenCalled();
   });
 
+  it('a stale marker (nothing stored) clears the key and the html attribute at once', async () => {
+    sessionStorage.setItem('pdkef:handoff-pending:merge', '1');
+    document.documentElement.setAttribute('data-handoff-pending', '1');
+    takeHandoffMock.mockResolvedValueOnce(null);
+    await settle(<FilesHarness tool="merge" onFiles={vi.fn()} />);
+    expect(sessionStorage.getItem('pdkef:handoff-pending:merge')).toBeNull();
+    expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(false);
+  });
+
+  it('a consumed hand-off clears the key now and keeps the attribute until the tool shows its file', async () => {
+    sessionStorage.setItem('pdkef:handoff-pending:merge', '1');
+    document.documentElement.setAttribute('data-handoff-pending', '1');
+    takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: buf(1) });
+    const onFiles = vi.fn();
+    await settle(<FilesHarness tool="merge" onFiles={onFiles} />);
+    expect(onFiles).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('pdkef:handoff-pending:merge')).toBeNull();
+    expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(true);
+    const card = document.createElement('div');
+    card.setAttribute('data-tool-loaded', '');
+    document.body.append(card);
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(false);
+    card.remove();
+  });
+
   it('drops a result that resolves after unmount', async () => {
     let resolveHandoff;
     takeHandoffMock.mockReturnValueOnce(new Promise((r) => { resolveHandoff = r; }));

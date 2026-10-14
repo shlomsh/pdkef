@@ -182,7 +182,9 @@ export default defineConfig({
         // entry" pointer (pdf-toolkit:workspace:current:<slug>) instead of
         // the retired has-draft:<slug> hint key - see ToolPageLayout.astro's
         // comment on the script.
-        hashes: ['sha256-/6NkfwQgTs+tAfl+ItXsJSCGQCbDsegQlJJPvZgAuyc=']
+        // HERO-02: the script also reads the hand-off marker
+        // (pdkef:handoff-pending:<slug>, src/lib/handoffPending.ts).
+        hashes: ['sha256-Z9AiwdF0bptHZKyQVOtbvFz1N+m9QEXOTEPhv9rZ2QY=']
       },
       styleDirective: { src: ["'self'"] }
     }
