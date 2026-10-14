@@ -1,0 +1,92 @@
+/* Base styles are the LAST frame, so reduced motion sees the finished row:
+   one page turned 90 degrees, one gone, the row closed. */
+.e1 {
+  translate: calc(-88 * var(--u)) 0;
+}
+
+.e2 {
+  translate: calc(-38 * var(--u)) calc(-26 * var(--u));
+  opacity: 0;
+  scale: 0.86;
+}
+
+.e3 {
+  translate: 0 0;
+  rotate: 90deg;
+  scale: 0.76;
+}
+
+.e4 {
+  translate: calc(88 * var(--u)) 0;
+}
+
+@keyframes e1 {
+  0%,
+  62% {
+    translate: calc(-114 * var(--u)) 0;
+  }
+}
+
+@keyframes e2 {
+  0%,
+  40% {
+    translate: calc(-38 * var(--u)) 0;
+    opacity: 1;
+    scale: 1;
+  }
+  52% {
+    translate: calc(-38 * var(--u)) calc(-12 * var(--u));
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes e3 {
+  0%,
+  8% {
+    translate: calc(38 * var(--u)) 0;
+    rotate: 0deg;
+    scale: 1;
+  }
+  22% {
+    translate: calc(38 * var(--u)) calc(-18 * var(--u));
+    rotate: 0deg;
+    scale: 0.9;
+  }
+  34% {
+    translate: calc(38 * var(--u)) calc(-18 * var(--u));
+    rotate: 90deg;
+    scale: 0.76;
+  }
+  44%,
+  62% {
+    translate: calc(38 * var(--u)) 0;
+    rotate: 90deg;
+    scale: 0.76;
+  }
+}
+
+@keyframes e4 {
+  0%,
+  62% {
+    translate: calc(114 * var(--u)) 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .e1 {
+    animation: e1 2s var(--ease-emphasized) 0.2s both;
+  }
+
+  .e2 {
+    animation: e2 2s var(--ease-emphasized) 0.2s both;
+  }
+
+  .e3 {
+    animation: e3 2s var(--ease-emphasized) 0.2s both;
+  }
+
+  .e4 {
+    animation: e4 2s var(--ease-emphasized) 0.2s both;
+  }
+}

@@ -1,0 +1,89 @@
+/* Base styles are the LAST frame: shackle open, hatching cleared, lock beside the page. */
+.big {
+  width: calc(92 * var(--u));
+  height: calc(120 * var(--u));
+  margin: calc(-64 * var(--u)) 0 0 calc(-46 * var(--u));
+}
+
+.big::before {
+  height: calc(62 * var(--u));
+  inset: calc(20 * var(--u)) calc(14 * var(--u)) auto;
+}
+
+.hatch {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(4 * var(--u));
+  background:
+    repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--color-text) 14%, transparent) 0 calc(4 * var(--u)),
+      transparent calc(4 * var(--u)) calc(9 * var(--u))
+    ),
+    color-mix(in srgb, var(--color-primary-soft) 75%, transparent);
+  clip-path: inset(0 0 100% 0);
+}
+
+.lock {
+  --lx: 40;
+  --ly: -54;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(40 * var(--u));
+  height: calc(46 * var(--u));
+  margin: calc(-27 * var(--u)) 0 0 calc(-20 * var(--u));
+  color: var(--color-text);
+  translate: calc(var(--lx) * var(--u)) calc(var(--ly) * var(--u));
+  scale: 0.62;
+}
+
+.shackle {
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+  transform: translateY(-5px) rotate(32deg);
+}
+
+@keyframes lockMove {
+  0%,
+  58% {
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes shackleOpen {
+  0%,
+  22% {
+    transform: translateY(0) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-5px) rotate(0deg);
+  }
+}
+
+@keyframes unhatch {
+  0%,
+  45% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lock {
+    animation: lockMove 1.9s var(--ease-emphasized) 0.2s both;
+  }
+
+  .shackle {
+    animation: shackleOpen 1.9s var(--ease-emphasized) 0.2s both;
+  }
+
+  .hatch {
+    animation: unhatch 1.9s var(--ease-emphasized) 0.2s both;
+  }
+}
+
+/* var() is not reliable in an SVG presentation attribute, so the keyhole takes its fill here. */
+.keyhole {
+  fill: var(--color-surface);
+}

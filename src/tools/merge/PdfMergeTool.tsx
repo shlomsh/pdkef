@@ -28,6 +28,7 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import MergeVerb from './verb/MergeVerb.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
@@ -1250,6 +1251,7 @@ export default function PdfMergeTool({
       emptyHeading={t.emptyHeading}
       emptyStateMessage={t.dropHere}
       emptyBody={t.emptyBody}
+      emptyArt={<MergeVerb />}
       checkingDraft={!hasFiles && draftState.isRestoring}
       hideIdentity
     >

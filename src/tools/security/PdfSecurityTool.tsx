@@ -6,6 +6,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import UnlockVerb from './verb/UnlockVerb.tsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
@@ -229,6 +230,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
 
   return (
     <BasePdfTool
+      emptyArt={<UnlockVerb />}
       hasFiles={hasFiles}
       analyticsTool={mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined}
       // A mistyped password is the form working, not an operation that failed: it stays out of the failure count.
