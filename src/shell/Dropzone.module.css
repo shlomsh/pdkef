@@ -187,19 +187,22 @@
   border: 0;
 }
 
+/* A text block with the check mark inline, not a flex row: Merge's longer
+   line wraps, and in a flex row the mark floated beside both lines. */
 .privacy-line {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  max-width: 34rem;
   margin: 0;
   color: var(--color-muted);
   font-size: 0.875rem;
   line-height: 1.4;
+  text-wrap: balance;
 }
 
 .privacy-line svg {
+  display: inline-block;
+  margin-inline-end: 0.4rem;
+  vertical-align: -0.15em;
   color: inherit;
-  flex-shrink: 0;
 }
 
 /* MOBI-09: the Files-app route notice, shown only on iOS (DropzoneEmptyState.tsx's
