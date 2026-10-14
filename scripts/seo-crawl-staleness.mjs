@@ -25,11 +25,18 @@
 //   node scripts/seo-crawl-staleness.mjs --fetch    # also fetch live <title> to confirm
 //                                                   # what we currently serve
 //   node scripts/seo-crawl-staleness.mjs --markdown # emit a paste-ready table
+//
+// Lead column. For a tool page (and its /he/ edition) with a crawl date, the title and h1
+// are read from the last commit before that day and compared with today's. "LEAD CHANGED"
+// means the phrase before the first " - ", ":" or "|" differs: SEO-45 is the case where an
+// indexing request after exactly that took /merge/ off page one. Run this before every
+// indexing request and make a LEAD CHANGED page a deliberate one. Report only, no gate.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { classifyPage, titlesFromToolsSource, titlesFromYaml } from './seo-title-lead.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://pdkef.com';
@@ -184,6 +191,52 @@ function inventory() {
   return rows;
 }
 
+// Title and h1 as of the last commit before the crawl day, or null when git cannot say
+// (shallow clone, file not yet there).
+function titlesAt(crawledDay, relPath, parse) {
+  try {
+    const sha = git(['rev-list', '-1', `--before=${crawledDay}T00:00:00`, 'HEAD']).trim();
+    if (!sha) return null;
+    return parse(git(['show', `${sha}:${relPath}`]));
+  } catch {
+    return null;
+  }
+}
+
+const TOOLS_JS = 'src/data/tools.js';
+
+// URL -> { relPath, parse(source) -> {seoTitle, h1} | undefined } for the pages whose
+// title and h1 live in tools.js or a localized tool yaml; others have no lead check.
+function titleSources() {
+  const sources = {};
+  const current = titlesFromToolsSource(readFileSync(resolve(root, TOOLS_JS), 'utf8'));
+  for (const url of Object.keys(current)) {
+    sources[url] = {
+      relPath: TOOLS_JS,
+      parse: (src) => titlesFromToolsSource(src)[url],
+      now: current[url],
+    };
+    const slug = url.replace(/^\/|\/$/g, '');
+    const yaml = `src/content/localized-tools/he/${slug}.yaml`;
+    if (existsSync(resolve(root, yaml))) {
+      sources[`/he${url}`] = {
+        relPath: yaml,
+        parse: titlesFromYaml,
+        now: titlesFromYaml(readFileSync(resolve(root, yaml), 'utf8')),
+      };
+    }
+  }
+  return sources;
+}
+
+function leadCheck(url, crawled, sources) {
+  const source = sources[url];
+  if (!source) return null;
+  if (!crawled) return { state: 'no crawl date' };
+  const before = titlesAt(crawled, source.relPath, source.parse) ?? null;
+  return { ...classifyPage(before, source.now), before, now: source.now };
+}
+
 async function fetchTitle(url) {
   try {
     const res = await fetch(`${SITE}${url}`, { redirect: 'follow' });
@@ -221,8 +274,10 @@ async function main() {
     console.log('Fill that file from URL Inspection to get staleness verdicts.\n');
   }
 
+  const sources = titleSources();
   for (const row of rows) {
     row.crawled = crawled[row.url] ?? null;
+    row.lead = leadCheck(row.url, row.crawled, sources);
     row.verdict = verdict(row.changed?.date, row.crawled);
     if (wantFetch) row.liveTitle = await fetchTitle(row.url);
   }
@@ -234,11 +289,11 @@ async function main() {
   });
 
   if (wantMarkdown) {
-    console.log('| URL | Content changed | Last crawled | Verdict |');
-    console.log('| --- | --- | --- | --- |');
+    console.log('| URL | Content changed | Last crawled | Verdict | Title/h1 lead |');
+    console.log('| --- | --- | --- | --- | --- |');
     for (const r of rows) {
       console.log(
-        `| \`${r.url}\` | ${day(r.changed?.date)} | ${r.crawled ?? '-'} | ${r.verdict.label} |`,
+        `| \`${r.url}\` | ${day(r.changed?.date)} | ${r.crawled ?? '-'} | ${r.verdict.label} | ${r.lead?.state ?? '-'} |`,
       );
     }
   } else {
@@ -246,8 +301,15 @@ async function main() {
     for (const r of rows) {
       const flag = r.verdict.stale ? '!' : ' ';
       let line = `${flag} ${r.url.padEnd(pad)}  changed ${day(r.changed?.date)}`;
-      line += `  crawled ${(r.crawled ?? '-').padEnd(10)}  ${r.verdict.label}`;
+      line += `  crawled ${(r.crawled ?? '-').padEnd(10)}  ${r.verdict.label.padEnd(8)}`;
+      line += `  lead: ${r.lead?.state ?? '-'}`;
       console.log(line);
+      if (r.lead?.before && r.lead.state !== 'unchanged') {
+        for (const field of ['seoTitle', 'h1']) {
+          if (r.lead[field] === 'unchanged' || r.lead[field] === 'no history') continue;
+          console.log(`  ${''.padEnd(pad)}  ${field} ${r.lead[field]}: "${r.lead.before[field]}" -> "${r.lead.now[field]}"`);
+        }
+      }
       if (r.changed) {
         const skipped = r.changed.commentOnlySkipped
           ? `  (skipped ${r.changed.commentOnlySkipped} comment-only)`
@@ -265,6 +327,12 @@ async function main() {
     console.log('Stale means Google last crawled the URL before its content last changed,');
     console.log('so what ranks is not what we serve. Request indexing for these:');
     for (const r of stale) console.log(`  ${SITE}${r.url}`);
+  }
+  const leadChanged = rows.filter((r) => r.lead?.state === 'LEAD CHANGED');
+  if (leadChanged.length) {
+    console.log('\nLEAD CHANGED since Google last crawled (SEO-45: an indexing request after a');
+    console.log('rewritten lead took /merge/ off page one). Request indexing only on purpose:');
+    for (const r of leadChanged) console.log(`  ${SITE}${r.url}`);
   }
   if (unknown.length && !existsSync(CRAWL_DATA)) {
     console.log('\nTo record crawl dates: URL Inspection in Search Console, one URL at a time,');
