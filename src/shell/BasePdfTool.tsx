@@ -285,7 +285,7 @@ export default function BasePdfTool({
 
   // A drop on the window that no element handler took (the hook skips
   // defaultPrevented drops, so the sheet and the workspace never run twice).
-  const windowDragging = useWindowFileDrop({ enabled: dropAnywhere, onDrop: receiveDrop });
+  const windowDragging = useWindowFileDrop({ enabled: dropAnywhere && !checkingDraft, onDrop: receiveDrop });
 
   // MERGE-10: Cmd/Ctrl+V with files on the clipboard adds them, in every tool,
   // through the same gate a drop goes through. Text pastes are left alone.
