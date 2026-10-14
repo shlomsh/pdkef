@@ -1016,6 +1016,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     <BasePdfTool
       hasFiles={hasFiles}
       analyticsTool="sign"
+      dropAnywhere={false}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
