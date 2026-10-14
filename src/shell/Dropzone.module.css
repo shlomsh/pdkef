@@ -66,8 +66,24 @@
   .dropzone[data-empty-state],
   .dropzone[aria-busy] {
     padding: 1.5rem 2rem 2rem;
-    min-height: min(36rem, calc(var(--first-screen, 40rem) - 9rem));
     justify-content: center;
+  }
+
+  /* Only the page-grid tools' two-column first screen gives the sheet the
+     screen's height. Sign and Redact keep their own stacked page until
+     HERO-05, where a screen-tall sheet under the hero was one big white box. */
+  :global(.tool-stage[data-layout='hero']) .dropzone[data-empty-state],
+  :global(.tool-stage[data-layout='hero']) .dropzone[aria-busy] {
+    min-height: min(36rem, calc(var(--first-screen, 40rem) - 9rem));
+  }
+
+  /* Compress and Compress Image (`compact`) show their quality choices under
+     the sheet before a file is picked, so the sheet takes its content's height
+     and leaves the rest of the first screen to them; otherwise the column ran
+     past the fold and the hero centred far below the top. */
+  .dropzone[data-empty-state][data-compact],
+  .dropzone[aria-busy][data-compact] {
+    min-height: 0;
   }
 
   .dropzone[data-empty-state] > :first-child {
