@@ -77,6 +77,23 @@ test.describe('first screen', () => {
   }
 });
 
+// The sheet (<main> is top-aligned so late content shifts nothing) is centred in the first screen by
+// a static margin, so its centre sits with the hero's, not high above it on a tall screen. Compress
+// and Compress Image have a column taller than the screen and keep margin 0.
+for (const route of ROUTES.filter((r) => !COMPACT.has(r))) {
+  for (const size of SIZES) {
+    test(`${route} sheet is centred with the hero at ${size.width}x${size.height}`, async ({ page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await open(page, route);
+      const mids = await page.evaluate(() => {
+        const mid = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
+        return { hero: mid(document.querySelector('.tool-hero')), sheet: mid(document.querySelector('.tool-stage [data-empty-state]')) };
+      });
+      expect(Math.abs(mids.sheet - mids.hero), `sheet centre ${mids.sheet} vs hero centre ${mids.hero}`).toBeLessThanOrEqual(48);
+    });
+  }
+}
+
 test('a file dropped on the hero text column loads in the tool', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 820 });
   await open(page, '/merge/');

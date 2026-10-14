@@ -379,8 +379,21 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
            them back, so the island's edge is the column's edge. global.css's
            `main { width: 100% }` would pin the width to the column and leave the
            box 48px short of its end edge, so the width is auto here. */
-        margin: 0 -1.5rem -1.25rem;
+        margin-inline: -1.5rem;
+        margin-bottom: -1.25rem;
+        /* Still top-aligned, but pushed down by the gap that centres a 36rem sheet in
+           row 1 (Dropzone.module.css: min-height min(36rem, first screen - 9rem); where
+           that is shorter, Merge's content is taller, so 36rem is the safe height and the
+           margin is 0 whenever row 1 is not taller than that). It reads only the viewport,
+           never the content, so nothing moves while <main> parses. */
+        margin-top: max(0px, calc((var(--first-screen) - 5rem - 36rem) / 2));
         width: auto;
+      }
+
+      /* Compress and Compress Image: the sheet carries data-compact and the column is
+         taller than the screen, so there is nothing to centre. */
+      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main:has([data-compact]) {
+        margin-top: 0;
       }
 
       :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {
