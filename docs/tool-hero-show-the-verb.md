@@ -237,6 +237,19 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
    matrix, and the fresh review.
 5. HERO-05, Sign and Redact, on the same frame.
 
+## Decisions made during the build (2026-10-15)
+
+- Sign and Redact share the new empty-state sheet (white, content height) ahead of HERO-05, rather
+  than keeping the old dashed paper strip. Their own first-screen layout still waits for HERO-05.
+- The On-device chip is outlined on every page except home (`src/components/AppBar.astro`), content
+  pages included, not only tool pages.
+- The compress verbs show what compression really does: the same document at a lower resolution, text
+  and image a little less sharp, never pages merging into one (Shlomi, 2026-10-15). The sketch is
+  `docs/tool-hero-sketch/compress-verbs.html`.
+- Split deals pages from one deck onto a second, then the two decks part (sketch:
+  `docs/tool-hero-sketch/more-verbs.html`).
+- Unlock condenses after load like the other page-grid tools; its old opt-out had no reason left.
+
 ## Open questions
 
 - The drag-over caption's English and Hebrew wording (Shlomi).
