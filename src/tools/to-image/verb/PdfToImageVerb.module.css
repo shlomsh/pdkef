@@ -1,0 +1,75 @@
+/* Base styles are the LAST frame: a white-bordered print, a little taller than the page, tilted 5 degrees. */
+.print {
+  width: calc(84 * var(--u));
+  height: calc(106 * var(--u));
+  margin: calc(-55 * var(--u)) 0 0 calc(-42 * var(--u));
+  rotate: 5deg;
+}
+
+.print::before {
+  inset: calc(8 * var(--u)) calc(8 * var(--u)) calc(28 * var(--u));
+}
+
+/* The page's lines, gone by the last frame */
+.print::after {
+  content: '';
+  position: absolute;
+  inset: calc(16 * var(--u)) calc(10 * var(--u)) auto;
+  height: calc(30 * var(--u));
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-border) 0 calc(3 * var(--u)),
+    transparent calc(3 * var(--u)) calc(8 * var(--u))
+  );
+  opacity: 0;
+}
+
+@keyframes lift {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  30% {
+    translate: 0 calc(-16 * var(--u));
+    rotate: 0deg;
+  }
+}
+
+@keyframes grow {
+  0%,
+  40% {
+    width: calc(70 * var(--u));
+    height: calc(92 * var(--u));
+    margin: calc(-48 * var(--u)) 0 0 calc(-35 * var(--u));
+  }
+}
+
+@keyframes linesOut {
+  0%,
+  35% {
+    opacity: 1;
+  }
+}
+
+@keyframes photoIn {
+  0%,
+  40% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .print {
+    animation:
+      lift 1.8s var(--ease-emphasized) 0.2s both,
+      grow 1.8s var(--ease-emphasized) 0.2s both;
+  }
+
+  .print::after {
+    animation: linesOut 1.8s ease 0.2s both;
+  }
+
+  .print::before {
+    animation: photoIn 1.8s ease 0.2s both;
+  }
+}
