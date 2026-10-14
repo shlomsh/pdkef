@@ -16,6 +16,9 @@ import {
   listDeletableObjects,
   buildDeletePreviewPage,
 } from './deleteObjects.js';
+import { reportError } from '../../../lib/errorReport.ts';
+
+vi.mock('../../../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 // A real, valid 1x1 transparent PNG (67 bytes).
 const PNG_1X1_BASE64 =
@@ -478,6 +481,27 @@ describe('listDeletableObjects', () => {
     const objects = await listDeletableObjects(source);
     expect(new Set(objects.map((o) => o.pageIndex))).toEqual(new Set([0, 1]));
     expect(objects.filter((o) => o.pageIndex === 1)).toHaveLength(4);
+  });
+
+  it('skips a page whose content stream will not decode, quietly (DEBT-49)', async () => {
+    const doc = await PDFDocument.load(await buildSample());
+    const [copied] = await doc.copyPages(doc, [0]);
+    const damaged = doc.addPage(copied);
+    const garbage = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8]);
+    const ref = doc.context.register(
+      doc.context.stream(garbage, { Filter: PDFName.of('FlateDecode') }),
+    );
+    damaged.node.set(PDFName.of('Contents'), ref);
+    const source = new Uint8Array(await doc.save());
+
+    vi.mocked(reportError).mockClear();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const objects = await listDeletableObjects(source);
+    consoleSpy.mockRestore();
+
+    expect(reportError).not.toHaveBeenCalled();
+    expect(objects.length).toBeGreaterThan(0);
+    expect(objects.every((o) => o.pageIndex === 0)).toBe(true);
   });
 
   it('skips a page the extractor cannot parse instead of failing the whole file', async () => {

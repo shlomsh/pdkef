@@ -186,6 +186,15 @@ function numberAt(context, dict, key) {
   return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
 }
 
+/** A page's content stream is damaged and will not decode (the person's file). */
+export class ContentStreamDecodeError extends Error {
+  constructor(cause) {
+    super(`Content stream will not decode: ${cause?.message ?? cause}`);
+    this.name = 'ContentStreamDecodeError';
+    this.cause = cause;
+  }
+}
+
 /**
  * Concatenates a page's content streams into one buffer.
  *
@@ -207,7 +216,13 @@ export function getPageContentBytes(page) {
     }
   }
 
-  const parts = streams.map((stream) => decodePDFRawStream(stream).decode());
+  const parts = streams.map((stream) => {
+    try {
+      return decodePDFRawStream(stream).decode();
+    } catch (err) {
+      throw new ContentStreamDecodeError(err);
+    }
+  });
   if (parts.length === 0) return new Uint8Array(0);
   if (parts.length === 1) return parts[0];
 
