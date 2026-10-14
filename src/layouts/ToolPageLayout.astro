@@ -332,7 +332,11 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) {
         display: grid;
         grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-        grid-template-rows: 1fr auto;
+        /* Row 1 is the first screen's own height (block padding 2.5rem, footer 2.5rem),
+           so the hero centres in it whatever <main> does. <main> spans rows 1-2: row 2
+           is 0 unless the tool column is taller than row 1, then it takes the excess,
+           so <main> starts at the top and the footer row follows it. */
+        grid-template-rows: calc(var(--first-screen) - 5rem) auto 2.5rem;
         column-gap: 3.5rem;
         min-height: var(--first-screen);
         padding-block: 1.5rem 1rem;
@@ -350,7 +354,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
 
       :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > main {
         grid-column: 2;
-        grid-row: 1;
+        grid-row: 1 / 3;
         align-self: center;
         /* <main>'s utilities are `!important` and sit in a layer, and for
            important declarations the layered ones win, so its 1.5rem side and
@@ -361,7 +365,8 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
 
       :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > [data-airplane-note] {
         grid-column: 1;
-        grid-row: 2;
+        grid-row: 3;
+        align-self: center;
         max-width: none;
         margin: 0;
         padding: 0;
@@ -371,7 +376,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > [data-how-link] {
         display: inline-flex;
         grid-column: 2;
-        grid-row: 2;
+        grid-row: 3;
         align-items: center;
         gap: 0.4rem;
         justify-self: end;
