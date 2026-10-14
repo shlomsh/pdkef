@@ -36,6 +36,7 @@
   color: var(--color-text);
   translate: calc(var(--lx) * var(--u)) calc(var(--ly) * var(--u));
   scale: 0.62;
+  overflow: visible;
 }
 
 .shackle {

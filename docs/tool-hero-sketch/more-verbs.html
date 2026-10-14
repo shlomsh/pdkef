@@ -16,7 +16,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(#c3f0e6,#faf7f1 70%);c
 .bar{display:flex;align-items:center;gap:16px;margin-bottom:24px}
 .bar h1{margin:0;font-size:22px;letter-spacing:-.02em}
 .btn{display:inline-flex;align-items:center;height:46px;padding:0 20px;border-radius:12px;background:var(--primary);color:var(--white);font:650 15px var(--f-ui);border:0;cursor:pointer}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,600px));gap:40px 40px;justify-content:center}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,420px));gap:40px;justify-content:center;margin-bottom:40px;align-items:start}
 .cell{display:grid;gap:10px;align-content:start}
 .name{text-align:center;font-weight:700;font-size:18px}
 .sheet{background:var(--white);border-radius:22px;padding:16px 20px 24px;display:grid;gap:12px;justify-items:center;box-shadow:0 1px 0 rgba(11,76,76,.06),0 26px 50px -32px rgba(6,43,43,.45)}
@@ -24,7 +24,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(#c3f0e6,#faf7f1 70%);c
 .fh.s{width:40%;height:12px;margin-top:-4px}
 .fb{height:46px;padding:0 20px;border-radius:12px;background:var(--primary);color:var(--white);font:650 15px/46px var(--f-ui)}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.cards i{height:56px;border-radius:14px;background:var(--white);box-shadow:0 0 0 1px var(--border)}
+.cards i{height:200px;border-radius:14px;background:var(--white);box-shadow:0 0 0 1px var(--border)}
 .cards i:nth-child(2){box-shadow:0 0 0 2px var(--primary)}
 
 /* the verb stage: 200px tall everywhere, so the two with quality cards fit */
@@ -37,13 +37,16 @@ body{margin:0;min-height:100vh;background:linear-gradient(#c3f0e6,#faf7f1 70%);c
 .ph b{position:absolute;inset:8px 7px 26px;border-radius:2px;background:radial-gradient(circle at 72% 28%,var(--sun) 0 5px,transparent 6px),linear-gradient(155deg,transparent 52%,var(--hill) 52% 74%,var(--primary) 74%),linear-gradient(var(--primary-tint),var(--primary-soft));box-shadow:0 0 0 1px rgba(11,76,76,.06)}
 .ghost{position:absolute;left:50%;top:50%;border:2px dashed var(--border-strong);border-radius:8px;opacity:.7}
 
-/* split: last frame = two stacks apart, faint tear line between */
-.stk{position:absolute;inset:0;translate:var(--sx) 0}
-.stk.l{--sx:-58px}.stk.r{--sx:58px}
-.stk .pg:nth-child(1){translate:0 0}
-.stk .pg:nth-child(2){translate:0 -5px}
-.stk .pg:nth-child(3){translate:0 -10px}
-.tear{position:absolute;left:50%;top:50%;height:120px;margin:-66px 0 0 -1px;border-left:2px dashed var(--border-strong);opacity:.8}
+/* split: a deck of ten (each page 3px right, 4px down). The top five are dealt one by one onto a pile beside it, then the two decks slide apart.
+   Bottom pages stay put; pages come off and land on top, so the last frame (two decks of five) is the base. */
+.v-split{--dx:3px;--dy:4px}
+.dk{position:absolute;inset:0}
+.dk.l{translate:-82px 6px;z-index:1}
+.dk.r{translate:82px 6px;z-index:2}
+.v-split .pg{box-shadow:0 0 0 1px var(--border)}
+.v-split .pg.last{box-shadow:0 0 0 1px var(--border),0 12px 16px -8px rgba(6,43,43,.5),0 4px 6px -3px rgba(6,43,43,.25)}
+.v-split .dk.l .pg{translate:calc((var(--i) - 5)*var(--dx)) calc((var(--i) - 5)*var(--dy));z-index:calc(10 - var(--i))}
+.v-split .dk.r .pg{translate:calc((4 - var(--k))*var(--dx)) calc((4 - var(--k))*var(--dy));z-index:calc(10 + var(--k))}
 
 /* compress: page settles to .78 inside the dashed outline of its old size */
 .v-comp .pg{scale:.78;translate:0 6px;box-shadow:0 0 0 1px var(--border),0 4px 8px -6px rgba(6,43,43,.35)}
@@ -54,60 +57,101 @@ body{margin:0;min-height:100vh;background:linear-gradient(#c3f0e6,#faf7f1 70%);c
 .v-p2i .ph b{inset:8px 8px 28px}
 .v-p2i .ph::before{content:"";position:absolute;inset:16px 10px auto;height:30px;background:repeating-linear-gradient(to bottom,var(--border) 0 3px,transparent 3px 8px);opacity:0}
 
-/* compress image: a landscape print settles smaller */
-.v-cimg .ph{width:124px;height:90px;margin:-50px 0 0 -62px;scale:.74;translate:0 6px;box-shadow:0 0 0 1px var(--border),0 4px 8px -6px rgba(6,43,43,.35)}
-.v-cimg .ph b{inset:6px}
-.v-cimg .ghost{width:124px;height:90px;margin:-50px 0 0 -62px;scale:1.28}
+/* compress image A: two brackets press in, the photo shrinks between them and stays crisp */
+.v-a .ph{width:150px;height:110px;margin:-55px 0 0 -75px;scale:.7;translate:0 6px;box-shadow:0 0 0 1px var(--border),0 4px 8px -6px rgba(6,43,43,.35)}
+.v-a .ph b,.v-c .ph b{inset:6px}
+.br{position:absolute;left:50%;top:50%;width:22px;height:28px;margin-top:20.5px;border:0 solid var(--primary);border-width:0 0 3px 3px;border-radius:0 0 0 3px;z-index:3}
+.br.l{margin-left:-59px}
+.br.r{margin-left:37px;border-width:0 3px 3px 0;border-radius:0 0 3px 0}
+
+/* compress image B: 4x4 tiles slide together; the gaps close and the photo ends whole, smaller */
+.v-b .tg,.v-c .ph{width:124px;height:92px;margin:-46px 0 0 -62px}
+.tg{position:absolute;left:50%;top:50%;border-radius:4px;background:var(--white);box-shadow:0 0 0 1px var(--border),0 6px 12px -8px rgba(6,43,43,.4)}
+.tl{position:absolute;left:calc(6px + var(--c)*28px);top:calc(6px + var(--r)*20px);width:28px;height:20px;background:radial-gradient(circle at 72% 28%,var(--sun) 0 6px,transparent 7px),linear-gradient(155deg,transparent 52%,var(--hill) 52% 74%,var(--primary) 74%),linear-gradient(var(--primary-tint),var(--primary-soft));background-size:112px 80px;background-position:calc(var(--c)*-28px) calc(var(--r)*-20px)}
+
+/* compress image C: a smaller copy peels off and settles beside the original, lower on the floor */
+.v-c .ph.o{translate:-52px 0}
+.v-c .ph.cp{translate:64px 30px;scale:.6}
 
 @media (prefers-reduced-motion:no-preference){
-  @keyframes tearIn{from{opacity:0;scale:1 .3}}
-  @keyframes apart{0%,38%{translate:0 0}}
-  @keyframes settle{0%{scale:1.28;translate:0 -4px;box-shadow:0 0 0 1px var(--border),0 16px 26px -12px rgba(6,43,43,.45)}35%{scale:1.28;translate:0 -4px}}
+  @keyframes dkL{from{translate:1.5px 6px}}
+  @keyframes dkR{from{translate:76px 6px}}
+  @keyframes deal{
+    0%{translate:calc(-89.5px + var(--k)*var(--dx)) calc(-20px + var(--k)*var(--dy));z-index:calc(20 - var(--k));box-shadow:0 0 0 1px var(--border)}
+    1%,99%{z-index:30}
+    15%,70%{box-shadow:0 0 0 1px var(--border),0 14px 18px -10px rgba(6,43,43,.5)}
+  }
+  @keyframes arc{0%{transform:translateY(0);rotate:0deg;animation-timing-function:ease-out}45%{transform:translateY(-34px);rotate:-8deg;animation-timing-function:ease-in}100%{transform:translateY(0);rotate:0deg}}
+  @keyframes pressP{0%,40%{scale:1;translate:0 0;box-shadow:0 0 0 1px var(--border),0 14px 24px -12px rgba(6,43,43,.45)}}
+  @keyframes brL{0%{translate:-130px 0}45%{translate:-20px 12px}}
+  @keyframes brR{0%{translate:130px 0}45%{translate:20px 12px}}
+  @keyframes tileIn{0%,15%{translate:calc((var(--c) - 1.5)*7px) calc((var(--r) - 1.5)*7px)}}
+  @keyframes tgIn{0%,15%{scale:1.28;background:transparent;box-shadow:none}70%{background:transparent;box-shadow:none}}
+  @keyframes peel{0%{translate:-52px 0;scale:1;rotate:0deg;box-shadow:0 0 0 1px var(--border),0 4px 8px -6px rgba(6,43,43,.35)}25%{translate:-40px -14px;scale:1;rotate:-5deg;box-shadow:0 0 0 1px var(--border),0 16px 24px -12px rgba(6,43,43,.45)}}
   @keyframes cardIn{from{opacity:0}}
   @keyframes lift{0%{translate:0 0;rotate:0deg}30%{translate:0 -16px;rotate:0deg}}
   @keyframes linesOut{0%,35%{opacity:1}}
   @keyframes photoIn{0%,40%{opacity:0}}
   @keyframes pageGrow{0%{width:70px;height:92px;margin:-52px 0 0 -35px}40%{width:70px;height:92px;margin:-52px 0 0 -35px}}
-  .play .tear{animation:tearIn .5s ease .1s both}
-  .play .stk{animation:apart 1.8s var(--ease) .2s both}
+  .play .v-split .dk.l{animation:dkL .95s var(--ease) 1.35s both}
+  .play .v-split .dk.r{animation:dkR .95s var(--ease) 1.35s both}
+  .play .v-split .dk.r .pg{animation:deal .55s ease-in-out calc(.2s + var(--k)*.15s) both,arc .55s linear calc(.2s + var(--k)*.15s) both}
   .play .v-comp .pg{animation:settle 1.7s var(--ease) .2s both}
   .play .v-comp .ghost{animation:cardIn .4s ease both}
   .play .v-p2i .ph{animation:lift 1.8s var(--ease) .2s both,pageGrow 1.8s var(--ease) .2s both}
   .play .v-p2i .ph::before{animation:linesOut 1.8s ease .2s both}
   .play .v-p2i .ph b{animation:photoIn 1.8s ease .2s both}
-  .play .v-cimg .ph{animation:settle 1.7s var(--ease) .2s both}
-  .play .v-cimg .ghost{animation:cardIn .4s ease both}
+  .play .v-a .ph{animation:pressP 1.8s var(--ease) .2s both}
+  .play .v-a .br.l{animation:brL 1.8s var(--ease) .2s both}
+  .play .v-a .br.r{animation:brR 1.8s var(--ease) .2s both}
+  .play .v-b .tl{animation:tileIn 1.8s var(--ease) .2s both}
+  .play .v-b .tg{animation:tgIn 1.8s var(--ease) .2s both}
+  .play .v-c .ph.cp{animation:peel 1.8s var(--ease) .2s both}
 }
 </style>
 <div class="shell">
   <div class="bar"><h1>More hero verbs</h1><button class="btn" id="replay" type="button">Replay all</button></div>
   <div class="grid">
     <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-split">
-      <div class="stk l"><i class="pg"></i><i class="pg"></i><i class="pg"></i></div>
-      <div class="stk r"><i class="pg"></i><i class="pg"></i><i class="pg"></i></div>
-      <span class="tear"></span></div></div>
+      <div class="dk l"><i class="pg" style="--i:5"></i><i class="pg" style="--i:6"></i><i class="pg" style="--i:7"></i><i class="pg" style="--i:8"></i><i class="pg last" style="--i:9"></i></div>
+      <div class="dk r"><i class="pg last" style="--k:0"></i><i class="pg" style="--k:1"></i><i class="pg" style="--k:2"></i><i class="pg" style="--k:3"></i><i class="pg" style="--k:4"></i></div></div></div>
       <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
       <div class="name">Split</div></div>
-
-    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-comp">
-      <span class="ghost"></span><i class="pg"></i></div></div>
-      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
-      <div class="cards"><i></i><i></i><i></i></div>
-      <div class="name">Compress</div></div>
 
     <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-p2i">
       <i class="ph"><b></b></i></div></div>
       <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
       <div class="name">PDF to Image</div></div>
 
-    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-cimg">
-      <span class="ghost"></span><i class="ph"><b></b></i></div></div>
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-comp">
+      <span class="ghost"></span><i class="pg"></i></div></div>
       <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
       <div class="cards"><i></i><i></i><i></i></div>
-      <div class="name">Compress Image</div></div>
+      <div class="name">Compress</div></div>
+  </div>
+  <div class="grid">
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-a">
+      <i class="ph"><b></b></i><span class="br l"></span><span class="br r"></span></div></div>
+      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
+      <div class="cards"><i></i><i></i><i></i></div>
+      <div class="name">A &middot; Press</div></div>
+
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-b">
+      <div class="tg" id="tiles"></div></div></div>
+      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
+      <div class="cards"><i></i><i></i><i></i></div>
+      <div class="name">B &middot; Tiles</div></div>
+
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-c">
+      <i class="ph o"><b></b></i><i class="ph cp"><b></b></i></div></div>
+      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
+      <div class="cards"><i></i><i></i><i></i></div>
+      <div class="name">C &middot; Copy</div></div>
   </div>
 </div>
 <script>
+  const tg=document.getElementById('tiles');
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++){const t=document.createElement('i');t.className='tl';t.style.setProperty('--c',c);t.style.setProperty('--r',r);tg.appendChild(t)}
   const cells = document.querySelectorAll('.sheet');
   function replay(){cells.forEach(s=>{s.classList.remove('play');void s.offsetWidth;s.classList.add('play')})}
   document.getElementById('replay').addEventListener('click',replay);
