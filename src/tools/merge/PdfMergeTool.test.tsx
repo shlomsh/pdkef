@@ -182,7 +182,9 @@ describe('PdfMergeTool UI flow', () => {
   it('shows the empty-state sheet with its own heading, body and Choose files', () => {
     mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
-    expect(dropzone.querySelector('strong').textContent).toBe('Drop PDFs or photos here, or paste');
+    // Desktop heading and the phone heading (t.dropHere) are both in the markup; CSS shows one.
+    const spans = [...dropzone.querySelectorAll('strong > span')].map((n) => n.textContent);
+    expect(spans).toEqual(['Drop PDFs or photos here', 'Drop PDFs or photos here, or paste']);
     expect(dropzone.textContent).toContain('Your pages appear here, in order, before you download. Files never leave your device.');
     expect(dropzone.textContent).toContain('Choose files');
   });

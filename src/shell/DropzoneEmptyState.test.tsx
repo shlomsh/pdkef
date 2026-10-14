@@ -102,9 +102,31 @@ describe('DropzoneEmptyState', () => {
 
   it('takes its heading and body from props, with Choose files after them', () => {
     mount({ heading: 'Drop PDFs here, or paste', body: 'Files never leave your device.' });
-    expect(container.querySelector('strong').textContent).toBe('Drop PDFs here, or paste');
-    expect(container.querySelector(`.${styles['privacy-line']}`).textContent).toBe('Files never leave your device.');
+    expect(container.querySelector('strong').textContent).toContain('Drop PDFs here, or paste');
+    expect(container.querySelector(`.${styles['privacy-line']}`).textContent).toContain('Files never leave your device.');
     expect(container.textContent).toContain('Choose files');
+  });
+
+  // Phones have no drag and no paste: both variants are in the markup and CSS
+  // shows one per width, so nothing is read twice and no JS decides.
+  it('holds a phone and a desktop span for a heading and body that differ from the defaults', () => {
+    mount({ message: 'Drop here', heading: 'Drop here, or paste', body: 'Desktop line.' });
+    const strong = container.querySelector('strong');
+    const phone = strong.querySelector(`.${styles['empty-phone']}`);
+    const desktop = strong.querySelector(`.${styles['empty-desktop']}`);
+    expect(phone.textContent).toBe('Drop here');
+    expect(desktop.textContent).toBe('Drop here, or paste');
+    const line = container.querySelector(`.${styles['privacy-line']}`);
+    expect(line.querySelector(`.${styles['empty-phone']}`).textContent).toBe('Private. Files never leave your device.');
+    expect(line.querySelector(`.${styles['empty-desktop']}`).textContent).toBe('Desktop line.');
+  });
+
+  it('renders one plain strong and line when no heading or body is given', () => {
+    mount({ message: 'Drop here' });
+    expect(container.querySelector('strong').children.length).toBe(0);
+    expect(container.querySelector('strong').textContent).toBe('Drop here');
+    expect(container.querySelector(`.${styles['empty-phone']}`)).toBeNull();
+    expect(container.querySelector(`.${styles['empty-desktop']}`)).toBeNull();
   });
 
   // QUAL-22: `hidden` is display:none, which removes the input from the tab

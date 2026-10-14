@@ -62,7 +62,21 @@
   max-width: 100%;
 }
 
+/* Phones get the tool's plain wording, 1024px and up its drag-and-paste
+   wording; only one of the two is ever displayed. */
+.empty-desktop {
+  display: none;
+}
+
 @media (min-width: 1024px) {
+  .empty-phone {
+    display: none;
+  }
+
+  .empty-desktop {
+    display: inline;
+  }
+
   .dropzone[data-empty-state],
   .dropzone[aria-busy] {
     padding: 1.5rem 2rem 2rem;
@@ -75,6 +89,9 @@
   :global(.tool-stage[data-layout='hero']) .dropzone[data-empty-state],
   :global(.tool-stage[data-layout='hero']) .dropzone[aria-busy] {
     min-height: min(36rem, calc(var(--first-screen, 40rem) - 9rem));
+    /* Top-anchored: a centred column moved up when the rest of a partly
+       parsed sheet arrived (CLS under 6x CPU throttling). */
+    justify-content: flex-start;
   }
 
   /* Compress and Compress Image (`compact`) show their quality choices under
