@@ -8,8 +8,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Tool pages: show the verb
 
-- [HERO-02](backlog/tasks/HERO-02.md) P1 · One full-height first screen on desktop for the page-grid tools
-- [HERO-03](backlog/tasks/HERO-03.md) P1 · Each page-grid tool acts out its job in the empty state
+- [HERO-02](backlog/tasks/HERO-02.md) P1 · One full-height first screen on desktop for the page-grid tools (in progress)
+- [HERO-04](backlog/tasks/HERO-04.md) P2 · Drop a file anywhere on a page-grid tool's page (in progress)
+- [HERO-03](backlog/tasks/HERO-03.md) P1 · Each page-grid tool acts out its job in the empty state (in progress)
 
 ### Search and languages
 

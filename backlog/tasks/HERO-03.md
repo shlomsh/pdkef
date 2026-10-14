@@ -1,7 +1,7 @@
 ---
 id: "HERO-03"
 title: "Each page-grid tool acts out its job in the empty state"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "tool-pages"
 horizon: "now"

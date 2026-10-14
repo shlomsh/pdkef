@@ -78,6 +78,7 @@ const alternates = Astro.props.alternates ?? resolved.alternates;
 const variants = Astro.props.variants ?? resolved.variants;
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
+const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
 ---
 
@@ -183,8 +184,8 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       backlog/tasks/SEO-25.md). Nothing else leaned on that height: ToolHero's
       condensing keys off its own data attributes and OfflineProof renders
       after this wrapper closes. e2e/tool-layout.spec.js guards both. */}
-  <div class="tool-stage flex flex-col">
-    <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} subheadAccent={messages.heroAccent} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
+  <div class="tool-stage flex flex-col" data-layout={isEditor ? undefined : 'hero'}>
+    <ToolHero icon={tool.icon} title={tool.h1} titleName={tool.h1Name} subhead={tool.subhead} subheadAccent={messages.heroAccent} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
 
     {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
         that isn't already said elsewhere on this page - the app bar's
@@ -210,20 +211,6 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
     <p data-tool-restore-followup class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
       {messages.airplaneModeNotice}
     </p>
-    )}
-
-    {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
-        result actually lands, not buried in the FAQ below the tool. Kept to
-        one plain sentence, no badge, in the OfflineProof register: state the
-        fact, then the one honest caveat, no intensifiers, no competitor.
-        English edition only (LOC-02): it is hardcoded English, and a
-        localized edition's own freeNoteLead already states the no-limit
-        fact in its language; an English sentence in a Hebrew hero is the
-        exact incumbent weakness LOC-01 documents. */}
-    {tool.slug === 'merge' && locale === 'en' && (
-      <p data-merge-note class="mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
-        Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
-      </p>
     )}
 
     {/* !max-w-[1280px] overrides global.css's bare `main { max-width: 1400px }`
@@ -256,35 +243,34 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         and these tools run on pdf-lib or pdfjs from those bundles; Merge is
         proved offline in e2e/offline. Below the card so it moves nothing the
         first screen has already laid out. */}
-    {tool.slug !== 'sign' && tool.slug !== 'redact' && (
+    {!isEditor && (
+      <Fragment>
       <p data-airplane-note class="type-body mx-auto w-full max-w-[1280px] px-4 pb-1 text-center text-[var(--color-muted)] min-[560px]:px-6">
         {messages.airplaneModeNotice}
       </p>
+      <a data-how-link href="#how-it-works" class="text-[var(--color-primary-text)]">
+        {messages.howItWorks}
+        <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" /></svg>
+      </a>
+      </Fragment>
     )}
   </div>
 
   <style>
-    /* QUAL-13: carry the home hero's off-white-to-mint gradient onto every
-       tool page's stage, so the hero's ground reads as the site's ground
-       rather than a home-page-only flourish. Pixel stops, not viewport-
-       relative ones, because the fade has to finish around where the tool
-       card begins (`ToolShell`'s card, a sibling of the hero inside this
-       div) and then stay mint below it - so a document open in the card
-       below sits on mint the way the hero's own workspace demo does.
-       260px/480px were measured against the compact hero (a file already
-       open, or a saved-work restore) as well as the full empty-state hero,
-       at 1280 and 390 wide, on /sign/, /merge/ and /compress-image/: the
-       card starts as early as ~107px (Sign, compact hero, 1280) and as late
-       as ~485px (Sign, full empty-state hero, 390 - the tallest case, only a
-       few px past the 480 stop) into the stage, so 480 keeps the "stays
-       mint" stop within a few pixels of the card's top edge across all of
-       them rather than finishing early on the shorter states or late on the
-       tallest one. `background-color` is the fallback for the sliver above
-       the gradient's first stop and for any browser that cannot parse
+    /* QUAL-13, reworked by HERO-01: the home hero's off-white-to-mint ground on
+       every tool page's stage, so the hero's ground reads as the site's ground.
+       The old stops were pixel values tuned to Merge's height, so on every
+       other page the fade was cut mid-way and left a one-pixel seam where the
+       stage met the page below. These stops follow the stage's own height
+       instead: the field fades in from the page colour, holds mint through
+       the middle where the tool sits, and fades back to the page colour at the
+       stage's bottom edge, so there is nothing left to meet the page below.
+       `background-color` is the fallback for a browser that cannot parse
        `color-mix`. */
     .tool-stage {
-      background-color: var(--color-primary-tint);
-      background-image: linear-gradient(180deg, var(--color-bg) 0, color-mix(in srgb, var(--color-bg) 60%, var(--color-primary-tint)) 260px, var(--color-primary-tint) 480px);
+      --stage-mint: color-mix(in srgb, var(--color-primary-tint) 70%, var(--color-bg));
+      background-color: var(--color-bg);
+      background-image: linear-gradient(180deg, var(--color-bg) 0, var(--stage-mint) 40%, var(--stage-mint) 70%, var(--color-bg) 100%);
     }
 
     /* A tool normally flows at its own height: SEO-25 deliberately removed a
@@ -300,26 +286,88 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
        Keep the old viewport/flex geometry only during this hinted restore.
        A stale hint clears itself once IndexedDB says there is no entry, and a
        fresh visitor never receives the attribute, so neither path gains blank
-       space.
-
-       Merge's empty state has the same desktop geometry requirement for a
-       different reason: its own card asks to fill the first viewport. */
+       space. */
     @media (min-width: 1024px) {
-      :global(html[data-draft-hint]) .tool-stage,
-      .tool-stage:has([data-fill-viewport]) {
+      :global(html[data-draft-hint]) .tool-stage {
         min-height: calc(100svh - 3.5rem);
       }
 
       :global(html[data-draft-hint]) .tool-stage main,
       :global(html[data-draft-hint]) .tool-stage #app,
-      :global(html[data-draft-hint]) .tool-stage #app > astro-island,
-      .tool-stage:has([data-fill-viewport]) main,
-      .tool-stage:has([data-fill-viewport]) #app,
-      .tool-stage:has([data-fill-viewport]) #app > astro-island {
+      :global(html[data-draft-hint]) .tool-stage #app > astro-island {
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
         min-height: 0;
+      }
+    }
+
+    /* HERO-01: the desktop first screen. While the island shows its empty
+       state, and no saved work is restoring (`data-draft-hint` keeps the
+       reserved flex geometry above; `data-merge-restore` keeps Merge's
+       restore in the stacked layout it lands in), the stage is one screen tall: the hero
+       on the start side, the tool on the other, the airplane line and the
+       How it works link as a footer row. Sign and Redact have no
+       `data-layout`, so they keep their own layout. The children are placed
+       on the grid rather than wrapped, so the app bar stays the only
+       `body > div > div` (e2e/tool-layout.spec.js). These rules are
+       unlayered, so they beat the utilities on the hero and the airplane
+       line (see <main> below for the exception). The link is hidden everywhere else. */
+    .tool-stage [data-how-link] {
+      display: none;
+    }
+
+    @media (min-width: 1024px) {
+      .tool-stage {
+        --first-screen: clamp(600px, calc(100svh - 3.5rem), 900px);
+      }
+
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        grid-template-rows: 1fr auto;
+        column-gap: 3.5rem;
+        min-height: var(--first-screen);
+        padding-block: 1.5rem 1rem;
+        padding-inline: max(2rem, calc((100% - 1280px) / 2 + 2rem));
+      }
+
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > :global(.tool-hero) {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: center;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > main {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: center;
+        /* <main>'s utilities are `!important` and sit in a layer, and for
+           important declarations the layered ones win, so its 1.5rem side and
+           1.25rem bottom padding cannot be zeroed here. Negative margins take
+           them back, so the island's edge is the column's edge. */
+        margin: 0 -1.5rem -1.25rem;
+      }
+
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > [data-airplane-note] {
+        grid-column: 1;
+        grid-row: 2;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        text-align: start;
+      }
+
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > [data-how-link] {
+        display: inline-flex;
+        grid-column: 2;
+        grid-row: 2;
+        align-items: center;
+        gap: 0.4rem;
+        justify-self: end;
       }
     }
 
@@ -392,37 +440,23 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         display: none;
       }
     }
-
-    /* Direction A reduction (Shlomi, wave 2): once files are loaded, above the
-       first thumbnail there is no UI text except the heading and page count -
-       the SEO-10 no-limit note above is exactly that kind of text, so it folds
-       away the same moment the hero's pitch does. Same mechanism as
-       ToolHero's own fold (state-driven CSS, visible by default, never hidden
-       from a crawler: Googlebot never opens a file, so `:has()` never matches
-       and the sentence renders in full). `[data-tool-shell]` still covers
-       every other tool that might one day render a note here; Merge no
-       longer mounts ToolShell at all (BasePdfTool's `hideIdentity`), so its
-       island's own wrapper renders `[data-tool-loaded]` instead the moment it
-       has files - the same "has a file" signal, in the one shape Merge still
-       produces. */
-    .tool-stage:has([data-tool-shell]) [data-merge-note],
-    .tool-stage:has([data-tool-loaded]) [data-merge-note] {
-      display: none;
-    }
-
-    /* A fresh Merge pick is user input, so folding this supporting sentence
-       away is harmless there. A restored workspace has no such input: the
-       note was in the server HTML at first paint, and removing it later
-       pulls the document and every static section upward. Keep its exact
-       slot while it is visually quiet for this restored-only path. */
-    :global(html[data-merge-restore]) [data-merge-note],
-    .tool-stage:has([data-merge-restored-workspace]) [data-merge-note] {
-      display: block;
-      visibility: hidden;
-    }
   </style>
 
   <div data-tool-followups>
+  {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
+      result actually lands, not buried in the FAQ below the tool. Kept to
+      one plain sentence, no badge: state the fact, then the one honest
+      caveat, no intensifiers, no competitor. HERO-01 moved it here from the
+      first screen, which the hero now keeps for the verb; [data-tool-followups]
+      is already held hidden while a merge restore runs. English edition only
+      (LOC-02): it is hardcoded English, and a localized edition's own
+      freeNoteLead already states the no-limit fact in its language. */}
+  {tool.slug === 'merge' && locale === 'en' && (
+    <p data-merge-note class="mx-auto mb-4 w-full max-w-[1080px] px-6 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)]">
+      Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
+    </p>
+  )}
+
   {/* OfflineProof (DEMO-04): only Sign and Redact, the live status line
       only - see the component's own header comment for why the claim
       sentence is not rendered here anymore. */}
