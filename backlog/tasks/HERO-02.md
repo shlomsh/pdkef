@@ -49,7 +49,7 @@ Protect, Compress Image. Sign and Redact are HERO-05.
 - `5c9bd584` the quiet On-device chip on tool pages, and a plane on Works offline.
 - `110a437d` the two-column desktop first screen (`ToolPageLayout.astro`, `ToolHero.astro`): footer row,
   How it works link, Merge's no-limit note moved to just above How it works. Gated on
-  `.tool-stage[data-layout='hero']:has([data-empty-state])` and off under `html[data-draft-hint]` and
+  `.tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell]))` and off under `html[data-draft-hint]` and
   `html[data-merge-restore]`.
 - `8a31ed3c` after a file loads, the desktop hero condenses to the icon and the tool's name, on the same
   signals as the older condense rules, and the loaded card keeps `calc(var(--first-screen) - 5.5rem)`.
@@ -60,5 +60,5 @@ Protect, Compress Image. Sign and Redact are HERO-05.
   their content's height, Sign and Redact keep a content-height sheet.
 - `fillViewport` was removed with the sheet rework in `a1da04b1`.
 
-Left: `styling.md`'s paper line (the sheet is `--color-surface`), and `test:seo`, `test:css`,
+Done: `styling.md`'s paper line (the sheet is `--color-surface`, `b0a3202e`). Left: `test:seo`, `test:css`,
 `test:weight` and `test:csp` on a production build.

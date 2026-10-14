@@ -20,6 +20,7 @@ reviewNotes: >-
   in step 1 and a photos FAQ (MERGE-22), Hebrew an AI draft pending review.
   10-14: English seoTitle and h1 back to their 09-12 wording (SEO-45), Hebrew
   unchanged. Hash refreshed at each English change.
+  10-15: hash moved only because h1Name was added; translation unchanged.
 sourceHash: 'fnv1a64:af62737f36cc7a55'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-

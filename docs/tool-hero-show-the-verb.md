@@ -92,7 +92,8 @@ deletes `fillViewport` and its CSS.
   page-grid two-column layout. Compress and Compress Image (one island, `compact`) take their content's
   height, because their quality choices sit under the sheet. Sign and Redact keep their stacked page
   with a content-height sheet until HERO-05.
-- The two-column grid applies on `.tool-stage[data-layout='hero']:has([data-empty-state])` and is off
+- The two-column grid applies on `.tool-stage[data-layout='hero']:not(:has([data-tool-loaded],
+  [data-tool-shell]))`, with `<main>` top-aligned, and is off
   under `html[data-draft-hint]` and `html[data-merge-restore]`, so a restoring page keeps the geometry it
   already reserves (`src/layouts/ToolPageLayout.astro`). `--first-screen` is defined once on
   `.tool-stage`. The footer row and the How it works link are placed on that grid.
@@ -249,6 +250,13 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
 - Split deals pages from one deck onto a second, then the two decks part (sketch:
   `docs/tool-hero-sketch/more-verbs.html`).
 - Unlock condenses after load like the other page-grid tools; its old opt-out had no reason left.
+- The grid gate is `:not(:has([data-tool-loaded], [data-tool-shell]))` with `<main>` top-aligned, not
+  `:has([data-empty-state])`: the old gate let a slow parse paint the stage as a column first.
+- The throttled layout-shift guard (`e2e/tool-hero-throttled-cls.spec.js`) runs alone, as a perf budget.
+- The app bar's chips are not painted until the row is complete (`src/components/TrustChips.astro`).
+- A known narrow case: a Merge restore whose saved entry has gone (the index says known, IndexedDB says
+  gone) shifts the hero about 0.04 at 1024px and up when the marker clears. Accepted as narrow; the same
+  class existed below 1024px before.
 
 ## Open questions
 
