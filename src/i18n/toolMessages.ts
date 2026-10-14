@@ -202,8 +202,8 @@ export interface MergeMessages {
    * overlay once the add bar is gone, and the phone chip row's "more" menu. */
   dropAnywhereNote: string;
   moreOptions: string;
-  /** Shlomi's follow-up (2026-09-13): the desktop-only empty-state band
-   * (BasePdfTool's `emptyVariant="band"`, DropzoneEmptyState's band copy). */
+  /** Shlomi's follow-up (2026-09-13): the empty state's heading and body copy
+   * (BasePdfTool's `emptyHeading` / `emptyBody`, rendered by DropzoneEmptyState). */
   emptyHeading: string;
   /** The empty state's own headline, the one a phone shows (MERGE-22: photos too). */
   dropHere: string;
