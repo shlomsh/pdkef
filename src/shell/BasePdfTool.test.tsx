@@ -575,6 +575,16 @@ describe('BasePdfTool', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
+    it('ignores window drops while checkingDraft is true', () => {
+      const spy = vi.fn();
+      mount({ hasFiles: false, onFilesAdded: spy, checkingDraft: true });
+      fireWindow(fileDragEvent('dragenter'));
+      const drop = fileDragEvent('drop');
+      fireWindow(drop);
+      expect(drop.defaultPrevented).toBe(false);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
     it('renders emptyArt inside the empty state in place of the file-plus icon', () => {
       mount({ hasFiles: false, onFilesAdded: vi.fn(), emptyArt: <i data-testid="verb" /> });
       const zone = container.querySelector('[data-empty-state]');
