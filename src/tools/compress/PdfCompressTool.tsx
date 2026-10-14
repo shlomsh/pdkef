@@ -909,7 +909,7 @@ export default function PdfCompressTool({
       emptyStateMessage={emptyStateMessage ?? t.dropHint}
       file={file}
       fileLabel={file?.name}
-      fileMeta={describeFile(file)}
+      fileMeta={describeFile(file, undefined, undefined, shellMessages)}
       shellMessages={shellMessages}
       compact
     >

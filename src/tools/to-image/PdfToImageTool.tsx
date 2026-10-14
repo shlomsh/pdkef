@@ -214,7 +214,8 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
-      fileMeta={describeFile(file)}
+      file={file}
+      fileMeta={describeFile(file, undefined, undefined, shellMessages)}
       shellMessages={shellMessages}
     >
       {hasFiles && (
@@ -286,7 +287,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
             <input
               id="page-selector-input"
               type="text"
-              class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
+              class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}${t.dir === 'rtl' ? ` ${styles['page-selector-rtl']}` : ''}`}
               dir="ltr"
               placeholder={t.pageSelectorPlaceholder}
               value={pageSelector}
