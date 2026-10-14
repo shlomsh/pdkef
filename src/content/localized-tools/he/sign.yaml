@@ -33,7 +33,7 @@ reviewNotes: >-
   language support rescoped from unqualified "right, every time" to
   "right, in the 20 languages listed above" (fixed a self-contradiction);
   Hebrew answer updated to match; pending Shlomi's read-through.
-sourceHash: 'fnv1a64:78340ea7d83ecaff'
+sourceHash: 'fnv1a64:4deee9e1ec9995f4'
 seoTitle: 'מילוי וחתימה על טופס PDF אונליין בחינם, גם בעברית | PDkef'
 seoDescription: >-
   מלאו וחתמו על טופס PDF אונליין בחינם, באייפון, אנדרואיד או במחשב. הוסיפו
@@ -42,6 +42,7 @@ seoDescription: >-
 schemaName: 'PDkef - חתימה על PDF'
 toolName: 'חתימה ומילוי PDF'
 h1: 'מילוי וחתימה על טופס PDF בחינם, בדפדפן'
+h1Name: 'מילוי וחתימה על טופס PDF'
 subhead: >-
   מלאו וחתמו על PDF בנייד או במחשב בלי להדפיס ולסרוק. הוסיפו טקסט, סימוני
   וי וחתימה לטופס בית ספר, בקשה, או קובץ מוואטסאפ. הקלידו בעברית וגם

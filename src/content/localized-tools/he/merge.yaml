@@ -20,7 +20,7 @@ reviewNotes: >-
   in step 1 and a photos FAQ (MERGE-22), Hebrew an AI draft pending review.
   10-14: English seoTitle and h1 back to their 09-12 wording (SEO-45), Hebrew
   unchanged. Hash refreshed at each English change.
-sourceHash: 'fnv1a64:c4f0d2d6346542cb'
+sourceHash: 'fnv1a64:af62737f36cc7a55'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -29,6 +29,7 @@ seoDescription: >-
 schemaName: 'PDkef - איחוד PDF'
 toolName: 'איחוד PDF'
 h1: 'איחוד קבצי PDF בחינם: מיזוג קבצים ישירות בדפדפן'
+h1Name: 'איחוד קבצי PDF'
 subhead: >-
   איחוד או חיבור של כמה קבצי PDF למסמך אחד: גררו כדי לסדר, הוסיפו מספרי
   עמודים אם צריך, והורידו. הקובץ נשאר אצלכם במכשיר.

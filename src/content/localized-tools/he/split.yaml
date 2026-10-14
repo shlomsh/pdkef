@@ -11,7 +11,7 @@ reviewNotes: >-
   reviewedAt are empty. The vocabulary (פיצול, חיתוך, הפרדת עמודים) is a
   hypothesis, not a measured Hebrew query. A draft emits no hreflang and is
   only built in a PDKEF_DOCS_PREVIEW build.
-sourceHash: 'fnv1a64:e0c0a1fe5ed3b0aa'
+sourceHash: 'fnv1a64:75afbaffa623add6'
 seoTitle: 'פיצול PDF בחינם - חילוץ עמודים ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   פצלו קובץ PDF או חלצו ממנו עמודים מסוימים, בחינם ובלי הגבלה. הכול קורה
@@ -19,6 +19,7 @@ seoDescription: >-
 schemaName: 'PDkef - פיצול PDF'
 toolName: 'פיצול PDF'
 h1: 'פיצול PDF בחינם: חילוץ עמודים'
+h1Name: 'פיצול PDF'
 subhead: >-
   חלצו טווח עמודים, הוציאו עמודים בודדים, או פצלו קובץ PDF אחד לכמה קבצים
   נפרדים. חינם, קוד פתוח, והקובץ נשאר אצלכם במכשיר.

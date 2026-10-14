@@ -47,6 +47,7 @@ export const tools = [
     schemaName: 'PDkef - Sign PDF',
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Online Free: Fill & Sign Forms',
+    h1Name: 'Sign PDF',
     subhead:
       'Fill out and sign a PDF on your phone or computer, no printing or scanning. Add text, check marks, and a signature in 20 languages and scripts, or fill a printed row of boxes one letter per box. Free, open source, and your document stays on your device.',
     ariaLabel: 'PDF sign tool',
@@ -327,6 +328,7 @@ export const tools = [
     schemaName: 'PDkef - Blur & Redact PDF',
     toolName: 'Blur & Redact PDF',
     h1: 'Blur PDF Online Free: Blackout & Redact Text',
+    h1Name: 'Blur PDF',
     subhead:
       'Blur part of a PDF, black out private details, or delete text and images. Choose a solid blackout for sensitive information. A page you cover is saved as a picture when you download. Free, open source, and your file stays on your device.',
     ariaLabel: 'Blur & Redact PDF tool',
@@ -381,6 +383,7 @@ export const tools = [
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
     h1: 'Merge PDF Online Free: Combine Files in Your Browser',
+    h1Name: 'Merge PDF',
     subhead:
       'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional. Free, open source, and your files stay on your device.',
     ariaLabel: 'PDF merge tool',
@@ -425,6 +428,7 @@ export const tools = [
     schemaName: 'PDkef - PDF to Image',
     toolName: 'PDF to Image',
     h1: 'Convert PDF to Image Online Free',
+    h1Name: 'Convert PDF to Image',
     subhead:
       'Turn each PDF page into a JPG or PNG at the resolution you pick, with no watermark. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF to Image tool',
@@ -469,6 +473,7 @@ export const tools = [
     schemaName: 'PDkef - Image to PDF',
     toolName: 'Image to PDF',
     h1: 'Image to PDF Online Free: Combine JPG & PNG',
+    h1Name: 'Image to PDF',
     subhead:
       'Combine JPG or PNG images into a single PDF in any order - scanned pages, photographed slides, or screenshots. Free, open source, and your images stay on your device.',
     ariaLabel: 'Image to PDF tool',
@@ -513,6 +518,7 @@ export const tools = [
     schemaName: 'PDkef - Split PDF',
     toolName: 'Split PDF',
     h1: 'Split PDF Online Free: Extract Pages',
+    h1Name: 'Split PDF',
     subhead:
       'Extract a page range, pull out single pages, or break one PDF into several separate files. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF split tool',
@@ -565,6 +571,7 @@ export const tools = [
     schemaName: 'PDkef - Compress PDF',
     toolName: 'Compress PDF',
     h1: 'Compress PDF to 100KB Free: Reduce File Size',
+    h1Name: 'Compress PDF to 100KB',
     subhead:
       'Shrink a PDF to a size limit like 100KB, for application portals and upload forms that cap the file. The images inside get smaller, while text and links stay exactly as they are. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF compress tool',
@@ -614,6 +621,7 @@ export const tools = [
     schemaName: 'PDkef - Compress Image',
     toolName: 'Compress Image',
     h1: 'Compress Image to 100KB Free: Reduce Photo Size',
+    h1Name: 'Compress Image to 100KB',
     subhead:
       'Shrink a JPG or PNG photo to a size limit like 100KB, or 20KB for portals that cap the photo separately. Pick the target and check the result; a very small target on a large photo may not be reachable. Free, open source, and your photo stays on your device.',
     ariaLabel: 'Compress image tool',
@@ -660,6 +668,7 @@ export const tools = [
     schemaName: 'PDkef - Protect & Unlock PDF',
     toolName: 'Protect & Unlock PDF',
     h1: 'Unlock or Protect a PDF Free',
+    h1Name: 'Unlock or Protect a PDF',
     subhead:
       'Add a password to protect a PDF, or remove one you already know - the tool detects which you need. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF unlock tool',
@@ -701,6 +710,7 @@ export const tools = [
     schemaName: 'PDkef - Edit PDF Pages',
     toolName: 'Edit PDF',
     h1: 'Edit PDF Online Free: Rotate, Reorder, Remove Pages',
+    h1Name: 'Edit PDF',
     subhead:
       'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF. Free, open source, and your file stays on your device.',
     ariaLabel: 'Edit PDF pages tool',

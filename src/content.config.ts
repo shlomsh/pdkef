@@ -282,6 +282,7 @@ const toolFields = z.strictObject({
   schemaName: plain(3, 60),
   toolName: plain(2, 40),
   h1: plain(10, 90),
+  h1Name: plain(2, 60),
   subhead: plain(30, 700),
   ariaLabel: plain(5, 60),
   aboutHeading: plain(10, 90),

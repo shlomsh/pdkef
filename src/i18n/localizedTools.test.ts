@@ -37,6 +37,7 @@ describe('normalizeToolSource / toolSourceHash', () => {
       'faq',
       'freeNoteLead',
       'h1',
+      'h1Name',
       'schemaName',
       'seoDescription',
       'seoTitle',
