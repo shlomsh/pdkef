@@ -257,17 +257,23 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   </div>
 
   <style>
-    /* QUAL-13, reworked by HERO-01: the home hero's off-white-to-mint ground on
-       every tool page's stage, so the hero's ground reads as the site's ground.
-       The old stops were pixel values tuned to Merge's height, so on every
-       other page the fade was cut mid-way and left a one-pixel seam where the
-       stage met the page below. These stops follow the stage's own height
-       instead: the field fades in from the page colour, holds mint through
-       the middle where the tool sits, and fades back to the page colour at the
-       stage's bottom edge, so there is nothing left to meet the page below.
-       `background-color` is the fallback for a browser that cannot parse
-       `color-mix`. */
+    /* QUAL-13: the home hero's off-white-to-mint gradient on every tool page's
+       stage. Pixel stops, because on the document-tall editor stage (Sign,
+       Redact) the fade has to finish around where the tool card begins and
+       stay mint below it; 480px sits within a few pixels of the card's top
+       edge across the hero states measured. `background-color` is the
+       fallback for a browser that cannot parse `color-mix`. */
     .tool-stage {
+      background-color: var(--color-primary-tint);
+      background-image: linear-gradient(180deg, var(--color-bg) 0, color-mix(in srgb, var(--color-bg) 60%, var(--color-primary-tint)) 260px, var(--color-primary-tint) 480px);
+    }
+
+    /* HERO-01: the one-screen page-grid first screen (data-layout='hero') is
+       as tall as the stage, so its stops follow the stage's own height: fade in
+       from the page colour, hold mint through the middle where the tool sits,
+       and fade back to the page colour at the bottom edge, leaving no seam
+       against the page below. */
+    .tool-stage[data-layout='hero'] {
       --stage-mint: color-mix(in srgb, var(--color-primary-tint) 70%, var(--color-bg));
       background-color: var(--color-bg);
       background-image: linear-gradient(180deg, var(--color-bg) 0, var(--stage-mint) 40%, var(--stage-mint) 70%, var(--color-bg) 100%);
