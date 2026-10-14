@@ -35,8 +35,20 @@ async function open(page, route) {
 
 const focusedIsPickerInput = (page) => page.evaluate(() => {
   const a = document.activeElement;
-  return a instanceof HTMLInputElement && a.type === 'file' && !!a.closest('[data-empty-state]');
+  return a instanceof HTMLInputElement && a.type === 'file' && !!a.closest('[data-empty-state]') && document.hasFocus();
 });
+
+// Press `key` and return the file chooser it opens. Playwright turns chooser interception on
+// asynchronously when the listener is added, and a keypress sent straight after can reach the
+// browser first on a slow runner (CI run 38623124441: focus confirmed on the input, no chooser,
+// 3 of 12, a different three each run). A click hides this behind its mouse moves; one page round
+// trip before the key closes it.
+async function pressForChooser(page, key) {
+  const chooser = page.waitForEvent('filechooser', { timeout: 10_000 });
+  await page.evaluate(() => 0);
+  await page.keyboard.press(key);
+  return chooser;
+}
 
 // Tab from the top of the page until focus lands on the picker's input.
 async function tabToPicker(page) {
@@ -63,9 +75,7 @@ for (const route of toolRoutes) {
 
     for (const key of ['Enter', 'Space']) {
       expect(await focusedIsPickerInput(page), `${route}: focus is still on the file input before ${key}`).toBe(true);
-      const chooser = page.waitForEvent('filechooser', { timeout: 5_000 });
-      await page.keyboard.press(key);
-      await (await chooser).setFiles([]);
+      await (await pressForChooser(page, key)).setFiles([]);
       // Re-focus: the picker may have taken focus away in some engines.
       await page.locator(`${PICKER} input`).focus();
     }
@@ -90,8 +100,6 @@ test('a file chosen through the keyboard-focused input still reaches the tool', 
   await open(page, '/unlock/');
   expect(await tabToPicker(page)).toBeGreaterThan(0);
   expect(await focusedIsPickerInput(page), 'focus is still on the file input before Enter').toBe(true);
-  const chooser = page.waitForEvent('filechooser');
-  await page.keyboard.press('Enter');
-  await (await chooser).setFiles(PDF);
+  await (await pressForChooser(page, 'Enter')).setFiles(PDF);
   await expect(page.locator('[data-empty-state]')).toHaveCount(0);
 });
