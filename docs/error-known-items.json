@@ -41,12 +41,30 @@
     "note": "cause unknown; reports carry a translated flag from SIGN-40's reporter change"
   },
   {
+    "id": "DEBT-49",
+    "ticket": "DEBT-49",
+    "title": "Redact: a damaged content stream was reported at the object listing",
+    "match": {
+      "area": "redact",
+      "name": "Error",
+      "step": "list_objects",
+      "slug": "redact",
+      "module": "pdf-lib"
+    },
+    "fixedIn": "caf9f4c5",
+    "note": "listed before ENC-02, which matches any pdf-lib error at Redact list_objects; the first match wins"
+  },
+  {
     "id": "ENC-02",
     "ticket": "ENC-02",
     "title": "Redact on a protected PDF",
     "match": {
       "area": "redact",
-      "step": ["export", "list_objects", "details_read"],
+      "step": [
+        "export",
+        "list_objects",
+        "details_read"
+      ],
       "slug": "redact",
       "module": "pdf-lib"
     },
@@ -82,7 +100,11 @@
     "title": "pdf.js calls Map.prototype.getOrInsertComputed (and other built-ins) the browser lacks",
     "match": {
       "name": "TypeError",
-      "step": ["load_document", "render_page", "read_glyphs"],
+      "step": [
+        "load_document",
+        "render_page",
+        "read_glyphs"
+      ],
       "module": "pdf"
     },
     "fixedIn": "7fcbfb1a",
@@ -100,5 +122,18 @@
     },
     "open": true,
     "note": "iOS invalidates the saved Blob once the download starts; the check now falls back quietly. Set fixedIn to the landing commit"
+  },
+  {
+    "id": "DEBT-50",
+    "ticket": "DEBT-50",
+    "title": "Edit Pages: Sortable.destroy throws when a file is replaced",
+    "match": {
+      "area": "uncaught",
+      "name": "TypeError",
+      "step": "window_error",
+      "slug": "edit-pdf",
+      "module": "sortable.esm"
+    },
+    "fixedIn": "caf9f4c5"
   }
 ]
