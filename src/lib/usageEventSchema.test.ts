@@ -6,6 +6,7 @@ import {
   TOOL_LIFECYCLE_EVENTS,
   parseUsageEvent,
   usageEventField,
+  usageOnceField,
 } from './usageEventSchema.ts';
 
 const ev = (name: unknown, tool: unknown) => ({ name, properties: { tool } });
@@ -34,6 +35,21 @@ describe('parseUsageEvent accepts', () => {
     const fields = legit.map((e) => usageEventField(parseUsageEvent(e)!));
     expect(new Set(fields).size).toBe(44);
     expect(usageEventField(parseUsageEvent(ev('tool_result_ready', 'merge'))!)).toBe('tool_result_ready|merge');
+  });
+});
+
+describe('the first flag', () => {
+  const first = { name: 'tool_operation_failed', properties: { tool: 'redact', first: true } };
+  it('is accepted alone or with a build, and kept', () => {
+    expect(parseUsageEvent(first)).toEqual(first);
+    const stamped = { name: 'tool_operation_failed', properties: { tool: 'redact', build: '08e10cf', first: true } };
+    expect(parseUsageEvent(stamped)).toEqual(stamped);
+  });
+  it.each([false, 'true', 1, null])('rejects first: %s', (value) => {
+    expect(parseUsageEvent({ ...first, properties: { tool: 'redact', first: value } })).toBeNull();
+  });
+  it('has a once field that shares the event field spelling', () => {
+    expect(usageOnceField(parseUsageEvent(first)!)).toBe('once:tool_operation_failed|redact');
   });
 });
 

@@ -362,6 +362,51 @@ describe('PdfSignTool UI flow', () => {
     expect(container.textContent).toContain('Your edits changed while the PDF was being prepared');
   });
 
+  it('exports the bytes it already holds when the picked file can no longer be read (DEBT-51)', async () => {
+    const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
+    const sources: unknown[] = [];
+    // The real signPdf reads a File with arrayBuffer(); this stand-in does the same.
+    const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(async (source: unknown) => {
+      sources.push(source);
+      if (!(source instanceof ArrayBuffer)) await (source as File).arrayBuffer();
+      return signedBlob;
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { render(<PdfSignTool />, container); });
+    const picked = makePdfFile('gone.pdf');
+    await act(async () => {
+      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [picked]);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+    // Moved or deleted on disk after picking: Chromium rejects the re-read.
+    picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
+    const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
+    overlay.getBoundingClientRect = () => pageRect;
+    await act(async () => { findButton(container, 'Text').click(); });
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
+    await act(async () => {
+      textInput.value = 'Placed text';
+      textInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const title = 'Save your changes and download the signed PDF';
+    await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
+    await vi.waitFor(() => expect(sign).toHaveBeenCalled());
+    await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
+    await vi.waitFor(() => expect(sign.mock.calls.length).toBeGreaterThanOrEqual(2));
+
+    expect(sources.every((source) => source instanceof ArrayBuffer)).toBe(true);
+    expect(new Set(sources).size).toBe(1);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('pre-generates the signed PDF in the background so Share is ready without a prior tap (MOBI-07)', async () => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');

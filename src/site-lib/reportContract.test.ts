@@ -81,6 +81,6 @@ describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {
 
   it('a usage event is counted with its build', async () => {
     reportToolLifecycleEvent('tool_operation_failed', 'redact');
-    expect(counted(await deliver(), 'usage:')).toEqual(['tool_operation_failed|redact|08e10cf']);
+    expect(counted(await deliver(), 'usage:')).toEqual(['tool_operation_failed|redact|08e10cf', 'once:tool_operation_failed|redact|08e10cf']);
   });
 });

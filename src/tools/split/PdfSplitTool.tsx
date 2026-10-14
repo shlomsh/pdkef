@@ -618,7 +618,8 @@ export default function PdfSplitTool({
     <BasePdfTool
       hasFiles={hasFiles}
       analyticsTool="split"
-      analyticsStatus={status === 'error' ? 'error' : tap}
+      // A protected file is the person's file, not a failed operation: it stays out of the failure count.
+      analyticsStatus={status === 'error' && !isProtected ? 'error' : tap}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       file={file}

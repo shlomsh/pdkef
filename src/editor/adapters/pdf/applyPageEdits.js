@@ -15,7 +15,7 @@ import { deleteObjectsFromPdf } from './deleteObjects.js';
  * would mean cutting an object out of a page `redactPdf` has already turned
  * into a JPEG, which is not a thing byte-offset splicing can do.
  *
- * @param {File} file source PDF
+ * @param {File|Blob|ArrayBuffer} file source PDF
  * @param {Array} elements Redact tool elements; `type: 'delete'` ones carry
  *   `start`/`end` from `pdfObjects.js`, everything else is a redaction box
  * @param {(progress: number) => void} [onProgress]

@@ -943,6 +943,45 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('exports the bytes it already holds when the picked file can no longer be read (DEBT-51)', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    // The real adapter reads a File with arrayBuffer(); this stand-in does the same.
+    const sources: unknown[] = [];
+    mockedRedactPdf.mockImplementation(async (source: unknown) => {
+      sources.push(source);
+      if (!(source instanceof ArrayBuffer)) await (source as File).arrayBuffer();
+      return { blob: new Blob(['redacted'], { type: 'application/pdf' }) };
+    });
+
+    try {
+      const picked = makePdfFile('gone.pdf');
+      const drawArea = await loadFileAndGetDrawArea(picked);
+      // Moved or deleted on disk after picking: Chromium rejects the re-read.
+      picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+
+      await act(async () => { download().click(); });
+      await settleUntil('the first export to deliver', () => sources.length === 1 && lifecycleSpy.mock.calls.some(([e]) => e === 'tool_result_ready'));
+      await act(async () => { download().click(); });
+      await settleUntil('the second export to start', () => sources.length === 2);
+
+      expect(sources[0]).toBeInstanceOf(ArrayBuffer);
+      expect(sources[1]).toBe(sources[0]);
+      expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'redact');
+    } finally {
+      mockedRedactPdf.mockReset();
+      mockedRedactPdf.mockImplementation(async () => ({ blob: new Blob(['redacted'], { type: 'application/pdf' }) }));
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
   it('shares a valid PDF prepared from the real num-1.pdf fixture', async () => {
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;

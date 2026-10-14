@@ -925,6 +925,24 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
     vi.restoreAllMocks();
   });
 
+  it('does not count a protected file as a failed operation (DEBT-44)', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    await openFixture();
+    await wait(600);
+    probeMock.mockReset();
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(events('tool_operation_failed')).toBe(0);
+  });
+
+  it('still counts a document that fails to load as a failed operation', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { getDocument } = await import('pdfjs-dist');
+    getDocument.mockImplementationOnce(() => ({ promise: Promise.reject(new Error('boom')), destroy: vi.fn(() => Promise.resolve()) }));
+    await openFixture();
+    await wait(600);
+    expect(events('tool_operation_failed')).toBe(1);
+  });
+
   it('reports no start for the background prepare after an option change', async () => {
     await openFixture();
     await wait(600);
