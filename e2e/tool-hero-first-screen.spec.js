@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 // so none of this can be proved there.
 
 const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/'];
-const EXTRA_SIZES = new Set(['/merge/', '/image-to-pdf/']);
+const COMPACT = new Set(['/compress/', '/compress-image/']);
+const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/']);
 const SIZES = [
   { width: 1280, height: 680, belowFold: true },
   { width: 1440, height: 820, belowFold: true },
@@ -45,7 +46,7 @@ async function expectInViewport(page, locator, label) {
 
 test.describe('first screen', () => {
   for (const route of ROUTES) {
-    const sizes = EXTRA_SIZES.has(route) ? SIZES : [SIZES[1]];
+    const sizes = ALL_SIZES.has(route) ? SIZES : COMPACT.has(route) ? SIZES.slice(0, 2) : [SIZES[1]];
     for (const size of sizes) {
       test(`${route} at ${size.width}x${size.height}`, async ({ page }) => {
         await page.setViewportSize({ width: size.width, height: size.height });
@@ -57,6 +58,16 @@ test.describe('first screen', () => {
           const top = await page.locator('#how-it-works').evaluate((el) => el.getBoundingClientRect().top);
           expect(top, 'How it works starts at or below the fold').toBeGreaterThanOrEqual(size.height);
         }
+        // The hero sits high and centred in the first screen whatever the tool column does.
+        const geo = await page.evaluate(() => {
+          const hero = document.querySelector('.tool-hero').getBoundingClientRect();
+          const stage = document.querySelector('.tool-stage').getBoundingClientRect();
+          const main = document.querySelector('.tool-stage main').getBoundingClientRect();
+          return { heroTop: hero.top, heroMid: hero.top + hero.height / 2, stageTop: stage.top, stageBottom: stage.bottom, mainBottom: main.bottom, h: innerHeight };
+        });
+        expect(geo.heroTop / geo.h, 'hero top as a share of the viewport').toBeLessThanOrEqual(0.45);
+        expect(Math.abs(geo.heroMid - (geo.stageTop + Math.min(geo.h, geo.stageBottom)) / 2), 'hero centred in the first screen').toBeLessThanOrEqual(48);
+        if (!COMPACT.has(route)) expect(geo.mainBottom, 'tool column ends within the first screen').toBeLessThanOrEqual(geo.h);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
         await page.waitForTimeout(2500);
@@ -65,6 +76,18 @@ test.describe('first screen', () => {
     }
   }
 });
+
+// Before the island's markup lays out, <main> is a few px tall; the hero must not move when it arrives.
+for (const route of ['/merge/', '/compress-image/']) {
+  test(`${route} shifts nothing under 6x CPU throttling`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 820 });
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+    await open(page, route);
+    await page.waitForTimeout(3000);
+    expect(await page.evaluate(() => window.__cls), 'layout shift').toBeLessThan(0.001);
+  });
+}
 
 test('a file dropped on the hero text column loads in the tool', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 820 });

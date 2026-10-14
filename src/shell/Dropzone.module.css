@@ -81,8 +81,8 @@
      the sheet before a file is picked, so the sheet takes its content's height
      and leaves the rest of the first screen to them; otherwise the column ran
      past the fold and the hero centred far below the top. */
-  .dropzone[data-empty-state][data-compact],
-  .dropzone[aria-busy][data-compact] {
+  :global(.tool-stage[data-layout='hero']) .dropzone[data-empty-state][data-compact],
+  :global(.tool-stage[data-layout='hero']) .dropzone[aria-busy][data-compact] {
     min-height: 0;
   }
 
