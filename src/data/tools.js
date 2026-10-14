@@ -654,9 +654,7 @@ export const tools = [
   {
     slug: 'unlock',
     href: '/unlock/',
-    // Same reasoning as compress: one short options card, nothing to gain by
-    // folding the hero (see docs/view-density-control-spec.md 4.7).
-    condenseOnLoad: false,
+    // Condenses on load like every page-grid tool (the default); nothing special here.
     icon: FileLock2,
     gridTitle: 'Protect & Unlock',
     gridDescription: 'Add a password to secure your PDF or remove a known password.',
