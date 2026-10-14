@@ -36,6 +36,7 @@ export interface DocumentationShellMessages {
   socialImageAlt: string;
   builtWith: string;
   by: string;
+  authorName: string;
   github: string;
   reportBug: string;
   feedbackAndIdeas: string;
@@ -86,7 +87,7 @@ export type CrossLinksMessages = Pick<DocumentationShellMessages, 'crossLinksKic
 export type AboutCardMessages = Pick<DocumentationShellMessages, 'howItWorks' | 'freeForEveryone' | 'openSourceNote'>;
 export type FooterMessages = Pick<
   DocumentationShellMessages,
-  'builtWith' | 'by' | 'github' | 'reportBug' | 'feedbackAndIdeas' | 'licenses' | 'language' | 'about' | 'contact' | 'privacy'
+  'builtWith' | 'by' | 'authorName' | 'github' | 'reportBug' | 'feedbackAndIdeas' | 'licenses' | 'language' | 'about' | 'contact' | 'privacy'
 >;
 
 const englishMessages = {
@@ -110,6 +111,7 @@ const englishMessages = {
   socialImageAlt: 'PDkef - free PDF tools that run entirely in your browser.',
   builtWith: 'Built with',
   by: 'by',
+  authorName: 'Shlomi Shemesh',
   github: 'GitHub',
   reportBug: 'Report a bug',
   feedbackAndIdeas: 'Feedback & ideas',
@@ -151,6 +153,7 @@ const hebrewMessages = {
   socialImageAlt: 'PDkef - כלים חינמיים ל-PDF שפועלים במלואם בדפדפן שלך.',
   builtWith: 'נבנה עם',
   by: 'על ידי',
+  authorName: 'שלומי שמש',
   github: 'GitHub',
   reportBug: 'דיווח על תקלה',
   feedbackAndIdeas: 'משוב ורעיונות',
@@ -195,6 +198,7 @@ const indonesianMessages = {
   socialImageAlt: 'PDkef - alat PDF gratis yang berjalan sepenuhnya di peramban Anda.',
   builtWith: 'Dibuat dengan',
   by: 'oleh',
+  authorName: 'Shlomi Shemesh',
   github: 'GitHub',
   reportBug: 'Laporkan bug',
   feedbackAndIdeas: 'Masukan & ide',
