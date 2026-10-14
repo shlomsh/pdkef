@@ -12,7 +12,7 @@ reviewNotes: >-
   Pending his own read-through, like the Hebrew home page. The vocabulary
   (המרת PDF לתמונה, JPG, PNG) comes from Hebrew autocomplete, not from a
   measured query volume. The control labels live in src/i18n/toolMessages.ts.
-sourceHash: 'fnv1a64:96161e001607dcc4'
+sourceHash: 'fnv1a64:f26e63710794742d'
 seoTitle: 'המרת PDF לתמונה בחינם - JPG או PNG בלי סימן מים | PDkef'
 seoDescription: >-
   המירו עמודי PDF לתמונות JPG או PNG בחינם ובלי סימן מים. ההמרה רצה בדפדפן,
@@ -20,6 +20,7 @@ seoDescription: >-
 schemaName: 'PDkef - המרת PDF לתמונה'
 toolName: 'PDF לתמונה'
 h1: 'המרת PDF לתמונה בחינם'
+h1Name: 'המרת PDF לתמונה'
 subhead: >-
   הפכו כל עמוד ב-PDF לתמונת JPG או PNG ברזולוציה שאתם בוחרים, בלי סימן מים.
   חינם, קוד פתוח, והקובץ נשאר אצלכם במכשיר.

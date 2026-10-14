@@ -20,7 +20,7 @@ reviewNotes: >-
   merge and sign; wording chosen by Shlomi. 10-02 (COMP-01): about, subhead and three FAQ answers rewritten
   for the image-only compressor; awaiting Shlomi's read. Target Size answers corrected after review (bisection).
 # 10-08 (SEO-42): English title gained "No Upload"; the Hebrew title is its own phrasing and stays. Hash refreshed mechanically.
-sourceHash: 'fnv1a64:1143f986ffd25103'
+sourceHash: 'fnv1a64:48193e8d6df1fd52'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
   כווצו קובץ PDF ל-100KB בחינם, ישירות בדפדפן. גם דחיסת PDF וגם הקטנת קובץ
@@ -29,6 +29,7 @@ seoDescription: >-
 schemaName: 'PDkef - כיווץ PDF'
 toolName: 'כיווץ PDF'
 h1: 'כיווץ קובץ PDF ל-100KB בחינם: הקטנת גודל קובץ'
+h1Name: 'כיווץ קובץ PDF ל-100KB'
 subhead: >-
   צריכים PDF מתחת ל-100KB לטופס או להעלאה? בחרו גודל יעד ובדקו את התוצאה.
   התמונות שבתוכו קטנות, והטקסט והקישורים נשארים בדיוק כמו שהם. פרטי. הקובץ נשאר

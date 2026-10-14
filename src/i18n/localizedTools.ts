@@ -41,6 +41,7 @@ const TOOL_SOURCE_FIELDS = [
   'schemaName',
   'toolName',
   'h1',
+  'h1Name',
   'subhead',
   'ariaLabel',
   'aboutHeading',
