@@ -146,6 +146,10 @@ export default function DropzoneEmptyState({
         </div>
       )}
 
+      {/* The input is visually hidden, not `hidden`: display:none takes it out
+          of the tab order, so a keyboard could never reach the picker and the
+          `:has(input:focus-visible)` ring below could never match (QUAL-22).
+          Enter and Space on a focused file input open the picker natively. */}
       <label class={styles['file-picker-button']}>
         {multiple ? messages.chooseFilesMany : messages.chooseFileOne}
         <input
@@ -154,7 +158,7 @@ export default function DropzoneEmptyState({
           accept={accept}
           multiple={multiple}
           onChange={onInputChange}
-          hidden
+          class={styles['file-input']}
         />
       </label>
 
