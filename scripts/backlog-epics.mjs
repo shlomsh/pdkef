@@ -2,7 +2,7 @@
 // serve-backlog-board.mjs (the board) both read it, and validateTasks in
 // backlog-data.mjs fails any task naming a key that is not here.
 //
-// Two kinds. The six `lanes` are the only epics a live ticket (open,
+// Two kinds. The `lanes` are the only epics a live ticket (open,
 // in_progress, blocked) may use; they are the board, in display order. Every
 // epic that existed before the board was reorganised stays registered as a
 // closed (legacy) epic so done and retired tickets keep validating; they show
@@ -10,6 +10,10 @@
 export const lanes = [
   { key: 'redact', label: 'Redact: finish removal', why: 'Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.' },
   { key: 'sign-fill-mode', label: 'Sign: finish fill mode', why: 'Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.' },
+  // Opened 2026-10-14 from the tool-page review (docs/tool-hero-show-the-verb.md): Shlomi found the
+  // shared template good but not crisp, picked "Show the verb" from three sketched directions and
+  // added the full-height desktop hero.
+  { key: 'tool-pages', label: 'Tool pages: show the verb', why: "Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop." },
   { key: 'form-detection', label: 'Form detector accuracy', why: 'Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.' },
   { key: 'robustness', label: 'Robustness and debt', why: 'Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.' },
   { key: 'search-and-languages', label: 'Search and languages', why: 'Mostly waiting on dated Search Console reads. Two small things can ship now.' },

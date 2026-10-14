@@ -164,10 +164,18 @@ saved"), never a banner, and on return says "Picked up where you left off · Sta
 the heading, never twice and never as a modal. Clear all deletes the draft. The record carries every
 input file and the arrangement (order, rotation, skips, the edited name) and is capped at 200 MB.
 
-## 12. Empty state is a band, not a void
+## 12. The empty state is the hero, never a void
 
-Three ghost page outlines, "Drop PDFs here, or paste", the privacy line, and Choose files, in a
-260px band. Never a viewport-filling dashed box.
+On desktop the first screen is one composed hero, sized to the screen (`clamp(600px, 100svh - app bar,
+900px)`). The tool's name and subhead sit on the left. On the right is a sheet where the tool acts out
+its own job once (the verb), with the drop heading, the privacy line and Choose files under it, and a
+file dropped anywhere on the page lands there. After a drop the same screen becomes the workspace.
+What fills the height is the headline and the verb, never an empty box: MERGE-06's viewport-filling
+dashed drop box read as a void and was replaced the same day. On a phone the empty state stays a
+short stacked block under the hero. Design record:
+[tool-hero-show-the-verb.md](./tool-hero-show-the-verb.md). Until HERO-02 and HERO-03 ship, the live
+shape is still Merge's 260px band (three ghost page outlines, the heading, the privacy line, Choose
+files).
 
 ## 13. Cross-tool hand-offs, and the reverse
 

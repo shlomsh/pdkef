@@ -6,6 +6,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Tool pages: show the verb
+
+- [HERO-02](backlog/tasks/HERO-02.md) P1 · One full-height first screen on desktop for the page-grid tools
+- [HERO-03](backlog/tasks/HERO-03.md) P1 · Each page-grid tool acts out its job in the empty state
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
@@ -45,6 +50,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
+- [HERO-04](backlog/tasks/HERO-04.md) · Approve the drag-over caption, in English and Hebrew
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-45](backlog/tasks/SEO-45.md) · The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/

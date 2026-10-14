@@ -69,7 +69,7 @@ export function validateTasks(tasks, registry = epics) {
     if (!priorities.includes(task.priority)) errors.push(`${where}: unsupported priority "${task.priority}" (one of ${priorities.join(', ')}).`);
     const registered = registry.find((epic) => epic.key === task.epic);
     if (!registered) errors.push(`${where}: epic "${task.epic}" is not registered in scripts/backlog-epics.mjs.`);
-    else if (registered.closed && LIVE_STATUSES.has(task.status)) errors.push(`${where}: ${task.status} tickets cannot sit in the closed epic "${task.epic}"; move it to one of the six lanes (${lanes.map((lane) => lane.key).join(', ')}).`);
+    else if (registered.closed && LIVE_STATUSES.has(task.status)) errors.push(`${where}: ${task.status} tickets cannot sit in the closed epic "${task.epic}"; move it to one of the lanes (${lanes.map((lane) => lane.key).join(', ')}).`);
     for (const key of Object.keys(task)) {
       if (!KNOWN_FIELDS.has(key) && !INTERNAL_FIELDS.has(key)) errors.push(`${where}: unknown field "${key}" (fields: ${[...KNOWN_FIELDS].slice(0, 10).join(', ')}).`);
     }
