@@ -524,4 +524,62 @@ describe('BasePdfTool', () => {
 
     expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
   });
+
+  describe('drop anywhere', () => {
+    const fireWindow = (e) => act(() => { window.dispatchEvent(e); });
+    const card = () => container.querySelector(`.${pdfToolStyles['tool-card']}`);
+
+    it('marks the card data-dragging on a window file dragenter and clears on dragleave and drop', () => {
+      mount({ hasFiles: false, onFilesAdded: vi.fn() });
+      expect(card().hasAttribute('data-dragging')).toBe(false);
+      fireWindow(fileDragEvent('dragenter'));
+      expect(card().hasAttribute('data-dragging')).toBe(true);
+      fireWindow(fileDragEvent('dragleave'));
+      expect(card().hasAttribute('data-dragging')).toBe(false);
+      fireWindow(fileDragEvent('dragenter'));
+      fireWindow(fileDragEvent('drop'));
+      expect(card().hasAttribute('data-dragging')).toBe(false);
+    });
+
+    it('takes a window drop with nothing loaded exactly once', () => {
+      const spy = vi.fn();
+      mount({ hasFiles: false, onFilesAdded: spy });
+      fireWindow(fileDragEvent('dragenter'));
+      fireWindow(fileDragEvent('drop'));
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0][0][0].name).toBe('dropped.pdf');
+    });
+
+    it('handles one drop on the empty sheet once, not again at the window', () => {
+      const spy = vi.fn();
+      mount({ hasFiles: false, onFilesAdded: spy });
+      act(() => { window.dispatchEvent(fileDragEvent('dragenter')); });
+      const zone = container.querySelector('[data-empty-state]');
+      act(() => { zone.dispatchEvent(fileDragEvent('drop')); });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles one drop on the loaded workspace once', () => {
+      const spy = vi.fn();
+      mount({ hasFiles: true, multiple: true, onFilesAdded: spy });
+      act(() => { card().dispatchEvent(fileDragEvent('drop')); });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('adds no listeners with dropAnywhere={false}', () => {
+      const spy = vi.fn();
+      mount({ hasFiles: false, onFilesAdded: spy, dropAnywhere: false });
+      fireWindow(fileDragEvent('dragenter'));
+      expect(card().hasAttribute('data-dragging')).toBe(false);
+      fireWindow(fileDragEvent('drop'));
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('renders emptyArt inside the empty state in place of the file-plus icon', () => {
+      mount({ hasFiles: false, onFilesAdded: vi.fn(), emptyArt: <i data-testid="verb" /> });
+      const zone = container.querySelector('[data-empty-state]');
+      expect(zone.querySelector('[data-testid="verb"]')).not.toBeNull();
+      expect(zone.querySelector(`.${styles['dropzone-icon']}`)).toBeNull();
+    });
+  });
 });

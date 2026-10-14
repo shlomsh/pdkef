@@ -9,6 +9,7 @@ import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
 import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
+import { useWindowFileDrop } from './useWindowFileDrop.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
 
@@ -77,6 +78,10 @@ interface BasePdfToolProps {
    * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
    * of it. Every other tool leaves this false and is unaffected. */
   hideIdentity?: boolean;
+  /** A file dropped anywhere on the page is taken, and the card carries
+   * `data-dragging` while one is over the window. Sign and Redact turn it off
+   * (HERO-05). */
+  dropAnywhere?: boolean;
 }
 
 /**
@@ -136,6 +141,7 @@ export default function BasePdfTool({
   emptyHeading,
   emptyBody,
   hideIdentity = false,
+  dropAnywhere = true,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
@@ -259,19 +265,27 @@ export default function BasePdfTool({
     if (dragDepthRef.current === 0) setIsDraggingOverWorkspace(false);
   };
 
+  // MERGE-10: a dropped folder arrives as one directory entry and no files;
+  // walking it is async, so only that case leaves the synchronous path.
+  const receiveDrop = (dataTransfer: DataTransfer | null | undefined) => {
+    if (dropHasDirectory(dataTransfer)) {
+      void filesFromDataTransfer(dataTransfer).then(receiveFiles);
+      return;
+    }
+    receiveFiles(dataTransfer?.files);
+  };
+
   const onWorkspaceDrop = (event: DragEvent) => {
     if (!hasFiles || !hasFilePayload(event)) return;
     event.preventDefault();
     dragDepthRef.current = 0;
     setIsDraggingOverWorkspace(false);
-    // MERGE-10: a dropped folder arrives as one directory entry and no files;
-    // walking it is async, so only that case leaves the synchronous path.
-    if (dropHasDirectory(event.dataTransfer)) {
-      void filesFromDataTransfer(event.dataTransfer).then(receiveFiles);
-      return;
-    }
-    receiveFiles(event.dataTransfer?.files);
+    receiveDrop(event.dataTransfer);
   };
+
+  // A drop on the window that no element handler took (the hook skips
+  // defaultPrevented drops, so the sheet and the workspace never run twice).
+  const windowDragging = useWindowFileDrop({ enabled: dropAnywhere, onDrop: receiveDrop });
 
   // MERGE-10: Cmd/Ctrl+V with files on the clipboard adds them, in every tool,
   // through the same gate a drop goes through. Text pastes are left alone.
@@ -346,6 +360,7 @@ export default function BasePdfTool({
       // signal today (only Merge hides ToolShell), so it is reflected onto
       // the card rather than adding a tool-name attribute nothing else reads.
       data-hide-identity={hideIdentity || undefined}
+      data-dragging={windowDragging || undefined}
       onDragEnter={onWorkspaceDragEnter}
       onDragOver={onWorkspaceDragOver}
       onDragLeave={onWorkspaceDragLeave}

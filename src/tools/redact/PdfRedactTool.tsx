@@ -1032,6 +1032,7 @@ export default function PdfRedactTool() {
   return (
     <BasePdfTool
       analyticsTool="redact"
+      dropAnywhere={false}
       hasFiles={!!file}
       onFilesAdded={handleFilesAdded}
       multiple={false}
