@@ -19,7 +19,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
-- [SEO-45](backlog/tasks/SEO-45.md) P1 · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it
 - [SEO-42](backlog/tasks/SEO-42.md) P2 · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console (in progress)
 - [SEO-44](backlog/tasks/SEO-44.md) P2 · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 
@@ -29,6 +28,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Waiting, by date
 
+- 2026-10-28: [SEO-45](backlog/tasks/SEO-45.md) · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it
 - 2026-11-06: [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house
 - 2026-11-06: [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages
 - 2026-11-07: [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads
@@ -49,7 +49,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
-- [SEO-45](backlog/tasks/SEO-45.md) · Request indexing for /merge/ after the deploy (URL Inspection), then a Search Console read on 2026-10-28
+- [SEO-45](backlog/tasks/SEO-45.md) · The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06

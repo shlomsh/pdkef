@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 50 live: 9 up next, 7 then, 16 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 50 live: 8 up next, 7 then, 17 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -106,7 +106,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-| SEO-45 | P1 | [SEO-45](backlog/tasks/SEO-45.md) · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it | Needs Shlomi: Request indexing for /merge/ after the deploy (URL Inspection), then a Search Console read on 2026-10-28 |
 | SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: The 28-day Search Console read for /compress/ about 2026-11-06 |
 | SEO-44 | P2 | [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference |  |
 
@@ -115,6 +114,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family | Waiting on 2026-11-08 |
+| SEO-45 | P1 | [SEO-45](backlog/tasks/SEO-45.md) · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it | Waiting on 2026-10-28. Needs Shlomi: The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on) |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house | Waiting on 2026-11-06 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins | Waiting on LOC-17 and SEO-40 |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | Waiting on Shlomi's read-through. Needs Shlomi: Israeli portal size limits and a read-through of /he/ |

@@ -1,11 +1,11 @@
 ---
 id: "SEO-45"
 title: "/merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "search-and-languages"
-horizon: "now"
-needs: "Request indexing for /merge/ after the deploy (URL Inspection), then a Search Console read on 2026-10-28"
+waiting_on: "2026-10-28"
+needs: "The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)"
 ---
 
 # SEO-45 · Merge's title and H1 lost the exact phrase it ranked on
@@ -53,7 +53,7 @@ last crawl (checked 2026-10-14 against every `seoTitle`/`h1` edit since 08-20).
 
 ## Acceptance
 
-- [ ] Deployed; `/merge/` requested for indexing by Shlomi
+- [x] Deployed (`ebdd1f9c`, CI green, live title checked 2026-10-14); `/merge/` requested for indexing by Shlomi 2026-10-14
 - [ ] Crawl date after the deploy confirmed in URL Inspection, and the indexed title matches the live one
 - [ ] 2026-10-28 read: `merge pdf online` and `merge pdf free` impressions and position on `/merge/`, 10-day windows before and after the recrawl
 - [ ] Outcome recorded in `docs/seo-competitive-findings.md`: back on page one (the lead phrase matters, so keep Merge's vocabulary in the body and never in the title lead), or still gone (not the title, look at what else changed since 09-12)
