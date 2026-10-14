@@ -408,4 +408,40 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     }
 
   }
+
+  /* HERO-02: after a file lands, a stacked (page-grid) hero on desktop folds
+     to one row: the 2rem tile beside the tool name at 1.6rem, start-aligned,
+     1rem above and 0.75rem below (5.5rem all told; PdfTool.module.css gives
+     the loaded card that much less min-height than the first screen). Same
+     mechanism as the folds above: the rest of the h1 and the subhead leave
+     the paint with display:none but stay in the DOM, so the h1's textContent
+     is unchanged. The signals are the page-level ones: [data-tool-shell]
+     (every ToolShell tool) and [data-tool-loaded] (the loaded card; Merge has
+     no ToolShell). Sign and Redact are not stacked and keep their own rules. */
+  @media (min-width: 1024px) {
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable],
+    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] {
+      --hero-icon: 2rem;
+      padding-top: 1rem;
+      padding-bottom: 0.75rem;
+    }
+
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row],
+    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-row] {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 0;
+    }
+
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name],
+    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] [data-hero-name] {
+      font-size: 1.6rem;
+    }
+
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-stacked][data-hero-condensable] :is([data-hero-rest], [data-hero-sub]),
+    :global(html[data-view-density='condensed']:has([data-tool-loaded])) .tool-hero[data-hero-stacked][data-hero-condensable] :is([data-hero-rest], [data-hero-sub]) {
+      display: none;
+    }
+  }
 </style>
