@@ -58,9 +58,29 @@ const offlineAttrs = offlineHref ? { href: offlineHref, 'data-offline-link': tru
     <Plane class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" />
     <span>{labels.worksOffline}</span>
   </OfflineChip>
+  <i class="trust-chips-end" hidden></i>
 </div>
 
 <style>
+  /* The parser can hand the browser a paint between two chips, and the bar's
+     right edge is the one place where a half-built row moves something that
+     was already painted: the On-device pill sits left of the chips, so every
+     chip that arrives pushes it. Measured on /merge/ at 1280x680: the row was
+     177px at the first paint and 403px about 15ms later in roughly one load
+     in eight, a 0.003 shift. The marker is the row's last child, so its
+     presence means every chip is complete; until then the row and the pill
+     keep their layout but are not painted, and a shift of something unpainted
+     is not counted. The pill is matched from its parent (which also covers a
+     paint before the row's wrapper exists), as a separate rule because
+     :has() cannot nest inside :has(). */
+  .trust-chips:not(:has(> .trust-chips-end)) {
+    visibility: hidden;
+  }
+
+  :global(:not(:has(.trust-chips-end)) > [data-on-device]) {
+    visibility: hidden;
+  }
+
   .trust-chips {
     display: flex;
     align-items: center;
