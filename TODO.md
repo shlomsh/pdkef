@@ -18,7 +18,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [QUAL-22](backlog/tasks/QUAL-22.md) P1 · Choose files is reachable by keyboard on every tool's empty state (in progress)
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 
 ## Waiting, by date
