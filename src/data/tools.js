@@ -375,12 +375,12 @@ export const tools = [
       'Combine multiple PDFs into one document, in any order, with no page limit or watermark.',
     sitemapPriority: '0.9',
     sitemapChangefreq: 'monthly',
-    seoTitle: 'Merge or Combine PDF Files Online Free - No Upload | PDkef',
+    seoTitle: 'Merge PDF Online Free - Combine PDFs in Your Browser | PDkef',
     seoDescription:
       'Merge PDF files online for free, with no file limit. Drag, reorder, and combine PDFs on your device. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
-    h1: 'Merge or Combine PDF Files Online Free',
+    h1: 'Merge PDF Online Free: Combine Files in Your Browser',
     subhead:
       'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional. Free, open source, and your files stay on your device.',
     ariaLabel: 'PDF merge tool',
