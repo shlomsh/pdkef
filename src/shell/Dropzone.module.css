@@ -42,221 +42,46 @@
   display: none;
 }
 
-.dropzone:hover {
-  border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-paper));
+/* The empty state is one framed sheet at every width (HERO-01,
+   docs/tool-hero-show-the-verb.md): the tool's art (or the file-plus icon),
+   the heading, one quiet line, then Choose files. BasePdfTool's
+   checking-draft placeholder (`aria-busy`) wears the same sheet, so nothing
+   changes shape when it resolves. */
+.dropzone[data-empty-state],
+.dropzone[aria-busy] {
+  gap: var(--space-3);
+  min-height: 0;
+  padding: 2rem 1.25rem;
+  border: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
-/* #app top-aligns instead of centering at this breakpoint (ToolPageLayout.astro).
-   One box, one height (Shlomi, 2026-09-12: "there is also a flicker when
-   clicking on the dropzone and choosing a file, the height allocation and
-   distribution changes"; then, seeing the first pass on /he/compress/: "too
-   dense visually... give it air"). Below 1024px this box stays the tall,
-   stacked, thumb-sized touch target it always was (see the base rule above)
-   - this block only fires at desktop widths, where the row that replaces
-   this box once a file is picked (ToolShell.module.css's `.shell:not(.editor)`)
-   is a fixed 168px. Matching that height here is what makes the pick a
-   crossfade instead of a jump: everything below the box keeps its top
-   coordinate because the box itself never changes size.
-
-   CSS Grid, not flex, because the icon and the button each need to span
-   *two* text rows (the heading and, under it, the privacy line) while
-   staying vertically centred - a flex row can put four children side by
-   side but can't make two of them tall and two of them stacked without an
-   extra wrapper element, and DropzoneEmptyState.tsx's DOM is out of scope
-   for this change. Logical-property column keywords (`inline-start`/
-   `inline-end`, not `left`/`right`) so this holds up on `/he/`, which is
-   what a visitor actually looked at: the grid's column *order* already
-   flips for free under `dir="rtl"` (the browser reverses inline axis
-   placement), so the only thing that would break RTL here is a literal
-   physical-direction value, which nothing below uses. */
-@media (min-width: 1024px) {
-  .dropzone {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    /* Without this, the default `align-content: stretch` spreads the two
-       explicit rows across the whole fixed height, so `align-items: center`
-       (below) centres the heading inside the *top half* and the privacy
-       line inside the *bottom half* instead of the pair reading as one
-       two-line block in the middle - the ~60px gap Shlomi saw in
-       en-compress-strip.png. `align-content: center` packs the rows
-       together first; `align-items: center` then only has to centre that
-       packed pair (and the icon/button, each still spanning both rows)
-       inside the box. */
-    align-content: center;
-    align-items: center;
-    column-gap: var(--space-5);
-    row-gap: 0.2rem;
-    height: 168px;
-    min-height: 0;
-    padding-inline: var(--space-6);
-    padding-block: 0;
-    text-align: start;
-  }
-
-  /* `.dropzone <child>`, not the bare class, on every rule below: the base,
-     unconditional (no media guard) rules for these same classes sit further
-     down this file (`.privacy-line`'s pill styling, in particular), and at
-     equal specificity source order alone would let those win over this
-     media query, `@media` block position notwithstanding. The extra
-     ancestor selector is always true here (these are always children of
-     `.dropzone`) and buys the specificity needed to actually win. */
-  .dropzone .dropzone-icon {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    margin-bottom: 0;
-    width: 44px;
-    height: 44px;
-  }
-
-  .dropzone .dropzone-text {
-    grid-column: 2;
-    grid-row: 1;
-    font-size: var(--type-lead-size);
-  }
-
-  /* The pill becomes the plain second line of the text stack - "one fewer
-     bordered shape" on a box that already has a border of its own. Still an
-     inline-flex so its checkmark glyph and sentence stay on one baseline.
-     Color and weight are not overridden here (Shlomi, 2026-09-12: the line
-     reads as too muted at 400/gray on the first pass - "it is very important
-     and should be highlighted back a notch"), so the base rule's success
-     color and 600 weight carry through; only the pill's own shape (padding,
-     background, radius) is undone for the second-line layout. */
-  .dropzone .privacy-line {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: start;
-    margin: 0;
-    padding: 0;
-    background: none;
-    border-radius: 0;
-    font-size: 0.85rem;
-    /* Without the pill's light fill the line sits on --color-paper, where
-       --color-success is 4.3:1 (PageSpeed flagged it); the hover shade is 6:1. */
-    color: var(--color-success-hover);
-  }
-
-  .dropzone .file-picker-button {
-    grid-column: 3;
-    grid-row: 1 / span 2;
-    margin-top: 0;
-  }
-
-  /* MOBI-09's Files-app hint (Sign only, and only ever seen on iOS at this
-     width - an iPad in landscape) is a full sentence of body copy and can't
-     share either row. It gets a implicit third row of its own, spanning
-     every column, instead of fighting the heading/privacy stack for space;
-     `.dropzone`'s own `height: 168px` above does not grow to fit it - see 4.
-     in the design brief. Mobile keeps the stacked, unmeasured layout and is
-     unaffected. */
-  .dropzone .ios-files-hint {
-    grid-column: 1 / -1;
-    margin-top: 0;
-  }
-
-  /* `compact` (BasePdfTool.tsx's opt-in - Compress and Compress Image) used
-     to shrink this box a different way: a lower floor and less padding on a
-     layout that was still a vertical stack, so the real content height
-     (icon + heading + button + privacy line) blew past the floor regardless
-     and the box still read as tall. The grid above already gives every tool
-     - compact or not - the same fixed 168px, so `[data-compact]` has nothing
-     left to override here. The prop and the attribute stay wired
-     (DropzoneEmptyState.tsx, BasePdfTool.tsx's checking-draft placeholder)
-     so neither tool's own file has to change; it is just a no-op at this
-     width now. */
-}
-
-/* Shlomi's follow-up (2026-09-13), item 5: Merge's own empty-state band.
-   Below 1024px this is entirely inert - `.band-ghosts`/`.band-copy` stay
-   hidden and the default icon/heading/privacy-line render exactly as for
-   every other tool. At 1024px and up, `[data-variant="band"]` reuses the
-   same grid engine as the rule above (column 1 the graphic, column 2 the
-   two-line copy stack, column 3 the button) rather than inventing a second
-   layout mechanism, just shorter (260px, not 168) and swapped in. */
-.band-ghosts,
-.band-copy {
-  display: none;
+.dropzone[data-empty-state] > * {
+  max-width: 100%;
 }
 
 @media (min-width: 1024px) {
-  .dropzone[data-variant='band'] {
-    height: 260px;
+  .dropzone[data-empty-state],
+  .dropzone[aria-busy] {
+    padding: 1.5rem 2rem 2rem;
+    min-height: min(36rem, calc(var(--first-screen, 40rem) - 9rem));
+    justify-content: center;
   }
 
-  .dropzone[data-variant='band'] .dropzone-icon,
-  .dropzone[data-variant='band'] .dropzone-text,
-  .dropzone[data-variant='band'] .privacy-line {
-    display: none;
+  .dropzone[data-empty-state] > :first-child {
+    max-width: 42rem;
   }
 
-  .dropzone[data-variant='band'] .band-ghosts {
-    position: relative;
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    display: block;
-    width: 68px;
-    height: 58px;
-  }
-
-  .dropzone[data-variant='band'] .band-ghost {
-    position: absolute;
-    top: 0;
-    width: 44px;
-    height: 58px;
-    border: 1.5px dashed var(--color-border-strong);
-    border-radius: var(--radius-sm);
-    background: var(--color-surface-sunken);
-  }
-
-  .dropzone[data-variant='band'] .band-ghost:nth-child(1) {
-    inset-inline-start: 0;
-    z-index: 1;
-  }
-
-  .dropzone[data-variant='band'] .band-ghost:nth-child(2) {
-    inset-inline-start: 12px;
-    z-index: 2;
-  }
-
-  .dropzone[data-variant='band'] .band-ghost:nth-child(3) {
-    inset-inline-start: 24px;
-    z-index: 3;
-    background: var(--color-surface);
-  }
-
-  .dropzone[data-variant='band'] .band-copy {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    justify-self: start;
-  }
-
-  .dropzone[data-variant='band'] .band-heading {
-    margin: 0;
-    font-size: var(--type-lead-size);
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .dropzone[data-variant='band'] .band-body {
-    margin: 0;
-    max-width: 34rem;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    color: var(--color-muted);
+  .dropzone[data-empty-state] .dropzone-text {
+    font-size: 1.25rem;
   }
 }
 
 .dropzone.is-dragover {
-  border-color: var(--color-success);
-  border-style: solid;
-  background: var(--color-success-soft);
-  transform: scale(1.01);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 30%, transparent);
+  box-shadow: 0 0 0 3px var(--color-primary);
+  transform: translateY(-2px);
 }
 
 .dropzone-icon {
@@ -265,7 +90,6 @@
   transition: transform 0.3s var(--ease-spring);
 }
 
-.dropzone:hover .dropzone-icon,
 .dropzone.is-dragover .dropzone-icon {
   transform: translateY(-2px) scale(1.04);
 }
@@ -367,14 +191,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin: var(--space-3) 0 0;
-  padding: 0.45rem 1rem;
-  background: var(--color-success-soft);
-  color: var(--color-success);
-  border-radius: var(--radius-pill);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .privacy-line svg {
@@ -440,16 +260,5 @@
   }
   to {
     opacity: 1;
-  }
-}
-
-/* MERGE-06: inside a card that fills the first screen, the desktop dropzone
-   grows past its fixed 168px to whatever height the stage has left, with its
-   two-row grid still centred (align-content above). */
-@media (min-width: 1024px) {
-  [data-fill-viewport] > .dropzone {
-    flex: 1 1 auto;
-    height: auto;
-    min-height: 168px;
   }
 }

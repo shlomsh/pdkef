@@ -387,8 +387,12 @@ describe('PdfSecurityTool', () => {
       mount();
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('owner-only')]);
-        await new Promise((resolve) => setTimeout(resolve, 500));
       });
+      // Real pdf-lib work: wait for the result rather than a fixed sleep, which
+      // lost the race whenever the whole suite ran in parallel.
+      for (let waited = 0; waited < 5000 && !container.textContent.includes('The protection is off.'); waited += 50) {
+        await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      }
 
       expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), '');
       expect(container.querySelector('input[type="password"]')).toBeNull();

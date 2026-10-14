@@ -88,26 +88,23 @@ describe('DropzoneEmptyState', () => {
     expect(container.textContent).not.toContain(IOS_HINT_TEXT);
   });
 
-  // Shlomi's follow-up (2026-09-13), item 5: the Merge-only desktop empty-state
-  // band. jsdom cannot prove the 1024px layout (that's Dropzone.module.css's
-  // `[data-variant="band"]` media query, not this component's job); this only
-  // proves the band's own copy and the Choose files button are actually in
-  // the markup once a tool opts in, regardless of viewport.
-  it('renders the band heading, body and Choose files button when variant is "band"', () => {
-    mount({ variant: 'band', bandHeading: 'Drop PDFs here, or paste', bandBody: 'Your pages appear here, in order, before you download. Files never leave your device.' });
-    expect(container.querySelector(`.${styles['band-heading']}`).textContent).toBe('Drop PDFs here, or paste');
-    expect(container.querySelector(`.${styles['band-body']}`).textContent).toBe(
-      'Your pages appear here, in order, before you download. Files never leave your device.',
-    );
-    expect(container.querySelector(`.${styles['band-ghosts']}`)).not.toBeNull();
-    expect(container.querySelectorAll(`.${styles['band-ghost']}`)).toHaveLength(3);
-    expect(container.textContent).toContain('Choose files');
+  // The sheet's art slot: the tool's verb replaces the file-plus icon.
+  it('renders the art in place of the file-plus icon when given', () => {
+    mount({ art: <div data-testid="verb-art" /> });
+    expect(container.querySelector('[data-testid="verb-art"]')).not.toBeNull();
+    expect(container.querySelector(`.${styles['dropzone-icon']}`)).toBeNull();
   });
 
-  it('renders no band markup at all for the default variant', () => {
+  it('keeps the file-plus icon when no art is given', () => {
     mount();
-    expect(container.querySelector(`.${styles['band-ghosts']}`)).toBeNull();
-    expect(container.querySelector(`.${styles['band-copy']}`)).toBeNull();
+    expect(container.querySelector(`.${styles['dropzone-icon']}`)).not.toBeNull();
+  });
+
+  it('takes its heading and body from props, with Choose files after them', () => {
+    mount({ heading: 'Drop PDFs here, or paste', body: 'Files never leave your device.' });
+    expect(container.querySelector('strong').textContent).toBe('Drop PDFs here, or paste');
+    expect(container.querySelector(`.${styles['privacy-line']}`).textContent).toBe('Files never leave your device.');
+    expect(container.textContent).toContain('Choose files');
   });
 
   // QUAL-22: `hidden` is display:none, which removes the input from the tab

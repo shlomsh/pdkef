@@ -177,18 +177,12 @@ describe('PdfMergeTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop PDFs or photos here');
   });
 
-  // Item 5 (Shlomi's follow-up, 2026-09-13): Merge always opts into the
-  // desktop-only empty-state band (BasePdfTool's `emptyVariant="band"`); the
-  // band's own two lines and the Choose files button are in the markup
-  // regardless of viewport (Dropzone.module.css's `[data-variant="band"]`
-  // media query is what actually shows them only at 1024px and up).
-  it('opts the empty state into the band variant, with its own heading, body and Choose files', () => {
+  // Merge's empty-state sheet carries its own heading and body line (BasePdfTool's
+  // `emptyHeading` / `emptyBody`) beside the Choose files button.
+  it('shows the empty-state sheet with its own heading, body and Choose files', () => {
     mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
-    expect(dropzone.getAttribute('data-variant')).toBe('band');
-    expect(dropzone.textContent).toContain('Drop PDFs or photos here, or paste');
-    // MERGE-22: the headline a phone shows (the band copy is desktop-only) names photos too.
-    expect(dropzone.querySelector('strong').textContent).toBe('Drop PDFs or photos here');
+    expect(dropzone.querySelector('strong').textContent).toBe('Drop PDFs or photos here, or paste');
     expect(dropzone.textContent).toContain('Your pages appear here, in order, before you download. Files never leave your device.');
     expect(dropzone.textContent).toContain('Choose files');
   });
