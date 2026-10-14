@@ -20,7 +20,7 @@ needs: "Approve the drag-over caption, in English and Hebrew"
 - A file dragged anywhere over the page lands in the tool. The island listens on `window` and acts
   only when `dataTransfer.types` includes `Files`, so Merge's page reordering and text drags pass
   through.
-- A pure depth counter (`src/shell/useWindowFileDrop.ts`) flips state only on the enter and leave
+- A pure depth counter (`src/shell/fileDragDepth.ts`) flips state only on the enter and leave
   edges, never per `dragover`.
 - The island sets `data-dragging` on its own root. Static CSS on `.tool-stage:has([data-dragging])`
   tints the first screen and lifts the verb, and the drop heading reads "Let go to add your files"

@@ -327,17 +327,15 @@
    1024px. FilePreview.tsx's PDF_PREVIEW_WIDTH is raised to match the bigger
    box so a page-1 render still holds up on retina.
 
-   `height: 168px` is new (Shlomi, 2026-09-12: picking a file re-flowed
-   everything below it, because this row and the empty dropzone it replaces
-   used to size themselves independently; then, once the two matched at
-   120px, "too dense visually... give it air"). 168px is Dropzone.module.css's
-   desktop height too (see the comment there), so the box a visitor is
-   looking at never changes size across the pick - only its content does.
+   `height: 168px` is new (Shlomi, 2026-09-12: this row and the empty
+   dropzone used to size themselves independently, and "too dense
+   visually... give it air"). The empty state is no longer a 168px box: it is
+   the sheet in Dropzone.module.css, which takes the first screen's height on
+   the page-grid tools, so this row is the loaded state's own height and does
+   not match the sheet's.
    `align-items: center` above centres the 96px icon and the two text lines
-   inside the fixed height regardless of how the vertical padding splits, so
-   the padding value here didn't need to change to hit the new number -
-   `padding-inline` moved to `var(--space-6)` to match the dropzone's own
-   inline padding, the "same padding" half of "same box". */
+   inside the fixed height regardless of how the vertical padding splits.
+   `padding-inline` is `var(--space-6)`. */
 @media (min-width: 1024px) {
   .shell:not(.editor) {
     height: 168px;

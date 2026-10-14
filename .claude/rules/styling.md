@@ -39,8 +39,10 @@ button fill, where it read as too bold (QUAL-13). The home dock is `--color-prim
 `--color-surface` labels: the first screen's bottom edge in the same ink as the On-device chip at its
 top.
 
-Every tool page carries the home hero's gradient on `.tool-stage` (`ToolPageLayout.astro`), in pixel
-stops tuned so the fade finishes by where the tool card begins and stays mint below it. The citron stroke
+Every tool page carries the home hero's gradient on `.tool-stage` (`ToolPageLayout.astro`): the eight
+page-grid pages (`data-layout='hero'`) use a height-relative gradient that follows the stage's own height,
+and every other stage keeps pixel stops tuned so the fade finishes by where the tool card begins and stays
+mint below it. The citron stroke
 sits in the subhead, never the h1: it marks the locale's `heroAccent` phrase ("on your device" in
 English, `documentationMessages.ts`) inside `ToolHero.astro`'s subhead when it occurs there, because a
 highlighter on "Free" reads as a price sticker and the H1's own query words are not the thing to point

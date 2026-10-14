@@ -350,10 +350,11 @@ export default function BasePdfTool({
       class={pdfToolStyles['tool-card']}
       data-compact={compact || undefined}
       /* Direction A reduction: the "has a file" signal for a tool that hides
-         ToolShell (`hideIdentity`), so a page-level `:has()` gate (see the
-         merge-note fold in ToolPageLayout.astro) still has something to key
-         off. Every other tool already has this in `[data-tool-shell]`; this
-         is additive and harmless on them too. */
+         ToolShell (`hideIdentity`), so the page-level `:has()` gate in
+         ToolPageLayout.astro (the two-column grid applies only while neither
+         `[data-tool-loaded]` nor `[data-tool-shell]` is present) still has
+         something to key off. Every other tool already has this in
+         `[data-tool-shell]`; this is additive and harmless on them too. */
       data-tool-loaded={hasFiles || undefined}
       // Direction A wave 3: a Merge-only phone padding rule (PdfTool.module.css)
       // needs to key off something only Merge sets - `hideIdentity` is that

@@ -173,9 +173,9 @@ file dropped anywhere on the page lands there. After a drop the same screen beco
 What fills the height is the headline and the verb, never an empty box: MERGE-06's viewport-filling
 dashed drop box read as a void and was replaced the same day. On a phone the empty state stays a
 short stacked block under the hero. Design record:
-[tool-hero-show-the-verb.md](./tool-hero-show-the-verb.md). Until HERO-02 and HERO-03 ship, the live
-shape is still Merge's 260px band (three ghost page outlines, the heading, the privacy line, Choose
-files).
+[tool-hero-show-the-verb.md](./tool-hero-show-the-verb.md). The page-grid tools now use this shape on
+desktop (the two-column grid and the sheet from HERO-02 and HERO-03); Sign and Redact keep their stacked
+page with a content-height sheet until HERO-05.
 
 ## 13. Cross-tool hand-offs, and the reverse
 

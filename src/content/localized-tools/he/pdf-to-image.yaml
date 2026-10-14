@@ -12,6 +12,7 @@ reviewNotes: >-
   Pending his own read-through, like the Hebrew home page. The vocabulary
   (המרת PDF לתמונה, JPG, PNG) comes from Hebrew autocomplete, not from a
   measured query volume. The control labels live in src/i18n/toolMessages.ts.
+  10-15: hash moved only because h1Name was added; translation unchanged.
 sourceHash: 'fnv1a64:f26e63710794742d'
 seoTitle: 'המרת PDF לתמונה בחינם - JPG או PNG בלי סימן מים | PDkef'
 seoDescription: >-

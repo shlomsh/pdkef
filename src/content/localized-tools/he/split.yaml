@@ -11,6 +11,7 @@ reviewNotes: >-
   reviewedAt are empty. The vocabulary (פיצול, חיתוך, הפרדת עמודים) is a
   hypothesis, not a measured Hebrew query. A draft emits no hreflang and is
   only built in a PDKEF_DOCS_PREVIEW build.
+  10-15: hash moved only because h1Name was added; translation unchanged.
 sourceHash: 'fnv1a64:75afbaffa623add6'
 seoTitle: 'פיצול PDF בחינם - חילוץ עמודים ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-

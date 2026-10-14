@@ -33,6 +33,7 @@ reviewNotes: >-
   language support rescoped from unqualified "right, every time" to
   "right, in the 20 languages listed above" (fixed a self-contradiction);
   Hebrew answer updated to match; pending Shlomi's read-through.
+  10-15: hash moved only because h1Name was added; translation unchanged.
 sourceHash: 'fnv1a64:4deee9e1ec9995f4'
 seoTitle: 'מילוי וחתימה על טופס PDF אונליין בחינם, גם בעברית | PDkef'
 seoDescription: >-
