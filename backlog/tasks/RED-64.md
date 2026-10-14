@@ -1,11 +1,11 @@
 ---
 id: "RED-64"
 title: "Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib"
-status: "open"
+status: "blocked"
 priority: "P2"
 epic: "redact"
-horizon: "now"
 depends_on: []
+waiting_on: "A day of production reads after the fix with no details_read EncryptedPDFError"
 ---
 
 # RED-64 · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib
@@ -28,6 +28,11 @@ The ticket as first asked ("don't report encrypted PDFs") would hide the miss; E
 - Gate `useDocumentDetails` on the document having opened, the way `useDeletableObjects` is.
 - List every other pdf-lib reader mounted at `PdfRedactTool.tsx` and confirm each is gated; add a test that mounts Redact with an owner-only fixture and asserts no pdf-lib load on the protected bytes (extend the ENC-02 island test).
 - Add the ENC-02-style regression note to `docs/error-known-items.json` only if the entry's match needs the new chunk; the existing entry already matches `details_read`.
+
+## Progress
+
+The gate landed in `795b0cd1` (`useDocumentDetails` waits for pdf.js to open the file; island test extended),
+with `cdd8dc77` holding the details line steady while the details are read. Only the production day is open.
 
 ## Acceptance
 - Island test with an owner-only fixture: no `details_read` report, no pdf-lib load of the protected bytes; seen failing first.

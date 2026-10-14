@@ -3,7 +3,9 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { redactPdf } from './redact.js';
+import { MAX_CANVAS_AREA, RASTER_SCALE } from './rasterPage.js';
 
 // redact.js reaches pdfjs through sign.js's getPdfjs(), which does a dynamic
 // `import('pdfjs-dist')` - this mock intercepts that specifier for any caller,
@@ -405,6 +407,27 @@ describe('redactPdf: brush strokes', () => {
     const page = stroke.canvas;
     const path = calls.filter((c) => c.canvas === page && (c.op === 'moveTo' || c.op === 'lineTo'));
     expect(path.map((c) => [c.op, ...c.args])).toEqual([['moveTo', 100, 225], ['lineTo', 200, 225]]);
+  });
+
+  // RED-57: a 2000pt page at 2.5x would be 5000px a side, past the canvas cap, so it renders smaller.
+  it('lands boxes and strokes where they were drawn on a page rendered below the export scale', async () => {
+    const big = await PDFDocument.create();
+    big.addPage([2000, 2000]);
+    const file = new File([await big.save()], 'big.pdf', { type: 'application/pdf' });
+    await redactPdf(file, [
+      { id: 'w', type: 'whiteout', pageIndex: 0, left: 10, top: 20, width: 30, height: 10, color: '#f7f1de', colorMode: 'auto' },
+      whiteoutStroke({ pageIndex: 0 }),
+    ]);
+    const page = calls.find((c) => c.op === 'encode').canvas;
+    const { width: W, height: H } = page;
+    const scale = W / 2000;
+    expect(scale).toBeLessThan(RASTER_SCALE);
+    expect(W * H).toBeLessThanOrEqual(MAX_CANVAS_AREA);
+    const [x, y, w, h] = calls.find((c) => c.op === 'fillRect' && c.canvas === page && c.fillStyle === '#f7f1de').args;
+    expect([x / W, y / H, w / W, h / H]).toEqual([expect.closeTo(0.1, 3), expect.closeTo(0.2, 3), expect.closeTo(0.3, 3), expect.closeTo(0.1, 3)]);
+    // The brush is 20pt wide, so its pixel width follows the scale the page rendered at.
+    const stroke = calls.find((c) => c.op === 'stroke' && c.canvas === page);
+    expect(stroke.lineWidth).toBeCloseTo(20 * scale, 1);
   });
 
   it('paints a tap as a disc of the brush diameter', async () => {

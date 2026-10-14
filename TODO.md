@@ -6,16 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-57](backlog/tasks/RED-57.md) P1 · Redact export never embeds an empty page picture on a large page (in progress)
-- [RED-63](backlog/tasks/RED-63.md) P2 · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS
-- [RED-64](backlog/tasks/RED-64.md) P2 · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib
-
-### Robustness and debt
-
-- [DEBT-42](backlog/tasks/DEBT-42.md) P2 · pdf.js runs on browsers that lack the built-ins it calls (in progress)
-
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
@@ -33,8 +23,12 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - 2026-11-07: [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads
 - 2026-11-08: [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family
 - An Android phone: [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware
+- A full UTC day of production reads on a build with the fix: [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page
+- A full UTC day of production reads on a stamped build with the fix: [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
 - Shlomi's read-through: [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through
+- An iPhone check, and a day of production reads with no check_saved_file NotReadableError: [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS
+- A day of production reads after the fix with no details_read EncryptedPDFError: [RED-64](backlog/tasks/RED-64.md) · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
 - SEO-05's verdict: [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
 - About four weeks after indexing: [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the "Scanned with CamScanner" footer from a PDF

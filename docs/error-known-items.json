@@ -120,8 +120,8 @@
       "step": "check_saved_file",
       "slug": "redact"
     },
-    "open": true,
-    "note": "iOS invalidates the saved Blob once the download starts; the check now falls back quietly. Set fixedIn to the landing commit"
+    "fixedIn": "4088b5b2",
+    "note": "iOS invalidates the saved Blob once the download starts; the check now falls back quietly"
   },
   {
     "id": "DEBT-50",
