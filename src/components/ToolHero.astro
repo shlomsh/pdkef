@@ -4,6 +4,8 @@
 // AppBar.astro, unified with the sticky top bar the way index.astro already
 // does it - see ToolPageLayout.astro, which passes them into <AppBar>.
 // Keeps the single crawlable <h1> per page; the app-bar breadcrumb is nav.
+import { splitHeroTitle } from '../site-lib/heroTitle';
+
 interface Props {
   icon: any;
   title: string;
@@ -21,8 +23,18 @@ interface Props {
    * never touches the h1 - see the stroke logic below for why it is counted
    * across the whole subhead before any sentence is touched. */
   subheadAccent?: string;
+  /** HERO-01: the tool's name, the leading words of `title`, set large with
+   * the rest of the h1 beneath it (see splitHeroTitle). Missing, or not a
+   * clean prefix of the title, renders the h1 as one plain line. */
+  titleName?: string;
 }
-const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, subheadAccent } = Astro.props;
+const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, subheadAccent, titleName } = Astro.props;
+
+// Sign and Redact keep the icon-beside-title row: their condensed editor hero
+// (ViewControl) is sized for it. The other tools stack the icon above the h1,
+// every line on one start edge.
+const stacked = slug !== 'sign' && slug !== 'redact';
+const split = stacked ? splitHeroTitle(title, titleName) : null;
 
 // Count occurrences of `subheadAccent` across the WHOLE subhead before
 // touching any sentence: a phrase this codebase does not yet ship in every
@@ -77,14 +89,23 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   lines and the eye compared the icon against the whole block, not just line
   one.
 */}
-<header class="tool-hero mx-auto w-full max-w-[1280px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-8 min-[1024px]:pb-1 min-[1024px]:pt-6 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]" data-hero-condensable={condensable ? '' : undefined} data-hero-phone-condensed={phoneCondensed ? '' : undefined}>
-  <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:col-start-1 min-[1024px]:row-start-1 min-[1024px]:mb-0 min-[1024px]:justify-start">
+<header
+  class="tool-hero mx-auto w-full max-w-[1280px] px-6 pb-8 pt-14 min-[1024px]:px-8 min-[1024px]:pt-6"
+  data-hero-condensable={condensable ? '' : undefined}
+  data-hero-phone-condensed={phoneCondensed ? '' : undefined}
+  data-hero-stacked={stacked ? '' : undefined}
+>
+  <div data-hero-row class="mb-3 flex gap-4">
     <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
     </div>
-    <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
+    {split ? (
+      <h1 class="mt-0 mb-0 text-start leading-[1.1]"><span data-hero-name>{split.name}</span> <span data-hero-rest>{split.rest}</span></h1>
+    ) : (
+      <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
+    )}
   </div>
-  <p data-hero-sub class="type-lead mx-auto max-w-[44rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ms-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-start">
+  <p data-hero-sub class="type-lead max-w-[44rem]">
     {sentences.map((sentence) => {
       const accentIndex = subheadAccentCount === 1 ? sentence.indexOf(subheadAccent!) : -1;
       if (accentIndex === -1) {
@@ -114,6 +135,88 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   .tool-hero-icon[data-tone='redact'] {
     background-image: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
     color: var(--color-success);
+  }
+
+  /* Hero geometry. The stacked layout (every tool but Sign and Redact) is a
+     plain block: icon, h1 and subhead on one start edge. Sign and Redact keep
+     the earlier icon-beside-title row, and on desktop the two-column grid that
+     lines the subhead up under the title; it lives here, not in utilities,
+     so the eight stacked pages do not ship it as dead CSS. */
+  .tool-hero {
+    --hero-icon: 2.25rem;
+    --hero-title: 2rem;
+  }
+  .tool-hero:not([data-hero-stacked]) {
+    --hero-icon: clamp(44px, 8vw, 52px);
+    --hero-indent: calc(var(--hero-icon) + 1rem);
+  }
+  .tool-hero:not([data-hero-stacked]) [data-hero-row] {
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .tool-hero:not([data-hero-stacked]) [data-hero-sub] {
+    margin-inline: auto;
+  }
+  .tool-hero[data-hero-stacked] [data-hero-row] {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  @media (min-width: 1024px) {
+    .tool-hero[data-hero-stacked] [data-hero-sub] {
+      max-width: 44ch;
+    }
+    .tool-hero:not([data-hero-stacked]) {
+      --hero-icon: 2.75rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: 1.5rem;
+      padding-bottom: 0.25rem;
+    }
+    .tool-hero:not([data-hero-stacked]) [data-hero-row] {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: 0;
+      justify-content: flex-start;
+    }
+    .tool-hero:not([data-hero-stacked]) [data-hero-sub] {
+      grid-column: 1 / 3;
+      grid-row: 2;
+      margin-inline: var(--hero-indent) 0;
+      margin-top: 0.5rem;
+      text-align: start;
+    }
+  }
+
+  /* HERO-01: the split h1. The name is the headline, tight and large; the
+     rest of the SEO title is a quieter line under it. Both are blocks, joined
+     in the markup by one literal space, so the h1's textContent is the title
+     byte for byte. Scoped to this component's own elements, so no :global(). */
+  [data-hero-name] {
+    display: block;
+    font-size: 2.25rem;
+    font-weight: inherit;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    text-wrap: balance;
+  }
+  [data-hero-rest] {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 1.06rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--color-muted);
+  }
+  @media (min-width: 1024px) {
+    [data-hero-name] {
+      font-size: var(--type-hero-size);
+    }
+    [data-hero-rest] {
+      margin-top: 0.75rem;
+      font-size: 1.3rem;
+    }
   }
 
   /* QUAL-15: the subhead's citron stroke, in place of QUAL-13's retired h1
@@ -164,6 +267,10 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
       padding-top: 1.5rem;
       padding-bottom: 0.75rem;
       --hero-title: clamp(1.5rem, 6.5vw, 1.85rem);
+    }
+
+    .tool-hero[data-hero-phone-condensed] [data-hero-name] {
+      font-size: clamp(1.75rem, 8vw, 2.25rem);
     }
 
     /* MERGE-06 follow-up: a line-clamp cut mid-sentence ("...and…") - the

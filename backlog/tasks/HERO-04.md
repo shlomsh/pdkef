@@ -1,7 +1,7 @@
 ---
 id: "HERO-04"
 title: "Drop a file anywhere on a page-grid tool's page"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "tool-pages"
 horizon: "next"

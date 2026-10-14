@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 8 then, 24 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 7 up next, 7 then, 24 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -56,14 +56,9 @@ Every tool's first screen becomes one full-height hero where the tool acts out i
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| HERO-02 | P1 | [HERO-02](backlog/tasks/HERO-02.md) · One full-height first screen on desktop for the page-grid tools |  |
-| HERO-03 | P1 | [HERO-03](backlog/tasks/HERO-03.md) · Each page-grid tool acts out its job in the empty state |  |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| HERO-04 | P2 | [HERO-04](backlog/tasks/HERO-04.md) · Drop a file anywhere on a page-grid tool's page | Needs Shlomi: Approve the drag-over caption, in English and Hebrew |
+| HERO-02 | P1 | [HERO-02](backlog/tasks/HERO-02.md) · One full-height first screen on desktop for the page-grid tools | In progress |
+| HERO-04 | P2 | [HERO-04](backlog/tasks/HERO-04.md) · Drop a file anywhere on a page-grid tool's page | In progress. Needs Shlomi: Approve the drag-over caption, in English and Hebrew |
+| HERO-03 | P1 | [HERO-03](backlog/tasks/HERO-03.md) · Each page-grid tool acts out its job in the empty state | In progress |
 
 ### Parked
 

@@ -1,7 +1,7 @@
 ---
 id: "HERO-02"
 title: "One full-height first screen on desktop for the page-grid tools"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "tool-pages"
 horizon: "now"
