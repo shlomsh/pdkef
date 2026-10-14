@@ -7,9 +7,24 @@
   container-type: inline-size;
 }
 
+/* Dropzone.module.css caps the box at 1024px and up; below that it would grow
+   with the viewport, so cap it here. */
+@media (max-width: 1023px) {
+  .box {
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 1023px) and (max-height: 560px) {
+  .box {
+    max-width: 15rem;
+  }
+}
+
 /* A file is being dragged over the window: the verb lifts to meet it. */
 :global([data-dragging]) .box {
-  translate: 0 calc(-6 * var(--u));
+  translate: 0 -2.5%;
 }
 
 @media (prefers-reduced-motion: no-preference) {

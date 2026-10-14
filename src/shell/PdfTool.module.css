@@ -92,7 +92,7 @@
    own spacing). `--first-screen` is defined on `.tool-stage`
    (ToolPageLayout.astro); Sign and Redact have no data-layout. */
 @media (min-width: 1024px) {
-  :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded] {
+  :global(html[data-view-density='condensed']) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded] {
     min-height: calc(var(--first-screen) - 5.5rem);
   }
 }
