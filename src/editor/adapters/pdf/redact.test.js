@@ -136,6 +136,20 @@ describe('redactPdf library integration with real fixtures', () => {
     HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 
+  // DEBT-51: the tool hands over the bytes it read at load time, so a file
+  // moved on disk after picking cannot fail the export, and two exports in a
+  // row must both find the buffer intact (pdf.js is given a copy).
+  it('redacts an ArrayBuffer twice without detaching or changing it', async () => {
+    const bytes = await getFixtureFile('num-5.pdf').arrayBuffer();
+    const before = new Uint8Array(bytes.slice(0));
+    const box = [{ id: 'r1', type: 'blackout', pageIndex: 1, left: 10, top: 10, width: 30, height: 20, color: '#000000' }];
+    await redactPdf(bytes, box);
+    const { blob } = await redactPdf(bytes, box);
+    expect((await getPdfDocDetails(blob)).pageCount).toBe(5);
+    expect(bytes.byteLength).toBe(before.length);
+    expect(new Uint8Array(bytes)).toEqual(before);
+  });
+
   it('copies pages with no redaction losslessly, keeping their real text layer', async () => {
     const file = getFixtureFile('num-5.pdf');
     const { blob } = await redactPdf(file, []);

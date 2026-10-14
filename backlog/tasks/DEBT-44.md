@@ -1,11 +1,11 @@
 ---
 id: "DEBT-44"
 title: "Every counted failure leaves a trace in the error reports"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: []
+waiting_on: "A full UTC day of production reads on a stamped build with the fix"
 ---
 
 # DEBT-44 · Every counted failure leaves a trace in the error reports
@@ -58,10 +58,21 @@ Neither path calls `reportError`, so a person's protected or unreadable file is 
 leaves no trace. That a flagged file caused this one failure is inferred: it is the only Merge failure
 path that sends nothing.
 
-- [ ] A Merge file the inspection flags as encrypted or unreadable leaves a drop record with its reason
+**Decision (2026-10-14):** a person's file is not a counted failure, the rule Redact (encrypted export)
+and Unlock (wrong password) already follow. The 14 Oct audit found four paths that counted one with no
+trace: Merge's inspection flagging a file encrypted or unreadable, Split on a protected file, and
+Unlock's probe finding a file unreadable. The first three stop counting. Unlock's never counted (its
+`analyticsTool` is unset until a mode is chosen, and that path sets none); a test now pins it. Merge's inspection catch is narrowed: a
+`MergeFileError` (the file) stays quiet, anything else is our code and is reported at `inspect_pdf`.
+
+- [x] A Merge file the inspection flags as encrypted or unreadable leaves a drop record with its reason
   (or stops counting as `tool_operation_failed`, if the funnel should not count a person's file),
   decided in this ticket and stated here.
-- [ ] Every other tool is checked for the same shape: a counted failure whose catch neither reports nor
+- [x] Every other tool is checked for the same shape: a counted failure whose catch neither reports nor
   drops. The list and the result go here.
-- [ ] A unit test seen failing first covers Merge's flagged-file path.
+- [x] A unit test seen failing first covers Merge's flagged-file path.
+Shipped 2026-10-14: Merge counts only a failed merge run (`analyticsStatus` is `prepared.status ===
+'error'`), its inspection catch reports anything that is not a `MergeFileError` at `inspect_pdf`; Split
+no longer counts a protected file. The audit found no other tool counting a failure without a report.
+
 - [ ] The daily read shows no `UNTRACED` line for a full UTC day on a stamped build with the fix.

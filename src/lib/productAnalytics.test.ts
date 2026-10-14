@@ -28,7 +28,28 @@ describe('reportToolLifecycleEvent', () => {
     expect(beacon).toHaveBeenCalledTimes(1);
     const [url, blob] = beacon.mock.calls[0] as [string, Blob];
     expect(url).toBe('/api/report');
-    expect(await blob.text()).toBe('{"name":"tool_result_ready","properties":{"tool":"merge"}}');
+    expect(await blob.text()).toBe('{"name":"tool_result_ready","properties":{"tool":"merge","first":true}}');
+  });
+
+  it('marks the first event of a kind per tool in a page load with first: true', async () => {
+    const bodies = async () => Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()));
+    reportToolLifecycleEvent('tool_operation_failed', 'redact');
+    reportToolLifecycleEvent('tool_operation_failed', 'redact');
+    reportToolLifecycleEvent('tool_operation_failed', 'merge');
+    reportToolLifecycleEvent('tool_operation_started', 'redact');
+    expect(await bodies()).toEqual([
+      '{"name":"tool_operation_failed","properties":{"tool":"redact","first":true}}',
+      '{"name":"tool_operation_failed","properties":{"tool":"redact"}}',
+      '{"name":"tool_operation_failed","properties":{"tool":"merge","first":true}}',
+      '{"name":"tool_operation_started","properties":{"tool":"redact","first":true}}',
+    ]);
+  });
+
+  it('stays first until a beacon is actually handed off', async () => {
+    beacon.mockReturnValueOnce(false);
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    expect(await (beacon.mock.calls[1][1] as Blob).text()).toContain('"first":true');
   });
 
   it('sends nothing for an unknown tool or event', () => {
@@ -62,7 +83,7 @@ describe('reportToolLifecycleEvent', () => {
       });
     page('08e10cf');
     reportToolLifecycleEvent('tool_result_ready', 'merge');
-    expect(JSON.parse(await (beacon.mock.calls[0]![1] as Blob).text()).properties).toEqual({ tool: 'merge', build: '08e10cf' });
+    expect(JSON.parse(await (beacon.mock.calls[0]![1] as Blob).text()).properties).toEqual({ tool: 'merge', build: '08e10cf', first: true });
     page(null);
     reportToolLifecycleEvent('tool_result_ready', 'merge');
     expect(JSON.parse(await (beacon.mock.calls[1]![1] as Blob).text()).properties).toEqual({ tool: 'merge' });

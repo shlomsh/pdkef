@@ -1,14 +1,14 @@
 ---
 id: "DEBT-51"
-title: "Redact export: a file gone from disk after opening says so, instead of Try again"
-status: "open"
+title: "Redact and Sign export from the bytes they hold, so a file gone from disk still exports"
+status: "blocked"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
+waiting_on: "A full UTC day of production reads on a stamped build with the fix"
 ---
 
-# DEBT-51 · Redact export: a file gone from disk after opening says so, instead of Try again
+# DEBT-51 · Redact and Sign export from the bytes they hold, so a file gone from disk still exports
 
 *Filed 2026-10-14 from the daily read.* Redact counted 4 failed exports of 31 started on 14 Oct (13%,
 against about 6% over the fortnight before), all on build 03e7d2e, chromium-150. The only trace is one
@@ -24,15 +24,17 @@ tools-and-shell rule it falls back quietly. Today the person sees "Could not exp
 are still here. Try again.", and trying again can never work, which fits four failures from what is
 probably one page load (DEBT-48 would say).
 
+**Decision (2026-10-14):** both tools already hold the bytes they read when the file was opened
+(Redact's `fileBytesRef`, Sign's `sourceBytes`), so the export reads those and never the `File` again.
+The failure cannot happen, so no message, no report and no counting question remain. Sign re-read the
+`File` the same way (`sign.js`) and is fixed with it.
+
 ## Acceptance
 
-- [ ] A unit test, seen failing first, gives the export a `File` whose `arrayBuffer()` rejects with a
-  `NotFoundError` DOMException and asserts the outcome below.
-- [ ] That case is not reported (`// expected:` with the reason) and does not offer Try again: the person
-  is told the file is no longer where it was and is offered to open it again. Their marks stay. Copy in
-  the app's voice.
-- [ ] Decide here whether the case still counts as `tool_operation_failed`, and match whatever DEBT-44
-  settles for Merge's flagged files, so the two tools count a person's file the same way.
+- [x] Redact's and Sign's exports read the held bytes; the adapters accept an `ArrayBuffer`. Review found
+  two more re-reads on Redact's flow, the saved-file check and the details row; both read the held bytes too.
+- [x] Unit tests, seen failing first: an export whose `File` rejects with `NotFoundError` succeeds in
+  both tools, and two exports in a row from the same bytes both succeed (nothing detaches the buffer).
 - [ ] A `docs/error-known-items.json` entry (area `redact`, step `export`, name `NotFoundError`) lands
   with the fix.
 - [ ] The daily read shows no `NotFoundError` drop at `export` from a stamped build containing the fix.

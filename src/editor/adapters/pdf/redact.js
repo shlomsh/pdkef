@@ -205,14 +205,14 @@ export async function assemble(sourceDoc, covered, options = {}) {
  * survives, and with no text layer at all. Pages with no box are copied
  * losslessly.
  *
- * @param {File|Blob} file - The original PDF file
+ * @param {File|Blob|ArrayBuffer} file - The original PDF file, or the bytes the tool read when it was picked (never re-read a File: DEBT-51)
  * @param {Array} elements - Array of redaction box objects { pageIndex, left, top, width, height } in percentages
  * @param {Function} onProgress - Progress callback
  * @param {{ finish?: (doc: PDFDocument) => void, details?: DetailEdits }} [options] see `assemble`
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
 export async function redactPdf(file, elements, onProgress, options = {}) {
-  const bytes = await file.arrayBuffer();
+  const bytes = Object.prototype.toString.call(file) === '[object ArrayBuffer]' ? file : await file.arrayBuffer();
   const sourceDoc = await PDFDocument.load(bytes, { updateMetadata: false });
 
   // We need pdf.js to render pages to an image canvas for flattening

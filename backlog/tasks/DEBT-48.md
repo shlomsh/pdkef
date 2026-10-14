@@ -1,12 +1,11 @@
 ---
 id: "DEBT-48"
 title: "The usage funnel can say how many sessions finished, not only how many runs"
-status: "open"
+status: "blocked"
 priority: "P3"
 epic: "robustness"
-horizon: "later"
 depends_on: ["DEBT-46"]
-needs: "A decision on a once-per-page-load flag in the usage event shape"
+waiting_on: "A full UTC day of production reads on a stamped build with the fix"
 ---
 
 # DEBT-48 · The usage funnel can say how many sessions finished, not only how many runs
@@ -28,3 +27,11 @@ people failing once read the same. A once-per-page-load `failed` answers it.
 - The change fits `src/lib/usageEventSchema.ts` and `api/report.ts` within the existing command budget.
 
 ## Outcome
+
+Shipped 2026-10-14, code side. The decision on the event shape: the first event of each kind a tool sends
+on a page carries `first: true` (`src/lib/productAnalytics.ts`), the endpoint adds one `HINCRBY` on a
+`once:<event>|<tool>|<build>` field of the same day hash (`usageOnceField`), and `errors:read` prints
+`pages accepted`, `pages started`, `pages ready` and `pages failed` beside the run counts. To keep the
+worst case inside the 500K monthly budget, the usage cap went from 3,000 to 2,400 a day (15.2K commands a
+day, about 456K a month). Tabs still on an older build send no `first`, so page columns undercount for a
+day after the deploy. Waiting on a production read that shows the page columns filled.

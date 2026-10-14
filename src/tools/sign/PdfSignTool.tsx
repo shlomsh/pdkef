@@ -876,6 +876,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   ) => {
     if (!file) return;
     const sourceFile = file;
+    // DEBT-51: the bytes read at load time, so a file moved on disk after
+    // picking cannot fail the export (the browser rejects a second read).
+    const sourceBytes = fileBytesRef.current ?? sourceFile;
     const sourceRevision = documentRevisionRef.current;
     const requestId = ++nextExportRequestRef.current;
     activeExportRequestRef.current = requestId;
@@ -894,7 +897,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
     try {
       const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
-      const signedBlob = await signPdf(sourceFile, elements, (p: number) => {
+      const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
         if (!speculative && activeExportRequestRef.current === requestId && documentRevisionRef.current === sourceRevision) setProgress(p);
       });
       if (activeExportRequestRef.current !== requestId
