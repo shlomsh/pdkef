@@ -12,6 +12,10 @@ const toolRoutes = [
   '/edit-pdf',
 ];
 
+// Sign and Redact keep the original side-by-side hero; the other eight are the
+// page-grid tools whose hero is stacked (icon above the h1, HERO-02/03).
+const editorRoutes = ['/sign/?next=0', '/redact'];
+
 test('aligns every tool title row with its breadcrumb grid at desktop width', async ({ page }) => {
   for (const route of toolRoutes) {
     await page.goto(route);
@@ -35,8 +39,13 @@ test('aligns every tool title row with its breadcrumb grid at desktop width', as
 
     // Shared desktop grid: the hero and app bar occupy the same 1080px frame,
     // while the title row and breadcrumb brand start at the same 24px inset.
-    expect(Math.abs(heroBox.x - gridBox.x), route).toBeLessThanOrEqual(1);
-    expect(Math.abs(heroBox.width - gridBox.width), route).toBeLessThanOrEqual(1);
+    // The stacked eight's hero has no padding of its own inside the hero grid
+    // (HERO-02), so its box is narrower by design; only the title row's
+    // alignment with the brand is the invariant there.
+    if (editorRoutes.includes(route)) {
+      expect(Math.abs(heroBox.x - gridBox.x), route).toBeLessThanOrEqual(1);
+      expect(Math.abs(heroBox.width - gridBox.width), route).toBeLessThanOrEqual(1);
+    }
     expect(Math.abs(rowBox.x - brandBox.x), route).toBeLessThanOrEqual(1);
   }
 });
@@ -60,18 +69,34 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
       const measured = await page.evaluate(() => {
         const row = document.querySelector('header.tool-hero > div');
         const tile = row.firstElementChild.getBoundingClientRect();
+        const h1Box = row.querySelector('h1').getBoundingClientRect();
         const range = document.createRange();
         range.selectNodeContents(row.querySelector('h1'));
         const [firstLine] = range.getClientRects();
+        const rtl = getComputedStyle(row).direction === 'rtl';
         return {
+          stacked: document.querySelector('header.tool-hero').hasAttribute('data-hero-stacked'),
           lines: range.getClientRects().length,
           tileTop: tile.top,
+          tileBottom: tile.bottom,
+          tileStart: rtl ? tile.right : tile.left,
+          h1Top: h1Box.top,
+          h1Start: rtl ? h1Box.right : h1Box.left,
           lineTop: firstLine.top,
         };
       });
 
       const where = `${route} @ ${width}px (${measured.lines} title line(s))`;
-      expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
+      if (editorRoutes.includes(route)) {
+        expect(measured.stacked, where).toBe(false);
+        expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
+      } else {
+        // The page-grid tools stack the icon above the title (HERO-02/03):
+        // the icon ends before the h1 begins and shares its inline-start edge.
+        expect(measured.stacked, where).toBe(true);
+        expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
+        expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
+      }
     }
   }
 });
@@ -260,6 +285,11 @@ test('does not create inverse CLS when a validated restore marker is later rejec
 test('keeps the tool card close to the section below it, not padded to the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   for (const route of toolRoutes) {
+    // HERO-02: at 1024px and up the empty first screen of the eight page-grid
+    // tools is one screen tall on purpose, so the card is meant to sit apart
+    // from the section below. This test runs at 1280px; Sign and Redact still
+    // flow at their own height and keep the check.
+    if (!editorRoutes.includes(route)) continue;
     await page.goto(route);
 
     const card = page.locator('[class*="tool-card"]').first();

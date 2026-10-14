@@ -48,7 +48,9 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   // desktop widths. The inner dropzone remains inset by the card padding.
   expect(Math.abs(cardBox.x - appBox.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(cardBox.width - appBox.width)).toBeLessThanOrEqual(1);
-  expect(dropzoneBox.width).toBeLessThan(cardBox.width);
+  // The unloaded card draws no frame at desktop (HERO-02), so the sheet is
+  // the card's full width.
+  expect(dropzoneBox.width).toBeLessThanOrEqual(cardBox.width + 1);
   expect(dropzoneBox.width).toBeGreaterThan(cardBox.width - 60);
 
   const files = await Promise.all(['first.pdf', 'second.pdf'].map(async (name) => ({
