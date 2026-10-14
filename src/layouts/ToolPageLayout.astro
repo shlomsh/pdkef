@@ -335,7 +335,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         --first-screen: clamp(600px, calc(100svh - 3.5rem), 900px);
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) {
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) {
         display: grid;
         grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
         /* Row 1 is the first screen's own height (block padding 2.5rem, footer 2.5rem),
@@ -349,7 +349,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         padding-inline: max(2rem, calc((100% - 1280px) / 2 + 2rem));
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > :global(.tool-hero) {
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > :global(.tool-hero) {
         grid-column: 1;
         grid-row: 1;
         align-self: center;
@@ -358,10 +358,12 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         padding: 0;
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > main {
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main {
         grid-column: 2;
         grid-row: 1 / 3;
-        align-self: center;
+        /* Top-aligned: <main> is a few px tall until the island's markup is parsed,
+           and a centred box moved (0.07 CLS on a slow machine) when the sheet arrived. */
+        align-self: start;
         /* <main>'s utilities are `!important` and sit in a layer, and for
            important declarations the layered ones win, so its 1.5rem side and
            1.25rem bottom padding cannot be zeroed here. Negative margins take
@@ -369,7 +371,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         margin: 0 -1.5rem -1.25rem;
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > [data-airplane-note] {
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {
         grid-column: 1;
         grid-row: 3;
         align-self: center;
@@ -379,7 +381,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         text-align: start;
       }
 
-      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:has([data-empty-state]) > [data-how-link] {
+      :global(html:not([data-draft-hint], [data-merge-restore])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-how-link] {
         display: inline-flex;
         grid-column: 2;
         grid-row: 3;

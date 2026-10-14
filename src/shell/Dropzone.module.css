@@ -58,7 +58,10 @@
   box-shadow: var(--shadow-md);
 }
 
-.dropzone[data-empty-state] > * {
+/* :where() keeps this at zero specificity, so a child that caps itself
+   (the verb box, 26rem below 1024px) wins; at (0,2,0) it overrode the cap and
+   the box grew to the sheet's width, 456px tall on a landscape phone. */
+:where(.dropzone[data-empty-state]) > * {
   max-width: 100%;
 }
 
