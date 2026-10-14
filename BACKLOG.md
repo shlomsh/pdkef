@@ -2,25 +2,25 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 8 up next, 7 then, 16 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 4 up next, 7 then, 20 waiting, 18 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-57 | P1 | [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page | In progress |
-| RED-63 | P2 | [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS |  |
-| RED-64 | P2 | [RED-64](backlog/tasks/RED-64.md) · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib |  |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-56 | P2 | [RED-56](backlog/tasks/RED-56.md) · Redact: defer old-document dispose until after the pdfDocument prop swaps |  |
+
+### Waiting
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-57 | P1 | [RED-57](backlog/tasks/RED-57.md) · Redact export never embeds an empty page picture on a large page | Waiting on A full UTC day of production reads on a build with the fix |
+| RED-63 | P2 | [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS | Waiting on An iPhone check, and a day of production reads with no check_saved_file NotReadableError |
+| RED-64 | P2 | [RED-64](backlog/tasks/RED-64.md) · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib | Waiting on A day of production reads after the fix with no details_read EncryptedPDFError |
 
 ### Parked
 
@@ -65,12 +65,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -82,6 +76,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware | Waiting on An Android phone. Needs Shlomi: Half an hour with an Android phone |
+| DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | Waiting on A full UTC day of production reads on a stamped build with the fix |
 | SIGN-40 | P2 | [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark | Waiting on The next Sign NotFoundError report, with the translated flag |
 | DEBT-40 | P3 | [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it | Waiting on @astrojs/preact peer range admits preact 11 |
 

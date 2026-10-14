@@ -1,11 +1,11 @@
 ---
 id: "RED-57"
 title: "Redact export never embeds an empty page picture on a large page"
-status: "in_progress"
+status: "blocked"
 priority: "P1"
 epic: "redact"
-horizon: "now"
 depends_on: []
+waiting_on: "A full UTC day of production reads on a build with the fix"
 ---
 
 # RED-57 · Redact export never embeds an empty page picture on a large page
@@ -32,7 +32,7 @@ at Redact export.
 ## Acceptance
 
 - [x] A unit test on an oversized page fails before the fix and passes after.
-- [ ] Redaction boxes still land where they were drawn on a capped page (unit test).
+- [x] Redaction boxes still land where they were drawn on a capped page (unit test).
 - [x] The 7 Oct fingerprint matches RED-57, not ENC-02 (`scripts/errors-known.test.mjs`).
 - [ ] A full UTC day on a build with the fix and no RED-57 report.
 
@@ -42,3 +42,6 @@ The cap and the empty-encode throw landed in `4ed205fc`, with `rasterScaleFor` a
 `paintBoxes` takes its scale from the viewport. The registry entry sits ahead of ENC-02. The
 box-placement box stays open: `redact.test.js` runs real PDFs at 2.5x, so a capped-page case needs a fixture
 page larger than 4096 x 4096 px at that scale. The production day is the last box.
+
+2026-10-14: the box-placement test landed in `redact.test.js` (a 2000pt page built in the test, rendered
+at the capped scale; box fractions and the brush width follow it), seen failing with `paintBoxes` pinned to 2.5 first.

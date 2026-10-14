@@ -1,11 +1,11 @@
 ---
 id: "DEBT-42"
 title: "pdf.js runs on browsers that lack the built-ins it calls"
-status: "in_progress"
+status: "blocked"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
+waiting_on: "A full UTC day of production reads on a stamped build with the fix"
 ---
 
 # DEBT-42 · pdf.js runs on browsers that lack the built-ins it calls
