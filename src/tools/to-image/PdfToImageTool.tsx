@@ -16,22 +16,39 @@ import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
+import {
+  englishShellMessages,
+  englishToImageMessages,
+  formatMessage,
+  type ShellMessages,
+  type ToImageMessages,
+} from '../../i18n/toolMessages';
 
-const SCALE_OPTIONS = [
-  { value: 1, label: 'Standard', hint: '~72 DPI - smallest file size, fine for screen viewing.' },
-  { value: 2, label: 'High', hint: '~144 DPI - sharp on most screens, good default for printing.' },
-  { value: 3, label: 'Maximum', hint: '~216 DPI - largest file size, best for zooming in or large prints.' },
+const scaleOptions = (t: ToImageMessages) => [
+  { value: 1, label: t.qualityStandard, hint: t.qualityStandardHint },
+  { value: 2, label: t.qualityHigh, hint: t.qualityHighHint },
+  { value: 3, label: t.qualityMaximum, hint: t.qualityMaximumHint },
 ];
-const LAYOUT_OPTIONS = [
-  { value: 'separate', label: 'One image per page' },
-  { value: 'concatenated', label: 'Single combined image' },
+const layoutOptions = (t: ToImageMessages) => [
+  { value: 'separate', label: t.layoutSeparate },
+  { value: 'concatenated', label: t.layoutCombined },
 ];
 
 function revokeAll(images: any[]) {
   for (const image of images) URL.revokeObjectURL(image.url);
 }
 
-export default function PdfToImageTool() {
+export interface PdfToImageToolProps {
+  /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
+   * edition; every key not overridden keeps the English default. */
+  messages?: Partial<ToImageMessages>;
+  shellMessages?: Partial<ShellMessages>;
+}
+
+export default function PdfToImageTool({ messages: messagesProp, shellMessages }: PdfToImageToolProps = {}) {
+  const t: ToImageMessages = { ...englishToImageMessages, ...messagesProp };
+  const SCALE_OPTIONS = scaleOptions(t);
+  const LAYOUT_OPTIONS = layoutOptions(t);
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState('image/png');
   const [scale, setScale] = useState(2);
@@ -138,7 +155,7 @@ export default function PdfToImageTool() {
       setImages(rendered.map((image) => ({ ...image, url: URL.createObjectURL(image.blob) })));
       prepareFiles(rendered.map(({ blob, filename }) => ({ blob, filename, type: blob.type })));
       setStatus('done');
-      setAnnouncement('Your images are ready.');
+      setAnnouncement(t.announceReady);
     } catch (err: any) {
       console.error(err);
       // A failure belonging to a file that is no longer loaded must not push
@@ -147,7 +164,7 @@ export default function PdfToImageTool() {
       if (!(err instanceof PageSelectorError)) reportError('pdf_tool_run', err, 'convert');
       run.settle();
       if (err instanceof PageSelectorError) {
-        setPageSelectorError(err.message);
+        setPageSelectorError(selectorErrorText(err));
         setStatus('idle');
       } else {
         setStatus('error');
@@ -155,12 +172,19 @@ export default function PdfToImageTool() {
     }
   };
 
+  // parsePageSelector's errors carry a code and params so this catalogue can
+  // phrase them; anything else keeps its own message.
+  const selectorErrorText = (err: any): string => {
+    const template = err?.code ? (t as any)[err.code] : undefined;
+    return template ? formatMessage(template, err.params ?? {}) : err.message;
+  };
+
   const handleShare = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setAnnouncement('Images shared successfully.');
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your images are still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+    if (result.status === 'shared') setAnnouncement(t.announceShared);
+    else if (result.status === 'canceled') setAnnouncement(t.announceShareCanceled);
+    else if (result.status === 'error') setAnnouncement(t.announceShareError);
   };
 
   // No zip dependency is used (keeps the reviewed-permissive-license + zero-network constraint
@@ -191,11 +215,12 @@ export default function PdfToImageTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
+      shellMessages={shellMessages}
     >
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={styles.toolbar} role="group" aria-label="Image format">
-            <span class={styles['toolbar-label']}>Format</span>
+          <div class={styles.toolbar} role="group" aria-label={t.formatGroupLabel}>
+            <span class={styles['toolbar-label']}>{t.formatLabel}</span>
             <button
               type="button"
               aria-pressed={format === 'image/png'}
@@ -212,8 +237,8 @@ export default function PdfToImageTool() {
             </button>
           </div>
 
-          <div class={styles.toolbar} role="group" aria-label="Image quality">
-            <span class={styles['toolbar-label']}>Quality</span>
+          <div class={styles.toolbar} role="group" aria-label={t.qualityGroupLabel}>
+            <span class={styles['toolbar-label']}>{t.qualityLabel}</span>
             {SCALE_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -240,8 +265,8 @@ export default function PdfToImageTool() {
             </span>
           </div>
 
-          <div class={styles.toolbar} role="group" aria-label="Output layout">
-            <span class={styles['toolbar-label']}>Output</span>
+          <div class={styles.toolbar} role="group" aria-label={t.layoutGroupLabel}>
+            <span class={styles['toolbar-label']}>{t.layoutLabel}</span>
             {LAYOUT_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -256,13 +281,14 @@ export default function PdfToImageTool() {
 
           <div class={pdfToolStyles['page-selector-field']}>
             <label class={pdfToolStyles['page-selector-label']} for="page-selector-input">
-              Pages
+              {t.pagesLabel}
             </label>
             <input
               id="page-selector-input"
               type="text"
               class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
-              placeholder="All pages, or e.g. 1-3, 5, 8-"
+              dir="ltr"
+              placeholder={t.pageSelectorPlaceholder}
               value={pageSelector}
               onInput={(e) => handlePageSelectorChange(e.currentTarget.value)}
               aria-invalid={!!pageSelectorError}
@@ -282,16 +308,14 @@ export default function PdfToImageTool() {
             onClick={handleConvert}
           >
             {status === 'converting' ? (
-              <ProgressRing progress={progress} label="Converting…" />
+              <ProgressRing progress={progress} label={t.converting} />
             ) : (
-              `Convert to ${formatLabel}`
+              formatMessage(t.convertTo, { format: formatLabel })
             )}
           </button>
 
           {status === 'error' && (
-            <ErrorMessage>
-              The file may be damaged or password-protected - try another PDF.
-            </ErrorMessage>
+            <ErrorMessage>{t.convertFailed}</ErrorMessage>
           )}
 
           {status === 'done' && images.length > 0 && (
@@ -308,19 +332,19 @@ export default function PdfToImageTool() {
                     <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
                     <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                   </svg>
-                  Download {formatLabel}
+                  {formatMessage(t.downloadOne, { format: formatLabel })}
                 </a>
               ) : (
                 <>
                   <button ref={downloadRef} type="button" class={pdfToolStyles['download-button']} onClick={downloadAll}>
-                    Download all {images.length} images
+                    {formatMessage(t.downloadMany, { count: images.length })}
                   </button>
                   <ul class={fileListStyles['file-list']}>
                     {images.map((image) => (
                       <li key={image.pageNumber} class={fileListStyles['file-item']}>
-                        <span class={fileListStyles['file-name']}>Page {image.pageNumber}</span>
+                        <span class={fileListStyles['file-name']}>{formatMessage(t.pageRow, { number: image.pageNumber })}</span>
                         <a href={image.url} download={image.filename} onClick={() => recordAction('download')}>
-                          Download
+                          {t.downloadRow}
                         </a>
                       </li>
                     ))}
@@ -330,7 +354,7 @@ export default function PdfToImageTool() {
               <PdfShareButton
                 visible={shareReady}
                 onShare={handleShare}
-                label={images.length === 1 ? `Share ${formatLabel}` : `Share ${images.length} images`}
+                label={images.length === 1 ? formatMessage(t.shareOne, { format: formatLabel }) : formatMessage(t.shareMany, { count: images.length })}
               />
             </>
           )}

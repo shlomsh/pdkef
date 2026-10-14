@@ -1058,6 +1058,140 @@ const splitMessages: Partial<Record<DocumentationLocaleId, SplitMessages>> = {
 };
 
 /**
+ * The PDF to Image island's strings. English is the source of truth and is
+ * byte for byte what PdfToImageTool.tsx rendered before it took a catalogue.
+ * `{format}` is PNG or JPG, which stay Latin on every locale. The output file
+ * names (`<name>-page-N.png`) are real file names and are never translated.
+ */
+export interface ToImageMessages {
+  lang: string;
+  dir: 'ltr' | 'rtl';
+  formatGroupLabel: string;
+  formatLabel: string;
+  qualityGroupLabel: string;
+  qualityLabel: string;
+  qualityStandard: string;
+  qualityStandardHint: string;
+  qualityHigh: string;
+  qualityHighHint: string;
+  qualityMaximum: string;
+  qualityMaximumHint: string;
+  layoutGroupLabel: string;
+  layoutLabel: string;
+  layoutSeparate: string;
+  layoutCombined: string;
+  pagesLabel: string;
+  pageSelectorPlaceholder: string;
+  /** '{format}' is PNG or JPG. */
+  convertTo: string;
+  converting: string;
+  convertFailed: string;
+  /** '{format}' is PNG or JPG. */
+  downloadOne: string;
+  downloadMany: string;
+  pageRow: string;
+  downloadRow: string;
+  shareOne: string;
+  shareMany: string;
+  /* Screen-reader announcements. */
+  announceReady: string;
+  announceShared: string;
+  announceShareCanceled: string;
+  announceShareError: string;
+  /* parsePageSelector's errors, rebuilt from its code and params. */
+  outOfRange: string;
+  rangeOutOfRange: string;
+  invalidPart: string;
+  noValidPages: string;
+}
+
+const englishToImageMessages: ToImageMessages = {
+  lang: 'en',
+  dir: 'ltr',
+  formatGroupLabel: 'Image format',
+  formatLabel: 'Format',
+  qualityGroupLabel: 'Image quality',
+  qualityLabel: 'Quality',
+  qualityStandard: 'Standard',
+  qualityStandardHint: '~72 DPI - smallest file size, fine for screen viewing.',
+  qualityHigh: 'High',
+  qualityHighHint: '~144 DPI - sharp on most screens, good default for printing.',
+  qualityMaximum: 'Maximum',
+  qualityMaximumHint: '~216 DPI - largest file size, best for zooming in or large prints.',
+  layoutGroupLabel: 'Output layout',
+  layoutLabel: 'Output',
+  layoutSeparate: 'One image per page',
+  layoutCombined: 'Single combined image',
+  pagesLabel: 'Pages',
+  pageSelectorPlaceholder: 'All pages, or e.g. 1-3, 5, 8-',
+  convertTo: 'Convert to {format}',
+  converting: 'Converting…',
+  convertFailed: 'The file may be damaged or password-protected - try another PDF.',
+  downloadOne: 'Download {format}',
+  downloadMany: 'Download all {count} images',
+  pageRow: 'Page {number}',
+  downloadRow: 'Download',
+  shareOne: 'Share {format}',
+  shareMany: 'Share {count} images',
+  announceReady: 'Your images are ready.',
+  announceShared: 'Images shared successfully.',
+  announceShareCanceled: 'Sharing canceled. Your images are still ready.',
+  announceShareError: 'Could not open the share sheet. Please try again.',
+  outOfRange: 'Page number {number} out of range (1-{max})',
+  rangeOutOfRange: 'Range {start}-{end} contains out of range page numbers (1-{max})',
+  invalidPart: 'Invalid page range or number: "{part}"',
+  noValidPages: 'No valid pages selected',
+};
+
+// An AI draft, not reviewed copy: pairs with he/pdf-to-image.yaml and awaits
+// Shlomi's read. Terms follow Merge's, Compress's and Split's Hebrew
+// catalogues for shared ideas (הורדה, שיתוף, עמודים, הסרת נעילה).
+const hebrewToImageMessages: ToImageMessages = {
+  lang: 'he',
+  dir: 'rtl',
+  formatGroupLabel: 'פורמט התמונה',
+  formatLabel: 'פורמט',
+  qualityGroupLabel: 'איכות התמונה',
+  qualityLabel: 'איכות',
+  qualityStandard: 'רגילה',
+  qualityStandardHint: 'כ-72 DPI - הקובץ הקטן ביותר, מספיק לצפייה במסך.',
+  qualityHigh: 'גבוהה',
+  qualityHighHint: 'כ-144 DPI - חדה ברוב המסכים, ברירת מחדל טובה להדפסה.',
+  qualityMaximum: 'מקסימלית',
+  qualityMaximumHint: 'כ-216 DPI - הקובץ הגדול ביותר, הכי טובה להגדלה או להדפסה גדולה.',
+  layoutGroupLabel: 'סידור הפלט',
+  layoutLabel: 'פלט',
+  layoutSeparate: 'תמונה לכל עמוד',
+  layoutCombined: 'תמונה אחת לכל העמודים',
+  pagesLabel: 'עמודים',
+  // RLI around the sentence, LRI around the example: the input is dir=ltr so typed digits
+  // stay in order, and a bare Hebrew placeholder would scramble the range's punctuation there.
+  pageSelectorPlaceholder: '\u2067כל העמודים, או לדוגמה \u20661-3, 5, 8-\u2069\u2069',
+  convertTo: 'המרה ל-{format}',
+  converting: 'ממירים…',
+  convertFailed: 'ייתכן שהקובץ פגום או מוגן בסיסמה. נסו קובץ PDF אחר.',
+  downloadOne: 'הורדת {format}',
+  downloadMany: 'הורדת כל {count} התמונות',
+  pageRow: 'עמוד {number}',
+  downloadRow: 'הורדה',
+  shareOne: 'שיתוף {format}',
+  shareMany: 'שיתוף {count} תמונות',
+  announceReady: 'התמונות מוכנות.',
+  announceShared: 'התמונות שותפו.',
+  announceShareCanceled: 'השיתוף בוטל. התמונות עדיין מוכנות.',
+  announceShareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  outOfRange: 'עמוד {number} מחוץ לטווח (1-{max})',
+  rangeOutOfRange: 'הטווח {start}-{end} כולל עמודים מחוץ לטווח (1-{max})',
+  invalidPart: 'טווח או מספר עמוד לא תקין: "{part}"',
+  noValidPages: 'לא נבחרו עמודים תקינים',
+};
+
+const toImageMessages: Partial<Record<DocumentationLocaleId, ToImageMessages>> = {
+  en: englishToImageMessages,
+  he: hebrewToImageMessages,
+};
+
+/**
  * DEBT-04: SignMessages lives in `src/editor/registry/messages.ts` now (the
  * editor's registry and the Sign/Redact chrome import the type from there);
  * this re-export keeps every existing `from '../i18n/toolMessages'` import
@@ -1587,6 +1721,7 @@ const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, un
   merge: mergeMessages,
   compress: compressMessages,
   split: splitMessages,
+  'pdf-to-image': toImageMessages,
   sign: signMessages,
 };
 
@@ -1936,6 +2071,8 @@ export {
   hebrewCompressMessages,
   englishSplitMessages,
   hebrewSplitMessages,
+  englishToImageMessages,
+  hebrewToImageMessages,
   englishSignMessages,
   hebrewSignMessages,
   englishShellMessages,
