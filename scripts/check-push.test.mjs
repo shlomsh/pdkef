@@ -1,5 +1,6 @@
+import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { runStageWith, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
 import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
@@ -276,5 +277,57 @@ describe('check:e2e mode and stages', () => {
     const stages = stageSteps(planSteps(wideScope));
     expect(stages).toEqual([[...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build'], DIST_GUARD_STEPS]);
     expect(stageSteps(planSteps(wideScope, { mode: 'e2e' }))).toEqual([['build'], ['e2e:product'], ['e2e:fonts'], ['e2e:export-guards']]);
+  });
+});
+
+/* runStageWith(): a failed step kills its still-running siblings, and each
+   killed child still fires `close` (with a signal). The stage must resolve
+   once the last child has closed, killed or not; before, a killed last child
+   returned early, the promise never settled, and `check:push` exited 0 on a
+   failed build. */
+describe('runStageWith', () => {
+  const fakeSpawn = () => {
+    const children = new Map();
+    const spawnStep = (id) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.kill = () => queueMicrotask(() => child.emit('close', null, 'SIGTERM'));
+      children.set(id, child);
+      return child;
+    };
+    return { children, spawnStep };
+  };
+  const quiet = () => {};
+  const settled = (promise) => Promise.race([promise, new Promise((r) => setTimeout(() => r('unsettled'), 200))]);
+
+  it('resolves failed when a step fails while a sibling is still running, and the killed sibling closes last', async () => {
+    const { children, spawnStep } = fakeSpawn();
+    const stage = runStageWith(['build', 'unit'], { spawnStep, limit: 4, log: quiet });
+    children.get('build').emit('close', 1, null);
+    const r = await settled(stage);
+    expect(r).not.toBe('unsettled');
+    expect(r.failed).toBe(true);
+    expect(r.results.map((t) => [t.id, t.status])).toEqual([['build', 1]]);
+  });
+
+  it('resolves clean once every step passes', async () => {
+    const { children, spawnStep } = fakeSpawn();
+    const stage = runStageWith(['a', 'b'], { spawnStep, limit: 4, log: quiet });
+    children.get('a').emit('close', 0, null);
+    children.get('b').emit('close', 0, null);
+    const r = await settled(stage);
+    expect(r.failed).toBe(false);
+    expect(r.results).toHaveLength(2);
+  });
+
+  it('starts queued steps as slots free up, and starts none after a failure', async () => {
+    const { children, spawnStep } = fakeSpawn();
+    const stage = runStageWith(['a', 'b', 'c'], { spawnStep, limit: 1, log: quiet });
+    expect([...children.keys()]).toEqual(['a']);
+    children.get('a').emit('close', 1, null);
+    const r = await settled(stage);
+    expect(r.failed).toBe(true);
+    expect([...children.keys()]).toEqual(['a']);
   });
 });
