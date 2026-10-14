@@ -22,6 +22,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-42](backlog/tasks/SEO-42.md) P2 · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console (in progress)
 - [SEO-44](backlog/tasks/SEO-44.md) P2 · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 
+### Polish
+
+- [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
+
 ## Waiting, by date
 
 - 2026-11-06: [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house

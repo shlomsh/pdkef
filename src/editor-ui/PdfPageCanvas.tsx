@@ -1,7 +1,8 @@
-import { useRef, useEffect } from 'preact/hooks';
+import { useRef, useEffect, useState } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { getPdfRenderContext } from '../lib/pdfRender.js';
+import { bucketWidth, pageRenderScale } from '../editor/adapters/pdf/pageRenderScale.js';
 import workspaceStyles from './Workspace.module.css';
 import { reportError } from '../lib/errorReport.ts';
 
@@ -28,6 +29,11 @@ export default function PdfPageCanvas({
   // the page never goes blank mid-rebuild. The very first paint skips this
   // and draws straight to the visible canvas, unchanged from before.
   const paintedRef = useRef(false);
+  // The displayed width (bucketed) the page was last painted for. The canvas is
+  // stretched by CSS to its container, so the paint must follow that width or
+  // it is upscaled and soft. Bucketed so a window drag repaints a few times.
+  const [widthBucket, setWidthBucket] = useState(0);
+  const paintedBucketRef = useRef(0);
 
   useEffect(() => {
     if (!pdfDocument || !canvasRef.current) return;
@@ -41,12 +47,21 @@ export default function PdfPageCanvas({
         // Rotation is supplied by the same PageGeometry used by the overlay
         // and export. CropBox is intrinsic to pdf.js's page.view, from which
         // that geometry was built, so the canvas and overlay share one frame.
-        const viewport = page.getViewport({
-          scale: 1.5,
-          rotation: pageGeometry?.rotation ?? page.rotate,
-        }); // sharp rendering
+        const rotation = pageGeometry?.rotation ?? page.rotate;
         const canvas = canvasRef.current;
         if (!canvas || !active) return;
+        const unit = page.getViewport({ scale: 1, rotation });
+        const bucket = widthBucket || bucketWidth(canvas.clientWidth);
+        paintedBucketRef.current = bucket;
+        const viewport = page.getViewport({
+          scale: pageRenderScale({
+            unitWidth: unit.width,
+            unitHeight: unit.height,
+            cssWidth: bucket,
+            dpr: window.devicePixelRatio,
+          }),
+          rotation,
+        });
 
         const isRepaint = paintedRef.current;
         const renderTarget = isRepaint ? document.createElement('canvas') : canvas;
@@ -94,7 +109,24 @@ export default function PdfPageCanvas({
       renderTask?.cancel?.();
       page?.cleanup?.();
     };
-  }, [pdfDocument, pageNum, pageGeometry?.rotation, onViewportReady]);
+  }, [pdfDocument, pageNum, pageGeometry?.rotation, onViewportReady, widthBucket]);
+
+  // Declared after the paint effect on purpose: on mount that effect has
+  // already recorded the width it painted for, so the first measurement here
+  // matches it and does not trigger a second paint.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const measure = () => {
+      const bucket = bucketWidth(canvas.clientWidth);
+      if (bucket && bucket !== paintedBucketRef.current) setWidthBucket(bucket);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <canvas
