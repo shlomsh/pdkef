@@ -65,6 +65,20 @@ export default function DropzoneEmptyState({
     setIsPhone(isIOSDevice(nav) || isAndroidDevice(nav));
   }, [showCloudDriveHint]);
 
+  const defaultHeading = message ?? (multiple ? messages.dropHereMany : messages.dropHereOne);
+  // A tool's drag-and-paste wording only suits widths that have a pointer and a
+  // keyboard; phones keep the plain message. Both are server-rendered and CSS
+  // shows one, so nothing is read twice and no JS decides.
+  const twoWidths = (phone: string, desktop: string | undefined) =>
+    desktop === undefined || desktop === phone ? (
+      phone
+    ) : (
+      <>
+        <span class={styles['empty-phone']}>{phone}</span>
+        <span class={styles['empty-desktop']}>{desktop}</span>
+      </>
+    );
+
   const onInputChange = (event: Event) => {
     // Read the list out before resetting the input - `value = ''` empties a
     // live FileList in place in a real browser, so the order here matters
@@ -121,7 +135,7 @@ export default function DropzoneEmptyState({
       )}
 
       <p class={styles['dropzone-text']}>
-        <strong>{heading ?? message ?? (multiple ? messages.dropHereMany : messages.dropHereOne)}</strong>
+        <strong>{twoWidths(defaultHeading, heading)}</strong>
       </p>
 
       {/* The input is visually hidden, not `hidden`: display:none takes it out
@@ -156,7 +170,7 @@ export default function DropzoneEmptyState({
             stroke-linejoin="round"
           />
         </svg>
-        {body ?? messages.privacyLine}
+        {twoWidths(messages.privacyLine, body)}
       </p>
 
       {isIOS && (
