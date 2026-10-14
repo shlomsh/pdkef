@@ -1,0 +1,106 @@
+/* Shared paper pieces for the tool hero verbs. Base pixels times --u, no literals. */
+.box {
+  --u: calc(100cqw / 420);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 420 / 236;
+  container-type: inline-size;
+}
+
+/* A file is being dragged over the window: the verb lifts to meet it. */
+:global([data-dragging]) .box {
+  translate: 0 calc(-6 * var(--u));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .box {
+    transition: translate 0.25s var(--ease-out);
+  }
+}
+
+:global([dir='rtl']) .box {
+  scale: -1 1;
+}
+
+.floor {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: calc(22 * var(--u));
+  height: calc(14 * var(--u));
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-night) 10%, transparent),
+    transparent
+  );
+}
+
+.page,
+.photo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(70 * var(--u));
+  height: calc(92 * var(--u));
+  margin: calc(-48 * var(--u)) 0 0 calc(-35 * var(--u));
+  border-radius: calc(4 * var(--u));
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 calc(8 * var(--u)) calc(16 * var(--u)) calc(-10 * var(--u))
+      color-mix(in srgb, var(--color-night) 40%, transparent);
+  font-style: normal;
+}
+
+.page::before {
+  content: '';
+  position: absolute;
+  inset: calc(16 * var(--u)) calc(10 * var(--u)) auto;
+  height: calc(30 * var(--u));
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-border) 0 calc(3 * var(--u)),
+    transparent calc(3 * var(--u)) calc(8 * var(--u))
+  );
+}
+
+.stripA::after,
+.stripB::after {
+  content: '';
+  position: absolute;
+  left: calc(10 * var(--u));
+  top: calc(8 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(3 * var(--u));
+  border-radius: calc(2 * var(--u));
+}
+
+.stripA::after {
+  background: var(--color-primary);
+}
+
+.stripB::after {
+  background: var(--color-airplane-mode);
+}
+
+/* Sky, sun and hills, as in the sketch's .ph b */
+.photo::before {
+  content: '';
+  position: absolute;
+  inset: calc(8 * var(--u)) calc(7 * var(--u)) calc(26 * var(--u));
+  border-radius: calc(2 * var(--u));
+  background:
+    radial-gradient(
+      circle at 72% 28%,
+      var(--color-airplane-mode) 0 calc(5 * var(--u)),
+      transparent calc(6 * var(--u))
+    ),
+    linear-gradient(
+      155deg,
+      transparent 52%,
+      var(--color-border-strong) 52% 74%,
+      var(--color-primary) 74%
+    ),
+    linear-gradient(var(--color-primary-tint), var(--color-primary-soft));
+}

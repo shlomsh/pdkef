@@ -7,6 +7,7 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from '../../shell/FileList.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import sortToolbarStyles from './SortToolbar.module.css';
+import ImageToPdfVerb from './verb/ImageToPdfVerb.tsx';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
@@ -205,6 +206,7 @@ export default function PdfImageToPdfTool() {
 
   return (
     <BasePdfTool
+      emptyArt={<ImageToPdfVerb />}
       hasFiles={hasFiles}
       analyticsTool="image-to-pdf"
       analyticsStatus={status}

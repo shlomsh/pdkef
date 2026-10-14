@@ -1,0 +1,95 @@
+/* Base styles are the LAST frame, so reduced motion sees the finished stack. */
+.a1,
+.a2,
+.a3,
+.b1,
+.b2 {
+  translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
+  rotate: var(--r1);
+}
+
+.a1 {
+  --x0: -90;
+  --y0: 0;
+  --r0: -3deg;
+  --x1: -10;
+  --y1: 0;
+  --r1: -2deg;
+}
+
+.a2 {
+  --x0: -86;
+  --y0: -4;
+  --r0: -1deg;
+  --x1: -6;
+  --y1: -4;
+  --r1: 0deg;
+}
+
+.a3 {
+  --x0: -82;
+  --y0: -8;
+  --r0: 1deg;
+  --x1: -2;
+  --y1: -8;
+  --r1: 1deg;
+}
+
+.b1 {
+  --x0: 64;
+  --y0: 0;
+  --r0: 5deg;
+  --x1: 2;
+  --y1: -12;
+  --r1: -1deg;
+  --ym: -50;
+  --xm: 33;
+  --d: 0.8s;
+}
+
+.b2 {
+  --x0: 68;
+  --y0: -4;
+  --r0: 7deg;
+  --x1: 6;
+  --y1: -16;
+  --r1: 2deg;
+  --ym: -58;
+  --xm: 37;
+  --d: 1s;
+}
+
+@keyframes slide {
+  from {
+    translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
+    rotate: var(--r0);
+  }
+}
+
+@keyframes arc {
+  0% {
+    translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
+    rotate: var(--r0);
+  }
+  50% {
+    translate: calc(var(--xm) * var(--u)) calc(var(--ym) * var(--u));
+    rotate: var(--r1);
+  }
+  100% {
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
+    rotate: var(--r1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .a1,
+  .a2,
+  .a3 {
+    animation: slide 0.9s var(--ease-emphasized) 0.35s both;
+  }
+
+  .b1,
+  .b2 {
+    animation: arc 1s var(--ease-emphasized) var(--d) both;
+  }
+}

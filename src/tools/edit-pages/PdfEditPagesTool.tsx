@@ -7,6 +7,7 @@ import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import styles from '../../shell/PageGrid.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
@@ -311,6 +312,7 @@ export default function PdfEditPagesTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      emptyArt={<EditPagesVerb />}
       analyticsTool="edit-pdf"
       analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
