@@ -199,6 +199,11 @@
       "permanent": true
     },
     {
+      "source": "/he/pdf-to-image",
+      "destination": "/he/pdf-to-image/",
+      "permanent": true
+    },
+    {
       "source": "/he/sign",
       "destination": "/he/sign/",
       "permanent": true

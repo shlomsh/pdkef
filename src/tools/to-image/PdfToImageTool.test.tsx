@@ -10,6 +10,7 @@ import toolStyles from './PdfToImageTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { hebrewShellMessages, hebrewToImageMessages } from '../../i18n/toolMessages';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -401,5 +402,59 @@ describe('PdfToImageTool UI flow', () => {
     });
     expect(takeHandoffMock).toHaveBeenCalledWith('pdf-to-image');
     expect(container.textContent).toContain('handed.pdf');
+  });
+  // LOC: /he/pdf-to-image/ passes the Hebrew catalogue; nothing the island
+  // renders stays English, and the page-range field keeps digits readable.
+  it('renders Hebrew controls, results and page-range errors from the messages prop', async () => {
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+      callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' }));
+    };
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    mockState.numPages = 1;
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool messages={hebrewToImageMessages} shellMessages={hebrewShellMessages} />, container);
+    });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('report.pdf')]);
+    });
+
+    const text = container.textContent;
+    for (const word of ['פורמט', 'איכות', 'רגילה', 'גבוהה', 'מקסימלית', 'תמונה לכל עמוד', 'עמודים']) {
+      expect(text).toContain(word);
+    }
+    for (const english of ['Format', 'Quality', 'Standard', 'Maximum', 'One image per page', 'Pages']) {
+      expect(text).not.toContain(english);
+    }
+    const selector = container.querySelector('#page-selector-input');
+    expect(selector.getAttribute('dir')).toBe('ltr');
+    expect(selector.getAttribute('placeholder')).toBe(hebrewToImageMessages.pageSelectorPlaceholder);
+
+    await act(async () => {
+      selector.value = '9';
+      selector.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const convertButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'המרה ל-PNG');
+    expect(convertButton).not.toBeUndefined();
+    await act(async () => {
+      convertButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(container.querySelector(`.${pdfToolStyles['page-selector-error']}`).textContent).toBe('עמוד 9 מחוץ לטווח (1-1)');
+
+    await act(async () => {
+      selector.value = '';
+      selector.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      convertButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const downloadLink = container.querySelector(`a.${pdfToolStyles['download-button']}`);
+    expect(downloadLink.textContent).toContain('הורדת PNG');
+    expect(downloadLink.getAttribute('download')).toBe('report.png');
   });
 });
