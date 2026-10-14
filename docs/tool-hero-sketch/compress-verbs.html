@@ -1,25 +1,26 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Compress hero verbs</title>
+<title>Compress verbs, resolution</title>
 <style>
-/* Three concepts for the two compress heroes. Base styles are each verb's last frame; keyframes only under no-preference. */
+/* Compress shows what compression does: the same piece, a little smaller, at a lower resolution.
+   Base styles are each verb's last frame; keyframes only under no-preference. */
 :root{
-  --bg:#faf7f1; --text:#0b4c4c; --muted:#276460; --border:#dfe6e2;
-  --primary:#007979; --primary-soft:#eef6f3; --primary-tint:#c3f0e6; --white:#fff; --sun:#ffcf8a; --hill:#2f8f86;
+  --bg:#faf7f1; --text:#0b4c4c; --muted:#276460; --border:#dfe6e2; --border-strong:#6fbeb2;
+  --primary:#007979; --primary-soft:#eef6f3; --primary-tint:#c3f0e6; --white:#fff; --sun:#ffcf8a; --hill:#2f8f86; --ink:#b3c9c4;
   --ease:cubic-bezier(.2,.8,.2,1);
   --f-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,Roboto,sans-serif;
+  --dur:2.3s; --delay:.15s;
 }
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:linear-gradient(#c3f0e6,#faf7f1 70%);color:var(--text);font:15px/1.5 var(--f-ui)}
-.shell{max-width:1360px;margin:0 auto;padding:24px 16px 64px}
+.shell{max-width:1000px;margin:0 auto;padding:24px 16px 64px}
 .bar{display:flex;align-items:center;gap:16px;margin-bottom:24px}
 .bar h1{margin:0;font-size:22px;letter-spacing:-.02em}
 .btn{display:inline-flex;align-items:center;height:46px;padding:0 20px;border-radius:12px;background:var(--primary);color:var(--white);font:650 15px var(--f-ui);border:0;cursor:pointer}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,420px));gap:40px;justify-content:center;margin-bottom:40px;align-items:start}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,420px));gap:40px;justify-content:center;margin-bottom:40px;align-items:start}
 .cell{display:grid;gap:10px;align-content:start}
-.name{text-align:center;font-weight:700;font-size:18px;line-height:1.2}
-.name small{display:block;font-weight:500;font-size:14px;color:var(--muted)}
+.name{text-align:center;font-weight:700;font-size:18px}
 .sheet{background:var(--white);border-radius:22px;padding:16px 20px 24px;display:grid;gap:12px;justify-items:center;box-shadow:0 1px 0 rgba(11,76,76,.06),0 26px 50px -32px rgba(6,43,43,.45)}
 .fh{width:60%;height:22px;border-radius:6px;background:var(--border)}
 .fh.s{width:40%;height:12px;margin-top:-4px}
@@ -30,77 +31,103 @@ body{margin:0;min-height:100vh;background:linear-gradient(#c3f0e6,#faf7f1 70%);c
 
 .vstage{position:relative;width:100%;height:200px}
 .verb{position:absolute;inset:0}
-.floor{position:absolute;left:30%;right:30%;bottom:22px;height:14px;border-radius:50%;background:radial-gradient(closest-side,rgba(6,43,43,.10),transparent)}
+.verb::after{content:"";position:absolute;left:30%;right:30%;bottom:20px;height:14px;border-radius:50%;background:radial-gradient(closest-side,rgba(6,43,43,.12),transparent)}
 
-/* pieces: page 70x92, photo print 78x98; centred on the stage unless a concept moves them */
-.pg,.ph,.ly{position:absolute;left:50%;top:50%;border-radius:4px;background:var(--white);box-shadow:0 0 0 1px var(--border),0 8px 16px -10px rgba(6,43,43,.4);font-style:normal}
-.pg,.pg.ly{width:70px;height:92px;margin:-46px 0 0 -35px}
-.ph,.ph.ly{width:78px;height:98px;margin:-49px 0 0 -39px}
-.pg::before{content:"";position:absolute;inset:16px 10px auto;height:30px;background:repeating-linear-gradient(to bottom,var(--border) 0 3px,transparent 3px 8px)}
-.pg::after{content:"";position:absolute;left:10px;top:8px;width:22px;height:3px;border-radius:2px;background:var(--primary)}
-.ph b{position:absolute;inset:8px 7px 26px;border-radius:2px;background:radial-gradient(circle at 72% 28%,var(--sun) 0 5px,transparent 6px),linear-gradient(155deg,transparent 52%,var(--hill) 52% 74%,var(--primary) 74%),linear-gradient(var(--primary-tint),var(--primary-soft));box-shadow:0 0 0 1px rgba(11,76,76,.06)}
-/* blank layer under a face has neither lines nor photo */
-.ly.pg:not(.k8)::before,.ly.pg:not(.k8)::after{content:none}
+/* the piece: a page (112x148) or a photo print (140x112), settled to 92% */
+.pc{position:absolute;left:50%;top:50%;background:var(--white);box-shadow:0 0 0 1px var(--border),0 8px 16px -10px rgba(6,43,43,.4);font-style:normal;scale:.92}
+.pg{width:112px;height:148px;margin:-76px 0 0 -56px;border-radius:5px;--pw:92px;--ph:62px}
+.pr{width:140px;height:112px;margin:-58px 0 0 -70px;border-radius:4px;--pw:124px;--ph:80px}
+.pg .hd{position:absolute;left:10px;top:10px;width:32px;height:4px;border-radius:2px;background:var(--primary);opacity:.6;filter:blur(.8px)}
+.pg .ln{position:absolute;left:10px;right:10px;top:24px;height:31px;background:repeating-linear-gradient(to bottom,var(--ink) 0 3px,transparent 3px 9px);opacity:.55;filter:blur(.8px)}
+.pg .ln::after{content:"";position:absolute;right:0;top:18px;width:45%;height:5px;background:var(--white)}
+.pg>.pb{left:10px;top:66px}
+.pr>.pb{left:8px;top:8px}
 
-/* 1 Press: depth is weight. Nine sheets stacked upward from a fixed base, k=8 is the face. Final: gaps shut, a thin edge. */
-.v-press .ly{top:auto;bottom:46px;margin-top:0;translate:0 calc(var(--k)*-.6px);box-shadow:0 0 0 1px var(--border)}
-.v-press .ly.k0{box-shadow:0 0 0 1px var(--border),0 8px 16px -10px rgba(6,43,43,.4)}
-.v-press .ly.k8{box-shadow:0 0 0 1px var(--border),0 -2px 0 0 rgba(223,230,226,.0)}
-.plate{position:absolute;left:50%;top:46px;width:116px;height:12px;margin-left:-58px;border-radius:6px;background:var(--primary);box-shadow:0 8px 14px -8px rgba(6,43,43,.45);opacity:0;z-index:5}
+/* the photo: smooth scene, then three flat-colour mosaics (fine, medium, coarse) laid over it. Last frame = coarse. */
+.pb{position:absolute;width:var(--pw);height:var(--ph);border-radius:2px;overflow:hidden;filter:contrast(.8) saturate(.82);
+  background:radial-gradient(circle at 72% 28%,var(--sun) 0 11%,transparent 11.5%),linear-gradient(155deg,transparent 52%,var(--hill) 52% 74%,var(--primary) 74%),linear-gradient(var(--primary-tint),var(--primary-soft))}
+.mos{position:absolute;inset:0;display:grid}
+.mos i{display:block}
+.mos.m1{grid-template:repeat(24,1fr)/repeat(32,1fr)}
+.mos.m2{grid-template:repeat(12,1fr)/repeat(16,1fr)}
+.mos.m3{grid-template:repeat(6,1fr)/repeat(8,1fr)}
 
-/* 2 Fit: a slim upright slot, smaller than the piece; the piece ends seated inside with a margin */
-.slot{position:absolute;left:50%;top:59px;width:56px;height:82px;margin-left:-28px;border:3px solid var(--primary);border-radius:12px}
-.v-fit .pg{scale:.6}
-.v-fit .ph{scale:.5}
-.v-fit .pg,.v-fit .ph{z-index:2;box-shadow:0 0 0 1px var(--border),0 3px 6px -4px rgba(6,43,43,.35)}
-
-/* 3 Lighten: heavy and low with a dip in the floor shadow, then lighter, higher, smaller */
-.v-lite .floor{left:36%;right:36%;bottom:34px;height:12px}
-.v-lite .dip{position:absolute;left:41%;right:41%;bottom:36px;height:8px;border-radius:50%;background:radial-gradient(closest-side,rgba(6,43,43,.28),transparent);opacity:0}
-.v-lite .pg,.v-lite .ph{scale:.92;translate:0 -10px;box-shadow:0 0 0 1px var(--border),0 7px 10px -7px rgba(6,43,43,.3)}
+/* R2: a loupe over the photo's right corner, showing the same photo magnified 3x (a clone of .pb) */
+.lp{position:absolute;width:56px;height:56px;z-index:5}
+.pg .lp{left:50px;top:55px;--fx:.76;--fy:.3}
+.pr .lp{left:70px;top:4px;--fx:.76;--fy:.3}
+.lp .hnd{position:absolute;left:25px;top:28px;width:7px;height:62px;border-radius:4px;background:var(--primary);transform-origin:50% 0;rotate:-45deg;box-shadow:0 4px 6px -2px rgba(6,43,43,.4)}
+.lp .lz{position:absolute;inset:0;border-radius:50%;border:3px solid var(--primary);background:var(--white);overflow:hidden;box-shadow:0 6px 12px -6px rgba(6,43,43,.5)}
+.lp .lz::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,rgba(255,255,255,.35),transparent 40%)}
+.lp .pb{left:0;top:0;transform-origin:0 0;transform:translate(calc(25px - var(--fx)*var(--pw)*2.5),calc(25px - var(--fy)*var(--ph)*2.5)) scale(2.5);border-radius:0}
 
 @media (prefers-reduced-motion:no-preference){
-  @keyframes pressL{0%,28%{translate:0 calc(var(--k)*-5px)}70%{translate:0 calc(var(--k)*-.6px)}}
-  @keyframes plate{0%{opacity:0;translate:0 -70px}12%{opacity:1}28%{opacity:1;translate:0 -40px}70%{opacity:1;translate:0 -4.8px}82%{opacity:1;translate:0 -4.8px}100%{opacity:0;translate:0 -52px}}
-  @keyframes fitIn{0%{translate:-135px 0;scale:1}40%{translate:-70px 0;scale:1}}
-  @keyframes fitInP{0%{translate:-135px 0;scale:1}40%{translate:-70px 0;scale:1}}
-  @keyframes liteP{0%,25%{translate:0 14px;scale:1;box-shadow:0 0 0 1px var(--border),0 22px 30px -10px rgba(6,43,43,.6)}60%{translate:0 -17px;scale:.9;box-shadow:0 0 0 1px var(--border),0 10px 14px -8px rgba(6,43,43,.32)}}
-  @keyframes liteF{0%,25%{left:22%;right:22%;bottom:26px;height:26px;opacity:1}}
-  @keyframes liteD{0%,28%{opacity:1;left:30%;right:30%;bottom:30px;height:16px}60%{opacity:0}}
-  .play .v-press .ly{animation:pressL 1.9s var(--ease) .2s both}
-  .play .v-press .plate{animation:plate 1.9s var(--ease) .2s both}
-  .play .v-fit .pg,.play .v-fit .ph{animation:fitIn 1.9s var(--ease) .2s both}
-  .play .v-lite .pg,.play .v-lite .ph{animation:liteP 1.9s var(--ease) .2s both}
-  .play .v-lite .floor{animation:liteF 1.9s var(--ease) .2s both}
-  .play .v-lite .dip{animation:liteD 1.9s var(--ease) .2s both}
+  @keyframes shrink{0%,10%{scale:1}}
+  @keyframes txt{0%,12%{opacity:1;filter:blur(0)}25%,40%{opacity:.85;filter:blur(.3px)}52%,66%{opacity:.7;filter:blur(.55px)}78%,100%{opacity:.55;filter:blur(.8px)}}
+  @keyframes tone{0%,12%{filter:contrast(1) saturate(1)}25%,40%{filter:contrast(.93) saturate(.93)}52%,66%{filter:contrast(.86) saturate(.87)}78%,100%{filter:contrast(.8) saturate(.82)}}
+  @keyframes l1{0%,14%{opacity:0}15%,100%{opacity:1}}
+  @keyframes l2{0%,41%{opacity:0}42%,100%{opacity:1}}
+  @keyframes l3{0%,67%{opacity:0}68%,100%{opacity:1}}
+  @keyframes lpIn{0%{opacity:0;scale:.7}}
+  .play .pc{animation:shrink var(--dur) var(--ease) var(--delay) both}
+  .play .pg .ln{animation:txt var(--dur) linear var(--delay) both}
+  .play .pg .hd{animation:txt var(--dur) linear var(--delay) both}
+  .play .pb{animation:tone var(--dur) linear var(--delay) both}
+  .play .m1{animation:l1 var(--dur) linear var(--delay) both}
+  .play .m2{animation:l2 var(--dur) linear var(--delay) both}
+  .play .m3{animation:l3 var(--dur) linear var(--delay) both}
+  .play .lp{animation:lpIn .45s var(--ease) .1s both}
 }
 </style>
 <div class="shell">
-  <div class="bar"><h1>Compress hero verbs</h1><button class="btn" id="replay" type="button">Replay all</button></div>
-  <div class="grid" id="g"></div>
-</div>
-<script>
-  const kinds=[['pg','PDF'],['ph','Image']];
-  const concepts=[
-    ['press','1 &middot; Press',k=>{
-      let s='';
-      for(let i=0;i<8;i++)s+=`<i class="ly ${k} k${i}" style="--k:${i}"></i>`;
-      s+=`<i class="ly ${k} k8" style="--k:8">${k==='ph'?'<b></b>':''}</i><span class="plate"></span>`;
-      return s;}],
-    ['fit','2 &middot; Fit',k=>`<span class="slot"></span><i class="${k}">${k==='ph'?'<b></b>':''}</i>`],
-    ['lite','3 &middot; Lighten',k=>`<span class="floor"></span><span class="dip"></span><i class="${k}">${k==='ph'?'<b></b>':''}</i>`]
-  ];
-  let html='';
-  kinds.forEach(([k,lab])=>concepts.forEach(([id,name,draw])=>{
-    html+=`<div class="cell"><div class="sheet"><div class="vstage"><div class="verb v-${id}">${id==='lite'?'':'<span class="floor"></span>'}${draw(k)}</div></div>
+  <div class="bar"><h1>Compress verbs, resolution</h1><button class="btn" id="replay" type="button">Replay all</button></div>
+  <div class="grid">
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb"><div class="pc pg"><i class="hd"></i><i class="ln"></i><div class="pb" data-ph></div></div></div></div>
       <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
       <div class="cards"><i></i><i></i><i></i></div>
-      <div class="name">${name}<small>${lab}</small></div></div>`;
-  }));
-  document.getElementById('g').innerHTML=html;
-  const g=document.getElementById('g');
-  // two rows of three
-  g.style.gridTemplateColumns='repeat(3,minmax(0,420px))';
+      <div class="name">R1 &middot; Soften &middot; PDF</div></div>
+
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb"><div class="pc pg"><i class="hd"></i><i class="ln"></i><div class="pb" data-ph></div><div class="lp"><i class="hnd"></i><div class="lz"></div></div></div></div></div>
+      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
+      <div class="cards"><i></i><i></i><i></i></div>
+      <div class="name">R2 &middot; Loupe &middot; PDF</div></div>
+
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb"><div class="pc pr"><div class="pb" data-ph></div></div></div></div>
+      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
+      <div class="cards"><i></i><i></i><i></i></div>
+      <div class="name">R1 &middot; Soften &middot; Image</div></div>
+
+    <div class="cell"><div class="sheet"><div class="vstage"><div class="verb"><div class="pc pr"><div class="pb" data-ph></div><div class="lp"><i class="hnd"></i><div class="lz"></div></div></div></div></div>
+      <div class="fh"></div><div class="fh s"></div><div class="fb">Choose files</div></div>
+      <div class="cards"><i></i><i></i><i></i></div>
+      <div class="name">R2 &middot; Loupe &middot; Image</div></div>
+  </div>
+</div>
+<script>
+  // Build the three mosaics from the same scene the smooth photo paints (flat-colour squares, no canvas).
+  const C={tint:[195,240,230],soft:[238,246,243],hill:[47,143,134],pri:[0,121,121],sun:[255,207,138]};
+  const mix=(a,b,t)=>a.map((x,i)=>Math.round(x+(b[i]-x)*t));
+  function scene(u,v){
+    if(Math.hypot((u-.72)*1.4,v-.28)<.16)return C.sun;
+    const t=.5+(((u-.5)*1.4)*.4226+(v-.5)*.906)/1.498;
+    if(t>=.74)return C.pri;
+    if(t>=.52)return C.hill;
+    return mix(C.tint,C.soft,v);
+  }
+  function mosaic(cls,cols,rows){
+    const m=document.createElement('div');m.className='mos '+cls;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const i=document.createElement('i');
+      i.style.background='rgb('+scene((c+.5)/cols,(r+.5)/rows).join(',')+')';
+      m.appendChild(i);
+    }
+    return m;
+  }
+  document.querySelectorAll('[data-ph]').forEach(p=>{
+    p.append(mosaic('m1',32,24),mosaic('m2',16,12),mosaic('m3',8,6));
+    const lz=p.parentNode.querySelector('.lz');
+    if(lz){const z=p.cloneNode(true);z.removeAttribute('data-ph');lz.appendChild(z)}
+  });
   const cells=document.querySelectorAll('.sheet');
   function replay(){cells.forEach(s=>{s.classList.remove('play');void s.offsetWidth;s.classList.add('play')})}
   document.getElementById('replay').addEventListener('click',replay);
