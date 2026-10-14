@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 8 up next, 7 then, 16 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 50 live: 9 up next, 7 then, 16 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -106,6 +106,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
+| SEO-45 | P1 | [SEO-45](backlog/tasks/SEO-45.md) · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it | Needs Shlomi: Request indexing for /merge/ after the deploy (URL Inspection), then a Search Console read on 2026-10-28 |
 | SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: The 28-day Search Console read for /compress/ about 2026-11-06 |
 | SEO-44 | P2 | [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference |  |
 
