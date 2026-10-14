@@ -35,6 +35,16 @@ describe('describeFile', () => {
     expect(describeFile(file, 3, 2)).toBe('Page 2 of 3 · 500 KB');
   });
 
+  // "500 KB" reads "KB 500" in a Hebrew line unless the size is one LTR run.
+  it('isolates the size as one LTR run when the catalogue is RTL', () => {
+    expect(describeFile(file, 3, undefined, { dir: 'rtl', pageCountOther: '{count} עמודים' })).toBe('3 עמודים · \u2066500 KB\u2069');
+    expect(describeFile(file, undefined, undefined, { dir: 'rtl' })).toBe('\u2066500 KB\u2069');
+  });
+
+  it('leaves the size bare for an LTR catalogue', () => {
+    expect(describeFile(file, 3, undefined, { dir: 'ltr' })).toBe('3 pages · 500 KB');
+  });
+
   it('ignores a current page on a single-page file', () => {
     expect(describeFile(file, 1, 1)).toBe('1 page · 500 KB');
   });

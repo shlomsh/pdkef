@@ -236,6 +236,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       onFilesAdded={(files: FileList | File[]) => handleFilesAdded(files)}
       multiple={false}
       emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}
+      file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
     >

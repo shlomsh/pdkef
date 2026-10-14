@@ -7,6 +7,8 @@ import {
   hebrewSplitMessages,
   englishToImageMessages,
   hebrewToImageMessages,
+  englishShellMessages,
+  hebrewShellMessages,
   getToolMessages,
 } from './toolMessages';
 
@@ -111,5 +113,12 @@ describe('pdf-to-image tool messages', () => {
   it('is served for pdf-to-image in both locales', () => {
     expect(getToolMessages('pdf-to-image', 'en')).toBe(englishToImageMessages);
     expect(getToolMessages('pdf-to-image', 'he')).toBe(hebrewToImageMessages);
+  });
+});
+
+describe('shell messages', () => {
+  it('declare their direction, which describeFile uses to isolate the file size', () => {
+    expect(englishShellMessages.dir).toBe('ltr');
+    expect(hebrewShellMessages.dir).toBe('rtl');
   });
 });

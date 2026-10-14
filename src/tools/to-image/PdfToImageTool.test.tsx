@@ -431,6 +431,9 @@ describe('PdfToImageTool UI flow', () => {
     }
     const selector = container.querySelector('#page-selector-input');
     expect(selector.getAttribute('dir')).toBe('ltr');
+    expect(selector.classList.contains(toolStyles['page-selector-rtl'])).toBe(true);
+    // The size must not flip to "KB 8" in an RTL page: isolated as one LTR run.
+    expect(container.textContent).toMatch(/\u2066[^\u2069]*B\u2069/);
     expect(selector.getAttribute('placeholder')).toBe(hebrewToImageMessages.pageSelectorPlaceholder);
 
     await act(async () => {

@@ -101,3 +101,9 @@
 .tooltip-row strong {
   color: var(--color-surface);
 }
+
+/* The page-range input stays dir="ltr" so typed digits keep their order; in an
+   RTL edition its text (placeholder included) still sits on the start edge. */
+.page-selector-rtl {
+  text-align: right;
+}
