@@ -109,4 +109,14 @@ describe('DropzoneEmptyState', () => {
     expect(container.querySelector(`.${styles['band-ghosts']}`)).toBeNull();
     expect(container.querySelector(`.${styles['band-copy']}`)).toBeNull();
   });
+
+  // QUAL-22: `hidden` is display:none, which removes the input from the tab
+  // order. The real keyboard behaviour is proved in a browser by
+  // e2e/tool-empty-state-keyboard.spec.js; this only keeps the attribute out.
+  it('keeps the file input out of display:none so Tab can reach it', () => {
+    mount();
+    const input = container.querySelector('input[type="file"]');
+    expect(input.hasAttribute('hidden')).toBe(false);
+    expect(input.className).toContain(styles['file-input']);
+  });
 });

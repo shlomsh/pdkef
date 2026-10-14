@@ -314,6 +314,7 @@
 }
 
 .file-picker-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -345,6 +346,21 @@
 .file-picker-button:has(input:focus-visible) {
   outline: none;
   box-shadow: var(--shadow-focus);
+}
+
+/* The real file input, kept focusable. Same recipe as the global .sr-only,
+   scoped here so the module does not depend on a utility sheet; the label is
+   its positioning context so it cannot widen the page. */
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .privacy-line {
