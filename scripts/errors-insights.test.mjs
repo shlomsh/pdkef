@@ -107,6 +107,15 @@ describe('fingerprintHistory', () => {
   });
 });
 
+describe('page-load counters are not runs', () => {
+  it('a once: field never adds to a tool\'s run counts', () => {
+    const hist = day('d1', {});
+    const usage = { 'tool_operation_started|a': 3, 'tool_operation_failed|a': 3, 'once:tool_operation_started|a': 50, 'once:tool_operation_failed|a': 40 };
+    const [row] = toolRates([day('d2', { usage }), hist], 1);
+    expect(row.window).toEqual({ accepted: 0, started: 3, ready: 0, failed: 3 });
+  });
+});
+
 describe('toolRates', () => {
   const win = day('d2', {
     usage: {

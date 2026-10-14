@@ -617,8 +617,10 @@ export default function PdfMergeTool({
           return { entries: nextEntries, plan: insertPages(current.plan, planForFile(entry.id, pageCount), at) };
         });
       })
-      // expected: an unreadable user file maps to the dedicated unreadable-file card (entry.error)
-      .catch(() => {
+      .catch((err) => {
+        // expected: inspectPdf throws MergeFileError for a file it cannot read, the person's file
+        // (unreadable-file card via entry.error); anything else is our code
+        if (!(err instanceof MergeFileError)) reportError('pdf_tool_run', err, 'inspect_pdf');
         setModel((current) => ({
           ...current,
           entries: current.entries.map((e) => (e.id === entry.id ? { ...e, error: 'unreadable' as const } : e)),
@@ -1195,7 +1197,10 @@ export default function PdfMergeTool({
         ? (downloadedOnce ? 'saved' : 'ready')
         : 'preparing';
   const downloadDetail = prepared.status === 'ready' ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}` : undefined;
-  const analyticsStatus = failedEntry || otherError ? 'error' : tap;
+  // A file flagged by inspection (encrypted, unreadable) is the person's file,
+  // not a failed operation; a failure of the merge run itself, which
+  // usePreparedMerge reports, still counts.
+  const analyticsStatus = prepared.status === 'error' ? 'error' : tap;
 
   const draftStatusLabel = draftState.draftSaveState === 'saved' ? sm.draftSaved
     : draftState.draftSaveState === 'pending' ? sm.draftSaving

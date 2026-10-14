@@ -103,3 +103,18 @@ describe('every element Sign exports is one Delete target', () => {
     expect(after).toContain(before.trim());
   });
 });
+
+describe('Sign exports from bytes it already holds (DEBT-51)', () => {
+  let restoreFetch;
+  beforeEach(() => { restoreFetch = mockFontFetch(); });
+  afterEach(() => restoreFetch());
+
+  it('signs an ArrayBuffer twice without detaching or changing it', async () => {
+    const bytes = await (await sourcePdf()).arrayBuffer();
+    const before = new Uint8Array(bytes.slice(0));
+    await signPdf(bytes, [tick]);
+    await signPdf(bytes, [tick]);
+    expect(bytes.byteLength).toBe(before.length);
+    expect(new Uint8Array(bytes)).toEqual(before);
+  });
+});

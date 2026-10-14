@@ -120,6 +120,16 @@ describe('PdfSecurityTool', () => {
     expect(container.querySelector('[role="status"]').textContent).toContain('could not be read');
   });
 
+  it('does not count an unreadable file as a failed operation (DEBT-44)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    probeEncryption.mockResolvedValue('unreadable');
+    mount();
+    await loadFile('broken.pdf');
+
+    expect(container.querySelector('[role="alert"]').textContent).toContain('could not be read');
+    expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', expect.anything());
+  });
+
   it('ignores a stale read failure after the file was replaced', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let rejectFirst;

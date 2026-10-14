@@ -111,7 +111,7 @@ export function pageGeometryFromPdfLibPage(page) {
 // Bakes each element through its registry owner. Document loading and font caching
 // stay here because they are PDF-wide concerns, not per-element behavior.
 export async function signPdf(file, elements, onProgress) {
-  const pdfDoc = await PDFDocument.load(await file.arrayBuffer());
+  const pdfDoc = await PDFDocument.load(Object.prototype.toString.call(file) === '[object ArrayBuffer]' ? file : await file.arrayBuffer());
   pdfDoc.registerFontkit(fontkit);
   const loadedFonts = {};
 

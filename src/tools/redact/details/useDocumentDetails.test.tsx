@@ -15,7 +15,7 @@ afterEach(() => {
   vi.mocked(readDetails).mockClear();
   vi.mocked(reportError).mockClear(); if (host) { render(null, host); host.remove(); host = null; } });
 
-function Probe({ file, opened = true, seen }: { file: Blob | null; opened?: boolean; seen: unknown[] }) {
+function Probe({ file, opened = true, seen }: { file: ArrayBuffer | null; opened?: boolean; seen: unknown[] }) {
   seen.push(useDocumentDetails(file, opened));
   return null;
 }
@@ -24,7 +24,7 @@ describe('useDocumentDetails', () => {
   it('returns null, then the traces once read', async () => {
     const seen: unknown[] = [];
     host = document.createElement('div');
-    const file = new Blob(['x']);
+    const file = new ArrayBuffer(4);
     await act(async () => { render(<Probe file={file} seen={seen} />, host!); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
     expect(seen[0]).toBeNull();
@@ -43,7 +43,7 @@ describe('useDocumentDetails', () => {
   it('reads nothing until the document has opened', async () => {
     const seen: unknown[] = [];
     host = document.createElement('div');
-    const file = new Blob(['x']);
+    const file = new ArrayBuffer(4);
     await act(async () => { render(<Probe file={file} opened={false} seen={seen} />, host!); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
     expect(readDetails).not.toHaveBeenCalled();
