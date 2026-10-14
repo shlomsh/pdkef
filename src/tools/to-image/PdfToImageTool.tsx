@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { convertPdfToImages } from './toImage.js';
 import { PageSelectorError } from '../../lib/pageSelector.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
 import styles from './PdfToImageTool.module.css';
 import fileListStyles from '../../shell/FileList.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -208,6 +209,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
 
   return (
     <BasePdfTool
+      emptyArt={<PdfToImageVerb />}
       hasFiles={hasFiles}
       analyticsTool="pdf-to-image"
       analyticsStatus={status}
