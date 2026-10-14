@@ -790,14 +790,14 @@ export default function PdfRedactTool() {
   // pages text search can't see.
   const checkBoxes: CheckBox[] = checkBoxesFromElements(elements);
   // RED-59: what the file says about itself, as it was opened.
-  const traces = useDocumentDetails(file, pdfDocument !== null);
+  const traces = useDocumentDetails(fileBytesRef.current, pdfDocument !== null);
   const rows = useMemo(() => (traces ? describeDetails(traces, { locale: traceLocale(), now: new Date() }) : []), [traces]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsAtOpenRef = useRef<DetailEdits>({});
   const openDetails = () => { detailsAtOpenRef.current = state.edits.details; setDetailsOpen(true); };
   const savedCheck = useSavedFileCheck({
     pdfDocument,
-    originalFile: file,
+    originalBytes: fileBytesRef.current,
     announce: setAnnouncement,
     detailEdits: state.edits.details,
     detailRows: rows,
@@ -890,6 +890,9 @@ export default function PdfRedactTool() {
     // on the result can never be a newer file's.
     const run = exportRun.begin();
     const sourceFile = file;
+    // DEBT-51: the bytes read at load time, so a file moved on disk after
+    // picking cannot fail the export (the browser rejects a second read).
+    const sourceBytes = fileBytesRef.current ?? sourceFile;
 
     try {
       // DEBT-20: applyPageEdits pulls in @cantoo/pdf-lib, which is only needed
@@ -904,7 +907,7 @@ export default function PdfRedactTool() {
       ]);
       // RED-60: every removal replays, oldest first, onto the new document.
       const places = [...(overrides.removedPlaces ?? selectRemovedPlaces(state))].reverse();
-      const { blob: redactedBlob } = await applyPageEdits(sourceFile, elements, (p) => {
+      const { blob: redactedBlob } = await applyPageEdits(sourceBytes, elements, (p) => {
         if (run.isCurrent()) dispatch({ type: 'EXPORT_PROGRESS', progress: p });
       }, {
         finish: (doc) => removePlaces(doc, places as SavedPlace[]),

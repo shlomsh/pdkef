@@ -16,6 +16,17 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { hebrewMergeMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
+import { reportError } from '../../lib/errorReport.ts';
+
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: vi.fn(),
+}));
+vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportError: vi.fn(),
+}));
 
 function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
   return new File(['%PDF-1.4'.padEnd(size, ' ')], name, { type });
@@ -40,6 +51,7 @@ vi.mock('./merge.js', () => {
     mergePdfs: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-merged'], { type: 'application/pdf' }))),
     inspectPdf: vi.fn((file) => {
       const spec = pageCounts.get(file.name) ?? { pageCount: 2, encrypted: false };
+      if (spec.crash) return Promise.reject(new Error('boom'));
       if (spec.unreadable) return Promise.reject(new MergeFileError('bad', { fileIndex: 0, reason: 'unreadable' }));
       return Promise.resolve({ pageCount: spec.pageCount, encrypted: spec.encrypted, creationDate: null });
     }),
@@ -94,6 +106,8 @@ describe('PdfMergeTool UI flow', () => {
     // only touches spies.
     mergeLib.mergePdfs.mockClear();
     mergeLib.inspectPdf.mockClear();
+    reportToolLifecycleEvent.mockClear();
+    reportError.mockClear();
     draftStore.saveHandoff.mockClear();
     draftStore.deleteDraft.mockClear();
     draftStore.takeHandoff.mockReset();
@@ -645,6 +659,49 @@ describe('PdfMergeTool UI flow', () => {
     const alert = container.querySelector('[role="alert"]');
     expect(alert.textContent).toContain('"broken.pdf" could not be read');
     expect(alert.querySelector('a')).toBeNull();
+  });
+
+  const failedEvents = () => reportToolLifecycleEvent.mock.calls.filter(([event]) => event === 'tool_operation_failed');
+
+  it('does not count a file flagged encrypted by inspection as a failed operation (DEBT-44)', async () => {
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles(['a.pdf', 'locked.pdf']);
+    await settle();
+
+    expect(downloadBox().getAttribute('data-state')).toBe('error');
+    expect(failedEvents()).toEqual([]);
+  });
+
+  it('does not count or report a file inspection finds unreadable (DEBT-44)', async () => {
+    pageCounts.set('broken.pdf', { unreadable: true });
+    mount();
+    await loadFiles(['a.pdf', 'broken.pdf']);
+    await settle();
+
+    expect(container.querySelector('[role="alert"]').textContent).toContain('"broken.pdf" could not be read');
+    expect(failedEvents()).toEqual([]);
+    expect(reportError).not.toHaveBeenCalled();
+  });
+
+  it('reports an unexpected inspection failure and still shows the file unreadable (DEBT-44)', async () => {
+    pageCounts.set('odd.pdf', { crash: true });
+    mount();
+    await loadFiles(['a.pdf', 'odd.pdf']);
+    await settle();
+
+    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'inspect_pdf');
+    expect(container.querySelector('[role="alert"]').textContent).toContain('"odd.pdf" could not be read');
+    expect(failedEvents()).toEqual([]);
+  });
+
+  it('still counts a failure of the merge run itself (DEBT-44)', async () => {
+    mergeLib.mergePdfs.mockImplementationOnce(() => Promise.reject(new mergeLib.MergeFileError('bad', { fileIndex: 1, reason: 'unreadable' })));
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    await settle();
+
+    expect(failedEvents()).toHaveLength(1);
   });
 
   it('hands the merged result to Compress without re-picking, keeping the merge draft (MERGE-14)', async () => {

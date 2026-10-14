@@ -116,6 +116,18 @@ describe('errors-read wiring', () => {
     expect(stdout).toMatch(/redact \| 0 \| 4 \| 0 \| 5 \|/);
   });
 
+  it('prints page-load counts next to the run counts, and never adds them to the runs', async () => {
+    const one = [{
+      usage: {
+        'tool_file_accepted|redact': 6, 'tool_operation_started|redact': 9, 'tool_result_ready|redact': 4, 'tool_operation_failed|redact': 4,
+        'once:tool_file_accepted|redact': 5, 'once:tool_operation_started|redact': 5, 'once:tool_result_ready|redact': 3, 'once:tool_operation_failed|redact|08e10cf': 1,
+      },
+    }];
+    const { stdout } = await readWith(['--days', '1', '--history', '2'], (n) => repliesFor(n, one));
+    expect(stdout).toContain('tool | accepted | started | ready | failed | ready/accepted | pages accepted | pages started | pages ready | pages failed');
+    expect(stdout).toContain('redact | 6 | 9 | 4 | 4 | 67% | 5 | 5 | 3 | 1');
+  });
+
   it('says none when nothing was dropped or rejected', async () => {
     const { stdout } = await readWith(['--days', '2', '--history', '3'], (n) => repliesFor(n, []));
     expect(stdout).toContain('(none in the last 2 days)');

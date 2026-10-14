@@ -24,18 +24,26 @@ export {
 
 export const MAX_USAGE_EVENTS_PER_PAGE = 40;
 let handedOff = 0;
+// `event|tool` pairs already handed off this page load; the next one of a pair is not `first`.
+const seen = new Set<string>();
 
 export function resetUsageEventsForTests(): void {
   handedOff = 0;
+  seen.clear();
 }
 
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
 export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: AnalyticsTool): void {
   try {
     const build = readBuildCommit();
-    const parsed = parseUsageEvent({ name: event, properties: { tool, ...(build ? { build } : {}) } });
+    const pair = `${event}|${tool}`;
+    const first = !seen.has(pair);
+    const parsed = parseUsageEvent({ name: event, properties: { tool, ...(build ? { build } : {}), ...(first ? { first } : {}) } });
     if (!parsed || handedOff >= MAX_USAGE_EVENTS_PER_PAGE) return;
-    if (sendBeacon(parsed)) handedOff += 1;
+    if (sendBeacon(parsed)) {
+      handedOff += 1;
+      seen.add(pair);
+    }
   } catch {
     // expected: Analytics must never alter an offline or local document workflow.
   }

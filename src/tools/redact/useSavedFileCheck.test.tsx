@@ -13,13 +13,13 @@ import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 const bytes = () => Promise.resolve(new ArrayBuffer(4));
 const unreadable = () => Object.assign(new Error('The requested file could not be read'), { name: 'NotReadableError' });
 
-async function run(saved: Blob, original: File) {
+async function run(saved: Blob, heldBytes: ArrayBuffer | null = new ArrayBuffer(4)) {
   // Stable across renders: the hook's effect depends on the document identity.
   const pdfDocument = {} as never;
   let latest: SavedFileCheckState = { status: 'idle' };
   function Probe() {
     latest = useSavedFileCheck({
-      pdfDocument, originalFile: original, saved, boxes: [], findTerms: [], picturePages: [],
+      pdfDocument, originalBytes: heldBytes, saved, boxes: [], findTerms: [], picturePages: [],
       detailEdits: {} as never, detailRows: [],
     }).state;
     return null;
@@ -39,18 +39,16 @@ describe('useSavedFileCheck read errors', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  const original = () => Object.assign(new File(['x'], 'a.pdf'), { arrayBuffer: bytes });
-
   it('treats a NotReadableError on the saved blob as the environment: no report, no failed state', async () => {
     const saved = Object.assign(new Blob(['x']), { arrayBuffer: () => Promise.reject(unreadable()) });
-    const state = await run(saved, original());
+    const state = await run(saved);
     expect(reportError).not.toHaveBeenCalled();
     expect(state.status).toBe('idle');
   });
 
   it('still reports any other read error and shows the failed state', async () => {
     const saved = Object.assign(new Blob(['x']), { arrayBuffer: () => Promise.reject(new TypeError('boom')) });
-    const state = await run(saved, original());
+    const state = await run(saved);
     expect(reportError).toHaveBeenCalledWith('redact', expect.any(TypeError), 'check_saved_file');
     expect(state.status).toBe('failed');
   });
@@ -58,8 +56,17 @@ describe('useSavedFileCheck read errors', () => {
   it('still reports an error from the check itself', async () => {
     runSavedFileCheck.mockRejectedValue(unreadable());
     const saved = Object.assign(new Blob(['x']), { arrayBuffer: bytes });
-    const state = await run(saved, original());
+    const state = await run(saved);
     expect(reportError).toHaveBeenCalledWith('redact', expect.anything(), 'check_saved_file');
     expect(state.status).toBe('failed');
+  });
+
+  // DEBT-51: the File may have moved on disk; the bytes read at load are what the check compares.
+  it('checks against the held bytes, so a File that moved on disk cannot fail it', async () => {
+    runSavedFileCheck.mockResolvedValue({ traces: { saved: { thumbnails: [], pieceInfo: null } }, context: {} });
+    const saved = Object.assign(new Blob(['x']), { arrayBuffer: bytes });
+    const state = await run(saved);
+    expect(reportError).not.toHaveBeenCalled();
+    expect(state.status).toBe('done');
   });
 });

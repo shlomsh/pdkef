@@ -44,10 +44,13 @@ export type ToolLifecycleEvent = (typeof TOOL_LIFECYCLE_EVENTS)[number];
  * `build` (DEBT-44): the 7-character commit the page was built from, as in an error report, so a
  * day's failures can be told apart by release. Optional: a build without the stamp, or a cached
  * older build, sends `{tool}` alone.
+ *
+ * `first` (DEBT-48): true on the first event of its kind from this tool in a page load, so the
+ * endpoint can also count page loads. Only ever the literal true; it says nothing about the person or file.
  */
 export type UsageEvent = Readonly<{
   name: ToolLifecycleEvent;
-  properties: Readonly<{ tool: AnalyticsTool; build?: string }>;
+  properties: Readonly<{ tool: AnalyticsTool; build?: string; first?: true }>;
 }>;
 
 const BUILD = /^[0-9a-f]{7}$/;
@@ -65,7 +68,7 @@ function exactKeys(value: object, keys: readonly string[]): boolean {
 }
 
 /**
- * Accepts exactly `{name, properties: {tool}}` or `{name, properties: {tool, build}}`, with every
+ * Accepts exactly `{name, properties: {tool}}`, optionally with `build` and `first: true`, with every
  * value off its list or in its shape, and nothing else. Run on both sides, like `parseErrorReport`.
  */
 export function parseUsageEvent(value: unknown): UsageEvent | null {
@@ -74,7 +77,9 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (!has(TOOL_LIFECYCLE_EVENTS, name)) return null;
   if (!isPlainObject(properties)) return null;
   const stamped = 'build' in properties;
-  if (!exactKeys(properties, stamped ? ['tool', 'build'] : ['tool'])) return null;
+  const once = 'first' in properties;
+  if (!exactKeys(properties, ['tool', ...(stamped ? ['build'] : []), ...(once ? ['first'] : [])])) return null;
+  if (once && properties.first !== true) return null;
   if (!has(ANALYTICS_TOOLS, properties.tool)) return null;
   if (stamped && (typeof properties.build !== 'string' || !BUILD.test(properties.build))) return null;
   return Object.freeze({
@@ -82,6 +87,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
     properties: Object.freeze({
       tool: properties.tool as AnalyticsTool,
       ...(stamped ? { build: properties.build as string } : {}),
+      ...(once ? { first: true as const } : {}),
     }),
   });
 }
@@ -94,3 +100,6 @@ export function usageEventField(event: UsageEvent): string {
   const { tool, build } = event.properties;
   return build ? `${event.name}|${tool}|${build}` : `${event.name}|${tool}`;
 }
+
+/** The page-load counter beside an event's run counter: `once:tool_result_ready|merge`. Readers skip it as a run. */
+export const usageOnceField = (event: UsageEvent): string => `once:${usageEventField(event)}`;

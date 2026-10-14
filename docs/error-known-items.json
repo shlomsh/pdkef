@@ -135,5 +135,17 @@
       "module": "sortable.esm"
     },
     "fixedIn": "caf9f4c5"
+  },
+  {
+    "id": "DEBT-51",
+    "ticket": "DEBT-51",
+    "title": "Redact export: NotFoundError re-reading a picked file that moved on disk",
+    "match": {
+      "area": "redact",
+      "name": "NotFoundError",
+      "step": "export",
+      "slug": "redact"
+    },
+    "fixedIn": "ac1c3ed1"
   }
 ]

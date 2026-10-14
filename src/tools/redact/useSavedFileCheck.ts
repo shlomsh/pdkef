@@ -30,7 +30,7 @@ export type SavedFileCheckState =
  */
 export default function useSavedFileCheck({
   pdfDocument,
-  originalFile,
+  originalBytes: heldBytes,
   saved,
   boxes,
   findTerms,
@@ -41,8 +41,8 @@ export default function useSavedFileCheck({
   detailRows,
 }: {
   pdfDocument: PDFDocumentProxy | null;
-  /** RED-59: the file as opened, read once per run to compare its traces. */
-  originalFile: File | null;
+  /** RED-59: the bytes read when the file opened, to compare its traces. Held, never re-read from the File. */
+  originalBytes: ArrayBuffer | null;
   saved: Blob | null;
   boxes: CheckBox[];
   findTerms: CheckTerm[];
@@ -63,7 +63,7 @@ export default function useSavedFileCheck({
   // Only a new export starts a check; the boxes and terms it reads are the
   // ones that export was made from, since any edit clears `saved` first.
   useEffect(() => {
-    if (!saved || !pdfDocument || !originalFile) {
+    if (!saved || !pdfDocument || !heldBytes) {
       setState({ status: 'idle' });
       setDetailsSurvived([]);
       return;
@@ -73,10 +73,8 @@ export default function useSavedFileCheck({
     setDetailsSurvived([]);
     (async () => {
       let savedBytes: Uint8Array;
-      let originalBytes: Uint8Array;
       try {
         savedBytes = new Uint8Array(await saved.arrayBuffer());
-        originalBytes = new Uint8Array(await originalFile.arrayBuffer());
       } catch (error) {
         // expected: NotReadableError on a Blob or File we hold is the environment (iOS invalidates the
         // saved Blob once its download starts), not our code. The check did not run, so say nothing.
@@ -89,6 +87,8 @@ export default function useSavedFileCheck({
         if (current) setState({ status: 'failed' });
         return;
       }
+      // A view, not a copy: the check only reads it.
+      const originalBytes = new Uint8Array(heldBytes);
       try {
         const { runSavedFileCheck } = await import('./check/runCheck.ts');
         const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: findTerms, picturePages, measure });
@@ -116,7 +116,7 @@ export default function useSavedFileCheck({
     return () => {
       current = false;
     };
-  }, [saved, pdfDocument, originalFile]);
+  }, [saved, pdfDocument, heldBytes]);
 
   const search = (text: string) => {
     const label = text.trim();

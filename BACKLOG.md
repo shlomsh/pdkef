@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 52 live: 5 up next, 8 then, 21 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 52 live: 4 up next, 7 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -65,27 +65,23 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-44 | P1 | [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports |  |
-
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
-| DEBT-51 | P2 | [DEBT-51](backlog/tasks/DEBT-51.md) · Redact export: a file gone from disk after opening says so, instead of Try again |  |
 
 ### Waiting
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-44 | P1 | [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports | Waiting on A full UTC day of production reads on a stamped build with the fix |
 | MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware | Waiting on An Android phone. Needs Shlomi: Half an hour with an Android phone |
 | DEBT-42 | P2 | [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls | Waiting on A full UTC day of production reads on a stamped build with the fix |
+| DEBT-51 | P2 | [DEBT-51](backlog/tasks/DEBT-51.md) · Redact and Sign export from the bytes they hold, so a file gone from disk still exports | Waiting on A full UTC day of production reads on a stamped build with the fix |
 | SIGN-40 | P2 | [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark | Waiting on The next Sign NotFoundError report, with the translated flag |
 | DEBT-40 | P3 | [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it | Waiting on @astrojs/preact peer range admits preact 11 |
+| DEBT-48 | P3 | [DEBT-48](backlog/tasks/DEBT-48.md) · The usage funnel can say how many sessions finished, not only how many runs | Waiting on A full UTC day of production reads on a stamped build with the fix |
 
 ### Parked
 
@@ -95,7 +91,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
 | ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
-| DEBT-48 | P3 | [DEBT-48](backlog/tasks/DEBT-48.md) · The usage funnel can say how many sessions finished, not only how many runs | Needs Shlomi: A decision on a once-per-page-load flag in the usage event shape |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 

@@ -91,11 +91,13 @@ const EVENT_KEY = {
 
 const emptyTotals = () => ({ accepted: 0, started: 0, ready: 0, failed: 0 });
 
-// A usage field is `event|tool` or `event|tool|build`; both count toward the tool.
+// A usage field is `event|tool` or `event|tool|build`; both count toward the tool. `once:` fields
+// count page loads, not runs, and are left to errors-read.
 function sumByTool(days) {
   const m = new Map();
   for (const d of days) {
     for (const [field, count] of d.usage) {
+      if (field.startsWith('once:')) continue;
       const [event, tool] = field.split('|');
       const key = EVENT_KEY[event];
       if (!key || !tool) continue;

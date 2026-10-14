@@ -147,11 +147,20 @@ describe('eventCommands page kind', () => {
 
 describe('usage commands', () => {
   it('counts a day total apart from errors, then one field under the day', () => {
-    expect(USAGE_DAILY_CAP).toBe(3000);
+    expect(USAGE_DAILY_CAP).toBe(2400);
     expect(usageCapCommands('2026-10-01')).toEqual([['INCR', 'usage:total:2026-10-01']]);
     const event = { name: 'tool_result_ready', properties: { tool: 'merge' } } as const;
     expect(usageCommands(event, '2026-10-01')).toEqual([
       ['HINCRBY', 'usage:2026-10-01', 'tool_result_ready|merge', 1],
+      ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+  });
+
+  it('a first event also counts its once field, before the expiry', () => {
+    const event = { name: 'tool_operation_failed', properties: { tool: 'redact', first: true } } as const;
+    expect(usageCommands(event, '2026-10-01')).toEqual([
+      ['HINCRBY', 'usage:2026-10-01', 'tool_operation_failed|redact', 1],
+      ['HINCRBY', 'usage:2026-10-01', 'once:tool_operation_failed|redact', 1],
       ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
     ]);
   });
