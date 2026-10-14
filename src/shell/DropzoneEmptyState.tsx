@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { dropHasDirectory, filesFromDataTransfer } from './dropFiles.js';
-import type { Ref } from 'preact';
+import type { ComponentChild, Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
 import { isAndroidDevice, isIOSDevice } from '../lib/platform.ts';
@@ -20,14 +20,12 @@ interface DropzoneEmptyStateProps {
   showIosFilesHint?: boolean;
   /** MERGE-18: opt-in. Phones only (iOS or Android), same mount-effect rule. */
   showCloudDriveHint?: boolean;
-  /** Shlomi's follow-up (2026-09-13, Merge only): 'band' renders the
-   * ghost-pages graphic and the two band-copy lines below, alongside the
-   * default markup - `[data-variant="band"]` in Dropzone.module.css is what
-   * actually swaps them in, and only at 1024px and up, so this component
-   * itself does not need to know the viewport. */
-  variant?: 'default' | 'band';
-  bandHeading?: string;
-  bandBody?: string;
+  /** The tool's verb, drawn in place of the file-plus icon. */
+  art?: ComponentChild;
+  /** Replaces `message` as the sheet's heading. */
+  heading?: string;
+  /** Replaces the default privacy line under the heading. */
+  body?: string;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -41,9 +39,9 @@ export default function DropzoneEmptyState({
   messages = englishShellMessages,
   showIosFilesHint = false,
   showCloudDriveHint = false,
-  variant = 'default',
-  bandHeading,
-  bandBody,
+  art,
+  heading,
+  body,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   // `false` on the server and on this component's first client render, same
@@ -99,7 +97,6 @@ export default function DropzoneEmptyState({
       // the `html[data-draft-hint]` rule in Dropzone.module.css.
       data-empty-state
       data-compact={compact || undefined}
-      data-variant={variant !== 'default' ? variant : undefined}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
@@ -107,44 +104,25 @@ export default function DropzoneEmptyState({
       onDragLeave={() => setIsDragOver(false)}
       onDrop={onDrop}
     >
-      <svg
-        class={styles['dropzone-icon']}
-        width="48"
-        height="48"
-        viewBox="0 0 48 48"
-        fill="none"
-        aria-hidden="true"
-      >
-        <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
-        <path d="M27 4v8h8" class={styles['dz-fold']} />
-        <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
-        <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
-      </svg>
-
-      {/* Band variant only (Merge, 1024px and up - Dropzone.module.css's
-          `[data-variant="band"]` swaps this in for the icon above): three
-          overlapping dashed page outlines, purely decorative. Always
-          rendered when the variant is band, same as the band copy below, so
-          nothing here depends on JS knowing the viewport - only visible via
-          the CSS media query. */}
-      {variant === 'band' && (
-        <div class={styles['band-ghosts']} aria-hidden="true">
-          <span class={styles['band-ghost']} />
-          <span class={styles['band-ghost']} />
-          <span class={styles['band-ghost']} />
-        </div>
+      {art ?? (
+        <svg
+          class={styles['dropzone-icon']}
+          width="48"
+          height="48"
+          viewBox="0 0 48 48"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
+          <path d="M27 4v8h8" class={styles['dz-fold']} />
+          <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
+          <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
+        </svg>
       )}
 
       <p class={styles['dropzone-text']}>
-        <strong>{message || (multiple ? messages.dropHereMany : messages.dropHereOne)}</strong>
+        <strong>{heading ?? message ?? (multiple ? messages.dropHereMany : messages.dropHereOne)}</strong>
       </p>
-
-      {variant === 'band' && (bandHeading || bandBody) && (
-        <div class={styles['band-copy']}>
-          {bandHeading && <p class={styles['band-heading']}>{bandHeading}</p>}
-          {bandBody && <p class={styles['band-body']}>{bandBody}</p>}
-        </div>
-      )}
 
       {/* The input is visually hidden, not `hidden`: display:none takes it out
           of the tab order, so a keyboard could never reach the picker and the
@@ -178,7 +156,7 @@ export default function DropzoneEmptyState({
             stroke-linejoin="round"
           />
         </svg>
-        {messages.privacyLine}
+        {body ?? messages.privacyLine}
       </p>
 
       {isIOS && (

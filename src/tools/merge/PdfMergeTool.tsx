@@ -1246,11 +1246,10 @@ export default function PdfMergeTool({
       // drag-over overlay says so - a Merge-only override of the shared
       // shell copy, not a change to what Split/ImageToPdf/ToImage show.
       shellMessages={{ ...shellMessages, dropToAddMore: t.dropAnywhereNote }}
-      emptyVariant="band"
       showCloudDriveHint
-      emptyBandHeading={t.emptyHeading}
+      emptyHeading={t.emptyHeading}
       emptyStateMessage={t.dropHere}
-      emptyBandBody={t.emptyBody}
+      emptyBody={t.emptyBody}
       checkingDraft={!hasFiles && draftState.isRestoring}
       hideIdentity
     >

@@ -86,6 +86,15 @@
   }
 }
 
+/* Nothing loaded: the empty-state sheet is the frame (Dropzone.module.css), so
+   the card around it draws nothing and adds no padding. */
+.tool-card:not([data-tool-loaded]) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
 /* No `.list-header` / `.list-count` / `.clear-all` here any more. The file count
    is part of the identity line now (ToolShell.module.css) and Clear all is one
    of that shell's controls, so neither the header row nor the two classes it
@@ -548,15 +557,4 @@
   line-height: 1.5;
   color: var(--color-muted);
   text-align: center;
-}
-
-/* MERGE-06: the card stretches with the stage while it carries
-   `data-fill-viewport` (see ToolPageLayout.astro's `.tool-stage` rule); the
-   empty-state dropzone inside it takes the height (Dropzone.module.css). */
-@media (min-width: 1024px) {
-  .tool-card[data-fill-viewport] {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-  }
 }

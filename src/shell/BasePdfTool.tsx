@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
-import type { ComponentChildren } from 'preact';
+import type { ComponentChild, ComponentChildren } from 'preact';
 import styles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import dialogStyles from './Dialog.module.css';
@@ -66,21 +66,12 @@ interface BasePdfToolProps {
    * allowed to show it. */
   showIosFilesHint?: boolean;
   showCloudDriveHint?: boolean;
-  /** MERGE-06: while true the card renders `data-fill-viewport` and, at
-   * desktop widths, the empty-state dropzone grows to fill the first screen
-   * (ToolPageLayout.astro's `.tool-stage` rule). A tool passes it only while
-   * it has nothing loaded, so a loaded card flows at its own height. */
-  fillViewport?: boolean;
-  /** Shlomi's follow-up (2026-09-13): a Merge-only empty-state shape - a
-   * fixed 260px dashed band at 1024px and up (ghost pages, a heading and
-   * body, "Choose files") instead of the shared viewport-filling dropzone.
-   * Below 1024px the default empty state is unaffected either way.
-   * `emptyBandHeading`/`emptyBandBody` are the band's own two lines of copy
-   * (only rendered - and only ever visible - when this is `'band'`); every
-   * other tool leaves all three unset. */
-  emptyVariant?: 'default' | 'band';
-  emptyBandHeading?: string;
-  emptyBandBody?: string;
+  /** The tool's verb, drawn in the empty-state sheet in place of the file-plus icon. */
+  emptyArt?: ComponentChild;
+  /** The sheet's heading and the line under it (default: the shell's drop
+   * message and privacy line). */
+  emptyHeading?: string;
+  emptyBody?: string;
   /** Direction A (Merge): a tool whose loaded state replaces the identity
    * row and file actions with its own add bar (AddBar.tsx) sets this so
    * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
@@ -141,10 +132,9 @@ export default function BasePdfTool({
   shellMessages,
   showIosFilesHint = false,
   showCloudDriveHint = false,
-  fillViewport = false,
-  emptyVariant = 'default',
-  emptyBandHeading,
-  emptyBandBody,
+  emptyArt,
+  emptyHeading,
+  emptyBody,
   hideIdentity = false,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
@@ -345,7 +335,6 @@ export default function BasePdfTool({
     <div
       class={pdfToolStyles['tool-card']}
       data-compact={compact || undefined}
-      data-fill-viewport={(fillViewport && !hasFiles) || undefined}
       /* Direction A reduction: the "has a file" signal for a tool that hides
          ToolShell (`hideIdentity`), so a page-level `:has()` gate (see the
          merge-note fold in ToolPageLayout.astro) still has something to key
@@ -381,9 +370,9 @@ export default function BasePdfTool({
             messages={sm}
             showIosFilesHint={showIosFilesHint}
             showCloudDriveHint={showCloudDriveHint}
-            variant={emptyVariant}
-            bandHeading={emptyBandHeading}
-            bandBody={emptyBandBody}
+            art={emptyArt}
+            heading={emptyHeading}
+            body={emptyBody}
           />
         )
       )}
