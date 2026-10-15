@@ -558,7 +558,6 @@ export interface CompressMessages {
   /* Button anchor (SEO-25, 2026-09-12): DownloadButton's second line and the
    * compare toggle's two states. Shared by the PDF and image halves alike -
    * both compute the same shape of detail line and use the same toggle. */
-  downloadDetailSmaller: string;
   downloadDetailClosest: string;
   compareShow: string;
   compareHide: string;
@@ -685,7 +684,6 @@ const englishCompressMessages: CompressMessages = {
   imageFailed: 'Image compression failed.',
   imageSharedSuccessfully: 'Compressed image shared successfully.',
   imageSharingCanceled: 'Sharing canceled. Your compressed image is still ready.',
-  downloadDetailSmaller: '{size}, {percent}% smaller',
   downloadDetailClosest: 'closest achievable: {size}',
   compareShow: 'Compare with original',
   compareHide: 'Hide comparison',
@@ -829,7 +827,6 @@ const hebrewCompressMessages: CompressMessages = {
   imageFailed: 'כיווץ התמונה נכשל.',
   imageSharedSuccessfully: 'התמונה המכווצת שותפה.',
   imageSharingCanceled: 'השיתוף בוטל. התמונה המכווצת עדיין מוכנה.',
-  downloadDetailSmaller: '{size}, קטן ב-{percent}%',
   downloadDetailClosest: 'הגודל הקרוב ביותר: {size}',
   compareShow: 'השוואה למקור',
   compareHide: 'הסתרת ההשוואה',

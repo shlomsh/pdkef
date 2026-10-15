@@ -9,6 +9,8 @@ interface CompareSliderProps {
   afterLabel?: string;
   /** Full width, no cap, and vertical swipes scroll the page behind it. */
   fill?: boolean;
+  /** The Original / Compressed tags drawn over the images (default true). */
+  tags?: boolean;
 }
 
 function getClientX(event: any): number {
@@ -33,6 +35,7 @@ export default function CompareSlider({
   beforeLabel = 'Original',
   afterLabel = 'Compressed',
   fill = false,
+  tags = true,
 }: CompareSliderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState(50);
@@ -105,8 +108,12 @@ export default function CompareSlider({
         <img class={styles['compare-image']} src={afterSrc} alt={`${afterLabel} - page 1`} draggable={false} />
       </div>
 
-      <span class={`${styles['compare-tag']} ${styles['compare-tag-after']}`}>{afterLabel}</span>
-      <span class={`${styles['compare-tag']} ${styles['compare-tag-before']}`}>{beforeLabel}</span>
+      {tags && (
+        <>
+          <span class={`${styles['compare-tag']} ${styles['compare-tag-after']}`}>{afterLabel}</span>
+          <span class={`${styles['compare-tag']} ${styles['compare-tag-before']}`}>{beforeLabel}</span>
+        </>
+      )}
 
       <div
         class={styles['compare-handle']}

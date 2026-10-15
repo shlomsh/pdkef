@@ -181,10 +181,56 @@ export default function PdfCompressTool({
   // stays one branch shared with the PDF path. Tracked here purely so they
   // can be revoked the same way `useObjectUrls` revokes the download URL.
   const compareImageUrlsRef = useRef<{ before: string; after: string } | null>(null);
+  // Page 1 of the ORIGINAL, rendered once when the file is accepted and shown
+  // while the run is in flight; openCompare then reuses it as the slider's
+  // "before" so only the compressed page is rendered after the run. It belongs
+  // to the file, not to a run, so resetOutput leaves it alone. The promise lets
+  // openCompare wait for a render still pending (null when it failed).
+  const [originalPreview, setOriginalPreview] = useState<string | null>(null);
+  const originalTokenRef = useRef(0);
+  const originalPromiseRef = useRef<Promise<string | null> | null>(null);
+  const originalImageUrlRef = useRef<string | null>(null);
+
+  const clearOriginalPreview = () => {
+    originalTokenRef.current += 1;
+    originalPromiseRef.current = null;
+    if (originalImageUrlRef.current) URL.revokeObjectURL(originalImageUrlRef.current);
+    originalImageUrlRef.current = null;
+    setOriginalPreview(null);
+  };
+
+  useEffect(() => () => {
+    if (originalImageUrlRef.current) URL.revokeObjectURL(originalImageUrlRef.current);
+  }, []);
+
+  const loadOriginalPreview = (source: File) => {
+    const token = originalTokenRef.current;
+    if (deriveFileKind(source) === 'image') {
+      const url = URL.createObjectURL(source);
+      originalImageUrlRef.current = url;
+      originalPromiseRef.current = Promise.resolve(url);
+      setOriginalPreview(url);
+      return;
+    }
+    const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
+    originalPromiseRef.current = (async () => {
+      try {
+        const { renderComparePreview } = await import('../../lib/thumbnails.js');
+        const url = await renderComparePreview(source, width);
+        if (token === originalTokenRef.current) setOriginalPreview(url);
+        return url as string;
+      } catch (err) {
+        if (token === originalTokenRef.current) {
+          reportError('pdf_render', err, 'render_compare_preview');
+          console.error(err);
+        }
+        return null;
+      }
+    })();
+  };
 
   const clearComparePreviews = () => {
     if (compareImageUrlsRef.current) {
-      URL.revokeObjectURL(compareImageUrlsRef.current.before);
       URL.revokeObjectURL(compareImageUrlsRef.current.after);
       compareImageUrlsRef.current = null;
     }
@@ -260,7 +306,7 @@ export default function PdfCompressTool({
     const activeBlob = compressedBlobRef.current;
 
     if (kind === 'image') {
-      const before = URL.createObjectURL(activeFile);
+      const before = originalPreview ?? URL.createObjectURL(activeFile);
       const after = URL.createObjectURL(activeBlob);
       compareImageUrlsRef.current = { before, after };
       setComparePreviews({ before, after });
@@ -275,10 +321,11 @@ export default function PdfCompressTool({
     setCompareStatus('loading');
     try {
       const { renderComparePreview } = await import('../../lib/thumbnails.js');
-      const [before, after] = await Promise.all([
-        renderComparePreview(activeFile, width),
+      const [pending, after] = await Promise.all([
+        originalPromiseRef.current ?? Promise.resolve(null),
         renderComparePreview(activeBlob, width),
       ]);
+      const before = pending ?? await renderComparePreview(activeFile, width);
       if (runToken !== runTokenRef.current) return;
       setComparePreviews({ before, after });
       setCompareStatus('idle');
@@ -351,6 +398,7 @@ export default function PdfCompressTool({
       cancelTargetTimer();
       setFile(next);
       resetOutput();
+      clearOriginalPreview();
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');
       setNeedsUnlockBytes(null);
@@ -361,6 +409,7 @@ export default function PdfCompressTool({
         void checkEncryption(next);
         void analyze(next);
       } else {
+        loadOriginalPreview(next);
         requestRun();
       }
     }
@@ -413,6 +462,7 @@ export default function PdfCompressTool({
       if (!run.isCurrent()) return;
       run.settle();
       if (protection !== 'needs-password') {
+        loadOriginalPreview(pdf);
         requestRun();
         return;
       }
@@ -423,6 +473,7 @@ export default function PdfCompressTool({
       if (!run.isCurrent()) return;
       run.settle();
       reportError('pdf_tool_run', err, 'check_encryption');
+      loadOriginalPreview(pdf);
       requestRun();
     }
   };
@@ -665,16 +716,16 @@ export default function PdfCompressTool({
   // separate stats card they have to scroll to - see openCompare's comment
   // for why the card itself moved below the button. compressedSize is only
   // ever set alongside status 'done', so this stays undefined otherwise.
-  // t.downloadDetailSmaller/t.downloadDetailClosest are their own short
-  // messages, deliberately separate from t.closestAchievable (a full
-  // sentence meant for the notice paragraph below, not a button's second
-  // line).
+  // A smaller result says only its size (the saving is the strip's tag).
+  // t.downloadDetailClosest is its own short message, deliberately separate
+  // from t.closestAchievable (a full sentence meant for the notice paragraph
+  // below, not a button's second line).
   const downloadDetail = compressedSize == null
     ? undefined
     : missedTargetSize
       ? formatMessage(t.downloadDetailClosest, { size: sizeText(compressedSize) })
       : savingsPercent > 0 && !unchanged
-        ? formatMessage(t.downloadDetailSmaller, { size: sizeText(compressedSize), percent: savingsPercent })
+        ? sizeText(compressedSize)
         : formatBytes(compressedSize);
 
   const unchangedNotice = unchanged && file
@@ -779,12 +830,33 @@ export default function PdfCompressTool({
     </dialog>
   );
 
+  // One row above the preview: the compressed side on the left, the original
+  // on the right (where the tags sat), each with its size.
+  const labelRow = (afterText: string) => (
+    <p class={styles['compare-labels']}>
+      <span><bdi>{afterText}</bdi></span>
+      <span><bdi>{t.compareBeforeLabel} · {formatBytes(file?.size ?? 0)}</bdi></span>
+    </p>
+  );
+  const originalBox = originalPreview && (
+    <div class={styles['compare-original']}>
+      <img src={originalPreview} alt={`${t.compareBeforeLabel} - page 1`} draggable={false} />
+    </div>
+  );
+
   const resultSection = (
     <section class={styles.result}>
       {hasFiles && status !== 'done' && status !== 'error' && (
-        // Only the page's placeholder: the progress itself is the sheet's
-        // button (Download's place), so it is said once, not twice.
-        <div class={styles['compare-skeleton']} aria-hidden="true" />
+        originalPreview ? (
+          <div class={styles['compare-panel']}>
+            {labelRow(t.compressing)}
+            {originalBox}
+          </div>
+        ) : (
+          // Only the page's placeholder: the progress itself is the sheet's
+          // button (Download's place), so it is said once, not twice.
+          <div class={styles['compare-skeleton']} aria-hidden="true" />
+        )
       )}
 
       {hasFiles && status === 'error' && (
@@ -807,7 +879,9 @@ export default function PdfCompressTool({
           {compareStatus === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
           {comparePreviews && (
             <>
+              {labelRow(`${t.compareAfterLabel} · ${formatBytes(compressedSize ?? 0)}`)}
               <CompareSlider
+                tags={false}
                 beforeSrc={comparePreviews.before}
                 afterSrc={comparePreviews.after}
                 beforeLabel={t.compareBeforeLabel}
@@ -870,6 +944,7 @@ export default function PdfCompressTool({
         </p>
       )}
       {isDone && resultNotice && <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>{resultNotice}</p>}
+      {isDone && passthrough && originalBox}
       {isDone && imageReason === 'smaller' && level === 'target' && !metTarget && (
         <p class={styles['compress-warning']}>
           {formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })}

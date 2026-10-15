@@ -11,6 +11,7 @@ import * as imagesLib from './compressImages.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import styles from './PdfCompressTool.module.css';
+import sliderStyles from './CompareSlider.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
@@ -351,7 +352,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     // The result summary rides on the Download button as a second line.
-    expect(downloadBtn.textContent).toContain('15 Bytes, 100% smaller');
+    expect(downloadBtn.textContent).toContain('15 Bytes');
+    expect(downloadBtn.textContent).not.toContain('smaller');
 
     const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
@@ -493,6 +495,102 @@ describe('PdfCompressTool UI flow', () => {
     const panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
     expect(panel.textContent).toContain('המקור');
+  });
+
+  describe('the original page and the label row above the preview', () => {
+    const labels = () => container.querySelector(`.${styles['compare-labels']}`);
+
+    it('the inline slider has no tags on the images, and a label row above it names both sides with their sizes', async () => {
+      await loadPdf('labels.pdf', 100000);
+      const panel = container.querySelector(`.${styles['compare-panel']}`);
+      expect(panel.querySelector('[role="slider"]')).not.toBeNull();
+      expect(panel.querySelector(`.${sliderStyles['compare-tag']}`)).toBeNull();
+      expect(labels().textContent).toContain('Compressed · 15 Bytes');
+      expect(labels().textContent).toContain('Original · 97.66 KB');
+    });
+
+    it('the full screen dialog keeps the tags', async () => {
+      HTMLDialogElement.prototype.showModal = vi.fn(function () { this.open = true; });
+      HTMLDialogElement.prototype.close = vi.fn(function () { this.open = false; });
+      await loadPdf('tags.pdf', 200000);
+      await act(async () => {
+        findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await wait(10);
+      const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
+      expect(dialog.querySelectorAll(`.${sliderStyles['compare-tag']}`)).toHaveLength(2);
+    });
+
+    it('while a run is in flight the original page shows with its label and size, and the compressed side says Compressing', async () => {
+      const run = deferred();
+      imagesLib.compressPdfImages.mockImplementation(() => run.promise);
+      mount();
+      await pick(makePdfFile('inflight.pdf', 100000), () => result().querySelector('img') !== null);
+      expect(status()).toBe('processing');
+      expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,before');
+      expect(result().querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
+      expect(labels().textContent).toContain('Original · 97.66 KB');
+      expect(labels().textContent).toContain('Compressing');
+      await act(async () => {
+        run.resolve(imagesResult());
+      });
+      await settled();
+    });
+
+    it('keeps the skeleton until the original has rendered', async () => {
+      const original = deferred();
+      thumbnailsLib.renderComparePreview.mockImplementation((f) =>
+        f instanceof File ? original.promise : Promise.resolve('data:image/png;base64,after'),
+      );
+      const run = deferred();
+      imagesLib.compressPdfImages.mockImplementation(() => run.promise);
+      mount();
+      await pick(makePdfFile('wait.pdf', 100000), ran(thumbnailsLib.renderComparePreview, 1));
+      expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
+      expect(result().querySelector('img')).toBeNull();
+      await act(async () => {
+        original.resolve('data:image/png;base64,before');
+        run.resolve(imagesResult());
+      });
+      await settled();
+    });
+
+    it('renders the original once per file: one render at pick, one for the compressed page after the run', async () => {
+      const file = await loadPdf('once.pdf', 100000);
+      await wait(20);
+      const calls = thumbnailsLib.renderComparePreview.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls.filter(([f]) => f === file)).toHaveLength(1);
+      expect(calls.filter(([f]) => f instanceof Blob && !(f instanceof File))).toHaveLength(1);
+    });
+
+    it('a file replaced mid-render does not land the old original', async () => {
+      const resolvers = [];
+      thumbnailsLib.renderComparePreview.mockImplementation((f) =>
+        f instanceof File
+          ? new Promise((resolve) => resolvers.push(() => resolve(`data:image/png;base64,orig-${f.name}`)))
+          : Promise.resolve('data:image/png;base64,after'),
+      );
+      const run = deferred();
+      imagesLib.compressPdfImages.mockImplementation(() => run.promise);
+      mount();
+      await pick(makePdfFile('a.pdf', 100000), ran(thumbnailsLib.renderComparePreview, 1));
+      await pick(makePdfFile('b.pdf', 100000), () => resolvers.length === 2);
+      await act(async () => {
+        resolvers[1]();
+        await new Promise((r) => setTimeout(r, 10));
+      });
+      expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,orig-b.pdf');
+      await act(async () => {
+        resolvers[0]();
+        await new Promise((r) => setTimeout(r, 10));
+      });
+      expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,orig-b.pdf');
+      await act(async () => {
+        run.resolve(imagesResult());
+      });
+      await settled();
+    });
   });
 
   it('Exact size runs at once with the 100 KB default, a preset runs at once again, and the page-rendering engine is never touched', async () => {

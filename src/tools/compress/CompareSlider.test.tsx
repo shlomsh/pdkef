@@ -44,6 +44,15 @@ describe('CompareSlider', () => {
     expect(container.textContent).toContain('Original');
   });
 
+  it('draws no tags on the images when tags is false', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" tags={false} />, container);
+    });
+    expect(container.querySelector(`.${styles['compare-tag']}`)).toBeNull();
+  });
+
   it('starts at 50% reveal', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
