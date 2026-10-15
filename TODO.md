@@ -51,7 +51,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [HERO-04](backlog/tasks/HERO-04.md) · Approve the English drag-over caption and pick a Hebrew singular
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-45](backlog/tasks/SEO-45.md) · The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/

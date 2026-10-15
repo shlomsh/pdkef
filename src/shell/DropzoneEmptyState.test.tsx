@@ -165,7 +165,7 @@ describe('DropzoneEmptyState', () => {
       mount({ showIosFilesHint: false, messages: hebrewShellMessages });
       expect(caption().textContent).toBe('גררו לכאן כדי להוסיף קבצים');
       mount({ showIosFilesHint: false, messages: hebrewShellMessages, multiple: false });
-      expect(caption().textContent).toBe('גררו לכאן כדי להוסיף קבצים');
+      expect(caption().textContent).toBe('גררו לכאן כדי להוסיף קובץ');
     });
   });
 });
