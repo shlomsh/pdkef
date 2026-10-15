@@ -288,12 +288,16 @@ describe('PdfCompressTool UI flow', () => {
     await loadPdf('order.pdf');
     const layout = container.querySelector(`.${styles['loaded-layout']}`);
     const kids = Array.from(layout.children);
-    expect(kids).toHaveLength(3);
-    expect(kids[0].className).toContain(styles.controls);
-    expect(kids[1].className).toContain(styles.result);
-    expect(kids[2].className).toContain(styles['result-action']);
-    const shell = container.querySelector('[data-tool-shell]');
-    expect(shell.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(kids).toHaveLength(4);
+    // The strip is the layout's first cell, so on a desktop it sits in the
+    // 360px rail beside the result (UX guidelines §18 rule 3) instead of
+    // across the top, where it pushed the preview below the first screen.
+    expect(kids[0].className).toContain(styles.strip);
+    expect(kids[0].querySelector('[data-tool-shell]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-tool-shell]')).toHaveLength(1);
+    expect(kids[1].className).toContain(styles.controls);
+    expect(kids[2].className).toContain(styles.result);
+    expect(kids[3].className).toContain(styles['result-action']);
     expect(layout.getAttribute('data-compress-run')).toBe('1');
     expect(layout.getAttribute('data-compress-status')).toBe('done');
   });

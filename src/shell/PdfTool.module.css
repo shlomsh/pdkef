@@ -37,9 +37,9 @@
 
 /* Direction A wave 3 (Shlomi, browser check): Merge's loaded phone card at
    the default 1.5rem (24px) padding left a 293px grid at 375, room for two
-   96px cells where three should fit. Scoped to Merge only via
-   `data-hide-identity` (only Merge sets BasePdfTool's `hideIdentity`, see
-   its own comment) so every other tool's phone padding is untouched. */
+   96px cells where three should fit. Scoped via `data-hide-identity`: Merge
+   and Compress set BasePdfTool's `hideIdentity` (Compress renders the shell
+   strip in its own rail), and every other tool's phone padding is untouched. */
 @media (max-width: 767px) {
   .tool-card[data-hide-identity][data-tool-loaded] {
     /* Loaded Merge used to shrink-wrap to its controls below the generic

@@ -34,6 +34,7 @@ test('a file that needs a password goes to Unlock from Compress and comes back u
   await (await chooser).setFiles({ name: 'needs-password.pdf', mimeType: 'application/pdf', buffer: fixture('needs-password') });
 
   await expect(page.getByRole('heading', { name: 'This PDF has a password' })).toBeVisible();
+  await expect(page.locator('[data-tool-shell]')).toHaveCount(0);
   await expect(page.getByRole('radiogroup')).toHaveCount(0);
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
