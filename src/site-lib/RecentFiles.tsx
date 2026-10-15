@@ -53,7 +53,7 @@ export default function RecentFiles({
             : <svg class={styles.preview} viewBox="0 0 64 84" aria-hidden="true"><path d="M8 2h32l16 16v64H8zM40 2v18h16" fill="var(--color-surface)" stroke="var(--color-border-strong)"/><text x="32" y="54" text-anchor="middle" fill="var(--color-primary)" font-size="14">PDF</text></svg>;
           const identity = <>
             {preview}
-            <span class={styles.name} title={file.fileName}>{file.fileName}</span>
+            <span class={styles.name} dir="auto" title={file.fileName}>{file.fileName}</span>
           </>;
           return <li key={file.cacheId || `${file.tool}:${file.fileName}`}>
             {isBundledSample ? (
