@@ -375,7 +375,16 @@
   margin-top: 0.5rem;
 }
 
-/* Holds the note's slot open, same box as the real note, until the PDF has been read (DEBT-52). */
+/* The note slot (DEBT-52): every variant stacked in one grid cell, so its height is the tallest one's
+   whichever note arrives. The hidden copies only size the cell; the live note shares it. */
+.note-slot {
+  display: grid;
+}
+
+.note-slot > * {
+  grid-area: 1 / 1;
+}
+
 .note-reserve {
   visibility: hidden;
 }
