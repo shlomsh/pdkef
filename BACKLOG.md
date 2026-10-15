@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 57 live: 7 up next, 8 then, 24 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 57 live: 8 up next, 7 then, 24 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -83,12 +83,17 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| DEBT-52 | P2 | [DEBT-52](backlog/tasks/DEBT-52.md) · Compress's options grow 88px after a handed-over file loads | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
-| DEBT-52 | P2 | [DEBT-52](backlog/tasks/DEBT-52.md) · Compress's options grow 88px after a handed-over file loads |  |
 
 ### Waiting
 

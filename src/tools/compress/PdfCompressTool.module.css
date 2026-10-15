@@ -332,6 +332,11 @@
   margin-top: 0.5rem;
 }
 
+/* Holds the note's slot open, same box as the real note, until the PDF has been read (DEBT-52). */
+.note-reserve {
+  visibility: hidden;
+}
+
 /* Before/after preview toggle (SEO-25) - see CompareSlider.tsx for the
    gesture itself. Styled as a quiet secondary action, not another button
    competing with Download: it's an optional check, not the next step. */

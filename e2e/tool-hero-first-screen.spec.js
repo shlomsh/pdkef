@@ -309,13 +309,13 @@ const SAMPLE_HERO = () => {
 test.describe('hand-off arrival', () => {
   test.use({ serviceWorkers: 'block' });
 
-  test('the home launcher to Split lands loaded with one hero height and no layout shift', async ({ page }) => {
+  for (const tool of ['split', 'compress']) test(`the home launcher to ${tool} lands loaded with one hero height and no layout shift`, async ({ page }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 820 });
     await page.addInitScript(SAMPLE_HERO);
     await page.goto('/');
     await page.locator('[data-home-picker]').first().waitFor();
-    const fits = page.locator('.home-dock a[data-tool="split"][data-fits]');
+    const fits = page.locator(`.home-dock a[data-tool="${tool}"][data-fits]`);
     // The drop listener is registered a paint after the picker renders: drop until the dock lights Split.
     await expect(async () => {
       const dt = await page.evaluateHandle((bytes) => {
@@ -327,15 +327,15 @@ test.describe('hand-off arrival', () => {
       await expect(fits).toBeVisible({ timeout: 1000 });
     }).toPass({ timeout: 15_000 });
     await fits.click();
-    await page.waitForURL(/\/split\/?$/);
+    await page.waitForURL(new RegExp(`/${tool}/?$`));
     await expect(page.locator('[data-tool-loaded], [data-tool-shell]').first()).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1000);
-    const { cls, heights, pending, key } = await page.evaluate(() => ({
+    const { cls, heights, pending, key } = await page.evaluate((t) => ({
       cls: window.__cls,
       heights: window.__heroHeights,
       pending: document.documentElement.hasAttribute('data-handoff-pending'),
-      key: sessionStorage.getItem('pdkef:handoff-pending:split'),
-    }));
+      key: sessionStorage.getItem('pdkef:handoff-pending:' + t),
+    }), tool);
     expect(heights, 'hero height from first paint to the loaded tool').toHaveLength(1);
     expect(cls, 'layout shift over the hand-off').toBeLessThan(0.01);
     expect(pending, 'the pending attribute is released once the file shows').toBe(false);
