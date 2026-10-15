@@ -80,9 +80,6 @@ const variants = Astro.props.variants ?? resolved.variants;
 // but only on an empty desktop stage (see `data-editor` below), and they carry their airplane line above
 // the card instead of below it.
 const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
-// Compress and Compress Image keep their quality choices under the sheet, so their column is
-// centred against the hero (the other page-grid tools centre their sheet by a static margin).
-const isCompactColumn = tool.slug === 'compress' || tool.slug === 'compress-image';
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
@@ -232,7 +229,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         404 - which never asked to match home). Keeps this tool's drop
         zone/card area the same width as the app bar and hero above it, now
         that both moved to home's 1280px. */}
-    <main class="!flex !flex-col !max-w-[1280px] !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5" data-compact-column={isCompactColumn || undefined}>
+    <main class="!flex !flex-col !max-w-[1280px] !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
       <section id="app" class="!my-0 !flex !w-full !items-start !justify-center min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
         {/* LOC-02: the Sign/Redact "editor stays English" pilot decision
             (LOCALIZED_TOOL_ISLANDS in localizedTools.ts) still needs honest
@@ -249,7 +246,6 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         )}
         <slot />
       </section>
-      <i class="tool-main-end" hidden></i>
     </main>
 
     {/* SEO-37: the airplane-mode line for every tool but Sign and Redact (they
@@ -417,21 +413,6 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
            never the content, so nothing moves while <main> parses. */
         margin-top: max(0px, calc((var(--first-screen) - 5rem - 36rem) / 2));
         width: auto;
-      }
-
-      /* Compress and Compress Image: the column is centred in the first-screen row the hero
-         is centred in. <main> spans rows 1-2 and row 2 only takes the excess of a column taller
-         than row 1, so centring never lifts a tall column above the row's top. The centre
-         depends on the column's height, so <main> is not painted until its last child (the
-         marker, same pattern as TrustChips.astro) has parsed: a shift of something unpainted
-         is not counted. */
-      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main[data-compact-column] {
-        margin-top: 0;
-        align-self: center;
-      }
-
-      :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main[data-compact-column]:not(:has(> .tool-main-end)) {
-        visibility: hidden;
       }
 
       :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {

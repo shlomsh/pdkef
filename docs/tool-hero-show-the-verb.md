@@ -89,9 +89,10 @@ deletes `fillViewport` and its CSS.
   tool's verb in an art slot, the heading, a quiet line with an inline check mark, then Choose files.
   The checking-draft placeholder wears the same sheet, so nothing resizes when the check settles.
 - The sheet takes the first screen's height (`min(36rem, --first-screen - 9rem)`) only inside the
-  page-grid two-column layout. Compress and Compress Image (one island, `compact`) take their content's
-  height, because their quality choices sit under the sheet. Sign and Redact take the same grid when nothing is
-  loaded (HERO-05).
+  page-grid two-column layout, on every tool. Compress and Compress Image had a shorter side-by-side
+  sheet (`compact`) while their quality choices sat under it; the 2026-10-15 redesign moved those to
+  after a file is picked, so they take the same sheet as the rest. Sign and Redact take the same grid
+  when nothing is loaded (HERO-05).
 - The two-column grid applies on `.tool-stage[data-layout='hero']:not(:has([data-tool-loaded],
   [data-tool-shell]))`, with `<main>` top-aligned, and is off
   under `html[data-draft-hint]` and `html[data-merge-restore]`, so a restoring page keeps the geometry it
