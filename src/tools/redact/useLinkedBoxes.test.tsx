@@ -76,4 +76,20 @@ describe('useLinkedBoxes: derive', () => {
     act(() => { tool.repeatOnEveryPage('b'); });
     expect(commands.add.mock.calls[0][0].map((a: Box) => a.color)).toEqual(['#ffffff']);
   });
+
+  it('keepOnlyThis removes every other box of the group in one step and leaves other boxes alone', () => {
+    const elements = [box('a', 0, { repeatGroupId: 'g' }), box('b', 1, { repeatGroupId: 'g' }), box('c', 2, { repeatGroupId: 'g' }), box('d', 1)];
+    const { tool, commands } = mount(elements);
+    act(() => { tool.keepOnlyThis('b'); });
+    expect(commands.remove).toHaveBeenCalledTimes(1);
+    const [ids, options] = commands.remove.mock.calls[0];
+    expect([...ids].sort()).toEqual(['a', 'c']);
+    expect(options).toMatchObject({ type: 'KEEP_ON_THIS_PAGE_ONLY', description: 'Removed the box from 2 other pages' });
+  });
+
+  it('keepOnlyThis on a box on its own does nothing', () => {
+    const { tool, commands } = mount([box('a', 0)]);
+    act(() => { tool.keepOnlyThis('a'); });
+    expect(commands.remove).not.toHaveBeenCalled();
+  });
 });
