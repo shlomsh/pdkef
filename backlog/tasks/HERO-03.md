@@ -1,10 +1,9 @@
 ---
 id: "HERO-03"
 title: "Each page-grid tool acts out its job in the empty state"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "tool-pages"
-horizon: "now"
 order: 2
 depends_on: ["HERO-02"]
 ---
@@ -52,3 +51,7 @@ Left: the Split verb, and the final checks (`test:weight` and the CSS ratchets o
 *2026-10-15.* Hover replay landed in `61b0c252`: the verb replays on mouse or pen enter and on tab return, easing back along its path at 2x first. See "Decisions made during the build" in `docs/tool-hero-show-the-verb.md`.
 
 *2026-10-15.* The Compress and Compress Image Loupe verb landed in this branch (`src/tools/compress/verb/`). See "Decisions made during the build" in `docs/tool-hero-show-the-verb.md`.
+
+*2026-10-15.* Split's verb landed in `cd812c09` and its decks no longer scroll the page sideways (`952ff700`); every page-grid tool now shows its verb. Left: `test:weight` and the CSS ratchets on a production build.
+
+*2026-10-15.* Closed. The last open item, the production-build checks, ran green on one build of 16e1a61b plus the docs: check:push (22 steps, including test:csp, test:seo, test:css with the duplication ratchet, test:weight), the whole chromium project (430 passed), webkit (35), perf (10).

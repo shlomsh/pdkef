@@ -1,10 +1,9 @@
 ---
 id: "HERO-02"
 title: "One full-height first screen on desktop for the page-grid tools"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "tool-pages"
-horizon: "now"
 order: 1
 depends_on: ["HERO-01"]
 ---
@@ -62,3 +61,7 @@ Protect, Compress Image. Sign and Redact are HERO-05.
 
 Done: `styling.md`'s paper line (the sheet is `--color-surface`, `b0a3202e`). Left: `test:seo`, `test:css`,
 `test:weight` and `test:csp` on a production build.
+
+*2026-10-15.* The vertical balance pass landed in `7bfc6c02`, and Merge's phone tile went back beside the name in `55b13f13`. Left: `test:seo`, `test:css`, `test:weight` and `test:csp` on a production build.
+
+*2026-10-15.* Closed. The last open item, the production-build checks, ran green on one build of 16e1a61b plus the docs: check:push (22 steps, including test:csp, test:seo, test:css with the duplication ratchet, test:weight), the whole chromium project (430 passed), webkit (35), perf (10).

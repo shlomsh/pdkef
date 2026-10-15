@@ -1,10 +1,9 @@
 ---
 id: "HERO-04"
 title: "Drop a file anywhere on a page-grid tool's page"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "tool-pages"
-horizon: "next"
 order: 1
 depends_on: ["HERO-02"]
 ---
@@ -50,3 +49,5 @@ depends_on: ["HERO-02"]
 *2026-10-15.* Shlomi picked the Hebrew singular for one-file tools, "גררו לכאן כדי להוסיף קובץ"; the English caption ships as shown to him. Nothing left.
 
 *2026-10-15.* Drag caption landed in `5709421e`: the heading swaps to "Let go to add your files" by CSS alone while `data-dragging` is set. The Hebrew singular is still open with Shlomi; the plural wording serves both forms until he picks. See `docs/tool-hero-show-the-verb.md`.
+
+*2026-10-15.* Hebrew singular landed in `ade5f01c`, and Sign and Redact turned drop anywhere on in `bf617824` (HERO-05). Outcome holds end to end; closed.
