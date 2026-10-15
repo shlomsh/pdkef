@@ -406,25 +406,20 @@
 .mobile-file-controls {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
   padding: 0.25rem 0.1rem 0.4rem;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
-.mobile-file-controls::-webkit-scrollbar {
-  display: none;
-}
-
-/* One toolbar row at every mobile/tablet width. On the smallest phones the
-   row scrolls horizontally instead of turning four controls into four lines;
-   each command remains explicit and keeps its existing label and hit target. */
+/* The row wraps instead of scrolling: on a 393px phone the sort control and
+   the page-numbers label sat past the card's edge, half-hidden in a scroller
+   nobody knew to swipe. Each control keeps its label on one line and its hit
+   target; one that cannot fit beside the others drops to the next line, and
+   max-width keeps a lone control inside the card at 320px. */
 .mobile-file-controls > * {
-  flex: 0 0 auto;
-  max-width: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
 }
 
