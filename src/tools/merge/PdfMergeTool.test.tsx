@@ -11,6 +11,7 @@ import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import railStyles from './components/MergeRail.module.css';
 import docStyles from './components/MergeDocument.module.css';
+import outputNameStyles from '../../shell/OutputName.module.css';
 import downloadStyles from './components/DownloadElement.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -1153,7 +1154,7 @@ describe('PdfMergeTool UI flow', () => {
   // leave it) rather than dispatching an `input` event nothing here listens
   // for.
   describe('renaming the output file name', () => {
-    const nameEl = () => container.querySelector(`.${docStyles.name}`);
+    const nameEl = () => container.querySelector(`.${outputNameStyles.name}`);
     const beginEdit = async () => {
       await act(async () => {
         nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -1195,7 +1196,7 @@ describe('PdfMergeTool UI flow', () => {
 
       expect(nameEl().textContent).toBe('March invoices');
       expect(nameEl().getAttribute('contenteditable')).toBe('false');
-      expect(container.querySelector(`.${docStyles['doc-heading-ext']}`).textContent).toBe('.pdf');
+      expect(container.querySelector(`.${outputNameStyles['doc-heading-ext']}`).textContent).toBe('.pdf');
       const link = downloadLink();
       expect(link.getAttribute('download')).toBe('March invoices.pdf');
       const [, options] = mergeLib.mergePdfs.mock.calls.at(-1);
@@ -1343,8 +1344,8 @@ describe('PdfMergeTool UI flow', () => {
       mount(props);
       await loadFiles(['three-page-header.pdf', 'b.pdf']);
       await settle();
-      const name = container.querySelector(`.${docStyles.name}`);
-      const ext = container.querySelector(`.${docStyles['doc-heading-ext']}`);
+      const name = container.querySelector(`.${outputNameStyles.name}`);
+      const ext = container.querySelector(`.${outputNameStyles['doc-heading-ext']}`);
       return { name, ext, unit: name.parentElement };
     };
 

@@ -42,7 +42,12 @@ export function outputBaseName(fileName) {
 // `<base>-page-<n>.pdf`, one per page, in page order.
 export function outputFileName(fileName, mode, pageNumber) {
   const base = outputBaseName(fileName);
-  return mode === 'separate' ? `${base}-page-${pageNumber}.pdf` : `extracted_${base}.pdf`;
+  return mode === 'separate' ? `${base}-page-${pageNumber}.pdf` : extractedFileName(base);
+}
+
+// The single-file name for a base the person may have renamed in the heading.
+export function extractedFileName(base) {
+  return `extracted_${base}.pdf`;
 }
 
 // Splits the input PDF file based on the selected page numbers and mode.
