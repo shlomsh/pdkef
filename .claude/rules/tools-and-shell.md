@@ -100,6 +100,8 @@ blocks service workers: red 5 runs out of 5 without the fix, green 5 out of 5 wi
 asserts that a value left on `window` survived the Back, so it fails loudly rather than passing
 silently if a restore ever stops happening.
 
+**One hand-off key can open two pages.** `compress` is the key for Compress and Compress Image, which mount the same island, and a hand-off is taken by whichever loads first. `useHandoffIntake` therefore asks `takeHandoff(tool, accept)` for only what the page takes (`src/lib/handoffKinds.ts`: PDFs on `/compress/`, photos on `/compress-image/`) and the store leaves the rest in place, so a PDF parked for Compress never opened on Compress Image (reported 2026-10-15; there is no draft restore on either page).
+
 ## UX design guidelines
 
 Before designing or reviewing any tool's loaded state, read

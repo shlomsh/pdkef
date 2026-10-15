@@ -925,6 +925,16 @@ describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
     expect(await takeHandoff('merge')).toBeNull();
   });
 
+  it('leaves a record the asker rejects in place for the page it is meant for', async () => {
+    // 'compress' is one hand-off key for two pages (Compress and Compress Image): the image page
+    // must not eat a PDF parked for the PDF page (production, 2026-10-15).
+    await saveHandoff('compress', { fileName: 'doc.pdf', fileType: 'application/pdf', fileBytes: bytesOf('pdf') });
+    expect(await takeHandoff('compress', (record) => record.fileType.startsWith('image/'))).toBeNull();
+    const taken = await takeHandoff('compress', (record) => record.fileType === 'application/pdf');
+    expect(taken.fileName).toBe('doc.pdf');
+    expect(await takeHandoff('compress')).toBeNull();
+  });
+
   it('returns null for a multi record with no files', async () => {
     await saveHandoff('merge', { files: [] });
     expect(await takeHandoff('merge')).toBeNull();
