@@ -1,0 +1,192 @@
+/* --- The preview dialog (PagePreviewDialog.tsx) --- */
+/* Shlomi's follow-up (2026-09-13): the dialog used to cap at
+   `min(92vw, 720px)` with a fixed 70vh stage, so a portrait A4 page rendered
+   about 530px wide on a 2000px-wide screen and its text was hard to read. It
+   now grows with the viewport instead, up to about 92vw by 92vh. A
+   `<dialog>`'s own UA stylesheet caps it at `max-height: calc(100% - 6px -
+   2em)` regardless of what we set here, so `max-height` is overridden
+   explicitly rather than assumed. `height` (not only `max-height`) is what
+   gives `.preview-stage`'s `flex: 1 1 auto` below a real amount of space to
+   fill - a fit-content dialog (the `<dialog>` UA default, and what
+   `Dialog.module.css`'s shared `.dialog` leaves it at) has nothing to
+   distribute.
+
+   The `[open]` qualifier is load-bearing, not decoration: an author
+   stylesheet's `display` beats the UA stylesheet's `dialog:not([open]) {
+   display: none }` regardless of specificity (author always outranks UA),
+   so an unqualified `display: flex` here left a *closed* dialog laid out
+   and hit-testable - invisible in a screenshot but still eating clicks
+   underneath it. Scoping every box-model rule to `[open]` means the rule
+   simply doesn't match once the `open` attribute is gone, and the UA
+   default hides it again. */
+.preview-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  max-width: 92vw;
+  height: 92vh;
+  max-height: 92vh;
+}
+
+/* Shlomi (2026-09-13): the stage is a fixed-height gallery, so a portrait and
+   a landscape page settle into the same dialog rect. It used to be min 40vh
+   / max 70vh with the image blanked on every step, so the dialog shrank and
+   grew back on each page - the "flicker". The height still never depends on
+   the image: it now comes from `.preview-dialog`'s own explicit height above
+   via `flex: 1 1 auto; min-height: 0` rather than a literal vh figure, so it
+   still doesn't move between a wide and a tall page. The image fits inside
+   it (`max-height: 100%`), and the previous page stays up, dimmed, until the
+   next one has rendered. */
+.preview-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1rem 56px;
+  overflow: hidden;
+  background: var(--color-surface-sunken);
+  /* Wave 2 of the same day: the dialog is direction-neutral on purpose -
+     visual left is always "previous", matching ArrowLeft - so the zones and
+     chevrons below use physical left/right, not logical inline sides. */
+  direction: ltr;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: var(--shadow-md);
+  background: var(--color-surface);
+  transition: opacity 0.12s var(--ease-out);
+}
+
+.preview-stage[data-stale] .preview-image,
+.preview-stage[data-skipped] .preview-image {
+  opacity: 0.55;
+}
+
+/* Shlomi's follow-up (2026-09-13): the preview used to say "skipped" only in
+   five quiet words of the title, easy to miss while looking at the enlarged
+   page instead. The banner states it where the eye already is; the dimmed
+   image above shows it; the footline below lets it be undone without closing
+   the dialog - the same skipped/included toggle the page strip's own button
+   exposes. */
+.preview-skip-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 20px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.preview-skip-banner svg {
+  flex: none;
+}
+
+.preview-skip-footline {
+  flex: none;
+  padding: 0.6rem 20px 0.85rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-danger);
+}
+
+.preview-skip-restore {
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.preview-skip-restore:hover,
+.preview-skip-restore:focus-visible {
+  color: var(--color-primary-active);
+}
+
+.preview-stage[data-rotation='90'] .preview-image {
+  transform: rotate(90deg) scale(0.8);
+}
+
+.preview-stage[data-rotation='180'] .preview-image {
+  transform: rotate(180deg);
+}
+
+.preview-stage[data-rotation='270'] .preview-image {
+  transform: rotate(270deg) scale(0.8);
+}
+
+/* The two outer thirds of the stage step the gallery on a plain click; the
+   middle third is inert. Pointer-only (aria-hidden): the chevrons and the
+   arrow keys are the accessible route. */
+.preview-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 33.333%;
+  cursor: pointer;
+}
+
+.preview-zone-prev {
+  left: 0;
+}
+
+.preview-zone-next {
+  right: 0;
+}
+
+.preview-chevron {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  transform: translateY(-50%);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+
+.preview-chevron:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.preview-chevron:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.preview-chevron:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.preview-chevron-prev {
+  left: 6px;
+}
+
+.preview-chevron-next {
+  right: 6px;
+}
+
+.preview-loading {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}

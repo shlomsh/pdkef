@@ -1,3 +1,4 @@
+import type { ComponentType } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -21,6 +22,7 @@ import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { loadPdfjs } from '../../lib/loadPdfjs.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../shell/PagePreviewDialog.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
 import {
   englishShellMessages,
@@ -90,6 +92,11 @@ export default function PdfSplitTool({
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
+  const [previewPage, setPreviewPage] = useState<number | null>(null);
+  const [PreviewDialog, setPreviewDialog] = useState<ComponentType<{
+    target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void;
+    toggle?: PreviewToggle; messages: PreviewMessages;
+  }> | null>(null);
   const [pages, setPages] = useState<SplitPage[]>([]);
   const [pageSelector, setPageSelector] = useState('');
   const [pageSelectorError, setPageSelectorError] = useState('');
@@ -429,6 +436,15 @@ export default function PdfSplitTool({
     });
   };
 
+  // The dialog is a lazy chunk: it stays out of the eager graph until a
+  // magnifier is pressed (npm run test:lazy-modules).
+  const openPreview = (pageNumber: number) => {
+    setPreviewPage(pageNumber);
+    if (!PreviewDialog) {
+      import('../../shell/PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
+    }
+  };
+
   const selectAll = () => {
     invalidate();
     setPages((prev) => {
@@ -603,6 +619,17 @@ export default function PdfSplitTool({
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
           <path d="M21 3v5h-5" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        class={styles['preview-btn']}
+        aria-label={formatMessage(t.openPreview, { number: p.pageNumber })}
+        onClick={(e) => { e.stopPropagation(); openPreview(p.pageNumber); }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="M10.3 10.3L14 14" />
         </svg>
       </button>
       {perCellCaptions && p.selected ? (
@@ -852,6 +879,32 @@ export default function PdfSplitTool({
         </div>
       )}
 
+      {PreviewDialog && file && (() => {
+        const page = pages.find((p) => p.pageNumber === previewPage);
+        const target: PreviewTarget | null = page ? {
+          file,
+          pageIndex: page.pageNumber - 1,
+          rotation: page.rotation,
+          title: formatMessage(t.previewTitle, { number: page.pageNumber, total: numPages }),
+          badge: page.selected ? undefined : t.previewLeftOut,
+          atStart: page.pageNumber <= 1,
+          atEnd: page.pageNumber >= numPages,
+        } : null;
+        return (
+          <PreviewDialog
+            target={target}
+            onClose={() => setPreviewPage(null)}
+            onStep={(delta) => setPreviewPage((current) => (current == null ? null : Math.max(1, Math.min(numPages, current + delta))))}
+            toggle={page ? {
+              label: page.selected ? t.previewLeaveOut : t.previewBringBack,
+              pressed: !page.selected,
+              always: true,
+              onToggle: () => togglePageSelection(page.pageNumber),
+            } : undefined}
+            messages={{ close: t.previewClose, previous: t.previewPrev, next: t.previewNext, loading: t.previewLoading }}
+          />
+        );
+      })()}
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
