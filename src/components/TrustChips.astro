@@ -72,12 +72,14 @@ const offlineAttrs = offlineHref ? { href: offlineHref, 'data-offline-link': tru
      keep their layout but are not painted, and a shift of something unpainted
      is not counted. The pill is matched from its parent (which also covers a
      paint before the row's wrapper exists), as a separate rule because
-     :has() cannot nest inside :has(). */
+     :has() cannot nest inside :has(). The AppBar marks its row data-has-chips only
+     when this row is slotted in, so a page that ships this CSS without chips
+     never hides the pill. */
   .trust-chips:not(:has(> .trust-chips-end)) {
     visibility: hidden;
   }
 
-  :global(:not(:has(.trust-chips-end)) > [data-on-device]) {
+  :global([data-has-chips]:not(:has(.trust-chips-end)) > [data-on-device]) {
     visibility: hidden;
   }
 

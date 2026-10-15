@@ -1,11 +1,12 @@
-/* Base styles are the LAST frame: shackle open, hatching cleared, lock beside the page. */
-.big {
+/* Base styles are the LAST frame: shackle open, hatching cleared, lock beside the page.
+   The doubled class outranks paper.module.css's .page rules whatever the stylesheet order. */
+.big.big {
   width: calc(92 * var(--u));
   height: calc(120 * var(--u));
   margin: calc(-64 * var(--u)) 0 0 calc(-46 * var(--u));
 }
 
-.big::before {
+.big.big::before {
   height: calc(62 * var(--u));
   inset: calc(20 * var(--u)) calc(14 * var(--u)) auto;
 }

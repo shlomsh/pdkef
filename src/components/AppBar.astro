@@ -51,12 +51,15 @@ const isRtl = localeRecord.dir === 'rtl';
 // invisible at rest, so it doesn't change the at-rest look this unifies.
 // (Dropping the pill also drops its ps-/pe- logical padding - there's no
 // longer a bordered box to pad, so nothing here is RTL-direction-sensitive.)
+// Set on the bar's row only when a chips row is slotted in, so TrustChips.astro's
+// "wait for the row" rule can never hide the pill on a page with no chips.
+const hasChips = Astro.slots.has('default');
 const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--color-text)] no-underline';
 ---
 
 {/* Solid pale mint at rest and when stuck: the hero starts from the same value, so the first screen has no edge, and over white sections it is a thin mint band. */}
 <div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[var(--color-bg)]">
-  <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4 min-[1024px]:px-8">
+  <div data-has-chips={hasChips || undefined} class="mx-auto flex h-14 max-w-[1280px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4 min-[1024px]:px-8">
     <a href={homeHref} class={brandClasses} aria-label={isHome ? (labels.homepageAriaLabel ?? 'PDkef homepage') : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
       {!isHome && (
         <span class="inline-flex w-0 items-center overflow-hidden text-[var(--color-muted-light)] opacity-0 transition-[width,opacity] duration-[180ms] ease-out group-hover:w-4 group-hover:opacity-100" aria-hidden="true">
