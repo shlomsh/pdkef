@@ -1,16 +1,24 @@
 /* The loaded state: the result is the centre (ux guideline 1), the strip,
    the controls and the primary controls are a rail beside it. DOM order is
-   controls, result, sheet, which is also the phone's reading order. The file strip is the shell's. */
+   strip, controls, result, sheet, which is also the phone's reading order.
+   The strip is the shell's ToolShell, rendered here (with BasePdfTool's
+   `hideIdentity`) so the rail can hold it on a desktop. */
 .loaded-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
+    'strip'
     'controls'
     'result'
     'sheet';
   row-gap: 16px;
   align-items: start;
   text-align: start;
+}
+
+.strip {
+  grid-area: strip;
+  min-width: 0;
 }
 
 .controls {
@@ -54,10 +62,11 @@
   .loaded-layout {
     grid-template-columns: minmax(0, 1fr) 360px;
     grid-template-areas:
+      'result strip'
       'result controls'
       'result sheet'
       'result .';
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     column-gap: 28px;
     row-gap: 0;
   }
@@ -72,6 +81,10 @@
     justify-content: center;
   }
 
+  .strip {
+    margin-bottom: 16px;
+  }
+
   /* Narrow enough that a whole portrait page (A4 is the tallest common one,
      1.414:1) fits in the first screen under the hero, card and label row
      (about 210px at the top): 0.7 x the height left gives an A4 page that
@@ -84,14 +97,16 @@
 /* Below 1024px the primary controls are the sticky bottom sheet the other
    tools use (ux guidelines 8). It stays in flow, so it never covers the
    result, and `.tool-card` has no overflow clip, which sticky depends on.
-   The card pads 1.5rem here, hence the 1.5rem bleed. */
+   The sheet bleeds to the card's edge: the card pads 12px below 768px
+   (PdfTool.module.css's `[data-hide-identity]` phone rule) and 1.5rem from
+   768px to 1023px. */
 @media (max-width: 1023px) {
   .result-sheet {
     position: sticky;
     bottom: 0;
     z-index: 2;
-    margin-inline: -1.5rem;
-    padding: 0.5rem 1.5rem calc(0.5rem + env(safe-area-inset-bottom));
+    margin-inline: -12px;
+    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
   }

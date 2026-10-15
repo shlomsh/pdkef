@@ -10,6 +10,7 @@ import { deriveFileKind } from '../../lib/fileKind.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import CompressVerb from './verb/CompressVerb.tsx';
 import styles from './PdfCompressTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -1131,6 +1132,7 @@ export default function PdfCompressTool({
       fileNote={<span data-compress-note>{stripNote}</span>}
       shellMessages={shellMessages}
       compact
+      hideIdentity
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
@@ -1148,7 +1150,6 @@ export default function PdfCompressTool({
           from="compress"
           toolName="Compress"
           verb="compress"
-          replace={false}
           messages={{
             title: t.protectedNeedsPasswordTitle,
             body: t.protectedNeedsPasswordBody,
@@ -1158,6 +1159,14 @@ export default function PdfCompressTool({
         />
       ) : hasFiles && file ? (
         <div class={styles['loaded-layout']} data-compress-status={statusAttr} data-compress-run={runCount}>
+          {/* The shell's own strip, placed here rather than above the card so a
+              desktop shows it in the rail beside the result (UX guidelines §18
+              rule 3). Its content still comes from the props above. */}
+          <div class={styles.strip}>
+            <ToolShell>
+              <FileActions />
+            </ToolShell>
+          </div>
           <div class={styles.controls}>
             {isImageMode ? (
               <TargetSizePanel

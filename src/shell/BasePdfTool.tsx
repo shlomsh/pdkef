@@ -375,9 +375,9 @@ export default function BasePdfTool({
          something to key off. Every other tool already has this in
          `[data-tool-shell]`; this is additive and harmless on them too. */
       data-tool-loaded={hasFiles || undefined}
-      // Direction A wave 3: a Merge-only phone padding rule (PdfTool.module.css)
-      // needs to key off something only Merge sets - `hideIdentity` is that
-      // signal today (only Merge hides ToolShell), so it is reflected onto
+      // Direction A wave 3: a phone padding rule (PdfTool.module.css) for the
+      // tools that place their own strip (Merge; Compress, which renders the
+      // shell's ToolShell in its rail) keys off `hideIdentity`, reflected onto
       // the card rather than adding a tool-name attribute nothing else reads.
       data-hide-identity={hideIdentity || undefined}
       data-dragging={windowDragging || undefined}
