@@ -149,7 +149,7 @@
     "fixedIn": "ac1c3ed1"
   },
   {
-    "id": "MERGE-DATE",
+    "id": "MERGE-23",
     "title": "Merge: an empty /CreationDate read as a damaged file",
     "match": {
       "area": "pdf_tool_run",
@@ -157,6 +157,7 @@
       "slug": "merge",
       "module": "pdf-lib"
     },
-    "fixedIn": "331f830f"
+    "fixedIn": "331f830f",
+    "ticket": "MERGE-23"
   }
 ]
