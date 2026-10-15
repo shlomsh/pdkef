@@ -52,6 +52,19 @@ vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   reportError: reportErrorMock,
 }));
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 4 } }));
+// Wraps the real splitPdf so every test still builds real PDFs; the quiet-time
+// tests swap in a fast fake through splitOverride and count calls.
+const { splitCalls, splitOverride } = vi.hoisted(() => ({ splitCalls: { n: 0 }, splitOverride: { fn: null as any } }));
+vi.mock('./split.js', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    splitPdf: (...args: any[]) => {
+      splitCalls.n += 1;
+      return (splitOverride.fn ?? actual.splitPdf)(...args);
+    },
+  };
+});
 
 // Mock pdfjs-dist
 vi.mock('pdfjs-dist', () => {
@@ -119,7 +132,7 @@ describe('PdfSplitTool UI flow', () => {
         setInputFiles(input, [makePdfFile('locked.pdf')]);
       });
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 700));
+        await new Promise((resolve) => setTimeout(resolve, 1700));
       });
       // A fake file would make splitPdf throw and report, so no report also means no prepare run.
       expect(container.querySelector(`.${styles.primary}`)).toBeNull();
@@ -143,7 +156,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     expect(probeMock).toHaveBeenCalled();
     expect(container.querySelector(`.${styles.primary}`).getAttribute('data-state')).toBe('ready');
@@ -163,7 +176,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
   }
 
@@ -179,7 +192,7 @@ describe('PdfSplitTool UI flow', () => {
       nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_chapter two.pdf');
     expect(container.querySelector(`.${styles.primary}`).getAttribute('download')).toBe('extracted_chapter two.pdf');
@@ -256,7 +269,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     const text = container.textContent;
     expect(text).toContain(hebrewSplitMessages.modeCombined);
@@ -286,7 +299,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === hebrewSplitMessages.modeSeparate);
     await act(async () => perPage.click());
@@ -311,7 +324,7 @@ describe('PdfSplitTool UI flow', () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 1700));
       });
       return container.querySelector(`.${styles['primary-detail']}`).textContent;
     };
@@ -437,7 +450,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     const alert = container.querySelector('[role="alert"]');
     expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
@@ -471,7 +484,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(findShareButton()).toBeUndefined();
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     const primary = container.querySelector(`.${styles.primary}`);
     expect(primary.getAttribute('data-state')).toBe('ready');
@@ -603,7 +616,7 @@ describe('PdfSplitTool UI flow', () => {
     // The output is prepared on idle; wait past the debounce and the split.
     const primary = container.querySelector(`.${styles.primary}`);
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 1700));
     });
     expect(primary.getAttribute('data-state')).toBe('ready');
     expect(primary.textContent).toContain('Download 5 PDFs');
@@ -661,7 +674,7 @@ describe('PdfSplitTool UI flow', () => {
           await new Promise((resolve) => setTimeout(resolve, 50));
         });
         await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 600));
+          await new Promise((resolve) => setTimeout(resolve, 1700));
         });
       };
       const compressButton = () =>
@@ -991,7 +1004,7 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
   it('does not count a protected file as a failed operation (DEBT-44)', async () => {
     probeMock.mockResolvedValue('needs-password');
     await openFixture();
-    await wait(600);
+    await wait(1700);
     probeMock.mockReset();
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(events('tool_operation_failed')).toBe(0);
@@ -1002,34 +1015,34 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
     const { getDocument } = await import('pdfjs-dist');
     getDocument.mockImplementationOnce(() => ({ promise: Promise.reject(new Error('boom')), destroy: vi.fn(() => Promise.resolve()) }));
     await openFixture();
-    await wait(600);
+    await wait(1700);
     expect(events('tool_operation_failed')).toBe(1);
   });
 
   it('reports no start for the background prepare after an option change', async () => {
     await openFixture();
-    await wait(600);
+    await wait(1700);
     await toggleFirstCell();
-    await wait(600);
+    await wait(2200);
     const separate = Array.from(container.querySelectorAll('[role="radio"]'))
       .find((button) => button.textContent === 'One PDF per page');
     await act(async () => separate.click());
-    await wait(600);
+    await wait(2700);
     expect(primary().getAttribute('data-state')).toBe('ready');
     expect(events('tool_operation_started')).toBe(0);
     expect(events('tool_result_ready')).toBe(0);
-  });
+  }, 20000);
 
   it('reports started then ready for a Download tap, again after a change', async () => {
     await openFixture();
-    await wait(600);
+    await wait(1700);
     await act(async () => primary().click());
     await wait(50);
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(1);
 
     await toggleFirstCell();
-    await wait(600);
+    await wait(2200);
     expect(events('tool_operation_started')).toBe(1);
     await act(async () => primary().click());
     await wait(50);
@@ -1039,11 +1052,13 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
 
   it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
     await openFixture();
-    expect(primary().getAttribute('data-state')).toBe('preparing');
+    // Quiet means quiet: the build is silent until the person taps.
+    expect(primary().getAttribute('data-state')).toBe('ready');
     await act(async () => primary().click());
+    expect(primary().getAttribute('data-state')).toBe('preparing');
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(0);
-    await wait(600);
+    await wait(1700);
     expect(primary().getAttribute('data-state')).toBe('saved');
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(1);
@@ -1052,7 +1067,7 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
   it('reports started then ready for a shared result', async () => {
     const nativeShare = mockNativeFileShare();
     await openFixture();
-    await wait(600);
+    await wait(1700);
     const shareButton = Array.from(container.querySelectorAll(`.${styles['next-step']}`))
       .find((b) => b.textContent.includes('Share'));
     await act(async () => shareButton.click());
@@ -1200,5 +1215,106 @@ describe('splitPdf library integration with real fixtures', () => {
       await act(async () => dialog.querySelector('button[aria-label="Next page"]').click());
       expect(dialog.textContent).toContain('Page 3 of 5');
     });
+  });
+});
+
+
+// Guideline §2, "Quiet means quiet": nothing visibly changes while the person is still editing.
+describe('PdfSplitTool quiet-time prepare', () => {
+  let container;
+  const fakeResult = () => [{ blob: new Blob(['%PDF-1.4 fake'], { type: 'application/pdf' }), filename: 'extracted_open.pdf' }];
+  const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+  const primary = () => container.querySelector(`.${styles.primary}`);
+  const cell = (i) => container.querySelectorAll(`.${styles.cell}`)[i];
+  const toggle = (i) => act(async () => cell(i).click());
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    splitCalls.n = 0;
+    splitOverride.fn = async () => fakeResult();
+    resetActionTrailForTests();
+    probeMock.mockReset();
+    probeMock.mockResolvedValue('open');
+    mockState.numPages = 5;
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('open.pdf')]);
+    });
+    await advance(100);
+    // Settle the first build so each test starts from a built document.
+    // Past the 3s burst window too, so the next change starts a fresh burst.
+    await advance(4000);
+    splitCalls.n = 0;
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    container = null;
+    splitOverride.fn = null;
+    mockState.numPages = 4;
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('keeps the ready look after a toggle and does not build before 1500ms', async () => {
+    await toggle(0);
+    await advance(1400);
+    expect(primary().getAttribute('data-state')).toBe('ready');
+    expect(primary().getAttribute('aria-busy')).toBeNull();
+    expect(primary().textContent).toContain('Download 1 PDF');
+    expect(primary().textContent).toContain('4 pages');
+    expect(splitCalls.n).toBe(0);
+    await advance(200);
+    expect(splitCalls.n).toBe(1);
+    expect(primary().getAttribute('data-state')).toBe('ready');
+  });
+
+  it('builds once, 2500ms after the last of three toggles 500ms apart', async () => {
+    await toggle(0);
+    await advance(500);
+    await toggle(1);
+    await advance(500);
+    await toggle(2);
+    await advance(2400);
+    expect(splitCalls.n).toBe(0);
+    await advance(200);
+    expect(splitCalls.n).toBe(1);
+  });
+
+  it('is ready at once, with no extra build, after an undo back to a built selection', async () => {
+    await toggle(0);
+    await advance(1700);
+    expect(splitCalls.n).toBe(1);
+    await toggle(0);
+    expect(primary().getAttribute('data-state')).toBe('ready');
+    expect(primary().getAttribute('href')).toBeTruthy();
+    await advance(5000);
+    expect(splitCalls.n).toBe(1);
+  });
+
+  it('shows preparing only after a Download tap before the build is done, then delivers', async () => {
+    let finish;
+    splitOverride.fn = () => new Promise((resolve) => { finish = () => resolve(fakeResult()); });
+    await toggle(0);
+    await advance(1700);
+    expect(splitCalls.n).toBe(1);
+    expect(primary().getAttribute('data-state')).toBe('ready');
+    await act(async () => primary().click());
+    expect(primary().getAttribute('data-state')).toBe('preparing');
+    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
+    expect(primary().getAttribute('data-state')).toBe('saved');
+  });
+
+  it('starts the build at once on pointerdown on the primary control', async () => {
+    await toggle(0);
+    await advance(200);
+    expect(splitCalls.n).toBe(0);
+    await act(async () => { primary().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    expect(splitCalls.n).toBe(1);
   });
 });

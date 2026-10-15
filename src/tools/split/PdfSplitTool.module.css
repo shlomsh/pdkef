@@ -169,6 +169,13 @@
   background: var(--color-surface-soft);
 }
 
+/* Wraps the thumbnail and the magnifier. Transparent to layout on wide screens
+   (the magnifier sits under rotate, relative to the cell); the phone block makes
+   it the positioning box so the magnifier takes the thumbnail's bottom corner. */
+.cell-art {
+  display: contents;
+}
+
 .cell-thumb-img {
   width: 100%;
   height: 100%;
@@ -694,6 +701,29 @@
 
   .doc-frame {
     padding: 0.5rem;
+  }
+}
+
+/* Small phones: three cells per row (about 100px at 375), and the heading
+   keeps the editable name at full width - the Download button already says
+   how many pages. The two cell controls take opposite corners of the thumbnail. */
+@media (max-width: 479px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .canvas-count {
+    display: none;
+  }
+
+  .cell-art {
+    display: block;
+    position: relative;
+  }
+
+  .preview-btn {
+    top: auto;
+    bottom: 0.3rem;
   }
 }
 

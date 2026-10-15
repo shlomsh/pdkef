@@ -55,9 +55,14 @@ export function extractedFileName(base) {
 // 0|90|180|270 } map of the delta the person applied with the per-cell
 // rotate control, added on top of whatever rotation the source page already
 // carried (pageOps.js's applyRotation, shared with Merge and Edit Pages).
-export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations = {}, onProgress }) {
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw new DOMException('The split was superseded.', 'AbortError');
+}
+
+export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations = {}, onProgress, signal }) {
   const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
+  throwIfAborted(signal);
   const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
   // An owner-only file loads without a password, but its page streams are still
   // encrypted: copying them out would save a valid PDF of blank pages.
@@ -69,11 +74,13 @@ export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations
 
     const pages = await merged.copyPages(source, indices);
     for (let i = 0; i < pages.length; i += 1) {
+      throwIfAborted(signal);
       applyRotation(pages[i], rotations[pageNumbers[i]]);
       merged.addPage(pages[i]);
       onProgress?.((i + 1) / pages.length);
     }
 
+    throwIfAborted(signal);
     const mergedBytes = await merged.save();
     return [
       {
@@ -85,6 +92,7 @@ export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations
     // mode === 'separate'
     const results = [];
     for (let i = 0; i < pageNumbers.length; i += 1) {
+      throwIfAborted(signal);
       const pageNum = pageNumbers[i];
       const singleDoc = await PDFDocument.create();
       const [copiedPage] = await singleDoc.copyPages(source, [pageNum - 1]);
