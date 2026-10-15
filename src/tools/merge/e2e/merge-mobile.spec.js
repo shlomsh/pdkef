@@ -71,6 +71,19 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     );
     expect(overflows).toBe(false);
 
+    // The file-order select and the page-numbers label both sit fully inside
+    // the viewport, with no sideways scrolling needed to reach them.
+    const viewportWidth = page.viewportSize()?.width ?? 0;
+    for (const control of [
+      page.locator('[data-merge-file-controls] button[aria-haspopup="listbox"]'),
+      page.locator('[data-merge-file-controls]').getByText('Add page numbers'),
+    ]) {
+      const controlBox = await control.boundingBox();
+      if (!controlBox) throw new Error('File control has no bounding box');
+      expect(controlBox.x).toBeGreaterThanOrEqual(0);
+      expect(controlBox.x + controlBox.width).toBeLessThanOrEqual(viewportWidth);
+    }
+
     const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
     await expect(downloadLink).toBeVisible({ timeout: 10_000 });
     const viewportSize = page.viewportSize();
@@ -270,9 +283,10 @@ test.describe('Merge on a phone (MERGE-06)', () => {
         expect(cardBox.width).toBeGreaterThanOrEqual(width - (expectedGutter * 2) - 1);
         const controlsBox = await controls.boundingBox();
         if (!controlsBox) throw new Error('Mobile controls unavailable');
-        expect(controlsBox.height).toBeLessThanOrEqual(56);
+        expect(controlsBox.x + controlsBox.width).toBeLessThanOrEqual(width);
+        // The row wraps rather than scrolls: nothing is clipped sideways.
+        expect(await controls.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
         for (const control of await controls.locator('button, select, label').all()) {
-          await control.scrollIntoViewIfNeeded();
           await expect(control).toBeVisible();
           const controlBox = await control.boundingBox();
           expect(controlBox.x).toBeGreaterThanOrEqual(0);
