@@ -81,13 +81,8 @@ export interface SignMessages {
    * title in both directions - the button's own `aria-expanded` carries the
    * state, the same way FontPickerMenu's "Aa" trigger needs no dynamic label. */
   formattingOptionsTitle: string;
-  /** FORM-11: the form-field detector's own line in the status slot. Three
-   * answers, kept apart on purpose - a count, an empty document, and a check
-   * that did not finish, which used to be the same silence as the second. */
-  fieldsFoundOne: string;
-  /** Takes `{count}`. */
-  fieldsFoundOther: string;
-  fieldsFoundNone: string;
+  /** FORM-11: the form-field detector's failure lines in the status slot. A
+   * clean run says nothing; only a check that did not finish is worded. */
   fieldsCheckFailed: string;
   /** The check never loaded, which a stale cached shell can cause and a
    * person can clear - so this one says what to try, not where to report. */

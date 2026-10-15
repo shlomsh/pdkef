@@ -130,8 +130,8 @@ describe('EditorToolStatus', () => {
     // The bug this fixes: everything the detector knew used to be visible
     // only while a tool was armed, and loading a PDF disarms every tool.
     it('takes the idle tip\'s turn at rest, rather than a place of its own', () => {
-      const host = mount({ fieldSummary: { text: '7 form fields found', problem: false } });
-      expect(summary()!.textContent).toBe('7 form fields found');
+      const host = mount({ fieldSummary: { text: 'A quiet note', problem: false } });
+      expect(summary()!.textContent).toBe('A quiet note');
       expect(isShown(summary()!)).toBe(true);
       // One row visible in the cell, never two stacked on each other.
       expect(host.querySelectorAll(`.${styles['help-shown']}`)).toHaveLength(1);
@@ -143,7 +143,7 @@ describe('EditorToolStatus', () => {
     // The armed row carries the keep-on switch, which on a phone is the only
     // way out of a locked tool. Nothing here may take its turn.
     it('yields to an armed tool and to an override, leaving one row shown', () => {
-      mount({ copy: TOOLS[0], fieldSummary: { text: '7 form fields found', problem: true } });
+      mount({ copy: TOOLS[0], fieldSummary: { text: 'A quiet note', problem: true } });
       expect(isShown(summary()!)).toBe(false);
       expect(shown().textContent).toContain(TOOLS[0].action);
       expect(container.querySelectorAll('[role="switch"]')).toHaveLength(1);
@@ -157,7 +157,7 @@ describe('EditorToolStatus', () => {
     // what treats them differently (`.help-fields` in SignToolbar.module.css),
     // and `data-status-active` is how the shell is told which it has.
     it('marks the slot live for a failure it is showing, and never for a result', () => {
-      expect(mount({ fieldSummary: { text: '7 form fields found', problem: false } }).hasAttribute('data-status-active')).toBe(false);
+      expect(mount({ fieldSummary: { text: 'A quiet note', problem: false } }).hasAttribute('data-status-active')).toBe(false);
       expect(summary()!.classList.contains(styles['help-fields-problem'])).toBe(false);
 
       const host = mount({ fieldSummary: { text: 'Could not check this PDF', problem: true } });

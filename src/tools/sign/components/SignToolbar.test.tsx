@@ -1530,19 +1530,21 @@ describe('SignToolbar Component', () => {
       expect(mountToolbar({ formDetection: { state: 'pending', count: 9, detail: null } }).textContent).toBe('');
     });
 
-    it('counts what was found, in the singular and the plural', () => {
-      expect(mountToolbar({ formDetection: { state: 'done', count: 7, detail: null } }).textContent)
-        .toBe('7 form fields found');
-      expect(mountToolbar({ formDetection: { state: 'done', count: 1, detail: null } }).textContent)
-        .toBe('1 form field found');
+    // Sign never claims what a form needs: no count, no "none found". The
+    // detector still runs (it drives fill mode); a clean run is silent.
+    it('makes no claim about what was found, whatever the count', () => {
+      for (const count of [0, 1, 7]) {
+        const line = mountToolbar({ formDetection: { state: 'done', count, detail: null } });
+        expect(line.textContent).toBe('');
+        expect(line.textContent).not.toMatch(/found|נמצא/);
+      }
     });
 
     // The two states this whole ticket is about. "Nothing in it" is an answer
     // about the document; "could not check" is an answer about us, and it
     // points at where the detail is waiting.
-    it('tells a document with no fields apart from a check that did not finish', () => {
-      expect(mountToolbar({ formDetection: { state: 'done', count: 0, detail: null } }).textContent)
-        .toBe('No form fields found');
+    it('stays quiet for a clean run but says so when the check did not finish', () => {
+      expect(mountToolbar({ formDetection: { state: 'done', count: 0, detail: null } }).textContent).toBe('');
 
       const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: x is not a function' } });
       expect(failed.textContent).toBe('Could not check this PDF for form fields. The Feedback button has the details.');
@@ -1597,11 +1599,8 @@ describe('SignToolbar Component', () => {
     });
 
     it('reads every one of those from the given catalogue, like the rest of TOOL_COPY', () => {
-      const found = mountToolbar({
-        formDetection: { state: 'done', count: 3, detail: null },
-        messages: hebrewSignMessages,
-      });
-      expect(found.textContent).toBe(hebrewSignMessages.fieldsFoundOther.replace('{count}', '3'));
+      expect(mountToolbar({ formDetection: { state: 'done', count: 3, detail: null }, messages: hebrewSignMessages }).textContent)
+        .toBe('');
       expect(mountToolbar({ formDetection: { state: 'failed', count: 0, detail: null }, messages: hebrewSignMessages }).textContent)
         .toBe(hebrewSignMessages.fieldsCheckFailed);
     });

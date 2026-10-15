@@ -1275,9 +1275,6 @@ const englishSignMessages: SignMessages = {
   // cached before a deploy, asking for chunks that deploy replaced), so it
   // spends its second sentence on the fix instead - no cache vocabulary, no
   // instruction to clear anything, just the thing that usually works.
-  fieldsFoundOne: '1 form field found',
-  fieldsFoundOther: '{count} form fields found',
-  fieldsFoundNone: 'No form fields found',
   fieldsCheckFailed: 'Could not check this PDF for form fields. The Feedback button has the details.',
   fieldsCheckUnavailable: 'Could not load the form field check. Reopening this page usually fixes it.',
   fieldsCheckNotStarted: 'The form field check did not start on this file. The Feedback button has the details.',
@@ -1520,9 +1517,6 @@ const hebrewSignMessages: SignMessages = {
   nextFieldLabel: 'שדה הבא',
   previousFieldLabel: 'שדה קודם',
   formattingOptionsTitle: 'אפשרויות עיצוב',
-  fieldsFoundOne: 'נמצא שדה טופס אחד',
-  fieldsFoundOther: 'נמצאו {count} שדות טופס',
-  fieldsFoundNone: 'לא נמצאו שדות טופס',
   fieldsCheckFailed: 'לא ניתן היה לבדוק שדות טופס בקובץ הזה. הפרטים מחכים בכפתור המשוב.',
   fieldsCheckUnavailable: 'בדיקת שדות הטופס לא נטענה. פתיחה מחדש של הדף בדרך כלל פותרת את זה.',
   fieldsCheckNotStarted: 'בדיקת שדות הטופס לא התחילה בקובץ הזה. הפרטים מחכים בכפתור המשוב.',
