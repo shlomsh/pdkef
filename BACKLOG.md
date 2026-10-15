@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 52 live: 4 up next, 7 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 5 up next, 8 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -52,7 +52,17 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop.
 
-_Nothing live._
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| HERO-06 | P1 | [HERO-06](backlog/tasks/HERO-06.md) · Every tool's loaded state: the compact file strip and a one-line phone hero | In progress |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| HERO-07 | P1 | [HERO-07](backlog/tasks/HERO-07.md) · An output at the centre for the tools that show none: PDF to Image, Compress Image, Unlock and Protect, Image to PDF |  |
 
 ## Form detector accuracy
 
