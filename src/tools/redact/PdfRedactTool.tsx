@@ -1,5 +1,6 @@
 import { useReducer, useRef, useEffect, useCallback, useState, useMemo } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import RedactVerb from './verb/RedactVerb.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
@@ -1032,7 +1033,7 @@ export default function PdfRedactTool() {
   return (
     <BasePdfTool
       analyticsTool="redact"
-      dropAnywhere={false}
+      emptyArt={<RedactVerb />}
       hasFiles={!!file}
       onFilesAdded={handleFilesAdded}
       multiple={false}

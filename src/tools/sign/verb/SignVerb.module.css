@@ -1,0 +1,197 @@
+/* Base styles are the LAST frame: name typed, signature drawn, caret gone. The page is the
+   sketch's (docs/tool-hero-sketch/sign-redact-verbs.html, S2) at 1:1 in --u. Words are generated
+   content so the static markup has no text. */
+.pg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(132 * var(--u));
+  height: calc(172 * var(--u));
+  margin: calc(-92 * var(--u)) 0 0 calc(-66 * var(--u));
+  border-radius: calc(5 * var(--u));
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 calc(10 * var(--u)) calc(18 * var(--u)) calc(-12 * var(--u))
+      color-mix(in srgb, var(--color-night) 45%, transparent);
+  font-style: normal;
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hd {
+  fill: var(--color-primary);
+  opacity: 0.65;
+}
+
+.ln {
+  fill: var(--color-border-strong);
+  opacity: 0.55;
+}
+
+.field {
+  fill: var(--color-primary-soft);
+  stroke: var(--color-primary);
+  stroke-width: 0.8;
+  opacity: 0.9;
+}
+
+.sigline {
+  stroke: var(--color-muted);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.sig {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.lbl,
+.clip,
+.caret,
+.x {
+  position: absolute;
+  font-family: var(--font-sans);
+  font-style: normal;
+}
+
+/* FULL NAME */
+.lbl {
+  left: calc(12 * var(--u));
+  top: calc(56 * var(--u));
+  width: calc(108 * var(--u));
+  height: calc(9 * var(--u));
+}
+
+.fl {
+  display: block;
+  width: 100%;
+  font-size: calc(6.5 * var(--u));
+  line-height: calc(9 * var(--u));
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.fl::before {
+  content: 'FULL NAME';
+}
+
+/* the typed name: a clip that grows, over a fixed-width line */
+.clip {
+  left: calc(16 * var(--u));
+  top: calc(70 * var(--u));
+  width: calc(70 * var(--u));
+  height: calc(14 * var(--u));
+  overflow: hidden;
+}
+
+.typed {
+  display: block;
+  width: calc(70 * var(--u));
+  white-space: nowrap;
+  font-size: calc(10 * var(--u));
+  line-height: calc(14 * var(--u));
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.typed::before {
+  content: 'Priya Sharma';
+}
+
+.caret {
+  left: calc(86 * var(--u));
+  top: calc(71.5 * var(--u));
+  width: calc(1.2 * var(--u));
+  height: calc(11 * var(--u));
+  background: var(--color-primary);
+  opacity: 0;
+}
+
+/* the x beside the signature line */
+.x {
+  left: calc(12 * var(--u));
+  top: calc(135 * var(--u));
+  width: calc(8 * var(--u));
+  height: calc(11 * var(--u));
+}
+
+.xg {
+  display: block;
+  font-size: calc(9 * var(--u));
+  line-height: calc(11 * var(--u));
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-muted);
+  opacity: 0.8;
+}
+
+.xg::before {
+  content: 'x';
+}
+
+/* The box is mirrored in RTL, which would mirror the glyphs: flip each text piece back in place.
+   The clip still opens from the box's left edge, which is the start of the line. */
+:global([dir='rtl']) .fl,
+:global([dir='rtl']) .typed,
+:global([dir='rtl']) .xg {
+  scale: -1 1;
+  direction: rtl;
+}
+
+:global([dir='rtl']) .fl::before {
+  content: 'שם מלא';
+}
+
+:global([dir='rtl']) .typed::before {
+  content: 'נועה לוי';
+}
+
+@keyframes type {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes caret {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+}
+
+@keyframes write {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .clip {
+    animation: type 1.1s steps(12) 0.3s both;
+  }
+
+  .caret {
+    animation: caret 1.15s linear 0.25s both;
+  }
+
+  .sig {
+    animation: write 1.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) 1.55s both;
+  }
+}

@@ -7,6 +7,7 @@ import type {
 } from '../../editor/model/editorModel.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import SignVerb from './verb/SignVerb.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
 import { SignToolProvider, useDocumentStyle, useSignTool } from './components/SignToolContext.tsx';
@@ -1016,7 +1017,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     <BasePdfTool
       hasFiles={hasFiles}
       analyticsTool="sign"
-      dropAnywhere={false}
+      emptyArt={<SignVerb />}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
