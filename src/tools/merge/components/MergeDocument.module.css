@@ -309,7 +309,10 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.25rem 0.1rem;
+  /* No bottom or inline padding: the pills start on the card's content edge,
+     like Download, and the pill's own 4px slack plus the layout's 12px make
+     the 16px band gap described at .mobile-file-controls. */
+  padding: 0.25rem 0 0;
 }
 
 @media (min-width: 1024px) {
@@ -407,15 +410,17 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
-  padding: 0.25rem 0.1rem 0.4rem;
+  gap: 1rem 0.5rem;
+  padding: 0;
 }
 
-/* The row wraps instead of scrolling: on a 393px phone the sort control and
-   the page-numbers label sat past the card's edge, half-hidden in a scroller
-   nobody knew to swipe. Each control keeps its label on one line and its hit
-   target; one that cannot fit beside the others drops to the next line, and
-   max-width keeps a lone control inside the card at 320px. */
+/* Phone and tablet, measured on ink rather than boxes: the pills, the
+   Add files / Clear all / sort row, the page-numbers checkbox, the drag
+   hint and the sheet's top border sit 16px apart, edge to edge, all from
+   the card's content edge. Row one runs the full width (the sort control
+   takes the end); the page-numbers row and the rearranged note each take a
+   line of their own. A control that cannot fit beside the others at 320px
+   drops to the next line and stays inside the card. */
 .mobile-file-controls > * {
   flex: 0 1 auto;
   min-width: 0;
@@ -425,6 +430,26 @@
 
 .mobile-file-controls > :first-child {
   flex-wrap: nowrap;
+}
+
+.mobile-file-controls > :nth-child(2) {
+  margin-inline-start: auto;
+}
+
+.mobile-file-controls > :nth-child(n + 3) {
+  flex-basis: 100%;
+}
+
+/* The page-numbers row keeps a 42px tap target but occupies only its 18px
+   checkbox in the flow, so the 16px gap above it is ink to ink; 12px of
+   target above plus the buttons' 4px below meet without overlapping. */
+.mobile-file-controls > label {
+  min-height: 42px;
+  margin-block: -12px;
+}
+
+.mobile-file-controls input[type='checkbox'] {
+  margin: 0;
 }
 
 @media (min-width: 1024px) {
@@ -442,8 +467,10 @@
    that width would otherwise see a hint about a file row that is not there. */
 .touch-drag-hint {
   display: none;
-  margin: 0;
-  padding: 0 0.1rem;
+  /* 3px on each side of the layout's 12px gap, plus the line's own leading:
+     16px ink to ink, as above. */
+  margin: 3px 0;
+  padding: 0;
   font-size: 0.78rem;
   line-height: 1.35;
   color: var(--color-muted);
