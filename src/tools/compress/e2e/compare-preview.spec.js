@@ -90,7 +90,7 @@ test.describe('compress tool - before/after preview', () => {
   test.describe('on a desktop viewport', () => {
     test.use({ viewport: { width: 1440, height: 900 } });
 
-    test('the inline slider is wide enough to compare, and Full screen opens a wider one that Escape closes', async ({ page }) => {
+    test('the inline slider shows the whole page in the first screen, and Full screen opens a wider one that Escape closes', async ({ page }) => {
       await page.goto('/compress/');
       await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
 
@@ -107,8 +107,12 @@ test.describe('compress tool - before/after preview', () => {
 
       const inline = page.locator('[class*="compare-slider"]').first();
       await expect(inline).toBeVisible({ timeout: 15_000 });
+      // The result column (UX guideline 18) sizes the slider so a whole
+      // portrait page fits in the first screen beside the 360px rail; it used
+      // to be a wide strip below the cards (> 700px) that ran off the screen.
       const inlineBox = await inline.boundingBox();
-      expect(inlineBox.width).toBeGreaterThan(700);
+      expect(inlineBox.width).toBeGreaterThanOrEqual(440);
+      expect(inlineBox.y + inlineBox.height).toBeLessThanOrEqual(900);
 
       await page.getByRole('button', { name: 'Full screen' }).click();
       const dialog = page.locator('dialog[open]', { has: page.locator('[role="slider"]') });
