@@ -476,3 +476,19 @@ test.describe('phone first screen fills the viewport', () => {
     }
   }
 });
+
+// Compress folds its hero to one line once a file is loaded (ToolHero.astro, data-hero-condense-on-load):
+// tile beside the name, the subhead out of the paint. Real line wrapping and rects, so not a jsdom matter.
+for (const [width, height, maxHeight] of [[1440, 900, 90], [393, 852, 76]]) {
+  test(`/compress/ hero is one line once a file is loaded at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await open(page, '/compress/');
+    await page.locator('[data-empty-state] input[type="file"]').setInputFiles({ name: 'num-1.pdf', mimeType: 'application/pdf', buffer: PDF });
+    await expect(page.locator('[data-tool-shell], [data-tool-loaded]').first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.tool-hero [data-hero-sub]')).toBeHidden();
+    const hero = await page.locator('.tool-hero').boundingBox();
+    expect(hero.height, 'hero height').toBeLessThanOrEqual(maxHeight);
+    const h1 = await page.locator('.tool-hero h1').evaluate((el) => ({ height: el.getBoundingClientRect().height, font: parseFloat(getComputedStyle(el).fontSize) }));
+    expect(h1.height, 'h1 is a single line').toBeLessThanOrEqual(h1.font * 1.4);
+  });
+}
