@@ -110,6 +110,12 @@
     max-width: 42rem;
   }
 
+  /* Compact tools keep their choices on the first screen: at 42rem the verb
+     was 344px tall and pushed Compress's quality cards below the fold. */
+  .dropzone[data-empty-state][data-compact] > :first-child {
+    max-width: 24rem;
+  }
+
   .dropzone[data-empty-state] .dropzone-text {
     font-size: 1.25rem;
   }
