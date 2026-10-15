@@ -782,13 +782,9 @@ export default function PdfCompressTool({
   const resultSection = (
     <section class={styles.result}>
       {hasFiles && status !== 'done' && status !== 'error' && (
-        <div class={styles['compare-skeleton']} aria-hidden={isProcessing ? undefined : 'true'}>
-          {isProcessing && (
-            <div class={styles['skeleton-ring']}>
-              <ProgressRing progress={progress} label={t.compressing} />
-            </div>
-          )}
-        </div>
+        // Only the page's placeholder: the progress itself is the sheet's
+        // button (Download's place), so it is said once, not twice.
+        <div class={styles['compare-skeleton']} aria-hidden="true" />
       )}
 
       {hasFiles && status === 'error' && (

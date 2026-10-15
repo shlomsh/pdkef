@@ -241,23 +241,6 @@
 
 /* The run's progress, centred in the placeholder. The ring is drawn for a
    primary button, so it sits on a primary pill. */
-.skeleton-ring {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.skeleton-ring > span {
-  padding: 0.6rem 1.1rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
 /* A slow opacity pulse is the accepted form of motion here, and only for
    visitors who have not asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
