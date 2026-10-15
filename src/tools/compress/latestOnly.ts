@@ -3,8 +3,9 @@
  * does not start a second one: it marks one follow-up, started when the
  * current run settles (resolved or rejected), however many requests came in.
  * The task reads the latest inputs itself, so the follow-up sees them all.
+ * `cancelPending` drops a queued follow-up (the run in flight is left alone).
  */
-export function createLatestOnly(task: () => Promise<void>): { request(): void } {
+export function createLatestOnly(task: () => Promise<void>): { request(): void; cancelPending(): void } {
   let running = false;
   let pending = false;
 
@@ -23,6 +24,9 @@ export function createLatestOnly(task: () => Promise<void>): { request(): void }
     request() {
       if (running) pending = true;
       else start();
+    },
+    cancelPending() {
+      pending = false;
     },
   };
 }

@@ -479,6 +479,7 @@ export interface CompressMessages {
   dropHint: string;
   compressionFailedTitle: string;
   compressionFailedBody: string;
+  tryAgain: string;
   successTitle: string;
   originalSize: string;
   compressedSize: string;
@@ -618,6 +619,7 @@ const englishCompressMessages: CompressMessages = {
   addPdfToCompress: 'Add a PDF or image above to compress',
   dropHint: 'Drop a PDF or image here',
   compressionFailedTitle: 'Compression failed.',
+  tryAgain: 'Try again',
   compressionFailedBody: 'The file may be password-protected or corrupted. Please try another PDF.',
   successTitle: 'PDF Successfully Compressed!',
   originalSize: 'Original Size',
@@ -761,6 +763,7 @@ const hebrewCompressMessages: CompressMessages = {
   addPdfToCompress: 'בחרו קובץ למעלה כדי להמשיך',
   dropHint: 'גררו לכאן PDF או תמונה',
   compressionFailedTitle: 'הכיווץ נכשל.',
+  tryAgain: 'לנסות שוב',
   compressionFailedBody: 'ייתכן שהקובץ מוגן בסיסמה או פגום. נסו קובץ PDF אחר.',
   successTitle: 'ה-PDF כווץ בהצלחה!',
   originalSize: 'גודל מקורי',
