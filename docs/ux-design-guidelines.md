@@ -30,14 +30,32 @@ included pages in one mode, one frame per page in the other, with the left-out p
 ## 2. The simple case is the minimum
 
 The most common use must be the shortest path: pick files, Download. No intermediate "Merge" step,
-no "Apply" that only exists so a button can appear. The work happens on idle, debounced after the last
-change, cancelled by the next change, so Download is ready by the time the person reads the page.
+no "Apply" that only exists so a button can appear. The work happens once the person has gone quiet,
+so Download is ready by the time they reach it.
+
+Quiet means quiet, not a beat (owner, 2026-10-15, from Split: the button flipped to "Preparing 4
+pages... 0%" on every rotate while the page was still being set up, a build nobody needed and a
+flicker that pulled the eye):
+
+- the wait is 1.5s after the last change, and every change inside a burst lengthens it (0.5s each, up
+  to 4s), so a run of edits pushes the build back instead of starting one per edit;
+- a change cancels the build in flight, and a superseded result is never shown;
+- recent results are kept by their state (selection, rotations, mode), so an undo back to a state
+  already built is instant and builds nothing;
+- heading for the primary control (hover, focus, pointer down) starts the build at once, so a quick
+  tap rarely waits;
+- the build is silent: the primary control keeps its ready look and says nothing about preparing
+  unless the person taps before it is done, and only then shows the ring below.
+
+The shared policy is `src/lib/quietPrepare.ts`.
 
 There is one primary element and it has states, rather than a button that appears:
 
 - one file: a sentence ("Add one more PDF to merge") with a real nested action (Choose files), never a
   disabled button, never a grey box the size of the rail's largest element;
-- preparing: the same element, tinted, with a ring, still tappable (the tap downloads on completion);
+- waiting or building in the background: the ready look, with the counts it already knows ("4 pages")
+  and the size joining when the build lands, in space already reserved for it;
+- preparing after a tap: the same element, tinted, with a ring (the tap downloads on completion);
 - ready: the filled button with honest numbers, "25 pages · 2.6 MB";
 - saved: the same, with the check, and the next steps below it.
 
