@@ -505,7 +505,8 @@
   gap: 0.5rem;
   background: var(--color-surface-sunken);
   border-radius: var(--radius-sm);
-  padding: 0.55rem 0.9rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
 }
 
 .target-size-input-row:has(input:focus-visible) {
@@ -539,7 +540,8 @@
 .target-size-presets {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .target-size-preset {
@@ -548,7 +550,11 @@
   color: var(--color-muted);
   background: var(--color-surface-sunken);
   border: 1px solid transparent;
-  padding: 0.3rem 0.65rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-pill);
   cursor: pointer;
   transition: all 0.15s var(--ease-out);
@@ -563,7 +569,6 @@
   color: var(--color-primary-text);
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
-  padding: 1.1rem 1.35rem;
 }
 
 /* Phones: the four cards stack, so they get tighter spacing. Their pros and
