@@ -52,7 +52,7 @@ vi.mock('./merge.js', () => {
     inspectPdf: vi.fn((file) => {
       const spec = pageCounts.get(file.name) ?? { pageCount: 2, encrypted: false };
       if (spec.crash) return Promise.reject(new Error('boom'));
-      if (spec.unreadable) return Promise.reject(new MergeFileError('bad', { fileIndex: 0, reason: 'unreadable' }));
+      if (spec.unreadable) return Promise.reject(new MergeFileError('bad', { fileIndex: 0, reason: 'unreadable', cause: spec.cause }));
       return Promise.resolve({ pageCount: spec.pageCount, encrypted: spec.encrypted, creationDate: null });
     }),
     resolvePdfCreationDate: vi.fn(() => Promise.resolve(null)),
@@ -669,15 +669,16 @@ describe('PdfMergeTool UI flow', () => {
     expect(failedEvents()).toEqual([]);
   });
 
-  it('does not count or report a file inspection finds unreadable (DEBT-44)', async () => {
-    pageCounts.set('broken.pdf', { unreadable: true });
+  it('does not count a file inspection finds unreadable, but reports the library error behind it', async () => {
+    const cause = new Error('pdf-lib could not parse');
+    pageCounts.set('broken.pdf', { unreadable: true, cause });
     mount();
     await loadFiles(['a.pdf', 'broken.pdf']);
     await settle();
 
     expect(container.querySelector('[role="alert"]').textContent).toContain('"broken.pdf" could not be read');
     expect(failedEvents()).toEqual([]);
-    expect(reportError).not.toHaveBeenCalled();
+    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', cause, 'inspect_pdf');
   });
 
   it('reports an unexpected inspection failure and still shows the file unreadable (DEBT-44)', async () => {
