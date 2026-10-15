@@ -25,6 +25,14 @@ describe('handoff pending marker', () => {
     expect(sessionStorage.getItem(`${KEY}split`)).toBeNull();
   });
 
+  it('marks every page slug a hand-off key opens (Compress Image is the compress hand-off)', () => {
+    markHandoffPending('compress');
+    expect(sessionStorage.getItem(`${KEY}compress`)).toBe('1');
+    expect(sessionStorage.getItem(`${KEY}compress-image`)).toBe('1');
+    clearHandoffPending('compress');
+    expect(sessionStorage.length).toBe(0);
+  });
+
   it('leaves the editors alone: their hand-off rides the editor restore', () => {
     markHandoffPending('sign');
     markHandoffPending('redact');

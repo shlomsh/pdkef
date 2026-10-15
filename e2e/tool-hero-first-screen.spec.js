@@ -20,6 +20,7 @@ const SIZES = [
 const HYDRATED = 'astro-island:not([ssr]) [data-empty-state]';
 const PICKER = '[data-empty-state] label:has(input[type="file"])';
 const PDF = readFileSync(new URL('../src/lib/__fixtures__/num-1.pdf', import.meta.url));
+const JPG = readFileSync(new URL('../src/lib/__fixtures__/photo-1.jpg', import.meta.url));
 
 async function open(page, route) {
   await page.addInitScript(() => {
@@ -341,7 +342,7 @@ const SAMPLE_HERO = () => {
 test.describe('hand-off arrival', () => {
   test.use({ serviceWorkers: 'block' });
 
-  for (const tool of ['split', 'compress']) test(`the home launcher to ${tool} lands loaded with one hero height and no layout shift`, async ({ page }) => {
+  for (const tool of ['split', 'compress', 'compress-image']) test(`the home launcher to ${tool} lands loaded with one hero height and no layout shift`, async ({ page }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 820 });
     await page.addInitScript(SAMPLE_HERO);
@@ -350,18 +351,30 @@ test.describe('hand-off arrival', () => {
     const fits = page.locator(`.home-dock a[data-tool="${tool}"][data-fits]`);
     // The drop listener is registered a paint after the picker renders: drop until the dock lights Split.
     await expect(async () => {
-      const dt = await page.evaluateHandle((bytes) => {
+      const dt = await page.evaluateHandle(({ bytes, name, type }) => {
         const d = new DataTransfer();
-        d.items.add(new File([new Uint8Array(bytes)], 'num-1.pdf', { type: 'application/pdf' }));
+        d.items.add(new File([new Uint8Array(bytes)], name, { type }));
         return d;
-      }, [...PDF]);
+      }, tool === 'compress-image'
+        ? { bytes: [...JPG], name: 'photo-1.jpg', type: 'image/jpeg' }
+        : { bytes: [...PDF], name: 'num-1.pdf', type: 'application/pdf' });
       await page.locator('[data-working-area]').first().dispatchEvent('drop', { dataTransfer: dt });
       await expect(fits).toBeVisible({ timeout: 1000 });
     }).toPass({ timeout: 15_000 });
+    // Capture the pre-paint decision on the destination page: the marker must be on html before any
+    // file shows (a key under the wrong slug leaves it unset and the layout shifts on arrival).
+    await page.addInitScript(() => {
+      if (location.pathname === '/') return;
+      window.__pendingSeen = false;
+      new MutationObserver(() => {
+        if (document.documentElement.hasAttribute('data-handoff-pending')) window.__pendingSeen = true;
+      }).observe(document, { attributes: true, subtree: true, attributeFilter: ['data-handoff-pending'] });
+    });
     await fits.click();
     await page.waitForURL(new RegExp(`/${tool}/?$`));
     await expect(page.locator('[data-tool-loaded], [data-tool-shell]').first()).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => window.__pendingSeen), 'marker set before the file showed').toBe(true);
     const { cls, heights, pending, key } = await page.evaluate((t) => ({
       cls: window.__cls,
       heights: window.__heroHeights,
