@@ -304,18 +304,20 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
             </p>
           )}
 
-          <button
-            type="button"
-            class={`${pdfToolStyles['tool-primary-action']}${status === 'converting' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
-            disabled={status === 'converting'}
-            onClick={handleConvert}
-          >
-            {status === 'converting' ? (
-              <ProgressRing progress={progress} label={t.converting} />
-            ) : (
-              formatMessage(t.convertTo, { format: formatLabel })
-            )}
-          </button>
+          {!(status === 'done' && images.length > 0) && (
+            <button
+              type="button"
+              class={`${pdfToolStyles['tool-primary-action']}${status === 'converting' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
+              disabled={status === 'converting'}
+              onClick={handleConvert}
+            >
+              {status === 'converting' ? (
+                <ProgressRing progress={progress} label={t.converting} />
+              ) : (
+                formatMessage(t.convertTo, { format: formatLabel })
+              )}
+            </button>
+          )}
 
           {status === 'error' && (
             <ErrorMessage>{t.convertFailed}</ErrorMessage>

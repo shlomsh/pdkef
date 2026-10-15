@@ -142,6 +142,37 @@ describe('PdfToImageTool UI flow', () => {
     nativeShare.restore();
   });
 
+  it('swaps Convert for Download once converted, and brings Convert back on an option change', async () => {
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+      callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' }));
+    };
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool />, container);
+    });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('report.pdf')]);
+    });
+    const convertButtons = () => container.querySelectorAll(`.${pdfToolStyles['tool-primary-action']}`);
+    expect(convertButtons().length).toBe(1);
+    await act(async () => {
+      convertButtons()[0].click();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(convertButtons().length).toBe(0);
+    const download = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    expect(download).not.toBeNull();
+    expect(document.activeElement).toBe(download);
+
+    const jpg = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'JPG');
+    await act(async () => jpg.click());
+    expect(convertButtons().length).toBe(1);
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+  });
+
   it('revokes every image URL on unmount', async () => {
     mockState.numPages = 2;
     HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {

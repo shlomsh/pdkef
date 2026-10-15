@@ -286,18 +286,20 @@ export default function PdfImageToPdfTool() {
             ))}
           </ul>
 
-          <button
-            type="button"
-            class={`${pdfToolStyles['tool-primary-action']}${status === 'converting' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
-            disabled={entries.length === 0 || status === 'converting'}
-            onClick={handleConvert}
-          >
-            {status === 'converting' ? (
-              <ProgressRing progress={progress} label="Converting…" />
-            ) : (
-              `Convert ${entries.length} image${entries.length === 1 ? '' : 's'} to PDF`
-            )}
-          </button>
+          {!(status === 'done' && downloadUrl) && (
+            <button
+              type="button"
+              class={`${pdfToolStyles['tool-primary-action']}${status === 'converting' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
+              disabled={entries.length === 0 || status === 'converting'}
+              onClick={handleConvert}
+            >
+              {status === 'converting' ? (
+                <ProgressRing progress={progress} label="Converting…" />
+              ) : (
+                `Convert ${entries.length} image${entries.length === 1 ? '' : 's'} to PDF`
+              )}
+            </button>
+          )}
 
           {status === 'error' && (
             <ErrorMessage>
