@@ -92,7 +92,15 @@ export async function inspectPdf(file, fileIndex = 0) {
     });
   }
 
-  const date = doc.getCreationDate();
+  // The date is a sort hint, never a reason to refuse a file: pdf-lib throws on an empty or
+  // malformed /CreationDate (`/CreationDate ()` in a real health-fund form), which used to read
+  // as "damaged".
+  let date = null;
+  try {
+    date = doc.getCreationDate();
+  } catch {
+    // expected: a PDF with a malformed creation date is a valid PDF, it just sorts without one
+  }
   const creationDate = date instanceof Date && !Number.isNaN(date.getTime()) ? date.getTime() : null;
 
   return {
