@@ -10,6 +10,7 @@ import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSuppo
 import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
 import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
+import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
@@ -75,9 +76,9 @@ interface BasePdfToolProps {
    * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
    * of it. Every other tool leaves this false and is unaffected. */
   hideIdentity?: boolean;
-  /** A file dropped anywhere on the page is taken, and the card carries
-   * `data-dragging` while one is over the window. Sign and Redact turn it off
-   * (HERO-05). */
+  /** A file dropped anywhere on the window is taken (default on), and the card
+   * carries `data-dragging` while one is over it. With a single file open, a
+   * drop still goes through the replace confirmation. */
   dropAnywhere?: boolean;
 }
 
@@ -228,8 +229,19 @@ export default function BasePdfTool({
       onFilesAdded(incoming);
       return;
     }
-    setPendingFiles(incoming);
-  }, [costsSomething, onFilesAdded]);
+    // A picker only offers what `accept` allows; a drop or paste can carry
+    // anything. Ask about the files the tool would take. When there are none,
+    // skip the question and let the tool say it can't open them, as it does
+    // for any rejected file - a dialog that ends in "no" is noise.
+    // A file with no type is never ruled out: a real PDF from some sources has
+    // none, and only the question stands between it and the open document.
+    const acceptable = incoming.filter((file) => !file.type || acceptsFile(file, accept));
+    if (acceptable.length === 0) {
+      onFilesAdded(incoming);
+      return;
+    }
+    setPendingFiles(acceptable);
+  }, [costsSomething, onFilesAdded, accept]);
 
   const onInputChange = (event: Event) => {
     // Copy the FileList out before clearing the input. `value = ''` resets the

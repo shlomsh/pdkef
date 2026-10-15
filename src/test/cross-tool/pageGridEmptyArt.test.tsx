@@ -9,6 +9,8 @@ import PdfToImageTool from '../../tools/to-image/PdfToImageTool.tsx';
 import PdfImageToPdfTool from '../../tools/image-to-pdf/PdfImageToPdfTool.tsx';
 import PdfSecurityTool from '../../tools/security/PdfSecurityTool.tsx';
 import PdfEditPagesTool from '../../tools/edit-pages/PdfEditPagesTool.tsx';
+import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
+import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import paper from '../../shell/verb/paper.module.css';
 import dropzone from '../../shell/Dropzone.module.css';
 
@@ -24,6 +26,8 @@ const WITH_VERB = [
   ['compress', () => <PdfCompressTool />],
   ['compress-image', () => <PdfCompressTool analyticsTool="compress-image" initialMode="target" />],
   ['split', () => <PdfSplitTool />],
+  ['sign', () => <PdfSignTool />],
+  ['redact', () => <PdfRedactTool />],
 ];
 
 let container;

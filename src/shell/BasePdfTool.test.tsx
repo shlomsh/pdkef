@@ -12,13 +12,13 @@ vi.mock('../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
 }));
 
-function fileDragEvent(type, { withFiles = true, bubbles = true } = {}) {
+function fileDragEvent(type, { withFiles = true, bubbles = true, files = null } = {}) {
   const event = new Event(type, { bubbles, cancelable: true });
   event.dataTransfer = {
     types: withFiles ? ['Files'] : ['text/plain'],
     // A real drop always carries at least one file; an empty list is now a
     // no-op on purpose, so the helper has to be honest about what it simulates.
-    files: withFiles ? [new File([''], 'dropped.pdf', { type: 'application/pdf' })] : [],
+    files: files || (withFiles ? [new File([''], 'dropped.pdf', { type: 'application/pdf' })] : []),
   };
   return event;
 }
@@ -583,6 +583,70 @@ describe('BasePdfTool', () => {
       mount({ hasFiles: true, multiple: true, onFilesAdded: spy });
       act(() => { card().dispatchEvent(fileDragEvent('drop')); });
       expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    describe('replacing the open file by a window drop', () => {
+      const dialog = () => dialogNamed(container, 'confirm-replace-title');
+      const dropOnWindow = (files) => {
+        fireWindow(fileDragEvent('dragenter', { files }));
+        fireWindow(fileDragEvent('drop', { files }));
+      };
+      const pdf = (name) => new File([''], name, { type: 'application/pdf' });
+
+      it('asks first, naming the new file, and opens it only on Confirm', () => {
+        const spy = vi.fn();
+        mount({ hasFiles: true, multiple: false, onFilesAdded: spy });
+        dropOnWindow([pdf('second.pdf')]);
+        expect(dialog().open).toBe(true);
+        expect(dialog().textContent).toContain('second.pdf');
+        expect(spy).not.toHaveBeenCalled();
+        act(() => dialogButton(dialog(), 'Replace file').click());
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0][0][0].name).toBe('second.pdf');
+      });
+
+      it('Cancel changes nothing and closes it', () => {
+        const spy = vi.fn();
+        mount({ hasFiles: true, multiple: false, onFilesAdded: spy });
+        dropOnWindow([pdf('second.pdf')]);
+        act(() => dialogButton(dialog(), 'Cancel').click());
+        expect(dialog().open).toBe(false);
+        expect(spy).not.toHaveBeenCalled();
+      });
+
+      it('does not ask about a file the tool would not take; the tool hears it and says so', () => {
+        const spy = vi.fn();
+        mount({ hasFiles: true, multiple: false, onFilesAdded: spy });
+        const note = new File(['x'], 'notes.txt', { type: 'text/plain' });
+        dropOnWindow([note]);
+        expect(dialog().open).toBe(false);
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0][0]).toEqual([note]);
+      });
+
+      it('still asks about a file with no type: a real PDF from some sources has none', () => {
+        const spy = vi.fn();
+        mount({ hasFiles: true, multiple: false, onFilesAdded: spy });
+        dropOnWindow([new File(['%PDF-1.4'], 'scan.pdf', { type: '' })]);
+        expect(dialog().open).toBe(true);
+        expect(spy).not.toHaveBeenCalled();
+      });
+
+      it('asks only about the acceptable files of a mixed drop', () => {
+        const spy = vi.fn();
+        mount({ hasFiles: true, multiple: false, onFilesAdded: spy });
+        dropOnWindow([new File(['x'], 'notes.txt', { type: 'text/plain' }), pdf('second.pdf')]);
+        expect(dialog().open).toBe(true);
+        act(() => dialogButton(dialog(), 'Replace file').click());
+        expect(spy.mock.calls[0][0].map((f) => f.name)).toEqual(['second.pdf']);
+      });
+
+      it('leaves a multiple tool alone: any file goes straight in', () => {
+        const spy = vi.fn();
+        mount({ hasFiles: true, multiple: true, onFilesAdded: spy });
+        dropOnWindow([new File(['x'], 'notes.txt', { type: 'text/plain' })]);
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('adds no listeners with dropAnywhere={false}', () => {
