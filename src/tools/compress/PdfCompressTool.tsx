@@ -30,7 +30,7 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
-// Wording only: below this saving the result card says so plainly. The file is still offered (COMP-01).
+// Wording only: below this saving the result says so plainly. The file is still offered (COMP-01).
 const SLIGHT_GAIN_PERCENT = 5;
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
@@ -69,12 +69,6 @@ interface PdfCompressToolProps {
   /** /compress/ stays 'compress'; /compress-image/ (the SEO door for
    * image-word queries, mounting this same island) passes 'compress-image'. */
   analyticsTool?: AnalyticsTool;
-  /** What to show before any file is dropped: the PDF quality-level grid
-   * ('levels', the default) or the image-style Target Size panel on its own
-   * ('target', used by /compress-image/'s image-first drop hint). Once a
-   * real file is loaded, `kind` (derived from the file itself) decides -
-   * this only controls the pre-drop guess. */
-  initialMode?: 'levels' | 'target';
   emptyStateMessage?: string;
   /** Test-only: a short quiet-time policy so tests that are not about timing do not wait in real time. */
   quietPolicy?: QuietPolicy;
@@ -110,7 +104,6 @@ export default function PdfCompressTool({
   messages: messagesProp,
   shellMessages,
   analyticsTool = 'compress',
-  initialMode = 'levels',
   emptyStateMessage,
   quietPolicy,
 }: PdfCompressToolProps = {}) {
@@ -132,7 +125,7 @@ export default function PdfCompressTool({
   const [dimensions, setDimensions] = useState<{ width: number; height: number; originalWidth: number; originalHeight: number } | null>(null);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
-  // ENC-08: the bytes of a PDF that needs a password. Set means the options and the Compress button give
+  // ENC-08: the bytes of a PDF that needs a password. Set means the level picker and the result give
   // way to NeedsUnlock (src/shell/NeedsUnlock.tsx); every new pick clears it before the check runs again.
   const [needsUnlockBytes, setNeedsUnlockBytes] = useState<ArrayBuffer | null>(null);
   const encryptionCheck = useLatestRun();
@@ -172,15 +165,12 @@ export default function PdfCompressTool({
   const currentFileRef = useRef<File | null>(null);
 
   const kind = deriveFileKind(file);
-  // Target Size is the only mode for an image - there's no quality-level
-  // grid to show. Before any file is picked, `initialMode` stands in for
-  // that same choice, so /compress-image/ can open straight into the
-  // image-style panel instead of a PDF grid nobody there asked for.
-  const isImageMode = kind === 'image' || (kind === null && initialMode === 'target');
+  // An image has only Exact size, so it gets the size field instead of the level picker.
+  const isImageMode = kind === 'image';
   const targetSizePresets = isImageMode ? IMAGE_TARGET_SIZE_PRESETS_KB : TARGET_SIZE_PRESETS_KB;
 
   // Before/after preview (SEO-25, extended to images 2026-09-12) - see
-  // handleToggleCompare below. The compressed Blob itself never needs to be
+  // openCompare below. The compressed Blob itself never needs to be
   // state - only its object URL (above) does, for the download link - but
   // the slider needs the raw bytes (to rasterize page 1 for a PDF, or to
   // build an object URL for an image), so it's kept in a ref rather than
@@ -200,17 +190,15 @@ export default function PdfCompressTool({
   // already under target, so the "compressed" blob is literally the input
   // File, both bytes and reference) - compressImageToTarget on the image
   // side, compressPdfToTarget on the PDF side (compressPdf with a level
-  // never returns the input, it always re-encodes). See the toggle's render
-  // check below for why that hides it rather than rendering it, and the
-  // notice paragraph for why it replaces the re-encode warning with an
-  // honest "untouched" one.
+  // never returns the input, it always re-encodes). The notice paragraph
+  // below replaces the re-encode warning with an honest "untouched" one.
   const [passthrough, setPassthrough] = useState(false);
   // A PDF passthrough that is not the "already under target" kind: re-rendering
   // it would only have made it bigger, so the input is handed back as it is.
   // Everything that calls the result "compressed" (title, button, file name)
   // reads this instead.
   const [unchanged, setUnchanged] = useState(false);
-  // Object URLs created for the image-mode comparison (see handleToggleCompare)
+  // Object URLs created for the image-mode comparison (see openCompare)
   // aren't run through `useObjectUrls` like `downloadUrl` is: that hook's own
   // `url` lands a render after `setBlob` is called, but both sides need to
   // land in `comparePreviews` together in the same tick so the render below
@@ -331,10 +319,10 @@ export default function PdfCompressTool({
   // used for every page in the document that was just processed on this
   // device - so a device that could compress the whole document a moment ago
   // can afford two more page renders now. An emulated-low-end-mobile
-  // Playwright run (e2e/compress/compare-preview.spec.js, 4x CPU throttling,
+  // Playwright run (src/tools/compress/e2e/compare-preview.spec.js, 4x CPU throttling,
   // 390x844 viewport) measured this panel opening in well under a second;
-  // see that spec for the recorded number, now timed from the "Successfully
-  // Compressed" message to the slider's auto-open rather than from a tap.
+  // see that spec for the recorded number, timed from the done status
+  // to the slider's auto-open rather than from a tap.
   // The image path has no equivalent rasterization cost to measure - it's
   // two `URL.createObjectURL` calls on bytes already decoded a moment
   // earlier by the compressor itself.
@@ -807,9 +795,7 @@ export default function PdfCompressTool({
   const missedTargetSize = !unchanged && !metTarget && (kind === 'image' || level === 'target');
 
   // Button anchor (SEO-25, 2026-09-12): a visitor's first read of the result
-  // is now this line, inside the button they just pressed, rather than a
-  // separate stats card they have to scroll to - see openCompare's comment
-  // for why the card itself moved below the button. compressedSize is only
+  // is this line, inside the Download button. compressedSize is only
   // ever set alongside status 'done', so this stays undefined otherwise.
   // A smaller result says only its size (the saving is the strip's tag).
   // t.downloadDetailClosest is its own short message, deliberately separate

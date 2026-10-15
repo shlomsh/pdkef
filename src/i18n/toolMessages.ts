@@ -441,29 +441,10 @@ export interface CompressMessages {
   dir: 'ltr' | 'rtl';
   skippedOne: string;
   skippedMany: string;
-  compressionOptionsLabel: string;
-  ourPick: string;
-  levelHighName: string;
-  levelHighTag: string;
   levelHighDesc: string;
-  levelHighPros: string;
-  levelHighCons: string;
-  levelMediumName: string;
-  levelMediumTag: string;
   levelMediumDesc: string;
-  levelMediumPros: string;
-  levelMediumCons: string;
-  levelLowName: string;
-  levelLowTag: string;
   levelLowDesc: string;
-  levelLowPros: string;
-  levelLowCons: string;
-  targetName: string;
-  targetTag: string;
   targetDesc: string;
-  targetPros: string;
-  targetCons: string;
-  targetBadge: string;
   targetSizeLabel: string;
   levelPickerLabel: string;
   levelHighShort: string;
@@ -473,19 +454,14 @@ export interface CompressMessages {
   percentSmaller: string;
   stripShareNote: string;
   stripShareLowNote: string;
-  compress: string;
   compressing: string;
-  addPdfToCompress: string;
   dropHint: string;
   compressionFailedTitle: string;
   compressionFailedBody: string;
   tryAgain: string;
-  successTitle: string;
   originalSize: string;
-  compressedSize: string;
   spaceSaved: string;
   savedPercent: string;
-  noReduction: string;
   closestAchievable: string;
   rasterizeNotice: string;
   downloadLabel: string;
@@ -505,9 +481,7 @@ export interface CompressMessages {
    * reason, a unit of work); a key above this line already reads correctly
    * for either kind (sizes, "compressing…", the shared shell strings) and is
    * not duplicated. See PdfCompressTool.tsx's `kind` dispatch. */
-  compressImage: string;
   imageCompressionFailedBody: string;
-  imageSuccessTitle: string;
   originalDimensions: string;
   outputDimensions: string;
   imageClosestAchievable: string;
@@ -523,14 +497,7 @@ export interface CompressMessages {
   alreadySmallNotice: string;
   alreadySmallTargetNotice: string;
   noImagesTitle: string;
-  showProsCons: string;
-  hideProsCons: string;
-  imageShareNote: string;
-  imageShareScanNote: string;
-  imageShareLowNote: string;
   lessThanOnePercent: string;
-  noImagesBodyText: string;
-  noImagesBodyDrawing: string;
   asImagesSize: string;
   keptOriginal: string;
   alreadySmallComplete: string;
@@ -560,8 +527,6 @@ export interface CompressMessages {
    * compare toggle's two states. Shared by the PDF and image halves alike -
    * both compute the same shape of detail line and use the same toggle. */
   downloadDetailClosest: string;
-  compareShow: string;
-  compareHide: string;
   compareRendering: string;
   compareRenderFailed: string;
   compareFullscreenLabel: string;
@@ -582,29 +547,10 @@ const englishCompressMessages: CompressMessages = {
   dir: 'ltr',
   skippedOne: 'Skipped "{name}" - not a PDF, JPG or PNG.',
   skippedMany: 'Skipped {count} files - not PDF, JPG or PNG files.',
-  compressionOptionsLabel: 'Compression Options',
-  ourPick: 'Our pick',
-  levelHighName: 'Extreme Compression',
-  levelHighTag: 'Smallest Size',
   levelHighDesc: 'The smallest file. Photos and scans are scaled down the most.',
-  levelHighPros: 'Biggest saving on scans and photo-heavy PDFs',
-  levelHighCons: 'Photos and scans look soft when zoomed in',
-  levelMediumName: 'Recommended',
-  levelMediumTag: 'Good Quality',
   levelMediumDesc: 'A good balance of size and clarity for most documents.',
-  levelMediumPros: 'A solid saving, and images still look sharp',
-  levelMediumCons: 'Slight softening in photos when zoomed in',
-  levelLowName: 'High Quality',
-  levelLowTag: 'High Quality',
   levelLowDesc: 'A lighter touch. Images stay close to the original.',
-  levelLowPros: 'Images stay crisp and clear',
-  levelLowCons: 'A smaller saving than the other two',
-  targetName: 'Target Size',
-  targetTag: 'Choose KB',
   targetDesc: 'Compress down to a specific file size, e.g. for a 100KB upload limit.',
-  targetPros: 'Made for upload limits like 100KB or 1MB',
-  targetCons: 'Quality adjusts as needed to reach the size',
-  targetBadge: 'Precise',
   targetSizeLabel: 'Target size',
   levelPickerLabel: 'How small',
   levelHighShort: 'Smallest',
@@ -614,33 +560,26 @@ const englishCompressMessages: CompressMessages = {
   percentSmaller: '{percent}% smaller',
   stripShareNote: 'Images are {share} of this PDF, the part that gets smaller.',
   stripShareLowNote: 'Most of this PDF is text. Images are {share} of it.',
-  compress: 'Compress PDF',
   compressing: 'Compressing…',
-  addPdfToCompress: 'Add a PDF or image above to compress',
   dropHint: 'Drop a PDF or image here',
   compressionFailedTitle: 'Compression failed.',
   tryAgain: 'Try again',
   compressionFailedBody: 'The file may be password-protected or corrupted. Please try another PDF.',
-  successTitle: 'PDF Successfully Compressed!',
   originalSize: 'Original Size',
-  compressedSize: 'Compressed Size',
   spaceSaved: 'Space Saved',
   savedPercent: 'Saved {percent}%',
-  noReduction: 'No size reduction',
   closestAchievable: "Closest achievable size: {size} couldn't be reached without making the document unreadable, so this is the smallest readable result.",
   rasterizeNotice: 'Notice: Compression rasterizes PDF pages into images to reduce file size. Embedded links and text selection/copying will be disabled on the compressed document.',
   downloadLabel: 'Download Compressed PDF',
   shareLabel: 'Share Compressed PDF',
-  loaded: 'File "{name}" loaded. Select a compression option to continue.',
+  loaded: 'File "{name}" loaded.',
   starting: 'Starting PDF compression...',
   complete: 'PDF compression complete. Your file is ready.',
   failed: 'PDF compression failed.',
   sharedSuccessfully: 'Compressed PDF shared successfully.',
   sharingCanceled: 'Sharing canceled. Your compressed PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
-  compressImage: 'Compress Image',
   imageCompressionFailedBody: 'The file may be corrupted or an unsupported image. Please try another JPG or PNG.',
-  imageSuccessTitle: 'Image Successfully Compressed!',
   originalDimensions: 'Original Dimensions',
   outputDimensions: 'Output Dimensions',
   imageClosestAchievable: "Closest achievable size: {size} couldn't be reached on this photo without making it unusable, so this is the smallest result found.",
@@ -654,14 +593,7 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so there was nothing to gain. I've kept your original as it is, text and links included.",
   alreadySmallTargetNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so {target} can't be reached this way. I've kept your original as it is, text and links included.",
   noImagesTitle: 'Nothing here to shrink.',
-  showProsCons: 'Compare pros and cons',
-  hideProsCons: 'Hide pros and cons',
-  imageShareNote: 'Images are {share} of this PDF, and they are the part that can get smaller. The text stays exactly as it is.',
-  imageShareScanNote: 'Images are {share} of this PDF, and they are the part that can get smaller.',
-  imageShareLowNote: 'Most of this PDF is text and drawings. Its images are {share} of the file, so shrinking them can save at most about that much.',
   lessThanOnePercent: 'less than 1%',
-  noImagesBodyText: 'This PDF is text and drawings, with no images in it, which is already the compact way to store a page. The only way this tool can make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness and selectable text.',
-  noImagesBodyDrawing: 'This PDF is drawings, with no images in it, which is already the compact way to store a page. The only way this tool can make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness.',
   asImagesSize: 'As images',
   keptOriginal: 'None, original kept',
   alreadySmallComplete: 'This PDF is already as small as it gets, so it is unchanged.',
@@ -679,7 +611,7 @@ const englishCompressMessages: CompressMessages = {
   imagesEncryptedNotice: "This PDF is locked, so its images can't be recompressed here. Your original is unchanged. If you have its password, unlock it first, then compress it.",
   imageDownloadLabel: 'Download Compressed Image',
   imageShareLabel: 'Share Compressed Image',
-  imageLoaded: 'File "{name}" loaded. Set a target size and compress.',
+  imageLoaded: 'File "{name}" loaded.',
   imageStarting: 'Starting image compression...',
   imageComplete: 'Image compression complete. Your file is ready.',
   missedTarget: 'Target missed. Showing the smallest result found instead.',
@@ -687,8 +619,6 @@ const englishCompressMessages: CompressMessages = {
   imageSharedSuccessfully: 'Compressed image shared successfully.',
   imageSharingCanceled: 'Sharing canceled. Your compressed image is still ready.',
   downloadDetailClosest: 'closest achievable: {size}',
-  compareShow: 'Compare with original',
-  compareHide: 'Hide comparison',
   compareRendering: 'Rendering page 1 for comparison…',
   compareRenderFailed: "Couldn't render a preview for this file.",
   compareFullscreenLabel: 'Full screen',
@@ -726,29 +656,10 @@ const hebrewCompressMessages: CompressMessages = {
   dir: 'rtl',
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF, JPG או PNG.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF, JPG או PNG.',
-  compressionOptionsLabel: 'אפשרויות כיווץ',
-  ourPick: 'הבחירה שלנו',
-  levelHighName: 'כיווץ מקסימלי',
-  levelHighTag: 'הגודל הקטן ביותר',
   levelHighDesc: 'הקובץ הקטן ביותר. תמונות וסריקות מוקטנות הכי הרבה.',
-  levelHighPros: 'החיסכון הגדול ביותר בסריקות ובקבצים עם הרבה תמונות',
-  levelHighCons: 'תמונות וסריקות נראות מטושטשות בהגדלה',
-  levelMediumName: 'מומלץ',
-  levelMediumTag: 'איכות טובה',
   levelMediumDesc: 'איזון טוב בין גודל לחדות ברוב המסמכים.',
-  levelMediumPros: 'חיסכון יפה, והתמונות עדיין נראות חדות',
-  levelMediumCons: 'ריכוך קל בתמונות בהגדלה',
-  levelLowName: 'איכות גבוהה',
-  levelLowTag: 'איכות גבוהה',
   levelLowDesc: 'נגיעה עדינה. התמונות נשארות קרובות למקור.',
-  levelLowPros: 'התמונות נשארות חדות וברורות',
-  levelLowCons: 'חיסכון קטן יותר משתי האפשרויות האחרות',
-  targetName: 'גודל בהתאמה אישית',
-  targetTag: 'גודל לבחירה בק״ב',
   targetDesc: 'כווצו לגודל קובץ מסוים, למשל למגבלת העלאה של 100KB.',
-  targetPros: 'מתאים למגבלות העלאה כמו 100KB או 1MB',
-  targetCons: 'האיכות מותאמת לפי הצורך כדי להגיע לגודל',
-  targetBadge: 'מדויק',
   targetSizeLabel: 'גודל בהתאמה אישית',
   levelPickerLabel: 'כמה לכווץ',
   levelHighShort: 'הכי קטן',
@@ -758,33 +669,26 @@ const hebrewCompressMessages: CompressMessages = {
   percentSmaller: 'קטן ב-{percent}%',
   stripShareNote: 'התמונות הן {share} מה-PDF הזה, החלק שקטן.',
   stripShareLowNote: 'רוב ה-PDF הזה הוא טקסט. התמונות הן {share} ממנו.',
-  compress: 'כיווץ PDF',
   compressing: 'מכווצים…',
-  addPdfToCompress: 'בחרו קובץ למעלה כדי להמשיך',
   dropHint: 'גררו לכאן PDF או תמונה',
   compressionFailedTitle: 'הכיווץ נכשל.',
   tryAgain: 'לנסות שוב',
   compressionFailedBody: 'ייתכן שהקובץ מוגן בסיסמה או פגום. נסו קובץ PDF אחר.',
-  successTitle: 'ה-PDF כווץ בהצלחה!',
   originalSize: 'גודל מקורי',
-  compressedSize: 'גודל אחרי כיווץ',
   spaceSaved: 'נחסך',
   savedPercent: 'נחסכו {percent}%',
-  noReduction: 'אין הקטנה בגודל',
   closestAchievable: 'הגודל הקרוב ביותר שהושג: לא הצלחנו להגיע ל-{size} בלי להפוך את המסמך לבלתי קריא, אז זו התוצאה הקריאה הכי קטנה.',
   rasterizeNotice: 'שימו לב: הכיווץ הופך את עמודי ה-PDF לתמונות כדי להקטין את גודל הקובץ. קישורים מוטבעים וחיפוש/העתקת טקסט יהיו מושבתים במסמך המכווץ.',
   downloadLabel: 'הורדת PDF מכווץ',
   shareLabel: 'שיתוף PDF מכווץ',
-  loaded: 'הקובץ "{name}" נטען. בחרו אפשרות כיווץ כדי להמשיך.',
+  loaded: 'הקובץ "{name}" נטען.',
   starting: 'מתחילים בכיווץ ה-PDF...',
   complete: 'כיווץ ה-PDF הושלם. הקובץ שלכם מוכן.',
   failed: 'כיווץ ה-PDF נכשל.',
   sharedSuccessfully: 'ה-PDF המכווץ שותף.',
   sharingCanceled: 'השיתוף בוטל. ה-PDF המכווץ עדיין מוכן.',
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
-  compressImage: 'כיווץ תמונה',
   imageCompressionFailedBody: 'ייתכן שהקובץ פגום או שזה סוג תמונה לא נתמך. נסו קובץ JPG או PNG אחר.',
-  imageSuccessTitle: 'התמונה כווצה בהצלחה!',
   originalDimensions: 'מידות מקוריות',
   outputDimensions: 'מידות לאחר כיווץ',
   imageClosestAchievable: 'הגודל הקרוב ביותר שהושג: לא הצלחנו להגיע ל-{size} בתמונה הזו בלי להפוך אותה לבלתי שמישה, אז זו התוצאה הקטנה ביותר שנמצאה.',
@@ -798,14 +702,7 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז לא היה מה להרוויח. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   alreadySmallTargetNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז אי אפשר להגיע ל-{target} בדרך הזו. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   noImagesTitle: 'אין כאן מה לכווץ.',
-  showProsCons: 'השוואת יתרונות וחסרונות',
-  hideProsCons: 'הסתרת יתרונות וחסרונות',
-  imageShareNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון. הטקסט נשאר בדיוק כמו שהוא.',
-  imageShareScanNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון.',
-  imageShareLowNote: 'רוב ה-PDF הזה הוא טקסט ושרטוטים. התמונות הן {share} מהקובץ, כך שהקטנה שלהן יכולה לחסוך לכל היותר בערך כך.',
   lessThanOnePercent: 'פחות מ-1%',
-  noImagesBodyText: 'ה-PDF הזה בנוי מטקסט ומשרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה שבה הכלי הזה יכול להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות ובאפשרות לסמן טקסט.',
-  noImagesBodyDrawing: 'ה-PDF הזה בנוי משרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה שבה הכלי הזה יכול להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות.',
   asImagesSize: 'כתמונות',
   keptOriginal: 'אין, המקור נשמר',
   alreadySmallComplete: 'ה-PDF הזה כבר קטן ככל האפשר, אז הוא נשאר ללא שינוי.',
@@ -823,7 +720,7 @@ const hebrewCompressMessages: CompressMessages = {
   imagesEncryptedNotice: 'ה-PDF הזה נעול, ולכן אי אפשר לדחוס כאן את התמונות שבו. הקובץ המקורי לא השתנה. אם יש לכם את הסיסמה, בטלו קודם את הנעילה ואז כווצו אותו.',
   imageDownloadLabel: 'הורדת תמונה מכווצת',
   imageShareLabel: 'שיתוף תמונה מכווצת',
-  imageLoaded: 'הקובץ "{name}" נטען. קבעו גודל יעד וכווצו.',
+  imageLoaded: 'הקובץ "{name}" נטען.',
   imageStarting: 'מתחילים בכיווץ התמונה...',
   imageComplete: 'כיווץ התמונה הושלם. הקובץ שלכם מוכן.',
   missedTarget: 'לא הגענו ליעד. מוצגת התוצאה הקטנה ביותר שנמצאה.',
@@ -831,8 +728,6 @@ const hebrewCompressMessages: CompressMessages = {
   imageSharedSuccessfully: 'התמונה המכווצת שותפה.',
   imageSharingCanceled: 'השיתוף בוטל. התמונה המכווצת עדיין מוכנה.',
   downloadDetailClosest: 'הגודל הקרוב ביותר: {size}',
-  compareShow: 'השוואה למקור',
-  compareHide: 'הסתרת ההשוואה',
   compareRendering: 'מעבדים את עמוד 1 להשוואה…',
   compareRenderFailed: 'לא הצלחנו להציג תצוגה מקדימה לקובץ הזה.',
   compareFullscreenLabel: 'מסך מלא',

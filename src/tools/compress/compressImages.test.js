@@ -297,7 +297,7 @@ describe('compressPdfImages', () => {
 });
 
 describe('IMAGE_LEVELS', () => {
-  it('has the three levels the cards quote', () => {
+  it('has the three levels the level picker and the FAQ quote', () => {
     expect(IMAGE_LEVELS).toEqual({
       high: { maxLongSidePx: 1000, quality: 0.4 },
       medium: { maxLongSidePx: 1600, quality: 0.6 },

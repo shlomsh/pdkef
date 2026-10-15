@@ -14,7 +14,7 @@ import { hebrewCompressMessages } from '../../i18n/toolMessages';
 import { setInputFiles } from '../../test/setInputFiles.js';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
-// (src/shell/NeedsUnlock.tsx) in place of the options and the Compress button. The real classifier runs
+// (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
 // under pdf.js's Node build against the real fixtures; only the browser seams are faked.
 
 const fixtureFile = (name: string) =>
@@ -83,11 +83,10 @@ describe('PdfCompressTool with a protected PDF', () => {
     await nap(settle ? 20 : 200);
   };
   const buttons = () => Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
-  const compressButton = () => Array.from(container.querySelectorAll('button')).find((b) => /^Compress( PDF| Image)?$/.test(b.textContent.trim()));
   // The loaded state compresses on its own: it is "normal" once its layout is up and the run was made.
   const loaded = () => container.querySelector('[data-compress-status]') !== null;
 
-  it('shows the password state and no Compress button for a file that needs a password', async () => {
+  it('shows the password state and no level picker for a file that needs a password', async () => {
     mount();
     await pick(fixtureFile('needs-password'));
 
@@ -95,7 +94,6 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(container.textContent).toContain('This PDF has a password');
     expect(container.textContent).toContain('then you can compress it');
     expect(buttons()).toContain('Unlock it');
-    expect(compressButton()).toBeUndefined();
     expect(container.querySelector('[role="radiogroup"]')).toBeNull();
     expect(loaded()).toBe(false);
     expect(container.querySelector('[role="status"].sr-only').textContent).toBe('This PDF has a password');
@@ -141,7 +139,6 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(loaded()).toBe(true);
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
-    expect(compressButton()).toBeUndefined();
   });
 
   it('does not run until the password check has answered, then runs once', async () => {
@@ -163,7 +160,6 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(probeEncryption).not.toHaveBeenCalled();
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(imageLib.compressImageToTarget).toHaveBeenCalledTimes(1);
-    expect(compressButton()).toBeUndefined();
   });
 
   it('drops a probe result that lands after a newer pick', async () => {

@@ -251,9 +251,9 @@ describe('PdfCompressTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop a PDF or image here');
   });
 
-  it('shows no greyed-out action button until a file is loaded', () => {
+  it('shows no loaded layout until a file is loaded', () => {
     mount();
-    expect(container.textContent).not.toContain('Add a PDF or image above to compress');
+    expect(container.querySelector('[data-compress-status]')).toBeNull();
   });
 
   it('a pick runs once at the recommended level, with no Compress button anywhere along the way', async () => {
@@ -435,7 +435,6 @@ describe('PdfCompressTool UI flow', () => {
     expect(container.querySelector('[data-compress-sizes]').textContent).toContain('97.66 KB');
     expect(container.querySelector('[data-compress-sizes]').textContent).toContain('15 Bytes');
     expect(container.querySelector('[data-compress-sizes]').textContent).toContain('100% smaller');
-    expect(container.textContent).not.toContain('Successfully Compressed');
     expect(result().querySelector(`.${styles['stats-title']}`)).toBeNull();
     expect(result().querySelector(`.${styles['stats-grid']}`)).toBeNull();
 
@@ -485,8 +484,6 @@ describe('PdfCompressTool UI flow', () => {
     expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(2);
     expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
     // Only the Full screen button is left; nothing hides or restores the slider.
-    expect(findButton('Hide comparison')).toBeUndefined();
-    expect(findButton('Compare with original')).toBeUndefined();
     expect(findButton('Full screen')).toBeDefined();
   });
 
@@ -784,10 +781,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
 
-    expect(result().textContent).not.toContain('Successfully Compressed');
     expect(result().textContent).toContain('1600 × 1200');
     expect(result().textContent).toContain('800 × 600');
-    expect(findButton('Compress Image')).toBeUndefined();
 
     const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
@@ -841,7 +836,6 @@ describe('PdfCompressTool UI flow', () => {
     expect(result().textContent).not.toContain('once compressed, the output is a JPEG');
     expect(result().textContent).toContain('Already under your target');
     expect(result().textContent).toContain('1600 × 1200');
-    expect(result().textContent).not.toContain('Compressed Size');
     expect(downloadButton()).toBeNull();
     expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
     expect(result().querySelector(`.${styles['honest-note']}`)).not.toBeNull();
@@ -943,10 +937,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(text).toContain('Turned into images, this PDF came to 29.68 KB, more than the 10.74 KB it is now');
     expect(text).toContain('As images');
     expect(text).toContain('None, original kept');
-    expect(text).not.toContain('No size reduction');
-    expect(text).not.toContain('Successfully Compressed');
+    expect(container.querySelector('[data-compress-status="done"]')).not.toBeNull();
     expect(text).not.toContain('Compression rasterizes PDF pages');
-    expect(text).not.toContain('Compressed Size');
     expect(downloadButton()).toBeNull();
     expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
     expect(findButton('Full screen')).toBeUndefined();
@@ -1241,7 +1233,6 @@ describe('PdfCompressTool UI flow', () => {
       expect(stats.querySelector(`.${styles['stats-title']}`).textContent).toBe(title);
       expect(stats.textContent).toContain('None, original kept');
       expect(stats.textContent).not.toContain('As images');
-      expect(stats.textContent).not.toContain('Compressed Size');
       expect(stats.textContent).toContain('Original Size');
       expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
       expect(downloadButton()).toBeNull();
