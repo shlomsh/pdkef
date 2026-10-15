@@ -50,3 +50,5 @@ depends_on: ["HERO-02"]
 Left: the Split, Compress, PDF to Image and Compress Image verbs (written pitches and a rough sketch
 round are in progress, then Shlomi picks), the unit test that every page-grid tool passes an `emptyArt`
 (it needs all eight), and `test:weight` and the CSS ratchets on a production build.
+
+*2026-10-15.* Hover replay landed in `61b0c252`: the verb replays on mouse or pen enter and on tab return, easing back along its path at 2x first. See "Decisions made during the build" in `docs/tool-hero-show-the-verb.md`.
