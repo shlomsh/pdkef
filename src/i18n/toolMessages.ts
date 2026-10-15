@@ -875,6 +875,8 @@ export interface SplitMessages {
   pageOther: string;
   pdfOne: string;
   pdfOther: string;
+  /** aria-label of the editable output name in the combined heading. */
+  fileNameEditableLabel: string;
   /** '{files}' is a pdfOne/pdfOther phrase. */
   headingSeparate: string;
   /** '{selected}' of '{pages}' (a page phrase). */
@@ -961,6 +963,7 @@ const englishSplitMessages: SplitMessages = {
   pageOther: '{count} pages',
   pdfOne: '1 PDF',
   pdfOther: '{count} PDFs',
+  fileNameEditableLabel: 'File name, editable',
   headingSeparate: '{files}, one page each',
   pageCountOf: '{selected} of {pages}',
   rendering: 'Rendering {done} of {total}',
@@ -1045,6 +1048,7 @@ const hebrewSplitMessages: SplitMessages = {
   pageOther: '{count} עמודים',
   pdfOne: 'קובץ PDF אחד',
   pdfOther: '{count} קבצי PDF',
+  fileNameEditableLabel: 'שם הקובץ, ניתן לעריכה',
   headingSeparate: '{files}, עמוד אחד בכל קובץ',
   pageCountOf: '{selected} מתוך {pages}',
   rendering: 'מציגים {done} מתוך {total}',

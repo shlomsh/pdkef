@@ -29,19 +29,27 @@
   gap: 0.25rem 0.6rem;
 }
 
+/* The title and its page count are one line at every width: the name
+   ellipsises first (OutputName), the count never wraps under it. */
+.canvas-title-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .canvas-title {
   margin: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  flex: 0 1 auto;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--color-text);
   min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-/* A Latin prefix, an RTL name, a weak ".pdf": each segment is isolated so the
-   name reads in its own direction and the extension stays on the end. */
-.output-name {
-  unicode-bidi: isolate;
 }
 
 .output-ext {
@@ -50,6 +58,8 @@
 }
 
 .canvas-count {
+  flex: none;
+  white-space: nowrap;
   font-size: 0.9rem;
   color: var(--color-muted);
 }

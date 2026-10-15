@@ -14,7 +14,6 @@ import {
   planForFile,
   regroupPlan,
   removeFile,
-  sanitizeOutputName,
   type PlanEntry,
 } from './mergePlan.ts';
 import { deriveFileKind } from '../../lib/fileKind.js';
@@ -38,6 +37,8 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadElement, { type DownloadElementState } from './components/DownloadElement.tsx';
 import FileName from './components/FileName.tsx';
+import OutputName from '../../shell/OutputName.tsx';
+import { recordAction } from '../../lib/actionTrail.ts';
 import SortMenu from './components/SortMenu.tsx';
 import { usePreparedMerge } from './components/usePreparedMerge.ts';
 import type { PageStripProps } from './components/PageStrip.tsx';
@@ -52,93 +53,6 @@ import {
 } from '../../i18n/toolMessages';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportableCause } from './reportableCause.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
-
-// MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
-// output name is a WYSIWYG span, not a button-plus-input pair. Firefox does
-// not implement `contentEditable="plaintext-only"` (only Chromium and
-// WebKit do, as of this writing), so it needs the exact feature-detect
-// Shlomi specified rather than a browser sniff: create a throwaway element,
-// try to set the value, and read it back. Computed once per module
-// evaluation (a fresh one per script context - the server-rendered build and
-// the browser's own hydration bundle each get their own), not per render.
-function detectPlaintextOnlyContentEditable(): boolean {
-  if (typeof document === 'undefined') return false;
-  try {
-    const probe = document.createElement('span');
-    probe.contentEditable = 'plaintext-only';
-    return probe.contentEditable === 'plaintext-only';
-  } catch {
-    // expected: feature detect, no plaintext-only support means false
-    return false;
-  }
-}
-
-const PLAINTEXT_ONLY_SUPPORTED = detectPlaintextOnlyContentEditable();
-
-// Firefox's fallback is plain `contentEditable="true"`, which (unlike
-// `plaintext-only`) accepts rich text on paste/drop; these two handlers
-// insert only the plain-text payload, in place of the current selection, the
-// same result `plaintext-only` gives for free elsewhere.
-function insertPlainTextAtSelection(text: string) {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return;
-  const range = selection.getRangeAt(0);
-  range.deleteContents();
-  const node = document.createTextNode(text);
-  range.insertNode(node);
-  range.setStartAfter(node);
-  range.setEndAfter(node);
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-
-function setNameContentEditable(el: HTMLElement, editing: boolean) {
-  const value = editing ? (PLAINTEXT_ONLY_SUPPORTED ? 'plaintext-only' : 'true') : 'false';
-  // Both the IDL property (what the browser's editing behaviour actually
-  // reads) and the reflected attribute (belt and braces - some
-  // environments, jsdom included, do not reliably reflect one to the other
-  // for `contenteditable`'s enumerated string values the way they do for
-  // plain booleans).
-  el.contentEditable = value;
-  el.setAttribute('contenteditable', value);
-}
-
-// A real click on a not-yet-editable element does not get the browser's own
-// click-to-place-caret behaviour "for free": that behaviour only engages
-// for an element that was already editable when the browser decided how to
-// handle the mousedown, and this span only becomes editable inside our own
-// mousedown handler, one tick too late. So a click needs its OWN caret
-// placement, from the same clientX/clientY the browser would have used -
-// `caretRangeFromPoint` (Chromium/WebKit) or `caretPositionFromPoint`
-// (Firefox) turn a point back into a Range. Falls back to the end of the
-// text (never the start, which reads as if nothing happened) if neither is
-// available or the point misses the element entirely.
-function placeCaretAtPoint(el: HTMLElement, x: number, y: number) {
-  const doc = el.ownerDocument as Document & {
-    caretRangeFromPoint?: (x: number, y: number) => Range | null;
-    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
-  };
-  let range: Range | null = null;
-  if (typeof doc.caretRangeFromPoint === 'function') {
-    range = doc.caretRangeFromPoint(x, y);
-  } else if (typeof doc.caretPositionFromPoint === 'function') {
-    const position = doc.caretPositionFromPoint(x, y);
-    if (position) {
-      range = document.createRange();
-      range.setStart(position.offsetNode, position.offset);
-      range.collapse(true);
-    }
-  }
-  if (!range || !el.contains(range.startContainer)) {
-    range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-  }
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
 
 let nextId = 0;
 
@@ -332,9 +246,6 @@ export default function PdfMergeTool({
    * into. */
   const [customOutputName, setCustomOutputName] = useState<string | null>(null);
   const [isRenamingOutputName, setIsRenamingOutputName] = useState(false);
-  const skipNextNameBlurCommit = useRef(false);
-  const nameRemountKeyRef = useRef(0);
-  const nameRef = useRef<HTMLSpanElement | null>(null);
   const [renderedCount, setRenderedCount] = useState(0);
   /* Direction A wave 2 (Shlomi): the restored-draft sentence shows once, for
    * five seconds, then gives way for good to the small "Draft saved" chip
@@ -851,112 +762,10 @@ export default function PdfMergeTool({
     recordAction('change_setting');
   }, []);
 
-  // MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the name span becomes
-  // `contenteditable` in place - no button, no swapped-in input, so the box
-  // never changes shape on entering edit. While editing, Preact is never
-  // told to re-render this span's children (the JSX always passes the same
-  // `title` string down, which does not change mid-edit), so its diff sees
-  // no change and leaves the live DOM text - the person's in-progress typing
-  // - alone; `commitOutputNameRename` reads it straight off `textContent`.
-  // `point`, when given, is the click's own clientX/clientY: a real click on
-  // an element that was NOT editable at the moment the browser decided how
-  // to handle the mousedown never gets the browser's own click-to-place-
-  // caret behaviour "for free" (this span only becomes editable inside this
-  // handler, one tick too late for that), so a pointer-initiated edit places
-  // the caret itself, from that same point, via `placeCaretAtPoint`
-  // (Shlomi: never select-all, never move the caret, on a click - landing on
-  // whatever the point resolves to IS "where the person clicked").
-  const beginEditingOutputName = useCallback((selectAll: boolean, point?: { x: number; y: number }) => {
-    const el = nameRef.current;
-    if (!el || isRenamingOutputName) return;
-    setNameContentEditable(el, true);
-    setIsRenamingOutputName(true);
-    el.focus();
-    if (selectAll) {
-      // Keyboard-activated (Enter/Space with no click point to seed a caret
-      // from): select the whole name so typing replaces it, the same
-      // behaviour the old input gave for free on focus.
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    } else if (point) {
-      placeCaretAtPoint(el, point.x, point.y);
-    }
-  }, [isRenamingOutputName]);
-
-  // Typing into a contenteditable node can replace its Text child with a
-  // brand new DOM object instead of mutating the existing one in place
-  // (browsers do this in some cases, and Escape's own fallback below always
-  // does); either way Preact's `_dom` reference for that child then points
-  // at a node nobody sees any more, so a later reactive render "updates"
-  // text nobody sees. Bumping `nameRemountKeyRef` on the way out of edit
-  // mode (never on the way in, which would drop the caret/focus just
-  // placed) makes Preact throw the whole span away and mount a fresh one
-  // from the current `title` - the standard remedy for a contenteditable
-  // region a framework also renders into.
-  const commitOutputNameRename = useCallback(() => {
-    const el = nameRef.current;
-    const sanitized = sanitizeOutputName(el?.textContent ?? '');
-    // An empty result (cleared, or nothing but path separators/control
-    // characters) reverts to the automatic name rather than saving an empty
-    // one - the spec's "empty reverts to the automatic name".
-    setCustomOutputName(sanitized.length > 0 ? sanitized : null);
-    setIsRenamingOutputName(false);
-    nameRemountKeyRef.current += 1;
-    recordAction('change_setting');
-  }, []);
-
-  const cancelOutputNameRename = useCallback(() => {
-    skipNextNameBlurCommit.current = true;
-    setIsRenamingOutputName(false);
-    nameRemountKeyRef.current += 1;
-  }, []);
-
-  const onNameBlur = useCallback(() => {
-    if (skipNextNameBlurCommit.current) {
-      skipNextNameBlurCommit.current = false;
-      return;
-    }
-    commitOutputNameRename();
-  }, [commitOutputNameRename]);
-
-  const onNameMouseDown = useCallback((event: MouseEvent) => {
-    beginEditingOutputName(false, { x: event.clientX, y: event.clientY });
-  }, [beginEditingOutputName]);
-
-  const onNameKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!isRenamingOutputName) {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        beginEditingOutputName(true);
-      }
-      return;
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      (event.currentTarget as HTMLElement).blur();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      cancelOutputNameRename();
-    }
-  }, [isRenamingOutputName, beginEditingOutputName, cancelOutputNameRename]);
-
-  // Firefox has no `contenteditable="plaintext-only"`, so its fallback
-  // (plain `contenteditable="true"`) would otherwise accept rich HTML on
-  // paste or drop; force both down to plain text instead. A no-op wherever
-  // `plaintext-only` is supported, since the browser already restricts it.
-  const onNamePaste = useCallback((event: ClipboardEvent) => {
-    if (PLAINTEXT_ONLY_SUPPORTED) return;
-    event.preventDefault();
-    insertPlainTextAtSelection(event.clipboardData?.getData('text/plain') ?? '');
-  }, []);
-
-  const onNameDrop = useCallback((event: DragEvent) => {
-    if (PLAINTEXT_ONLY_SUPPORTED) return;
-    event.preventDefault();
-    insertPlainTextAtSelection(event.dataTransfer?.getData('text/plain') ?? '');
+  // MERGE-11: the rename itself lives in the shell's OutputName. '' means the
+  // person emptied it, which goes back to the automatic name.
+  const renameOutput = useCallback((next: string) => {
+    setCustomOutputName(next.length > 0 ? next : null);
   }, []);
 
   const scrollToCaption = useCallback((fileId: number) => {
@@ -1366,47 +1175,23 @@ export default function PdfMergeTool({
                         sr-only lead-in keeps the region announcing what it is
                         for anyone not reading the name itself. */}
                     <span class="sr-only">{t.documentHeading}</span>
-                    {/* The name and its ".pdf" are one file name, so they are one
-                        isolate (UX guideline 9). `<bdi>` takes its direction from
-                        the name's first strong character, which is why the name
-                        carries no `dir` of its own (an element with a `dir` is
-                        skipped by that lookup); the ".pdf" is an LTR run inside
-                        it. Left bare in an RTL page, the ".pdf" is its own flex
-                        item and lays out as "pdf." on the wrong side of the name. */}
-                    <bdi class={docStyles['doc-heading-file']}>
-                      <span
-                        key={nameRemountKeyRef.current}
-                        ref={nameRef}
-                        class={docStyles.name}
-                        tabIndex={0}
-                        role={isRenamingOutputName ? 'textbox' : undefined}
-                        aria-label={t.fileNameEditableLabel}
-                        contentEditable={isRenamingOutputName ? (PLAINTEXT_ONLY_SUPPORTED ? 'plaintext-only' : 'true') : 'false'}
-                        onMouseDown={onNameMouseDown}
-                        onKeyDown={onNameKeyDown}
-                        onBlur={onNameBlur}
-                        onPaste={onNamePaste}
-                        onDrop={onNameDrop}
-                      >
-                        {title}
+                    <OutputName
+                      name={title}
+                      label={t.fileNameEditableLabel}
+                      onRename={renameOutput}
+                      onEditingChange={setIsRenamingOutputName}
+                      wrapOnPhone
+                    >
+                      <span class={docStyles['doc-heading-count']}>
+                        {' · '}{pagesLabel(outputCount)}
+                        {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
                       </span>
-                      <span class={docStyles['doc-heading-ext']} dir="ltr">.pdf</span>
-                    </bdi>
-                    <span class={docStyles['doc-heading-count']}>
-                      {' · '}{pagesLabel(outputCount)}
-                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
-                    </span>
-                    {stillRendering && (
-                      <span class={docStyles['doc-heading-progress']}>
-                        {' · '}{formatMessage(t.renderedCount, { count: renderedCount })}
-                      </span>
-                    )}
-                    {/* Coarse pointer only (CSS-gated): there is no hover to
-                        reveal the affordance there, so a small muted pencil
-                        sits after the meta instead - never inside the name. */}
-                    <svg class={docStyles['name-affordance-icon']} width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M11.3 2.3a1.3 1.3 0 0 1 1.9 1.9l-7.2 7.2-2.6.7.7-2.6 7.2-7.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" />
-                    </svg>
+                      {stillRendering && (
+                        <span class={docStyles['doc-heading-progress']}>
+                          {' · '}{formatMessage(t.renderedCount, { count: renderedCount })}
+                        </span>
+                      )}
+                    </OutputName>
                   </h2>
                 </div>
                 <div class={docStyles['doc-header-right']}>

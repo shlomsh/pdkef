@@ -1,0 +1,97 @@
+/* The output file name as a heading part (Merge's document heading, Split's
+   canvas heading). Its owner is a nowrap flex row with `align-items: baseline`;
+   everything here is one line, the name ellipsising first while the
+   extension and the owner's meta never shrink. Moved from MergeDocument.module.css. */
+
+.prefix {
+  flex: none;
+}
+
+/* The name and its extension: a `<bdi>` isolate whose direction follows the
+   name. `min-width: 0` lets the name ellipsis while the extension never does. */
+.doc-heading-file {
+  display: flex;
+  align-items: baseline;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* WYSIWYG: one element at rest and while editing. At rest identical to plain
+   heading text; entering edit flips `contenteditable` only, no border or
+   padding appears, so the rect never moves except for the text's own width. */
+.name {
+  display: inline-block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 60ch;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Keeps a Hebrew name and the trailing Latin meta from scrambling into one bidi run. */
+  unicode-bidi: plaintext;
+}
+
+.name:focus-visible {
+  /* box-shadow never changes the box's geometry: zero layout shift on entering edit. */
+  box-shadow: var(--shadow-focus);
+  border-radius: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .name {
+    cursor: text;
+  }
+
+  .name:hover {
+    background: var(--color-primary-soft);
+    border-radius: 3px;
+  }
+}
+
+/* Coarse pointer: no hover to reveal the affordance, so a small muted pencil
+   sits after the meta (never inside the name). Always in the DOM, shown only here. */
+.name-affordance-icon {
+  display: none;
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--color-muted);
+}
+
+@media (hover: none) {
+  .name-affordance-icon {
+    display: inline-flex;
+  }
+}
+
+.doc-heading-ext {
+  flex: none;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+/* Merge's phone heading: the name wraps to its own lines instead of truncating
+   (MERGE-11), and may break between any two characters when a single word is
+   wider than the line (MERGE-21). The owner's heading flex-wraps too. */
+@media (max-width: 767px) {
+  .doc-heading-file.wrap-on-phone {
+    flex-wrap: wrap;
+  }
+
+  .name.wrap-on-phone {
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    min-width: 0;
+    max-width: 100%;
+  }
+}

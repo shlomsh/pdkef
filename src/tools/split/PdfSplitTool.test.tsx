@@ -9,6 +9,7 @@ import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './PdfSplitTool.module.css';
+import outputNameStyles from '../../shell/OutputName.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import * as pdfjsDist from 'pdfjs-dist';
@@ -147,6 +148,49 @@ describe('PdfSplitTool UI flow', () => {
     expect(probeMock).toHaveBeenCalled();
     expect(container.querySelector(`.${styles.primary}`).getAttribute('data-state')).toBe('ready');
     expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  async function openFive(name = 'open.pdf') {
+    mockState.numPages = 5;
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], name, { type: 'application/pdf' })]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+  }
+
+  it('renaming the heading changes the combined download filename', async () => {
+    await openFive();
+    const nameEl = () => container.querySelector(`.${outputNameStyles.name}`);
+    expect(nameEl().textContent).toBe('open');
+    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_open.pdf');
+    expect(container.querySelector(`.${styles.primary}`).getAttribute('download')).toBe('extracted_open.pdf');
+    await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+    await act(async () => { nameEl().textContent = 'chapter two'; });
+    await act(async () => {
+      nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_chapter two.pdf');
+    expect(container.querySelector(`.${styles.primary}`).getAttribute('download')).toBe('extracted_chapter two.pdf');
+  });
+
+  it('shows no editable name in one-PDF-per-page mode', async () => {
+    await openFive();
+    const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === 'One PDF per page');
+    await act(async () => perPage.click());
+    expect(container.querySelector(`.${outputNameStyles.name}`)).toBeNull();
+    expect(container.querySelector('[contenteditable]')).toBeNull();
   });
 
   it('loads file and populates page grid', async () => {

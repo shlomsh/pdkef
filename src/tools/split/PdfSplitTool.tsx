@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import SplitVerb from './verb/SplitVerb.tsx';
-import { pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
+import { pageNumbersToRangeString, splitPdf, outputBaseName, extractedFileName } from './split.js';
+import OutputName from '../../shell/OutputName.tsx';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
@@ -101,6 +102,8 @@ export default function PdfSplitTool({
   const [pageSelector, setPageSelector] = useState('');
   const [pageSelectorError, setPageSelectorError] = useState('');
   const [mode, setMode] = useState<Mode>('combined');
+  /** The person's rename of the combined output (null = the source's own name). */
+  const [customName, setCustomName] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
@@ -142,6 +145,7 @@ export default function PdfSplitTool({
   const selectedCount = selectedPages.length;
   const renderedCount = pages.filter((p) => p.thumbnail).length;
   const baseName = file ? outputBaseName(file.name) : '';
+  const outputName = customName ?? baseName;
   // { [pageNumber]: 0|90|180|270 }, non-zero entries only - what splitPdf
   // applies on top of the source page's own rotation.
   const rotations = Object.fromEntries(
@@ -221,6 +225,14 @@ export default function PdfSplitTool({
     // the effect on the actual selection and rotation, not object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, isProtected, mode, selectedPages.join(','), rotationKey, status === 'loading']);
+
+  // A rename reaches Share too: the prepared File is rebuilt under the new name
+  // from the same blob (no PDF work), after each prepare as well as each rename.
+  useEffect(() => {
+    if (status !== 'ready' || mode !== 'combined' || !outputs[0]) return;
+    prepareFiles([{ blob: outputs[0].blob, filename: extractedFileName(outputName), type: 'application/pdf' }]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputs, outputName, mode, status]);
 
   const downloadAll = useCallback((list: OutputFile[]) => {
     list.forEach((f, index) => {
@@ -362,6 +374,7 @@ export default function PdfSplitTool({
     invalidate();
     clearUndo();
     setFile(picked);
+    setCustomName(null);
     setIsProtected(false);
     setPages([]);
     setPageSelector('');
@@ -524,7 +537,7 @@ export default function PdfSplitTool({
   // Cross-tool hand-off (guideline §13): park the prepared bytes for Compress
   // and navigate. Only the single-file mode has one file to hand over.
   const handoffToCompress = async () => {
-    const output = outputs[0];
+    const output = combinedOutput;
     if (handoffBusy || mode !== 'combined' || !output) return;
     const run = handoffRun.begin();
     setHandoffBusy(true);
@@ -560,7 +573,10 @@ export default function PdfSplitTool({
     : status === 'preparing' ? 'preparing'
       : status === 'error' ? 'error'
         : saved ? 'saved' : 'ready';
-  const combinedOutput = mode === 'combined' ? outputs[0] : undefined;
+  // The prepared blob is named for the source; a rename in the heading only changes the name it is handed out under.
+  const combinedOutput = mode === 'combined' && outputs[0]
+    ? { ...outputs[0], filename: extractedFileName(outputName) }
+    : undefined;
   const primaryIsLink = !!combinedOutput && (primaryState === 'ready' || primaryState === 'saved');
 
   const pageWord = (n: number) => (n === 1 ? t.pageOne : formatMessage(t.pageOther, { count: n }));
@@ -572,10 +588,12 @@ export default function PdfSplitTool({
 
   const canvasHeading = mode === 'combined'
     ? (
-      <>
-        extracted_<bdi class={styles['output-name']}>{baseName}</bdi>
-        <span class={styles['output-ext']}>.pdf</span>
-      </>
+      <OutputName
+        prefix="extracted_"
+        name={outputName}
+        label={t.fileNameEditableLabel}
+        onRename={(next) => setCustomName(next.length > 0 && next !== baseName ? next : null)}
+      />
     )
     : formatMessage(t.headingSeparate, { files: fileWord(selectedCount) });
   const canvasCount = formatMessage(t.pageCountOf, { selected: selectedCount, pages: pageWord(numPages) });
@@ -680,8 +698,10 @@ export default function PdfSplitTool({
                   canvas frame and the rail start on the same line (Shlomi,
                   2026-09-14: the two boxes were not top-aligned). */}
               <div class={styles['canvas-head']}>
-                <h3 id="split-canvas-title" class={styles['canvas-title']}>{canvasHeading}</h3>
-                <span class={styles['canvas-count']}>{canvasCount}</span>
+                <div class={styles['canvas-title-row']}>
+                  <h3 id="split-canvas-title" class={styles['canvas-title']}>{canvasHeading}</h3>
+                  <span class={styles['canvas-count']}>{canvasCount}</span>
+                </div>
                 {renderedCount < numPages && (
                   <span class={styles['canvas-status']} role="status">{formatMessage(t.rendering, { done: renderedCount, total: numPages })}</span>
                 )}

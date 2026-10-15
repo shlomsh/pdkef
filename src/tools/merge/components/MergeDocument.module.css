@@ -72,98 +72,6 @@
   color: var(--color-text);
 }
 
-/* The file name as one unit: the name and its ".pdf" (a `<bdi>`, so an isolate
-   whose direction follows the name; see PdfMergeTool.tsx). A flex row of its
-   own, so the order inside it is the name's direction and the heading's
-   flex-wrap can still move the whole name to a line of its own. It carries
-   the shrinking the name used to: `min-width: 0` lets the name ellipsis while
-   ".pdf" (`flex: none`) never does. */
-.doc-heading-file {
-  display: flex;
-  align-items: baseline;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* MERGE-11 (2026-09-13, Shlomi's rejection of the bordered/input look): the
-   name is WYSIWYG, one element at rest and while editing - never a button
-   wrapping a span, never an input swapped in. At rest it is visually
-   identical to the old plain "Your merged PDF" heading text: same font,
-   same weight, no border, no background, no chrome. Clicking it (see
-   PdfMergeTool.tsx's onNameMouseDown) flips its own `contenteditable`
-   attribute straight to `plaintext-only` (or `true` on Firefox, which lacks
-   it) and nothing else changes - no border appears, no padding shifts in,
-   so the element's rect never moves except for the text's own width
-   (measured: same rect before and after in a real browser). The only
-   editing affordance is the caret itself plus whatever the browser's own
-   selection highlight does. */
-.name {
-  display: inline-block;
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 60ch;
-  font: inherit;
-  font-weight: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  outline: none;
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  /* Isolates the name from the ".pdf" and "· N pages" that follow it, so a
-     Hebrew (or other RTL) name and that trailing Latin meta do not scramble
-     into one bidi run. */
-  unicode-bidi: plaintext;
-}
-
-.name:focus-visible {
-  /* box-shadow (not border/outline-with-width) never changes the box's own
-     geometry, which is what "zero layout shift on entering edit" depends on. */
-  box-shadow: var(--shadow-focus);
-  border-radius: 4px;
-}
-
-/* Affordance at rest, fine pointer only: cursor says "click to rename",
-   a faint tint says the same without adding a border or moving anything. */
-@media (hover: hover) and (pointer: fine) {
-  .name {
-    cursor: text;
-  }
-
-  .name:hover {
-    background: var(--color-primary-soft);
-    border-radius: 3px;
-  }
-}
-
-/* Coarse pointer: no hover to reveal the affordance, so a small muted
-   pencil sits after the page-count meta instead (never inside the name
-   itself) - always in the DOM, shown only here. */
-.name-affordance-icon {
-  display: none;
-  flex-shrink: 0;
-  align-self: center;
-  color: var(--color-muted);
-}
-
-@media (hover: none) {
-  .name-affordance-icon {
-    display: inline-flex;
-  }
-}
-
-/* ".pdf" is muted and never editable - a sibling of the name, not part of
-   its text. */
-.doc-heading-ext {
-  flex: none;
-  color: var(--color-muted);
-  font-weight: 400;
-}
-
 .doc-heading-count {
   flex: none;
   font-weight: 400;
@@ -495,22 +403,6 @@
 @media (max-width: 767px) {
   .doc-heading {
     flex-wrap: wrap;
-  }
-
-  /* Wraps inside the unit as it did inside the heading: a name that fills the
-     line keeps all its lines and ".pdf" falls to the line after them, never
-     squeezed in beside the name's first line. */
-  .doc-heading-file {
-    flex-wrap: wrap;
-  }
-
-  .name {
-    overflow: visible;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    text-overflow: clip;
-    min-width: 0;
-    max-width: 100%;
   }
 
   .doc-heading-progress {

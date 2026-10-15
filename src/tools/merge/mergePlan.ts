@@ -17,6 +17,7 @@
  * that to treat a plan like any other piece of Preact state.
  */
 
+import { sanitizeOutputName } from '../../lib/sanitizeOutputName.ts';
 export interface PlanEntry {
   key: string;
   fileId: number;
@@ -271,26 +272,5 @@ export function mergedFileName(firstFileName: string): string {
   return `${mergedTitle(firstFileName)}.pdf`;
 }
 
-// MERGE-11 (2026-09-13, Shlomi): once a person renames the merged file, it is
-// theirs - sanitised on commit the way a filesystem name would be, never
-// rejected outright. Path separators are stripped (they would otherwise let
-// a typed name read like a directory) and control characters (there is no
-// legitimate reason for one in a file name), then the result is trimmed and
-// capped at 120 characters. "+" goes too (Shlomi, 2026-09-13): the retired
-// "<first> + N more" template is the one thing the merged name must never
-// read like again, whichever way a "+" got in, so it is dropped and the
-// spaces around it collapse. Deliberately not a filesystem-reserved-character
-// denylist beyond that - ":", "?", "*" and similar survive, since the
-// browser's own download mechanism, not this function, is what turns the
-// string into a real file on disk. Unicode is kept as typed (a Hebrew or
-// Arabic name included); the cap counts code points via Array.from, not
-// UTF-16 length, so it can never split a surrogate pair.
-export function sanitizeOutputName(raw: string): string {
-  const stripped = raw
-    .replace(/[\\/+]/g, '')
-    .replace(/\p{Cc}/gu, '')
-    .replace(/ {2,}/g, ' ');
-  const trimmed = stripped.trim();
-  const codepoints = Array.from(trimmed);
-  return codepoints.length > 120 ? codepoints.slice(0, 120).join('') : trimmed;
-}
+// The sanitiser moved to src/lib so the shared shell OutputName can use it too.
+export { sanitizeOutputName };

@@ -1,0 +1,73 @@
+import { render } from 'preact';
+import { act } from 'preact/test-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import OutputName from './OutputName.tsx';
+import styles from './OutputName.module.css';
+
+describe('OutputName', () => {
+  let container: HTMLElement;
+  afterEach(() => {
+    render(null, container);
+    container.remove();
+  });
+
+  function mount(onRename = vi.fn()) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<OutputName name="merged_a" label="File name, editable" onRename={onRename} />, container));
+    return onRename;
+  }
+  const nameEl = () => container.querySelector(`.${styles.name}`) as HTMLElement;
+  const begin = () => act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+  const type = (text: string) => act(async () => { nameEl().textContent = text; });
+  const key = (k: string) => act(async () => {
+    nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  });
+
+  it('keeps ".pdf" outside the editable span, inside one bdi', () => {
+    mount();
+    expect(nameEl().getAttribute('contenteditable')).toBe('false');
+    expect(nameEl().textContent).toBe('merged_a');
+    const ext = container.querySelector(`.${styles['doc-heading-ext']}`);
+    expect(ext?.textContent).toBe('.pdf');
+    expect(nameEl().closest('bdi')).toBe(ext?.closest('bdi'));
+  });
+
+  it('click to edit, Enter commits through onRename', async () => {
+    const onRename = mount();
+    await begin();
+    expect(nameEl().getAttribute('contenteditable')).not.toBe('false');
+    expect(nameEl().getAttribute('role')).toBe('textbox');
+    await type('March invoices');
+    await key('Enter');
+    expect(onRename).toHaveBeenCalledWith('March invoices');
+    expect(nameEl().getAttribute('contenteditable')).toBe('false');
+  });
+
+  it('Escape reverts without calling onRename', async () => {
+    const onRename = mount();
+    await begin();
+    await type('Something else');
+    await key('Escape');
+    expect(onRename).not.toHaveBeenCalled();
+    expect(nameEl().textContent).toBe('merged_a');
+    expect(nameEl().getAttribute('contenteditable')).toBe('false');
+  });
+
+  it('an empty commit reverts to the given name and reports an empty string', async () => {
+    const onRename = mount();
+    await begin();
+    await type('  / ');
+    await key('Enter');
+    expect(onRename).toHaveBeenCalledWith('');
+    expect(nameEl().textContent).toBe('merged_a');
+  });
+
+  it('shows a non-editable prefix before the name', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<OutputName prefix="extracted_" name="a" label="x" onRename={() => {}} />, container));
+    expect(container.textContent).toBe('extracted_a.pdf');
+    expect(nameEl().textContent).toBe('a');
+  });
+});
