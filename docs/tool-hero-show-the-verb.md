@@ -264,6 +264,19 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
 - A known narrow case: a Merge restore whose saved entry has gone (the index says known, IndexedDB says
   gone) shifts the hero about 0.04 at 1024px and up when the marker clears. Accepted as narrow; the same
   class existed below 1024px before.
+- Hover replay (`61b0c252`): the verb plays once on load and stops on its last frame. It replays when a
+  mouse or pen enters the sheet, and when the tab becomes visible again; never on touch (a tap opens the
+  picker). Shlomi chose this over a continuous loop: a loop competes with the h1 and the Choose files
+  button for attention, and a page that never stops moving reads as an ad. The replay never snaps to the
+  start pose: every animation plays backward at 2x (`updatePlaybackRate(-2)`) and then forward as on load
+  (`src/shell/verb/replay.ts`). 3x was tried first and measured a 44px step in one frame as the pieces
+  reached their start, which read as a snap; 2x measures 30px against 15.7px for the forward play.
+  `e2e/tool-hero-verb-replay.spec.js` bounds the largest frame-to-frame step at 2.2x the forward play's.
+  Reduced motion has no keyframes, so nothing replays.
+- Drag caption (`5709421e`): while a file is dragged over the page (`data-dragging`), the sheet's heading
+  is swapped by CSS alone for "Let go to add your files" ("Let go to add your file" on one-file tools).
+  Hebrew is Shlomi's wording, "גררו לכאן כדי להוסיף קבצים", used for both forms until he picks a
+  singular. Both strings are `display: none` when not shown, so a screen reader reads one.
 
 ## Open questions
 
