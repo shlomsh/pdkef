@@ -4,7 +4,7 @@
 // same synthetic phone-scanned form (about 410 KB per page), each page with its own seeded grain
 // and lighting. Also copies typed-1.pdf (a text-only PDF) from the compress fixtures. Output is
 // deterministic (seeded noise, no metadata dates), so scan-10.pdf is always 4,194,057 bytes.
-// The measured results of running these through Target Size are recorded in
+// The measured results of running these through Exact size (then called Target Size) are recorded in
 // backlog/tasks/COMP-01.md. The files are 0.4 to 16 MB and are never committed.
 //
 // Run: node scripts/generate-compress-guide-scans.mjs [outDir]
