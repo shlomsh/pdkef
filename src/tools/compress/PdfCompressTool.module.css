@@ -2,7 +2,45 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
-  margin: 1.5rem 0;
+  margin: 0.25rem 0 1rem;
+}
+
+/* One toggle above the three cards opens all their pros and cons together, so
+   the cards stay the same height. It sits outside the radiogroup: a button
+   must not be a child of it. Padding gives a 44px hit area on touch. */
+.pro-con-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.pro-con-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.5rem 0.25rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pro-con-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pro-con-chevron {
+  transition: transform 0.15s var(--ease-out);
+}
+
+.pro-con-toggle[aria-expanded='true'] .pro-con-chevron {
+  transform: rotate(180deg);
 }
 
 /* Image mode's standalone Target Size panel (no compression-level grid to
@@ -16,7 +54,8 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 1.35rem 1.35rem 1.2rem;
+  line-height: 1.5;
   cursor: pointer;
   text-align: start;
   transition: border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out),
@@ -120,7 +159,7 @@
   font-size: 0.8rem;
   color: var(--color-muted);
   line-height: 1.4;
-  margin: 0;
+  margin: 0.5rem 0 0;
 }
 
 .compress-pro-con {
@@ -130,6 +169,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.compress-pro-con[hidden] {
+  display: none;
 }
 
 .compress-card.is-selected .compress-pro-con {
@@ -508,13 +551,12 @@
   color: var(--color-primary-text);
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
+  padding: 1.1rem 1.35rem;
 }
 
-/* Phones: the four cards stack, and with every card carrying its pros/cons
-   the Compress button landed ~550px below the fold once a file was open.
-   Only the selected card shows its pros/cons here (Recommended by default);
-   tapping another card selects it and opens them. Nothing is lost, it is
-   one tap away, and the whole options list fits in about half the height. */
+/* Phones: the four cards stack, so they get tighter spacing. Their pros and
+   cons stay behind the single toggle above the cards (closed by default), which
+   keeps the whole list and the Compress button near the fold. */
 @media (max-width: 1023px) {
   .compress-options {
     margin: 1rem 0;
@@ -522,10 +564,6 @@
 
   .compress-card {
     padding: 1rem;
-  }
-
-  .compress-card:not(.is-selected) .compress-pro-con {
-    display: none;
   }
 }
 
@@ -589,24 +627,6 @@
    viewport (usually 850-1000px+ of content height) gets the breathing room
    of the base card styles above instead of paying this tax for no reason. */
 @media (min-width: 1024px) and (max-height: 820px) {
-  .compress-options {
-    margin: 0.75rem 0;
-  }
-
-  .compress-card {
-    padding: 0.85rem 1rem;
-    gap: 0.35rem;
-  }
-
-  .compress-card.is-recommended,
-  .target-card {
-    padding-top: 1.2rem;
-  }
-
-  .compress-card-desc {
-    line-height: 1.35;
-  }
-
   .pro-item,
   .con-item {
     line-height: 1.3;

@@ -164,6 +164,37 @@ describe('PdfCompressTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop a PDF or image here');
   });
 
+  it('keeps the pros and cons behind one toggle that sits outside the radiogroup', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const toggle = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.includes('Compare pros and cons'));
+    expect(toggle).toBeDefined();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.closest('[role="radiogroup"]')).toBeNull();
+    const blocks = Array.from(container.querySelectorAll(`.${styles['compress-pro-con']}`));
+    expect(blocks).toHaveLength(3);
+    expect(blocks.every((b) => b.hidden)).toBe(true);
+    expect(toggle.getAttribute('aria-controls').split(' ')).toEqual(blocks.map((b) => b.id));
+
+    act(() => toggle.click());
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.textContent).toContain('Hide pros and cons');
+    expect(blocks.every((b) => !b.hidden)).toBe(true);
+  });
+
+  it('shows no greyed-out action button until a file is loaded', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+    expect(container.textContent).not.toContain('Add a PDF or image above to compress');
+  });
+
   it('transitions to options and handles compression level change', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

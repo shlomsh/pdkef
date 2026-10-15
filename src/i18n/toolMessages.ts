@@ -514,6 +514,8 @@ export interface CompressMessages {
   alreadySmallNotice: string;
   alreadySmallTargetNotice: string;
   noImagesTitle: string;
+  showProsCons: string;
+  hideProsCons: string;
   imageShareNote: string;
   imageShareScanNote: string;
   imageShareLowNote: string;
@@ -633,6 +635,8 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so there was nothing to gain. I've kept your original as it is, text and links included.",
   alreadySmallTargetNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so {target} can't be reached this way. I've kept your original as it is, text and links included.",
   noImagesTitle: 'Nothing here to shrink.',
+  showProsCons: 'Compare pros and cons',
+  hideProsCons: 'Hide pros and cons',
   imageShareNote: 'Images are {share} of this PDF, and they are the part that can get smaller. The text stays exactly as it is.',
   imageShareScanNote: 'Images are {share} of this PDF, and they are the part that can get smaller.',
   imageShareLowNote: 'Most of this PDF is text and drawings. Its images are {share} of the file, so shrinking them can save at most about that much.',
@@ -766,6 +770,8 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז לא היה מה להרוויח. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   alreadySmallTargetNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז אי אפשר להגיע ל-{target} בדרך הזו. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   noImagesTitle: 'אין כאן מה לכווץ.',
+  showProsCons: 'השוואת יתרונות וחסרונות',
+  hideProsCons: 'הסתרת יתרונות וחסרונות',
   imageShareNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון. הטקסט נשאר בדיוק כמו שהוא.',
   imageShareScanNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון.',
   imageShareLowNote: 'רוב ה-PDF הזה הוא טקסט ושרטוטים. התמונות הן {share} מהקובץ, כך שהקטנה שלהן יכולה לחסוך לכל היותר בערך כך.',

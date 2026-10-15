@@ -185,6 +185,9 @@ export default function DropzoneEmptyState({
       {isPhone && (
         <p class={styles['ios-files-hint']}>{messages.cloudDriveHint}</p>
       )}
+
+      {/* The sheet's last child: its presence means the whole sheet has been parsed. */}
+      <i class={styles['sheet-end']} hidden />
     </div>
   );
 }

@@ -96,6 +96,8 @@ export default function PdfCompressTool({
 
   const [file, setFile] = useState<File | null>(null);
   const [level, setLevel] = useState('medium');
+  // One toggle opens all three cards' pros and cons together so the cards stay aligned.
+  const [prosConsOpen, setProsConsOpen] = useState(false);
   const [targetKB, setTargetKB] = useState(100);
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
   useHoldUpdate(status === 'processing');
@@ -725,11 +727,7 @@ export default function PdfCompressTool({
               )}
             </button>
           )
-        ) : (
-          <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
-            {t.addPdfToCompress}
-          </button>
-        )}
+        ) : null}
       </div>
 
       {hasFiles && status === 'error' && (
@@ -1009,6 +1007,20 @@ export default function PdfCompressTool({
               })}
             </p>
           )}
+          <div class={styles['pro-con-bar']}>
+            <button
+              type="button"
+              class={styles['pro-con-toggle']}
+              aria-expanded={prosConsOpen}
+              aria-controls={COMPRESSION_LEVELS.map((opt) => `compress-pro-con-${opt.id}`).join(' ')}
+              onClick={() => setProsConsOpen((open) => !open)}
+            >
+              {prosConsOpen ? t.hideProsCons : t.showProsCons}
+              <svg class={styles['pro-con-chevron']} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
           <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
             {COMPRESSION_LEVELS.map((opt) => (
               <div
@@ -1031,7 +1043,7 @@ export default function PdfCompressTool({
                   <span class={styles['compress-card-tag']}>{opt.tag}</span>
                 </div>
                 <p class={styles['compress-card-desc']}>{opt.desc}</p>
-                <div class={styles['compress-pro-con']}>
+                <div class={styles['compress-pro-con']} id={`compress-pro-con-${opt.id}`} hidden={!prosConsOpen}>
                   <div class={styles['pro-item']}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
