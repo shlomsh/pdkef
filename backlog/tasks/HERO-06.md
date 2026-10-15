@@ -1,10 +1,9 @@
 ---
 id: "HERO-06"
 title: "Every tool's loaded state: the compact file strip and a one-line phone hero"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "tool-pages"
-horizon: "now"
 depends_on: []
 ---
 
@@ -23,6 +22,10 @@ condensed the hero to one line; every other tool kept the icon on its own row an
   meta line with a `metaExtra` slot, an optional two-line `note`, quiet Replace. Measured 86px at 1440
   and at 375 on Split, Edit Pages and PDF to Image. Sign and Redact's editor header unchanged.
 - [x] Edit Pages shows a real thumbnail.
-- [ ] With a file loaded, the phone hero is one line (tile beside the name, `[data-hero-rest]` and the
-  subhead hidden) in every tool, after the Compress redesign's `condenseOnLoad` lands in `ToolHero.astro`.
-- [ ] Compress moves from its own `CompressStrip` to the shell strip.
+- [x] With a file loaded, the hero is one line (tile beside the name, `[data-hero-rest]` and the subhead
+  hidden) at every width in every tool but Sign and Redact, from first paint through a restore or hand-off
+  (Edit Pages at 375: 58px, was about 166px). Sign and Redact moved to HERO-08.
+- [x] Compress moves from its own `CompressStrip` to the shell strip.
+- [x] Split gets Merge's page magnifier (shared `src/shell/PagePreviewDialog.tsx`) and rename in place
+  (shared `src/shell/OutputName.tsx`); Split, Merge and Compress prepare on quiet (`src/lib/quietPrepare.ts`,
+  UX guidelines §2).
