@@ -282,6 +282,14 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
       font-size: clamp(1.75rem, 8vw, 2.25rem);
     }
 
+    /* The tile beside the name, not above it: HERO-01's stacked hero cost
+       Merge's phone first screen 29px (51px on Linux fonts, where the second
+       h1 line wraps), and the sticky Download sheet, which can only rise to
+       the top of its own container, ended 14px below a 659px viewport. */
+    .tool-hero[data-hero-phone-condensed][data-hero-stacked] [data-hero-row] {
+      flex-direction: row;
+    }
+
     /* MERGE-06 follow-up: a line-clamp cut mid-sentence ("...and…") - the
        last visible words were never a whole thought. The subhead is now
        split into one <span data-hero-sentence> per sentence (see the
