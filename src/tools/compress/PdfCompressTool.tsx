@@ -87,7 +87,16 @@ export default function PdfCompressTool({
   // A size inside a catalogue string is bidi-isolated in right-to-left text.
   const sizeText = (bytes: number) => isolateLtr(formatBytes(bytes), t.dir);
 
-  const COMPRESSION_LEVELS = [
+  // Every note the slot above the options can show, for sizing it (DEBT-52). `box` is the live note's class.
+const NOTE_VARIANTS = [
+  { key: 'noImagesBodyText', box: 'honest-note', title: true },
+  { key: 'noImagesBodyDrawing', box: 'honest-note', title: true },
+  { key: 'imageShareLowNote', box: 'honest-note', title: false },
+  { key: 'imageShareNote', box: 'compress-warning', title: false },
+  { key: 'imageShareScanNote', box: 'compress-warning', title: false },
+] as const;
+
+const COMPRESSION_LEVELS = [
     { id: 'high', name: t.levelHighName, tag: t.levelHighTag, desc: t.levelHighDesc, pros: t.levelHighPros, cons: t.levelHighCons },
     { id: 'medium', name: t.levelMediumName, tag: t.levelMediumTag, desc: t.levelMediumDesc, pros: t.levelMediumPros, cons: t.levelMediumCons },
     { id: 'low', name: t.levelLowName, tag: t.levelLowTag, desc: t.levelLowDesc, pros: t.levelLowPros, cons: t.levelLowCons },
@@ -116,8 +125,6 @@ export default function PdfCompressTool({
   const encryptionCheck = useLatestRun();
   // COMP-01: what the PDF is made of (images, text), read once it is added so the tool can say
   // before any click that there is nothing to shrink. Never gates anything else.
-  // True from the moment a PDF is picked until its analysis settles (result or failure): the note slot is held open meanwhile.
-  const [analysisPending, setAnalysisPending] = useState(false);
   const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean; imageShare: number; pageCount: number } | null>(null);
   const analysisTokenRef = useRef(0);
   const [rasterBytes, setRasterBytes] = useState<number | null>(null);
@@ -368,9 +375,7 @@ export default function PdfCompressTool({
       encryptionCheck.invalidate();
       analysisTokenRef.current += 1;
       setAnalysis(null);
-      setAnalysisPending(false);
       if (deriveFileKind(next) === 'pdf') {
-        setAnalysisPending(true);
         void checkEncryption(next);
         void analyze(next);
       }
@@ -380,11 +385,7 @@ export default function PdfCompressTool({
   // Reads the PDF's make-up for the "nothing to shrink" note. A newer file wins: a stale result is dropped.
   const analyze = async (pdf: File) => {
     const token = analysisTokenRef.current;
-    try {
-      await analyzeInner(pdf, token);
-    } finally {
-      if (token === analysisTokenRef.current) setAnalysisPending(false);
-    }
+    await analyzeInner(pdf, token);
   };
 
   const analyzeInner = async (pdf: File, token: number) => {
@@ -989,23 +990,33 @@ export default function PdfCompressTool({
           </div>
         ) : (
           <>
-          {kind === 'pdf' && !needsUnlockBytes && !analysis && analysisPending && (
-            // The note below arrives after the PDF is read; its slot is held open so the options do not drop (DEBT-52).
-            <p class={`${styles['honest-note']} ${styles['note-reserve']}`} aria-hidden="true">
-              <strong>{t.noImagesTitle}</strong> {t.noImagesBodyText}
-            </p>
-          )}
-          {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length === 0 && (
-            <p class={styles['honest-note']} role="note">
-              <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
-            </p>
-          )}
-          {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length > 0 && !flatten && (
-            <p class={styles[analysis.imageShare < 0.2 ? 'honest-note' : 'compress-warning']} role="note">
-              {formatMessage(analysis.imageShare < 0.2 ? t.imageShareLowNote : analysis.hasText ? t.imageShareNote : t.imageShareScanNote, {
-                share: formatShare(analysis.imageShare, t.lessThanOnePercent),
-              })}
-            </p>
+          {kind === 'pdf' && !needsUnlockBytes && (
+            // DEBT-52: the note arrives after the PDF is read, and which note (or none, with flatten on or a
+            // failed read) is not known up front. So the slot is one grid cell holding every variant stacked,
+            // hidden, and the cell is as tall as the tallest; the live note sits in the same cell. The height
+            // is the same whatever arrives, so the options never move. Chosen over putting the note below the
+            // options (it would push the Compress button) and over a fixed reserve (the wrong size per width).
+            // The price is a quiet gap where there is no note; copy is unchanged.
+            <div class={styles['note-slot']}>
+              {NOTE_VARIANTS.map((v) => (
+                <p key={v.key} class={`${styles[v.box]} ${styles['note-reserve']}`} aria-hidden="true">
+                  {v.title && <><strong>{t.noImagesTitle}</strong>{' '}</>}
+                  {formatMessage(t[v.key], { share: '99%' })}
+                </p>
+              ))}
+              {analysis && analysis.images.length === 0 && (
+                <p class={styles['honest-note']} role="note">
+                  <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
+                </p>
+              )}
+              {analysis && analysis.images.length > 0 && !flatten && (
+                <p class={styles[analysis.imageShare < 0.2 ? 'honest-note' : 'compress-warning']} role="note">
+                  {formatMessage(analysis.imageShare < 0.2 ? t.imageShareLowNote : analysis.hasText ? t.imageShareNote : t.imageShareScanNote, {
+                    share: formatShare(analysis.imageShare, t.lessThanOnePercent),
+                  })}
+                </p>
+              )}
+            </div>
           )}
           <div class={styles['pro-con-bar']}>
             <button

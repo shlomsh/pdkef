@@ -1109,6 +1109,8 @@ describe('PdfCompressTool UI flow', () => {
 
   describe('the nothing-to-shrink note', () => {
     const NOTE = 'Nothing here to shrink.';
+    // Only the live notes: the slot also holds hidden, aria-hidden copies that size it (DEBT-52).
+    const noteText = (root) => Array.from(root.querySelectorAll('[role="note"]')).map((n) => n.textContent).join(' ');
 
     async function addPdf(name) {
       container = container || document.createElement('div');
@@ -1177,9 +1179,9 @@ describe('PdfCompressTool UI flow', () => {
       mountTool();
       await addPdf('pics.pdf');
       await tickFlatten(container);
-      expect(container.textContent).not.toContain('Images are 90% of this PDF');
+      expect(noteText(container)).not.toContain('Images are 90% of this PDF');
       await tickFlatten(container);
-      expect(container.textContent).toContain('Images are 90% of this PDF');
+      expect(noteText(container)).toContain('Images are 90% of this PDF');
     });
 
     it('a PDF with no images shows only the nothing-to-shrink note', async () => {
@@ -1187,8 +1189,8 @@ describe('PdfCompressTool UI flow', () => {
       mountTool();
       await addPdf('text_only.pdf');
       expect(container.querySelectorAll('[role="note"]').length).toBe(1);
-      expect(container.textContent).not.toContain('of this PDF');
-      expect(container.textContent).not.toContain('of the file');
+      expect(noteText(container)).not.toContain('of this PDF');
+      expect(noteText(container)).not.toContain('of the file');
     });
 
     it('says so before any click for a PDF with text and no images, and keeps the cards and button', async () => {
@@ -1196,8 +1198,8 @@ describe('PdfCompressTool UI flow', () => {
       mountTool();
       await addPdf('text_only.pdf');
 
-      expect(container.textContent).toContain(NOTE);
-      expect(container.textContent).toContain('This PDF is text and drawings, with no images in it');
+      expect(noteText(container)).toContain(NOTE);
+      expect(noteText(container)).toContain('This PDF is text and drawings, with no images in it');
       expect(container.querySelector('[role="note"]')).not.toBeNull();
       expect(container.querySelector('[role="note"]').className).toContain(styles['honest-note']);
       expect(container.querySelectorAll(`.${styles['compress-card']}`).length).toBeGreaterThan(0);
@@ -1209,9 +1211,9 @@ describe('PdfCompressTool UI flow', () => {
       mountTool();
       await addPdf('drawing.pdf');
 
-      expect(container.textContent).toContain(NOTE);
-      expect(container.textContent).toContain('This PDF is drawings, with no images in it');
-      expect(container.textContent).not.toContain('text and drawings');
+      expect(noteText(container)).toContain(NOTE);
+      expect(noteText(container)).toContain('This PDF is drawings, with no images in it');
+      expect(noteText(container)).not.toContain('text and drawings');
     });
 
     it('shows no note when the PDF has an image', async () => {
@@ -1219,7 +1221,7 @@ describe('PdfCompressTool UI flow', () => {
       mountTool();
       await addPdf('photo.pdf');
 
-      expect(container.textContent).not.toContain(NOTE);
+      expect(noteText(container)).not.toContain(NOTE);
     });
 
     it('re-reads an encrypted PDF with an empty password so text detection sees plaintext', async () => {
@@ -1265,7 +1267,7 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       // B has an image, A's (image-free) result must not leak onto it.
-      expect(container.textContent).not.toContain(NOTE);
+      expect(noteText(container)).not.toContain(NOTE);
     });
   });
 
