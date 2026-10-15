@@ -69,6 +69,7 @@ export default function RedactBox({
   onRepeatOnEveryPage,
   repeatGroupSize,
   onUnlinkFromGroup,
+  onKeepOnlyThisPage,
   onRemoveGroup,
   findSetSize,
   onRemoveFindSet,
@@ -99,6 +100,8 @@ export default function RedactBox({
   /** RED-03: how many pages carry a copy of this box's group, `el` included. */
   repeatGroupSize?: number;
   onUnlinkFromGroup?: () => void;
+  /** RED-65: removes the group's copies on every other page. */
+  onKeepOnlyThisPage?: () => void;
   onRemoveGroup?: () => void;
   /** RED-11: how many boxes are in this box's find set, `el` included. */
   findSetSize?: number;
@@ -265,6 +268,7 @@ export default function RedactBox({
       onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
       repeatGroupSize={repeatGroupSize}
       onUnlinkFromGroup={onUnlinkFromGroup}
+      onKeepOnlyThisPage={onKeepOnlyThisPage}
       onRemoveGroup={onRemoveGroup}
       findSetSize={findSetSize}
       onRemoveFindSet={onRemoveFindSet}

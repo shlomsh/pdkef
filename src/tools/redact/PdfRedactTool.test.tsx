@@ -2687,6 +2687,29 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(secondPageBox.style.width)).toBeCloseTo(widthBefore);
     });
 
+    it('Keep on this page only removes the other copies in one undo step', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      stubEveryDrawAreaRect();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      expect(boxes()).toHaveLength(3);
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      await selectBox(query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`));
+      await pickFromBoxMenu('[data-editor-repeat-group-trigger]', '[data-editor-repeat-group-keep-only]');
+
+      expect(boxes()).toHaveLength(1);
+      expect(pageCards[1].querySelector(`.${REDACT_BOX}`)).not.toBeNull();
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(boxes()).toHaveLength(3);
+    });
+
     it('Clear page on a page with a repeated box asks, and "Keep the repeated boxes" clears only its own boxes', async () => {
       mockPageCount(3);
       const drawArea = await loadFileAndGetDrawArea();
