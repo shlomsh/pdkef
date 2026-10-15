@@ -90,8 +90,8 @@ deletes `fillViewport` and its CSS.
   The checking-draft placeholder wears the same sheet, so nothing resizes when the check settles.
 - The sheet takes the first screen's height (`min(36rem, --first-screen - 9rem)`) only inside the
   page-grid two-column layout. Compress and Compress Image (one island, `compact`) take their content's
-  height, because their quality choices sit under the sheet. Sign and Redact keep their stacked page
-  with a content-height sheet until HERO-05.
+  height, because their quality choices sit under the sheet. Sign and Redact take the same grid when nothing is
+  loaded (HERO-05).
 - The two-column grid applies on `.tool-stage[data-layout='hero']:not(:has([data-tool-loaded],
   [data-tool-shell]))`, with `<main>` top-aligned, and is off
   under `html[data-draft-hint]` and `html[data-merge-restore]`, so a restoring page keeps the geometry it
@@ -125,8 +125,8 @@ today's phone first-viewport behaviour; it picks up the basics and the verb only
 - `BasePdfTool` calls the hook with `receiveDrop` and sets `data-dragging` on its card. Static CSS on
   `.tool-stage[data-layout='hero']:has([data-dragging])` tints the stage with an inset primary ring and
   lifts the verb; no island code touches the static DOM.
-- The opt-out is the `dropAnywhere` prop on `BasePdfTool` (default true). Sign and Redact pass false
-  until HERO-05, since a drop over an open editor needs its own answer.
+- The opt-out is the `dropAnywhere` prop on `BasePdfTool` (default true). Sign and Redact now leave it on (HERO-05): a drop
+  over an open editor goes through the replace confirmation.
 - A drop routes to the handlers that exist, so accept filters and the replace confirmation behave as
   they do now.
 - Not built yet: the drag-over caption ("Let go to add your files"). It waits for approval of the copy.
@@ -143,8 +143,8 @@ today's phone first-viewport behaviour; it picks up the basics and the verb only
 | Compress | a page settles smaller and lighter (no invented numbers) | pitch only |
 | PDF to Image | a page lifts and becomes a photo print | pitch only |
 | Compress Image | a photo settles smaller | pitch only |
-| Sign | a hand-drawn stroke writes across a signature line | HERO-05 |
-| Redact | a black bar sweeps across a line of text | HERO-05 |
+| Sign | a field types a name, then a signature writes along its line | HERO-05, built |
+| Redact | a frosted box blurs two lines, then a footer watermark is whited out | HERO-05, built |
 
 - **Built (2026-10-15):** Merge, Image to PDF, Unlock or Protect and Edit Pages, each in
   `src/tools/<tool>/verb/` with a unit test. The shared pieces are in `src/shell/verb/` (`VerbStage` and
@@ -241,7 +241,7 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
 ## Decisions made during the build (2026-10-15)
 
 - Sign and Redact share the new empty-state sheet (white, content height) ahead of HERO-05, rather
-  than keeping the old dashed paper strip. Their own first-screen layout still waits for HERO-05.
+  than keeping the old dashed paper strip. (Superseded: HERO-05 gave them the page-grid first screen.)
 - The On-device chip is outlined on every page except home (`src/components/AppBar.astro`), content
   pages included, not only tool pages.
 - The compress verbs show what compression really does: the same document at a lower resolution, text
@@ -296,7 +296,44 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
   Loupe's CSS lengthened the inline stylesheet, which moved the parser's paint point into the hero; the
   marker removes the class of bug rather than that instance.
 
+- Vertical balance (`7bfc6c02`, Shlomi: the sheets were top-heavy and Compress was cramped). Every
+  page-grid sheet centres its content (24px above against up to 64px below before), held hidden until
+  fully parsed by an end marker so a partial paint cannot move it. Compress and Compress Image put the
+  picture beside the words, centre the words against it, and centre their column against the hero. The
+  quality cards' pros and cons open together behind one toggle, and the greyed-out button waits for a
+  file.
+- Merge's phone tile stays beside the name (`55b13f13`). The stacked hero put the tile above the h1 and
+  cost the phone first screen 29px (51px on Linux fonts, where the second h1 line wraps). The sticky
+  Download sheet can only rise to the top of its own container, so it ended 14px below a 659px viewport
+  and the WebKit job on main failed (run 38712678326). Back beside the name it measures 621.9px. The
+  hero-icon guard (`d1f0c7b5`) checks the tile lines up with the first line there, within 4px.
+- Compress Image's hand-off marker (`1f81c39a`): the launcher saved the hand-off under the compress key,
+  so the pre-paint script never saw the marker. The marker is now written and cleared under every page
+  a hand-off key opens. If the island never loads, a CSS-only reveal after 6s brings the page back, and
+  an unmounted intake releases the marker.
+- DEBT-52 (`8dc1b5bb`, `822f03c8`): Compress's note slot is as tall as its tallest note, so no analysis
+  outcome shifts the options. When no note shows, the slot is empty space: an accepted gap.
+- Hebrew drag caption (`ade5f01c`): Shlomi's singular, "גררו לכאן כדי להוסיף קובץ", on every one-file
+  tool; Merge and Image to PDF keep the plural. He kept the loaded card at its full-screen height
+  (2026-10-15).
+- HERO-05, the editors (`7f24c0bd`, `bf617824`, `825d6e7d`, `16e1a61b`):
+  - Sign's verb: a field types a name, then a signature writes along its line. The name is CSS
+    generated content, so the indexed page gains no text; Hebrew gets its own name, right to left
+    (נועה לוי).
+  - Redact's verb leads with blur, because "blur pdf" is that page's search intent and h1: a frosted box
+    sweeps two lines, then a footer watermark is whited out.
+  - At 1024px and up, with nothing loaded and no draft restoring, the editors use the page-grid first
+    screen. Phone Sign and Redact are unchanged to the pixel (rects of tile, h1, subhead, note, main and
+    stage at 390, 768 and 1023, before and after). Loaded and restoring editors look as before.
+  - Drop anywhere is on. A drop over an open editor goes through the replace confirmation. A file whose
+    type is known and not accepted skips the question and the tool says it cannot open it; a file with
+    no type always asks, since a real PDF from some sources has none.
+  - The hand-off marker covers the editors, so a file from Merge's Sign button or the home launcher does
+    not paint the empty first screen and then collapse it.
+  - Rejecting a stale restore marker moves the hero 0.041, accepted like Merge's 0.04 and recorded in
+    the spec.
+
 ## Open questions
 
-- The drag-over caption's English and Hebrew wording (Shlomi).
-- Whether the built left column reads as finished without the button (decision above).
+
+None open.
