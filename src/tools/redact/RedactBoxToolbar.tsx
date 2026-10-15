@@ -21,6 +21,7 @@ export interface RedactBoxToolbarProps {
   onRepeatOnEveryPage?: () => void;
   repeatGroupSize?: number;
   onUnlinkFromGroup?: () => void;
+  onKeepOnlyThisPage?: () => void;
   onRemoveGroup?: () => void;
   findSetSize?: number;
   onRemoveFindSet?: () => void;
@@ -38,7 +39,7 @@ const pagesIcon = <Layers size={18} />;
  */
 export default function RedactBoxToolbar({
   element, eyedropping, onToggleEyedropper, onMatchPage, onPickColor, onChangeStrength,
-  onDuplicate, onDelete, onRepeatOnEveryPage, repeatGroupSize, onUnlinkFromGroup,
+  onDuplicate, onDelete, onRepeatOnEveryPage, repeatGroupSize, onUnlinkFromGroup, onKeepOnlyThisPage,
   onRemoveGroup, findSetSize, onRemoveFindSet, recentColors = [],
 }: RedactBoxToolbarProps) {
   const isWhiteout = element.type === 'whiteout' || element.type === 'whiteoutStroke';
@@ -86,13 +87,16 @@ export default function RedactBoxToolbar({
         {linked ? (
           <ToolbarMenu
             title={groupLabel}
-            heading={groupLabel}
+            heading={formatMessage(t.repeatGroupHeadingTemplate, { n: repeatGroupSize })}
             triggerClassName={wide}
             triggerAttrs={{ 'data-editor-repeat-group-trigger': true }}
             triggerContent={<>{pagesIcon}<span className={styles.label}>{groupLabel}</span></>}
             items={[
               ...(onRepeatOnEveryPage
                 ? [{ label: t.repeatGroupFill, onSelect: onRepeatOnEveryPage, attrs: { 'data-editor-repeat-group-fill': true } }]
+                : []),
+              ...(onKeepOnlyThisPage
+                ? [{ label: t.repeatGroupKeepOnly, onSelect: onKeepOnlyThisPage, attrs: { 'data-editor-repeat-group-keep-only': true } }]
                 : []),
               ...(onUnlinkFromGroup
                 ? [{ label: t.repeatGroupUnlink, onSelect: onUnlinkFromGroup, attrs: { 'data-editor-repeat-group-unlink': true } }]
