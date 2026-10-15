@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { mergePdfs, MergeFileError } from '../merge.js';
+import { reportableCause } from '../reportableCause.ts';
 import { outputPageCount, toMergeMap, type PlanEntry } from '../mergePlan.ts';
 import { useObjectUrls } from '../../../lib/useObjectUrls.js';
 import { reportError } from '../../../lib/errorReport.ts';
@@ -98,7 +99,8 @@ export function usePreparedMerge(input: PreparedMergeInput): PreparedMerge {
         setState((current) => ({ status: 'ready', blob, pageCount: outputPageCount(plan), error: null, generation: current.generation + 1 }));
       } catch (error) {
         if (controller.signal.aborted || (error as DOMException)?.name === 'AbortError') return;
-        reportError('pdf_tool_run', error, 'build_merge');
+        const cause = reportableCause(error);
+        if (cause) reportError('pdf_tool_run', cause, 'build_merge');
         console.error(error);
         setState((current) => ({ status: 'error', blob: null, pageCount: 0, error: error as Error, generation: current.generation }));
       }

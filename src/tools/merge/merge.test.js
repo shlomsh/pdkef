@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it, vi } from 'vitest';
-import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreationDate } from './merge.js';
 
@@ -252,6 +252,17 @@ describe('mergePdfs library integration with real fixtures', () => {
       const info = await inspectPdf(file, 0);
       expect(info.encrypted).toBe(true);
       expect(info.pageCount).toBe(1);
+    });
+
+    it('inspectPdf opens a file whose /CreationDate is empty or malformed, with no date', async () => {
+      // A real Clalit form carries `/CreationDate ()`; pdf-lib's getCreationDate throws on it.
+      for (const value of ['', 'not a date']) {
+        const doc = await PDFDocument.create();
+        doc.addPage();
+        doc.context.lookup(doc.context.trailerInfo.Info).set(PDFName.of('CreationDate'), PDFString.of(value));
+        const file = new File([await doc.save()], 'empty-date.pdf', { type: 'application/pdf' });
+        await expect(inspectPdf(file, 0)).resolves.toEqual({ pageCount: 1, encrypted: false, creationDate: null });
+      }
     });
 
     it('inspectPdf rejects with MergeFileError reason "unreadable" for garbage bytes', async () => {
