@@ -619,7 +619,7 @@ export const tools = [
     h1: 'Compress Image to 100KB Free: Reduce Photo Size',
     h1Name: 'Compress Image to 100KB',
     subhead:
-      'Shrink a JPG or PNG photo to a size limit like 100KB, or 20KB for portals that cap the photo separately. Pick the target and check the result; a very small target on a large photo may not be reachable. Free, open source, and your photo stays on your device.',
+      'Shrink a JPG or PNG photo to a size limit like 100KB, or 20KB for portals that cap the photo separately. The smaller photo and its size show as soon as you pick it, and you can set any other limit. Free, open source, and your photo stays on your device.',
     ariaLabel: 'Compress image tool',
     aboutHeading: 'How to compress an image online for free',
     aboutLead:
