@@ -190,7 +190,7 @@
   .help-idle { display: none; }
   /* A count goes the same way the idle tip does, and for the same reason:
      this cell is the filename's, and the file's own name is worth more than
-     "7 form fields found" to someone who can see the outlines by arming a
+     a count to someone who can see the outlines by arming a
      tool. `display: none` rather than `visibility`, so it does not vote on
      the row's height either. */
   .help-fields { display: none; }

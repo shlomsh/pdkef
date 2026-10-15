@@ -391,11 +391,8 @@ export default function SignToolbar({
   // FORM-11: the detector's report, worded here because TOOL_COPY owns every
   // tool-facing string (CLAUDE.md's editor rule) and `t` is where a locale's
   // edition of it arrives. Four states, three of them things worth saying:
-  //   - pending: null, so the line stays empty rather than flashing a count
-  //     that is about to change, or claiming "none" before anyone has looked.
-  //   - done with a count: what was found, without claiming it is everything
-  //     (the detector runs at roughly 85% recall on a real form).
-  //   - done with nothing: an answer about the document.
+  //   - pending and done: null. No count, no "none found": the detector
+  //     drives fill mode and says nothing about the document.
   //   - failed: an answer about us - the detector ran on this file and threw.
   //   - unavailable: the detector never loaded, which a shell cached before a
   //     deploy causes and reopening the page usually clears. It is the one a
@@ -415,11 +412,8 @@ export default function SignToolbar({
       if (formDetection.state === 'not-started') return t.fieldsCheckNotStarted;
       if (formDetection.state === 'unavailable') return t.fieldsCheckUnavailable;
       if (formDetection.state === 'failed') return t.fieldsCheckFailed;
-      if (formDetection.count === 0) return t.fieldsFoundNone;
-      return formatMessage(
-        formDetection.count === 1 ? t.fieldsFoundOne : t.fieldsFoundOther,
-        { count: formDetection.count },
-      );
+      // A clean run is silent: Sign never claims what a form has or needs.
+      return null;
     })(),
   };
 
