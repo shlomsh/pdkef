@@ -8,6 +8,7 @@ import { deriveFileKind } from '../../lib/fileKind.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import CompressVerb from './verb/CompressVerb.tsx';
 import styles from './PdfCompressTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
@@ -900,6 +901,7 @@ export default function PdfCompressTool({
 
   return (
     <BasePdfTool
+      emptyArt={<CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />}
       hasFiles={hasFiles}
       analyticsTool={analyticsTool}
       analyticsStatus={status}

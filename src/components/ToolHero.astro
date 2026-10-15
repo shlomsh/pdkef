@@ -116,9 +116,18 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
       return <span data-hero-sentence>{sentenceBefore}<span data-hero-accent>{subheadAccent}</span>{sentenceAfter}</span>;
     })}
   </p>
+  <i class="tool-hero-end" hidden></i>
 </header>
 
 <style>
+  /* The hero is centred in the first screen, so a paint of a partly parsed
+     hero (the icon alone, 74px tall) placed it 143px low and the rest of it
+     pulled it up: CLS 0.015 on /compress/, one load in three. Same end marker
+     as TrustChips.astro. */
+  .tool-hero:not(:has(> .tool-hero-end)) {
+    visibility: hidden;
+  }
+
   /* The icon tile's gradient and text color, keyed off `data-tone` (see the
      frontmatter comment above): plain CSS instead of three arbitrary-value
      Tailwind class strings, which the toolPage entry sheet used to compile in

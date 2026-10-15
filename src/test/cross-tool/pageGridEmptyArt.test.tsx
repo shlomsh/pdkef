@@ -21,14 +21,14 @@ const WITH_VERB = [
   ['security (unlock/protect)', () => <PdfSecurityTool />],
   ['edit-pages', () => <PdfEditPagesTool />],
   ['to-image', () => <PdfToImageTool />],
+  ['compress', () => <PdfCompressTool />],
+  ['compress-image', () => <PdfCompressTool analyticsTool="compress-image" initialMode="target" />],
 ];
 
 // An entry leaves this list when its verb ships (and moves to WITH_VERB), so the list can
 // only shrink.
 const PENDING = [
   ['split', () => <PdfSplitTool />],
-  ['compress', () => <PdfCompressTool />],
-  ['compress-image', () => <PdfCompressTool analyticsTool="compress-image" initialMode="target" />],
 ];
 
 let container;

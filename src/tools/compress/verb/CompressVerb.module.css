@@ -1,0 +1,317 @@
+/* Base styles are the LAST frame: the piece at 92%, its photo at the coarsest mosaic, text blurred.
+   Sketch lengths (docs/tool-hero-sketch/compress-verbs.html, R2) times 1.18, in --u. */
+.pc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 calc(9 * var(--u)) calc(19 * var(--u)) calc(-12 * var(--u))
+      color-mix(in srgb, var(--color-night) 40%, transparent);
+  font-style: normal;
+  scale: 0.92;
+}
+
+.page {
+  width: calc(132 * var(--u));
+  height: calc(175 * var(--u));
+  margin: calc(-90 * var(--u)) 0 0 calc(-66 * var(--u));
+  border-radius: calc(6 * var(--u));
+  --pw: calc(109 * var(--u));
+  --ph: calc(73 * var(--u));
+}
+
+.print {
+  width: calc(165 * var(--u));
+  height: calc(132 * var(--u));
+  margin: calc(-68 * var(--u)) 0 0 calc(-83 * var(--u));
+  border-radius: calc(5 * var(--u));
+  --pw: calc(146 * var(--u));
+  --ph: calc(94 * var(--u));
+}
+
+.hd {
+  position: absolute;
+  left: calc(12 * var(--u));
+  top: calc(12 * var(--u));
+  width: calc(38 * var(--u));
+  height: calc(5 * var(--u));
+  border-radius: calc(2 * var(--u));
+  background: var(--color-primary);
+  opacity: 0.6;
+  filter: blur(calc(1 * var(--u)));
+}
+
+.ln {
+  position: absolute;
+  left: calc(12 * var(--u));
+  right: calc(12 * var(--u));
+  top: calc(28 * var(--u));
+  height: calc(37 * var(--u));
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-border) 0 calc(4 * var(--u)),
+    transparent calc(4 * var(--u)) calc(11 * var(--u))
+  );
+  opacity: 0.55;
+  filter: blur(calc(1 * var(--u)));
+}
+
+/* the last line is short */
+.ln::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: calc(21 * var(--u));
+  width: 45%;
+  height: calc(6 * var(--u));
+  background: var(--color-surface);
+}
+
+.page > .pb {
+  left: calc(12 * var(--u));
+  top: calc(78 * var(--u));
+}
+
+.print > .pb {
+  left: calc(9 * var(--u));
+  top: calc(9 * var(--u));
+}
+
+/* The photo: the smooth scene, then three flat-colour mosaics over it (fine, medium, coarse) */
+.pb {
+  position: absolute;
+  width: var(--pw);
+  height: var(--ph);
+  border-radius: calc(2 * var(--u));
+  overflow: hidden;
+  filter: contrast(0.8) saturate(0.82);
+  font-style: normal;
+  background:
+    radial-gradient(circle at 72% 28%, var(--color-airplane-mode) 0 11%, transparent 11.5%),
+    linear-gradient(
+      155deg,
+      transparent 52%,
+      var(--color-border-strong) 52% 74%,
+      var(--color-primary) 74%
+    ),
+    linear-gradient(var(--color-primary-tint), var(--color-primary-soft));
+}
+
+.mos {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.skyHigh {
+  fill: var(--color-primary-tint);
+}
+
+.skyLow {
+  fill: var(--color-primary-soft);
+}
+
+.hill {
+  fill: var(--color-border-strong);
+}
+
+.ground {
+  fill: var(--color-primary);
+}
+
+.sun {
+  fill: var(--color-airplane-mode);
+}
+
+/* The loupe over the photo's right corner, showing a second copy of the photo at 2.5x */
+.lp {
+  position: absolute;
+  width: calc(66 * var(--u));
+  height: calc(66 * var(--u));
+  z-index: 5;
+  --fx: 0.76;
+  --fy: 0.3;
+}
+
+.page > .lp {
+  left: calc(59 * var(--u));
+  top: calc(65 * var(--u));
+}
+
+.print > .lp {
+  left: calc(83 * var(--u));
+  top: calc(5 * var(--u));
+}
+
+.hnd {
+  position: absolute;
+  left: calc(30 * var(--u));
+  top: calc(33 * var(--u));
+  width: calc(8 * var(--u));
+  height: calc(73 * var(--u));
+  border-radius: calc(5 * var(--u));
+  background: var(--color-primary);
+  transform-origin: 50% 0;
+  rotate: -45deg;
+  box-shadow: 0 calc(5 * var(--u)) calc(7 * var(--u)) calc(-2 * var(--u))
+    color-mix(in srgb, var(--color-night) 40%, transparent);
+}
+
+.lz {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: calc(4 * var(--u)) solid var(--color-primary);
+  background: var(--color-surface);
+  overflow: hidden;
+  box-shadow: 0 calc(7 * var(--u)) calc(14 * var(--u)) calc(-7 * var(--u))
+    color-mix(in srgb, var(--color-night) 50%, transparent);
+}
+
+.lz::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-surface) 35%, transparent),
+    transparent 40%
+  );
+}
+
+.lz > .pb {
+  left: 0;
+  top: 0;
+  border-radius: 0;
+  transform-origin: 0 0;
+  transform: translate(
+      calc(29 * var(--u) - var(--fx) * var(--pw) * 2.5),
+      calc(29 * var(--u) - var(--fy) * var(--ph) * 2.5)
+    )
+    scale(2.5);
+}
+
+@keyframes shrink {
+  0%,
+  10% {
+    scale: 1;
+  }
+}
+
+@keyframes txt {
+  0%,
+  12% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  25%,
+  40% {
+    opacity: 0.85;
+    filter: blur(calc(0.35 * var(--u)));
+  }
+  52%,
+  66% {
+    opacity: 0.7;
+    filter: blur(calc(0.65 * var(--u)));
+  }
+  78%,
+  100% {
+    opacity: 0.55;
+    filter: blur(calc(1 * var(--u)));
+  }
+}
+
+@keyframes tone {
+  0%,
+  12% {
+    filter: contrast(1) saturate(1);
+  }
+  25%,
+  40% {
+    filter: contrast(0.93) saturate(0.93);
+  }
+  52%,
+  66% {
+    filter: contrast(0.86) saturate(0.87);
+  }
+  78%,
+  100% {
+    filter: contrast(0.8) saturate(0.82);
+  }
+}
+
+@keyframes l1 {
+  0%,
+  14% {
+    opacity: 0;
+  }
+  15%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes l2 {
+  0%,
+  41% {
+    opacity: 0;
+  }
+  42%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes l3 {
+  0%,
+  67% {
+    opacity: 0;
+  }
+  68%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes lpIn {
+  0% {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pc {
+    animation: shrink 2.3s var(--ease-emphasized) 0.15s both;
+  }
+
+  .ln,
+  .hd {
+    animation: txt 2.3s linear 0.15s both;
+  }
+
+  .pb {
+    animation: tone 2.3s linear 0.15s both;
+  }
+
+  .m1 {
+    animation: l1 2.3s linear 0.15s both;
+  }
+
+  .m2 {
+    animation: l2 2.3s linear 0.15s both;
+  }
+
+  .m3 {
+    animation: l3 2.3s linear 0.15s both;
+  }
+
+  .lp {
+    animation: lpIn 0.45s var(--ease-emphasized) 0.1s both;
+  }
+}
