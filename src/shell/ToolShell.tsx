@@ -18,6 +18,12 @@ interface ToolShellContextValue {
   requestClear: () => void;
   fileLabel?: string;
   fileMeta?: string;
+  /** Tool-owned content on the meta line, after the file meta (e.g. a size
+   * before and after). Strip only; the editor variant ignores it. */
+  metaExtra?: ComponentChildren;
+  /** Tool-owned note under the meta line. Always reserves two lines in the
+   * strip so its height never changes. The editor variant ignores it. */
+  note?: ComponentChildren;
   /** The loaded file itself, single-file tools only (BasePdfTool drops this
    * for `multiple` tools - see its own comment). Optional and usually absent:
    * only lets the identity row show a real thumbnail (FilePreview.tsx)
@@ -138,7 +144,7 @@ export function useToolShell() {
  * it.
  */
 export default function ToolShell({ editor = false, inlineStatus = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
-  const { fileLabel, fileMeta, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
+  const { fileLabel, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved }
     : draftSaveState === 'unpersisted'
@@ -163,7 +169,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
           <span class={styles.name} title={fileLabel || undefined}>
             {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
           </span>
-          {(fileMeta || draftStatus) && (
+          {(fileMeta || draftStatus || (!editor && metaExtra)) && (
             <span class={styles.meta}>
               {fileMeta && <span class={styles['meta-text']}>{fileMeta}</span>}
               {draftStatus && (
@@ -179,6 +185,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
                   )}
                 </span>
               )}
+              {!editor && metaExtra}
             </span>
           )}
         </span>
@@ -187,6 +194,8 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
       </div>
 
       <div class={styles.controls}>{children}</div>
+
+      {!editor && note && <div class={styles.note}>{note}</div>}
     </div>
   );
 }

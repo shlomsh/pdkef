@@ -38,6 +38,9 @@ interface BasePdfToolProps {
   emptyStateMessage?: string;
   fileLabel?: string;
   fileMeta?: string;
+  /** Optional tool content after the file meta, and a note under it (the shell strip's slots). */
+  fileMetaExtra?: ComponentChildren;
+  fileNote?: ComponentChildren;
   /** The loaded file itself, for a single-file tool that already holds it in
    * its own state (see PdfCompressTool.tsx for the shape - `fileLabel`/
    * `fileMeta` derived alongside it). Passed straight through to the shell
@@ -103,6 +106,8 @@ export default function BasePdfTool({
   emptyStateMessage,
   fileLabel,
   fileMeta,
+  fileMetaExtra,
+  fileNote,
   file = null,
   draftSaveState = 'idle',
   /* List tools only. Its presence is what puts a Clear all beside Add files:
@@ -356,7 +361,7 @@ export default function BasePdfTool({
   // and any other `multiple` tool has its own list of thumbnails, so `file`
   // is dropped here regardless of what a tool passes in, rather than trusting
   // every call site to gate it itself.
-  const shell = { fileLabel, fileMeta, file: multiple ? null : file, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
+  const shell = { fileLabel, fileMeta, metaExtra: fileMetaExtra, note: fileNote, file: multiple ? null : file, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
 
   return (
     <ToolShellContext.Provider value={shell}>

@@ -521,6 +521,20 @@ describe('BasePdfTool', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
   });
 
+  it('passes fileNote and fileMetaExtra through to the rendered shell', () => {
+    mount({
+      hasFiles: true,
+      onFilesAdded: vi.fn(),
+      multiple: false,
+      fileLabel: 'a.pdf',
+      fileMeta: '1 page',
+      fileMetaExtra: <span data-extra>extra</span>,
+      fileNote: <span data-note-content>note</span>,
+    });
+    expect(container.querySelector(`.${toolShellStyles.meta} [data-extra]`)).not.toBeNull();
+    expect(container.querySelector(`.${toolShellStyles.note} [data-note-content]`)).not.toBeNull();
+  });
+
   // Merge (and any other `multiple` tool) has its own list thumbnails, so
   // BasePdfTool drops `file` regardless of what a tool passes - see its own
   // comment above the shell context value.
