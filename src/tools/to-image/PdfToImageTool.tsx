@@ -241,7 +241,25 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
           </div>
 
           <div class={styles.toolbar} role="group" aria-label={t.qualityGroupLabel}>
-            <span class={styles['toolbar-label']}>{t.qualityLabel}</span>
+            {/* The info icon belongs to the label, so it never wraps onto a
+                line of its own below the presets on a phone. */}
+            <span class={styles['toolbar-label']}>
+              {t.qualityLabel}
+              <span class={styles['info-icon']} tabIndex={0} aria-describedby="quality-tooltip">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.6" />
+                  <path d="M12 11v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                  <circle cx="12" cy="7.75" r="1.05" fill="currentColor" />
+                </svg>
+                <span class={styles['tooltip-bubble']} role="tooltip" id="quality-tooltip">
+                  {SCALE_OPTIONS.map((option) => (
+                    <span key={option.value} class={styles['tooltip-row']}>
+                      <strong>{option.label}</strong> {option.hint}
+                    </span>
+                  ))}
+                </span>
+              </span>
+            </span>
             {SCALE_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -252,20 +270,6 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
                 {option.label}
               </button>
             ))}
-            <span class={styles['info-icon']} tabIndex={0} aria-describedby="quality-tooltip">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.6" />
-                <path d="M12 11v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="7.75" r="1.05" fill="currentColor" />
-              </svg>
-              <span class={styles['tooltip-bubble']} role="tooltip" id="quality-tooltip">
-                {SCALE_OPTIONS.map((option) => (
-                  <span key={option.value} class={styles['tooltip-row']}>
-                    <strong>{option.label}</strong> {option.hint}
-                  </span>
-                ))}
-              </span>
-            </span>
           </div>
 
           <div class={styles.toolbar} role="group" aria-label={t.layoutGroupLabel}>
@@ -282,7 +286,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
             ))}
           </div>
 
-          <div class={pdfToolStyles['page-selector-field']}>
+          <div class={`${pdfToolStyles['page-selector-field']} ${styles['pages-field']}`}>
             <label class={pdfToolStyles['page-selector-label']} for="page-selector-input">
               {t.pagesLabel}
             </label>
@@ -342,6 +346,10 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages }
               ) : (
                 <>
                   <button ref={downloadRef} type="button" class={pdfToolStyles['download-button']} onClick={downloadAll}>
+                    <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                      <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    </svg>
                     {formatMessage(t.downloadMany, { count: images.length })}
                   </button>
                   <ul class={fileListStyles['file-list']}>

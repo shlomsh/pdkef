@@ -42,3 +42,50 @@
     height: 20px;
   }
 }
+
+/* The controls row's groups sit inline on desktop, 0.5rem apart like the
+   buttons inside them. */
+.selection-group,
+.history-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Phones, three lines: what to keep in equal thirds; Undo and Redo in equal
+   halves; the page-numbers setting at the start with the drag hint at the
+   end. Every button is 44px tall; the setting keeps its 44px target while its
+   ink, the checkbox, starts on the content edge like the buttons above. */
+@media (max-width: 767px) {
+  .actions-row:is(div) {
+    gap: 0.5rem;
+  }
+
+  .selection-group,
+  .history-group {
+    flex: 1 1 100%;
+  }
+
+  .selection-group > button,
+  .history-group > button {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
+
+  .actions-row > label:is(label) {
+    padding-inline: 0;
+  }
+
+  .actions-row > label input[type='checkbox'] {
+    margin: 0;
+  }
+
+  /* The setting line sits 20px of ink from the buttons above (8px gap plus
+     its 44px band's 12px); the grid's margin matches it below. */
+  .actions-row:is(div) + [role='group'] {
+    margin-top: 0.5rem;
+  }
+
+  .actions-row > span:last-child {
+    margin-inline-start: auto;
+  }
+}

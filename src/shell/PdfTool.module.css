@@ -272,6 +272,11 @@
   width: 100%;
   margin-top: var(--space-4);
   padding: 1rem;
+  /* PDF to Image's "Download all" is a <button>, not a link: without these it
+     kept the browser's grey button border and system font. */
+  border: 0;
+  font: inherit;
+  cursor: pointer;
   text-align: center;
   font-weight: 600;
   font-size: 1.02rem;
