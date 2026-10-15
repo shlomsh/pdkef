@@ -70,14 +70,14 @@ sections:
         items:
           - 'Buka <a href="/compress/">kompresor PDF PDkef</a> dan pilih dokumen dari perangkat Anda; berkasnya tetap di situ.'
           - >-
-            Pilih mode "Target Size" (ukuran target) dan masukkan angka yang diminta portal, misalnya
+            Pilih level "Exact size" (ukuran target) dan masukkan angka yang diminta portal, misalnya
             1 MB.
           - >-
-            Tekan tombol "Compress" (kompres). Prosesnya berjalan di perangkat Anda dan biasanya
-            selesai dalam hitungan detik.
+            Berkas langsung dikompres begitu dipilih, dan dikompres ulang setiap kali Anda mengubah
+            pilihan. Prosesnya berjalan di perangkat Anda dan biasanya selesai dalam hitungan detik.
           - 'Unduh hasilnya dan periksa dulu sebelum diunggah ke portal.'
       - kind: 'table'
-        caption: 'Setiap baris dihasilkan dari berkas uji (satu formulir buatan yang dibuat menyerupai scan HP, sekitar 410 KB per halaman) yang dijalankan lewat mode Target Size PDkef pada target 1 MB.'
+        caption: 'Setiap baris dihasilkan dari berkas uji (satu formulir buatan yang dibuat menyerupai scan HP, sekitar 410 KB per halaman) yang dijalankan lewat level Exact size PDkef pada target 1 MB.'
         headers: ['Jumlah halaman', 'Ukuran asli', 'Hasil pada target 1 MB', 'Kondisi']
         rows:
           - ['2 halaman', '0,80 MB', 'tidak diubah, sudah di bawah target', 'tajam']
@@ -164,7 +164,7 @@ sections:
           ketat daripada semua batas resmi di bagian pertama. Kalau atasan atau portal yang lebih
           kecil memintanya, begini gambaran nyatanya.
       - kind: 'table'
-        caption: 'Tiga berkas uji yang sama dijalankan lewat mode Target Size PDkef pada target 200 KB.'
+        caption: 'Tiga berkas uji yang sama dijalankan lewat level Exact size PDkef pada target 200 KB.'
         headers: ['Jumlah halaman', 'Ukuran asli', 'Hasil pada 200 KB', 'Kondisi']
         rows:
           - ['2 halaman', '0,80 MB', '193 KB', 'tajam']
@@ -216,5 +216,5 @@ faq:
   - question: 'Kenapa alatnya berbahasa Inggris?'
     answer: >-
       Karena baru panduan ini yang sudah diterjemahkan ke Bahasa Indonesia untuk sekarang; tombolnya
-      sendiri masih berbahasa Inggris. Yang perlu Anda tahu: mode ukuran target bernama "Target Size",
-      dan tombol untuk memulai kompresi bernama "Compress".
+      sendiri masih berbahasa Inggris. Yang perlu Anda tahu: level ukuran target bernama "Exact size",
+      dan berkas dikompres langsung begitu Anda memilihnya.

@@ -42,7 +42,7 @@ sections:
     heading: 'What 100KB actually looks like at different page counts'
     blocks:
       - kind: 'table'
-        caption: 'Every row was produced by running the file through PDkef''s own Target Size mode at 100KB. The scans are one generated phone-style form, about 410 KB a page, with fresh grain on every page.'
+        caption: 'Every row was produced by running the file through PDkef''s own Exact size level at 100KB. The scans are one generated phone-style form, about 410 KB a page, with fresh grain on every page.'
         headers: ['Document', 'Original size', 'Result at a 100KB target', 'Still readable?']
         rows:
           - ['One typed page (native PDF text)', '2.9 KB', 'Kept unchanged, already under target', 'Yes, perfectly, it was never touched']
@@ -141,7 +141,7 @@ sections:
     blocks:
       - kind: 'prose'
         text: >-
-          <a href="/compress/">Open the free PDF compressor</a>, choose Target Size, and enter the
+          <a href="/compress/">Open the free PDF compressor</a>, choose Exact size, and enter the
           limit your portal actually asks for. The file never leaves your device, so there is no
           upload wait to find out whether it fits: you will know in seconds, and you can raise the
           target or split the file if it does not.
