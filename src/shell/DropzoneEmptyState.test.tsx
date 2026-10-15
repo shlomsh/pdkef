@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import styles from './Dropzone.module.css';
+import { hebrewShellMessages } from '../i18n/toolMessages';
 
 const IPHONE_NAVIGATOR = {
   platform: 'iPhone',
@@ -137,5 +138,27 @@ describe('DropzoneEmptyState', () => {
     const input = container.querySelector('input[type="file"]');
     expect(input.hasAttribute('hidden')).toBe(false);
     expect(input.className).toContain(styles['file-input']);
+  });
+
+  describe('drag-over caption', () => {
+    const caption = () => container.querySelector(`.${styles['dropzone-text']} strong.${styles['drag-caption']}`);
+
+    it('renders the many caption in English, without adding a span to the heading', () => {
+      mount({ showIosFilesHint: false });
+      expect(caption().textContent).toBe('Let go to add your files');
+      expect(container.querySelectorAll('strong span')).toHaveLength(0);
+    });
+
+    it('renders the one caption for single-file tools', () => {
+      mount({ showIosFilesHint: false, multiple: false });
+      expect(caption().textContent).toBe('Let go to add your file');
+    });
+
+    it('uses the Hebrew messages', () => {
+      mount({ showIosFilesHint: false, messages: hebrewShellMessages });
+      expect(caption().textContent).toBe('גררו לכאן כדי להוסיף קבצים');
+      mount({ showIosFilesHint: false, messages: hebrewShellMessages, multiple: false });
+      expect(caption().textContent).toBe('גררו לכאן כדי להוסיף קבצים');
+    });
   });
 });

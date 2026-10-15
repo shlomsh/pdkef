@@ -1740,6 +1740,9 @@ export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId)
 export interface ShellMessages {
   dropHereMany: string;
   dropHereOne: string;
+  /** Replaces the sheet's heading, by CSS alone, while a file is dragged over the page. */
+  dragCaptionMany: string;
+  dragCaptionOne: string;
   chooseFilesMany: string;
   chooseFileOne: string;
   privacyLine: string;
@@ -1810,6 +1813,8 @@ export interface ShellMessages {
 const englishShellMessages: ShellMessages = {
   dropHereMany: 'Drop PDFs here',
   dropHereOne: 'Drop PDF here',
+  dragCaptionMany: 'Let go to add your files',
+  dragCaptionOne: 'Let go to add your file',
   chooseFilesMany: 'Choose files',
   chooseFileOne: 'Choose file',
   privacyLine: 'Private. Files never leave your device.',
@@ -1862,6 +1867,8 @@ const englishShellMessages: ShellMessages = {
 const hebrewShellMessages: ShellMessages = {
   dropHereMany: 'גררו לכאן קבצי PDF',
   dropHereOne: 'גררו לכאן קובץ PDF',
+  dragCaptionMany: 'גררו לכאן כדי להוסיף קבצים',
+  dragCaptionOne: 'גררו לכאן כדי להוסיף קבצים',
   chooseFilesMany: 'בחירת קבצים',
   chooseFileOne: 'בחירת קובץ',
   privacyLine: 'פרטי. הקבצים לא עוזבים את המכשיר שלכם.',
