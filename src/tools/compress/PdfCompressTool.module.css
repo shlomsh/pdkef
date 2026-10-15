@@ -82,8 +82,12 @@
     justify-content: center;
   }
 
+  /* Narrow enough that a whole portrait page (A4 is the tallest common one,
+     1.414:1) fits in the first screen under the hero, card and label row
+     (about 210px at the top): 0.7 x the height left gives an A4 page that
+     much height. 560px is the cap on a tall screen. */
   .result > * {
-    max-width: 560px;
+    max-width: min(560px, calc((100svh - 210px) * 0.7));
   }
 }
 
