@@ -329,22 +329,29 @@ export default function PdfEditPagesTool() {
             </div>
           ) : (
             <>
-              <div class={styles['grid-actions']} role="toolbar" aria-label="Selection toolbar">
-                <button type="button" onClick={keepAll}>
-                  Keep all
-                </button>
-                <button type="button" onClick={removeAll}>
-                  Remove all
-                </button>
-                <button type="button" onClick={invertSelection}>
-                  Invert
-                </button>
-                <button type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo last change">
-                  Undo
-                </button>
-                <button type="button" onClick={handleRedo} disabled={!canRedo} aria-label="Redo last undone change">
-                  Redo
-                </button>
+              {/* Three groups, one kind of thing each: what to keep, history,
+                  the page-numbers setting. On a phone each group gets its own
+                  line (PdfEditPagesTool.module.css); on desktop they share one. */}
+              <div class={`${styles['grid-actions']} ${touchStyles['actions-row']}`} role="toolbar" aria-label="Selection toolbar">
+                <div class={touchStyles['selection-group']}>
+                  <button type="button" onClick={keepAll}>
+                    Keep all
+                  </button>
+                  <button type="button" onClick={removeAll}>
+                    Remove all
+                  </button>
+                  <button type="button" onClick={invertSelection}>
+                    Invert
+                  </button>
+                </div>
+                <div class={touchStyles['history-group']}>
+                  <button type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo last change">
+                    Undo
+                  </button>
+                  <button type="button" onClick={handleRedo} disabled={!canRedo} aria-label="Redo last undone change">
+                    Redo
+                  </button>
+                </div>
                 <label class={`${pdfToolStyles['page-numbers-toggle']} ${touchStyles['toggle-touch']}`}>
                   <input
                     type="checkbox"

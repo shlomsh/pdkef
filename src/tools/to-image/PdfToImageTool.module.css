@@ -14,10 +14,42 @@
 }
 
 .toolbar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
   color: var(--color-muted);
   font-size: 0.82rem;
   font-weight: 500;
   margin-inline-end: 0.2rem;
+}
+
+/* Phones: each group is its label on a line, then its options sharing the
+   card's full width in equal parts, 44px tall. Format splits in halves,
+   Quality in thirds; Output's two long options cannot share 345px, so each
+   takes the full width rather than leaving one stranded on a half-empty
+   line. */
+@media (max-width: 767px) {
+  .toolbar {
+    gap: 0.5rem;
+    margin-top: var(--space-4);
+  }
+
+  .toolbar-label {
+    flex-basis: 100%;
+    margin: 0;
+  }
+
+  .toolbar button {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+
+  /* Pages reads like the groups above it: label on its line, field below. */
+  .pages-field:is(div) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+    margin-top: var(--space-4);
+  }
 }
 
 .toolbar button {
@@ -75,8 +107,9 @@
   display: none;
   position: absolute;
   bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  /* Start-aligned to the icon beside the label, so it opens into the card,
+     never past the screen's start edge. */
+  inset-inline-start: 0;
   width: max-content;
   max-width: 260px;
   flex-direction: column;
