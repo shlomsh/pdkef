@@ -90,7 +90,8 @@
    height, so nothing below jumps up when the hero condenses. 5.5rem is the
    condensed hero (ToolHero.astro: 1rem + 2rem tile + 0.75rem + the stage's
    own spacing). `--first-screen` is defined on `.tool-stage`
-   (ToolPageLayout.astro); Sign and Redact have no data-layout. */
+   (ToolPageLayout.astro). Sign and Redact carry data-layout too (HERO-05), so a loaded
+   editor card keeps the full first-screen height on purpose. */
 @media (min-width: 1024px) {
   :global(html[data-view-density='condensed']) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded] {
     min-height: calc(var(--first-screen) - 5.5rem);

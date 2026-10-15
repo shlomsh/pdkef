@@ -1,16 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-// HERO guard (docs/tool-hero-show-the-verb.md, "Guards"): on the eight page-grid tools the whole
+// HERO guard (docs/tool-hero-show-the-verb.md, "Guards"): on the ten tools (the eight page-grid tools,
+// and Sign and Redact since HERO-05) the whole
 // first screen fits the viewport at desktop sizes (h1, the sheet, Choose files), How it works sits
 // below the fold, nothing overflows sideways and the verb animation shifts nothing. A file dropped
 // on the hero's text column loads, a drag over the page lights the stage, and reduced motion stops
 // the verb. jsdom has no layout, viewport, animation clock, layout-shift entries or media emulation,
 // so none of this can be proved there.
 
-const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/'];
+const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/', '/sign/', '/redact/'];
 const COMPACT = new Set(['/compress/', '/compress-image/']);
-const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/']);
+const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/', '/sign/']);
 const SIZES = [
   { width: 1280, height: 680, belowFold: true },
   { width: 1440, height: 820, belowFold: true },
@@ -183,7 +184,7 @@ test('dragging over the page lights the stage', async ({ page }) => {
 // before the empty state was parsed): the desktop grid keys on "nothing is loaded", never on the
 // empty state's own element, so it holds while that element is absent (streaming parse) or is
 // BasePdfTool's checking-draft placeholder (aria-busy, no data-empty-state).
-for (const route of ['/merge/', '/split/']) {
+for (const route of ['/merge/', '/split/', '/sign/', '/redact/']) {
   test(`${route} keeps the desktop grid while the empty state is missing or swapped for the placeholder`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 820 });
     await open(page, route);
@@ -229,6 +230,43 @@ for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900,
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
   });
+}
+
+// HERO-05: Sign and Redact carry the desktop first screen's markup at every width (the static HTML is
+// one document), so below 1024px each of its rules must be off: the stage stays a stack, the hero is
+// the row it always was (name and rest read as one inline line), the airplane line sits between the
+// hero and the card, and the How it works link is hidden. Phone Sign belongs to docs/sign-next-gen.md.
+for (const route of ['/sign/', '/redact/']) {
+  for (const [width, height] of [[390, 844], [768, 1024], [1023, 768]]) {
+    test(`${route} below the desktop first screen is unchanged at ${width}x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await open(page, route);
+      const probe = await page.evaluate(() => {
+        const stage = document.querySelector('.tool-stage');
+        const hero = document.querySelector('.tool-hero');
+        const note = document.querySelector('[data-airplane-note]');
+        const main = stage.querySelector('main');
+        const R = (e) => e.getBoundingClientRect();
+        const following = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+        return {
+          display: getComputedStyle(stage).display,
+          stacked: hero.hasAttribute('data-hero-stacked'),
+          name: getComputedStyle(hero.querySelector('[data-hero-name]')).display,
+          rest: getComputedStyle(hero.querySelector('[data-hero-rest]')).display,
+          domOrder: following(hero, note) && following(note, main),
+          visualOrder: R(hero).bottom <= R(note).top + 0.5 && R(note).bottom <= R(main).top + 0.5,
+          how: getComputedStyle(document.querySelector('[data-how-link]')).display,
+        };
+      });
+      expect(probe.display, 'stage').not.toBe('grid');
+      expect(probe.stacked, 'data-hero-stacked stays off').toBe(false);
+      expect(probe.name, 'name span').toBe('inline');
+      expect(probe.rest, 'rest span').toBe('inline');
+      expect(probe.domOrder, 'DOM order hero, note, card').toBe(true);
+      expect(probe.visualOrder, 'visual order hero, note, card').toBe(true);
+      expect(probe.how, 'How it works link').toBe('none');
+    });
+  }
 }
 
 test('/merge/ on a landscape phone keeps Choose files within two screens', async ({ page }) => {
