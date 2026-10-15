@@ -256,7 +256,7 @@ describe('PdfCompressTool UI flow', () => {
     expect(container.querySelector('[data-compress-status]')).toBeNull();
   });
 
-  it('a pick runs once at the recommended level, with no Compress button anywhere along the way', async () => {
+  it('a pick runs once at Balanced, with no run button to press', async () => {
     mount();
     const deferredRun = deferred();
     imagesLib.compressPdfImages.mockImplementation(() => deferredRun.promise);
