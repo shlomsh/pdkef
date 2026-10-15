@@ -1,12 +1,13 @@
-/* Base styles are the LAST frame: a white-bordered print, a little taller than the page, tilted 5 degrees. */
-.print {
+/* Base styles are the LAST frame: a white-bordered print, a little taller than the page, tilted 5 degrees.
+   The doubled class outranks paper.module.css's .photo rules whatever the stylesheet order. */
+.print.print {
   width: calc(84 * var(--u));
   height: calc(106 * var(--u));
   margin: calc(-55 * var(--u)) 0 0 calc(-42 * var(--u));
   rotate: 5deg;
 }
 
-.print::before {
+.print.print::before {
   inset: calc(8 * var(--u)) calc(8 * var(--u)) calc(28 * var(--u));
 }
 

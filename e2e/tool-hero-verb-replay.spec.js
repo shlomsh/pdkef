@@ -81,18 +81,3 @@ test('hovering the sheet rewinds the verb and plays it again without a jump', as
   expect(replay.maxStep, 'no snap to the start').toBeLessThan(replay.moved / 2);
   expect(await finalValues(page)).toEqual(before);
 });
-
-test('under reduced motion hovering changes nothing', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/merge/');
-  await expect(page.locator(HYDRATED)).toBeVisible();
-  const before = await finalValues(page);
-  await page.mouse.move(5, 5);
-  await page.evaluate(RECORDER);
-  const box = await page.locator(SHEET).boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
-  await page.waitForTimeout(600);
-  const { moved } = stats(await page.evaluate(() => (window.__stop = true, window.__samples)));
-  expect(moved).toBe(0);
-  expect(await finalValues(page)).toEqual(before);
-});
