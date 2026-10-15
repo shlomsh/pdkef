@@ -66,13 +66,18 @@ export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], fro
     // the tool shows its file, or at once when there is nothing to consume (a stale marker).
     takeHandoff(tool).then((value) => {
       clearHandoffPending(tool);
+      if (cancelled) {
+        // The hook went away before the read settled: nobody is left to show the file, so
+        // the held-back page must not stay hidden.
+        releaseHandoffPending();
+        return;
+      }
       const record = value as HandoffRecord | null;
       const files = record ? filesFromHandoff(record) : [];
       if (files.length === 0) {
         releaseHandoffPending();
         return;
       }
-      if (cancelled) return;
       cancelRelease = releaseHandoffPendingWhenLoaded();
       onFilesRef.current(files, record?.from);
     });

@@ -482,11 +482,27 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
        static stream and the airplane line stay out of paint until the tool
        shows its file, so nothing is painted that the arriving file replaces.
        useHandoffIntake removes the attribute once the tool has a file, or
-       at once when there was nothing to consume (a stale key). */
+       at once when there was nothing to consume (a stale key).
+
+       Safety net with no JS: if the island never loads (an uncached chunk
+       offline, a script error) nothing removes the attribute, so the hidden
+       parts run an animation that flips them back to visible after 6s. The
+       tool's own 8s release cap only starts once a file was read. */
     :global(html[data-handoff-pending]) .tool-stage main,
     :global(html[data-handoff-pending]) [data-tool-followups],
     :global(html[data-handoff-pending]) [data-airplane-note] {
       visibility: hidden;
+      animation-name: handoff-pending-reveal;
+      animation-duration: 0s;
+      animation-delay: 6s;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes handoff-pending-reveal {
+      to {
+        visibility: visible;
+      }
     }
 
     :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) .tool-stage main,

@@ -128,6 +128,20 @@ describe('useHandoffFilesIntake', () => {
     card.remove();
   });
 
+  it('releases the held-back page when the result resolves after unmount', async () => {
+    document.documentElement.setAttribute('data-handoff-pending', '1');
+    let resolveHandoff;
+    takeHandoffMock.mockReturnValueOnce(new Promise((r) => { resolveHandoff = r; }));
+    act(() => { render(<FilesHarness tool="merge" onFiles={vi.fn()} />, container); });
+    act(() => { render(null, container); });
+    await act(async () => {
+      resolveHandoff({ files: [{ fileName: 'late.pdf', fileBytes: buf(1) }] });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(document.documentElement.hasAttribute('data-handoff-pending')).toBe(false);
+  });
+
   it('drops a result that resolves after unmount', async () => {
     let resolveHandoff;
     takeHandoffMock.mockReturnValueOnce(new Promise((r) => { resolveHandoff = r; }));

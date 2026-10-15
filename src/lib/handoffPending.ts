@@ -8,12 +8,18 @@
  * script reads `pdkef:handoff-pending:<last path segment>` and sets `html[data-handoff-pending]`,
  * which makes the page behave like a Merge restore until the tool has a file.
  *
- * The key is the hand-off's own target key, which equals the page slug for every page-grid tool.
+ * Callers pass the hand-off key (the draft-store key, `handoffKeyFor` in routeFiles.ts). That
+ * equals the page slug for every page-grid tool but one: Compress Image is the Compress island in
+ * image mode, so the `compress` hand-off opens two pages. `PAGE_SLUGS` lists the page slugs a key
+ * opens; the marker is written and cleared under all of them, so the pre-paint script (which only
+ * knows the page slug) needs no mapping.
  * Sign and Redact resolve hand-offs through their editor restore (`data-editor-restore`), so they
  * never get one. The key text is also in ToolPageLayout.astro's hashed script: change both together.
  */
 const PREFIX = 'pdkef:handoff-pending:';
 const ATTRIBUTE = 'data-handoff-pending';
+const PAGE_SLUGS: Record<string, string[]> = { compress: ['compress', 'compress-image'] };
+const slugsFor = (key: string) => PAGE_SLUGS[key] ?? [key];
 const EDITOR_KEYS = new Set(['sign', 'redact']);
 /** A load that never shows a tool must not leave the page's body hidden for good. */
 const RELEASE_CAP_MS = 8000;
@@ -22,7 +28,7 @@ const LOADED = '[data-tool-loaded], [data-tool-shell]';
 export function markHandoffPending(tool: string): void {
   if (EDITOR_KEYS.has(tool)) return;
   try {
-    sessionStorage.setItem(PREFIX + tool, '1');
+    for (const slug of slugsFor(tool)) sessionStorage.setItem(PREFIX + slug, '1');
   } catch {
     // expected: storage blocked or full; the hand-off still loads, just with the late layout switch.
   }
@@ -31,7 +37,7 @@ export function markHandoffPending(tool: string): void {
 /** Drop the storage key now: it is a one-shot, so a reload must not hide the page again. */
 export function clearHandoffPending(tool: string): void {
   try {
-    sessionStorage.removeItem(PREFIX + tool);
+    for (const slug of slugsFor(tool)) sessionStorage.removeItem(PREFIX + slug);
   } catch {
     // expected: storage blocked; nothing was written, so there is nothing to clear.
   }
