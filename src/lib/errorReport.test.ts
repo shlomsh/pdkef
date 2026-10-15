@@ -44,6 +44,12 @@ describe('toErrorReport', () => {
     expect(toErrorReport('uncaught', 'a string', 'save_draft', CTX)).toBeNull();
     expect(toErrorReport('uncaught', { name: 'TypeError' }, 'save_draft', CTX)).toBeNull();
   });
+  it('reports a file pdf.js calls damaged, so a valid file it cannot parse is not invisible', () => {
+    for (const name of ['InvalidPDFException', 'MissingPDFException', 'FormatError']) {
+      expect(toErrorReport('pdf_render', errorAt('pdf.Ab12.js:1:1', 'x', name), 'load_document', CTX)).toMatchObject({ name, step: 'load_document' });
+    }
+    expect(toErrorReport('pdf_render', errorAt('pdf.Ab12.js:1:1', 'x', 'PasswordException'), 'load_document', CTX)).toBeNull();
+  });
   it('drops the pdf-lib encrypted-file error under a minified name, keeps an unrelated unnamed error', () => {
     const enc = errorAt(
       'PdfRedactTool.Ab12Cd.js:1:1',

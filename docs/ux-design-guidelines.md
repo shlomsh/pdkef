@@ -290,6 +290,44 @@ inherits:
 - **Every committed change is one undo step**, moves and typing included (UNDO-04). How undo announces
   itself on a phone is decided in the Sign guidelines §6.
 
+## 18. The loaded state gives the screen to the tool
+
+*(Compress, 2026-10-15)*
+
+Decided for Compress, whose loaded state stacked short, low-value
+bands (a large file card, a one-sentence note in its own tinted band, preset cards with badges that
+repeated their names) and pushed the tool and its result below the fold. The build is in progress;
+these are the rules it is built to, and the pattern every tool's loaded state follows. No other tool
+is claimed to comply yet.
+
+1. **The hero shrinks to one line once a file is loaded:** the icon and the h1. The subhead stays in
+   the HTML, hidden, so the SEO surface is unchanged (an opt-in on `ToolHero.astro`). It is also shrunk
+   from first paint while a hand-off is arriving, so the page never jumps.
+2. **The file is one compact strip, and it replaces the shell's file banner.** The tool sets
+   `hideIdentity` and renders its own row: a 40px thumbnail, the name, the size as "843 KB → 212 KB"
+   with a citron "N% smaller" tag, a note line that keeps two lines of space even when the note is
+   shorter (so the strip does not change height as the note changes), and a quiet Replace button.
+3. **The result is the centre** (§1). At 1024px and up there are two columns: the result in a `1fr`
+   column, and a 360px rail holding the strip, the controls and the primary control. Below 1024px it
+   is one column, in the order strip, controls, result, with the primary control pinned at the bottom
+   of the card (§15).
+4. **Work starts on pick and reruns on every option change** (§2): no run button where a sensible
+   default exists, the same way Merge has no Merge button. Only the latest request runs, never two in
+   parallel, and typing in a free-entry field (Compress's exact size) waits 500ms before rerunning.
+5. **Options are one segmented row:** 44px tall, equal columns, and only the selected option carries a
+   one-line description. The recommended option is marked by a dot, never a ribbon or a badge, and no
+   badge repeats an option's name.
+6. **On a phone, Download and Share are pinned at the bottom of the card.**
+7. **A second method is offered only once the first falls short** (§3). Compress's "Turn pages into
+   pictures" switch appears only when a result fell short (the images could not be recompressed, gave
+   no gain or only a slight one, or missed an exact-size target), or when it is already on. Its hint
+   names only what this file would lose: for a PDF with no text it reads "The smallest size for scans.
+   Small detail gets softer.", with no warning about text or links that are not there.
+
+The test, with a file loaded: at 1440x900 the before/after preview is fully inside the first
+viewport; at 375x812 the result area and the pinned Download are. No row above the result is a line
+of copy that could sit in the strip's note.
+
 ## The review questions
 
 Every tool review answers these.
@@ -314,3 +352,5 @@ Every tool review answers these.
     they had not selected, and does the tool still work on a scan where nothing is detected (§17)?
 14. Does anything claim what the form needs (a gap, a count, a next field), and does every tap do
     exactly what the person chose?
+15. With a file loaded, is the result in the first viewport (the preview at 1440x900, the result area and pinned Download at 375x812), is a second method offered only after the first fell short, and is every row
+    above it earning its height (§18)?

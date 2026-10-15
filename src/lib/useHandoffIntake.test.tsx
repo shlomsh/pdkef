@@ -300,4 +300,33 @@ describe('useHandoffIntake', () => {
     expect(takeHandoffMock).toHaveBeenCalledTimes(1);
     expect(takeHandoffMock).toHaveBeenCalledWith('split');
   });
+
+  it.each([
+    ['/compress-image/', 'doc.pdf', 'application/pdf', false],
+    ['/compress-image/', 'me.jpg', 'image/jpeg', true],
+    ['/compress/', 'me.jpg', 'image/jpeg', false],
+    ['/compress/', 'doc.pdf', 'application/pdf', true],
+  ])('on %s asks the store only for a hand-off that fits the page: %s (%s) -> %s', async (path, fileName, fileType, fits) => {
+    history.pushState({}, '', path);
+    takeHandoffMock.mockResolvedValueOnce(null);
+    await act(async () => {
+      render(<Harness tool="compress" onFile={vi.fn()} />, container);
+      await Promise.resolve();
+    });
+    const accept = takeHandoffMock.mock.calls[0][1];
+    expect(typeof accept).toBe('function');
+    expect(accept({ fileName, fileType, fileBytes: buf(1) })).toBe(fits);
+    history.pushState({}, '', '/');
+  });
+
+  it('puts no restriction on a tool that takes whatever it is handed', async () => {
+    history.pushState({}, '', '/sign/');
+    takeHandoffMock.mockResolvedValueOnce(null);
+    await act(async () => {
+      render(<Harness tool="sign" onFile={vi.fn()} />, container);
+      await Promise.resolve();
+    });
+    expect(takeHandoffMock).toHaveBeenCalledWith('sign');
+    history.pushState({}, '', '/');
+  });
 });
