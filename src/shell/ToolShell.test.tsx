@@ -181,6 +181,20 @@ describe('ToolShell strip slots', () => {
     expect(container.querySelector(`.${styles.note}`)).toBeNull();
   });
 
+  it('a flush strip drops the card chrome, for a strip that sits inside a rail', () => {
+    act(() => {
+      render(
+        <ToolShellContext.Provider value={{ requestReplace: vi.fn(), requestClear: vi.fn(), fileLabel: 'a.pdf' }}>
+          <ToolShell flush />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+    expect(container.querySelector('[data-tool-shell]')!.className).toContain(styles.flush);
+    mount(false, {});
+    expect(container.querySelector('[data-tool-shell]')!.className).not.toContain(styles.flush);
+  });
+
   it('renders metaExtra after the file meta, in the meta line', () => {
     mount(false, { metaExtra: <span data-extra>843 KB</span> });
     const meta = container.querySelector(`.${styles.meta}`)!;

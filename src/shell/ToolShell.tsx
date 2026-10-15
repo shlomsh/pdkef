@@ -120,6 +120,10 @@ export function useToolShell() {
  * because a toolbar rendered outside it would vanish the moment full screen
  * started. Every other tool gets the shell from BasePdfTool.
  *
+ * `flush` (non-editor only) drops the card chrome for a strip placed inside a
+ * tool's own rail (Compress): no tint, border or inline padding, a hairline
+ * under it, so the rail's 360px goes to the name and the sizes line.
+ *
  * `inlineStatus` (editor only) keeps that hint on the filename's line on a wide
  * desktop; see `.inline-status` in ToolShell.module.css for why it is opt-in.
  *
@@ -143,7 +147,7 @@ export function useToolShell() {
  * you work (see ToolHero.astro). Keep the attribute even if nothing local reads
  * it.
  */
-export default function ToolShell({ editor = false, inlineStatus = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
+export default function ToolShell({ editor = false, inlineStatus = false, flush = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; flush?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
   const { fileLabel, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved }
@@ -161,7 +165,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
         : null;
 
   return (
-    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}`} data-tool-shell>
+    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}`} data-tool-shell>
       <div class={styles.identity}>
         {!editor && <FilePreview file={file} />}
 
