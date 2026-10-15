@@ -51,6 +51,7 @@ import {
   type ShellMessages,
 } from '../../i18n/toolMessages';
 import { reportError } from '../../lib/errorReport.ts';
+import { reportableCause } from './reportableCause.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
 // MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
@@ -616,9 +617,10 @@ export default function PdfMergeTool({
         });
       })
       .catch((err) => {
-        // expected: inspectPdf throws MergeFileError for a file it cannot read, the person's file
-        // (unreadable-file card via entry.error); anything else is our code
-        if (!(err instanceof MergeFileError)) reportError('pdf_tool_run', err, 'inspect_pdf');
+        // Every failure is reported, whoever's file it turns out to be: a valid PDF the library
+        // cannot parse is ours, and only the report can tell it from a broken one.
+        const cause = reportableCause(err);
+        if (cause) reportError('pdf_tool_run', cause, 'inspect_pdf');
         setModel((current) => ({
           ...current,
           entries: current.entries.map((e) => (e.id === entry.id ? { ...e, error: 'unreadable' as const } : e)),

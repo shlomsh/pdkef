@@ -197,7 +197,7 @@ export type DropType = (typeof DROP_TYPES)[number];
 
 /**
  * Failures of the environment or of the person's own file, never of our code: a cancelled
- * operation, full or blocked storage, a refused permission, an encrypted, damaged or missing PDF.
+ * operation, full or blocked storage, a refused permission, an encrypted PDF.
  * `errorReport.ts` drops a report for these names (as reason `ignored`).
  */
 export const IGNORED_NAMES = [
@@ -206,11 +206,10 @@ export const IGNORED_NAMES = [
   'NotAllowedError',
   'SecurityError',
   'PasswordException',
-  'InvalidPDFException',
-  'MissingPDFException',
-  // pdf.js: a damaged file, a failed range request, and a render or load
-  // cancelled because the person moved on.
-  'FormatError',
+  // pdf.js: a failed range request, and a render or load cancelled because the person moved on.
+  // A damaged file (InvalidPDFException, MissingPDFException, FormatError) is deliberately not
+  // here: a valid file the parser cannot read looks identical to a broken one, and the only way
+  // to tell them apart is to see the report.
   'UnexpectedResponseException',
   'RenderingCancelledException',
   'AbortException',
@@ -219,6 +218,7 @@ export const IGNORED_NAMES = [
 /** Names a drop record may carry: the ignored ones, pdf-lib's encrypted error and the common DOMException names. */
 export const DROP_NAMES = [
   ...IGNORED_NAMES,
+  'InvalidPDFException', 'MissingPDFException', 'FormatError',
   'EncryptedPDFError',
   'NotReadableError', 'NotFoundError', 'NotSupportedError', 'InvalidStateError', 'InvalidAccessError',
   'DataCloneError', 'DataError', 'NetworkError', 'TimeoutError', 'OperationError', 'UnknownError',
