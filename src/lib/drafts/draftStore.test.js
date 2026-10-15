@@ -905,11 +905,11 @@ describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
     expect(await takeHandoff('sign')).toBeNull();
   });
 
-  it('leaves the synchronous pending key for the target page, and none for an editor', async () => {
+  it('leaves the synchronous pending key for the target page, editors included', async () => {
     await saveHandoff('split', { fileName: 'a.pdf', fileBytes: bytesOf('one') });
     expect(sessionStorage.getItem('pdkef:handoff-pending:split')).toBe('1');
     await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytesOf('one') });
-    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
+    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBe('1');
   });
 
   it('round-trips a multi record with its files in pick order', async () => {

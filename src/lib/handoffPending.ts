@@ -13,20 +13,18 @@
  * image mode, so the `compress` hand-off opens two pages. `PAGE_SLUGS` lists the page slugs a key
  * opens; the marker is written and cleared under all of them, so the pre-paint script (which only
  * knows the page slug) needs no mapping.
- * Sign and Redact resolve hand-offs through their editor restore (`data-editor-restore`), so they
- * never get one. The key text is also in ToolPageLayout.astro's hashed script: change both together.
+ * Sign and Redact get the marker too: their editor restore (useEditorDraftPersistence's
+ * `beforeRestore`) is what takes the hand-off and releases it. The key text is also in ToolPageLayout.astro's hashed script: change both together.
  */
 const PREFIX = 'pdkef:handoff-pending:';
 const ATTRIBUTE = 'data-handoff-pending';
 const PAGE_SLUGS: Record<string, string[]> = { compress: ['compress', 'compress-image'] };
 const slugsFor = (key: string) => PAGE_SLUGS[key] ?? [key];
-const EDITOR_KEYS = new Set(['sign', 'redact']);
 /** A load that never shows a tool must not leave the page's body hidden for good. */
 const RELEASE_CAP_MS = 8000;
 const LOADED = '[data-tool-loaded], [data-tool-shell]';
 
 export function markHandoffPending(tool: string): void {
-  if (EDITOR_KEYS.has(tool)) return;
   try {
     for (const slug of slugsFor(tool)) sessionStorage.setItem(PREFIX + slug, '1');
   } catch {

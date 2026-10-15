@@ -33,10 +33,11 @@ describe('handoff pending marker', () => {
     expect(sessionStorage.length).toBe(0);
   });
 
-  it('leaves the editors alone: their hand-off rides the editor restore', () => {
+  it('marks the editors too: their editor restore takes the hand-off and releases it', () => {
     markHandoffPending('sign');
     markHandoffPending('redact');
-    expect(sessionStorage.length).toBe(0);
+    expect(sessionStorage.getItem(`${KEY}sign`)).toBe('1');
+    expect(sessionStorage.getItem(`${KEY}redact`)).toBe('1');
   });
 
   it('swallows blocked storage', () => {
