@@ -27,6 +27,7 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
+import { isFileDrag } from '../../shell/fileDragDepth.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import MergeVerb from './verb/MergeVerb.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
@@ -208,10 +209,6 @@ function planInsertionIndex(plan: PlanEntry[], entries: FileEntry[], fileId: num
 /* Direction A: one Undo chip, one slot - file removal and page actions
    (skip, rotate, move) all register through the same `registerUndo`, so a
    second action's undo silently replaces the first's rather than stacking. */
-
-function hasFilePayload(event: DragEvent) {
-  return Array.from(event.dataTransfer?.types || []).includes('Files');
-}
 
 /* MERGE-17: the one quiet line after the first result in this browser. The
    flag is set the moment the line is shown, so it never returns. */
@@ -995,7 +992,7 @@ export default function PdfMergeTool({
     const within = (rect: DOMRect, x: number, y: number, slack: number) =>
       x >= rect.left - slack && x <= rect.right + slack && y >= rect.top - slack && y <= rect.bottom + slack;
     const onDragOver = (event: DragEvent) => {
-      if (!hasFilePayload(event)) return;
+      if (!isFileDrag(event.dataTransfer)) return;
       const list = listRef.current;
       const strip = stripRef.current;
       if (list && within(list.getBoundingClientRect(), event.clientX, event.clientY, 8)) {

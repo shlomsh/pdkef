@@ -9,7 +9,8 @@ import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
 import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
-import { useWindowFileDrop } from './useWindowFileDrop.ts';
+import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
+import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
 
@@ -21,10 +22,6 @@ function renderTemplate(text: string, values: Record<string, string>, className:
   return text.split('\u0000').map((part, index) =>
     index % 2 === 1 ? <span key={index} class={className}>{values[part] ?? ''}</span> : part,
   );
-}
-
-function hasFilePayload(event: DragEvent) {
-  return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
 
 // Loosely typed on purpose (see TODO.md "Type the interactive shell"): the
@@ -248,20 +245,25 @@ export default function BasePdfTool({
   // Once a file is loaded, the small dropzone is gone, so the whole tool
   // area becomes the drop target instead (with an overlay while dragging).
   const onWorkspaceDragEnter = (event: DragEvent) => {
-    if (!hasFiles || !hasFilePayload(event)) return;
+    if (!hasFiles || !isFileDrag(event.dataTransfer)) return;
     event.preventDefault();
-    dragDepthRef.current += 1;
+    dragDepthRef.current = nextDragDepth(dragDepthRef.current, 'enter');
     setIsDraggingOverWorkspace(true);
   };
 
   const onWorkspaceDragOver = (event: DragEvent) => {
-    if (!hasFiles || !hasFilePayload(event)) return;
+    if (!hasFiles || !isFileDrag(event.dataTransfer)) return;
     event.preventDefault();
   };
 
   const onWorkspaceDragLeave = (event: DragEvent) => {
-    if (!hasFiles || !hasFilePayload(event)) return;
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (!hasFiles || !isFileDrag(event.dataTransfer)) return;
+    // Leaving the window resets: an enter whose node was removed mid-drag
+    // would otherwise leave the overlay stuck on.
+    dragDepthRef.current = nextDragDepth(
+      dragDepthRef.current,
+      leftWindow(event, window.innerWidth, window.innerHeight) ? 'reset' : 'leave',
+    );
     if (dragDepthRef.current === 0) setIsDraggingOverWorkspace(false);
   };
 
@@ -276,9 +278,9 @@ export default function BasePdfTool({
   };
 
   const onWorkspaceDrop = (event: DragEvent) => {
-    if (!hasFiles || !hasFilePayload(event)) return;
+    if (!hasFiles || !isFileDrag(event.dataTransfer)) return;
     event.preventDefault();
-    dragDepthRef.current = 0;
+    dragDepthRef.current = nextDragDepth(dragDepthRef.current, 'drop');
     setIsDraggingOverWorkspace(false);
     receiveDrop(event.dataTransfer);
   };

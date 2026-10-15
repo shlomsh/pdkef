@@ -202,6 +202,30 @@ describe('useWindowFileDrop', () => {
     expect(getByTestId('p').textContent).toBe('yes');
   });
 
+  it('accepts a file drag after an internal drag whose dragend never arrived', () => {
+    const { getByTestId } = render(<Probe onFiles={vi.fn()} />);
+    fire(fileDragEvent('dragstart'));
+    const ignored = fileDragEvent('dragover');
+    fire(ignored);
+    expect(ignored.defaultPrevented).toBe(false);
+    // Pointer events never fire during a native drag: one means it is over.
+    fire(new Event('pointermove'));
+    const over = fileDragEvent('dragover');
+    fire(over);
+    expect(over.defaultPrevented).toBe(true);
+    fire(fileDragEvent('dragenter'));
+    expect(getByTestId('p').textContent).toBe('yes');
+  });
+
+  it('clears a stuck internal flag on pointerdown too', () => {
+    render(<Probe onFiles={vi.fn()} />);
+    fire(fileDragEvent('dragstart'));
+    fire(new Event('pointerdown'));
+    const over = fileDragEvent('dragover');
+    fire(over);
+    expect(over.defaultPrevented).toBe(true);
+  });
+
   it('adds no window listeners when disabled', () => {
     const spy = vi.spyOn(window, 'addEventListener');
     render(<Probe enabled={false} onFiles={vi.fn()} />);
