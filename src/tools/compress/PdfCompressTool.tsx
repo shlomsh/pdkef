@@ -703,7 +703,7 @@ const COMPRESSION_LEVELS = [
           each child's own margin-top is zeroed here instead of left to
           collide with the wrapper's. Nothing above this wrapper (the option
           cards, the target panel) is touched by any of this. */}
-      <div class={styles['result-action']}>
+      <div class={`${styles['result-action']}${hasFiles && (status !== 'done' || (!passthrough && downloadUrl)) ? ` ${styles['result-sheet']}` : ''}`}>
         {hasFiles && status === 'done' && passthrough ? null : hasFiles && status === 'done' && downloadUrl ? (
           <>
             <DownloadButton
