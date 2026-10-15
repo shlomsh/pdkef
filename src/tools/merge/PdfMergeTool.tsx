@@ -20,7 +20,7 @@ import {
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
-import { formatFileSize, isolateLtr } from '../../lib/format.js';
+import { formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
@@ -746,7 +746,7 @@ export default function PdfMergeTool({
       // Undo puts the file and its pages back where they were (MERGE-07). The
       // plan entries return to their old indices, so a page order that has
       // been rearranged across files survives a remove-and-undo.
-      registerUndo(formatMessage(t.removedUndo, { name: entry.file.name }), () => {
+      registerUndo(formatMessage(t.removedUndo, { name: isolateName(entry.file.name, t.dir) }), () => {
         setModel((cur) => {
           const nextEntries = [...cur.entries];
           nextEntries.splice(Math.min(index, nextEntries.length), 0, entry);
@@ -1271,14 +1271,14 @@ export default function PdfMergeTool({
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            ? formatMessage(t.skippedOne, { name: isolateName(rejectedFiles[0], t.dir) })
             : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}
 
       {duplicates.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
-          <span>{duplicates.map((f) => formatMessage(t.alreadyAdded, { name: f.name })).join(' ')}</span>{' '}
+          <span>{duplicates.map((f) => formatMessage(t.alreadyAdded, { name: isolateName(f.name, t.dir) })).join(' ')}</span>{' '}
           <button type="button" class={pdfToolStyles['quiet-link']} onClick={() => addFiles(duplicates, { force: true })}>
             {t.addAnyway}
           </button>
@@ -1366,24 +1366,32 @@ export default function PdfMergeTool({
                         sr-only lead-in keeps the region announcing what it is
                         for anyone not reading the name itself. */}
                     <span class="sr-only">{t.documentHeading}</span>
-                    <span
-                      key={nameRemountKeyRef.current}
-                      ref={nameRef}
-                      class={docStyles.name}
-                      dir="auto"
-                      tabIndex={0}
-                      role={isRenamingOutputName ? 'textbox' : undefined}
-                      aria-label={t.fileNameEditableLabel}
-                      contentEditable={isRenamingOutputName ? (PLAINTEXT_ONLY_SUPPORTED ? 'plaintext-only' : 'true') : 'false'}
-                      onMouseDown={onNameMouseDown}
-                      onKeyDown={onNameKeyDown}
-                      onBlur={onNameBlur}
-                      onPaste={onNamePaste}
-                      onDrop={onNameDrop}
-                    >
-                      {title}
-                    </span>
-                    <span class={docStyles['doc-heading-ext']}>.pdf</span>
+                    {/* The name and its ".pdf" are one file name, so they are one
+                        isolate (UX guideline 9). `<bdi>` takes its direction from
+                        the name's first strong character, which is why the name
+                        carries no `dir` of its own (an element with a `dir` is
+                        skipped by that lookup); the ".pdf" is an LTR run inside
+                        it. Left bare in an RTL page, the ".pdf" is its own flex
+                        item and lays out as "pdf." on the wrong side of the name. */}
+                    <bdi class={docStyles['doc-heading-file']}>
+                      <span
+                        key={nameRemountKeyRef.current}
+                        ref={nameRef}
+                        class={docStyles.name}
+                        tabIndex={0}
+                        role={isRenamingOutputName ? 'textbox' : undefined}
+                        aria-label={t.fileNameEditableLabel}
+                        contentEditable={isRenamingOutputName ? (PLAINTEXT_ONLY_SUPPORTED ? 'plaintext-only' : 'true') : 'false'}
+                        onMouseDown={onNameMouseDown}
+                        onKeyDown={onNameKeyDown}
+                        onBlur={onNameBlur}
+                        onPaste={onNamePaste}
+                        onDrop={onNameDrop}
+                      >
+                        {title}
+                      </span>
+                      <span class={docStyles['doc-heading-ext']} dir="ltr">.pdf</span>
+                    </bdi>
                     <span class={docStyles['doc-heading-count']}>
                       {' · '}{pagesLabel(outputCount)}
                       {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
@@ -1433,7 +1441,7 @@ export default function PdfMergeTool({
 
               {failedEntry && failedReason && (
                 <ErrorMessage>
-                  {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: failedEntry.file.name })}
+                  {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
                   {' '}
                   {failedReason === 'encrypted' && (
                     <>

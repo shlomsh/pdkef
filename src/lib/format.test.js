@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeFile, formatFileSize, isolateLtr } from './format.js';
+import { describeFile, formatFileSize, isolateLtr, isolateName } from './format.js';
 
 describe('formatFileSize', () => {
   it('formats bytes under 1KB as B', () => {
@@ -62,5 +62,16 @@ describe('isolateLtr', () => {
   it('returns the text unchanged for ltr or an unknown direction', () => {
     expect(isolateLtr('1.0 MB', 'ltr')).toBe('1.0 MB');
     expect(isolateLtr('1.0 MB', undefined)).toBe('1.0 MB');
+  });
+});
+
+describe('isolateName', () => {
+  it('wraps a name in FSI ... PDI for an RTL catalogue, so the name keeps its own direction and its place', () => {
+    expect(isolateName('2025-invoice.pdf', 'rtl')).toBe('\u20682025-invoice.pdf\u2069');
+  });
+
+  it('returns the name untouched for an LTR catalogue or none', () => {
+    expect(isolateName('2025-invoice.pdf', 'ltr')).toBe('2025-invoice.pdf');
+    expect(isolateName('2025-invoice.pdf')).toBe('2025-invoice.pdf');
   });
 });

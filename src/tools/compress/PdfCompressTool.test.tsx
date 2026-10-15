@@ -1529,6 +1529,26 @@ describe('PdfCompressTool UI flow', () => {
     });
   });
 
+  it('isolates a skipped file name inside the Hebrew sentence, and only in Hebrew', async () => {
+    const skippedHint = async (props) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfCompressTool {...props} />, container);
+      });
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [new File(['plain text'], '2025-notes.txt', { type: 'text/plain' })]);
+      });
+      return container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent;
+    };
+    expect(await skippedHint({ messages: hebrewCompressMessages })).toContain('\u20682025-notes.txt\u2069');
+    act(() => render(null, container));
+    container.remove();
+    const english = await skippedHint({});
+    expect(english).toContain('2025-notes.txt');
+    expect(english).not.toContain('\u2068');
+  });
+
   it('rejects a file that is not a PDF, JPG or PNG', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

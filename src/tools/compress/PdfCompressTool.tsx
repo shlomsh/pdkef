@@ -18,7 +18,7 @@ import CompareSlider from './CompareSlider.tsx';
 import { comparePreviewWidth } from './compareSize.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { describeFile, isolateLtr } from '../../lib/format.js';
+import { describeFile, isolateLtr, isolateName } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
 import { getPdfLib } from '../../lib/pdfLib.js';
@@ -916,7 +916,7 @@ export default function PdfCompressTool({
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            ? formatMessage(t.skippedOne, { name: isolateName(rejectedFiles[0], t.dir) })
             : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}
