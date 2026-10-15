@@ -392,7 +392,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
 
      Since HERO-06 (2026-10-15) every tool also folds through
      `data-hero-condense-on-load` at the end of this style, at every width
-     (editors below 1024px only), whatever the density. The Compress button
+     (Sign and Redact excluded, see heroCondense.test.js), whatever the density. The Compress button
      these notes cite is gone (Compress runs on pick); the rules here are kept
      for the draft-hint and hand-off paths until that block is shown to cover
      them too. */
@@ -676,91 +676,6 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
     :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1 {
       font-size: 1.375rem;
-    }
-  }
-
-  @media (max-width: 1023.98px) and (pointer: coarse) {
-    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
-    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] {
-      --hero-icon: 2.25rem;
-      padding-top: 20px;
-      padding-bottom: 16px;
-    }
-
-    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row],
-    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row] {
-      flex-direction: row;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 12px;
-      margin-bottom: 0;
-    }
-
-    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
-    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1 {
-      font-size: 1.625rem;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-    }
-
-    /* The tool's name only ("Compress PDF to 100KB"): the rest of the h1 is
-       visually hidden, as the density fold above does, so the h1 still reads in
-       full and stays one line on a 393px phone. */
-    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest],
-    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest] {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-
-    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name],
-    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name] {
-      display: inline;
-      position: static;
-      width: auto;
-      height: auto;
-      margin: 0;
-      overflow: visible;
-      clip: auto;
-      clip-path: none;
-      white-space: normal;
-      color: inherit;
-      font-size: inherit;
-      font-weight: inherit;
-      letter-spacing: inherit;
-      line-height: inherit;
-      text-wrap: initial;
-    }
-
-    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub],
-    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub] {
-      display: none;
-    }
-
-    @media (max-width: 767px) {
-      :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
-      :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
-      :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] {
-        --hero-icon: 2rem;
-        padding-top: 14px;
-        padding-bottom: 12px;
-      }
-
-      :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
-      :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
-      :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1 {
-        font-size: 1.375rem;
-      }
     }
   }
 </style>
