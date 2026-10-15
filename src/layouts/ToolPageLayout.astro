@@ -310,6 +310,24 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
        A stale hint clears itself once IndexedDB says there is no entry, and a
        fresh visitor never receives the attribute, so neither path gains blank
        space. */
+    /* The phone first screen reaches the bottom edge: the stage is at least the visible
+       screen under the 3.5rem app bar, so the next section's page colour never shows as
+       a band under a short tool. Content stays top-aligned; a taller stage (Sign,
+       Compress) is untouched. Phones only: e2e/tool-layout.spec.js keeps the editors
+       close to the section below at 1000px. */
+    @media (max-width: 767.98px) {
+      .tool-stage {
+        min-height: calc(100svh - 3.5rem);
+      }
+
+      /* main grows by default, which took the extra height and pushed the airplane
+         line to the screen's foot, a gap under the card; with nothing loaded the
+         line stays under the card and the mint fills the rest. */
+      .tool-stage:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) > main {
+        flex-grow: 0;
+      }
+    }
+
     @media (min-width: 1024px) {
       :global(html[data-draft-hint]) .tool-stage {
         min-height: calc(100svh - 3.5rem);
