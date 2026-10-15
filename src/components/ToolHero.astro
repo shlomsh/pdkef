@@ -594,10 +594,22 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     line-height: 1.1;
   }
 
-  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-name],
+  /* The tool's name only ("Compress PDF to 100KB"): the rest of the h1 is
+     visually hidden, as the density fold above does, so the h1 still reads in
+     full and stays one line on a 393px phone. */
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-rest],
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-name],
   :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-rest] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-name],
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-name] {
     display: inline;
     position: static;
     width: auto;

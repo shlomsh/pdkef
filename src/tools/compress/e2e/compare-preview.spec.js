@@ -18,7 +18,7 @@ const MIXED = fs.readFileSync(new URL('../__fixtures__/mixed.pdf', import.meta.u
 // Android profile (4x CPU throttling via CDP, the same technique
 // Lighthouse's mobile preset uses - there is no lighter way to approximate
 // a slow device from Chromium) and time how long it takes, from the
-// "Successfully Compressed" message to both page-1 previews rendering.
+// done status to both page-1 previews rendering.
 //
 // CDP CPU throttling is Chromium-only, so this only runs in the "chromium"
 // project (the default here; playwright.config.js's "webkit" project is
@@ -57,8 +57,7 @@ test.describe('compress tool - before/after preview', () => {
       buffer: await makeMultiPagePdfBuffer(),
     });
 
-    await page.getByRole('button', { name: 'Compress PDF' }).click();
-    await expect(page.getByText('PDF Successfully Compressed!')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 20_000 });
 
     // From here the panel opens on its own - no tap. Time from the result
     // landing to both page-1 previews being rendered, the real cost a
@@ -75,9 +74,6 @@ test.describe('compress tool - before/after preview', () => {
     // seconds under 4x throttling is the affordability bar CLAUDE.md's
     // mobile-cost constraint asked for.
     expect(elapsedMs).toBeLessThan(8_000);
-
-    const toggle = page.getByRole('button', { name: 'Hide comparison' });
-    await expect(toggle).toBeVisible();
 
     // Drag the handle and confirm it actually moved - proves the gesture
     // (and not just the initial render) works under the same throttling.
@@ -107,8 +103,7 @@ test.describe('compress tool - before/after preview', () => {
         buffer: await makeMultiPagePdfBuffer(),
       });
 
-      await page.getByRole('button', { name: 'Compress PDF' }).click();
-      await expect(page.getByText('PDF Successfully Compressed!')).toBeVisible({ timeout: 20_000 });
+      await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 20_000 });
 
       const inline = page.locator('[class*="compare-slider"]').first();
       await expect(inline).toBeVisible({ timeout: 15_000 });

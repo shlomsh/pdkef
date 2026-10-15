@@ -23,11 +23,16 @@ import pdfToolStyles from './PdfTool.module.css';
  *
  * `onClick` (MERGE-12) lets Merge count the tap itself: the browser handles
  * the download through the anchor as before, the tool only observes it.
+ *
+ * `autoFocus={false}` is for a tool that reruns on every option change
+ * (Compress): there the result landing is not "you just finished", and taking
+ * focus would pull it off the option the person is still adjusting. The
+ * tool's live region still announces the result.
  */
-export default function DownloadButton({ href, download, label = 'Download PDF', detail, onClick }: { href: string; download: string; label?: string; detail?: string; onClick?: (event: MouseEvent) => void }) {
+export default function DownloadButton({ href, download, label = 'Download PDF', detail, onClick, autoFocus = true }: { href: string; download: string; label?: string; detail?: string; onClick?: (event: MouseEvent) => void; autoFocus?: boolean }) {
   const ref = useRef<HTMLAnchorElement | null>(null);
   useEffect(() => {
-    ref.current?.focus({ preventScroll: true });
+    if (autoFocus) ref.current?.focus({ preventScroll: true });
   }, []);
 
   return (

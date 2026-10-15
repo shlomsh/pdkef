@@ -12,14 +12,33 @@ import { analyzePdf } from '../analyzePdf.js';
 const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '__fixtures__');
 const read = (name) => fs.readFileSync(path.join(FIXTURES, name));
 
+// Picking a file starts a run at once and any option change starts another: wait for a run newer
+// than `after` to finish.
+const runOf = (page) => page.locator('[data-compress-run]').first().getAttribute('data-compress-run').then(Number);
+async function waitForDone(page, after = 0) {
+  await expect.poll(async () => {
+    const root = page.locator('[data-compress-status]').first();
+    if ((await root.getAttribute('data-compress-status')) !== 'done') return false;
+    return Number(await root.getAttribute('data-compress-run')) > after;
+  }, { timeout: 60_000 }).toBe(true);
+}
+
+async function chooseLevel(page, levelTitle) {
+  const radio = page.getByRole('radio', { name: levelTitle });
+  if ((await radio.getAttribute('aria-checked')) === 'true' || (await radio.isChecked().catch(() => false))) return;
+  const before = await runOf(page);
+  await radio.click();
+  await waitForDone(page, before);
+}
+
 async function compress(page, fixture, levelTitle) {
   await page.goto('/compress/');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: fixture, mimeType: 'application/pdf', buffer: read(fixture) });
-  await page.getByRole('radio', { name: new RegExp(levelTitle) }).click();
-  await page.getByRole('button', { name: 'Compress PDF' }).click();
+  await waitForDone(page);
+  await chooseLevel(page, levelTitle);
   await expect(page.locator('a[download], :text("Already as small as it gets")').first()).toBeVisible({ timeout: 60_000 });
 }
 
@@ -36,13 +55,13 @@ async function compressAndDownload(page, fixture, levelTitle) {
 }
 
 test.describe('compress KPI (COMP-01)', () => {
-  test('scan.pdf at Recommended is at least 40% smaller', async ({ page }) => {
-    const { saved } = await compressAndDownload(page, 'scan.pdf', 'Recommended');
+  test('scan.pdf at Balanced is at least 40% smaller', async ({ page }) => {
+    const { saved } = await compressAndDownload(page, 'scan.pdf', 'Balanced');
     expect(saved).toBeGreaterThanOrEqual(0.4);
   });
 
-  test('mixed.pdf at Recommended is at least 25% smaller and keeps its text and link', async ({ page }) => {
-    const { bytes, saved } = await compressAndDownload(page, 'mixed.pdf', 'Recommended');
+  test('mixed.pdf at Balanced is at least 25% smaller and keeps its text and link', async ({ page }) => {
+    const { bytes, saved } = await compressAndDownload(page, 'mixed.pdf', 'Balanced');
     expect(saved).toBeGreaterThanOrEqual(0.25);
 
     const doc = await PDFDocument.load(bytes);
@@ -56,24 +75,23 @@ test.describe('compress KPI (COMP-01)', () => {
   });
 
   for (const fixture of ['text-only.pdf', 'vector-drawing.pdf']) {
-    test(`${fixture} at Recommended has nothing to shrink and offers no download`, async ({ page }) => {
+    test(`${fixture} at Balanced has nothing to shrink and offers no download`, async ({ page }) => {
       await page.goto('/compress/');
       await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
       const chooser = page.waitForEvent('filechooser');
       await page.getByText('Choose file', { exact: true }).click();
       await (await chooser).setFiles({ name: fixture, mimeType: 'application/pdf', buffer: read(fixture) });
-      await expect(page.getByRole('note').filter({ hasText: 'Nothing here to shrink.' })).toBeVisible();
-      await page.getByRole('radio', { name: /Recommended/ }).click();
-      await page.getByRole('button', { name: 'Compress PDF' }).click();
+      await waitForDone(page);
+      await expect(page.locator('[data-compress-strip]').getByText('Nothing here to shrink.')).toBeVisible();
       await expect(page.getByText('Already as small as it gets', { exact: true })).toBeVisible({ timeout: 60_000 });
       await expect(page.locator('a[download]')).toHaveCount(0);
     });
   }
 
   test('scan.pdf shrinks more at each stronger level', async ({ page }) => {
-    const extreme = await compressAndDownload(page, 'scan.pdf', 'Extreme Compression');
-    const recommended = await compressAndDownload(page, 'scan.pdf', 'Recommended');
-    const high = await compressAndDownload(page, 'scan.pdf', 'High Quality');
+    const extreme = await compressAndDownload(page, 'scan.pdf', 'Smallest');
+    const recommended = await compressAndDownload(page, 'scan.pdf', 'Balanced');
+    const high = await compressAndDownload(page, 'scan.pdf', 'Sharpest');
     expect(extreme.size).toBeLessThan(recommended.size);
     expect(recommended.size).toBeLessThan(high.size);
   });

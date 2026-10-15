@@ -1,11 +1,26 @@
+/* Replace sits beside the name only, so the sizes line and the note get the
+   whole width past the thumbnail: in the 360px desktop rail "1.2 MB -> 412 KB"
+   plus its tag wrapped to a second line beside Replace once the result came
+   in, and pushed the options below it down 30px. */
 .strip {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-areas:
+    'thumb name replace'
+    'thumb sizes sizes'
+    'thumb note note';
+  column-gap: 12px;
+  row-gap: 2px;
   align-items: center;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--color-border);
 }
+
+.thumb { grid-area: thumb; align-self: start; }
+.name { grid-area: name; }
+.replace { grid-area: replace; }
+.sizes { grid-area: sizes; }
+.note { grid-area: note; }
 
 /* FilePreview renders ToolShell's 34px icon box; size it to the strip's slot. */
 .thumb {
@@ -17,13 +32,6 @@
 .thumb > span {
   width: 40px;
   height: 52px;
-}
-
-.text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
 }
 
 .name {
@@ -103,6 +111,6 @@
 
 @media (max-width: 767px) {
   .strip {
-    gap: 10px;
+    column-gap: 10px;
   }
 }

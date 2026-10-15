@@ -1,305 +1,53 @@
-.compress-options {
+/* The loaded state: the result is the centre (ux guideline 1), the strip,
+   the controls and the primary controls are a rail beside it. DOM order is
+   strip, controls, result, sheet, which is also the phone's reading order. */
+.loaded-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  /* 1.25rem under the sheet, the breathing room HERO-02's balance pass set. */
-  margin: 1.25rem 0 1rem;
-}
-
-/* One toggle below the cards opens all their pros and cons together, so the
-   cards stay the same height. It sits outside the radiogroup: a button must
-   not be a child of it. The negative top margin pulls it up into the cards'
-   bottom margin so it reads as theirs. Padding gives a 44px hit area on touch. */
-.pro-con-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: -0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.pro-con-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 44px;
-  padding: 0.5rem 0.25rem;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--color-primary-text);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.pro-con-toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.pro-con-chevron {
-  transition: transform 0.15s var(--ease-out);
-}
-
-.pro-con-toggle[aria-expanded='true'] .pro-con-chevron {
-  transform: rotate(180deg);
-}
-
-/* Image mode's standalone Target Size panel (no compression-level grid to
-   sit under) needs its own top spacing instead of inheriting it from
-   `.compress-options`, which this replaces rather than sits beside. */
-.image-target-panel {
-  margin-top: 1.5rem;
-}
-
-.compress-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 1.35rem 1.35rem 1.2rem;
-  line-height: 1.5;
-  cursor: pointer;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'strip'
+    'controls'
+    'result'
+    'sheet';
+  row-gap: 16px;
+  align-items: start;
   text-align: start;
-  transition: border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out),
-    transform 0.15s var(--ease-spring), box-shadow 0.2s var(--ease-out);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  position: relative;
-  outline: none;
 }
 
-.compress-card:hover {
-  border-color: var(--color-border-strong);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+.loaded-layout > :nth-child(1) {
+  grid-area: strip;
 }
 
-.compress-card:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.compress-card.is-selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
-}
-
-/* The one-click "just pick this" option, called out with the theme's success
-   (sea-glass lime) color so it reads as the site's pick independent of
-   selection state - not just another card that happens to be selected. */
-.compress-card.is-recommended {
-  border-color: var(--color-success);
-  padding-top: 1.6rem;
-}
-
-.compress-card.is-recommended.is-selected {
-  background: var(--color-success-soft);
-  box-shadow: 0 0 0 1px var(--color-success), var(--shadow-sm);
-}
-
-.compress-card.is-recommended.is-selected .compress-card-tag {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success-soft) 70%, transparent);
-}
-
-.compress-card.is-recommended.is-selected .compress-pro-con {
-  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
-}
-
-.recommended-ribbon {
-  position: absolute;
-  top: 0;
-  inset-inline-start: 1.1rem;
-  transform: translateY(-50%);
-  background: var(--color-success);
-  color: var(--color-surface);
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-sm);
-}
-
-.compress-card-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.4rem 0.5rem;
-  width: 100%;
-}
-
-.compress-card-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--color-text);
-  margin: 0;
-}
-
-.compress-card-tag {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  background: var(--color-surface-sunken);
-  padding: 0.1rem 0.4rem;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.compress-card.is-selected .compress-card-tag {
-  color: var(--color-primary-text);
-  background: var(--color-primary-soft);
-}
-
-.compress-card-desc {
-  font-size: 0.8rem;
-  color: var(--color-muted);
-  line-height: 1.4;
-  margin: 0.5rem 0 0;
-}
-
-.compress-pro-con {
-  margin-top: 0.25rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.compress-pro-con[hidden] {
-  display: none;
-}
-
-.compress-card.is-selected .compress-pro-con {
-  border-color: var(--color-primary-soft);
-}
-
-/* Target Size spans the full width of the grid rather than sitting as a
-   fourth equal tile: it's the one option that needs a number from the
-   visitor, not just a click, so it reads as a distinct "set your own limit"
-   row rather than blending into the three quality presets. */
-/* Deliberately darker than the three preset cards, even unselected: a good
-   share of this cluster's traffic (SEO-05, SEO-13) arrives already knowing
-   they need an exact number - "compress pdf to 100kb" - so this reads as the
-   precise/advanced option on sight, not just another equal-weight choice. */
-.target-card {
-  grid-column: 1 / -1;
-  cursor: pointer;
-  position: relative;
-  padding-top: 1.6rem;
-  border-color: var(--color-primary-ring);
-  background: var(--color-primary-tint);
-}
-
-.target-card:hover {
-  border-color: var(--color-primary);
-}
-
-.target-card.is-selected {
-  border-color: var(--color-primary-active);
-  background: var(--color-primary-soft);
-  box-shadow: 0 0 0 1px var(--color-primary-active), var(--shadow-sm);
-}
-
-.target-card-badge {
-  position: absolute;
-  top: 0;
-  inset-inline-start: 1.1rem;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: var(--color-primary-active);
-  color: var(--color-surface);
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-sm);
-}
-
-.target-card-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-}
-
-.target-card-icon {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-md);
-  background: var(--color-primary-active);
-  color: var(--color-surface);
-}
-
-.target-card-body {
+.controls {
+  grid-area: controls;
   min-width: 0;
-  flex: 1;
+}
+
+.result {
+  grid-area: result;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.pro-item, .con-item {
-  font-size: 0.75rem;
-  display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface-sunken);
+  border-radius: 18px;
 }
 
-.pro-item {
-  color: var(--color-success);
+.result > * {
+  max-width: 100%;
 }
 
-.con-item {
-  color: var(--color-muted);
-}
-
-/* Button anchor (SEO-25, 2026-09-12) - see PdfCompressTool.tsx's
-   actionAndResults comment. One wrapper for the Compress button and the
-   Download+Share pair that replaces it, so the two states share one top
-   margin instead of each carrying their own (.tool-primary-action's
-   margin-top is 1.5rem/--space-5, .download-button's is 1rem/--space-4 -
-   PdfTool.module.css, unchanged for every other tool). `:first-child` only
-   zeroes the margin of whichever element actually opens the slot (the lone
-   Compress button, or the Download link ahead of the Share button) - Share's
-   own margin-top is left alone, it's the gap between Download and Share, not
-   the gap above the slot. */
 .result-action {
-  margin-top: var(--space-5);
+  grid-area: sheet;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* Below 1024px, with a file loaded, the slot (Compress, then Download +
-   Share) is the sticky bottom sheet the other tools use (ux guidelines 8;
-   Merge's rail, PdfTool's .action-row). It sits in the options' own
-   container, so it stays pinned while any of the cards are on screen, and it
-   stays in flow, so it never covers the last card. `.tool-card` has no
-   overflow clip, which sticky depends on. The card pads 1.5rem below
-   1024px, hence the bleed. */
-@media (max-width: 1023px) {
-  .result-sheet {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    margin-inline: -1.5rem;
-    padding: 0.5rem 1.5rem calc(0.5rem + env(safe-area-inset-bottom));
-    background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
-  }
+.result-action[hidden] {
+  display: none;
 }
 
 .result-action > button:first-child,
@@ -307,31 +55,59 @@
   margin-top: 0;
 }
 
-/* Compression Stats Results */
-.compression-stats {
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-primary-ring);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-  margin: 1.5rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  text-align: start;
-  animation: item-in 0.28s var(--ease-out);
+@media (min-width: 1024px) {
+  .loaded-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      'result strip'
+      'result controls'
+      'result sheet'
+      'result .';
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+  }
+
+  .controls {
+    margin-top: 18px;
+  }
+
+  .result-action {
+    margin-top: 20px;
+  }
+
+  .result {
+    padding: 20px;
+    min-height: 420px;
+    justify-content: center;
+  }
+
+  .result > * {
+    max-width: 560px;
+  }
 }
 
-/* CSS Modules scope @keyframes per-file, so this must be a local copy — see
-   FileList.module.css and global.css's `.error-message` for the same keyframe
-   duplicated in their own scopes. */
-@keyframes item-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+/* Below 1024px the primary controls are the sticky bottom sheet the other
+   tools use (ux guidelines 8). It stays in flow, so it never covers the
+   result, and `.tool-card` has no overflow clip, which sticky depends on.
+   The card pads 1.5rem here, and 12px once a tool hides its identity row
+   (PdfTool.module.css, `data-hide-identity`), hence the 12px bleed. */
+@media (max-width: 1023px) {
+  .result-sheet {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-inline: -12px;
+    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .result-sheet {
+    margin-inline: -1.5rem;
+    padding-inline: 1.5rem;
   }
 }
 
@@ -340,12 +116,14 @@
   font-size: 0.95rem;
   color: var(--color-primary-text);
   margin: 0;
+  align-self: stretch;
 }
 
 .stats-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 2rem;
+  gap: 1rem 2rem;
+  align-self: stretch;
 }
 
 .metric-item {
@@ -374,18 +152,25 @@
   color: var(--color-success);
 }
 
+.dimension-line {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
 .compress-warning {
   font-size: 0.78rem;
   color: var(--color-muted);
   line-height: 1.45;
-  background: var(--color-surface-sunken);
+  background: var(--color-surface);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
-  margin-top: 0.5rem;
+  margin: 0;
+  align-self: stretch;
 }
 
 /* The honest notes (nothing to shrink, already small, under target): styled
-   like the file dropzone so they stand out from the green around them. */
+   like the file dropzone so they stand out from the mint around them. */
 .honest-note {
   font-size: 0.9rem;
   line-height: 1.5;
@@ -394,29 +179,15 @@
   border: 1.5px dashed var(--color-border-strong);
   border-radius: var(--radius-sm);
   padding: 0.9rem 1.1rem;
-  margin-top: 0.5rem;
+  margin: 0;
+  align-self: stretch;
 }
 
-/* The note slot (DEBT-52): every variant stacked in one grid cell, so its height is the tallest one's
-   whichever note arrives. The hidden copies only size the cell; the live note shares it. */
-.note-slot {
-  display: grid;
-}
-
-.note-slot > * {
-  grid-area: 1 / 1;
-}
-
-.note-reserve {
-  visibility: hidden;
-}
-
-/* Before/after preview toggle (SEO-25) - see CompareSlider.tsx for the
-   gesture itself. Styled as a quiet secondary action, not another button
-   competing with Download: it's an optional check, not the next step. */
+/* Full screen button (SEO-25, COMP-01): a quiet secondary action, not
+   another button competing with Download. */
 .compare-toggle-button {
-  align-self: flex-start;
-  margin-top: 0.25rem;
+  align-self: center;
+  min-height: 44px;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-primary-text);
@@ -439,7 +210,7 @@
 }
 
 .compare-panel {
-  margin-top: 0.75rem;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -452,31 +223,43 @@
   margin: 0;
 }
 
-/* Shown while compareStatus === 'loading' (SEO-25 follow-up, 2026-09-12):
-   the CompareSlider itself sizes to its "before" image (compare-image is
-   height: auto in CompareSlider.module.css), so before either preview has
-   loaded there's nothing to size against - a min-height guess would be
-   wrong for any panel narrower than the 48rem cap. `aspect-ratio` instead
-   holds the same portrait shape a typical page-1 render has (US Letter is
-   0.77, A4 0.707; 0.75 splits the difference) at whatever width the panel
-   actually is, so the download/share row below never jumps once the real
-   previews arrive - that's the point of showing this at all: async and
-   non-blocking, with a visible placeholder standing in for "still working"
-   instead of the download row shifting out from under the user's thumb. */
+/* Holds the slider's place while the run or the previews are pending: the
+   CompareSlider sizes to its "before" image, so before either has loaded
+   there is nothing to size against. `aspect-ratio` holds the portrait shape
+   of a typical page-1 render (US Letter 0.77, A4 0.707) at whatever width
+   the panel is, so nothing below jumps when the real preview arrives. */
 .compare-skeleton {
+  position: relative;
   width: 100%;
   max-width: 48rem;
   aspect-ratio: 0.75;
   margin: 0 auto;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-sunken);
+  background: var(--color-surface);
 }
 
-/* CLAUDE.md: no motion that could trigger vestibular issues - a slow
-   opacity pulse is the accepted form, and it's opt-in to
-   prefers-reduced-motion: no-preference so a reduced-motion visitor gets a
-   static placeholder instead. */
+/* The run's progress, centred in the placeholder. The ring is drawn for a
+   primary button, so it sits on a primary pill. */
+.skeleton-ring {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skeleton-ring > span {
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* A slow opacity pulse is the accepted form of motion here, and only for
+   visitors who have not asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .compare-skeleton {
     animation: compare-skeleton-pulse 1.4s ease-in-out infinite;
@@ -497,187 +280,6 @@
   color: var(--color-muted);
   text-align: center;
   margin: 0;
-}
-
-.target-size-panel {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.9rem;
-  padding: 1rem 1.25rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  cursor: default;
-}
-
-.target-size-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.target-size-input-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--color-surface-sunken);
-  border-radius: var(--radius-sm);
-  min-height: 44px;
-  padding: 0 0.9rem;
-}
-
-.target-size-input-row:has(input:focus-visible) {
-  box-shadow: var(--shadow-focus);
-}
-
-.target-size-input-row input {
-  width: 7ch;
-  border: none;
-  background: none;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: start;
-}
-
-.target-size-input-row input:focus-visible {
-  outline: none;
-}
-
-.target-size-input-row input::-webkit-inner-spin-button,
-.target-size-input-row input::-webkit-outer-spin-button {
-  opacity: 1;
-}
-
-.target-size-unit {
-  font-size: 0.85rem;
-  color: var(--color-muted);
-}
-
-.target-size-presets {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.target-size-preset {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  background: var(--color-surface-sunken);
-  border: 1px solid transparent;
-  min-height: 44px;
-  padding: 0 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  transition: all 0.15s var(--ease-out);
-}
-
-.target-size-preset:hover {
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
-
-.target-size-preset.is-selected {
-  color: var(--color-primary-text);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-/* Phones: the four cards stack, so they get tighter spacing. Their pros and
-   cons stay behind the single toggle below the cards (closed by default), which
-   keeps the whole list and the Compress button near the fold. */
-@media (max-width: 1023px) {
-  .compress-options {
-    margin: 1rem 0;
-  }
-
-  .compress-card {
-    padding: 1rem;
-  }
-}
-
-/* Desktop-width niceties: unconditioned on height, because these are about
-   arranging content for a wide row, not about saving vertical space. Target
-   Size reads as one line on desktop - icon, title, tag, then the description
-   running on to the right, rather than title over description. Same content,
-   half the height, on any desktop-width viewport regardless of how tall it
-   is. */
-@media (min-width: 1024px) {
-  .compress-options {
-    /* auto-fit only collapses a track that nothing touches, and the
-       target-card's `grid-column: 1 / -1` spans every track it creates -
-       so with an implicit repeat count the three preset cards never got
-       past auto-fit's own minmax() floor (220px) even at ~1200px of
-       available width. Pin the count so the span has a fixed number of
-       columns to spread across instead. */
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .target-card-main {
-    align-items: center;
-  }
-
-  .target-card-icon {
-    width: 2.25rem;
-    height: 2.25rem;
-  }
-
-  .target-card-body {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.85rem;
-  }
-
-  .target-card .compress-card-header {
-    width: auto;
-    flex: none;
-    /* On one line with the description (see .target-card-body above), the
-       tag pill sits beside the title, not above its baseline. */
-    align-items: center;
-  }
-
-  .target-card .compress-card-desc {
-    flex: 1 1 18rem;
-    min-width: 0;
-  }
-}
-
-/* Short-viewport compaction only: with the options grid now visible before a
-   file is even picked (this session's redesign) plus the unified AppBar
-   chips, the page was ~70-100px taller than a typical laptop viewport. These
-   trims are about fitting a fixed-height desktop viewport, not about
-   shrinking touch targets or line length anywhere - so they only kick in
-   once height is actually the constraint, not for every desktop-width
-   window. Budget, measured at 1440px wide with a file open: the button's
-   bottom edge has to clear ~650px, which is what a 1366x768 laptop leaves
-   under Chrome's tab strip and bookmarks bar - `max-height: 820px` covers
-   that class of device (and anything shorter) while a normal MacBook/desktop
-   viewport (usually 850-1000px+ of content height) gets the breathing room
-   of the base card styles above instead of paying this tax for no reason. */
-@media (min-width: 1024px) and (max-height: 820px) {
-  .pro-item,
-  .con-item {
-    line-height: 1.3;
-  }
-
-  .compress-pro-con {
-    margin-top: 0.2rem;
-    padding-top: 0.4rem;
-    gap: 0.2rem;
-  }
-
-  .target-size-panel {
-    margin-top: 0.6rem;
-    padding: 0.6rem 1rem;
-  }
 }
 
 .flatten-switch {
@@ -701,12 +303,6 @@
 
 /* Full screen comparison (COMP-01): a native modal dialog filling the
    viewport, header on top, the slider scrolling underneath. */
-.compare-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 .compare-fullscreen {
   width: 100vw;
   height: 100vh;

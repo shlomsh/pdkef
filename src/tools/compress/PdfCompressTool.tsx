@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
@@ -16,6 +17,9 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import CompareSlider from './CompareSlider.tsx';
+import LevelPicker, { TargetSizePanel, type Level } from './components/LevelPicker.tsx';
+import CompressStrip from './components/CompressStrip.tsx';
+import { createLatestOnly } from './latestOnly.ts';
 import { comparePreviewWidth } from './compareSize.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
@@ -89,26 +93,8 @@ export default function PdfCompressTool({
   // A size inside a catalogue string is bidi-isolated in right-to-left text.
   const sizeText = (bytes: number) => isolateLtr(formatBytes(bytes), t.dir);
 
-  // Every note the slot above the options can show, for sizing it (DEBT-52). `box` is the live note's class.
-const NOTE_VARIANTS = [
-  { key: 'noImagesBodyText', box: 'honest-note', title: true },
-  { key: 'noImagesBodyDrawing', box: 'honest-note', title: true },
-  { key: 'imageShareLowNote', box: 'honest-note', title: false },
-  { key: 'imageShareNote', box: 'compress-warning', title: false },
-  { key: 'imageShareScanNote', box: 'compress-warning', title: false },
-] as const;
-
-const COMPRESSION_LEVELS = [
-    { id: 'high', name: t.levelHighName, tag: t.levelHighTag, desc: t.levelHighDesc, pros: t.levelHighPros, cons: t.levelHighCons },
-    { id: 'medium', name: t.levelMediumName, tag: t.levelMediumTag, desc: t.levelMediumDesc, pros: t.levelMediumPros, cons: t.levelMediumCons },
-    { id: 'low', name: t.levelLowName, tag: t.levelLowTag, desc: t.levelLowDesc, pros: t.levelLowPros, cons: t.levelLowCons },
-  ];
-  const TARGET_LEVEL = { id: 'target', name: t.targetName, tag: t.targetTag, desc: t.targetDesc, pros: t.targetPros, cons: t.targetCons };
-
   const [file, setFile] = useState<File | null>(null);
-  const [level, setLevel] = useState('medium');
-  // One toggle opens all three cards' pros and cons together so the cards stay aligned.
-  const [prosConsOpen, setProsConsOpen] = useState(false);
+  const [level, setLevel] = useState<Level>('medium');
   const [targetKB, setTargetKB] = useState(100);
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
   useHoldUpdate(status === 'processing');
@@ -139,6 +125,15 @@ const COMPRESSION_LEVELS = [
   const [keptBytes, setKeptBytes] = useState(0);
   const [resultImageBytes, setResultImageBytes] = useState(0);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
+  // e2e reads this beside data-compress-status: it counts the runs that have started.
+  const [runCount, setRunCount] = useState(0);
+  // A run is requested by bumping this; the effect below starts it after the render that
+  // carries the new file, level, target and switch, so the run always reads the latest.
+  const [runRequest, setRunRequest] = useState(0);
+  const handleCompressRef = useRef<() => Promise<void>>(async () => {});
+  const runnerRef = useRef<{ request(): void } | null>(null);
+  runnerRef.current ??= createLatestOnly(() => handleCompressRef.current());
+  const targetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const kind = deriveFileKind(file);
   // Target Size is the only mode for an image - there's no quality-level
@@ -155,7 +150,6 @@ const COMPRESSION_LEVELS = [
   // build an object URL for an image), so it's kept in a ref rather than
   // duplicating it into render-triggering state.
   const compressedBlobRef = useRef<Blob | null>(null);
-  const [compareOpen, setCompareOpen] = useState(false);
   const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
   const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   // Full screen view (COMP-01): a modal dialog holding the same slider at the
@@ -218,7 +212,6 @@ const COMPRESSION_LEVELS = [
     setDimensions(null);
     clearDownload();
     compressedBlobRef.current = null;
-    setCompareOpen(false);
     clearComparePreviews();
     setCompareStatus('idle');
     setPassthrough(false);
@@ -237,12 +230,8 @@ const COMPRESSION_LEVELS = [
   // decoded bytes on this device, so two object URLs are all that's needed
   // and there's nothing to await.
   //
-  // One shared path for both ways the panel opens: automatically once a
-  // result lands (see handleCompress) and via the "Hide comparison" /
-  // "Compare with original" toggle below, which only flips `compareOpen`
-  // and otherwise defers to this same function - see `handleToggleCompare`.
-  // Both call sites guard on `comparePreviews` already being set, so
-  // re-opening after a hide never re-renders.
+  // The panel opens on its own as soon as a result exists (handleCompress);
+  // it guards on `comparePreviews` so a repeat call never re-renders.
   //
   // The panel now opens by default as soon as a result exists (Shlomi,
   // 2026-09-12: "it turned out amazing, it is however very hidden, keep it
@@ -350,16 +339,6 @@ const COMPRESSION_LEVELS = [
     setFullscreenOpen(false);
   };
 
-  const handleToggleCompare = () => {
-    if (compareOpen) {
-      setCompareOpen(false);
-      setFullscreenOpen(false);
-      return;
-    }
-    setCompareOpen(true);
-    openCompare();
-  };
-
   const handleFilesAdded = (files: FileList | File[]) => {
     const incoming = Array.from(files);
     const accepted = incoming.filter((f) => deriveFileKind(f) !== null);
@@ -369,6 +348,7 @@ const COMPRESSION_LEVELS = [
 
     if (accepted.length > 0) {
       const next = accepted[0];
+      cancelTargetTimer();
       setFile(next);
       resetOutput();
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
@@ -380,6 +360,8 @@ const COMPRESSION_LEVELS = [
       if (deriveFileKind(next) === 'pdf') {
         void checkEncryption(next);
         void analyze(next);
+      } else {
+        requestRun();
       }
     }
   };
@@ -430,7 +412,10 @@ const COMPRESSION_LEVELS = [
       const protection = await probeEncryption(bytes);
       if (!run.isCurrent()) return;
       run.settle();
-      if (protection !== 'needs-password') return;
+      if (protection !== 'needs-password') {
+        requestRun();
+        return;
+      }
       setNeedsUnlockBytes(bytes);
       setAnnouncement(t.protectedNeedsPasswordTitle);
     } catch (err) {
@@ -438,6 +423,7 @@ const COMPRESSION_LEVELS = [
       if (!run.isCurrent()) return;
       run.settle();
       reportError('pdf_tool_run', err, 'check_encryption');
+      requestRun();
     }
   };
 
@@ -448,23 +434,55 @@ const COMPRESSION_LEVELS = [
   // instead resolve their hand-off ahead of a draft restore.
   useHandoffIntake('compress', (file) => handleFilesAdded([file]));
 
-  const handleLevelChange = (nextLevel: string) => {
+  // Shows the busy state at once, then asks for a run once the state it reads has rendered.
+  const requestRun = () => {
+    setStatus('processing');
+    setRunRequest((n) => n + 1);
+  };
+
+  const cancelTargetTimer = () => {
+    if (targetTimerRef.current !== null) clearTimeout(targetTimerRef.current);
+    targetTimerRef.current = null;
+  };
+
+  useEffect(() => {
+    if (runRequest > 0) runnerRef.current?.request();
+  }, [runRequest]);
+
+  useEffect(() => cancelTargetTimer, []);
+
+  const handleLevelChange = (nextLevel: Level) => {
     if (nextLevel === level) return;
+    cancelTargetTimer();
     setLevel(nextLevel);
     resetOutput();
     recordAction('change_setting');
+    requestRun();
   };
 
   const handleFlattenChange = (next: boolean) => {
+    cancelTargetTimer();
     setFlatten(next);
     resetOutput();
     recordAction('change_setting');
+    requestRun();
   };
 
-  const handleTargetKBChange = (nextTargetKB: number) => {
+  // A preset runs at once; typing waits for a pause (500ms) so each keystroke is not a run.
+  const handleTargetKBChange = (nextTargetKB: number, { immediate }: { immediate: boolean }) => {
+    cancelTargetTimer();
     setTargetKB(Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1);
     resetOutput();
     recordAction('change_setting');
+    if (immediate) {
+      requestRun();
+      return;
+    }
+    setStatus('processing');
+    targetTimerRef.current = setTimeout(() => {
+      targetTimerRef.current = null;
+      requestRun();
+    }, 500);
   };
 
   const handleCompress = async () => {
@@ -477,6 +495,7 @@ const COMPRESSION_LEVELS = [
     const activeFile = file;
     const runToken = runTokenRef.current;
     recordAction('export');
+    setRunCount((n) => n + 1);
     setStatus('processing');
     setProgress(0);
     setAnnouncement(kind === 'image' ? t.imageStarting : t.starting);
@@ -515,7 +534,6 @@ const COMPRESSION_LEVELS = [
         // Open by default (SEO-25, 2026-09-12) - except a passthrough result,
         // which never gets a toggle at all (see the render check below).
         if (result.blob !== activeFile) {
-          setCompareOpen(true);
           openCompare();
         }
         return;
@@ -552,7 +570,6 @@ const COMPRESSION_LEVELS = [
               : isUnchanged ? t.alreadySmallComplete : t.complete,
         );
         if (!isPassthrough) {
-          setCompareOpen(true);
           openCompare();
         }
         return;
@@ -610,7 +627,6 @@ const COMPRESSION_LEVELS = [
       // Except a passthrough result, same as the image branch above - both
       // sides of the slider would be the same bytes.
       if (compressedBlob !== activeFile) {
-        setCompareOpen(true);
         openCompare();
       }
     } catch (err) {
@@ -621,6 +637,8 @@ const COMPRESSION_LEVELS = [
       setAnnouncement(kind === 'image' ? t.imageFailed : t.failed);
     }
   };
+
+  handleCompressRef.current = handleCompress;
 
   const handleShare = async () => {
     const result = await sharePrepared();
@@ -694,44 +712,84 @@ const COMPRESSION_LEVELS = [
       ? imageNotices[imageReason as keyof typeof imageNotices]
       : unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice;
 
-  const actionAndResults = (
-    <>
-      {/* Button anchor (SEO-25, 2026-09-12): one wrapper for the whole
-          action slot so the Compress button and the Download+Share pair
-          that replaces it on completion sit at the same top coordinate -
-          see the matching CSS comment in PdfCompressTool.module.css for why
-          each child's own margin-top is zeroed here instead of left to
-          collide with the wrapper's. Nothing above this wrapper (the option
-          cards, the target panel) is touched by any of this. */}
-      <div class={`${styles['result-action']}${hasFiles && (status !== 'done' || (!passthrough && downloadUrl)) ? ` ${styles['result-sheet']}` : ''}`}>
-        {hasFiles && status === 'done' && passthrough ? null : hasFiles && status === 'done' && downloadUrl ? (
-          <>
-            <DownloadButton
-              href={downloadUrl}
-              download={deriveDownloadName(file!.name, outputType)}
-              label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
-              detail={downloadDetail}
-              onClick={() => recordAction('download')}
-            />
-            <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
-          </>
-        ) : hasFiles ? (
-          status !== 'done' && (
-            <button
-              type="button"
-              class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
-              disabled={status === 'processing'}
-              onClick={handleCompress}
-            >
-              {status === 'processing' ? (
-                <ProgressRing progress={progress} label={t.compressing} />
-              ) : (
-                isImageMode ? t.compressImage : t.compress
-              )}
-            </button>
-          )
-        ) : null}
+  const isDone = hasFiles && status === 'done';
+  const isProcessing = hasFiles && status === 'processing';
+  const showCompare = isDone && !passthrough;
+  const hasSheet = isProcessing || (isDone && !passthrough && !!downloadUrl);
+  const compareCaption = kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf;
+
+  // The non-success headline of a finished run. A success has none: the strip carries the sizes.
+  const resultTitle = !isDone ? ''
+    : imageReason === 'encrypted' ? t.lockedTitle
+      : imageReason === 'unsupported' ? t.unsupportedTitle
+        : unchanged ? t.alreadySmallTitle
+          : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle)
+            : slightGain ? t.slightGainTitle : '';
+
+  // What the strip's note line says about the PDF; the strip reserves its height whatever arrives.
+  let stripNote: ComponentChildren = null;
+  if (kind === 'pdf' && analysis) {
+    if (analysis.images.length === 0) stripNote = <strong>{t.noImagesTitle}</strong>;
+    else if (!flatten) {
+      stripNote = formatMessage(analysis.imageShare < 0.2 ? t.stripShareLowNote : t.stripShareNote, {
+        share: formatShare(analysis.imageShare, t.lessThanOnePercent),
+      });
+    }
+  }
+
+  // The pages-to-pictures switch is for a PDF the image path could not shrink; until then it stays out of the way.
+  const imagePathFellShort = isDone && (
+    imageReason === 'unsupported' || imageReason === 'no-gain' || slightGain || (level === 'target' && !metTarget)
+  );
+  const showFlatten = kind === 'pdf' && (flatten || imagePathFellShort);
+
+  const arrow = t.dir === 'rtl' ? '←' : '→';
+
+  const fullscreenDialog = fullscreenOpen && (
+    <dialog
+      ref={fullscreenDialogRef}
+      class={styles['compare-fullscreen']}
+      aria-label={t.compareFullscreenLabel}
+      onClose={() => setFullscreenOpen(false)}
+    >
+      <div class={styles['compare-fullscreen-header']}>
+        <p class={styles['compare-caption']}>{compareCaption}</p>
+        <button type="button" class={styles['compare-toggle-button']} onClick={closeFullscreen}>
+          {t.compareCloseLabel}
+        </button>
       </div>
+      <div class={styles['compare-fullscreen-body']}>
+        {fullscreenStatus === 'loading' && (
+          <>
+            <div class={styles['compare-skeleton']} aria-hidden="true" />
+            <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
+          </>
+        )}
+        {fullscreenStatus === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
+        {fullscreenPreviews && (
+          <CompareSlider
+            fill
+            beforeSrc={fullscreenPreviews.before}
+            afterSrc={fullscreenPreviews.after}
+            beforeLabel={t.compareBeforeLabel}
+            afterLabel={t.compareAfterLabel}
+          />
+        )}
+      </div>
+    </dialog>
+  );
+
+  const resultSection = (
+    <section class={styles.result}>
+      {hasFiles && status !== 'done' && status !== 'error' && (
+        <div class={styles['compare-skeleton']} aria-hidden={isProcessing ? undefined : 'true'}>
+          {isProcessing && (
+            <div class={styles['skeleton-ring']}>
+              <ProgressRing progress={progress} label={t.compressing} />
+            </div>
+          )}
+        </div>
+      )}
 
       {hasFiles && status === 'error' && (
         <ErrorMessage title={t.compressionFailedTitle}>
@@ -739,177 +797,111 @@ const COMPRESSION_LEVELS = [
         </ErrorMessage>
       )}
 
-      {/* Everything below here renders under the button row (see the wrapper
-          above): the stats card, the notice, and the compare toggle/panel.
-          The card grows downward; nothing above the buttons moves. */}
-      {hasFiles && status === 'done' && (downloadUrl || passthrough) && (
-        <>
-          <div class={styles['compression-stats']}>
-            <p class={styles['stats-title']}>{imageReason === 'encrypted' ? t.lockedTitle : imageReason === 'unsupported' ? t.unsupportedTitle : unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : slightGain ? t.slightGainTitle : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
-            <div class={styles['stats-grid']}>
-              <div class={styles['metric-item']}>
-                <span class={styles['metric-label']}>{t.originalSize}</span>
-                <span class={styles['metric-val']}>{formatBytes(file!.size)}</span>
-              </div>
-              {passthrough ? (
-                rasterBytes != null && (
-                  <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>{t.asImagesSize}</span>
-                    <span class={styles['metric-val']}>{formatBytes(rasterBytes)}</span>
-                  </div>
-                )
-              ) : (
-                <div class={styles['metric-item']}>
-                  <span class={styles['metric-label']}>{t.compressedSize}</span>
-                  <span class={styles['metric-val']}>{formatBytes(compressedSize as number)}</span>
-                </div>
-              )}
-              {(!passthrough || unchanged) && (
-                <div class={styles['metric-item']}>
-                  <span class={styles['metric-label']}>{t.spaceSaved}</span>
-                  <span class={styles['metric-saving']}>
-                    {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : unchanged ? t.keptOriginal : t.noReduction}
-                  </span>
-                </div>
-              )}
-              {kind === 'image' && dimensions && (
-                <>
-                  <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>{t.originalDimensions}</span>
-                    <span class={styles['metric-val']}>{dimensions.originalWidth} × {dimensions.originalHeight}</span>
-                  </div>
-                  <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>{t.outputDimensions}</span>
-                    <span class={styles['metric-val']}>{dimensions.width} × {dimensions.height}</span>
-                  </div>
-                </>
-              )}
-            </div>
+      {isDone && resultTitle && <p class={styles['stats-title']}>{resultTitle}</p>}
 
-            {/* The honest-miss line: one shared block, worded per kind - a
-                photo's target only ever comes from the image panel, a PDF's
-                only from the Target Size card, so the two conditions never
-                overlap. */}
-            {imageReason === null && !unchanged && !metTarget && (kind === 'image' || level === 'target') && (
-              <p class={styles['compress-warning']}>
-                {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: sizeText(targetKB * 1024) })}
-              </p>
-            )}
-
-            {resultNotice && (
-              <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>{resultNotice}</p>
-            )}
-            {imageReason === 'smaller' && level === 'target' && !metTarget && (
-              <p class={styles['compress-warning']}>
-                {formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })}
-              </p>
-            )}
-
-            {/* Open by default as soon as a result exists (see openCompare
-                and handleCompress) - a visitor sees whether the notice above
-                is a dealbreaker for their file before they even reach the
-                download button, instead of having to go looking for it. The
-                toggle stays as a way to dismiss and re-open it. Shared by
-                both halves of the tool: a PDF rasterizes page 1 on each
-                side, an image just points at the original `file` and the
-                output blob it already has. Hidden entirely for a passthrough
-                result (image or PDF) - the output *is* the input when it was
-                already under target, so both sides of the slider would be
-                the same bytes, which is noise rather than a comparison. */}
-            {!passthrough && (
-              <>
-                <div class={styles['compare-actions']}>
-                  <button
-                    type="button"
-                    class={styles['compare-toggle-button']}
-                    onClick={handleToggleCompare}
-                    aria-expanded={compareOpen}
-                  >
-                    {compareOpen ? t.compareHide : t.compareShow}
-                  </button>
-                  {compareOpen && comparePreviews && (
-                    <button type="button" class={styles['compare-toggle-button']} onClick={openFullscreen}>
-                      {t.compareFullscreenLabel}
-                    </button>
-                  )}
-                </div>
-
-                {fullscreenOpen && (
-                  <dialog
-                    ref={fullscreenDialogRef}
-                    class={styles['compare-fullscreen']}
-                    aria-label={t.compareFullscreenLabel}
-                    onClose={() => setFullscreenOpen(false)}
-                  >
-                    <div class={styles['compare-fullscreen-header']}>
-                      <p class={styles['compare-caption']}>
-                        {kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf}
-                      </p>
-                      <button type="button" class={styles['compare-toggle-button']} onClick={closeFullscreen}>
-                        {t.compareCloseLabel}
-                      </button>
-                    </div>
-                    <div class={styles['compare-fullscreen-body']}>
-                      {fullscreenStatus === 'loading' && (
-                        <>
-                          <div class={styles['compare-skeleton']} aria-hidden="true" />
-                          <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
-                        </>
-                      )}
-                      {fullscreenStatus === 'error' && (
-                        <p class={styles['compare-status']}>{t.compareRenderFailed}</p>
-                      )}
-                      {fullscreenPreviews && (
-                        <CompareSlider
-                          fill
-                          beforeSrc={fullscreenPreviews.before}
-                          afterSrc={fullscreenPreviews.after}
-                          beforeLabel={t.compareBeforeLabel}
-                          afterLabel={t.compareAfterLabel}
-                        />
-                      )}
-                    </div>
-                  </dialog>
-                )}
-
-                {compareOpen && (
-                  <div class={styles['compare-panel']}>
-                    {compareStatus === 'loading' && (
-                      <>
-                        {/* The visible "still working" notification: async
-                            and non-blocking (openCompare never gates the
-                            download/share row above), but a visitor
-                            shouldn't have to take that on faith - a pulsing
-                            placeholder in the slider's own shape says so
-                            without a spinner competing for attention. */}
-                        <div class={styles['compare-skeleton']} aria-hidden="true" />
-                        <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
-                      </>
-                    )}
-                    {compareStatus === 'error' && (
-                      <p class={styles['compare-status']}>{t.compareRenderFailed}</p>
-                    )}
-                    {comparePreviews && (
-                      <>
-                        <CompareSlider
-                          beforeSrc={comparePreviews.before}
-                          afterSrc={comparePreviews.after}
-                          beforeLabel={t.compareBeforeLabel}
-                          afterLabel={t.compareAfterLabel}
-                        />
-                        <p class={styles['compare-caption']}>
-                          {kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </>
+      {showCompare && (
+        <div class={styles['compare-panel']}>
+          {compareStatus === 'loading' && (
+            <>
+              {/* The visible "still working" placeholder in the slider's own shape; it never holds up Download. */}
+              <div class={styles['compare-skeleton']} aria-hidden="true" />
+              <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
+            </>
+          )}
+          {compareStatus === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
+          {comparePreviews && (
+            <>
+              <CompareSlider
+                beforeSrc={comparePreviews.before}
+                afterSrc={comparePreviews.after}
+                beforeLabel={t.compareBeforeLabel}
+                afterLabel={t.compareAfterLabel}
+              />
+              <p class={styles['compare-caption']}>{compareCaption}</p>
+              <button type="button" class={styles['compare-toggle-button']} onClick={openFullscreen}>
+                {t.compareFullscreenLabel}
+              </button>
+            </>
+          )}
+        </div>
       )}
-    </>
+      {showCompare && fullscreenDialog}
+
+      {showCompare && kind === 'image' && dimensions && (
+        <p class={styles['dimension-line']}>
+          <bdi>{dimensions.originalWidth} × {dimensions.originalHeight}</bdi> {arrow} <bdi>{dimensions.width} × {dimensions.height}</bdi>
+        </p>
+      )}
+
+      {isDone && passthrough && (
+        <div class={styles['stats-grid']}>
+          <div class={styles['metric-item']}>
+            <span class={styles['metric-label']}>{t.originalSize}</span>
+            <span class={styles['metric-val']}>{formatBytes(file!.size)}</span>
+          </div>
+          {rasterBytes != null && (
+            <div class={styles['metric-item']}>
+              <span class={styles['metric-label']}>{t.asImagesSize}</span>
+              <span class={styles['metric-val']}>{formatBytes(rasterBytes)}</span>
+            </div>
+          )}
+          {unchanged && (
+            <div class={styles['metric-item']}>
+              <span class={styles['metric-label']}>{t.spaceSaved}</span>
+              <span class={styles['metric-saving']}>{savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : t.keptOriginal}</span>
+            </div>
+          )}
+          {kind === 'image' && dimensions && (
+            <>
+              <div class={styles['metric-item']}>
+                <span class={styles['metric-label']}>{t.originalDimensions}</span>
+                <span class={styles['metric-val']}>{dimensions.originalWidth} × {dimensions.originalHeight}</span>
+              </div>
+              <div class={styles['metric-item']}>
+                <span class={styles['metric-label']}>{t.outputDimensions}</span>
+                <span class={styles['metric-val']}>{dimensions.width} × {dimensions.height}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* The honest-miss line: worded per kind - a photo's target only ever comes from the image panel, a PDF's
+          only from Exact size, so the two conditions never overlap. */}
+      {isDone && imageReason === null && !unchanged && !metTarget && (kind === 'image' || level === 'target') && (
+        <p class={styles['compress-warning']}>
+          {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: sizeText(targetKB * 1024) })}
+        </p>
+      )}
+      {isDone && resultNotice && <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>{resultNotice}</p>}
+      {isDone && imageReason === 'smaller' && level === 'target' && !metTarget && (
+        <p class={styles['compress-warning']}>
+          {formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })}
+        </p>
+      )}
+    </section>
+  );
+
+  const sheet = (
+    <div class={`${styles['result-action']}${hasSheet ? ` ${styles['result-sheet']}` : ''}`} hidden={!hasSheet}>
+      {isProcessing ? (
+        <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} disabled>
+          <ProgressRing progress={progress} label={t.compressing} />
+        </button>
+      ) : isDone && !passthrough && downloadUrl ? (
+        <>
+          <DownloadButton
+            autoFocus={false}
+            href={downloadUrl}
+            download={deriveDownloadName(file!.name, outputType)}
+            label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
+            detail={downloadDetail}
+            onClick={() => recordAction('download')}
+          />
+          <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
+        </>
+      ) : null}
+    </div>
   );
 
   return (
@@ -927,6 +919,7 @@ const COMPRESSION_LEVELS = [
       fileMeta={describeFile(file, undefined, undefined, shellMessages)}
       shellMessages={shellMessages}
       compact
+      hideIdentity
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
@@ -936,13 +929,6 @@ const COMPRESSION_LEVELS = [
         </p>
       )}
 
-      {/* Rendered whether or not a file is loaded yet: a visitor who has only
-          seen the dropzone should see what the tool actually does before
-          they commit to picking a file, not after. Picking a card here only
-          sets `level` - it costs nothing without a file, and the choice
-          carries over the moment one is dropped in. Image mode replaces this
-          whole grid with the standalone Target Size panel, since there is no
-          quality-level choice to make for a photo. */}
       {needsUnlockBytes ? (
         <NeedsUnlock
           kind="needs-password"
@@ -951,7 +937,6 @@ const COMPRESSION_LEVELS = [
           from="compress"
           toolName="Compress"
           verb="compress"
-          replace={false}
           messages={{
             title: t.protectedNeedsPasswordTitle,
             body: t.protectedNeedsPasswordBody,
@@ -959,217 +944,52 @@ const COMPRESSION_LEVELS = [
             handoffFailed: t.protectedHandoffFailed,
           }}
         />
-      ) : (
-      <div class={isImageMode ? styles['image-target-panel'] : undefined}>
-        {isImageMode ? (
-          <div class={styles['target-size-panel']}>
-            <label class={styles['target-size-label']} for="image-target-size-input">
-              {t.targetSizeLabel}
-            </label>
-            <div class={styles['target-size-input-row']}>
-              <input
-                id="image-target-size-input"
-                type="number"
-                min="5"
-                step="5"
-                value={targetKB}
-                onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
+      ) : hasFiles && file ? (
+        <div class={styles['loaded-layout']} data-compress-status={status} data-compress-run={runCount}>
+          <CompressStrip
+            file={file}
+            dir={t.dir}
+            originalLabel={formatBytes(file.size)}
+            resultLabel={isDone && !passthrough && compressedSize != null ? formatBytes(compressedSize) : null}
+            processing={isProcessing}
+            processingLabel={t.compressing}
+            savedLabel={isDone && !passthrough && savingsPercent > 0 ? formatMessage(t.percentSmaller, { percent: savingsPercent }) : null}
+            note={stripNote}
+          />
+
+          <div class={styles.controls}>
+            {isImageMode ? (
+              <TargetSizePanel
+                t={t}
+                targetKB={targetKB}
+                presets={targetSizePresets}
+                onChange={handleTargetKBChange}
+                inputId="image-target-size-input"
+                min={5}
+                step={5}
               />
-              <span class={styles['target-size-unit']}>KB</span>
-            </div>
-            <div class={styles['target-size-presets']}>
-              {targetSizePresets.map((kb) => (
-                <button
-                  key={kb}
-                  type="button"
-                  class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
-                  onClick={() => handleTargetKBChange(kb)}
-                >
-                  {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
-                </button>
-              ))}
-            </div>
+            ) : (
+              <LevelPicker
+                value={level}
+                onChange={handleLevelChange}
+                t={t}
+                targetKB={targetKB}
+                onTargetKBChange={handleTargetKBChange}
+                presets={targetSizePresets}
+              />
+            )}
+            {showFlatten && (
+              <label class={styles['flatten-switch']}>
+                <input type="checkbox" checked={flatten} onChange={(e) => handleFlattenChange(e.currentTarget.checked)} />
+                <span><strong>{t.flattenLabel}</strong> {analysis?.hasText !== false ? t.flattenHint : t.flattenHintNoText}</span>
+              </label>
+            )}
           </div>
-        ) : (
-          <>
-          {kind === 'pdf' && !needsUnlockBytes && (
-            // DEBT-52: the note arrives after the PDF is read, and which note (or none, with flatten on or a
-            // failed read) is not known up front. So the slot is one grid cell holding every variant stacked,
-            // hidden, and the cell is as tall as the tallest; the live note sits in the same cell. The height
-            // is the same whatever arrives, so the options never move. Chosen over putting the note below the
-            // options (it would push the Compress button) and over a fixed reserve (the wrong size per width).
-            // The price is a quiet gap where there is no note; copy is unchanged.
-            <div class={styles['note-slot']}>
-              {NOTE_VARIANTS.map((v) => (
-                <p key={v.key} class={`${styles[v.box]} ${styles['note-reserve']}`} aria-hidden="true">
-                  {v.title && <><strong>{t.noImagesTitle}</strong>{' '}</>}
-                  {formatMessage(t[v.key], { share: '99%' })}
-                </p>
-              ))}
-              {analysis && analysis.images.length === 0 && (
-                <p class={styles['honest-note']} role="note">
-                  <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
-                </p>
-              )}
-              {analysis && analysis.images.length > 0 && !flatten && (
-                <p class={styles[analysis.imageShare < 0.2 ? 'honest-note' : 'compress-warning']} role="note">
-                  {formatMessage(analysis.imageShare < 0.2 ? t.imageShareLowNote : analysis.hasText ? t.imageShareNote : t.imageShareScanNote, {
-                    share: formatShare(analysis.imageShare, t.lessThanOnePercent),
-                  })}
-                </p>
-              )}
-            </div>
-          )}
-          <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
-            {COMPRESSION_LEVELS.map((opt) => (
-              <div
-                key={opt.id}
-                class={`${styles['compress-card']}${level === opt.id ? ` ${styles['is-selected']}` : ''}${opt.id === 'medium' ? ` ${styles['is-recommended']}` : ''}`}
-                role="radio"
-                aria-checked={level === opt.id}
-                tabIndex={0}
-                onClick={() => handleLevelChange(opt.id)}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    handleLevelChange(opt.id);
-                  }
-                }}
-              >
-                {opt.id === 'medium' && <span class={styles['recommended-ribbon']}>{t.ourPick}</span>}
-                <div class={styles['compress-card-header']}>
-                  <span class={styles['compress-card-title']}>{opt.name}</span>
-                  <span class={styles['compress-card-tag']}>{opt.tag}</span>
-                </div>
-                <p class={styles['compress-card-desc']}>{opt.desc}</p>
-                <div class={styles['compress-pro-con']} id={`compress-pro-con-${opt.id}`} hidden={!prosConsOpen}>
-                  <div class={styles['pro-item']}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>{opt.pros}</span>
-                  </div>
-                  <div class={styles['con-item']}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                    <span>{opt.cons}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
 
-            {/* Target Size is functionally different from the three presets -
-                it needs a number from the user - so it gets its own full-width
-                row and an icon-led header instead of blending in as a fourth
-                equal card. The KB input expands inline underneath once it's
-                selected, rather than in a separate panel below the grid. */}
-            <div
-              class={`${styles['compress-card']} ${styles['target-card']}${level === 'target' ? ` ${styles['is-selected']}` : ''}`}
-              role="radio"
-              aria-checked={level === 'target'}
-              tabIndex={0}
-              onClick={() => handleLevelChange('target')}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  handleLevelChange('target');
-                }
-              }}
-            >
-              <span class={styles['target-card-badge']}>
-                {t.targetBadge}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="9" r="6" />
-                  <path d="M9 14.2 7 22l5-3 5 3-2-7.8" />
-                </svg>
-              </span>
-              <div class={styles['target-card-main']}>
-                {/* Target/crosshair in the card body - the medal-with-ribbon
-                    lives once, in the badge above, so it isn't repeated here. */}
-                <span class={styles['target-card-icon']} aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="8" />
-                    <circle cx="12" cy="12" r="4" />
-                    <circle cx="12" cy="12" r="0.5" fill="currentColor" />
-                  </svg>
-                </span>
-                <div class={styles['target-card-body']}>
-                  <div class={styles['compress-card-header']}>
-                    <span class={styles['compress-card-title']}>{TARGET_LEVEL.name}</span>
-                    <span class={styles['compress-card-tag']}>{TARGET_LEVEL.tag}</span>
-                  </div>
-                  <p class={styles['compress-card-desc']}>{TARGET_LEVEL.desc}</p>
-                </div>
-              </div>
-
-              {level === 'target' && (
-                <div
-                  class={styles['target-size-panel']}
-                  // Card-level onClick would otherwise fire again for every
-                  // click inside the input/presets - it's already selected.
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <label class={styles['target-size-label']} for="target-size-input">
-                    {t.targetSizeLabel}
-                  </label>
-                  <div class={styles['target-size-input-row']}>
-                    <input
-                      id="target-size-input"
-                      type="number"
-                      min="10"
-                      step="10"
-                      value={targetKB}
-                      onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
-                    />
-                    <span class={styles['target-size-unit']}>KB</span>
-                  </div>
-                  <div class={styles['target-size-presets']}>
-                    {targetSizePresets.map((kb) => (
-                      <button
-                        key={kb}
-                        type="button"
-                        class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
-                        onClick={() => handleTargetKBChange(kb)}
-                      >
-                        {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          {/* After the cards, not above them: on a phone the sheet sits above the
-              fold of the cards, and a toggle under the sheet read as unrelated
-              to them. Outside the radiogroup, since a button must not be its child. */}
-          <div class={styles['pro-con-bar']}>
-            <button
-              type="button"
-              class={styles['pro-con-toggle']}
-              aria-expanded={prosConsOpen}
-              aria-controls={COMPRESSION_LEVELS.map((opt) => `compress-pro-con-${opt.id}`).join(' ')}
-              onClick={() => setProsConsOpen((open) => !open)}
-            >
-              {prosConsOpen ? t.hideProsCons : t.showProsCons}
-              <svg class={styles['pro-con-chevron']} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-          </div>
-          {kind === 'pdf' && (
-            <label class={styles['flatten-switch']}>
-              <input type="checkbox" checked={flatten} onChange={(e) => handleFlattenChange(e.currentTarget.checked)} />
-              <span><strong>{t.flattenLabel}</strong> {t.flattenHint}</span>
-            </label>
-          )}
-          </>
-        )}
-
-        {actionAndResults}
-      </div>
-      )}
+          {resultSection}
+          {sheet}
+        </div>
+      ) : null}
 
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
