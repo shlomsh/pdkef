@@ -131,7 +131,11 @@ export default function PdfCompressTool({
   // carries the new file, level, target and switch, so the run always reads the latest.
   const [runRequest, setRunRequest] = useState(0);
   const handleCompressRef = useRef<() => Promise<void>>(async () => {});
-  const runnerRef = useRef<{ request(): void } | null>(null);
+  const runnerRef = useRef<{ request(): void; cancelPending(): void } | null>(null);
+  // The file gate: closed from the moment a file is accepted until it may run (an image at once, a PDF once
+  // its encryption check says it is not locked), and while a password is needed. No run starts behind it.
+  const runnableRef = useRef(false);
+  const currentFileRef = useRef<File | null>(null);
   runnerRef.current ??= createLatestOnly(() => handleCompressRef.current());
   const targetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -396,6 +400,9 @@ export default function PdfCompressTool({
     if (accepted.length > 0) {
       const next = accepted[0];
       cancelTargetTimer();
+      runnerRef.current?.cancelPending();
+      runnableRef.current = false;
+      currentFileRef.current = next;
       setFile(next);
       resetOutput();
       clearOriginalPreview();
@@ -410,6 +417,7 @@ export default function PdfCompressTool({
         void analyze(next);
       } else {
         loadOriginalPreview(next);
+        runnableRef.current = true;
         requestRun();
       }
     }
@@ -463,6 +471,7 @@ export default function PdfCompressTool({
       run.settle();
       if (protection !== 'needs-password') {
         loadOriginalPreview(pdf);
+        runnableRef.current = true;
         requestRun();
         return;
       }
@@ -474,6 +483,7 @@ export default function PdfCompressTool({
       run.settle();
       reportError('pdf_tool_run', err, 'check_encryption');
       loadOriginalPreview(pdf);
+      runnableRef.current = true;
       requestRun();
     }
   };
@@ -487,6 +497,7 @@ export default function PdfCompressTool({
 
   // Shows the busy state at once, then asks for a run once the state it reads has rendered.
   const requestRun = () => {
+    if (!runnableRef.current) return;
     setStatus('processing');
     setRunRequest((n) => n + 1);
   };
@@ -529,7 +540,7 @@ export default function PdfCompressTool({
       requestRun();
       return;
     }
-    setStatus('processing');
+    if (runnableRef.current) setStatus('processing');
     targetTimerRef.current = setTimeout(() => {
       targetTimerRef.current = null;
       requestRun();
@@ -537,7 +548,7 @@ export default function PdfCompressTool({
   };
 
   const handleCompress = async () => {
-    if (!file) return;
+    if (!file || !runnableRef.current || file !== currentFileRef.current) return;
     // The file this run belongs to, and the token that marks it current -
     // both read before the first await, since a workspace drop or a Replace
     // pick can swap `file` out from under an in-flight compress (see
@@ -545,6 +556,10 @@ export default function PdfCompressTool({
     // 'done', so neither is confirmed first).
     const activeFile = file;
     const runToken = runTokenRef.current;
+    // Only the current run may move the ring; a stale one keeps calling after resetOutput.
+    const onProgress = (p: number) => {
+      if (runToken === runTokenRef.current) setProgress(p);
+    };
     recordAction('export');
     setRunCount((n) => n + 1);
     setStatus('processing');
@@ -555,7 +570,7 @@ export default function PdfCompressTool({
       if (kind === 'image') {
         const result = await compressImageToTarget(activeFile, {
           targetKB,
-          onProgress: setProgress,
+          onProgress,
         });
         if (runToken !== runTokenRef.current) return;
         const resultType = result.blob.type || 'image/jpeg';
@@ -593,8 +608,8 @@ export default function PdfCompressTool({
       if (!flatten) {
         const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('./compressImages.js');
         const result: { blob: Blob; metTarget?: boolean; reason: string; keptBytes?: number; imageBytes?: number } = level === 'target'
-          ? await compressPdfImagesToTarget(activeFile, { targetKB, onProgress: setProgress })
-          : await compressPdfImages(activeFile, { ...IMAGE_LEVELS[level as 'high' | 'medium' | 'low'], onProgress: setProgress });
+          ? await compressPdfImagesToTarget(activeFile, { targetKB, onProgress })
+          : await compressPdfImages(activeFile, { ...IMAGE_LEVELS[level as 'high' | 'medium' | 'low'], onProgress });
         if (runToken !== runTokenRef.current) return;
         const imageBlob = result.blob;
         const resultType = imageBlob.type || 'application/pdf';
@@ -633,7 +648,7 @@ export default function PdfCompressTool({
       if (level === 'target') {
         const result = await compressPdfToTarget(activeFile, {
           targetKB,
-          onProgress: setProgress,
+          onProgress,
         });
         compressedBlob = result.blob;
         didMeetTarget = result.metTarget;
@@ -641,7 +656,7 @@ export default function PdfCompressTool({
       } else {
         const result = await compressPdf(activeFile, {
           level,
-          onProgress: setProgress,
+          onProgress,
         });
         compressedBlob = result.blob;
         resultRasterBytes = result.rasterBytes;
@@ -766,7 +781,7 @@ export default function PdfCompressTool({
   const isDone = hasFiles && status === 'done';
   const isProcessing = hasFiles && status === 'processing';
   const showCompare = isDone && !passthrough;
-  const hasSheet = isProcessing || (isDone && !passthrough && !!downloadUrl);
+  const hasSheet = isProcessing || (hasFiles && status === 'error') || (isDone && !passthrough && !!downloadUrl);
   const compareCaption = kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf;
 
   // The non-success headline of a finished run. A success has none: the strip carries the sizes.
@@ -958,6 +973,10 @@ export default function PdfCompressTool({
       {isProcessing ? (
         <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} disabled>
           <ProgressRing progress={progress} label={t.compressing} />
+        </button>
+      ) : hasFiles && status === 'error' ? (
+        <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={requestRun}>
+          {t.tryAgain}
         </button>
       ) : isDone && !passthrough && downloadUrl ? (
         <>

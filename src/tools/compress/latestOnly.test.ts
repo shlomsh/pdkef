@@ -55,4 +55,18 @@ describe('createLatestOnly', () => {
     runner.request();
     expect(task).toHaveBeenCalledTimes(2);
   });
+
+  it('cancelPending drops the queued follow-up but lets the run in flight finish', async () => {
+    const first = deferred();
+    const task = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue(undefined);
+    const runner = createLatestOnly(task);
+    runner.request();
+    runner.request();
+    runner.cancelPending();
+    first.resolve();
+    await flush();
+    expect(task).toHaveBeenCalledTimes(1);
+    runner.request();
+    expect(task).toHaveBeenCalledTimes(2);
+  });
 });

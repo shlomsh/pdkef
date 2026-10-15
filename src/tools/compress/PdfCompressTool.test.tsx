@@ -336,6 +336,85 @@ describe('PdfCompressTool UI flow', () => {
     expect(downloadButton().textContent).toContain('15 Bytes');
   });
 
+  it('a failed run shows the error and Try again, which runs once more', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    imagesLib.compressPdfImages.mockImplementationOnce(() => Promise.reject(new Error('boom')));
+    await loadPdf('flaky.pdf');
+    expect(status()).toBe('error');
+    expect(container.textContent).toContain('Compression failed.');
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      findButton('Try again').click();
+    });
+    await settled();
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
+    expect(status()).toBe('done');
+    expect(findButton('Try again')).toBeUndefined();
+  });
+
+  it('a file replaced mid-run by a password-needing PDF never compresses, even after another level was clicked', async () => {
+    const runA = deferred();
+    imagesLib.compressPdfImages.mockImplementationOnce(() => runA.promise);
+    mount();
+    await pick(makePdfFile('run_a.pdf', 100000), ran(imagesLib.compressPdfImages, 1));
+    await act(async () => {
+      radio('Smallest').click();
+    });
+    probeEncryption.mockImplementation(() => Promise.resolve('needs-password'));
+    await pick(makePdfFile('locked.pdf', 40000), () => container.querySelector('[data-needs-unlock]') !== null);
+    await act(async () => {
+      runA.resolve(imagesResult());
+    });
+    await wait(80);
+
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
+    expect(container.querySelector('[data-compress-status]')).toBeNull();
+    expect(container.querySelector('[role="status"].sr-only').textContent).toBe(englishCompressMessages.protectedNeedsPasswordTitle);
+  });
+
+  it('a level change during the encryption probe does not compress, and exactly one run happens when the probe answers', async () => {
+    let release;
+    probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    mount();
+    await pick(makePdfFile('probing.pdf', 100000), () => container.querySelector('[data-compress-strip]') !== null);
+    await act(async () => {
+      radio('Smallest').click();
+    });
+    await wait(60);
+    expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
+    expect(status()).not.toBe('processing');
+
+    await act(async () => {
+      release('open');
+    });
+    await settled();
+    await wait(60);
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(imagesLib.compressPdfImages.mock.calls[0][1]).toEqual(expect.objectContaining({ maxLongSidePx: 1000, quality: 0.4 }));
+  });
+
+  it('a stale run reporting progress after a level change does not move the shown percentage', async () => {
+    const first = deferred();
+    let staleProgress;
+    imagesLib.compressPdfImages.mockImplementationOnce((f, opts) => {
+      staleProgress = opts.onProgress;
+      return first.promise;
+    });
+    mount();
+    await pick(makePdfFile('busy.pdf', 100000), ran(imagesLib.compressPdfImages, 1));
+    await act(async () => {
+      radio('Smallest').click();
+    });
+    await act(async () => {
+      staleProgress(0.8);
+    });
+    const sheetText = () => container.querySelector(`.${styles['result-sheet']}`).textContent;
+    expect(sheetText()).not.toContain('80%');
+    expect(sheetText()).toContain('0%');
+  });
+
   it('runs compression on pick and displays the result in the strip and on the sheet', async () => {
     const nativeShare = mockNativeFileShare();
     await loadPdf('test_doc.pdf', 100000);
