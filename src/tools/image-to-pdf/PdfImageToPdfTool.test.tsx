@@ -152,6 +152,25 @@ describe('PdfImageToPdfTool UI flow', () => {
     nativeShare.restore();
   });
 
+  it('swaps Convert for Download once converted, and brings Convert back on a change', async () => {
+    mount();
+    await loadFiles(['one.png', 'two.png']);
+    const primaries = () => container.querySelectorAll(`.${pdfToolStyles['tool-primary-action']}`);
+    expect(primaries().length).toBe(1);
+    await act(async () => {
+      primaries()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(primaries().length).toBe(0);
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+
+    await act(async () => {
+      container.querySelectorAll(`.${styles['remove-button']}`)[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(primaries().length).toBe(1);
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+  });
+
   it('removes an image when the remove button is clicked', async () => {
     mount();
     await loadFiles(['one.png', 'two.png']);
