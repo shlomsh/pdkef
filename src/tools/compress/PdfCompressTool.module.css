@@ -1,21 +1,16 @@
 /* The loaded state: the result is the centre (ux guideline 1), the strip,
    the controls and the primary controls are a rail beside it. DOM order is
-   strip, controls, result, sheet, which is also the phone's reading order. */
+   controls, result, sheet, which is also the phone's reading order. The file strip is the shell's. */
 .loaded-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
-    'strip'
     'controls'
     'result'
     'sheet';
   row-gap: 16px;
   align-items: start;
   text-align: start;
-}
-
-.loaded-layout > :nth-child(1) {
-  grid-area: strip;
 }
 
 .controls {
@@ -59,17 +54,12 @@
   .loaded-layout {
     grid-template-columns: minmax(0, 1fr) 360px;
     grid-template-areas:
-      'result strip'
       'result controls'
       'result sheet'
       'result .';
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto 1fr;
     column-gap: 28px;
     row-gap: 0;
-  }
-
-  .controls {
-    margin-top: 18px;
   }
 
   .result-action {
@@ -94,15 +84,14 @@
 /* Below 1024px the primary controls are the sticky bottom sheet the other
    tools use (ux guidelines 8). It stays in flow, so it never covers the
    result, and `.tool-card` has no overflow clip, which sticky depends on.
-   The card pads 1.5rem here, and 12px once a tool hides its identity row
-   (PdfTool.module.css, `data-hide-identity`), hence the 12px bleed. */
+   The card pads 1.5rem here, hence the 1.5rem bleed. */
 @media (max-width: 1023px) {
   .result-sheet {
     position: sticky;
     bottom: 0;
     z-index: 2;
-    margin-inline: -12px;
-    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
+    margin-inline: -1.5rem;
+    padding: 0.5rem 1.5rem calc(0.5rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
   }
@@ -361,4 +350,26 @@
 
 .compare-fullscreen-header .compare-caption {
   text-align: start;
+}
+
+/* Before to after sizes on the shell strip's meta line, with the citron tag. */
+.sizes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.before {
+  color: var(--color-muted);
+}
+
+.saved {
+  background: var(--color-citron);
+  color: var(--color-citron-ink);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
 }

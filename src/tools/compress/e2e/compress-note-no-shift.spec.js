@@ -25,7 +25,7 @@ async function open(page) {
     window.__heights = [];
     const loop = () => {
       const el = document.querySelector('[role="radiogroup"]');
-      const strip = document.querySelector('[data-compress-strip]');
+      const strip = document.querySelector('[data-tool-shell]');
       if (el && strip && !document.querySelector('[data-empty-state]')) {
         const t = Math.round(el.getBoundingClientRect().top + window.scrollY);
         if (window.__tops[window.__tops.length - 1] !== t) window.__tops.push(t);

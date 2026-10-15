@@ -34,7 +34,6 @@ test('a file that needs a password goes to Unlock from Compress and comes back u
   await (await chooser).setFiles({ name: 'needs-password.pdf', mimeType: 'application/pdf', buffer: fixture('needs-password') });
 
   await expect(page.getByRole('heading', { name: 'This PDF has a password' })).toBeVisible();
-  await expect(page.locator('[data-compress-strip]')).toHaveCount(0);
   await expect(page.getByRole('radiogroup')).toHaveCount(0);
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
@@ -49,7 +48,7 @@ test('a file that needs a password goes to Unlock from Compress and comes back u
   await page.getByRole('button', { name: 'Continue in Compress' }).click();
   await page.waitForURL(/\/compress\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  await expect(page.locator('[data-compress-strip]')).toContainText('needs-password_unlocked.pdf', { timeout: 10_000 });
+  await expect(page.locator('[data-tool-shell]')).toContainText('needs-password_unlocked.pdf', { timeout: 10_000 });
   await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 60_000 });
 
   expect(reports.filter((body) => /EncryptedPDFError/.test(body))).toEqual([]);
