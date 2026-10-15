@@ -1,10 +1,11 @@
-import { useMemo } from 'preact/hooks';
+import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { clearDraftHintAttribute, useDraftPersistence } from '../../lib/drafts/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
 import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
+import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoffPending.ts';
 
 interface DraftRecord {
   fileName: string;
@@ -69,6 +70,17 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   // Rebuild a File from a stored record - handoffs and drafts carry the same
   // fileName/fileType/fileBytes triple, because a File handle does not survive a
   // navigation and both have to cross one.
+  // HERO-02: the pre-paint script held the page back for a hand-off. It is released once the editor
+  // shows the document, at once when there was nothing to take, and on unmount before either.
+  const cancelReleaseRef = useRef<() => void>(() => {});
+  useEffect(
+    () => () => {
+      cancelReleaseRef.current();
+      releaseHandoffPending();
+    },
+    [],
+  );
+
   const fileFrom = (record: DraftRecord) =>
     new File([record.fileBytes], record.fileName, { type: record.fileType || 'application/pdf' });
 
@@ -103,8 +115,13 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     // the previous file keeps its work on its own recents entry).
     beforeRestore: async () => {
       const handoff = (await takeHandoff(tool)) as DraftRecord | null;
-      if (!handoff || loadStartedRef.current) return false;
+      clearHandoffPending(tool);
+      if (!handoff || loadStartedRef.current) {
+        releaseHandoffPending();
+        return false;
+      }
       loadStartedRef.current = true;
+      cancelReleaseRef.current = releaseHandoffPendingWhenLoaded();
       loadPdf(fileFrom(handoff), handoff.fileBytes, { elements: [], actionHistory: [] }, true);
       return true;
     },

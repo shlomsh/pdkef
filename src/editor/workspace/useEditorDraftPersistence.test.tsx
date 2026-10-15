@@ -16,7 +16,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null)),
 }));
 
-import { deleteDraft, loadDraft } from '../../lib/drafts/draftStore.js';
+import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
@@ -236,5 +236,72 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     ).resolves.not.toThrow();
 
     expect(props.loadPdf).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
+  let container: HTMLDivElement;
+  const root = document.documentElement;
+  const record = () => ({
+    fileName: 'merged.pdf',
+    fileType: 'application/pdf',
+    fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+  });
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    (loadDraft as any).mockReset();
+    (loadDraft as any).mockResolvedValue(null);
+    (takeHandoff as any).mockReset();
+    root.setAttribute('data-handoff-pending', '1');
+    sessionStorage.setItem('pdkef:handoff-pending:sign', '1');
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    root.removeAttribute('data-handoff-pending');
+    document.querySelectorAll('[data-tool-loaded]').forEach((n) => n.remove());
+    sessionStorage.clear();
+  });
+
+  it('holds the marker until the editor shows the handed-over document, then releases it', async () => {
+    (takeHandoff as any).mockResolvedValue(record());
+    const props = baseProps({ tool: 'sign' });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+    expect(props.loadPdf).toHaveBeenCalledTimes(1);
+    expect(root.hasAttribute('data-handoff-pending')).toBe(true);
+    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
+    const shown = document.createElement('div');
+    shown.setAttribute('data-tool-loaded', '');
+    document.body.appendChild(shown);
+    await waitAsync();
+    expect(root.hasAttribute('data-handoff-pending')).toBe(false);
+  });
+
+  it('releases at once when there is nothing to take', async () => {
+    (takeHandoff as any).mockResolvedValue(null);
+    const props = baseProps({ tool: 'sign' });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+    expect(root.hasAttribute('data-handoff-pending')).toBe(false);
+    expect(sessionStorage.getItem('pdkef:handoff-pending:sign')).toBeNull();
+  });
+
+  it('releases on unmount before the read settles', async () => {
+    (takeHandoff as any).mockReturnValue(new Promise(() => {}));
+    const props = baseProps({ tool: 'sign' });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    expect(root.hasAttribute('data-handoff-pending')).toBe(true);
+    act(() => render(null, container));
+    expect(root.hasAttribute('data-handoff-pending')).toBe(false);
   });
 });
