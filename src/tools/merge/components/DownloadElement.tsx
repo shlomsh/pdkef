@@ -27,7 +27,10 @@ export interface DownloadElementProps {
    * MergeMessages catalogue, which has no shell-level string of its own. */
   chooseFilesLabel?: string;
   onChooseFiles?: () => void;
+  /** A tap before the quiet-time build has landed: 'preparing' state, or 'ready' without a link yet. */
   onPreparingTap?: () => void;
+  /** Hover, focus or pointerdown: the person is about to tap, so build now. */
+  onWarm?: () => void;
   onDownloadClick?: (event: MouseEvent) => void;
   /** The output-name heading is mid-rename (a `contenteditable`
    * span holding live, uncommitted keystrokes). The first-ready autofocus
@@ -65,6 +68,7 @@ export default function DownloadElement({
   chooseFilesLabel,
   onChooseFiles,
   onPreparingTap,
+  onWarm,
   onDownloadClick,
   isOutputNameBeingRenamed = false,
 }: DownloadElementProps) {
@@ -83,11 +87,12 @@ export default function DownloadElement({
   // re-runs and still claims the first-ready focus if nothing has since
   // consumed it (`hasFocusedRef` is only ever set on an actual focus call).
   useEffect(() => {
-    if (state === 'ready' && !hasFocusedRef.current && !isOutputNameBeingRenamed) {
+    // Only once there is a link: focusing a still-silent 'ready' would fire onWarm and end the quiet wait.
+    if (state === 'ready' && href && !hasFocusedRef.current && !isOutputNameBeingRenamed) {
       hasFocusedRef.current = true;
       ref.current?.focus({ preventScroll: true });
     }
-  }, [state, isOutputNameBeingRenamed]);
+  }, [state, href, isOutputNameBeingRenamed]);
 
   const isLink = (state === 'ready' || state === 'saved') && !!href;
   // One-file: the box itself is a plain surface, never a button in its own
@@ -99,7 +104,7 @@ export default function DownloadElement({
   const onClick = (event: MouseEvent) => {
     if (isPlainSurface) {
       return;
-    } else if (state === 'preparing') {
+    } else if (state === 'preparing' || (state === 'ready' && !isLink)) {
       event.preventDefault();
       onPreparingTap?.();
     } else if (state === 'error') {
@@ -130,6 +135,9 @@ export default function DownloadElement({
       tabIndex={isLink || isPlainSurface ? undefined : 0}
       aria-busy={state === 'preparing' || undefined}
       onClick={onClick}
+      onPointerEnter={onWarm}
+      onFocus={onWarm}
+      onPointerDown={onWarm}
       onKeyDown={onKeyDown}
     >
       {state === 'one-file' && (

@@ -40,6 +40,7 @@ import FileName from './components/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
 import SortMenu from './components/SortMenu.tsx';
+import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { usePreparedMerge } from './components/usePreparedMerge.ts';
 import type { PageStripProps } from './components/PageStrip.tsx';
 import type { MergeDraftPersistenceProps } from './components/MergeDraftPersistence.tsx';
@@ -184,8 +185,8 @@ interface PdfMergeToolProps {
   /** MERGE-14: where the three hand-off links go. English routes by default;
    * a localized page passes its edition's routes where one exists. */
   handoffHrefs?: Partial<Record<HandoffTool, string>>;
-  /** Tests only: shortens the idle wait before a pre-merge (MERGE-12). */
-  prepareDelayMs?: number;
+  /** Tests only: shortens the quiet wait before the background merge. */
+  quietPolicy?: QuietPolicy;
   /** Tests only: jsdom cannot navigate. */
   navigate?: (href: string) => void;
 }
@@ -211,7 +212,7 @@ export default function PdfMergeTool({
   shellMessages,
   unlockHref = '/unlock/',
   handoffHrefs,
-  prepareDelayMs,
+  quietPolicy,
   navigate = (href) => { window.location.href = href; },
 }: PdfMergeToolProps = {}) {
   const hrefs: Record<HandoffTool, string> = { ...DEFAULT_HANDOFF_HREFS, ...handoffHrefs };
@@ -345,7 +346,7 @@ export default function PdfMergeTool({
     fileIds,
     addPageNumbers,
     title,
-    debounceMs: prepareDelayMs,
+    quietPolicy,
   });
 
   // Once the plan is ready, any subsequent edit takes the Download element
@@ -952,10 +953,12 @@ export default function PdfMergeTool({
     recordAction('download');
   }, [t.mergedReady]);
 
+  // The tap beat the quiet-time build: show 'preparing', build now, deliver on ready.
   const onPreparingTap = useCallback(() => {
     setTap('merging');
     setPendingDownload(true);
-  }, []);
+    prepared.prepareNow();
+  }, [prepared.prepareNow]);
 
   // A tap on a ready Download: 'merging' renders once so BasePdfTool reports
   // tool_operation_started, then 'done' reports tool_result_ready.
@@ -1004,8 +1007,12 @@ export default function PdfMergeTool({
       ? 'error'
       : prepared.status === 'ready'
         ? (downloadedOnce ? 'saved' : 'ready')
-        : 'preparing';
-  const downloadDetail = prepared.status === 'ready' ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}` : undefined;
+        // Quiet means quiet: while the build waits or runs, Download keeps its ready look.
+        // 'preparing' is for a tap that beat the build, or files still being read.
+        : (prepared.status === 'pending' && !pendingDownload) ? 'ready' : 'preparing';
+  const downloadDetail = prepared.status === 'ready'
+    ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}`
+    : pagesLabel(outputPageCount(plan));
   // A file flagged by inspection (encrypted, unreadable) is the person's file,
   // not a failed operation; a failure of the merge run itself, which
   // usePreparedMerge reports, still counts.
@@ -1388,12 +1395,13 @@ export default function PdfMergeTool({
                   chooseFilesLabel={sm.chooseFilesMany}
                   onChooseFiles={requestReplace}
                   onPreparingTap={onPreparingTap}
+                  onWarm={prepared.prepareNow}
                   onDownloadClick={onDownloadTap}
                   isOutputNameBeingRenamed={isRenamingOutputName}
                 />
 
                 {entries.length >= 2 && (
-                  <div class={railStyles['handoff-row']}>
+                  <div class={railStyles['handoff-row']} onPointerOver={prepared.prepareNow} onFocusIn={prepared.prepareNow} onPointerDown={prepared.prepareNow}>
                     {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={railStyles['handoff-button']} />}
                     {(['compress', 'sign'] as HandoffTool[]).map((tool) => {
                       const Icon = tool === 'compress' ? Shrink : FileSignature;

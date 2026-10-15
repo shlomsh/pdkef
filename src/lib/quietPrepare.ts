@@ -93,6 +93,7 @@ export function createQuietPreparer<T>(opts: {
       latest = null;
       fn();
     };
+    // expected: a rejection is handed to onError, where the tool reports it
     opts.build(key, ctl.signal).then(
       (value) =>
         finish(() => {

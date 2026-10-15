@@ -4,21 +4,16 @@ import { reportableCause } from '../reportableCause.ts';
 import { outputPageCount, toMergeMap, type PlanEntry } from '../mergePlan.ts';
 import { useObjectUrls } from '../../../lib/useObjectUrls.js';
 import { reportError } from '../../../lib/errorReport.ts';
+import { createQuietPreparer, type QuietPolicy } from '../../../lib/quietPrepare.ts';
 
-/* MERGE-12: pre-merge on idle so Download is one tap.
+/* Guideline §2, "Quiet means quiet": the merged blob is built in the
+   background once the person has gone quiet (src/lib/quietPrepare.ts decides
+   how long), and nothing on screen changes while that happens. `pending`
+   covers both the quiet wait and the build itself; the tool shows 'preparing'
+   only if the person taps before the blob lands. Built blobs are cached by
+   state key, so an undo back to a built state is ready with no build. */
 
-   Upload-based tools need an explicit Merge step because the work happens
-   somewhere else. Here it happens on the device, and pdf-lib copies pages in
-   tens of milliseconds for a typical set, so the step goes: after the last
-   change to the list or the pages, wait this long for the person to stop
-   changing things, then build the merged blob in the background. Any further
-   change cancels the running merge (AbortController) and restarts the wait.
-   The number is a guess at "finished fiddling" - long enough that dragging a
-   file two rows does not build a blob per row, short enough that Download is
-   ready before a hand reaches it. */
-export const PREPARE_DEBOUNCE_MS = 600;
-
-export type PreparedStatus = 'idle' | 'preparing' | 'ready' | 'error';
+export type PreparedStatus = 'idle' | 'pending' | 'ready' | 'error';
 
 export interface PreparedMergeInput {
   /** The files in list order; `null` while a set is not mergeable yet
@@ -30,7 +25,7 @@ export interface PreparedMergeInput {
   addPageNumbers: boolean;
   title: string;
   /** Tests shorten the wait; the tool never passes it. */
-  debounceMs?: number;
+  quietPolicy?: QuietPolicy;
 }
 
 export interface PreparedMerge {
@@ -40,13 +35,17 @@ export interface PreparedMerge {
   /** Output pages of the blob that `url` points at, and its size. */
   pageCount: number;
   size: number;
-  /** 0..1 while preparing, per source file. */
+  /** 0..1 while building, per source file. */
   progress: number;
   error: MergeFileError | Error | null;
-  /** Bumps whenever a new blob becomes ready, so a caller waiting for "the
+  /** Bumps whenever a blob becomes ready, so a caller waiting for "the
    * result of the tap I just made" can tell a fresh blob from the old one. */
   generation: number;
+  /** Start the build now instead of waiting for quiet (hover, focus, tap). */
+  prepareNow: () => void;
 }
+
+interface Built { blob: Blob; pageCount: number }
 
 // Pure decision helper, exported for the unit tests: the input is mergeable
 // when every file is present and there is at least one output page.
@@ -55,65 +54,83 @@ export function isMergeable(input: Pick<PreparedMergeInput, 'files' | 'plan'>): 
 }
 
 export function usePreparedMerge(input: PreparedMergeInput): PreparedMerge {
-  const { files, plan, fileIds, addPageNumbers, title, debounceMs = PREPARE_DEBOUNCE_MS } = input;
+  const { files, plan, fileIds, addPageNumbers, title, quietPolicy } = input;
   const { url, setBlob, clear } = useObjectUrls();
   const [state, setState] = useState<{
     status: PreparedStatus; blob: Blob | null; pageCount: number; error: PreparedMerge['error']; generation: number;
   }>({ status: 'idle', blob: null, pageCount: 0, error: null, generation: 0 });
   const [progress, setProgress] = useState(0);
-  const controllerRef = useRef<AbortController | null>(null);
-
-  const cancelRunning = useCallback(() => {
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-  }, []);
+  const preparerRef = useRef<ReturnType<typeof createQuietPreparer<Built>> | null>(null);
+  const keyRef = useRef<string | null>(null);
+  /** What the next build reads; always the inputs of the current key. */
+  const inputsRef = useRef({ files, plan, fileIds, addPageNumbers, title });
+  inputsRef.current = { files, plan, fileIds, addPageNumbers, title };
 
   useEffect(() => {
-    cancelRunning();
-    if (!isMergeable({ files, plan })) {
-      setState((current) => (current.status === 'idle' && !current.blob ? current : { status: 'idle', blob: null, pageCount: 0, error: null, generation: current.generation }));
-      clear();
-      setProgress(0);
-      return undefined;
-    }
-    const sourceFiles = files as File[];
-    // Any change invalidates the previous blob at once: the Download link
-    // must never hand out a result for an order the person has since changed.
-    setState((current) => ({ status: 'preparing', blob: null, pageCount: 0, error: null, generation: current.generation }));
-    clear();
-    setProgress(0);
-
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    const timer = setTimeout(async () => {
-      try {
-        const map = toMergeMap(plan, fileIds);
+    const preparer = createQuietPreparer<Built>({
+      policy: quietPolicy,
+      build: async (_key, signal) => {
+        const { files: sourceFiles, plan: p, fileIds: ids, addPageNumbers: numbers, title: t } = inputsRef.current;
+        setProgress(0);
         const blob = await mergePdfs(
-          sourceFiles,
-          { plan: map, addPageNumbers, title },
-          (fraction: number) => { if (!controller.signal.aborted) setProgress(fraction); },
-          controller.signal,
+          sourceFiles as File[],
+          { plan: toMergeMap(p, ids), addPageNumbers: numbers, title: t },
+          (fraction: number) => { if (!signal.aborted) setProgress(fraction); },
+          signal,
         );
-        if (controller.signal.aborted) return;
-        setBlob(blob);
-        setState((current) => ({ status: 'ready', blob, pageCount: outputPageCount(plan), error: null, generation: current.generation + 1 }));
-      } catch (error) {
-        if (controller.signal.aborted || (error as DOMException)?.name === 'AbortError') return;
+        return { blob, pageCount: outputPageCount(p) };
+      },
+      onReady: (key, built) => {
+        if (key !== keyRef.current) return;
+        setBlob(built.blob);
+        setState((current) => ({ status: 'ready', blob: built.blob, pageCount: built.pageCount, error: null, generation: current.generation + 1 }));
+      },
+      onError: (key, error) => {
+        // expected: a superseded build is aborted on purpose and is not a failure
+        if ((error as DOMException)?.name === 'AbortError' || key !== keyRef.current) return;
         const cause = reportableCause(error);
         if (cause) reportError('pdf_tool_run', cause, 'build_merge');
         console.error(error);
         setState((current) => ({ status: 'error', blob: null, pageCount: 0, error: error as Error, generation: current.generation }));
-      }
-    }, debounceMs);
-
+      },
+    });
+    preparerRef.current = preparer;
     return () => {
-      clearTimeout(timer);
-      controller.abort();
+      preparer.dispose();
+      preparerRef.current = null;
     };
-    // `fileIds` and `files` are rebuilt by the caller only when the set really
-    // changes (see PdfMergeTool's useMemo), so they are stable across renders
-    // that change nothing.
-  }, [files, plan, fileIds, addPageNumbers, title, debounceMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // `fileIds` and `files` are rebuilt by the caller only when the set really
+  // changes (see PdfMergeTool's useMemo), so they are stable across renders
+  // that change nothing.
+  const planKey = plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
+  const key = `${fileIds.join(',')}|${planKey}|${addPageNumbers ? 1 : 0}|${title}`;
+  const mergeable = isMergeable({ files, plan });
+
+  useEffect(() => {
+    const preparer = preparerRef.current;
+    if (!preparer) return;
+    if (!mergeable) {
+      keyRef.current = null;
+      preparer.dispose();
+      setState((current) => (current.status === 'idle' && !current.blob ? current : { status: 'idle', blob: null, pageCount: 0, error: null, generation: current.generation }));
+      clear();
+      setProgress(0);
+      return;
+    }
+    // Any change withdraws the previous blob at once: the Download link must
+    // never hand out a result for an order the person has since changed. A
+    // cache hit inside change() restores a built state in the same commit.
+    keyRef.current = key;
+    setState((current) => ({ status: 'pending', blob: null, pageCount: 0, error: null, generation: current.generation }));
+    clear();
+    setProgress(0);
+    preparer.change(key);
+  }, [key, mergeable]);
+
+  const prepareNow = useCallback(() => preparerRef.current?.now(), []);
 
   return {
     status: state.status,
@@ -124,5 +141,6 @@ export function usePreparedMerge(input: PreparedMergeInput): PreparedMerge {
     progress,
     error: state.error,
     generation: state.generation,
+    prepareNow,
   };
 }
