@@ -1874,7 +1874,7 @@ const hebrewShellMessages: ShellMessages = {
   dropHereMany: 'גררו לכאן קבצי PDF',
   dropHereOne: 'גררו לכאן קובץ PDF',
   dragCaptionMany: 'גררו לכאן כדי להוסיף קבצים',
-  dragCaptionOne: 'גררו לכאן כדי להוסיף קבצים',
+  dragCaptionOne: 'גררו לכאן כדי להוסיף קובץ',
   chooseFilesMany: 'בחירת קבצים',
   chooseFileOne: 'בחירת קובץ',
   privacyLine: 'פרטי. הקבצים לא עוזבים את המכשיר שלכם.',

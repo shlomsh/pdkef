@@ -7,7 +7,6 @@ epic: "tool-pages"
 horizon: "next"
 order: 1
 depends_on: ["HERO-02"]
-needs: "Approve the English drag-over caption and pick a Hebrew singular"
 ---
 
 # HERO-04 · Drop a file anywhere on a page-grid tool's page
@@ -48,6 +47,6 @@ needs: "Approve the English drag-over caption and pick a Hebrew singular"
 - Playwright (from `909f6299`): a file dropped on the hero's subhead loads in the tool, and a drag over
   the h1 on Image to PDF rings the stage.
 
-Left: Shlomi's OK on the English caption, and a Hebrew singular for one-file tools.
+*2026-10-15.* Shlomi picked the Hebrew singular for one-file tools, "גררו לכאן כדי להוסיף קובץ"; the English caption ships as shown to him. Nothing left.
 
 *2026-10-15.* Drag caption landed in `5709421e`: the heading swaps to "Let go to add your files" by CSS alone while `data-dragging` is set. The Hebrew singular is still open with Shlomi; the plural wording serves both forms until he picks. See `docs/tool-hero-show-the-verb.md`.
