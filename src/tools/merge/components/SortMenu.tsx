@@ -13,9 +13,11 @@ interface SortMenuProps {
   value: string;
   options: SortMenuOption[];
   onChange: (value: string) => void;
+  /** Drop the visible label where the row has no room; the trigger's aria-label still names it. */
+  hideLabel?: boolean;
 }
 
-export default function SortMenu({ label, ariaLabel, value, options, onChange }: SortMenuProps) {
+export default function SortMenu({ label, ariaLabel, value, options, onChange, hideLabel = false }: SortMenuProps) {
   const [open, setOpen] = useState(false);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
@@ -34,7 +36,7 @@ export default function SortMenu({ label, ariaLabel, value, options, onChange }:
 
   return (
     <div class={styles['sort-select-wrap']}>
-      <span class={styles['sort-label']}>{label}</span>
+      {!hideLabel && <span class={styles['sort-label']}>{label}</span>}
       <Popover
         open={open}
         onOpenChange={setOpen}

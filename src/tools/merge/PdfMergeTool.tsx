@@ -1314,7 +1314,7 @@ export default function PdfMergeTool({
             </ul>
           </div>
           {/* These use the rail's existing control styles and handlers in one
-              horizontally scrollable toolbar. Sort stays visible after a
+              row that wraps to two lines on a phone. Sort stays visible after a
               page-level rearrangement: sorting files regroups the plan,
               while Reset order explicitly restores it. */}
           <div class={docStyles['mobile-file-controls']} data-merge-file-controls>
@@ -1323,7 +1323,7 @@ export default function PdfMergeTool({
               <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
             </div>
             {entries.length >= 2 && (
-              <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} />
+              <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} hideLabel />
             )}
             {entries.length >= 2 && rearranged && (
               <div class={railStyles['rearranged-note']} role="status">
