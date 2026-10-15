@@ -1163,7 +1163,7 @@ export default function PdfCompressTool({
               desktop shows it in the rail beside the result (UX guidelines §18
               rule 3). Its content still comes from the props above. */}
           <div class={styles.strip}>
-            <ToolShell>
+            <ToolShell flush>
               <FileActions />
             </ToolShell>
           </div>

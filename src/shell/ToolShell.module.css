@@ -416,6 +416,20 @@
   border-color: var(--color-primary);
 }
 
+/* A strip inside a tool's own rail (Compress): the rail is the panel, so the
+   strip is a section of it, with the width going to the name and the sizes
+   line (the same 40px thumbnail and 12px gap; in 360px the shell card's own
+   padding and border made "842 KB -> 356 KB 58% smaller" wrap on Linux fonts
+   and moved the options under it). */
+.shell.flush:not(.editor) {
+  margin-bottom: 0;
+  padding: 0 0 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+}
+
 /* --- Editor variant: Sign and Redact --- */
 
 /* Their control row is a full toolbar rather than a button or two, so it gets a
