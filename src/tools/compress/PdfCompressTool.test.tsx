@@ -164,6 +164,40 @@ describe('PdfCompressTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop a PDF or image here');
   });
 
+  it('keeps the primary control in the sticky sheet once a file is loaded, Compress then Download', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+    expect(container.querySelector(`.${styles['result-sheet']}`)).toBeNull();
+
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test_doc.pdf', 100000)]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const sheet = container.querySelector(`.${styles['result-sheet']}`);
+    expect(sheet).not.toBeNull();
+    const compress = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    expect(sheet.contains(compress)).toBe(true);
+
+    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    await tickFlatten(container);
+    await act(async () => {
+      compress.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const download = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    expect(download).not.toBeNull();
+    expect(container.querySelector(`.${styles['result-sheet']}`).contains(download)).toBe(true);
+  });
+
   it('keeps the pros and cons behind one toggle that sits outside the radiogroup', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
