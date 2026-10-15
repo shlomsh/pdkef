@@ -1,0 +1,44 @@
+/* Edit Pages, touch sizing (ux-design-guidelines §8). The grid's own sheet is the
+   shared src/shell/PageGrid.module.css; these rules only raise hit areas on a
+   coarse pointer and leave every desktop mouse layout as it was. */
+
+@media (pointer: coarse) {
+  /* The 20px keep/remove badge keeps its look; a transparent 44px square
+     around it takes the tap. It sits above the 44px drag bar (z-index 2). */
+  .check-touch::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Real 44px buttons: two of them and a 0.2rem gap fill the 92px inside the
+     narrowest card (110px column minus padding and border) exactly, so the
+     hit areas cannot overlap and the grid keeps its column count. */
+  .actions-touch:is(div) {
+    gap: 0.2rem;
+  }
+
+  .rotate-touch:is(button) {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  .rotate-touch:is(button) svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .toggle-touch:is(label) {
+    min-height: 44px;
+  }
+
+  .toggle-touch:is(label) input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
+}
