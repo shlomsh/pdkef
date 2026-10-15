@@ -1018,20 +1018,6 @@ const COMPRESSION_LEVELS = [
               )}
             </div>
           )}
-          <div class={styles['pro-con-bar']}>
-            <button
-              type="button"
-              class={styles['pro-con-toggle']}
-              aria-expanded={prosConsOpen}
-              aria-controls={COMPRESSION_LEVELS.map((opt) => `compress-pro-con-${opt.id}`).join(' ')}
-              onClick={() => setProsConsOpen((open) => !open)}
-            >
-              {prosConsOpen ? t.hideProsCons : t.showProsCons}
-              <svg class={styles['pro-con-chevron']} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-          </div>
           <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
             {COMPRESSION_LEVELS.map((opt) => (
               <div
@@ -1152,6 +1138,23 @@ const COMPRESSION_LEVELS = [
                 </div>
               )}
             </div>
+          </div>
+          {/* After the cards, not above them: on a phone the sheet sits above the
+              fold of the cards, and a toggle under the sheet read as unrelated
+              to them. Outside the radiogroup, since a button must not be its child. */}
+          <div class={styles['pro-con-bar']}>
+            <button
+              type="button"
+              class={styles['pro-con-toggle']}
+              aria-expanded={prosConsOpen}
+              aria-controls={COMPRESSION_LEVELS.map((opt) => `compress-pro-con-${opt.id}`).join(' ')}
+              onClick={() => setProsConsOpen((open) => !open)}
+            >
+              {prosConsOpen ? t.hideProsCons : t.showProsCons}
+              <svg class={styles['pro-con-chevron']} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
           </div>
           {kind === 'pdf' && (
             <label class={styles['flatten-switch']}>

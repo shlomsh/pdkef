@@ -175,6 +175,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(toggle).toBeDefined();
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(toggle.closest('[role="radiogroup"]')).toBeNull();
+    const group = container.querySelector('[role="radiogroup"]');
+    expect(group.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const blocks = Array.from(container.querySelectorAll(`.${styles['compress-pro-con']}`));
     expect(blocks).toHaveLength(3);
     expect(blocks.every((b) => b.hidden)).toBe(true);
