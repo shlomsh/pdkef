@@ -1,0 +1,131 @@
+/* Base styles are the LAST frame (two decks of five), so reduced motion sees the finished split.
+   Each page steps by --dx / --dy from the one below it; --j is the page's place in its deck,
+   set by :nth-child so no inline style is needed. */
+.deck {
+  --dx: 4;
+  --dy: 5;
+  position: absolute;
+  inset: 0;
+}
+
+.left {
+  translate: calc(-97 * var(--u)) calc(7 * var(--u));
+  z-index: 1;
+}
+
+.right {
+  translate: calc(97 * var(--u)) calc(7 * var(--u));
+  z-index: 2;
+}
+
+.deck > i {
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+
+.deck > .top {
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 calc(14 * var(--u)) calc(19 * var(--u)) calc(-9 * var(--u))
+      color-mix(in srgb, var(--color-night) 50%, transparent),
+    0 calc(5 * var(--u)) calc(7 * var(--u)) calc(-4 * var(--u))
+      color-mix(in srgb, var(--color-night) 25%, transparent);
+}
+
+.deck > :nth-child(1) {
+  --j: 0;
+}
+
+.deck > :nth-child(2) {
+  --j: 1;
+}
+
+.deck > :nth-child(3) {
+  --j: 2;
+}
+
+.deck > :nth-child(4) {
+  --j: 3;
+}
+
+.deck > :nth-child(5) {
+  --j: 4;
+}
+
+.left > i {
+  translate: calc(var(--j) * var(--dx) * var(--u)) calc(var(--j) * var(--dy) * var(--u));
+  z-index: calc(5 - var(--j));
+}
+
+.right > i {
+  translate: calc((4 - var(--j)) * var(--dx) * var(--u)) calc((4 - var(--j)) * var(--dy) * var(--u));
+  z-index: calc(10 + var(--j));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes deckL {
+    from {
+      translate: calc(2 * var(--u)) calc(7 * var(--u));
+    }
+  }
+
+  @keyframes deckR {
+    from {
+      translate: calc(90 * var(--u)) calc(7 * var(--u));
+    }
+  }
+
+  @keyframes deal {
+    0% {
+      translate: calc((-106 + var(--j) * var(--dx)) * var(--u))
+        calc((-24 + var(--j) * var(--dy)) * var(--u));
+      z-index: calc(20 - var(--j));
+      box-shadow: 0 0 0 1px var(--color-border);
+    }
+
+    1%,
+    99% {
+      z-index: 30;
+    }
+
+    15%,
+    70% {
+      box-shadow:
+        0 0 0 1px var(--color-border),
+        0 calc(17 * var(--u)) calc(21 * var(--u)) calc(-12 * var(--u))
+          color-mix(in srgb, var(--color-night) 50%, transparent);
+    }
+  }
+
+  @keyframes arc {
+    0% {
+      transform: translateY(0);
+      rotate: 0deg;
+      animation-timing-function: ease-out;
+    }
+
+    45% {
+      transform: translateY(calc(-40 * var(--u)));
+      rotate: -8deg;
+      animation-timing-function: ease-in;
+    }
+
+    100% {
+      transform: translateY(0);
+      rotate: 0deg;
+    }
+  }
+
+  .left {
+    animation: deckL 0.95s var(--ease-out) 1.35s both;
+  }
+
+  .right {
+    animation: deckR 0.95s var(--ease-out) 1.35s both;
+  }
+
+  .right > i {
+    animation:
+      deal 0.55s ease-in-out calc(0.2s + var(--j) * 0.15s) both,
+      arc 0.55s linear calc(0.2s + var(--j) * 0.15s) both;
+  }
+}

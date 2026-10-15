@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import SplitVerb from './verb/SplitVerb.tsx';
 import { pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
@@ -616,6 +617,7 @@ export default function PdfSplitTool({
 
   return (
     <BasePdfTool
+      emptyArt={<SplitVerb />}
       hasFiles={hasFiles}
       analyticsTool="split"
       // A protected file is the person's file, not a failed operation: it stays out of the failure count.

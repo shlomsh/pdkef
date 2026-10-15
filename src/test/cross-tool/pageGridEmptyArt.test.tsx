@@ -23,11 +23,6 @@ const WITH_VERB = [
   ['to-image', () => <PdfToImageTool />],
   ['compress', () => <PdfCompressTool />],
   ['compress-image', () => <PdfCompressTool analyticsTool="compress-image" initialMode="target" />],
-];
-
-// An entry leaves this list when its verb ships (and moves to WITH_VERB), so the list can
-// only shrink.
-const PENDING = [
   ['split', () => <PdfSplitTool />],
 ];
 
@@ -57,11 +52,5 @@ describe('page-grid tools pass an emptyArt', () => {
     const sheet = renderEmpty(make);
     expect(sheet.querySelector(`[aria-hidden="true"].${paper.box}`)).not.toBeNull();
     expect(sheet.querySelector(`.${dropzone['dropzone-icon']}`)).toBeNull();
-  });
-
-  it.each(PENDING)('%s still shows the file-plus icon (pending its verb)', (_name, make) => {
-    const sheet = renderEmpty(make);
-    expect(sheet.querySelector(`[aria-hidden="true"].${paper.box}`)).toBeNull();
-    expect(sheet.querySelector(`.${dropzone['dropzone-icon']}`)).not.toBeNull();
   });
 });
