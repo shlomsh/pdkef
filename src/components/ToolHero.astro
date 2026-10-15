@@ -27,8 +27,12 @@ interface Props {
    * the rest of the h1 beneath it (see splitHeroTitle). Missing, or not a
    * clean prefix of the title, renders the h1 as one plain line. */
   titleName?: string;
+  /** Compress and Compress Image: once a file is loaded, or while a cross-tool
+   * hand-off is arriving, the hero is one line (tile beside the name). See the
+   * `data-hero-condense-on-load` block at the end of the style. */
+  condenseOnLoad?: boolean;
 }
-const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, subheadAccent, titleName } = Astro.props;
+const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, subheadAccent, titleName, condenseOnLoad = false } = Astro.props;
 
 // Sign and Redact keep the icon-beside-title row: their condensed editor hero
 // (ViewControl) is sized for it. The other tools stack the icon above the h1,
@@ -99,6 +103,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   data-hero-phone-condensed={phoneCondensed ? '' : undefined}
   data-hero-stacked={stacked ? '' : undefined}
   data-hero-editor={isEditor ? '' : undefined}
+  data-hero-condense-on-load={condenseOnLoad ? '' : undefined}
 >
   <div data-hero-row class="mb-3 flex gap-4">
     <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>
@@ -551,6 +556,81 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
       clip: rect(0 0 0 0);
       clip-path: inset(50%);
       white-space: nowrap;
+    }
+  }
+
+  /* Compress and Compress Image (data-hero-condense-on-load): a loaded file
+     gives the screen to the tool, so the hero folds to ONE line, the tile
+     beside the name, whatever the density preference. html[data-handoff-pending]
+     (the pre-paint marker, ToolPageLayout.astro) applies the same look from
+     first paint, so a file arriving from another tool keeps one hero height
+     instead of jumping when it lands. The subhead stays in the HTML (display:none
+     only). The page-grid first-screen rules in ToolPageLayout.astro apply only
+     while nothing is loaded and no hand-off is pending, so they never meet
+     these. The hero class is repeated so these rules beat the stacked-hero
+     folds above (up to 0,6,1) without depending on source order. Every part
+     that names an element outside the hero is :global(); the hero part keeps
+     this component's scope. */
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load],
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] {
+    --hero-icon: 2.25rem;
+    padding-top: 20px;
+    padding-bottom: 16px;
+  }
+
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-row],
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-row] {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] h1,
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] h1 {
+    font-size: 1.625rem;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-name],
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-rest],
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-name],
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-rest] {
+    display: inline;
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-wrap: initial;
+  }
+
+  :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-sub],
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] [data-hero-sub] {
+    display: none;
+  }
+
+  @media (max-width: 767px) {
+    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load],
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] {
+      --hero-icon: 2rem;
+      padding-top: 14px;
+      padding-bottom: 12px;
+    }
+
+    :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] h1,
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load] h1 {
+      font-size: 1.375rem;
     }
   }
 </style>
