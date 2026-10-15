@@ -277,6 +277,24 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
   is swapped by CSS alone for "Let go to add your files" ("Let go to add your file" on one-file tools).
   Hebrew is Shlomi's wording, "גררו לכאן כדי להוסיף קבצים", used for both forms until he picks a
   singular. Both strings are `display: none` when not shown, so a screen reader reads one.
+- Compress and Compress Image verb, "Loupe" (2026-10-15): Shlomi rejected a press that turned many pages
+  into one ("not true") and asked that the verb show resolution loss, the image and text losing
+  sharpness. Two options were sketched in `docs/tool-hero-sketch/compress-verbs.html` (R1 Soften: the
+  piece shrinks to 92%, its photo turns blocky in three steps and its text lines blur; R2 Loupe: the
+  same plus a magnifying glass over the photo showing the big square pixels at 2.5x). He picked R2. One
+  component, `src/tools/compress/verb/CompressVerb.tsx`, serves both pages: a page on Compress, a photo
+  print on Compress Image (`analyticsTool === 'compress-image'`). The mosaics are SVG rects in
+  crispEdges, one `<g>` per tone so no rect carries a class, built once at module load from a pure
+  function (`src/tools/compress/verb/mosaic.ts`, horizontal runs merged), because the CSP forbids the
+  sketch's inline colours.
+- Compact sheets cap the verb at 24rem (`Dropzone.module.css`, `[data-compact]`): at the default 42rem
+  the verb was 344px tall and pushed Compress's quality cards below the fold at 1440x820; at 24rem the
+  sheet ends at 496px and the cards sit on the first screen.
+- The hero hides until it is fully parsed (`ToolHero.astro`, a `tool-hero-end` marker, the TrustChips
+  pattern): the hero is centred in the first screen, so a paint of a partly parsed hero (icon only,
+  74px) placed it 143px low and the rest pulled it up, CLS 0.015 on /compress/ one load in three. The
+  Loupe's CSS lengthened the inline stylesheet, which moved the parser's paint point into the hero; the
+  marker removes the class of bug rather than that instance.
 
 ## Open questions
 
