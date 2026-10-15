@@ -181,13 +181,6 @@ describe('ToolShell strip slots', () => {
     expect(container.querySelector(`.${styles.note}`)).toBeNull();
   });
 
-  it('lets a Hebrew file name take its own direction, so ".pdf" stays at its end', () => {
-    for (const editor of [false, true]) {
-      mount(editor, { fileLabel: 'דוח רבעוני.pdf' });
-      expect(container.querySelector(`.${styles.name}`)!.getAttribute('dir')).toBe('auto');
-    }
-  });
-
   it('renders metaExtra after the file meta, in the meta line', () => {
     mount(false, { metaExtra: <span data-extra>843 KB</span> });
     const meta = container.querySelector(`.${styles.meta}`)!;

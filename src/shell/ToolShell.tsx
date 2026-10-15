@@ -166,7 +166,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, status
         {!editor && <FilePreview file={file} />}
 
         <span class={styles.text}>
-          <span class={styles.name} dir="auto" title={fileLabel || undefined}>
+          <span class={styles.name} title={fileLabel || undefined}>
             {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
           </span>
           {(fileMeta || draftStatus || (!editor && metaExtra)) && (
