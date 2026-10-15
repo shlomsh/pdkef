@@ -388,7 +388,14 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      name) takes the hero's own height back, which together buy back more
      vertical space than this fold-away used to cost. See the fit
      numbers this traded against in pick-stability.mjs's report. Confirm the
-     fit again before ever reverting this split. */
+     fit again before ever reverting this split.
+
+     Since HERO-06 (2026-10-15) every tool also folds through
+     `data-hero-condense-on-load` at the end of this style, at every width
+     (editors below 1024px only), whatever the density. The Compress button
+     these notes cite is gone (Compress runs on pick); the rules here are kept
+     for the draft-hint and hand-off paths until that block is shown to cover
+     them too. */
   @media (max-width: 1023px) {
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
     :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable],
@@ -398,8 +405,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
       /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
          above the title. That is the opening-statement spacing; once a file is
          open the title is orientation, and on a phone those 56px were a real
-         share of what pushed a tool's primary action (Compress's button, most
-         visibly) below the fold. */
+         share of what pushed a tool's primary action below the fold. */
       padding-top: 1.5rem;
     }
 
