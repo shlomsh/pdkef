@@ -1131,7 +1131,6 @@ export default function PdfCompressTool({
       fileMetaExtra={sizesExtra}
       fileNote={<span data-compress-note>{stripNote}</span>}
       shellMessages={shellMessages}
-      compact
       hideIdentity
     >
       {rejectedFiles.length > 0 && (

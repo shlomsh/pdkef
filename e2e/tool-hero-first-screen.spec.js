@@ -10,8 +10,9 @@ import { readFileSync } from 'node:fs';
 // so none of this can be proved there.
 
 const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/', '/sign/', '/redact/'];
-const COMPACT = new Set(['/compress/', '/compress-image/']);
-const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/', '/sign/']);
+// Compress joined the other tools' sheet on 2026-10-15: its quality choices moved to after a file is
+// picked, so the side-by-side compact column they needed is gone.
+const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/', '/sign/', '/compress/']);
 const SIZES = [
   { width: 1280, height: 680, belowFold: true },
   { width: 1440, height: 820, belowFold: true },
@@ -48,7 +49,7 @@ async function expectInViewport(page, locator, label) {
 
 test.describe('first screen', () => {
   for (const route of ROUTES) {
-    const sizes = ALL_SIZES.has(route) ? SIZES : COMPACT.has(route) ? SIZES : [SIZES[1]];
+    const sizes = ALL_SIZES.has(route) ? SIZES : [SIZES[1]];
     for (const size of sizes) {
       test(`${route} at ${size.width}x${size.height}`, async ({ page }) => {
         await page.setViewportSize({ width: size.width, height: size.height });
@@ -69,12 +70,10 @@ test.describe('first screen', () => {
         });
         expect(geo.heroTop / geo.h, 'hero top as a share of the viewport').toBeLessThanOrEqual(0.45);
         expect(Math.abs(geo.heroMid - (geo.stageTop + Math.min(geo.h, geo.stageBottom)) / 2), 'hero centred in the first screen').toBeLessThanOrEqual(48);
-        // Compress's column measures 746px: it fits 820 and up, not the 680px laptop screen.
-        if (!COMPACT.has(route) || size.height >= 820) expect(geo.mainBottom, 'tool column ends within the first screen').toBeLessThanOrEqual(geo.h);
+        expect(geo.mainBottom, 'tool column ends within the first screen').toBeLessThanOrEqual(geo.h);
         await page.waitForTimeout(2500);
         expect(await page.evaluate(() => window.__cls), 'layout shift while the verb plays').toBeLessThan(0.001);
-        // Vertical balance: the sheet's content sits centred in the sheet, and the compact tools'
-        // text group centres against their picture and the column against the hero.
+        // Vertical balance: the sheet's content sits centred in the sheet.
         const bal = await page.evaluate(() => {
           const R = (e) => e.getBoundingClientRect();
           const sheet = document.querySelector('[data-empty-state]');
@@ -82,28 +81,9 @@ test.describe('first screen', () => {
           const shown = [...sheet.children].filter((k) => getComputedStyle(k).display !== 'none' && R(k).height > 0);
           const span = (els) => ({ top: Math.min(...els.map((k) => R(k).top)), bottom: Math.max(...els.map((k) => R(k).bottom)) });
           const all = span(shown);
-          const text = shown.length > 1 ? span(shown.slice(1)) : all;
-          const pic = R(shown[0]);
-          const hero = R(document.querySelector('.tool-hero'));
-          let colBottom = 0;
-          for (const e of document.querySelectorAll('.tool-stage main *')) {
-            const er = R(e);
-            if (er.height && getComputedStyle(e).display !== 'none' && er.bottom > colBottom) colBottom = er.bottom;
-          }
-          return {
-            gapAbove: all.top - s.top,
-            gapBelow: s.bottom - all.bottom,
-            textMid: (text.top + text.bottom) / 2,
-            picMid: pic.top + pic.height / 2,
-            heroMid: hero.top + hero.height / 2,
-            colMid: (s.top + colBottom) / 2,
-          };
+          return { gapAbove: all.top - s.top, gapBelow: s.bottom - all.bottom };
         });
         expect(Math.abs(bal.gapAbove - bal.gapBelow), `sheet gap above ${bal.gapAbove} vs below ${bal.gapBelow}`).toBeLessThanOrEqual(6);
-        if (COMPACT.has(route)) {
-          expect(Math.abs(bal.textMid - bal.picMid), `text group centre ${bal.textMid} vs picture centre ${bal.picMid}`).toBeLessThanOrEqual(6);
-          if (geo.mainBottom <= geo.h) expect(Math.abs(bal.heroMid - bal.colMid), `hero centre ${bal.heroMid} vs column centre ${bal.colMid}`).toBeLessThanOrEqual(24);
-        }
         // After the verb's last frame: Split's decks only reach their widest once they have parted.
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
@@ -113,9 +93,8 @@ test.describe('first screen', () => {
 });
 
 // The sheet (<main> is top-aligned so late content shifts nothing) is centred in the first screen by
-// a static margin, so its centre sits with the hero's, not high above it on a tall screen. Compress
-// and Compress Image have a column taller than the screen and keep margin 0.
-for (const route of ROUTES.filter((r) => !COMPACT.has(r))) {
+// a static margin, so its centre sits with the hero's, not high above it on a tall screen.
+for (const route of ROUTES) {
   for (const size of SIZES) {
     test(`${route} sheet is centred with the hero at ${size.width}x${size.height}`, async ({ page }) => {
       await page.setViewportSize({ width: size.width, height: size.height });
