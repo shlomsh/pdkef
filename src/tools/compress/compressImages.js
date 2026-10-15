@@ -195,14 +195,14 @@ export async function compressPdfImages(
 }
 
 // The three levels, as image targets. Keys are the island's existing level ids:
-// 'high' is the card titled "Extreme Compression", 'medium' "Recommended", 'low' "High Quality".
+// 'high' is the level named "Smallest", 'medium' "Balanced", 'low' "Sharpest".
 export const IMAGE_LEVELS = {
   high: { maxLongSidePx: 1000, quality: 0.4 },
   medium: { maxLongSidePx: 1600, quality: 0.6 },
   low: { maxLongSidePx: 2400, quality: 0.8 },
 };
 
-// Tried in order, best quality first, for Target Size.
+// Tried in order, best quality first, for Exact size.
 export const TARGET_IMAGE_LADDER = [
   { maxLongSidePx: 2400, quality: 0.8 },
   { maxLongSidePx: 1600, quality: 0.6 },
