@@ -378,8 +378,8 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      the primary button jump up underneath it). Below 1024px that fold-away is
      still doing real work: docs/view-density-control-spec.md 4.7 and
      src/data/tools.js record it by name for Compress and Compress Image
-     specifically ("the Compress button sat ~550px below the fold" on a
-     phone), and it is kept there, unchanged, for exactly that reason. At
+     (the strip, level picker and result share the first screen once a file
+     is open), and it is kept there, unchanged, for that reason. At
      1024px and up the fold-away's own stated purpose - fit the page in a
      desktop viewport after a file is picked - is now met a different way: the
      loaded card's identity row below is a compact row on desktop instead of
