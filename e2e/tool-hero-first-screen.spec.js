@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 
 const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/'];
 const COMPACT = new Set(['/compress/', '/compress-image/']);
-const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/']);
+const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/']);
 const SIZES = [
   { width: 1280, height: 680, belowFold: true },
   { width: 1440, height: 820, belowFold: true },
@@ -68,10 +68,11 @@ test.describe('first screen', () => {
         expect(geo.heroTop / geo.h, 'hero top as a share of the viewport').toBeLessThanOrEqual(0.45);
         expect(Math.abs(geo.heroMid - (geo.stageTop + Math.min(geo.h, geo.stageBottom)) / 2), 'hero centred in the first screen').toBeLessThanOrEqual(48);
         if (!COMPACT.has(route)) expect(geo.mainBottom, 'tool column ends within the first screen').toBeLessThanOrEqual(geo.h);
-        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-        expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
         await page.waitForTimeout(2500);
         expect(await page.evaluate(() => window.__cls), 'layout shift while the verb plays').toBeLessThan(0.001);
+        // After the verb's last frame: Split's decks only reach their widest once they have parted.
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
       });
     }
   }
@@ -180,20 +181,18 @@ for (const route of ['/merge/', '/split/']) {
   });
 }
 
-// Between 768 and 1023px the page stays stacked (the grid is 1024px and up): the verb stays small,
-// Choose files is on the first screen and nothing overflows sideways.
-for (const route of ['/merge/', '/compress/']) {
-  test(`${route} stacks at 900x800 with a short verb and Choose files in view`, async ({ page }) => {
-    await page.setViewportSize({ width: 900, height: 800 });
+// Below 1024px the page stays stacked (the grid is 1024px and up): the verb stays small,
+// Choose files is on the first screen and nothing overflows sideways, checked after the verb's
+// last frame (Split's decks are widest once parted; at 390px they once scrolled the page 32px).
+for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900, 800], ['/split/', 900, 800], ['/split/', 390, 844]]) {
+  test(`${route} stacks at ${width}x${height} with a short verb and Choose files in view`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
     await open(page, route);
     expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'stage').not.toBe('grid');
-    // Compress draws no verb box in its sheet (its art is a plain icon), so it only has the rest to hold.
-    const verbBox = page.locator('[data-empty-state] div[aria-hidden="true"]');
-    if (route === '/merge/') {
-      const verb = await verbBox.first().boundingBox();
-      expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
-    }
+    const verb = await page.locator('[data-empty-state] div[aria-hidden="true"]').first().boundingBox();
+    expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
     await expectInViewport(page, page.locator(PICKER).first(), 'Choose files');
+    await page.waitForTimeout(2500);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
   });

@@ -4,8 +4,14 @@
 .deck {
   --dx: 4;
   --dy: 5;
+  /* A point at the box's centre, not a box-sized layer: a full-size deck
+     translated 97 units right ran past the page edge and scrolled a phone
+     sideways by 32px. The pages centre on this point (paper's left/top 50%). */
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
 }
 
 .left {
