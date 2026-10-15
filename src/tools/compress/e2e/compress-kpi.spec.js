@@ -82,7 +82,7 @@ test.describe('compress KPI (COMP-01)', () => {
       await page.getByText('Choose file', { exact: true }).click();
       await (await chooser).setFiles({ name: fixture, mimeType: 'application/pdf', buffer: read(fixture) });
       await waitForDone(page);
-      await expect(page.locator('[data-compress-strip]').getByText('Nothing here to shrink.')).toBeVisible();
+      await expect(page.locator('[data-tool-shell]').getByText('Nothing here to shrink.')).toBeVisible();
       await expect(page.getByText('Already as small as it gets', { exact: true })).toBeVisible({ timeout: 60_000 });
       await expect(page.locator('a[download]')).toHaveCount(0);
     });
