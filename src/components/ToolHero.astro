@@ -576,18 +576,25 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      these. The hero class is repeated so these rules beat the stacked-hero
      folds above (up to 0,6,1) without depending on source order. Every part
      that names an element outside the hero is :global(); the hero part keeps
-     this component's scope. Sign and Redact (data-hero-editor) obey this only
-     below 1024px; from 1024px up their hero follows the View density control
+     this component's scope. The hints repeat the old fold rules' (draft hint, Merge restore, editor restore), so
+     a restore has the loaded hero's size from first paint. Sign and Redact (data-hero-editor) obey this only
+     below 1024px on a coarse pointer (a phone; browser zoom on a desktop narrows the CSS width but must not fold); from 1024px up their hero follows the View density control
      (the editor rules above), so the editor copy below sits in a media query. */
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) {
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
+  :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
+  :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
+  :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) {
     --hero-icon: 2.25rem;
     padding-top: 20px;
     padding-bottom: 16px;
   }
 
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-row],
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-row] {
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-row],
+  :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-row],
+  :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-row],
+  :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-row] {
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
@@ -596,7 +603,10 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   }
 
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1 {
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
+  :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
+  :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
+  :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1 {
     font-size: 1.625rem;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -606,7 +616,10 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      visually hidden, as the density fold above does, so the h1 still reads in
      full and stays one line on a 393px phone. */
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest],
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest] {
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest],
+  :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest],
+  :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest],
+  :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-rest] {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -617,7 +630,10 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   }
 
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-name],
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-name] {
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-name],
+  :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-name],
+  :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-name],
+  :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-name] {
     display: inline;
     position: static;
     width: auto;
@@ -636,34 +652,45 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   }
 
   :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-sub],
-  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-sub] {
+  :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-sub],
+  :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-sub],
+  :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-sub],
+  :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) [data-hero-sub] {
     display: none;
   }
 
   @media (max-width: 767px) {
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
+    :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
+    :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]),
+    :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) {
       --hero-icon: 2rem;
       padding-top: 14px;
       padding-bottom: 12px;
     }
 
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1 {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
+    :global(html[data-draft-hint]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
+    :global(html[data-merge-restore]) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1,
+    :global(html:has([data-merge-restored-workspace])) .tool-hero.tool-hero.tool-hero[data-hero-condense-on-load]:not([data-hero-editor]) h1 {
       font-size: 1.375rem;
     }
   }
 
-  @media (max-width: 1023.98px) {
+  @media (max-width: 1023.98px) and (pointer: coarse) {
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
+    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] {
       --hero-icon: 2.25rem;
       padding-top: 20px;
       padding-bottom: 16px;
     }
 
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row] {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row],
+    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-row] {
       flex-direction: row;
       align-items: center;
       justify-content: flex-start;
@@ -672,7 +699,8 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     }
 
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1 {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
+    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1 {
       font-size: 1.625rem;
       letter-spacing: -0.02em;
       line-height: 1.1;
@@ -682,7 +710,8 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
        visually hidden, as the density fold above does, so the h1 still reads in
        full and stays one line on a 393px phone. */
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest] {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest],
+    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-rest] {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -693,7 +722,8 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     }
 
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name] {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name],
+    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-name] {
       display: inline;
       position: static;
       width: auto;
@@ -712,20 +742,23 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     }
 
     :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub],
-    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub] {
+    :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub],
+    :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] [data-hero-sub] {
       display: none;
     }
 
     @media (max-width: 767px) {
       :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
-      :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] {
+      :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load],
+      :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] {
         --hero-icon: 2rem;
         padding-top: 14px;
         padding-bottom: 12px;
       }
 
       :global(html .tool-stage:has([data-tool-loaded], [data-tool-shell])) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
-      :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1 {
+      :global(html[data-handoff-pending]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1,
+      :global(html[data-editor-restore]) .tool-hero.tool-hero.tool-hero[data-hero-editor][data-hero-condense-on-load] h1 {
         font-size: 1.375rem;
       }
     }
