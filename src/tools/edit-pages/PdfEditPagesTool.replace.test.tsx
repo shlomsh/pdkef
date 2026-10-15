@@ -15,6 +15,8 @@ vi.mock('@cantoo/pdf-lib', () => ({
 }));
 
 vi.mock('../../lib/thumbnails.js', () => ({
+  // The shell's file preview (FilePreview.tsx) renders page 1 now that this tool passes `file`.
+  renderThumbnail: vi.fn(() => Promise.resolve(null)),
   renderPdfThumbnails: vi.fn((file, onPageRender) => {
     for (let i = 1; i <= mockState.numPages; i++) onPageRender(i, `data:image/png;base64,t${i}`);
     return Promise.resolve(mockState.numPages);

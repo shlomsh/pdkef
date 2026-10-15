@@ -316,56 +316,104 @@
   }
 }
 
-/* A wide desktop screen has room the row wasn't using (Shlomi, 2026-09-12,
-   from the /compress/ pass: "make the file name and preview a bit taller so
-   it takes more space which is available on the desktop screen" - on a
-   1300px-wide screen the row read as a thin strip). `:not(.editor)` is the
-   whole reason this is its own block rather than folding into the 560px one
-   above: Sign and Redact's identity line sits inside their sticky toolbar
-   card (see the .editor section below) and stays exactly as it is - this is
-   the plain single-line/list-tool shell only. Mobile is untouched below
-   1024px. FilePreview.tsx's PDF_PREVIEW_WIDTH is raised to match the bigger
-   box so a page-1 render still holds up on retina.
+/* The loaded-file strip, at every width (docs/ux-design-guidelines.md §18,
+   rule 2): a 40x52 thumbnail, the name with the quiet actions on its line, the
+   meta line under it, and an optional note that always reserves two lines so
+   the strip never changes height as it changes. `.identity` and `.text` keep
+   their DOM places (tests and the editor variant rely on them) and drop out
+   of the box tree, so the grid areas reach their children directly.
+   `:not(.editor)`: Sign and Redact's sticky toolbar card is untouched. */
+.shell:not(.editor) {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'thumb name actions'
+    'thumb meta meta'
+    'thumb note note';
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  padding: 12px var(--space-4);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
 
-   `height: 168px` is new (Shlomi, 2026-09-12: this row and the empty
-   dropzone used to size themselves independently, and "too dense
-   visually... give it air"). The empty state is no longer a 168px box: it is
-   the sheet in Dropzone.module.css, which takes the first screen's height on
-   the page-grid tools, so this row is the loaded state's own height and does
-   not match the sheet's.
-   `align-items: center` above centres the 96px icon and the two text lines
-   inside the fixed height regardless of how the vertical padding splits.
-   `padding-inline` is `var(--space-6)`. */
-@media (min-width: 1024px) {
-  .shell:not(.editor) {
-    height: 168px;
-    padding-block: 1rem;
-    padding-inline: var(--space-6);
-  }
+.shell:not(.editor) .identity,
+.shell:not(.editor) .text {
+  display: contents;
+}
 
-  .shell:not(.editor) .icon {
-    width: 96px;
-    height: 96px;
-  }
+.shell:not(.editor) .icon {
+  grid-area: thumb;
+  align-self: start;
+  width: 40px;
+  height: 52px;
+  border-radius: 9px;
+}
 
-  /* Scoped here rather than as a width/height attribute change on
-     FilePreview.tsx's own SVG, which is shared with the 34px mobile icon
-     (30px below 420px) and would have grown out of proportion there too -
-     this only reaches the glyph inside the bigger desktop box. The
-     thumbnail image (`.thumbnail` in FilePreview.module.css) already fills
-     `.icon`/`.icon-loaded` at 100% and needs no matching rule. */
-  .shell:not(.editor) .icon svg {
-    width: 24px;
-    height: 24px;
-  }
+.shell:not(.editor) .name {
+  grid-area: name;
+  font-size: 0.94rem;
+}
 
-  /* One step up the type scale (global.css's .type-* roles) from the name's
-     current size, which sits at roughly .type-body. Meta stays put - it is
-     the secondary line and the row's extra height is spent on the name and
-     the preview, not on it. */
-  .shell:not(.editor) .name {
-    font-size: var(--type-lead-size);
-  }
+.shell:not(.editor) .meta {
+  grid-area: meta;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.shell:not(.editor) .status {
+  grid-area: note;
+  margin-inline-start: 0;
+}
+
+.shell:not(.editor) .controls {
+  grid-area: actions;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.note {
+  grid-area: note;
+  min-height: calc(2 * 1.4em);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+/* Replace / Add / Clear are quiet here: 36px tall, with a ::before that makes
+   the hit area 44px. The single-file highlight does not apply in the strip. */
+.shell:not(.editor) .action {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 0;
+  height: 36px;
+  padding: 0 12px;
+  border-color: var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-primary-text);
+  font-size: 0.82rem;
+}
+
+.shell:not(.editor) .action::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.shell:not(.editor) .action:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.shell:not(.editor) .action:focus-visible {
+  border-color: var(--color-primary);
 }
 
 /* --- Editor variant: Sign and Redact --- */

@@ -318,6 +318,7 @@ export default function PdfEditPagesTool() {
       analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
+      file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file, pages.length)}
     >

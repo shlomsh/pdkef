@@ -144,3 +144,55 @@ describe('ToolShell editor variant', () => {
     expect(container.querySelector('[tabindex="0"][aria-describedby]')).toBeNull();
   });
 });
+
+/* The loaded-file strip's two tool slots (docs/ux-design-guidelines.md §18). */
+describe('ToolShell strip slots', () => {
+  let container: HTMLDivElement;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+
+  const mount = (editor: boolean, extra: Record<string, unknown>) => {
+    act(() => {
+      render(
+        <ToolShellContext.Provider
+          value={{ requestReplace: vi.fn(), requestClear: vi.fn(), fileLabel: 'a.pdf', fileMeta: '2 pages · 5 KB', ...extra }}
+        >
+          <ToolShell editor={editor} />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+  };
+
+  it('renders a note from context inside the strip, and nothing when absent', () => {
+    mount(false, { note: <span data-note-content>Smaller is possible</span> });
+    const shell = container.querySelector('[data-tool-shell]')!;
+    expect(shell.querySelector(`.${styles.note} [data-note-content]`)).not.toBeNull();
+
+    mount(false, {});
+    expect(container.querySelector(`.${styles.note}`)).toBeNull();
+  });
+
+  it('renders metaExtra after the file meta, in the meta line', () => {
+    mount(false, { metaExtra: <span data-extra>843 KB</span> });
+    const meta = container.querySelector(`.${styles.meta}`)!;
+    const text = meta.querySelector(`.${styles['meta-text']}`)!;
+    const extra = meta.querySelector('[data-extra]')!;
+    expect(extra).not.toBeNull();
+    expect(text.compareDocumentPosition(extra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('leaves the editor variant without either slot', () => {
+    mount(true, { note: <span>n</span>, metaExtra: <span data-extra>x</span> });
+    expect(container.querySelector(`.${styles.note}`)).toBeNull();
+    expect(container.querySelector('[data-extra]')).toBeNull();
+  });
+});
