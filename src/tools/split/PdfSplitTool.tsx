@@ -14,7 +14,7 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { describeFile, formatFileSize, isolateLtr } from '../../lib/format.js';
+import { describeFile, formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { loadPdfjs } from '../../lib/loadPdfjs.js';
@@ -630,7 +630,7 @@ export default function PdfSplitTool({
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            ? formatMessage(t.skippedOne, { name: isolateName(rejectedFiles[0], t.dir) })
             : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}

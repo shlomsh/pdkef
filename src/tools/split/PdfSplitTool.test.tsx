@@ -7,6 +7,7 @@ import PdfSplitTool from './PdfSplitTool.tsx';
 import { pageNumbersToRangeString } from './split.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './PdfSplitTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -281,6 +282,24 @@ describe('PdfSplitTool UI flow', () => {
       expect(detail).not.toContain('\u2066');
       expect(detail).not.toContain('\u2069');
     });
+  });
+
+  it('isolates a skipped file name inside the Hebrew sentence, and only in Hebrew', async () => {
+    const skippedHint = async (props) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => render(<PdfSplitTool {...props} />, container));
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [new File(['plain text'], '2025-notes.txt', { type: 'text/plain' })]);
+      });
+      return container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent;
+    };
+    expect(await skippedHint({ messages: hebrewSplitMessages })).toContain('\u20682025-notes.txt\u2069');
+    act(() => render(null, container));
+    container.remove();
+    const english = await skippedHint({});
+    expect(english).toContain('2025-notes.txt');
+    expect(english).not.toContain('\u2068');
   });
 
   it('shows a Hebrew page-range error', async () => {

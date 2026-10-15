@@ -72,6 +72,20 @@
   color: var(--color-text);
 }
 
+/* The file name as one unit: the name and its ".pdf" (a `<bdi>`, so an isolate
+   whose direction follows the name; see PdfMergeTool.tsx). A flex row of its
+   own, so the order inside it is the name's direction and the heading's
+   flex-wrap can still move the whole name to a line of its own. It carries
+   the shrinking the name used to: `min-width: 0` lets the name ellipsis while
+   ".pdf" (`flex: none`) never does. */
+.doc-heading-file {
+  display: flex;
+  align-items: baseline;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* MERGE-11 (2026-09-13, Shlomi's rejection of the bordered/input look): the
    name is WYSIWYG, one element at rest and while editing - never a button
    wrapping a span, never an input swapped in. At rest it is visually
@@ -458,6 +472,13 @@
    word is wider than the line. */
 @media (max-width: 767px) {
   .doc-heading {
+    flex-wrap: wrap;
+  }
+
+  /* Wraps inside the unit as it did inside the heading: a name that fills the
+     line keeps all its lines and ".pdf" falls to the line after them, never
+     squeezed in beside the name's first line. */
+  .doc-heading-file {
     flex-wrap: wrap;
   }
 
