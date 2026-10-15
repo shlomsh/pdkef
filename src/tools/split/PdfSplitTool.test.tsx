@@ -51,6 +51,8 @@ vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportError: reportErrorMock,
 }));
+// Tests that are not about timing build after 5ms instead of the real 1500ms.
+const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 4 } }));
 // Wraps the real splitPdf so every test still builds real PDFs; the quiet-time
 // tests swap in a fast fake through splitOverride and count calls.
@@ -111,7 +113,7 @@ describe('PdfSplitTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSplitTool />, container);
+      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
     });
 
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
@@ -125,14 +127,14 @@ describe('PdfSplitTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => {
-        render(<PdfSplitTool />, container);
+        render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
       });
       const input = container.querySelector('input[type="file"]');
       await act(async () => {
         setInputFiles(input, [makePdfFile('locked.pdf')]);
       });
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1700));
+        await new Promise((resolve) => setTimeout(resolve, 150));
       });
       // A fake file would make splitPdf throw and report, so no report also means no prepare run.
       expect(container.querySelector(`.${styles.primary}`)).toBeNull();
@@ -148,7 +150,7 @@ describe('PdfSplitTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSplitTool />, container);
+      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
     });
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
@@ -156,7 +158,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     expect(probeMock).toHaveBeenCalled();
     expect(container.querySelector(`.${styles.primary}`).getAttribute('data-state')).toBe('ready');
@@ -169,14 +171,14 @@ describe('PdfSplitTool UI flow', () => {
     URL.revokeObjectURL = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], name, { type: 'application/pdf' })]);
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
   }
 
@@ -192,7 +194,7 @@ describe('PdfSplitTool UI flow', () => {
       nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_chapter two.pdf');
     expect(container.querySelector(`.${styles.primary}`).getAttribute('download')).toBe('extracted_chapter two.pdf');
@@ -213,7 +215,7 @@ describe('PdfSplitTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSplitTool />, container);
+      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -262,14 +264,14 @@ describe('PdfSplitTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     mockState.numPages = 5;
-    act(() => render(<PdfSplitTool messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     const text = container.textContent;
     expect(text).toContain(hebrewSplitMessages.modeCombined);
@@ -292,14 +294,14 @@ describe('PdfSplitTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     mockState.numPages = 5;
-    act(() => render(<PdfSplitTool messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === hebrewSplitMessages.modeSeparate);
     await act(async () => perPage.click());
@@ -317,14 +319,14 @@ describe('PdfSplitTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       mockState.numPages = 5;
-      act(() => render(<PdfSplitTool {...props} />, container));
+      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} {...props} />, container));
       const input = container.querySelector('input[type="file"]');
       await act(async () => {
         setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1700));
+        await new Promise((resolve) => setTimeout(resolve, 150));
       });
       return container.querySelector(`.${styles['primary-detail']}`).textContent;
     };
@@ -345,7 +347,7 @@ describe('PdfSplitTool UI flow', () => {
     const skippedHint = async (props) => {
       container = document.createElement('div');
       document.body.appendChild(container);
-      act(() => render(<PdfSplitTool {...props} />, container));
+      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} {...props} />, container));
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [new File(['plain text'], '2025-notes.txt', { type: 'text/plain' })]);
       });
@@ -362,7 +364,7 @@ describe('PdfSplitTool UI flow', () => {
   it('shows a Hebrew page-range error', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool messages={hebrewSplitMessages} />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} messages={hebrewSplitMessages} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
@@ -382,7 +384,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
@@ -414,7 +416,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
@@ -442,7 +444,7 @@ describe('PdfSplitTool UI flow', () => {
   it('a protected file ends in an alert that points to Unlock', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/encrypted/owner-only.pdf');
     const file = new File([fs.readFileSync(fixturePath)], 'owner-only.pdf', { type: 'application/pdf' });
     await act(async () => {
@@ -450,7 +452,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     const alert = container.querySelector('[role="alert"]');
     expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
@@ -463,7 +465,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
 
     // A real fixture, not the fake makePdfFile(): this test waits for the
     // actual splitPdf() prepare to resolve, which a synthetic "%PDF-1.4"
@@ -484,7 +486,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(findShareButton()).toBeUndefined();
 
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     const primary = container.querySelector(`.${styles.primary}`);
     expect(primary.getAttribute('data-state')).toBe('ready');
@@ -498,7 +500,7 @@ describe('PdfSplitTool UI flow', () => {
     URL.revokeObjectURL = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
@@ -517,7 +519,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
@@ -544,7 +546,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('first.pdf')]);
@@ -574,7 +576,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [makePdfFile('test.pdf')]);
@@ -599,7 +601,7 @@ describe('PdfSplitTool UI flow', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
 
     const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
     const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
@@ -616,7 +618,7 @@ describe('PdfSplitTool UI flow', () => {
     // The output is prepared on idle; wait past the debounce and the split.
     const primary = container.querySelector(`.${styles.primary}`);
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1700));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
     expect(primary.getAttribute('data-state')).toBe('ready');
     expect(primary.textContent).toContain('Download 5 PDFs');
@@ -665,7 +667,7 @@ describe('PdfSplitTool UI flow', () => {
       const navigate = vi.fn();
       container = document.createElement('div');
       document.body.appendChild(container);
-      act(() => render(<PdfSplitTool navigate={navigate} />, container));
+      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} navigate={navigate} />, container));
       const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'));
       const input = container.querySelector('input[type="file"]');
       const pick = async (name) => {
@@ -674,7 +676,7 @@ describe('PdfSplitTool UI flow', () => {
           await new Promise((resolve) => setTimeout(resolve, 50));
         });
         await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 1700));
+          await new Promise((resolve) => setTimeout(resolve, 150));
         });
       };
       const compressButton = () =>
@@ -772,7 +774,7 @@ describe('PdfSplitTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSplitTool />, container);
+      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -874,7 +876,7 @@ describe('PdfSplitTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => {
-        render(<PdfSplitTool />, container);
+        render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
       });
     }
 
@@ -972,13 +974,13 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
   const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
   const primary = () => container.querySelector(`.${styles.primary}`);
 
-  async function openFixture() {
+  async function openFixture(quietPolicy = FAST_QUIET) {
     URL.createObjectURL = vi.fn(() => 'blob:fake-url');
     URL.revokeObjectURL = vi.fn();
     mockState.numPages = 5;
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
+    act(() => render(<PdfSplitTool quietPolicy={quietPolicy} />, container));
     const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
     const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
     await act(async () => {
@@ -1004,7 +1006,7 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
   it('does not count a protected file as a failed operation (DEBT-44)', async () => {
     probeMock.mockResolvedValue('needs-password');
     await openFixture();
-    await wait(1700);
+    await wait(150);
     probeMock.mockReset();
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
     expect(events('tool_operation_failed')).toBe(0);
@@ -1015,34 +1017,34 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
     const { getDocument } = await import('pdfjs-dist');
     getDocument.mockImplementationOnce(() => ({ promise: Promise.reject(new Error('boom')), destroy: vi.fn(() => Promise.resolve()) }));
     await openFixture();
-    await wait(1700);
+    await wait(150);
     expect(events('tool_operation_failed')).toBe(1);
   });
 
   it('reports no start for the background prepare after an option change', async () => {
     await openFixture();
-    await wait(1700);
+    await wait(150);
     await toggleFirstCell();
-    await wait(2200);
+    await wait(150);
     const separate = Array.from(container.querySelectorAll('[role="radio"]'))
       .find((button) => button.textContent === 'One PDF per page');
     await act(async () => separate.click());
-    await wait(2700);
+    await wait(150);
     expect(primary().getAttribute('data-state')).toBe('ready');
     expect(events('tool_operation_started')).toBe(0);
     expect(events('tool_result_ready')).toBe(0);
-  }, 20000);
+  });
 
   it('reports started then ready for a Download tap, again after a change', async () => {
     await openFixture();
-    await wait(1700);
+    await wait(150);
     await act(async () => primary().click());
     await wait(50);
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(1);
 
     await toggleFirstCell();
-    await wait(2200);
+    await wait(150);
     expect(events('tool_operation_started')).toBe(1);
     await act(async () => primary().click());
     await wait(50);
@@ -1051,14 +1053,14 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
   });
 
   it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
-    await openFixture();
+    await openFixture(null as any); // the real policy: the build has not started when the tap lands
     // Quiet means quiet: the build is silent until the person taps.
     expect(primary().getAttribute('data-state')).toBe('ready');
     await act(async () => primary().click());
     expect(primary().getAttribute('data-state')).toBe('preparing');
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(0);
-    await wait(1700);
+    await wait(150);
     expect(primary().getAttribute('data-state')).toBe('saved');
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(1);
@@ -1067,7 +1069,7 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
   it('reports started then ready for a shared result', async () => {
     const nativeShare = mockNativeFileShare();
     await openFixture();
-    await wait(1700);
+    await wait(150);
     const shareButton = Array.from(container.querySelectorAll(`.${styles['next-step']}`))
       .find((b) => b.textContent.includes('Share'));
     await act(async () => shareButton.click());
@@ -1183,7 +1185,7 @@ describe('splitPdf library integration with real fixtures', () => {
       mockState.numPages = 5;
       container = document.createElement('div');
       document.body.appendChild(container);
-      act(() => render(<PdfSplitTool />, container));
+      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
       const input = container.querySelector('input[type="file"]');
       await act(async () => {
         setInputFiles(input, [makePdfFile('test.pdf')]);

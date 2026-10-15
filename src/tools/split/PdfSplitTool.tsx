@@ -1,6 +1,6 @@
 import type { ComponentType } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { createQuietPreparer } from '../../lib/quietPrepare.ts';
+import { createQuietPreparer, type QuietPolicy } from '../../lib/quietPrepare.ts';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import SplitVerb from './verb/SplitVerb.tsx';
@@ -82,12 +82,15 @@ export interface PdfSplitToolProps {
   shellMessages?: Partial<ShellMessages>;
   /** Tests only: jsdom cannot navigate. */
   navigate?: (href: string) => void;
+  /** Tests only: shortens the quiet wait before the background build. */
+  quietPolicy?: QuietPolicy;
 }
 
 export default function PdfSplitTool({
   messages: messagesProp,
   shellMessages,
   navigate = (href) => { window.location.href = href; },
+  quietPolicy,
 }: PdfSplitToolProps = {}) {
   const t: SplitMessages = { ...englishSplitMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
@@ -195,6 +198,7 @@ export default function PdfSplitTool({
   // a new preparer (and so an empty cache); unmount disposes it.
   useEffect(() => {
     const preparer = createQuietPreparer<any[]>({
+      policy: quietPolicy,
       build: (_key, signal) => {
         const { file: f, mode: m, pages: wanted, rotations: rots } = inputsRef.current;
         setProgress(0);

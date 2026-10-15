@@ -91,6 +91,8 @@ vi.mock('../../lib/thumbnails.js', () => ({
   openThumbnailSource: vi.fn(),
 }));
 
+// Tests that are not about timing build after 5ms instead of the real 1500ms.
+const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('PdfMergeTool UI flow', () => {
@@ -146,7 +148,7 @@ describe('PdfMergeTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfMergeTool prepareDelayMs={5} {...props} />, container);
+      render(<PdfMergeTool quietPolicy={FAST_QUIET} {...props} />, container);
     });
   }
 
@@ -261,11 +263,12 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
 
-    // Before the idle wait ends the Download element still reads preparing,
-    // never a separate Merge step.
+    // Before the quiet wait ends the Download element already keeps its ready
+    // look (no link yet), never a separate Merge step.
     const box = downloadBox();
     expect(box).not.toBeNull();
-    expect(box.getAttribute('data-state')).toBe('preparing');
+    expect(box.getAttribute('data-state')).toBe('ready');
+    expect(box.hasAttribute('href')).toBe(false);
     expect(container.textContent).not.toContain('Merge 2 PDFs');
 
     await settle();
@@ -1471,5 +1474,104 @@ describe('merge.js library integration with real fixtures', () => {
     expect(mergedBlob).toBeInstanceOf(Blob);
     const texts = await extractTextFromPdfBlob(mergedBlob);
     expect(texts).toEqual(['3', '1', '4', '2']);
+  });
+});
+
+// Guideline §2, "Quiet means quiet": nothing visibly changes while the person is still
+// editing. These run the real 1500/2500ms policy under fake timers.
+describe('PdfMergeTool quiet-time prepare', () => {
+  let container;
+  const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+  const box = () => container.querySelector(`.${downloadStyles.box}`);
+  const pageNumbersBox = () => container.querySelector(`.${railStyles['page-numbers-row']} input`);
+  const built = () => mergeLib.mergePdfs.mock.calls.length;
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    pageCounts.clear();
+    localStorage.clear();
+    mergeLib.mergePdfs.mockClear();
+    mergeLib.mergePdfs.mockImplementation(() => Promise.resolve(new Blob(['%PDF-1.4-merged'], { type: 'application/pdf' })));
+    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    window.URL.revokeObjectURL = vi.fn();
+    window.scrollTo = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfMergeTool />, container));
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), ['a.pdf', 'b.pdf', 'c.pdf'].map((n) => makePdfFile(n)));
+    });
+    await advance(100);
+    // Settle the first build, past the 3s burst window, so each test starts from a built set.
+    await advance(4500);
+    mergeLib.mergePdfs.mockClear();
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    container = null;
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('keeps the ready look after a change and does not build before 1500ms', async () => {
+    await act(async () => pageNumbersBox().click());
+    await advance(1400);
+    expect(box().getAttribute('data-state')).toBe('ready');
+    expect(box().getAttribute('aria-busy')).toBeNull();
+    expect(box().textContent).toContain('6 pages');
+    expect(built()).toBe(0);
+    await advance(200);
+    expect(built()).toBe(1);
+    expect(box().getAttribute('href')).toBeTruthy();
+  });
+
+  it('builds once, 2500ms after the last of three quick changes', async () => {
+    await act(async () => pageNumbersBox().click());
+    await advance(500);
+    await act(async () => pageNumbersBox().click());
+    await advance(500);
+    await act(async () => pageNumbersBox().click());
+    await advance(2400);
+    expect(built()).toBe(0);
+    await advance(200);
+    expect(built()).toBe(1);
+  });
+
+  it('is ready at once, with no build, after an undo back to a built set', async () => {
+    const removeButtons = container.querySelectorAll(`.${railStyles['file-remove']}`);
+    await act(async () => removeButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await advance(300);
+    const undo = container.querySelector(`.${docStyles['undo-chip']} button`);
+    await act(async () => undo.click());
+    expect(box().getAttribute('data-state')).toBe('ready');
+    expect(box().getAttribute('href')).toBeTruthy();
+    await advance(5000);
+    expect(built()).toBe(0);
+  });
+
+  it('shows preparing only after a tap before the build is done, then delivers', async () => {
+    let finish;
+    mergeLib.mergePdfs.mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve(new Blob(['%PDF'], { type: 'application/pdf' })); }));
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    await act(async () => pageNumbersBox().click());
+    await advance(1700);
+    expect(built()).toBe(1);
+    expect(box().getAttribute('data-state')).toBe('ready');
+    await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    expect(box().getAttribute('data-state')).toBe('preparing');
+    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(box().getAttribute('data-state')).toBe('saved');
+    clickSpy.mockRestore();
+  });
+
+  it('starts the build at once on pointerdown on Download', async () => {
+    await act(async () => pageNumbersBox().click());
+    await advance(200);
+    expect(built()).toBe(0);
+    await act(async () => { box().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    expect(built()).toBe(1);
   });
 });
