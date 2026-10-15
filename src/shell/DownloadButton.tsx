@@ -13,9 +13,8 @@ import pdfToolStyles from './PdfTool.module.css';
  * rather than adopting this component for just one of their two branches.
  *
  * `detail` (SEO-25, 2026-09-12) is an optional second, smaller line inside
- * the button - e.g. "172.98 KB, 54% smaller" - so far only passed by
- * PdfCompressTool (see its `downloadDetail`, the "button is the anchor" fix
- * for the result-card flicker). It's inside the button text, so it's part of
+ * the button - e.g. the result's size, "172.98 KB" - so far only passed by
+ * PdfCompressTool (see its `downloadDetail`). It's inside the button text, so it's part of
  * the accessible name for free; every other tool passes nothing and renders
  * exactly as before. `preventScroll` on the focus call is also part of that
  * fix: the button no longer moves when a result lands, so nothing should

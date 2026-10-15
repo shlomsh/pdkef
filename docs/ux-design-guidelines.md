@@ -314,9 +314,9 @@ inherits:
 
 Decided for Compress, whose loaded state stacked short, low-value
 bands (a large file card, a one-sentence note in its own tinted band, preset cards with badges that
-repeated their names) and pushed the tool and its result below the fold. The build is in progress;
-these are the rules it is built to, and the pattern every tool's loaded state follows. No other tool
-is claimed to comply yet.
+repeated their names) and pushed the tool and its result below the fold. Compress shipped to
+these rules in a64ea0ab, and they are the pattern every tool's loaded state follows. The shell strip
+(rule 2) and the one-line hero (rule 1) apply to every tool since HERO-06; the rest is per tool (HERO-07).
 
 1. **The hero shrinks to one line once a file is loaded:** the icon and the h1. The subhead stays in
    the HTML, hidden, so the SEO surface is unchanged (an opt-in on `ToolHero.astro`). It is also shrunk
