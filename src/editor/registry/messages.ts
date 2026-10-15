@@ -196,9 +196,11 @@ export interface SignMessages {
   repeatOnEveryPageLabel: string;
   /** RED-03: the linked set's menu, once a box is linked (repeatGroupSize
    * >= 2). `{n}` is the set's size. The title is the trigger's status; the
-   * heading explains the link (RED-65). */
+   * heading says where the box repeats, as "both" for a set of two (RED-65).
+   * Every item is a command: what it does to the document. */
   repeatGroupTitleTemplate: string;
   repeatGroupHeadingTemplate: string;
+  repeatGroupHeadingBoth: string;
   repeatGroupFill: string;
   /** RED-65: removes the set's copies on every other page. */
   repeatGroupKeepOnly: string;
