@@ -459,3 +459,20 @@ for (const [route, dir] of [['/merge/', 'ltr'], ['/he/merge/', 'rtl']]) {
     else expect(Math.abs(edges.sheetLeft - edges.linkLeft), 'sheet left vs link left').toBeLessThanOrEqual(1);
   });
 }
+
+// On a phone the stage reaches the bottom edge on first paint: the next section's off-white
+// background must not show as a band under a short tool (Merge ended 145px short at 393x852).
+test.describe('phone first screen fills the viewport', () => {
+  for (const route of ROUTES) {
+    for (const [width, height] of [[393, 852], [375, 667]]) {
+      test(`${route} stage reaches the bottom edge at ${width}x${height}`, async ({ page }) => {
+        await page.setViewportSize({ width, height });
+        await open(page, route);
+        const bottom = await page.locator('.tool-stage').evaluate((el) => el.getBoundingClientRect().bottom);
+        expect(bottom, 'stage bottom against the viewport').toBeGreaterThanOrEqual(height - 1);
+        await page.waitForTimeout(1500);
+        expect(await page.evaluate(() => window.__cls), 'layout shift on first load').toBeLessThan(0.001);
+      });
+    }
+  }
+});
