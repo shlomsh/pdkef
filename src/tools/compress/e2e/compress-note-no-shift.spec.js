@@ -52,14 +52,13 @@ const sample = (page, key) => page.evaluate((k) => window[k], key);
 const groupY = async (page) => (await page.getByRole('radiogroup').boundingBox()).y;
 const spread = (values) => Math.max(...values) - Math.min(...values);
 
-// Wait for a run newer than `after` to finish.
-const runOf = async (page) => Number(await page.locator('[data-compress-run]').first().getAttribute('data-compress-run'));
-async function waitForDone(page, after) {
-  await expect.poll(async () => {
-    const root = page.locator('[data-compress-status]').first();
-    if ((await root.getAttribute('data-compress-status')) !== 'done') return false;
-    return Number(await root.getAttribute('data-compress-run')) > after;
-  }, { timeout: 30_000 }).toBe(true);
+// Wait for the result of the level just picked. `data-compress-status` reads
+// `done` only when the shown result matches the current options, and a level
+// already built comes back from the cache without a new run (UX guidelines
+// §2), so a new run is not what to wait for.
+async function waitForDone(page, level) {
+  await expect(page.getByRole('radio', { name: level })).toBeChecked();
+  await expect(page.locator('[data-compress-status]').first()).toHaveAttribute('data-compress-status', 'done', { timeout: 30_000 });
 }
 
 test.describe('compress note does not shift the options (DEBT-52)', () => {
@@ -76,9 +75,8 @@ test.describe('compress note does not shift the options (DEBT-52)', () => {
       await load(page, c);
       const before = await groupY(page);
       for (const level of ['Smallest', 'Balanced']) {
-        const run = await runOf(page);
         await page.getByRole('radio', { name: level }).click();
-        await waitForDone(page, run);
+        await waitForDone(page, level);
         await page.waitForTimeout(300);
         expect(Math.abs((await groupY(page)) - before)).toBeLessThanOrEqual(1);
       }

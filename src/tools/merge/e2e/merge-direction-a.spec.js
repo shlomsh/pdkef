@@ -54,10 +54,9 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   } else {
     await firstCard.hover();
   }
-  // The preparing window for two one-page files is the 600 ms idle wait
-  // plus a merge of a few milliseconds, which a polling expect can miss on
-  // a fast engine (it did on webkit). A MutationObserver installed before
-  // the click records every data-state the node passes through instead.
+  // A MutationObserver installed before the click records every data-state
+  // the node passes through, which a polling expect can miss on a fast
+  // engine (it did on webkit).
   await handle.evaluate((el) => {
     el.__states = [el.dataset.state];
     new MutationObserver(() => el.__states.push(el.dataset.state))
@@ -65,8 +64,15 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   });
   await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
 
-  await expect(downloadLocator).toHaveAttribute('data-state', 'ready', { timeout: 10_000 });
-  await expect.poll(() => handle.evaluate((el) => el.__states.join('>'))).toMatch(/ready>preparing>ready$/);
+  // UX guidelines §2: the rebuild waits for quiet and is silent, so the
+  // element stays ready after the change. Preparing shows only for a tap
+  // that lands before the build is done, and that tap delivers on ready.
+  await page.waitForTimeout(200);
+  expect(await handle.evaluate((el) => el.__states.join('>'))).toBe('ready');
+  const download = page.waitForEvent('download');
+  await downloadLocator.click();
+  await download;
+  await expect.poll(() => handle.evaluate((el) => el.__states.join('>'))).toMatch(/^ready>preparing>(ready|saved)/);
 
   const stillSameNode = await page.evaluate(
     (el) => el.isConnected && el.__guard === 1 && el === document.querySelector('[data-state]'),
