@@ -21,7 +21,7 @@ async function open(page, route) {
 }
 
 // Before the island's markup lays out, <main> is a few px tall; the hero must not move when it arrives.
-for (const route of ['/merge/', '/compress-image/']) {
+for (const route of ['/merge/', '/compress-image/', '/sign/', '/redact/']) {
   test(`${route} shifts nothing under 6x CPU throttling`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 820 });
     const cdp = await page.context().newCDPSession(page);

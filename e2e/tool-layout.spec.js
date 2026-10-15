@@ -12,8 +12,9 @@ const toolRoutes = [
   '/edit-pdf',
 ];
 
-// Sign and Redact keep the original side-by-side hero; the other eight are the
-// page-grid tools whose hero is stacked (icon above the h1, HERO-02/03).
+// Sign and Redact keep the original side-by-side hero below 1024px and once a file is open; on an
+// empty desktop first screen (HERO-05) they take the same stacked look as the other eight, the page-grid
+// tools whose hero is stacked at every width (icon above the h1, HERO-02/03).
 const editorRoutes = ['/sign/?next=0', '/redact'];
 
 test('aligns every tool title row with its breadcrumb grid at desktop width', async ({ page }) => {
@@ -22,30 +23,20 @@ test('aligns every tool title row with its breadcrumb grid at desktop width', as
 
     const breadcrumbBrand = page.locator('body > div > div > a');
     const titleRow = page.locator('header > div').first();
-    const hero = page.locator('header');
-    const breadcrumbGrid = page.locator('body > div > div');
     await expect(breadcrumbBrand, route).toBeVisible();
     await expect(titleRow, route).toBeVisible();
 
-    const [brandBox, rowBox, heroBox, gridBox] = await Promise.all([
-      breadcrumbBrand.boundingBox(),
-      titleRow.boundingBox(),
-      hero.boundingBox(),
-      breadcrumbGrid.boundingBox(),
-    ]);
-    if (!brandBox || !rowBox || !heroBox || !gridBox) {
+    const [brandBox, rowBox] = await Promise.all([breadcrumbBrand.boundingBox(), titleRow.boundingBox()]);
+    if (!brandBox || !rowBox) {
       throw new Error(`${route}: breadcrumb or hero layout box is unavailable`);
     }
 
-    // Shared desktop grid: the hero and app bar occupy the same 1080px frame,
-    // while the title row and breadcrumb brand start at the same 24px inset.
-    // The stacked eight's hero has no padding of its own inside the hero grid
-    // (HERO-02), so its box is narrower by design; only the title row's
-    // alignment with the brand is the invariant there.
-    if (editorRoutes.includes(route)) {
-      expect(Math.abs(heroBox.x - gridBox.x), route).toBeLessThanOrEqual(1);
-      expect(Math.abs(heroBox.width - gridBox.width), route).toBeLessThanOrEqual(1);
-    }
+    // Shared desktop grid: the title row and breadcrumb brand start at the same
+    // inset. Every tool's empty first screen (the page-grid eight since HERO-02,
+    // Sign and Redact since HERO-05) puts its hero in the hero grid with no
+    // padding of its own, so its box is narrower than the app bar by design;
+    // only the title row's alignment with the brand is the invariant. (The
+    // editors' loaded hero is the full-width row; their specs own that state.)
     expect(Math.abs(rowBox.x - brandBox.x), route).toBeLessThanOrEqual(1);
   }
 });
@@ -88,9 +79,16 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
       });
 
       const where = `${route} @ ${width}px (${measured.lines} title line(s))`;
-      if (editorRoutes.includes(route)) {
+      if (editorRoutes.includes(route) && width < 1024) {
+        // The editors keep the icon beside the title below the desktop first screen.
         expect(measured.stacked, where).toBe(false);
         expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
+      } else if (editorRoutes.includes(route)) {
+        // HERO-05: at 1024px and up their empty state is the stacked look, though the
+        // header keeps its `data-hero-stacked` off (the phone rules key on it).
+        expect(measured.stacked, where).toBe(false);
+        expect(measured.tileBottom, where).toBeLessThanOrEqual(measured.h1Top);
+        expect(Math.abs(measured.tileStart - measured.h1Start), where).toBeLessThanOrEqual(1);
       } else if (measured.phoneCondensed && width <= 767) {
         // Merge's condensed phone hero keeps the tile beside the name (ToolHero.astro): stacked,
         // it pushed the sticky Download sheet below a 659px viewport on Linux fonts.
@@ -191,8 +189,15 @@ test('uses the hydrated Sign/Redact density geometry for a validated first-paint
   // A stale generic hint is not proof that this is the Sign/Redact editor
   // restore path. In particular, it cannot substitute for the marker before
   // ViewControl has mounted.
+  // Only the condense-sensitive fields are compared: HERO-05 gives a fresh desktop
+  // visit the stacked first screen, and a hint (even a stale one) switches that grid
+  // off, so the box size and tile differ by design; whether the hero is folded does not.
   const staleHint = await measureStep({ draftHint: true });
-  expect(staleHint).toEqual(fresh);
+  expect({ titleSize: staleHint.titleSize, subheadDisplay: staleHint.subheadDisplay }).toEqual({
+    titleSize: fresh.titleSize,
+    subheadDisplay: fresh.subheadDisplay,
+  });
+  expect(staleHint.subheadDisplay).toBe('block');
 
   const firstPaintRestore = await measureStep({ draftHint: true, editorRestore: true });
 
@@ -269,15 +274,15 @@ test('does not create inverse CLS when a validated restore marker is later rejec
   // epsilon.
   expect(nonHeroCls).toBe(0);
 
-  // Hero typography itself necessarily changes by a few pixels when stale
-  // work becomes a fresh visit - specifically the citron-accent <span> in the
-  // <h1> (ToolHero.astro), whose box grows with the font-size step from the
-  // condensed 1.75rem to the expanded 2rem. Measured 0.0009 on this machine
-  // and 0.0014 on GitHub's ubuntu runner (same source, a few more sub-pixels
-  // of glyph metrics there), so 0.001 measured the runner's rasteriser noise,
-  // not a regression. 0.01 keeps this two orders of magnitude below a "needs
-  // improvement" CLS (0.25) while easily covering that cross-platform spread.
-  expect(heroOnlyCls).toBeLessThanOrEqual(0.01);
+  // The hero itself necessarily changes when stale work becomes a fresh visit.
+  // Until HERO-05 that was a few pixels (the h1's font-size step from the
+  // condensed 1.75rem to the expanded 2rem; 0.0009 here, 0.0014 on GitHub's
+  // runner). A fresh desktop visit is now the full-height first screen, so the
+  // condensed row becomes the stacked hero centred in a one-screen grid: measured
+  // 0.041 here with everything else (the tool, the follow-ups) still hidden and
+  // nonHeroCls exactly 0. That is a rare path (a pointer whose file is gone) and
+  // still well under the 0.1 "good" line, so the bound is 0.06.
+  expect(heroOnlyCls).toBeLessThanOrEqual(0.06);
 });
 
 // ToolPageLayout.astro once held the hero+card wrapper to a full viewport
@@ -288,12 +293,12 @@ test('does not create inverse CLS when a validated restore marker is later rejec
 // `[class*="tool-card"]` matches the CSS-Modules-hashed class BasePdfTool
 // renders (PdfTool.module.css).
 test('keeps the tool card close to the section below it, not padded to the viewport', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
+  // HERO-02/05: at 1024px and up the empty first screen of every tool is one
+  // screen tall on purpose, so the card is meant to sit apart from the section
+  // below. Below 1024px Sign and Redact still flow at their own height (the
+  // card under the hero), which is the state this check keeps.
+  await page.setViewportSize({ width: 1000, height: 900 });
   for (const route of toolRoutes) {
-    // HERO-02: at 1024px and up the empty first screen of the eight page-grid
-    // tools is one screen tall on purpose, so the card is meant to sit apart
-    // from the section below. This test runs at 1280px; Sign and Redact still
-    // flow at their own height and keep the check.
     if (!editorRoutes.includes(route)) continue;
     await page.goto(route);
 
