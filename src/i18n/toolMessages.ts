@@ -465,6 +465,14 @@ export interface CompressMessages {
   targetCons: string;
   targetBadge: string;
   targetSizeLabel: string;
+  levelPickerLabel: string;
+  levelHighShort: string;
+  levelMediumShort: string;
+  levelLowShort: string;
+  targetShort: string;
+  percentSmaller: string;
+  stripShareNote: string;
+  stripShareLowNote: string;
   compress: string;
   compressing: string;
   addPdfToCompress: string;
@@ -527,6 +535,8 @@ export interface CompressMessages {
   alreadySmallComplete: string;
   flattenLabel: string;
   flattenHint: string;
+  /** The same switch on a PDF with no text: only the softening applies. */
+  flattenHintNoText: string;
   slightGainTitle: string;
   slightGainCompactNotice: string;
   slightGainExtremeHint: string;
@@ -596,6 +606,14 @@ const englishCompressMessages: CompressMessages = {
   targetCons: 'Quality adjusts as needed to reach the size',
   targetBadge: 'Precise',
   targetSizeLabel: 'Target size',
+  levelPickerLabel: 'How small',
+  levelHighShort: 'Smallest',
+  levelMediumShort: 'Balanced',
+  levelLowShort: 'Sharpest',
+  targetShort: 'Exact size',
+  percentSmaller: '{percent}% smaller',
+  stripShareNote: 'Images are {share} of this PDF, the part that gets smaller.',
+  stripShareLowNote: 'Most of this PDF is text. Images are {share} of it.',
   compress: 'Compress PDF',
   compressing: 'Compressing…',
   addPdfToCompress: 'Add a PDF or image above to compress',
@@ -648,6 +666,7 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallComplete: 'This PDF is already as small as it gets, so it is unchanged.',
   flattenLabel: 'Turn pages into pictures',
   flattenHint: 'The smallest size for scans. Text stops being selectable, links stop working, and small text gets softer.',
+  flattenHintNoText: 'The smallest size for scans. Small detail gets softer.',
   slightGainTitle: 'Only a little smaller',
   slightGainCompactNotice: 'The images in this PDF were already compact, so making them smaller saved {saving}.',
   slightGainExtremeHint: 'Extreme Compression can go further, and photos look soft when zoomed in.',
@@ -731,6 +750,14 @@ const hebrewCompressMessages: CompressMessages = {
   targetCons: 'האיכות מותאמת לפי הצורך כדי להגיע לגודל',
   targetBadge: 'מדויק',
   targetSizeLabel: 'גודל בהתאמה אישית',
+  levelPickerLabel: 'כמה לכווץ',
+  levelHighShort: 'הכי קטן',
+  levelMediumShort: 'מאוזן',
+  levelLowShort: 'הכי חד',
+  targetShort: 'גודל מדויק',
+  percentSmaller: 'קטן ב-{percent}%',
+  stripShareNote: 'התמונות הן {share} מה-PDF הזה, החלק שקטן.',
+  stripShareLowNote: 'רוב ה-PDF הזה הוא טקסט. התמונות הן {share} ממנו.',
   compress: 'כיווץ PDF',
   compressing: 'מכווצים…',
   addPdfToCompress: 'בחרו קובץ למעלה כדי להמשיך',
@@ -783,6 +810,7 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallComplete: 'ה-PDF הזה כבר קטן ככל האפשר, אז הוא נשאר ללא שינוי.',
   flattenLabel: 'להפוך עמודים לתמונות',
   flattenHint: 'הגודל הקטן ביותר לסריקות. אי אפשר יהיה לסמן טקסט, קישורים יפסיקו לעבוד, וטקסט קטן ייראה פחות חד.',
+  flattenHintNoText: 'הגודל הקטן ביותר לסריקות. פרטים קטנים ייראו פחות חדים.',
   slightGainTitle: 'קטן רק במעט',
   slightGainCompactNotice: 'התמונות ב-PDF הזה כבר היו קומפקטיות, אז הקטנה שלהן חסכה {saving}.',
   slightGainExtremeHint: 'כיווץ מקסימלי יכול להקטין עוד, ותמונות נראות מטושטשות בהגדלה.',
