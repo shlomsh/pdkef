@@ -236,21 +236,24 @@ export async function saveHandoff(tool, record) {
  *
  * @param {string} tool - the target tool's own key, e.g. 'sign' when Merge (MERGE-14)
  *   hands its output there
+ * @param {(record: object) => boolean} [accept] - when given, a valid record it returns false for
+ *   is left in place, not consumed (src/lib/handoffKinds.ts: one key, two pages)
  * @returns {Promise<object|null>}
  */
-export async function takeHandoff(tool) {
+export async function takeHandoff(tool, accept) {
   if (!hasIndexedDB()) return null;
   const key = handoffKey(tool);
   try {
     const record = await withStore('readonly', (store) => reqToPromise(store.get(key)));
     if (!record) return null;
+    const fresh = !(typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS);
+    // A valid record the asker does not take stays for the page it is meant for (one key can open
+    // two pages, e.g. Compress and Compress Image); it still ages out through the check above.
+    if (fresh && isValidHandoff(record) && accept && !accept(record)) return null;
     await withStore('readwrite', (store) => {
       store.delete(key);
     });
-    if (typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS) {
-      return null;
-    }
-    return isValidHandoff(record) ? record : null;
+    return fresh && isValidHandoff(record) ? record : null;
   } catch (e) {
     reportStoreError('handoff', e, 'take_handoff');
     console.error('draftStore.takeHandoff failed:', e);

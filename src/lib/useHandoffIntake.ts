@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { takeHandoff } from './drafts/draftStore.js';
+import { handoffFitsPage, handoffKindsForPage } from './handoffKinds.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from './handoffPending.ts';
 
 type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
@@ -64,7 +65,11 @@ export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], fro
     // The pre-paint script held the page back for a hand-off (HERO-02, handoffPending.ts). The
     // storage key is a one-shot and goes as soon as the hand-off is read; the page is released when
     // the tool shows its file, or at once when there is nothing to consume (a stale marker).
-    takeHandoff(tool).then((value) => {
+    // One key can open two pages (compress: Compress and Compress Image): take only what this page
+    // does, and leave the rest for the page it was meant for (handoffKinds.ts).
+    const kinds = handoffKindsForPage(tool, location.pathname);
+    const taken = kinds ? takeHandoff(tool, (r: HandoffRecord) => handoffFitsPage(r, kinds)) : takeHandoff(tool);
+    taken.then((value) => {
       clearHandoffPending(tool);
       if (cancelled) {
         // The hook went away before the read settled: nobody is left to show the file, so
