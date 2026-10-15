@@ -2687,7 +2687,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(secondPageBox.style.width)).toBeCloseTo(widthBefore);
     });
 
-    it('Keep on this page only removes the other copies in one undo step', async () => {
+    it('Remove from the other pages removes the other copies in one undo step', async () => {
       mockPageCount(3);
       const drawArea = await loadFileAndGetDrawArea();
       stubEveryDrawAreaRect();

@@ -112,7 +112,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     commands.update(id, [{ id, changes }], { describe: () => 'Unlinked the box on this page' });
   };
 
-  // RED-65: "Keep on this page only" - removes every other box of `id`'s
+  // RED-65: "Remove from the other pages" - removes every other box of `id`'s
   // repeat group in one undo step and leaves `id` itself where it is.
   const keepOnlyThis = (id: string) => {
     const others = groupMembers(elements, id).filter((member) => member.id !== id);

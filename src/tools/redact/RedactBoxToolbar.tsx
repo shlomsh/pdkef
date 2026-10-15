@@ -87,7 +87,7 @@ export default function RedactBoxToolbar({
         {linked ? (
           <ToolbarMenu
             title={groupLabel}
-            heading={formatMessage(t.repeatGroupHeadingTemplate, { n: repeatGroupSize })}
+            heading={repeatGroupSize === 2 ? t.repeatGroupHeadingBoth : formatMessage(t.repeatGroupHeadingTemplate, { n: repeatGroupSize })}
             triggerClassName={wide}
             triggerAttrs={{ 'data-editor-repeat-group-trigger': true }}
             triggerContent={<>{pagesIcon}<span className={styles.label}>{groupLabel}</span></>}

@@ -316,17 +316,17 @@ describe('RedactBoxToolbar repeat and delete scope (RED-03, RED-11)', () => {
     expect(h.querySelector('[data-editor-repeat-every-page]')!.textContent).toBe('Repeat on all pages');
   });
 
-  it('the linked set menu explains the link and holds keep-only and edit-separately, fill only when pages are left', async () => {
+  it('the linked set menu says where the box repeats and holds remove-elsewhere and edit-on-its-own, fill only when pages are left', async () => {
     const onUnlinkFromGroup = vi.fn();
     const onKeepOnlyThisPage = vi.fn();
     const { host: h } = mount(blackout, { repeatGroupSize: 3, onUnlinkFromGroup, onKeepOnlyThisPage });
     expect(h.querySelector('[data-editor-repeat-group-trigger]')!.textContent).toBe('On 3 pages');
     await click(h.querySelector('[data-editor-repeat-group-trigger]'));
     const menu = document.body.querySelector('[role="menu"]')!;
-    expect(menu.textContent).toContain('Changes apply to all 3 pages');
+    expect(menu.textContent).toContain('Repeated on 3 pages');
     expect(document.body.querySelector('[data-editor-repeat-group-fill]')).toBeNull();
     const items = Array.from(menu.querySelectorAll('[role="menuitem"]')).map((el) => el.textContent);
-    expect(items).toEqual(['Keep on this page only', 'Edit this page separately']);
+    expect(items).toEqual(['Remove from the other pages', 'Edit this page on its own']);
     await click(document.body.querySelector('[data-editor-repeat-group-keep-only]'));
     expect(onKeepOnlyThisPage).toHaveBeenCalledTimes(1);
     await click(h.querySelector('[data-editor-repeat-group-trigger]'));
@@ -334,11 +334,12 @@ describe('RedactBoxToolbar repeat and delete scope (RED-03, RED-11)', () => {
     expect(onUnlinkFromGroup).toHaveBeenCalledTimes(1);
   });
 
-  it('with pages left, fill comes first', async () => {
+  it('with pages left, fill comes first, and two pages read as both', async () => {
     const { host: h } = mount(blackout, { repeatGroupSize: 2, onRepeatOnEveryPage: () => {}, onUnlinkFromGroup: () => {}, onKeepOnlyThisPage: () => {} });
     await click(h.querySelector('[data-editor-repeat-group-trigger]'));
+    expect(document.body.querySelector('[role="menu"]')!.textContent).toContain('Repeated on both pages');
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map((el) => el.textContent);
-    expect(items).toEqual(['Add to the remaining pages', 'Keep on this page only', 'Edit this page separately']);
+    expect(items).toEqual(['Add to the remaining pages', 'Remove from the other pages', 'Edit this page on its own']);
   });
 
   it('a found box offers "This box" and "All 3 from this search"', async () => {
