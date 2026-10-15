@@ -31,6 +31,13 @@ describe('RecentFiles', () => {
     expect(container.querySelector('[data-home-recents]')).toBeNull();
   });
 
+  it('lays each file name out in its own direction, so a digit-led name keeps its order on /he/', () => {
+    mount([{ tool: 'sign', fileName: '2025-invoice.pdf', cacheId: 'sha256:a', savedAt: Date.now() }]);
+    const name = container.querySelector('[data-home-recents] span[title="2025-invoice.pdf"]');
+    expect(name).not.toBeNull();
+    expect(name.getAttribute('dir')).toBe('auto');
+  });
+
   it('renders the bundled sample as a button, unaffected by the draft branch', () => {
     mount([{ tool: 'sign', fileName: 'PDkef practice form.pdf', bundledSample: true }]);
     const button = container.querySelector('button[aria-label^="Open bundled sample PDF"]');

@@ -1331,6 +1331,83 @@ describe('PdfMergeTool UI flow', () => {
       expect(detail).not.toContain('\u2069');
     });
   });
+
+  // UX guideline 9: the heading is a file name ("merged_x" + ".pdf"), and in an RTL page
+  // a ".pdf" outside any isolate lays out as "pdf." and sits on the wrong side of the name.
+  // Name and extension are one isolate whose direction follows the name, with the extension
+  // an LTR run inside it. jsdom has no layout, so this asserts the markup; the rendered
+  // order is e2e/merge-rtl-file-name.spec.js.
+  describe('the heading file name is one bidi isolate', () => {
+    const headingUnit = async (props) => {
+      mount(props);
+      await loadFiles(['three-page-header.pdf', 'b.pdf']);
+      await settle();
+      const name = container.querySelector(`.${docStyles.name}`);
+      const ext = container.querySelector(`.${docStyles['doc-heading-ext']}`);
+      return { name, ext, unit: name.parentElement };
+    };
+
+    it.each([
+      ['Hebrew', { messages: hebrewMergeMessages, shellMessages: hebrewShellMessages }],
+      ['English', {}],
+    ])('wraps the name and the .pdf in one auto-direction isolate in %s', async (_label, props) => {
+      const { name, ext, unit } = await headingUnit(props);
+      expect(ext.parentElement).toBe(unit);
+      expect(unit.parentElement.id).toBe('merge-pages-heading');
+      expect(unit.tagName === 'BDI' || unit.getAttribute('dir') === 'auto').toBe(true);
+      // The unit takes its direction from the name's own text, so the name carries no dir of
+      // its own (an element with a dir attribute is skipped when `dir=auto` looks for a
+      // first strong character).
+      expect(name.hasAttribute('dir')).toBe(false);
+      expect(name.textContent).toBe('merged_three-page-header');
+    });
+
+    it('keeps the .pdf as an LTR run inside the unit', async () => {
+      const { ext } = await headingUnit({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
+      expect(ext.getAttribute('dir')).toBe('ltr');
+      expect(ext.textContent).toBe('.pdf');
+    });
+  });
+
+  // Guideline 9, second half: a name composed into a sentence is isolated, or a name that
+  // starts or ends in digits ("2025-one.pdf") reorders against the Hebrew around it. FSI ...
+  // PDI, only when the catalogue is RTL; the English tests above pin English byte-for-byte.
+  describe('a file name inside a Hebrew sentence is bidi-isolated', () => {
+    const hebrew = { messages: hebrewMergeMessages, shellMessages: hebrewShellMessages };
+    const isolated = (name) => `\u2068${name}\u2069`;
+
+    it('in the undo chip after a removal', async () => {
+      mount(hebrew);
+      await loadFiles(['2025-one.pdf', 'two.pdf']);
+      await settle();
+      await act(async () => container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      expect(container.querySelector(`.${docStyles['undo-chip']}`).textContent).toContain(isolated('2025-one.pdf'));
+    });
+
+    it('in the duplicate notice', async () => {
+      mount(hebrew);
+      await loadFiles(['2025-dup.pdf', 'other.pdf']);
+      await loadFiles(['2025-dup.pdf']);
+      expect(container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent).toContain(isolated('2025-dup.pdf'));
+    });
+
+    it('in the skipped-file notice', async () => {
+      mount(hebrew);
+      await loadFiles([makePdfFile('a.pdf'), makePdfFile('2025-notes.txt', { type: 'text/plain' })]);
+      expect(container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent).toContain(isolated('2025-notes.txt'));
+    });
+
+    it.each([
+      ['an encrypted file', '2025-locked.pdf', { pageCount: 1, encrypted: true }],
+      ['an unreadable file', '2025-broken.pdf', { unreadable: true }],
+    ])('in the error for %s', async (_label, name, spec) => {
+      pageCounts.set(name, spec);
+      mount(hebrew);
+      await loadFiles(['a.pdf', name, 'b.pdf']);
+      await settle();
+      expect(container.querySelector('[role="alert"]').textContent).toContain(isolated(name));
+    });
+  });
 });
 
 import fs from 'fs';

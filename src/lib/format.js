@@ -21,6 +21,15 @@ export function isolateLtr(text, dir) {
   return dir === 'rtl' ? `\u2066${text}\u2069` : text;
 }
 
+// Isolates a file name inside a sentence in right-to-left text with FSI ... PDI
+// (first-strong isolate, not LRI: a Hebrew name stays right-to-left), so a name
+// that starts or ends in digits ("2025-invoice.pdf") keeps its own order and its
+// neighbours keep theirs. Same `dir` contract as isolateLtr: only an RTL
+// catalogue pays for the invisible marks.
+export function isolateName(text, dir) {
+  return dir === 'rtl' ? `\u2068${text}\u2069` : text;
+}
+
 const DEFAULT_PAGE_MESSAGES = {
   pageCountOne: '1 page',
   pageCountOther: '{count} pages',
