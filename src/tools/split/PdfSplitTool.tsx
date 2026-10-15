@@ -1,5 +1,6 @@
 import type { ComponentType } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { createQuietPreparer } from '../../lib/quietPrepare.ts';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import SplitVerb from './verb/SplitVerb.tsx';
@@ -63,8 +64,9 @@ interface OutputFile {
 }
 
 type Mode = 'combined' | 'separate';
-/** idle: no file. loading: reading the PDF. preparing: the output is being
- * built on idle after the last change. ready: something to download.
+/** idle: no file. loading: reading the PDF. preparing: the person tapped
+ * Download or Share before the quiet-time build finished (the build itself is
+ * silent: Download keeps its ready look). ready: Download is offered.
  * error: the last prepare failed. */
 type Status = 'idle' | 'loading' | 'preparing' | 'ready' | 'error';
 
@@ -72,8 +74,6 @@ type Status = 'idle' | 'loading' | 'preparing' | 'ready' | 'error';
  * a file name under every cell (review 2026-09-14, P1: fifty captions with
  * the same base name say nothing). */
 const PER_CELL_CAPTION_LIMIT = 24;
-/** Debounce between the last change and the idle prepare. */
-const PREPARE_DELAY_MS = 350;
 
 export interface PdfSplitToolProps {
   /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
@@ -121,8 +121,14 @@ export default function PdfSplitTool({
 
   const primaryRef = useRef<HTMLAnchorElement | null>(null);
   const segmentRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  /** Bumped on every change so a prepare that finishes late is dropped. */
-  const prepareSeq = useRef(0);
+  /** Quiet-time preparer (src/lib/quietPrepare.ts), one per opened file so a new file starts with an empty cache. */
+  const preparerRef = useRef<ReturnType<typeof createQuietPreparer<any[]>> | null>(null);
+  /** The key of the state on screen; a result for any other key is dropped. */
+  const keyRef = useRef<string | null>(null);
+  /** What the next build reads; always the inputs of the current key. */
+  const inputsRef = useRef<{ file: File | null; mode: Mode; pages: number[]; rotations: Record<number, number> }>({
+    file: null, mode: 'combined', pages: [], rotations: {},
+  });
   /**
    * The document load is a separate race from the prepare (DEBT-18): a page
    * selector change must not abandon a thumbnail loop, and a new file must.
@@ -153,6 +159,9 @@ export default function PdfSplitTool({
   );
   const rotationKey = pages.map((p) => p.rotation).join(',');
 
+  inputsRef.current = { file, mode, pages: selectedPages, rotations };
+  const preparerNow = () => preparerRef.current?.now();
+
   const revokeAll = (list: OutputFile[]) => {
     for (const f of list) URL.revokeObjectURL(f.url);
   };
@@ -163,9 +172,8 @@ export default function PdfSplitTool({
   // uses it today; a new file clears it so a stale undo never runs on it.
   const { action: undoAction, register: registerUndo, clear: clearUndo, run: runUndo } = useUndoChip();
 
-  // Any edit invalidates the prepared output; the idle prepare below rebuilds it.
+  // Any edit invalidates the prepared output; the quiet-time prepare below rebuilds it.
   const invalidate = () => {
-    prepareSeq.current += 1;
     pendingTap.current = false;
     clearPrepared();
     setSaved(false);
@@ -181,46 +189,61 @@ export default function PdfSplitTool({
     });
   };
 
-  // Guideline §2: the work happens on idle, debounced after the last change,
-  // cancelled by the next change, so Download is ready by the time the person
-  // reads the page. Nothing here leaves the device.
+  // Guideline §2, "Quiet means quiet": the build waits for the person to go
+  // quiet and runs silently - Download keeps its ready look meanwhile. Only a
+  // tap on Download or Share before it lands shows 'preparing'. A new file gets
+  // a new preparer (and so an empty cache); unmount disposes it.
   useEffect(() => {
-    if (!file || isProtected || status === 'loading') return;
-    if (selectedCount === 0) {
-      setStatus('ready');
-      return;
-    }
-    const seq = ++prepareSeq.current;
-    const wanted = selectedPages;
-    setStatus('preparing');
-    setProgress(0);
-    const timer = setTimeout(async () => {
-      try {
-        const results: any[] = await splitPdf(file, {
+    const preparer = createQuietPreparer<any[]>({
+      build: (_key, signal) => {
+        const { file: f, mode: m, pages: wanted, rotations: rots } = inputsRef.current;
+        setProgress(0);
+        return splitPdf(f, {
           pageNumbers: wanted,
-          mode,
-          rotations,
-          onProgress: (value: number) => {
-            if (prepareSeq.current === seq) setProgress(value);
-          },
+          mode: m,
+          rotations: rots,
+          signal,
+          onProgress: (value: number) => { if (!signal.aborted) setProgress(value); },
         });
-        if (prepareSeq.current !== seq) return;
-        const next: OutputFile[] = results.map((r) => ({
-          ...r,
-          url: URL.createObjectURL(r.blob),
-        }));
-        setOutputs(next);
+      },
+      onReady: (key, results) => {
+        if (key !== keyRef.current) return;
+        const next: OutputFile[] = results.map((r) => ({ ...r, url: URL.createObjectURL(r.blob) }));
+        setOutputs((prev) => {
+          revokeAll(prev);
+          return next;
+        });
         prepareFiles(results.map(({ blob, filename }) => ({ blob, filename, type: 'application/pdf' })));
         setStatus('ready');
-      } catch (err) {
-        if (prepareSeq.current !== seq) return;
+      },
+      onError: (key, err: any) => {
+        // expected: a superseded build is aborted on purpose and is not a failure
+        if (err?.name === 'AbortError' || key !== keyRef.current) return;
         reportError('pdf_tool_run', err, 'prepare_split');
         console.error(err);
         setStatus('error');
         setAnnouncement(t.announcePrepareFailed);
-      }
-    }, PREPARE_DELAY_MS);
-    return () => clearTimeout(timer);
+      },
+    });
+    preparerRef.current = preparer;
+    return () => {
+      preparer.dispose();
+      if (preparerRef.current === preparer) preparerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
+
+  useEffect(() => {
+    if (!file || isProtected || status === 'loading') return;
+    if (selectedCount === 0) {
+      keyRef.current = null;
+      setStatus('ready');
+      return;
+    }
+    const key = `${mode}|${selectedPages.join(',')}|${rotationKey}`;
+    keyRef.current = key;
+    setStatus('ready');
+    preparerRef.current?.change(key);
     // selectedPages and rotationKey are derived from pages; the joins key
     // the effect on the actual selection and rotation, not object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -504,11 +527,17 @@ export default function PdfSplitTool({
       event.preventDefault();
       return;
     }
-    if (status === 'preparing') {
+    if (status === 'preparing' || (status === 'ready' && outputs.length === 0)) {
+      // The quiet-time build has not landed: show it now and deliver on ready.
       event.preventDefault();
       pendingTap.current = true;
       setTap('processing');
+      if (status !== 'preparing') {
+        setProgress(0);
+        setStatus('preparing');
+      }
       setAnnouncement(t.announcePreparingTap);
+      preparerNow();
       return;
     }
     if (status !== 'ready' || outputs.length === 0) {
@@ -614,12 +643,26 @@ export default function PdfSplitTool({
         }
       }}
     >
-      <div class={styles['cell-thumb']} data-rotation={p.rotation || undefined}>
-        {p.thumbnail ? (
-          <img class={styles['cell-thumb-img']} src={p.thumbnail} alt="" />
-        ) : (
-          <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
-        )}
+      {/* On a phone the magnifier sits in the thumbnail's bottom corner, opposite rotate. */}
+      <div class={styles['cell-art']}>
+        <div class={styles['cell-thumb']} data-rotation={p.rotation || undefined}>
+          {p.thumbnail ? (
+            <img class={styles['cell-thumb-img']} src={p.thumbnail} alt="" />
+          ) : (
+            <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
+          )}
+        </div>
+        <button
+          type="button"
+          class={styles['preview-btn']}
+          aria-label={formatMessage(t.openPreview, { number: p.pageNumber })}
+          onClick={(e) => { e.stopPropagation(); openPreview(p.pageNumber); }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="M10.3 10.3L14 14" />
+          </svg>
+        </button>
       </div>
       {/* Always visible, not hover/tap-gated: the cell body's own click
           already toggles inclusion (the frame is the mode), so a second,
@@ -637,17 +680,6 @@ export default function PdfSplitTool({
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
           <path d="M21 3v5h-5" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        class={styles['preview-btn']}
-        aria-label={formatMessage(t.openPreview, { number: p.pageNumber })}
-        onClick={(e) => { e.stopPropagation(); openPreview(p.pageNumber); }}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="7" cy="7" r="4.5" />
-          <path d="M10.3 10.3L14 14" />
         </svg>
       </button>
       {perCellCaptions && p.selected ? (
@@ -812,6 +844,9 @@ export default function PdfSplitTool({
                     aria-disabled={primaryState === 'empty' || primaryState === 'error' ? 'true' : undefined}
                     aria-busy={primaryState === 'preparing' ? 'true' : undefined}
                     onClick={onPrimaryClick}
+                    onPointerEnter={preparerNow}
+                    onFocus={preparerNow}
+                    onPointerDown={preparerNow}
                     onKeyDown={(e) => {
                       if (!primaryIsLink && (e.key === ' ' || e.key === 'Enter')) {
                         e.preventDefault();
@@ -839,10 +874,12 @@ export default function PdfSplitTool({
                     ) : (
                       <>
                         <span class={styles['primary-label']}>
-                          {mode === 'combined' ? t.downloadOne : formatMessage(t.downloadMany, { files: fileWord(outputs.length) })}
+                          {mode === 'combined' ? t.downloadOne : formatMessage(t.downloadMany, { files: fileWord(outputs.length || selectedCount) })}
                         </span>
                         <span class={styles['primary-detail']}>
-                          {mode === 'combined'
+                          {outputs.length === 0
+                            ? pageWord(selectedCount)
+                            : mode === 'combined'
                             ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: isolateLtr(formatFileSize(totalBytes), t.dir) })
                             : formatMessage(t.detailSeparate, { size: isolateLtr(formatFileSize(totalBytes), t.dir) })}
                         </span>
@@ -860,7 +897,7 @@ export default function PdfSplitTool({
                       a first Download tap); Compress stays in the row,
                       disabled until then, so the row doesn't jump in. */}
                   {selectedCount > 0 && status !== 'error' && (
-                    <div class={styles['next-steps']}>
+                    <div class={styles['next-steps']} onPointerOver={preparerNow} onFocusIn={preparerNow} onPointerDown={preparerNow}>
                       <PdfShareButton
                         visible={shareReady}
                         onShare={handleShare}
