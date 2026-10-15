@@ -153,7 +153,7 @@ test('one navigation moves two idle tabs onto the new build, work intact, with n
 test('a file open in a tool without drafts holds the update, and only the other tab says so', async () => {
   const busy = await context.newPage();
   await openWithFile(busy, '/compress/', await makePdfBuffer('held e2e'));
-  await expect(busy.getByRole('button', { name: 'Compress PDF' })).toBeVisible();
+  await expect(busy.locator('[data-compress-strip]')).toBeVisible();
 
   const other = await context.newPage();
   await other.goto('/merge/');
@@ -172,7 +172,7 @@ test('a file open in a tool without drafts holds the update, and only the other 
   await other.reload();
   await expect(build(other)).toHaveAttribute('content', 'old');
   await expect(build(busy)).toHaveAttribute('content', 'old');
-  await expect(busy.getByRole('button', { name: 'Compress PDF' })).toBeVisible();
+  await expect(busy.locator('[data-compress-strip]')).toBeVisible();
   await expect(line(other)).toBeVisible({ timeout: 10_000 });
 
   // Dismissed, it stays hidden for this page.
@@ -272,7 +272,7 @@ const navigationsOf = (page) => {
 async function twoTabsOneHoldingCompress() {
   const busy = await context.newPage();
   await openWithFile(busy, '/compress/', await makePdfBuffer('critical e2e'));
-  await expect(busy.getByRole('button', { name: 'Compress PDF' })).toBeVisible();
+  await expect(busy.locator('[data-compress-strip]')).toBeVisible();
   const other = await context.newPage();
   await other.goto('/merge/');
   await waitControlled(busy);

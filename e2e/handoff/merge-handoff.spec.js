@@ -47,5 +47,5 @@ test('Compress hands the merged file to Compress with the identity row naming it
   // "first.pdf" first -> the hand-off's fileName "merged_first.pdf" (MERGE-03's
   // reversal back to the signed_/redacted_-style prefix), and Compress's
   // identity row (ToolShell) reads it back verbatim as fileLabel.
-  await expect(page.locator('[data-tool-shell]')).toContainText('merged_first.pdf', { timeout: 10_000 });
+  await expect(page.locator('[data-compress-strip]')).toContainText('merged_first.pdf', { timeout: 10_000 });
 });

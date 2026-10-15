@@ -9,9 +9,9 @@ import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
 import * as imagesLib from './compressImages.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import styles from './PdfCompressTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
-import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -41,6 +41,12 @@ function makeImageResult(overrides = {}) {
   };
 }
 
+function deferred() {
+  let resolve;
+  const promise = new Promise((res) => { resolve = res; });
+  return { promise, resolve };
+}
+
 vi.mock('pdfjs-dist', () => {
   return {
     GlobalWorkerOptions: {
@@ -57,6 +63,9 @@ vi.mock('pdfjs-dist', () => {
     }))
   };
 });
+
+// A PDF is probed for a password before its first run; none of these files has one.
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(() => Promise.resolve('open')) }));
 
 vi.mock('./compressImages.js', () => ({
   IMAGE_LEVELS: {
@@ -77,15 +86,6 @@ function imagesResult(overrides = {}) {
     reason: 'smaller',
     ...overrides,
   };
-}
-
-// The "Turn pages into pictures" switch: off by default, so every test that
-// exercises the page-rendering engine ticks it first.
-async function tickFlatten(root) {
-  const box = root.querySelector(`.${styles['flatten-switch']} input[type="checkbox"]`);
-  await act(async () => {
-    box.click();
-  });
 }
 
 vi.mock('./compress.js', () => {
@@ -129,6 +129,7 @@ describe('PdfCompressTool UI flow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    probeEncryption.mockImplementation(() => Promise.resolve('open'));
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
     imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult()));
     imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: true })));
@@ -137,13 +138,19 @@ describe('PdfCompressTool UI flow', () => {
     // in flight) would otherwise leave every later test's compress/preview
     // calls returning undefined instead of a Blob/data URL.
     compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 }));
+    compressLib.compressPdfToTarget.mockImplementation(() =>
+      Promise.resolve({ blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }), metTarget: true, rasterBytes: 500 }),
+    );
     analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
     thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) =>
       Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
     );
+    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    window.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     if (container) {
       act(() => render(null, container));
       container.remove();
@@ -152,200 +159,212 @@ describe('PdfCompressTool UI flow', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the initial file dropper zone', () => {
+  // The dropzone's input, kept for the whole session: a second pick through it
+  // takes the no-confirm path a window drop or a Replace pick takes.
+  let fileInput;
+  const mount = (props = {}) => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfCompressTool />, container);
+      render(<PdfCompressTool {...props} />, container);
     });
+    fileInput = container.querySelector('input[type="file"]');
+  };
+
+  const wait = (ms = 50) =>
+    act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+    });
+
+  // Polls until `cond` holds (jsdom reads a File's bytes on a later tick, so a fixed sleep is a guess).
+  const waitFor = async (cond, timeout = 2000) => {
+    const end = Date.now() + timeout;
+    while (!cond() && Date.now() < end) await wait(10);
+    expect(cond()).toBe(true);
+  };
+  const statusOf = () => container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status');
+  const settled = () => waitFor(() => ['done', 'error'].includes(statusOf()));
+  const ran = (mock, n) => () => mock.mock.calls.length >= n;
+
+  // A pick starts the run on its own: by default this waits for the result, or
+  // for whatever `until` says (a run held open by a deferred).
+  const pick = async (file, until) => {
+    await act(async () => {
+      setInputFiles(fileInput, [file]);
+    });
+    await (until ? waitFor(until) : settled());
+    return file;
+  };
+
+  const loadPdf = async (name = 'doc.pdf', size = 100000) => {
+    mount();
+    return pick(makePdfFile(name, size));
+  };
+
+  const radio = (name) =>
+    Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent.trim() === name);
+  const choose = async (name) => {
+    await act(async () => {
+      radio(name).click();
+    });
+    await settled();
+  };
+  const preset = (label) =>
+    Array.from(container.querySelectorAll('button[aria-pressed]')).find((b) => b.textContent.trim() === label);
+  const findButton = (label) =>
+    Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === label);
+  const flattenSwitch = () => container.querySelector(`.${styles['flatten-switch']} input[type="checkbox"]`);
+  const result = () => container.querySelector(`.${styles.result}`);
+  const stripName = () => container.querySelector('[data-compress-strip]').textContent;
+  const stripNote = () => container.querySelector('[data-compress-note]').textContent;
+  const status = () => container.querySelector('[data-compress-status]').getAttribute('data-compress-status');
+  const downloadButton = () => container.querySelector(`.${pdfToolStyles['download-button']}`);
+  const noCompressButton = () => {
+    const labels = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
+    expect(labels.some((l) => l === 'Compress PDF' || l === 'Compress Image' || l === 'Compress')).toBe(false);
+  };
+
+  // The pages-to-pictures switch only appears once the image path fell short,
+  // so a test that exercises the page-rendering engine gets there the way a
+  // person does: a first run that could not shrink the images, then the tick.
+  async function loadPdfAndFlatten(name = 'doc.pdf', size = 100000) {
+    imagesLib.compressPdfImages.mockImplementationOnce((f) =>
+      Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported' })),
+    );
+    const file = await loadPdf(name, size);
+    await act(async () => {
+      flattenSwitch().click();
+    });
+    await settled();
+    return file;
+  }
+
+  it('renders the initial file dropper zone', () => {
+    mount();
 
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop a PDF or image here');
   });
 
-  it('keeps the primary control in the sticky sheet once a file is loaded, Compress then Download', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-    expect(container.querySelector(`.${styles['result-sheet']}`)).toBeNull();
-
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test_doc.pdf', 100000)]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const sheet = container.querySelector(`.${styles['result-sheet']}`);
-    expect(sheet).not.toBeNull();
-    const compress = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(sheet.contains(compress)).toBe(true);
-
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    await tickFlatten(container);
-    await act(async () => {
-      compress.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    const download = container.querySelector(`.${pdfToolStyles['download-button']}`);
-    expect(download).not.toBeNull();
-    expect(container.querySelector(`.${styles['result-sheet']}`).contains(download)).toBe(true);
-  });
-
-  it('keeps the pros and cons behind one toggle that sits outside the radiogroup', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-
-    const toggle = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.includes('Compare pros and cons'));
-    expect(toggle).toBeDefined();
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(toggle.closest('[role="radiogroup"]')).toBeNull();
-    const group = container.querySelector('[role="radiogroup"]');
-    expect(group.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const blocks = Array.from(container.querySelectorAll(`.${styles['compress-pro-con']}`));
-    expect(blocks).toHaveLength(3);
-    expect(blocks.every((b) => b.hidden)).toBe(true);
-    expect(toggle.getAttribute('aria-controls').split(' ')).toEqual(blocks.map((b) => b.id));
-
-    act(() => toggle.click());
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(toggle.textContent).toContain('Hide pros and cons');
-    expect(blocks.every((b) => !b.hidden)).toBe(true);
-  });
-
   it('shows no greyed-out action button until a file is loaded', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+    mount();
     expect(container.textContent).not.toContain('Add a PDF or image above to compress');
   });
 
-  it('transitions to options and handles compression level change', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+  it('a pick runs once at the recommended level, with no Compress button anywhere along the way', async () => {
+    mount();
+    const deferredRun = deferred();
+    imagesLib.compressPdfImages.mockImplementation(() => deferredRun.promise);
+    expect(container.querySelector(`.${styles['result-sheet']}`)).toBeNull();
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('test_doc.pdf', 50000);
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    // Wait for async file load to resolve
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Check the loaded-state file bar
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar).not.toBeNull();
-    expect(fileBar.textContent).toContain('test_doc.pdf');
-
-    // Default level should be 'medium' (Recommended)
-    const recommendedCard = container.querySelector(`.${styles['compress-card']}.${styles['is-selected']}`);
-    expect(recommendedCard).not.toBeNull();
-    expect(recommendedCard.textContent).toContain('Recommended');
-
-    // Click 'Extreme Compression' card
-    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
-    const extremeCard = Array.from(cards).find(c => c.textContent.includes('Extreme Compression'));
-    expect(extremeCard).not.toBeNull();
+    const file = await pick(makePdfFile('test_doc.pdf', 100000), ran(imagesLib.compressPdfImages, 1));
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledWith(file, expect.objectContaining({ maxLongSidePx: 1600, quality: 0.6 }));
+    expect(compressLib.compressPdf).not.toHaveBeenCalled();
+    expect(status()).toBe('processing');
+    // The sheet already holds the busy button, in the same place Download will be.
+    const sheet = container.querySelector(`.${styles['result-sheet']}`);
+    const busy = sheet.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    expect(busy.disabled).toBe(true);
+    noCompressButton();
 
     await act(async () => {
-      extremeCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      deferredRun.resolve(imagesResult());
     });
-
-    // Extreme card should now be selected
-    expect(extremeCard.className).toContain(styles['is-selected']);
+    await settled();
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(status()).toBe('done');
+    expect(container.querySelector(`.${styles['result-sheet']}`).contains(downloadButton())).toBe(true);
+    noCompressButton();
   });
 
-  it('runs compression and displays results', async () => {
+  it('the loaded state is the strip, the controls, the result and the sheet, in that order, with the run counter', async () => {
+    await loadPdf('order.pdf');
+    const layout = container.querySelector(`.${styles['loaded-layout']}`);
+    const kids = Array.from(layout.children);
+    expect(kids).toHaveLength(4);
+    expect(kids[0].hasAttribute('data-compress-strip')).toBe(true);
+    expect(kids[1].className).toContain(styles.controls);
+    expect(kids[2].className).toContain(styles.result);
+    expect(kids[3].className).toContain(styles['result-action']);
+    expect(layout.getAttribute('data-compress-run')).toBe('1');
+    expect(layout.getAttribute('data-compress-status')).toBe('done');
+  });
+
+  it('shows the file in the strip and changes the level with the radios, recompressing at once', async () => {
+    await loadPdf('test_doc.pdf', 50000);
+    expect(stripName()).toContain('test_doc.pdf');
+
+    // Default level is Balanced (the recommended one).
+    expect(radio('Balanced').getAttribute('aria-checked')).toBe('true');
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+
+    await choose('Smallest');
+    expect(radio('Smallest').getAttribute('aria-checked')).toBe('true');
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
+    expect(imagesLib.compressPdfImages.mock.calls[1][1]).toEqual(expect.objectContaining({ maxLongSidePx: 1000, quality: 0.4 }));
+  });
+
+  it('a level change during a run does not start a second run, and runs once more after the first settles', async () => {
+    const first = deferred();
+    imagesLib.compressPdfImages.mockImplementationOnce(() => first.promise);
+    mount();
+    await pick(makePdfFile('busy.pdf', 100000), ran(imagesLib.compressPdfImages, 1));
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+
+    // Two quick changes while the first run is still out.
+    await act(async () => {
+      radio('Smallest').click();
+    });
+    await act(async () => {
+      radio('Sharpest').click();
+    });
+    await wait(30);
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(status()).toBe('processing');
+
+    await act(async () => {
+      first.resolve(imagesResult({ blob: new Blob(['stale-first-run']) }));
+    });
+    await settled();
+    // One follow-up, at the latest level, and the stale first result never landed.
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
+    expect(imagesLib.compressPdfImages.mock.calls[1][1]).toEqual(expect.objectContaining({ maxLongSidePx: 2400, quality: 0.8 }));
+    expect(status()).toBe('done');
+    expect(downloadButton().textContent).toContain('15 Bytes');
+  });
+
+  it('runs compression on pick and displays the result in the strip and on the sheet', async () => {
     const nativeShare = mockNativeFileShare();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+    await loadPdf('test_doc.pdf', 100000);
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('test_doc.pdf', 100000); // 100 KB
+    // The sizes ride on the strip; no stats card, no success title.
+    expect(container.querySelector('[data-compress-sizes]').textContent).toContain('97.66 KB');
+    expect(container.querySelector('[data-compress-sizes]').textContent).toContain('15 Bytes');
+    expect(container.querySelector('[data-compress-sizes]').textContent).toContain('100% smaller');
+    expect(container.textContent).not.toContain('Successfully Compressed');
+    expect(result().querySelector(`.${styles['stats-title']}`)).toBeNull();
+    expect(result().querySelector(`.${styles['stats-grid']}`)).toBeNull();
 
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    // Wait for async file load
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Mock global URL creator
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-
-    // Click compression button
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(button).not.toBeNull();
-    expect(button.textContent).toContain('Compress PDF');
-
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    // Wait for mock compressPdf async call to settle
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Verify completion states
-    const stats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(stats).not.toBeNull();
-    expect(stats.textContent).toContain('PDF Successfully Compressed!');
-
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
-
-    // SEO-25 "button anchor" (2026-09-12): the result summary now rides on
-    // the Download button itself as a second line, computed from the same
-    // sizes the stats card shows above - the mocked compressPdf blob
-    // ('%PDF-1.4-compressed') is 19 bytes against a 100000-byte input, a
-    // 100% reduction once rounded.
-    expect(downloadBtn.textContent).toContain('19 Bytes, 100% smaller');
+    // The result summary rides on the Download button as a second line.
+    expect(downloadBtn.textContent).toContain('15 Bytes, 100% smaller');
 
     const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_doc-compressed.pdf');
 
-    window.URL.createObjectURL = originalCreateObjectURL;
     nativeShare.restore();
   });
 
-  it('renders the comparison automatically once compression completes, showing a skeleton while the previews are still pending and never blocking the download row, then can be hidden and restored without re-rendering', async () => {
-    const thumbnails = await import('../../lib/thumbnails.js');
-
-    // A controllable promise per side, so the 'loading' state (and its
-    // skeleton) can be observed before it resolves, instead of the mock's
-    // usual immediate resolution.
+  it('renders the comparison automatically, with a skeleton while the previews are pending that never blocks the download row, and no show or hide toggle', async () => {
     let resolveBefore;
     let resolveAfter;
-    thumbnails.renderComparePreview.mockImplementation(
+    thumbnailsLib.renderComparePreview.mockImplementation(
       (fileOrBlob) =>
         new Promise((resolve) => {
           if (fileOrBlob instanceof File) resolveBefore = () => resolve('data:image/png;base64,before');
@@ -353,46 +372,16 @@ describe('PdfCompressTool UI flow', () => {
         }),
     );
 
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+    await loadPdf('quality_check.pdf', 200000);
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('quality_check.pdf', 200000);
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:comparetesturl');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-
-    // Opens on its own as soon as the result lands (SEO-25, 2026-09-12) - no
-    // tap needed - but the previews haven't resolved yet: the skeleton is
-    // the visible "still working" notification, and it does not hold up the
-    // download row, which already rendered because compression itself is
-    // done.
-    expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
+    // Open on its own as soon as the result lands; the skeleton is the visible
+    // "still working" mark, and the download row already rendered.
+    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
     expect(container.querySelector(`.${styles['compare-panel']}`)).not.toBeNull();
-    expect(container.querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
+    expect(container.querySelector(`.${styles['compare-panel']} .${styles['compare-skeleton']}`)).not.toBeNull();
     expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(0);
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+    expect(downloadButton()).not.toBeNull();
 
-    // Resolving both sides clears the skeleton and renders the slider.
     await act(async () => {
       resolveBefore();
       resolveAfter();
@@ -400,33 +389,12 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     expect(container.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
-    let panel = container.querySelector(`.${styles['compare-panel']}`);
-    expect(panel).not.toBeNull();
-    expect(panel.querySelectorAll('img')).toHaveLength(2);
-
-    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
-    expect(toggle).not.toBeNull();
-    expect(toggle.textContent).toContain('Hide comparison');
-
-    // Hiding removes the panel without discarding the rendered previews.
-    await act(async () => {
-      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
-    expect(toggle.textContent).toContain('Compare with original');
-
-    // Restoring it reuses the cached previews rather than re-rendering (no
-    // skeleton either, since comparePreviews is already populated).
-    await act(async () => {
-      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
-    panel = container.querySelector(`.${styles['compare-panel']}`);
-    expect(panel).not.toBeNull();
-    expect(panel.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
-    expect(toggle.textContent).toContain('Hide comparison');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+    expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(2);
+    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
+    // Only the Full screen button is left; nothing hides or restores the slider.
+    expect(findButton('Hide comparison')).toBeUndefined();
+    expect(findButton('Compare with original')).toBeUndefined();
+    expect(findButton('Full screen')).toBeDefined();
   });
 
   // Run-token guard (a workspace drop or a Replace pick lands mid-compress
@@ -434,63 +402,31 @@ describe('PdfCompressTool UI flow', () => {
   // status is 'done' - see the comment on runTokenRef in
   // PdfCompressTool.tsx).
   it('does not land a stale compress result when the file is replaced mid-run', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+    const runA = deferred();
+    imagesLib.compressPdfImages.mockImplementationOnce(() => runA.promise);
+    mount();
+    await pick(makePdfFile('run_a.pdf', 100000), ran(imagesLib.compressPdfImages, 1));
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
 
-    const input = container.querySelector('input[type="file"]');
-    const fileA = makePdfFile('run_a.pdf', 100000);
-    const fileB = makePdfFile('run_b.pdf', 40000);
-
-    await act(async () => {
-      setInputFiles(input, [fileA]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // A deferred compressPdf so A's run is still in flight when B lands.
-    let resolveA;
-    compressLib.compressPdf.mockImplementation(
-      () => new Promise((resolve) => { resolveA = resolve; }),
-    );
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:stale-run');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    // While A is 'processing', hasWork (status === 'done') is false, so
-    // costsSomething is false and B lands through the same no-confirm path a
+    // While A is 'processing', B lands through the same no-confirm path a
     // workspace drop or Replace pick takes mid-compress.
+    await pick(makePdfFile('run_b.pdf', 40000), () => stripName().includes('run_b.pdf'));
+    await wait(50);
+    expect(stripName()).toContain('run_b.pdf');
+    // B waits for A to settle: never two compressions at once.
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+
     await act(async () => {
-      setInputFiles(input, [fileB]);
+      runA.resolve(imagesResult({ blob: new Blob(['a-stale-7']) }));
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    await settled();
 
-    let fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar.textContent).toContain('run_b.pdf');
-
-    // A's compress now resolves - it must not land on B.
-    await act(async () => {
-      resolveA({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 });
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-
-    expect(container.querySelector(`.${styles['compression-stats']}`)).toBeNull();
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
-    fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar.textContent).toContain('run_b.pdf');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
+    expect(imagesLib.compressPdfImages.mock.calls[1][0].name).toBe('run_b.pdf');
+    expect(stripName()).toContain('run_b.pdf');
+    expect(status()).toBe('done');
+    expect(downloadButton().textContent).toContain('15 Bytes');
+    expect(downloadButton().textContent).not.toContain('9 Bytes');
   });
 
   it('does not land a stale PDF compare preview when the file is replaced while it is loading', async () => {
@@ -510,61 +446,16 @@ describe('PdfCompressTool UI flow', () => {
       });
     });
 
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+    await loadPdf('preview_a.pdf', 200000);
 
-    const input = container.querySelector('input[type="file"]');
-    const fileA = makePdfFile('preview_a.pdf', 200000);
-
-    await act(async () => {
-      setInputFiles(input, [fileA]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:preview-test');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-
-    // A's compare preview opened automatically (SEO-25) and is still loading -
-    // both of its renderComparePreview calls (index 0 and 1) are pending.
+    // A's compare preview opened automatically and is still loading.
     expect(container.querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
     expect(beforeResolvers).toHaveLength(1);
     expect(afterResolvers).toHaveLength(1);
 
-    // Replace with file B while A's preview is still loading, the same input
-    // path the other tests in this file use to swap a loaded file.
-    const fileB = makePdfFile('preview_b.pdf', 90000);
-    await act(async () => {
-      setInputFiles(input, [fileB]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar.textContent).toContain('preview_b.pdf');
-
-    // Compress file B (compressPdf's default mock resolves immediately).
-    const buttonForB = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      buttonForB.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    // Replace with file B while A's preview is still loading; B compresses on its own.
+    await pick(makePdfFile('preview_b.pdf', 90000));
+    expect(stripName()).toContain('preview_b.pdf');
 
     // B's own preview render is now pending too (index 2 and 3).
     expect(beforeResolvers).toHaveLength(2);
@@ -582,9 +473,7 @@ describe('PdfCompressTool UI flow', () => {
     expect(images).toHaveLength(2);
     expect(images[0].getAttribute('src')).toBe('data:image/png;base64,before-2');
 
-    // A's stale preview resolves last - it must not overwrite B's already
-    // rendered comparison, and must not render a slider for a passthrough
-    // combination of the two.
+    // A's stale preview resolves last - it must not overwrite B's comparison.
     await act(async () => {
       beforeResolvers[0]();
       afterResolvers[0]();
@@ -595,320 +484,194 @@ describe('PdfCompressTool UI flow', () => {
     images = panel.querySelectorAll('img');
     expect(images).toHaveLength(2);
     expect(images[0].getAttribute('src')).toBe('data:image/png;base64,before-2');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
   });
 
   it('shows a compareBeforeLabel override from messages in the rendered slider', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool messages={{ compareBeforeLabel: 'המקור' }} />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('labeled.pdf', 60000);
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:label-test');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    mount({ messages: { compareBeforeLabel: 'המקור' } });
+    await pick(makePdfFile('labeled.pdf', 60000));
 
     const panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
     expect(panel.textContent).toContain('המקור');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
   });
 
-  it('switches to Target Size mode, edits the KB value, and compresses to target', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+  it('Exact size runs at once with the 100 KB default, a preset runs at once again, and the page-rendering engine is never touched', async () => {
+    const file = await loadPdf('big_scan.pdf', 5_000_000);
+    expect(imagesLib.compressPdfImagesToTarget).not.toHaveBeenCalled();
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('big_scan.pdf', 5_000_000);
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
-    const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
-    expect(targetCard).not.toBeNull();
+    await choose('Exact size');
+    expect(radio('Exact size').getAttribute('aria-checked')).toBe('true');
+    expect(imagesLib.compressPdfImagesToTarget).toHaveBeenCalledTimes(1);
+    expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 100 }));
 
     await act(async () => {
-      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      preset('500 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-
-    expect(targetCard.className).toContain(styles['is-selected']);
-
-    // Default target is 100 KB; pick the 500 KB preset chip instead.
-    const presets = container.querySelectorAll(`.${styles['target-size-preset']}`);
-    const preset500 = Array.from(presets).find((b) => b.textContent.includes('500 KB'));
-    expect(preset500).not.toBeNull();
-    await act(async () => {
-      preset500.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(preset500.className).toContain(styles['is-selected']);
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:targeturl');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    expect(compressLib.compressPdfToTarget).toHaveBeenCalledWith(
-      file,
-      expect.objectContaining({ targetKB: 500 }),
-    );
+    await settled();
+    expect(preset('500 KB').className).toContain('is-selected');
+    expect(imagesLib.compressPdfImagesToTarget).toHaveBeenCalledTimes(2);
+    expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 500 }));
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
+    expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
+    expect(downloadButton().getAttribute('href')).toBe('blob:testurl');
+  });
 
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
-    expect(downloadBtn).not.toBeNull();
-    expect(downloadBtn.getAttribute('href')).toBe('blob:targeturl');
+  it('typing a KB value waits 500ms for a pause before it runs; a preset does not wait', async () => {
+    await loadPdf('typed.pdf', 5_000_000);
+    await choose('Exact size');
+    const calls = () => imagesLib.compressPdfImagesToTarget.mock.calls.length;
+    expect(calls()).toBe(1);
 
-    window.URL.createObjectURL = originalCreateObjectURL;
+    vi.useFakeTimers();
+    const input = container.querySelector('#target-size-input');
+    await act(async () => {
+      input.value = '250';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    // The busy state shows at once; the run itself waits.
+    expect(status()).toBe('processing');
+    await act(async () => {
+      vi.advanceTimersByTime(499);
+    });
+    expect(calls()).toBe(1);
+
+    // A second keystroke restarts the wait.
+    await act(async () => {
+      input.value = '2500';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      vi.advanceTimersByTime(499);
+    });
+    expect(calls()).toBe(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+    vi.useRealTimers();
+    await waitFor(() => calls() >= 2);
+    expect(calls()).toBe(2);
+    expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ targetKB: 2500 }));
+
+    // A preset cancels any wait and runs on the spot.
+    await act(async () => {
+      preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await waitFor(() => calls() >= 3);
+    expect(calls()).toBe(3);
+    expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ targetKB: 200 }));
+  });
+
+  it('a new file cancels a pending KB run', async () => {
+    await loadPdf('first.pdf', 5_000_000);
+    await choose('Exact size');
+    const calls = () => imagesLib.compressPdfImagesToTarget.mock.calls.length;
+    const before = calls();
+    const input = container.querySelector('#target-size-input');
+    await act(async () => {
+      input.value = '300';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    // The new file waits on its password check, so only the old wait could start a run.
+    const probe = deferred();
+    probeEncryption.mockImplementationOnce(() => probe.promise);
+    await act(async () => {
+      setInputFiles(fileInput, [makePdfFile('second.pdf', 5_000_000)]);
+    });
+    await wait(650);
+    expect(calls()).toBe(before);
+    await act(async () => {
+      probe.resolve('open');
+    });
+    await settled();
+    expect(calls()).toBe(before + 1);
   });
 
   // Board-epic-cleanup: the standalone Compress Image tool merged into this
-  // one island (see PdfCompressTool.tsx's `deriveKind` dispatch). These three
-  // cover the image half; everything above this line is the PDF path,
-  // unchanged by the merge.
+  // one island (see PdfCompressTool.tsx's `deriveKind` dispatch). These
+  // cover the image half; everything above is the PDF path.
 
-  it('dropping an image switches to the image panel and dispatches to compressImageToTarget with the chosen target, rendering dimensions', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+  it('dropping an image runs at once with the 100 KB default, a preset runs it again, and the dimensions read before to after', async () => {
+    mount();
+    const file = await pick(makeImageFile('photo.jpg', 5_000_000));
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makeImageFile('photo.jpg', 5_000_000);
+    // The compression-level picker is PDF-only - an image never shows it.
+    expect(container.querySelector('[role="radiogroup"]')).toBeNull();
+    expect(stripName()).toContain('photo.jpg');
+    expect(compressImageLib.compressImageToTarget).toHaveBeenCalledTimes(1);
+    expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 100 }));
 
+    // The tighter photo-cap shortcut only the image presets offer.
     await act(async () => {
-      setInputFiles(input, [file]);
+      preset('20 KB').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar).not.toBeNull();
-    expect(fileBar.textContent).toContain('photo.jpg');
-
-    // The compression-level grid is PDF-only - an image never shows it.
-    expect(container.querySelector(`.${styles['compress-options']}`)).toBeNull();
-
-    // Default target is 100 KB; pick the 20 KB preset chip instead, the
-    // tighter photo-cap shortcut only the image presets offer.
-    const presets = container.querySelectorAll(`.${styles['target-size-preset']}`);
-    const preset20 = Array.from(presets).find((b) => b.textContent.includes('20 KB'));
-    expect(preset20).not.toBeNull();
-    await act(async () => {
-      preset20.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(preset20.className).toContain(styles['is-selected']);
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:imagetargeturl');
-
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(button.textContent).toContain('Compress Image');
-
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-
-    expect(compressImageLib.compressImageToTarget).toHaveBeenCalledWith(
-      file,
-      expect.objectContaining({ targetKB: 20 }),
-    );
+    await settled();
+    expect(preset('20 KB').className).toContain('is-selected');
+    expect(compressImageLib.compressImageToTarget).toHaveBeenCalledTimes(2);
+    expect(compressImageLib.compressImageToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 20 }));
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
 
-    const stats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(stats).not.toBeNull();
-    expect(stats.textContent).toContain('Image Successfully Compressed!');
-    expect(stats.textContent).toContain('1600 × 1200');
-    expect(stats.textContent).toContain('800 × 600');
+    expect(result().textContent).not.toContain('Successfully Compressed');
+    expect(result().textContent).toContain('1600 × 1200');
+    expect(result().textContent).toContain('800 × 600');
+    expect(findButton('Compress Image')).toBeUndefined();
 
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
-    expect(downloadBtn.getAttribute('href')).toBe('blob:imagetargeturl');
+    expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('photo-compressed.jpg');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
   });
 
   it('names a passthrough PNG download by its own type', async () => {
     compressImageLib.compressImageToTarget.mockImplementation(() =>
       Promise.resolve(makeImageResult({ blob: new Blob(['png-bytes'], { type: 'image/png' }) })),
     );
+    mount();
+    await pick(makeImageFile('id-scan.png', 50_000, 'image/png'));
 
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makeImageFile('id-scan.png', 50_000, 'image/png');
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:pngpassthrough');
-
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('download')).toBe('id-scan-compressed.png');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
   });
 
-  it('renders the comparison automatically for an image result with no rasterization, then hides the toggle entirely for a passthrough result', async () => {
-    const thumbnails = await import('../../lib/thumbnails.js');
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makeImageFile('portrait.jpg', 900_000);
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
+  it('renders the comparison automatically for an image result with no rasterization, then no slider at all for a passthrough result', async () => {
     let nextBlobUrl = 0;
     window.URL.createObjectURL = vi.fn(() => `blob:image-compare-${nextBlobUrl++}`);
-
-    let button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    mount();
+    await pick(makeImageFile('portrait.jpg', 900_000));
 
     // Opens on its own, same as the PDF case - and with no rasterization,
     // just two object URLs.
-    expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
+    expect(thumbnailsLib.renderComparePreview).not.toHaveBeenCalled();
     const panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
     const images = panel.querySelectorAll('img');
     expect(images).toHaveLength(2);
     images.forEach((img) => expect(img.getAttribute('src')).toMatch(/^blob:image-compare-/));
 
-    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
-    expect(toggle).not.toBeNull();
-    expect(toggle.textContent).toContain('Hide comparison');
-
     // Non-passthrough result: the re-encode notice, not the passthrough one.
-    const stats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(stats.textContent).toContain('once compressed, the output is a JPEG');
-    expect(stats.textContent).not.toContain('so the file is untouched');
+    expect(result().textContent).toContain('once compressed, the output is a JPEG');
+    expect(result().textContent).not.toContain('so the file is untouched');
 
     // Passthrough: compressImageToTarget's early-return hands back the same
-    // File as `blob`, so a second, already-under-target image gets no
-    // toggle (and no auto-open) at all - a slider comparing a file to
-    // itself is noise. It also swaps the notice: nothing was re-encoded, so
-    // the format-change warning would be false.
+    // File as `blob`, so a second, already-under-target image gets no slider
+    // - a slider comparing a file to itself is noise. The notice swaps too:
+    // nothing was re-encoded, so the format-change warning would be false.
     compressImageLib.compressImageToTarget.mockImplementation((passthroughFile) =>
       Promise.resolve(makeImageResult({ blob: passthroughFile })),
     );
-    const tinyFile = makeImageFile('tiny.jpg', 5_000);
-    await act(async () => {
-      setInputFiles(input, [tinyFile]);
-    });
-    button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    await pick(makeImageFile('tiny.jpg', 5_000));
 
-    expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
     expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
-
-    const passthroughStats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(passthroughStats.textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
-    expect(passthroughStats.textContent).not.toContain('once compressed, the output is a JPEG');
-    expect(passthroughStats.textContent).toContain('Already under your target');
-    expect(passthroughStats.textContent).toContain('1600 × 1200');
-    expect(passthroughStats.textContent).not.toContain('Compressed Size');
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    expect(findButton('Full screen')).toBeUndefined();
+    expect(result().textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
+    expect(result().textContent).not.toContain('once compressed, the output is a JPEG');
+    expect(result().textContent).toContain('Already under your target');
+    expect(result().textContent).toContain('1600 × 1200');
+    expect(result().textContent).not.toContain('Compressed Size');
+    expect(downloadButton()).toBeNull();
     expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
-    expect(passthroughStats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+    expect(result().querySelector(`.${styles['honest-note']}`)).not.toBeNull();
   });
-
-  async function compressPdfToResult(name) {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile(name, 200000)]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    window.URL.createObjectURL = vi.fn(() => 'blob:fullscreentest');
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 30));
-    });
-  }
-
-  const findButton = (label) =>
-    Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === label);
 
   it('opens the comparison full screen in a modal dialog, re-rendering at the viewport width once, and closes it again', async () => {
     const showModal = vi.fn(function () { this.open = true; });
@@ -916,7 +679,7 @@ describe('PdfCompressTool UI flow', () => {
     HTMLDialogElement.prototype.showModal = showModal;
     HTMLDialogElement.prototype.close = close;
 
-    await compressPdfToResult('fullscreen.pdf');
+    await loadPdf('fullscreen.pdf', 200000);
     expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
     expect(container.querySelector(`.${styles['compare-fullscreen']}`)).toBeNull();
 
@@ -926,9 +689,7 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       fullScreen.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
+    await wait(10);
 
     const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
     expect(dialog).not.toBeNull();
@@ -954,220 +715,98 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('offers no Full screen button for a passthrough result', async () => {
-    compressLib.compressPdfToTarget.mockImplementation((passthroughFile) =>
-      Promise.resolve({ blob: passthroughFile, metTarget: true, rasterBytes: null }),
+    imagesLib.compressPdfImagesToTarget.mockImplementation((f) =>
+      Promise.resolve(imagesResult({ blob: f, metTarget: true, rewritten: 0, reason: 'under-target' })),
     );
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('already_small.pdf', 20_000)]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    const targetCard = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes('Target Size'));
-    await act(async () => {
-      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    window.URL.createObjectURL = vi.fn(() => 'blob:pdfpassthrough2');
-    await tickFlatten(container);
-    await act(async () => {
-      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    expect(container.querySelector(`.${styles['compression-stats']}`)).not.toBeNull();
+    await loadPdf('already_small.pdf', 20_000);
+    await choose('Exact size');
+    expect(result().querySelector(`.${styles['honest-note']}`)).not.toBeNull();
     expect(findButton('Full screen')).toBeUndefined();
   });
 
-  it('renders passthroughNotice, not rasterizeNotice, and no compare toggle for a PDF target-mode passthrough result', async () => {
+  it('renders passthroughNotice, not rasterizeNotice, and no slider for a PDF target-mode passthrough result on the pages-to-pictures path', async () => {
     // compressPdfToTarget's own passthrough rule (src/tools/compress/compress.js,
-    // "Already under target" near line 146) returns the input File itself as
-    // `blob` when the file is already under the target size - the PDF-side
-    // mirror of compressImageToTarget's rule exercised above.
+    // "Already under target") returns the input File itself as `blob` when the
+    // file is already under the target size - the PDF-side mirror of
+    // compressImageToTarget's rule exercised above.
     compressLib.compressPdfToTarget.mockImplementation((passthroughFile) =>
       Promise.resolve({ blob: passthroughFile, metTarget: true, rasterBytes: null }),
     );
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
+    mount();
     const file = makePdfFile('already_small.pdf', 20_000);
-
+    imagesLib.compressPdfImages.mockImplementationOnce((f) =>
+      Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported' })),
+    );
+    await pick(file);
+    imagesLib.compressPdfImagesToTarget.mockImplementationOnce((f) =>
+      Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported', metTarget: false })),
+    );
+    await choose('Exact size');
     await act(async () => {
-      setInputFiles(input, [file]);
+      flattenSwitch().click();
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
-    const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
-    await act(async () => {
-      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:pdfpassthrough');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await settled();
 
     expect(compressLib.compressPdfToTarget).toHaveBeenCalledWith(file, expect.objectContaining({ targetKB: 100 }));
-
-    const stats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(stats).not.toBeNull();
-    expect(stats.textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
-    expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
-    expect(stats.textContent).toContain('Already under your target');
-    expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    expect(result().textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
+    expect(result().textContent).not.toContain('Compression rasterizes PDF pages');
+    expect(result().textContent).toContain('Already under your target');
+    expect(result().querySelector(`.${styles['honest-note']}`)).not.toBeNull();
+    expect(downloadButton()).toBeNull();
     expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
-
-    expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
     expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
-
-    window.URL.createObjectURL = originalCreateObjectURL;
   });
 
-  it('says a PDF is already as small as it gets, instead of "Successfully Compressed", when a level hands the input back', async () => {
+  it('says a PDF is already as small as it gets, instead of a success, when a level hands the input back', async () => {
     // compressPdf returns the input File itself when a re-rendered copy would
     // be bigger (a small vector PDF) - the same reference check as passthrough.
     compressLib.compressPdf.mockImplementation((inputFile) => Promise.resolve({ blob: inputFile, rasterBytes: 30390 }));
 
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
+    await loadPdfAndFlatten('small_form.pdf', 11_000);
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('small_form.pdf', 11_000);
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:alreadysmall');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const stats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(stats.textContent).toContain('Already as small as it gets');
-    expect(stats.textContent).toContain('Turned into images, this PDF came to 29.68 KB, more than the 10.74 KB it is now');
-    expect(stats.textContent).toContain('As images');
-    expect(stats.textContent).toContain('None, original kept');
-    expect(stats.textContent).not.toContain('No size reduction');
-    expect(stats.textContent).not.toContain('Successfully Compressed');
-    expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
-
-    expect(stats.textContent).not.toContain('Compressed Size');
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    const text = result().textContent;
+    expect(text).toContain('Already as small as it gets');
+    expect(text).toContain('Turned into images, this PDF came to 29.68 KB, more than the 10.74 KB it is now');
+    expect(text).toContain('As images');
+    expect(text).toContain('None, original kept');
+    expect(text).not.toContain('No size reduction');
+    expect(text).not.toContain('Successfully Compressed');
+    expect(text).not.toContain('Compression rasterizes PDF pages');
+    expect(text).not.toContain('Compressed Size');
+    expect(downloadButton()).toBeNull();
     expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
-    expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+    expect(findButton('Full screen')).toBeUndefined();
   });
 
-  it('says the target cannot be reached this way, with the real numbers, when Target Size hands the input back', async () => {
+  it('says the target cannot be reached this way, with the real numbers, when Exact size hands the input back', async () => {
     compressLib.compressPdfToTarget.mockImplementation((inputFile) =>
       Promise.resolve({ blob: inputFile, metTarget: false, rasterBytes: 30390 }),
     );
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('small_form.pdf', 11_000);
+    mount();
+    imagesLib.compressPdfImages.mockImplementationOnce((f) =>
+      Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported' })),
+    );
+    await pick(makePdfFile('small_form.pdf', 11_000));
+    imagesLib.compressPdfImagesToTarget.mockImplementationOnce((f) =>
+      Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported', metTarget: false })),
+    );
+    await choose('Exact size');
     await act(async () => {
-      setInputFiles(input, [file]);
+      flattenSwitch().click();
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await settled();
 
-    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
-    const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
-    await act(async () => {
-      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:alreadysmalltarget');
-
-    await tickFlatten(container);
-    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await act(async () => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const stats = container.querySelector(`.${styles['compression-stats']}`);
-    expect(stats.textContent).toContain('29.68 KB');
-    expect(stats.textContent).toContain('100 KB can');
-    expect(stats.textContent).toContain("can't be reached this way");
-    expect(stats.textContent).toContain('As images');
-    expect(stats.textContent).not.toContain('Closest achievable');
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
-
-    window.URL.createObjectURL = originalCreateObjectURL;
+    const text = result().textContent;
+    expect(text).toContain('29.68 KB');
+    expect(text).toContain('100 KB can');
+    expect(text).toContain("can't be reached this way");
+    expect(text).toContain('As images');
+    expect(text).not.toContain('Closest achievable');
+    expect(downloadButton()).toBeNull();
   });
 
-  describe('the nothing-to-shrink note', () => {
+  describe('the strip note', () => {
     const NOTE = 'Nothing here to shrink.';
-    // Only the live notes: the slot also holds hidden, aria-hidden copies that size it (DEBT-52).
-    const noteText = (root) => Array.from(root.querySelectorAll('[role="note"]')).map((n) => n.textContent).join(' ');
-
-    async function addPdf(name) {
-      container = container || document.createElement('div');
-      if (!container.isConnected) document.body.appendChild(container);
-      const file = makePdfFile(name, 5000);
-      await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), [file]);
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      return file;
-    }
-
-    function mountTool() {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfCompressTool />, container);
-      });
-    }
 
     it('formatShare rounds to a whole percent and floors tiny shares', () => {
       expect(formatShare(0.004)).toBe('less than 1%');
@@ -1175,89 +814,52 @@ describe('PdfCompressTool UI flow', () => {
       expect(formatShare(0.994)).toBe('99%');
     });
 
-    it('a mostly-image PDF gets the warning-styled share note', async () => {
+    it('a mostly-image PDF says the images are what gets smaller', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
-      mountTool();
-      await addPdf('pics.pdf');
-      const note = container.querySelector('[role="note"]');
-      expect(note.textContent).toContain('Images are 90% of this PDF');
-      expect(note.className).toContain(styles['compress-warning']);
+      await loadPdf('pics.pdf', 5000);
+      expect(stripNote()).toBe('Images are 90% of this PDF, the part that gets smaller.');
     });
 
-    it('a text-bearing PDF says only that the text stays as it is', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
-      mountTool();
-      await addPdf('pics.pdf');
-      expect(container.querySelector('[role="note"]').textContent).toContain('The text stays exactly as it is.');
-    });
-
-    it('a pure scan does not talk about text', async () => {
+    it('a pure scan names its share the same way, without talking about text', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: false, imageShare: 1 }));
-      mountTool();
-      await addPdf('scan.pdf');
-      const note = container.querySelector('[role="note"]');
-      expect(note.textContent).toContain('Images are 100% of this PDF');
-      expect(note.textContent).not.toContain('The text stays');
-      expect(note.textContent).not.toContain('drawings');
+      await loadPdf('scan.pdf', 5000);
+      expect(stripNote()).toContain('Images are 100% of this PDF');
+      expect(stripNote()).not.toContain('text');
     });
 
-    it('a mostly-text PDF gets the quiet share note', async () => {
+    it('a mostly-text PDF gets the quiet note', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.12 }));
-      mountTool();
-      await addPdf('mixed.pdf');
-      const note = container.querySelector('[role="note"]');
-      expect(note.textContent).toContain('Its images are 12% of the file');
-      expect(note.className).toContain(styles['honest-note']);
+      await loadPdf('mixed.pdf', 5000);
+      expect(stripNote()).toBe('Most of this PDF is text. Images are 12% of it.');
     });
 
     it('the pages-to-pictures switch hides the share note and unticking brings it back', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
-      mountTool();
-      await addPdf('pics.pdf');
-      await tickFlatten(container);
-      expect(noteText(container)).not.toContain('Images are 90% of this PDF');
-      await tickFlatten(container);
-      expect(noteText(container)).toContain('Images are 90% of this PDF');
+      await loadPdfAndFlatten('pics.pdf', 5000);
+      expect(stripNote()).toBe('');
+      await act(async () => {
+        flattenSwitch().click();
+      });
+      await settled();
+      expect(stripNote()).toContain('Images are 90% of this PDF');
     });
 
-    it('a PDF with no images shows only the nothing-to-shrink note', async () => {
+    it('a PDF with no images says only that there is nothing here to shrink', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true, imageShare: 0 }));
-      mountTool();
-      await addPdf('text_only.pdf');
-      expect(container.querySelectorAll('[role="note"]').length).toBe(1);
-      expect(noteText(container)).not.toContain('of this PDF');
-      expect(noteText(container)).not.toContain('of the file');
+      await loadPdf('text_only.pdf', 5000);
+      expect(stripNote()).toBe(NOTE);
     });
 
-    it('says so before any click for a PDF with text and no images, and keeps the cards and button', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true }));
-      mountTool();
-      await addPdf('text_only.pdf');
-
-      expect(noteText(container)).toContain(NOTE);
-      expect(noteText(container)).toContain('This PDF is text and drawings, with no images in it');
-      expect(container.querySelector('[role="note"]')).not.toBeNull();
-      expect(container.querySelector('[role="note"]').className).toContain(styles['honest-note']);
-      expect(container.querySelectorAll(`.${styles['compress-card']}`).length).toBeGreaterThan(0);
-      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).not.toBeNull();
-    });
-
-    it('uses the drawing wording when the PDF has no text either', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: false }));
-      mountTool();
-      await addPdf('drawing.pdf');
-
-      expect(noteText(container)).toContain(NOTE);
-      expect(noteText(container)).toContain('This PDF is drawings, with no images in it');
-      expect(noteText(container)).not.toContain('text and drawings');
-    });
-
-    it('shows no note when the PDF has an image', async () => {
+    it('shows no nothing-to-shrink note when the PDF has an image', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
-      mountTool();
-      await addPdf('photo.pdf');
+      await loadPdf('photo.pdf', 5000);
+      expect(stripNote()).not.toContain(NOTE);
+    });
 
-      expect(noteText(container)).not.toContain(NOTE);
+    it('an image has no note', async () => {
+      mount();
+      await pick(makeImageFile('photo.jpg', 100000));
+      expect(stripNote()).toBe('');
     });
 
     it('re-reads an encrypted PDF with an empty password so text detection sees plaintext', async () => {
@@ -1266,8 +868,7 @@ describe('PdfCompressTool UI flow', () => {
         .mockResolvedValueOnce({ isEncrypted: true, tag: 'cipher' })
         .mockResolvedValueOnce({ isEncrypted: false, tag: 'plain' });
       pdfLib.getPdfLib.mockImplementationOnce(() => Promise.resolve({ PDFDocument: { load } }));
-      mountTool();
-      await addPdf('restricted.pdf');
+      await loadPdf('restricted.pdf', 5000);
       expect(load).toHaveBeenCalledTimes(2);
       expect(load.mock.calls[1][1]).toEqual({ password: '', updateMetadata: false });
       expect(analyzePdfLib.analyzePdf.mock.calls.at(-1)[0]).toMatchObject({ tag: 'plain' });
@@ -1279,8 +880,7 @@ describe('PdfCompressTool UI flow', () => {
         .mockResolvedValueOnce({ isEncrypted: true, tag: 'cipher' })
         .mockRejectedValueOnce(new Error('password'));
       pdfLib.getPdfLib.mockImplementationOnce(() => Promise.resolve({ PDFDocument: { load } }));
-      mountTool();
-      await addPdf('locked.pdf');
+      await loadPdf('locked.pdf', 5000);
       expect(analyzePdfLib.analyzePdf.mock.calls.at(-1)[0]).toMatchObject({ tag: 'cipher' });
     });
 
@@ -1292,64 +892,43 @@ describe('PdfCompressTool UI flow', () => {
       pdfLib.getPdfLib.mockImplementationOnce(
         () => new Promise((resolve) => { resolveA = resolve; }),
       );
-      mountTool();
-      await addPdf('a.pdf');
+      await loadPdf('a.pdf', 5000);
       // A's analysis is still pending; B arrives and is analysed (images present).
       analyzePdfLib.analyzePdf.mockImplementationOnce(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
-      await addPdf('b.pdf');
+      await pick(makePdfFile('b.pdf', 5000));
       await act(async () => {
         resolveA({ PDFDocument: { load: () => Promise.resolve({}) } });
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
 
       // B has an image, A's (image-free) result must not leak onto it.
-      expect(noteText(container)).not.toContain(NOTE);
+      expect(stripNote()).not.toContain(NOTE);
     });
   });
 
   describe('images only by default, pages into pictures by switch', () => {
-    async function loadPdf(name = 'doc.pdf', size = 100000) {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfCompressTool />, container);
-      });
-      const file = makePdfFile(name, size);
-      await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), [file]);
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      window.URL.createObjectURL = vi.fn(() => 'blob:images');
-      return file;
-    }
-
-    async function clickCompress() {
-      await act(async () => {
-        container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-    }
-
-    async function pickTarget() {
-      const card = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes('Target Size'));
-      await act(async () => {
-        card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-    }
-
-    it('Recommended calls compressPdfImages with the medium level and never compressPdf', async () => {
+    it('Balanced calls compressPdfImages with the medium level and never compressPdf', async () => {
       const file = await loadPdf();
-      await clickCompress();
       expect(imagesLib.compressPdfImages).toHaveBeenCalledWith(file, expect.objectContaining({ maxLongSidePx: 1600, quality: 0.6 }));
       expect(compressLib.compressPdf).not.toHaveBeenCalled();
-      // A big saving has nothing to add: no notice, the success title.
-      const stats = container.querySelector(`.${styles['compression-stats']}`);
-      expect(stats.textContent).not.toContain('Only the images were made smaller');
-      expect(stats.querySelector(`.${styles['compress-warning']}`)).toBeNull();
+      // A big saving has nothing to add: no notice.
+      expect(result().textContent).not.toContain('Only the images were made smaller');
+      expect(result().querySelector(`.${styles['compress-warning']}`)).toBeNull();
+    });
+
+    it('the switch is absent on a fresh result with a good saving, and present after the images could not be recompressed', async () => {
+      await loadPdf();
+      expect(status()).toBe('done');
+      expect(flattenSwitch()).toBeNull();
+      container.remove();
+      container = undefined;
+
+      imagesLib.compressPdfImages.mockImplementationOnce((f) =>
+        Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported' })),
+      );
+      await loadPdf('odd.pdf', 11_000);
+      expect(flattenSwitch()).not.toBeNull();
+      expect(flattenSwitch().checked).toBe(false);
     });
 
     describe('result card honesty (COMP-02)', () => {
@@ -1357,42 +936,35 @@ describe('PdfCompressTool UI flow', () => {
       const analysisOf = (extra = {}) => analyzePdfLib.analyzePdf.mockImplementation(
         () => ({ images: [{}], hasText: true, imageShare: 0.9, pageCount: 3, ...extra }),
       );
-      const stats = () => container.querySelector(`.${styles['compression-stats']}`);
+      const stats = () => result();
       const title = () => stats().querySelector(`.${styles['stats-title']}`).textContent;
-      const pickLevel = async (name) => {
-        const card = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes(name));
-        await act(async () => {
-          card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        });
-      };
 
-      it('a 1% result at Recommended says only a little smaller, already compact, and points at Extreme', async () => {
+      it('a 1% result at Balanced says only a little smaller, already compact, and points at Extreme', async () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0 })));
         await loadPdf();
-        await clickCompress();
         expect(title()).toBe('Only a little smaller');
         expect(stats().textContent).toContain('already compact, so making them smaller saved 1%');
-        expect(stats().textContent).toContain('Extreme Compression can go further');
-        expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+        expect(stats().textContent).toContain('"Smallest" can go further');
+        expect(downloadButton()).not.toBeNull();
+        // The switch is offered here: the images could not carry the saving.
+        expect(flattenSwitch()).not.toBeNull();
       });
 
-      it('at Extreme the same result has no Extreme hint', async () => {
+      it('at the smallest level the same result has no Extreme hint', async () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0 })));
         await loadPdf();
-        await pickLevel('Extreme');
-        await clickCompress();
+        await choose('Smallest');
         expect(title()).toBe('Only a little smaller');
         expect(stats().textContent).toContain('already compact, so making them smaller saved 1%');
-        expect(stats().textContent).not.toContain('Extreme Compression can go further');
+        expect(stats().textContent).not.toContain('"Smallest" can go further');
       });
 
       it('when most image bytes were kept it says they could not be recompressed', async () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99900), afterBytes: 99900, keptBytes: 80000, imageBytes: 90000 })));
         await loadPdf();
-        await clickCompress();
         expect(stats().textContent).toContain("stored in a way I can't recompress, so it stayed as it was and this saved less than 1%");
         expect(stats().textContent).not.toContain('already compact');
       });
@@ -1401,17 +973,15 @@ describe('PdfCompressTool UI flow', () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(96000), afterBytes: 96000 })));
         await loadPdf();
-        await clickCompress();
         expect(title()).toBe('Only a little smaller');
         expect(stats().textContent).toContain('saved 4%');
       });
 
-      it('5% and over keeps the success title and shows no notice', async () => {
+      it('5% and over has no title and shows no notice', async () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(94000), afterBytes: 94000 })));
         await loadPdf();
-        await clickCompress();
-        expect(title()).toBe('PDF Successfully Compressed!');
+        expect(stats().querySelector(`.${styles['stats-title']}`)).toBeNull();
         expect(stats().querySelector(`.${styles['compress-warning']}`)).toBeNull();
         expect(stats().querySelector(`.${styles['honest-note']}`)).toBeNull();
       });
@@ -1420,37 +990,32 @@ describe('PdfCompressTool UI flow', () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0, imageBytes: 90000 })));
         await loadPdf();
-        await clickCompress();
         expect(stats().textContent).toContain('already compact');
         expect(stats().textContent).not.toContain("can't recompress");
       });
 
-      it('exactly 5% keeps the success title', async () => {
+      it('exactly 5% has no slight-gain title', async () => {
         analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(95000), afterBytes: 95000 })));
         await loadPdf();
-        await clickCompress();
-        expect(title()).toBe('PDF Successfully Compressed!');
+        expect(stats().querySelector(`.${styles['stats-title']}`)).toBeNull();
       });
 
       it('the flatten path under 5% gets the title and keeps its rasterize notice', async () => {
         analysisOf();
         compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: slightBlob(99000), rasterBytes: 99000 }));
-        await loadPdf();
-        await tickFlatten(container);
-        await clickCompress();
+        await loadPdfAndFlatten();
         expect(title()).toBe('Only a little smaller');
         expect(stats().textContent).not.toContain('already compact');
         expect(stats().querySelector(`.${styles['compress-warning']}`).textContent).toBe(englishCompressMessages.rasterizeNotice);
       });
 
-      it('Target Size met with a small gain keeps the success title', async () => {
+      it('Exact size met with a small gain has no title', async () => {
         analysisOf();
         imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, metTarget: true })));
         await loadPdf();
-        await pickTarget();
-        await clickCompress();
-        expect(title()).toBe('PDF Successfully Compressed!');
+        await choose('Exact size');
+        expect(stats().querySelector(`.${styles['stats-title']}`)).toBeNull();
         expect(stats().textContent).not.toContain('already compact');
       });
 
@@ -1460,7 +1025,6 @@ describe('PdfCompressTool UI flow', () => {
           // 99000 is a ~1% saving, so a notice is on the card.
           imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(bytes), afterBytes: bytes })));
           await loadPdf();
-          await clickCompress();
           if (bytes === 99000) expect(stats().textContent).toContain('already compact');
           expect(stats().textContent).not.toMatch(/links|drawings/);
           container.remove();
@@ -1471,33 +1035,21 @@ describe('PdfCompressTool UI flow', () => {
       it('the compare caption names page 1 only for a multi-page PDF', async () => {
         analysisOf({ pageCount: 1 });
         await loadPdf();
-        await clickCompress();
         expect(container.textContent).toContain('Drag to compare the original and the compressed page.');
         expect(container.textContent).not.toContain('rest of the document');
         container.remove();
         container = undefined;
         analysisOf({ pageCount: 3 });
         await loadPdf();
-        await clickCompress();
         expect(container.textContent).toContain('Drag to compare page 1 with the original.');
         expect(container.textContent).not.toContain('rest of the document');
       });
     });
 
-    it('ticking the switch calls compressPdf and not compressPdfImages', async () => {
-      await loadPdf();
-      await tickFlatten(container);
-      await clickCompress();
+    it('ticking the switch calls compressPdf and not compressPdfImages again', async () => {
+      await loadPdfAndFlatten();
       expect(compressLib.compressPdf).toHaveBeenCalled();
-      expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
-    });
-
-    it('Target Size without the switch calls compressPdfImagesToTarget with targetKB', async () => {
-      const file = await loadPdf();
-      await pickTarget();
-      await clickCompress();
-      expect(imagesLib.compressPdfImagesToTarget).toHaveBeenCalledWith(file, expect.objectContaining({ targetKB: 100 }));
-      expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
+      expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
     });
 
     it.each([
@@ -1508,8 +1060,7 @@ describe('PdfCompressTool UI flow', () => {
     ])('reason %s shows its notice and says the PDF is unchanged', async (reason, text) => {
       imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason })));
       await loadPdf('same.pdf', 11_000);
-      await clickCompress();
-      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      const stats = result();
       expect(stats.textContent).toContain(text);
       // A locked file was never tried, so it is not "as small as it gets".
       const title = reason === 'encrypted' ? 'This PDF is locked' : reason === 'unsupported' ? 'Left as it was' : 'Already as small as it gets';
@@ -1519,9 +1070,11 @@ describe('PdfCompressTool UI flow', () => {
       expect(stats.textContent).not.toContain('Compressed Size');
       expect(stats.textContent).toContain('Original Size');
       expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+      expect(downloadButton()).toBeNull();
       expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
-      expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+      expect(findButton('Full screen')).toBeUndefined();
+      // The switch is the way forward after these two, and nothing the others can use.
+      expect(flattenSwitch() !== null).toBe(reason === 'unsupported' || reason === 'no-gain');
       // The screen reader hears what the card title says.
       const live = container.querySelector('[role="status"].sr-only').textContent;
       if (reason === 'encrypted' || reason === 'unsupported') expect(live).toBe(title);
@@ -1530,106 +1083,91 @@ describe('PdfCompressTool UI flow', () => {
     it('reason under-target shows the untouched notice and is not "already as small as it gets"', async () => {
       imagesLib.compressPdfImagesToTarget.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, metTarget: true, rewritten: 0, reason: 'under-target' })));
       await loadPdf('tiny.pdf', 20_000);
-      await pickTarget();
-      await clickCompress();
-      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      await choose('Exact size');
+      const stats = result();
       expect(stats.textContent).toContain('so the file is untouched');
       expect(stats.textContent).not.toContain('Already as small as it gets');
       expect(stats.textContent).toContain('Already under your target');
       expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+      expect(downloadButton()).toBeNull();
     });
 
     it('a smaller result still has Download and Share, and a big saving has no notice', async () => {
       const nativeShare = mockNativeFileShare();
       await loadPdf();
-      await clickCompress();
-      const stats = container.querySelector(`.${styles['compression-stats']}`);
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(downloadButton()).not.toBeNull();
       expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).not.toBeNull();
-      expect(stats.querySelector(`.${styles['honest-note']}`)).toBeNull();
-      expect(stats.querySelector(`.${styles['compress-warning']}`)).toBeNull();
+      expect(result().querySelector(`.${styles['honest-note']}`)).toBeNull();
+      expect(result().querySelector(`.${styles['compress-warning']}`)).toBeNull();
       nativeShare.restore();
     });
 
-    it('after a passthrough, picking another level brings the Compress button back', async () => {
-      imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'no-gain' })));
+    it('after a passthrough, picking another level runs again and the result comes back', async () => {
+      imagesLib.compressPdfImages.mockImplementationOnce((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'no-gain' })));
       await loadPdf('same.pdf', 11_000);
-      await clickCompress();
-      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
-      const card = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => !c.className.includes(styles['is-selected']));
-      await act(async () => {
-        card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).textContent).toContain('Compress PDF');
+      expect(downloadButton()).toBeNull();
+      await choose('Smallest');
+      expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
+      expect(downloadButton()).not.toBeNull();
+      noCompressButton();
     });
 
-    it('a target missed on the image path names both sizes and drops "Closest achievable"', async () => {
+    it('a target missed on the image path names both sizes, drops "Closest achievable", and offers the switch', async () => {
       imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: false })));
       await loadPdf('big.pdf', 5_000_000);
-      await pickTarget();
-      await clickCompress();
-      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      await choose('Exact size');
+      const stats = result();
       expect(stats.textContent).not.toContain('Only the images were made smaller');
       expect(stats.textContent).toContain('Shrinking the images got this PDF to 15 Bytes, above your 100 KB target. Turning the pages into pictures, with the switch above, can go smaller.');
       expect(stats.textContent).not.toContain('Closest achievable');
+      expect(flattenSwitch()).not.toBeNull();
     });
 
     it('has no switch for an image file', async () => {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfCompressTool />, container);
-      });
-      await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), [makeImageFile('photo.jpg', 100000)]);
-      });
+      mount();
+      await pick(makeImageFile('photo.jpg', 100000));
       expect(container.querySelector(`.${styles['flatten-switch']}`)).toBeNull();
     });
 
-    it('toggling the switch after a result clears it, back to the Compress button', async () => {
-      await loadPdf();
-      await clickCompress();
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
-      await tickFlatten(container);
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
-      expect(container.querySelector(`.${styles['compression-stats']}`)).toBeNull();
-      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).textContent).toContain('Compress PDF');
+    it('unticking the switch recompresses at once on the image path, and the switch goes away with a good saving', async () => {
+      await loadPdfAndFlatten();
+      expect(compressLib.compressPdf).toHaveBeenCalledTimes(1);
+      expect(flattenSwitch().checked).toBe(true);
+
+      await act(async () => {
+        flattenSwitch().click();
+      });
+      expect(status()).toBe('processing');
+      expect(downloadButton()).toBeNull();
+      await settled();
+      expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
+      expect(status()).toBe('done');
+      expect(flattenSwitch()).toBeNull();
     });
   });
 
   it('isolates a skipped file name inside the Hebrew sentence, and only in Hebrew', async () => {
     const skippedHint = async (props) => {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfCompressTool {...props} />, container);
-      });
+      mount(props);
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [new File(['plain text'], '2025-notes.txt', { type: 'text/plain' })]);
       });
       return container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent;
     };
-    expect(await skippedHint({ messages: hebrewCompressMessages })).toContain('\u20682025-notes.txt\u2069');
+    expect(await skippedHint({ messages: hebrewCompressMessages })).toContain('⁨2025-notes.txt⁩');
     act(() => render(null, container));
     container.remove();
     const english = await skippedHint({});
     expect(english).toContain('2025-notes.txt');
-    expect(english).not.toContain('\u2068');
+    expect(english).not.toContain('⁨');
   });
 
   it('rejects a file that is not a PDF, JPG or PNG', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
+    mount();
     const textFile = new File(['plain text'], 'notes.txt', { type: 'text/plain' });
 
     await act(async () => {
-      setInputFiles(input, [textFile]);
+      setInputFiles(container.querySelector('input[type="file"]'), [textFile]);
     });
 
     const hint = container.querySelector(`.${pdfToolStyles['hint-message']}`);
@@ -1639,70 +1177,37 @@ describe('PdfCompressTool UI flow', () => {
 
     // Rejecting doesn't load a file, so the dropzone is still showing.
     expect(container.querySelector(`.${dropzoneStyles.dropzone}`)).not.toBeNull();
+    expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressImageLib.compressImageToTarget).not.toHaveBeenCalled();
   });
 
   it('records what the person did, by name only, in order', async () => {
     resetActionTrailForTests();
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfCompressTool />, container);
-    });
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('secret_name.pdf', 100000)]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    const extremeCard = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes('Extreme Compression'));
-    await act(async () => {
-      extremeCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    expect(recentActions()).toEqual(['add_files', 'change_setting', 'export']);
+    await loadPdf('secret_name.pdf', 100000);
+    await choose('Smallest');
+    expect(recentActions()).toEqual(['add_files', 'export', 'change_setting', 'export']);
   });
 
   // The size ("15 Bytes") inside the Hebrew detail line must be bidi-isolated
   // or it renders reversed; English stays untouched.
   describe('the download detail line size', () => {
     const compressAndReadDetail = async (props) => {
-      window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => render(<PdfCompressTool {...props} />, container));
-      await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('test_doc.pdf', 100000)]);
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      await act(async () => {
-        container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      return container.querySelector(`.${pdfToolStyles['download-button']}`).textContent;
+      mount(props);
+      await pick(makePdfFile('test_doc.pdf', 100000));
+      return downloadButton().textContent;
     };
 
     it('wraps the size in LRI/PDI in Hebrew', async () => {
       const detail = await compressAndReadDetail({ messages: hebrewCompressMessages });
-      expect(detail).toMatch(/\u2066[^\u2066\u2069]*\d[^\u2066\u2069]*\u2069/);
+      expect(detail).toMatch(/⁦[^⁦⁩]*\d[^⁦⁩]*⁩/);
     });
 
     it('adds no isolates in English', async () => {
       const detail = await compressAndReadDetail({});
       expect(detail).toMatch(/\d+ Bytes/);
-      expect(detail).not.toContain('\u2066');
-      expect(detail).not.toContain('\u2069');
+      expect(detail).not.toContain('⁦');
+      expect(detail).not.toContain('⁩');
     });
   });
 });

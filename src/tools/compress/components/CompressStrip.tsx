@@ -39,29 +39,27 @@ export default function CompressStrip({
       <span class={styles.thumb}>
         <FilePreview file={file} />
       </span>
-      <div class={styles.text}>
-        <span class={styles.name} dir="auto" title={file.name}>
-          {file.name}
-        </span>
-        <span class={styles.sizes} data-compress-sizes>
-          <bdi class={styles.before}>{originalLabel}</bdi>
-          {after && (
-            <>
-              <span aria-hidden="true">{dir === 'rtl' ? '←' : '→'}</span>
-              <b>
-                <bdi>{after}</bdi>
-              </b>
-            </>
-          )}
-          {savedLabel && !processing && <span class={styles.saved}>{savedLabel}</span>}
-        </span>
-        <span class={styles.note} data-compress-note>
-          {note}
-        </span>
-      </div>
+      <span class={styles.name} dir="auto" title={file.name}>
+        {file.name}
+      </span>
       <button type="button" class={styles.replace} onClick={requestReplace}>
         {replaceLabel}
       </button>
+      <span class={styles.sizes} data-compress-sizes>
+        <bdi class={styles.before}>{originalLabel}</bdi>
+        {after && (
+          <>
+            <span aria-hidden="true">{dir === 'rtl' ? '←' : '→'}</span>
+            <b>
+              <bdi>{after}</bdi>
+            </b>
+          </>
+        )}
+        {savedLabel && !processing && <span class={styles.saved}>{savedLabel}</span>}
+      </span>
+      <span class={styles.note} data-compress-note>
+        {note}
+      </span>
     </div>
   );
 }

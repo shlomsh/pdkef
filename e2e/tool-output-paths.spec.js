@@ -51,7 +51,7 @@ const tools = [
       mimeType: 'application/pdf',
       bufferFn: async () => fs.readFileSync(path.join(__dirname, '../src/tools/compress/__fixtures__/mixed.pdf')),
     },
-    actionName: 'Compress PDF',
+    actionName: null,
     downloadName: 'Download Compressed PDF',
     // Not exact (SEO-25 "button anchor", 2026-09-12): DownloadButton's
     // `detail` prop adds a second, smaller line inside the link ("<size>,
@@ -107,6 +107,10 @@ test.describe('uncovered tools produce a real downloadable file', () => {
 
       if (tool.actionName) {
         await page.getByRole('button', { name: tool.actionName, exact: true }).click();
+      }
+
+      if (tool.name === 'Compress') {
+        await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 60_000 });
       }
 
       const download = tool.downloadNameMatch

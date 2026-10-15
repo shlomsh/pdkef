@@ -176,8 +176,8 @@ async function dropFile(page, { name, mimeType, buffer }) {
 
 async function compressToTarget(page, targetKB) {
   await page.getByRole('button', { name: `${targetKB} KB`, exact: true }).click();
-  await page.getByRole('button', { name: 'Compress Image', exact: true }).click();
-  await expect(page.getByText('Image Successfully Compressed!')).toBeVisible({ timeout: 30_000 });
+  // The preset starts the run; wait for it to finish.
+  await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 30_000 });
 
   // A missed target means the search gave up and returned its closest
   // result - on these fixtures at this target it must succeed outright, so
@@ -250,8 +250,7 @@ test.describe('compress tool - image target size', () => {
     // opens on its own as soon as the result lands, no tap needed. A real
     // browser is the right place to confirm it actually produces two
     // loadable `blob:` images, not just component state (jsdom's own
-    // coverage is in PdfCompressTool.test.tsx), and that "Hide comparison"
-    // still dismisses it.
+    // coverage is in PdfCompressTool.test.tsx),.
     const compareSlider = page.locator('[class*="compare-slider"]');
     await expect(compareSlider).toBeVisible();
     const compareImages = compareSlider.locator('img');
@@ -260,8 +259,6 @@ test.describe('compress tool - image target size', () => {
       expect(src).toMatch(/^blob:/);
     }
 
-    await page.getByRole('button', { name: 'Hide comparison' }).click();
-    await expect(compareSlider).toHaveCount(0);
   });
 
   test('compresses a transparent PNG to a real JPEG, flattened to white, at or under the target size', async ({ page, browserName }) => {
