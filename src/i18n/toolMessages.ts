@@ -904,6 +904,15 @@ export interface SplitMessages {
   modeNoteSeparate: string;
   pageAria: string;
   rotateAria: string;
+  openPreview: string;
+  previewTitle: string;
+  previewClose: string;
+  previewPrev: string;
+  previewNext: string;
+  previewLoading: string;
+  previewLeftOut: string;
+  previewLeaveOut: string;
+  previewBringBack: string;
   pageCell: string;
   preparing: string;
   cannotPrepare: string;
@@ -978,6 +987,15 @@ const englishSplitMessages: SplitMessages = {
   modeNoteSeparate: 'Each selected page becomes its own PDF.',
   pageAria: 'Page {number}',
   rotateAria: 'Rotate page {number}',
+  openPreview: 'Open page {number} larger',
+  previewTitle: 'Page {number} of {total}',
+  previewClose: 'Close',
+  previewPrev: 'Previous page',
+  previewNext: 'Next page',
+  previewLoading: 'Rendering the page…',
+  previewLeftOut: 'Left out of the download',
+  previewLeaveOut: 'Leave out',
+  previewBringBack: 'Bring back',
   pageCell: 'Page {number}',
   preparing: 'Preparing {pages}…',
   cannotPrepare: 'Could not prepare this PDF',
@@ -1053,6 +1071,15 @@ const hebrewSplitMessages: SplitMessages = {
   modeNoteSeparate: 'כל עמוד שבחרתם יהפוך לקובץ PDF משלו.',
   pageAria: 'עמוד {number}',
   rotateAria: 'סיבוב עמוד {number}',
+  openPreview: 'הגדלת עמוד {number}',
+  previewTitle: 'עמוד {number} מתוך {total}',
+  previewClose: 'סגירה',
+  previewPrev: 'העמוד הקודם',
+  previewNext: 'העמוד הבא',
+  previewLoading: 'מציירים את העמוד…',
+  previewLeftOut: 'לא ייכלל בהורדה',
+  previewLeaveOut: 'להשאיר בחוץ',
+  previewBringBack: 'להחזיר',
   pageCell: 'עמוד {number}',
   preparing: 'מכינים {pages}…',
   cannotPrepare: 'לא הצלחנו להכין את ה-PDF הזה',

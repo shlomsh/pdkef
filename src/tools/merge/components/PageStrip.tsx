@@ -6,7 +6,7 @@ import FileName from './FileName.tsx';
 import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../mergePlan.ts';
 import { openThumbnailSource } from '../../../lib/thumbnails.js';
 import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
-import type { PreviewTarget } from './PagePreviewDialog.tsx';
+import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../shell/PagePreviewDialog.tsx';
 import { reportError } from '../../../lib/errorReport.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
 
@@ -157,7 +157,7 @@ export default function PageStrip({
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [PreviewDialog, setPreviewDialog] = useState<ComponentType<{
     target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void;
-    onToggleSkip: () => void; messages: MergeMessages;
+    toggle?: PreviewToggle; messages: PreviewMessages;
   }> | null>(null);
 
   const fileById = (id: number) => entriesRef.current.find((e) => e.id === id);
@@ -384,7 +384,7 @@ export default function PageStrip({
   const openPreview = useCallback((index: number) => {
     setPreviewIndex(index);
     if (!PreviewDialog) {
-      import('./PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
+      import('../../../shell/PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
     }
   }, [PreviewDialog]);
 
@@ -440,9 +440,8 @@ export default function PageStrip({
       file: file.file,
       pageIndex: entry.pageIndex,
       rotation: entry.rotation,
-      position: outputPositionAt(previewIndex),
-      total: outputTotal,
-      skipped: entry.skipped,
+      title: formatMessage(t.previewTitle, { number: outputPositionAt(previewIndex), total: outputTotal }),
+      badge: entry.skipped ? t.previewSkippedBanner : undefined,
       atStart: previewIndex <= 0,
       atEnd: previewIndex >= plan.length - 1,
     };
@@ -692,12 +691,18 @@ export default function PageStrip({
           target={previewTarget}
           onClose={() => setPreviewIndex(null)}
           onStep={(delta) => setPreviewIndex((current) => (current == null ? null : Math.max(0, Math.min(plan.length - 1, current + delta))))}
-          onToggleSkip={() => {
-            if (previewIndex == null) return;
-            const entry = plan[previewIndex];
-            if (entry) toggleSkip(entry.key, outputPositionAt(previewIndex));
-          }}
-          messages={t}
+          toggle={previewTarget && plan[previewIndex as number]?.skipped ? {
+            label: t.previewIncludeAgain,
+            pressed: true,
+            note: t.previewSkippedNote,
+            ariaLabel: formatMessage(t.includePage, { number: outputPositionAt(previewIndex as number) }),
+            onToggle: () => {
+              if (previewIndex == null) return;
+              const entry = plan[previewIndex];
+              if (entry) toggleSkip(entry.key, outputPositionAt(previewIndex));
+            },
+          } : undefined}
+          messages={{ close: t.previewClose, previous: t.previewPrev, next: t.previewNext, loading: t.previewLoading }}
         />
       )}
     </section>

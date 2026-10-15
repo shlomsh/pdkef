@@ -1107,4 +1107,54 @@ describe('splitPdf library integration with real fixtures', () => {
     const separateDoc = await PDFDocument.load(new Uint8Array(await separate[0].blob.arrayBuffer()));
     expect(separateDoc.getPages()[0].getRotation().angle).toBe(270);
   });
+
+  describe('page magnifier', () => {
+    let container;
+    afterEach(() => {
+      if (container) {
+        act(() => render(null, container));
+        container.remove();
+        container = null;
+      }
+      mockState.numPages = 4;
+    });
+    async function loadFive() {
+      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+      URL.revokeObjectURL = vi.fn();
+      mockState.numPages = 5;
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => render(<PdfSplitTool />, container));
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        setInputFiles(input, [makePdfFile('test.pdf')]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+    }
+    const cells = () => container.querySelectorAll(`.${styles.cell}`);
+    const waitDialog = async () => {
+      const find = () => container.querySelector('dialog:has(#page-preview-title)');
+      for (let i = 0; i < 20 && !find(); i += 1) {
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      }
+      return find();
+    };
+
+    it('opens "Page 2 of 5" without changing inclusion, toggles it out, and Next moves to page 3', async () => {
+      await loadFive();
+      await act(async () => cells()[1].querySelector(`.${styles['preview-btn']}`).click());
+      const dialog = await waitDialog();
+      expect(dialog).not.toBeNull();
+      expect(dialog.textContent).toContain('Page 2 of 5');
+      expect(cells()[1].getAttribute('aria-checked')).toBe('true');
+
+      const leaveOut = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Leave out');
+      await act(async () => leaveOut.click());
+      expect(cells()[1].getAttribute('aria-checked')).toBe('false');
+      expect(Array.from(dialog.querySelectorAll('button')).some((b) => b.textContent === 'Bring back')).toBe(true);
+
+      await act(async () => dialog.querySelector('button[aria-label="Next page"]').click());
+      expect(dialog.textContent).toContain('Page 3 of 5');
+    });
+  });
 });

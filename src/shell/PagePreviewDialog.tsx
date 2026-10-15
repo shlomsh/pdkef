@@ -1,36 +1,48 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import dialogStyles from '../../../shell/Dialog.module.css';
-import styles from './PageStrip.module.css';
-import { renderPdfThumbnails } from '../../../lib/thumbnails.js';
-import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
-import { reportError } from '../../../lib/errorReport.ts';
+import dialogStyles from './Dialog.module.css';
+import styles from './PagePreviewDialog.module.css';
+import { renderPdfThumbnails } from '../lib/thumbnails.js';
+import { reportError } from '../lib/errorReport.ts';
 
 export interface PreviewTarget {
   file: File;
   pageIndex: number;
   rotation: number;
-  /** 1-based position in the OUTPUT (skipped pages excluded, same counter
-   * the document heading and each cell's aria-label use), and the output
-   * page count, for the title - never the raw plan index/length, which
-   * disagreed with the heading whenever a page was skipped (review P2). */
-  position: number;
-  total: number;
-  /** Shows the "skipped" word beside the title; a skipped page's `position`
-   * is the number it would take if brought back. */
-  skipped: boolean;
-  /** Previous/Next disable at the ends of the raw plan, not at `position`,
-   * since a skipped page's would-be position can equal or pass `total`
-   * without it being the last page to step through. */
+  /** The finished heading, e.g. "Page 2 of 5". Each tool builds its own. */
+  title: string;
+  /** When set, a banner states it above the page and the page is dimmed
+   * (Merge: "Excluded from the merged file"). */
+  badge?: string;
+  /** Previous/Next disable at the ends of the raw page list. */
   atStart: boolean;
   atEnd: boolean;
+}
+
+export interface PreviewToggle {
+  label: string;
+  pressed: boolean;
+  onToggle: () => void;
+  /** Accessible name when the visible label alone is not enough. */
+  ariaLabel?: string;
+  /** Plain sentence shown before the button, e.g. "Left out of the download." */
+  note?: string;
+  /** Show the toggle for every page; by default only while `pressed`. */
+  always?: boolean;
+}
+
+export interface PreviewMessages {
+  close: string;
+  previous: string;
+  next: string;
+  loading?: string;
 }
 
 interface PagePreviewDialogProps {
   target: PreviewTarget | null;
   onClose: () => void;
   onStep: (delta: 1 | -1) => void;
-  onToggleSkip: () => void;
-  messages: MergeMessages;
+  toggle?: PreviewToggle;
+  messages: PreviewMessages;
 }
 
 /* MERGE-08: tap a page in the strip to see it large. `showModal()` puts the
@@ -46,7 +58,7 @@ interface PagePreviewDialogProps {
 // oversized render never balloons decode time or memory.
 export const PREVIEW_WIDTH = 2400;
 
-export default function PagePreviewDialog({ target, onClose, onStep, onToggleSkip, messages: t }: PagePreviewDialogProps) {
+export default function PagePreviewDialog({ target, onClose, onStep, toggle, messages: t }: PagePreviewDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -54,7 +66,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
   // to its minimum height and grew back when the next page arrived - a
   // visible resize on every step. The last page now stays up (dimmed, via
   // `stale`) until its replacement has rendered, and the stage itself has a
-  // fixed height (PageStrip.module.css `.preview-stage`), so nothing moves.
+  // fixed height (PagePreviewDialog.module.css `.preview-stage`), so nothing moves.
   const [stale, setStale] = useState(false);
 
   useEffect(() => {
@@ -111,13 +123,13 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
       class={`${dialogStyles.dialog} ${styles['preview-dialog']}`}
       onClose={onClose}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
-      aria-labelledby="merge-preview-title"
+      aria-labelledby="page-preview-title"
     >
       <div class={dialogStyles.header}>
-        <h3 id="merge-preview-title">
-          {target ? formatMessage(t.previewTitle, { number: target.position, total: target.total }) : ''}
+        <h3 id="page-preview-title">
+          {target ? target.title : ''}
         </h3>
-        <button type="button" class={dialogStyles.close} onClick={onClose} aria-label={t.previewClose}>
+        <button type="button" class={dialogStyles.close} onClick={onClose} aria-label={t.close}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
@@ -128,13 +140,13 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
           already is, the dimmed page shows it, and the footline lets someone
           undo it without leaving the dialog - the same toggle the page strip
           exposes as a button. */}
-      {target?.skipped && (
+      {target?.badge && (
         <div class={styles['preview-skip-banner']}>
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path d="M2 4h12M2 8h12M2 12h8" />
             <path d="M11 11l3 3M14 11l-3 3" stroke-width="2" />
           </svg>
-          {t.previewSkippedBanner}
+          {target.badge}
         </div>
       )}
       {/* Shlomi (2026-09-13): a gallery, not a form. Previous and Next are
@@ -144,11 +156,11 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
           "previous" (the way ArrowLeft already behaves), in Hebrew too. The
           zones are pointer-only affordances; keyboard users have the arrow
           keys and the two labelled buttons. */}
-      <div ref={stageRef} class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined} data-skipped={target?.skipped || undefined}>
+      <div ref={stageRef} class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined} data-skipped={target?.badge ? true : undefined}>
         {dataUrl ? (
           <img class={styles['preview-image']} src={dataUrl} alt="" />
         ) : (
-          <p class={styles['preview-loading']}>{t.previewLoading}</p>
+          <p class={styles['preview-loading']}>{(t.loading ?? '')}</p>
         )}
         <div
           class={`${styles['preview-zone']} ${styles['preview-zone-prev']}`}
@@ -165,8 +177,8 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
           class={`${styles['preview-chevron']} ${styles['preview-chevron-prev']}`}
           onClick={() => onStep(-1)}
           disabled={!target || target.atStart}
-          aria-label={t.previewPrev}
-          title={t.previewPrev}
+          aria-label={t.previous}
+          title={t.previous}
         >
           <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M10 3L5 8l5 5" />
@@ -177,24 +189,24 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
           class={`${styles['preview-chevron']} ${styles['preview-chevron-next']}`}
           onClick={() => onStep(1)}
           disabled={!target || target.atEnd}
-          aria-label={t.previewNext}
-          title={t.previewNext}
+          aria-label={t.next}
+          title={t.next}
         >
           <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M6 3l5 5-5 5" />
           </svg>
         </button>
       </div>
-      {target?.skipped && (
+      {target && toggle && (toggle.pressed || toggle.always) && (
         <div class={styles['preview-skip-footline']}>
-          {t.previewSkippedNote}{' '}
+          {toggle.note ? `${toggle.note} ` : ''}
           <button
             type="button"
             class={styles['preview-skip-restore']}
-            onClick={onToggleSkip}
-            aria-label={formatMessage(t.includePage, { number: target.position })}
+            onClick={toggle.onToggle}
+            aria-label={toggle.ariaLabel}
           >
-            {t.previewIncludeAgain}
+            {toggle.label}
           </button>
         </div>
       )}
