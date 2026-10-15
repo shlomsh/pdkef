@@ -6,6 +6,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Tool pages: show the verb
+
+- [HERO-06](backlog/tasks/HERO-06.md) P1 · Every tool's loaded state: the compact file strip and a one-line phone hero (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
