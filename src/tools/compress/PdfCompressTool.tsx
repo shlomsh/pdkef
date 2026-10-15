@@ -32,8 +32,10 @@ const SLIGHT_GAIN_PERCENT = 5;
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
 // the photo half of application portals, which commonly cap a photo at
-// 20-50KB, tighter than the document limits the PDF presets target.
-const IMAGE_TARGET_SIZE_PRESETS_KB = [20, 50, 100, 200, 500];
+// 20-50KB, tighter than the document limits the PDF presets target. Four, so
+// they fit one row beside the KB field: 500KB went (Shlomi, 2026-10-15), a PDF
+// cap rather than a photo one; any size can still be typed.
+const IMAGE_TARGET_SIZE_PRESETS_KB = [20, 50, 100, 200];
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 Bytes';
