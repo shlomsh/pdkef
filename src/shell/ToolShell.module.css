@@ -423,6 +423,16 @@
   .editor .identity {
     padding-block: var(--space-1);
   }
+
+  /* The banner's Replace / Start over: 44px tall on touch (ux-design-guidelines
+     §8). The editor variant keeps its 36px row; its toolbar owns that height. */
+  .action {
+    min-height: 2.75rem;
+  }
+
+  .editor .action {
+    min-height: 2.25rem;
+  }
 }
 
 /* The identity states itself on one line at every width - name, pages, size,

@@ -9,6 +9,7 @@ import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import styles from '../../shell/PageGrid.module.css';
+import touchStyles from './PdfEditPagesTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
@@ -344,7 +345,7 @@ export default function PdfEditPagesTool() {
                 <button type="button" onClick={handleRedo} disabled={!canRedo} aria-label="Redo last undone change">
                   Redo
                 </button>
-                <label class={pdfToolStyles['page-numbers-toggle']}>
+                <label class={`${pdfToolStyles['page-numbers-toggle']} ${touchStyles['toggle-touch']}`}>
                   <input
                     type="checkbox"
                     checked={addPageNumbers}
@@ -390,7 +391,7 @@ export default function PdfEditPagesTool() {
                       {/* Toggle remove / keep by clicking the checkbox badge */}
                       <button
                         type="button"
-                        class={styles['page-card-checkbox']}
+                        class={`${styles['page-card-checkbox']} ${touchStyles['check-touch']}`}
                         onClick={(e) => { e.stopPropagation(); togglePage(page.pageNumber); }}
                         aria-label={`Page ${page.pageNumber}${isRemoved ? ', marked for removal' : ', kept'}. Click to toggle.`}
                         aria-pressed={isRemoved}
@@ -422,10 +423,10 @@ export default function PdfEditPagesTool() {
 
                       <span class={styles['page-card-number']}>Page {page.pageNumber}</span>
 
-                      <div class={styles['page-card-actions']} onClick={(e) => e.stopPropagation()}>
+                      <div class={`${styles['page-card-actions']} ${touchStyles['actions-touch']}`} onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          class={styles['rotate-btn']}
+                          class={`${styles['rotate-btn']} ${touchStyles['rotate-touch']}`}
                           onClick={(e) => { e.stopPropagation(); rotatePage(page.pageNumber, 'left'); }}
                           aria-label={`Rotate page ${page.pageNumber} left`}
                         >
@@ -433,7 +434,7 @@ export default function PdfEditPagesTool() {
                         </button>
                         <button
                           type="button"
-                          class={styles['rotate-btn']}
+                          class={`${styles['rotate-btn']} ${touchStyles['rotate-touch']}`}
                           onClick={(e) => { e.stopPropagation(); rotatePage(page.pageNumber, 'right'); }}
                           aria-label={`Rotate page ${page.pageNumber} right`}
                         >
