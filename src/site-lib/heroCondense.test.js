@@ -11,13 +11,17 @@ describe('loaded tool hero is one line for every tool', () => {
     expect(tag).not.toMatch(/condenseOnLoad=\{tool\.slug/);
   });
 
-  it('non-editors condense at every width; editors only on a phone (narrow, coarse pointer)', () => {
+  it('non-editors condense at every width; Sign and Redact keep their own hero for now', () => {
     expect(hero).toContain('[data-hero-condense-on-load]:not([data-hero-editor])');
-    expect(hero).toMatch(/@media \(max-width: 1023\.98px\) and \(pointer: coarse\) \{[\s\S]*\[data-hero-editor\]\[data-hero-condense-on-load\]/);
+    // Folding the editors on a phone lifted the form field and made Sign's
+    // field toolbar jump 149px sideways at 1.8x pinch zoom
+    // (toolbar-zoom-physical-size.spec.js:292). Sign's phone layout is a
+    // redesign question (docs/sign-next-gen.md), so it waits for that.
+    expect(hero).not.toContain('[data-hero-editor][data-hero-condense-on-load]');
   });
 
   it('a restore or hand-off pending folds the hero from first paint, with the loaded size', () => {
-    for (const hint of ['data-draft-hint', 'data-merge-restore', 'data-editor-restore', 'data-handoff-pending']) {
+    for (const hint of ['data-draft-hint', 'data-merge-restore', 'data-handoff-pending']) {
       expect(hero).toMatch(new RegExp(`html\\[${hint}\\]\\) \\.tool-hero\\.tool-hero\\.tool-hero\\[data-hero-`));
     }
   });
