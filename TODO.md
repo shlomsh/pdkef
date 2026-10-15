@@ -12,6 +12,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [HERO-04](backlog/tasks/HERO-04.md) P2 · Drop a file anywhere on a page-grid tool's page (in progress)
 - [HERO-03](backlog/tasks/HERO-03.md) P1 · Each page-grid tool acts out its job in the empty state (in progress)
 
+### Robustness and debt
+
+- [DEBT-52](backlog/tasks/DEBT-52.md) P2 · Compress's options grow 88px after a handed-over file loads (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

@@ -114,6 +114,8 @@ export default function PdfCompressTool({
   const encryptionCheck = useLatestRun();
   // COMP-01: what the PDF is made of (images, text), read once it is added so the tool can say
   // before any click that there is nothing to shrink. Never gates anything else.
+  // True from the moment a PDF is picked until its analysis settles (result or failure): the note slot is held open meanwhile.
+  const [analysisPending, setAnalysisPending] = useState(false);
   const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean; imageShare: number; pageCount: number } | null>(null);
   const analysisTokenRef = useRef(0);
   const [rasterBytes, setRasterBytes] = useState<number | null>(null);
@@ -364,7 +366,9 @@ export default function PdfCompressTool({
       encryptionCheck.invalidate();
       analysisTokenRef.current += 1;
       setAnalysis(null);
+      setAnalysisPending(false);
       if (deriveFileKind(next) === 'pdf') {
+        setAnalysisPending(true);
         void checkEncryption(next);
         void analyze(next);
       }
@@ -374,6 +378,14 @@ export default function PdfCompressTool({
   // Reads the PDF's make-up for the "nothing to shrink" note. A newer file wins: a stale result is dropped.
   const analyze = async (pdf: File) => {
     const token = analysisTokenRef.current;
+    try {
+      await analyzeInner(pdf, token);
+    } finally {
+      if (token === analysisTokenRef.current) setAnalysisPending(false);
+    }
+  };
+
+  const analyzeInner = async (pdf: File, token: number) => {
     let doc;
     let totalBytes = 0;
     try {
@@ -979,6 +991,12 @@ export default function PdfCompressTool({
           </div>
         ) : (
           <>
+          {kind === 'pdf' && !needsUnlockBytes && !analysis && analysisPending && (
+            // The note below arrives after the PDF is read; its slot is held open so the options do not drop (DEBT-52).
+            <p class={`${styles['honest-note']} ${styles['note-reserve']}`} aria-hidden="true">
+              <strong>{t.noImagesTitle}</strong> {t.noImagesBodyText}
+            </p>
+          )}
           {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length === 0 && (
             <p class={styles['honest-note']} role="note">
               <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
