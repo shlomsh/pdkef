@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 5 up next, 8 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 8 then, 24 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -52,17 +52,17 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| HERO-06 | P1 | [HERO-06](backlog/tasks/HERO-06.md) · Every tool's loaded state: the compact file strip and a one-line phone hero | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | HERO-07 | P1 | [HERO-07](backlog/tasks/HERO-07.md) · An output at the centre for the tools that show none: PDF to Image, Compress Image, Unlock and Protect, Image to PDF |  |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| HERO-08 | P2 | [HERO-08](backlog/tasks/HERO-08.md) · Sign and Redact on a phone: a one-line hero once loaded, without moving the field toolbar |  |
 
 ## Form detector accuracy
 
@@ -177,7 +177,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 21 done, 1 retired
 - Sign: finish fill mode: 2 done, 1 retired
-- Tool pages: show the verb: 5 done, 0 retired
+- Tool pages: show the verb: 6 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 45 done, 3 retired
 - Search and languages: 7 done, 0 retired
