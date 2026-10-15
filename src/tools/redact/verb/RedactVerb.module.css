@@ -1,0 +1,194 @@
+/* Base styles are the LAST frame: two blurred lines under the frost box, the footer whited out.
+   Sketch lengths (docs/tool-hero-sketch/sign-redact-verbs.html, R1) times 1.15, in --u. */
+.pg {
+  --s: calc(1.15 * var(--u));
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(132 * var(--s));
+  height: calc(172 * var(--s));
+  margin: calc(-88 * var(--s)) 0 0 calc(-66 * var(--s));
+  border-radius: calc(5 * var(--s));
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 calc(8 * var(--s)) calc(16 * var(--s)) calc(-10 * var(--s))
+      color-mix(in srgb, var(--color-night) 40%, transparent);
+  font-style: normal;
+  overflow: hidden;
+}
+
+.pg i {
+  position: absolute;
+  display: block;
+  font-style: normal;
+}
+
+.hd {
+  left: calc(12 * var(--s));
+  top: calc(14 * var(--s));
+  width: calc(40 * var(--s));
+  height: calc(5 * var(--s));
+  border-radius: calc(2.5 * var(--s));
+  background: var(--color-primary);
+  opacity: 0.6;
+}
+
+/* Plain text bars. Rows hold three word bars each. */
+.full,
+.w1,
+.w2,
+.w3 {
+  height: calc(3.5 * var(--s));
+  border-radius: calc(1.75 * var(--s));
+  background: var(--color-border-strong);
+}
+
+.full {
+  left: calc(12 * var(--s));
+  top: calc(32 * var(--s));
+  width: calc(108 * var(--s));
+}
+
+.t1 {
+  top: calc(68 * var(--s));
+  width: calc(100 * var(--s));
+}
+
+.t2 {
+  top: calc(82 * var(--s));
+}
+
+.t3 {
+  top: calc(94 * var(--s));
+  width: calc(92 * var(--s));
+}
+
+.row {
+  left: 0;
+  width: calc(132 * var(--s));
+  height: calc(3.5 * var(--s));
+}
+
+.w1 {
+  left: calc(12 * var(--s));
+  width: calc(30 * var(--s));
+}
+
+.w2 {
+  left: calc(46 * var(--s));
+  width: calc(40 * var(--s));
+}
+
+.w3 {
+  left: calc(90 * var(--s));
+  width: calc(28 * var(--s));
+}
+
+.r1 {
+  top: calc(44 * var(--s));
+}
+
+.r2 {
+  top: calc(56 * var(--s));
+}
+
+/* The frost box: its wrapper clips, so the width animation is the sweep. The blurred copy sits
+   at page coordinates (offset by the box origin) and the box paper hides the crisp words. */
+.frost {
+  left: calc(9 * var(--s));
+  top: calc(39 * var(--s));
+  width: calc(114 * var(--s));
+  height: calc(24 * var(--s));
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: calc(2 * var(--s));
+  background: var(--color-surface);
+  border: calc(0.8 * var(--s)) dashed color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.frost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
+.soft {
+  left: calc(-9.8 * var(--s));
+  top: calc(-39.8 * var(--s));
+  width: calc(132 * var(--s));
+  height: calc(172 * var(--s));
+  filter: blur(calc(2.4 * var(--s)));
+}
+
+.soft .w1,
+.soft .w2,
+.soft .w3 {
+  background: var(--color-night);
+}
+
+.f1 {
+  top: calc(44 * var(--s));
+}
+
+.f2 {
+  top: calc(56 * var(--s));
+}
+
+/* Footer watermark: a small rounded mark and a short bar, faint grey, shapes only. */
+.mark,
+.stamp {
+  background: var(--color-muted);
+  opacity: 0.3;
+}
+
+.mark {
+  left: calc(12 * var(--s));
+  top: calc(150 * var(--s));
+  width: calc(10 * var(--s));
+  height: calc(10 * var(--s));
+  border-radius: calc(3 * var(--s));
+}
+
+.stamp {
+  left: calc(26 * var(--s));
+  top: calc(153 * var(--s));
+  width: calc(34 * var(--s));
+  height: calc(4 * var(--s));
+  border-radius: calc(2 * var(--s));
+}
+
+/* White-out: paper-coloured, with a neutral dashed outline. */
+.whiteout {
+  left: calc(9 * var(--s));
+  top: calc(145 * var(--s));
+  width: calc(56 * var(--s));
+  height: calc(20 * var(--s));
+  box-sizing: border-box;
+  border-radius: calc(2 * var(--s));
+  background: var(--color-surface);
+  border: calc(0.8 * var(--s)) dashed var(--color-border-strong);
+}
+
+@keyframes sweep-frost {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes sweep-whiteout {
+  from {
+    width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .frost {
+    animation: sweep-frost 1.2s var(--ease-emphasized) 0.4s both;
+  }
+
+  .whiteout {
+    animation: sweep-whiteout 0.8s var(--ease-emphasized) 1.8s both;
+  }
+}
