@@ -24,7 +24,7 @@ const WITH_VERB = [
   ['edit-pages', () => <PdfEditPagesTool />],
   ['to-image', () => <PdfToImageTool />],
   ['compress', () => <PdfCompressTool />],
-  ['compress-image', () => <PdfCompressTool analyticsTool="compress-image" initialMode="target" />],
+  ['compress-image', () => <PdfCompressTool analyticsTool="compress-image" />],
   ['split', () => <PdfSplitTool />],
   ['sign', () => <PdfSignTool />],
   ['redact', () => <PdfRedactTool />],
