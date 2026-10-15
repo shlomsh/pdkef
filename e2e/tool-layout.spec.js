@@ -76,6 +76,7 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
         const rtl = getComputedStyle(row).direction === 'rtl';
         return {
           stacked: document.querySelector('header.tool-hero').hasAttribute('data-hero-stacked'),
+          phoneCondensed: document.querySelector('header.tool-hero').hasAttribute('data-hero-phone-condensed'),
           lines: range.getClientRects().length,
           tileTop: tile.top,
           tileBottom: tile.bottom,
@@ -89,6 +90,10 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
       const where = `${route} @ ${width}px (${measured.lines} title line(s))`;
       if (editorRoutes.includes(route)) {
         expect(measured.stacked, where).toBe(false);
+        expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
+      } else if (measured.phoneCondensed && width <= 767) {
+        // Merge's condensed phone hero keeps the tile beside the name (ToolHero.astro): stacked,
+        // it pushed the sticky Download sheet below a 659px viewport on Linux fonts.
         expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
       } else {
         // The page-grid tools stack the icon above the title (HERO-02/03):
