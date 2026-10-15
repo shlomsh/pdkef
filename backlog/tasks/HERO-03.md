@@ -47,8 +47,8 @@ depends_on: ["HERO-02"]
 - `e2e/tool-hero-first-screen.spec.js` (from `909f6299`) covers layout shift while the verb plays and
   the reduced-motion last frame, for Merge and Unlock.
 
-Left: the Split, Compress, PDF to Image and Compress Image verbs (written pitches and a rough sketch
-round are in progress, then Shlomi picks), the unit test that every page-grid tool passes an `emptyArt`
-(it needs all eight), and `test:weight` and the CSS ratchets on a production build.
+Left: the Split verb, and the final checks (`test:weight` and the CSS ratchets on a production build). PDF to Image is already done.
 
 *2026-10-15.* Hover replay landed in `61b0c252`: the verb replays on mouse or pen enter and on tab return, easing back along its path at 2x first. See "Decisions made during the build" in `docs/tool-hero-show-the-verb.md`.
+
+*2026-10-15.* The Compress and Compress Image Loupe verb landed in this branch (`src/tools/compress/verb/`). See "Decisions made during the build" in `docs/tool-hero-show-the-verb.md`.
