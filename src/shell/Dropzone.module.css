@@ -92,9 +92,15 @@
   :global(.tool-stage[data-layout='hero']) .dropzone[data-empty-state],
   :global(.tool-stage[data-layout='hero']) .dropzone[aria-busy] {
     min-height: min(36rem, calc(var(--first-screen, 40rem) - 9rem));
-    /* Top-anchored: a centred column moved up when the rest of a partly
-       parsed sheet arrived (CLS under 6x CPU throttling). */
-    justify-content: flex-start;
+    /* The content is centred in the sheet. A centred column moves when a partly parsed
+       sheet arrives (CLS under 6x CPU throttling), so the sheet is not painted until its
+       last child, the end marker, has parsed (same pattern as TrustChips.astro). */
+    justify-content: center;
+    padding-block: 1.5rem;
+  }
+
+  :global(.tool-stage[data-layout='hero']) .dropzone[data-empty-state]:not(:has(> .sheet-end)) {
+    visibility: hidden;
   }
 
   /* Compress and Compress Image (`compact`) show their quality choices under
@@ -110,10 +116,51 @@
     max-width: 42rem;
   }
 
-  /* Compact tools keep their choices on the first screen: at 42rem the verb
-     was 344px tall and pushed Compress's quality cards below the fold. */
+  /* Compact tools keep their choices on the first screen: the picture sits at
+     the inline-start and the words and picker beside it, so the sheet is about
+     as tall as the verb box instead of a column of picture over text. */
+  .dropzone[data-empty-state][data-compact] {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    column-gap: 1.25rem;
+    row-gap: 0.75rem;
+    /* The picture spans all five rows; the words sit in the middle three, between two
+       equal flexible rows, so they centre against the picture. */
+    grid-template-rows: 1fr auto auto auto 1fr;
+    padding-block: 1.5rem;
+    padding-inline: 0.5rem 2rem;
+    text-align: start;
+  }
+
   .dropzone[data-empty-state][data-compact] > :first-child {
-    max-width: 24rem;
+    grid-row: 1 / -1;
+    align-self: center;
+    max-width: none;
+    width: 100%;
+  }
+
+  .dropzone[data-empty-state][data-compact] > :not(:first-child) {
+    grid-column: 2;
+    justify-self: start;
+    margin-inline: 0;
+  }
+
+  .dropzone[data-empty-state][data-compact] > :nth-child(2) {
+    grid-row: 2;
+  }
+
+  .dropzone[data-empty-state][data-compact] > :nth-child(3) {
+    grid-row: 3;
+  }
+
+  .dropzone[data-empty-state][data-compact] > :nth-child(4) {
+    grid-row: 4;
+  }
+
+  /* The iOS and cloud-drive notices, when a phone-class device shows them. */
+  .dropzone[data-empty-state][data-compact] > :nth-child(n + 5) {
+    grid-row: 5;
+    align-self: start;
   }
 
   .dropzone[data-empty-state] .dropzone-text {

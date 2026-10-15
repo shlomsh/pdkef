@@ -96,6 +96,13 @@ describe('DropzoneEmptyState', () => {
     expect(container.querySelector(`.${styles['dropzone-icon']}`)).toBeNull();
   });
 
+  it('ends with a hidden marker, so CSS can wait for the whole sheet before painting it', () => {
+    mount();
+    const end = container.querySelector('[data-empty-state]').lastElementChild;
+    expect(end.className).toBe(styles['sheet-end']);
+    expect(end.hasAttribute('hidden')).toBe(true);
+  });
+
   it('keeps the file-plus icon when no art is given', () => {
     mount();
     expect(container.querySelector(`.${styles['dropzone-icon']}`)).not.toBeNull();
