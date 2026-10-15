@@ -336,6 +336,25 @@ describe('BasePdfTool', () => {
     expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
   });
 
+  it('clears the overlay when the drag leaves the window with enters unpaired', () => {
+    mount({ hasFiles: true, onFilesAdded: vi.fn(), fileLabel: 'contract.pdf' });
+    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    act(() => {
+      wrapper.dispatchEvent(fileDragEvent('dragenter'));
+      wrapper.dispatchEvent(fileDragEvent('dragenter'));
+    });
+    expect(container.querySelector(`.${styles['drop-overlay']}`)).not.toBeNull();
+
+    const leave = fileDragEvent('dragleave');
+    Object.defineProperty(leave, 'relatedTarget', { value: null });
+    Object.defineProperty(leave, 'clientX', { value: 0 });
+    Object.defineProperty(leave, 'clientY', { value: 50 });
+    act(() => {
+      wrapper.dispatchEvent(leave);
+    });
+    expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+  });
+
   // The gate that closed the drift: six of nine tools used to discard the user's
   // work on a file swap with no warning at all, and the three that did ask each
   // asked differently. One component decides now, from declared config.

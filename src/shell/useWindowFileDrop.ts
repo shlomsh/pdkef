@@ -84,6 +84,11 @@ export function useWindowFileDrop({
 
     window.addEventListener('dragstart', onStart);
     window.addEventListener('dragend', onEnd);
+    // dragend never reaches window when the source node is removed mid-drag.
+    // Pointer events do not fire during a native drag, so the first one after
+    // it means that drag is over.
+    window.addEventListener('pointerdown', onEnd, { passive: true });
+    window.addEventListener('pointermove', onEnd, { passive: true });
     window.addEventListener('dragenter', onEnter);
     window.addEventListener('dragover', onOver);
     window.addEventListener('dragleave', onLeave);
@@ -91,6 +96,8 @@ export function useWindowFileDrop({
     return () => {
       window.removeEventListener('dragstart', onStart);
       window.removeEventListener('dragend', onEnd);
+      window.removeEventListener('pointerdown', onEnd);
+      window.removeEventListener('pointermove', onEnd);
       window.removeEventListener('dragenter', onEnter);
       window.removeEventListener('dragover', onOver);
       window.removeEventListener('dragleave', onLeave);
