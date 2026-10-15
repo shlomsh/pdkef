@@ -681,6 +681,7 @@ export default function PdfRedactTool() {
   const repeatOnEveryPage = (id: string) => { linkedBoxes.repeatOnEveryPage(id); recordAction('place_mark'); };
   const removeLinked = (id: string, kind: Parameters<typeof linkedBoxes.removeLinked>[1]) => { linkedBoxes.removeLinked(id, kind); recordAction('delete_mark'); };
   const clearPage = (pageIndex: number) => { linkedBoxes.clearPage(pageIndex); recordAction('delete_mark'); };
+  const keepOnlyThis = (id: string) => { linkedBoxes.keepOnlyThis(id); recordAction('delete_mark'); };
 
   // Cmd/Ctrl+Z reverts the single newest command; the reducer reads the
   // current `past`, so two undo keydowns landing in the same task (key
@@ -1205,6 +1206,7 @@ export default function PdfRedactTool() {
                         onRepeatOnEveryPage={canRepeat ? repeatOnEveryPage : undefined}
                         repeatGroupSize={selected ? groupMembers(elements, el.id).length : undefined}
                         onUnlinkFromGroup={() => unlinkFromGroup(el.id)}
+                        onKeepOnlyThisPage={() => keepOnlyThis(el.id)}
                         onRemoveGroup={() => removeLinked(el.id, 'repeatGroup')}
                         findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
                         onRemoveFindSet={() => removeLinked(el.id, 'findSet')}

@@ -31,6 +31,7 @@ export interface UseLinkedBoxesDeps<T extends LinkedElement> {
 export interface UseLinkedBoxesResult<T> {
   updateElement(id: string, changes: Partial<T>): void;
   unlinkFromGroup(id: string): void;
+  keepOnlyThis(id: string): void;
   removeLinked(id: string, kind: LinkKind): void;
   duplicateElement(id: string): void;
   repeatOnEveryPage(id: string): void;
@@ -111,6 +112,15 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     commands.update(id, [{ id, changes }], { describe: () => 'Unlinked the box on this page' });
   };
 
+  // RED-65: "Keep on this page only" - removes every other box of `id`'s
+  // repeat group in one undo step and leaves `id` itself where it is.
+  const keepOnlyThis = (id: string) => {
+    const others = groupMembers(elements, id).filter((member) => member.id !== id);
+    if (others.length === 0) return;
+    const description = `Removed the box from ${others.length} other page${others.length === 1 ? '' : 's'}`;
+    commands.remove(new Set(others.map((member) => member.id)), { type: 'KEEP_ON_THIS_PAGE_ONLY', description, pageIndex: others[0].pageIndex });
+  };
+
   // RED-03/RED-11: removes every box linked to `id` by the given kind (its
   // repeat group or its find set) in one undo step. Once removeGroup and
   // removeFindSet, now one function over links.ts's `linkMembers` - the two
@@ -165,5 +175,5 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     commands.add(additions, { type: 'REPEAT_ON_EVERY_PAGE', description, undoChip: true });
   };
 
-  return { updateElement, unlinkFromGroup, removeLinked, duplicateElement, repeatOnEveryPage, clearPage, clearPageOptions };
+  return { updateElement, unlinkFromGroup, keepOnlyThis, removeLinked, duplicateElement, repeatOnEveryPage, clearPage, clearPageOptions };
 }
