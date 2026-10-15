@@ -308,7 +308,7 @@ tool inherits the useful behaviour and only the exceptions carry the flag.
 |---|---|---|
 | `sign`, `redact` | `true` | Full-page document editor; the whole point |
 | `merge`, `split`, `edit-pdf`, `pdf-to-image`, `image-to-pdf` | `true` | File list / page grid, grows tall |
-| `compress` | `true` | Was `false` (one short options card). Since the three preset cards plus the Target Size row render before a file is picked, the page with a file open overflows a laptop viewport and pushes the Compress button below the fold on a phone; folding the hero is what brings it back |
+| `compress` | `true` | Was `false` (one short options card). Once a file is open, the file strip, the level picker and the before/after result share the first screen; on a laptop the whole result page fits only with the hero folded to one line (2026-10-15 redesign). Compress Image mounts the same island. |
 | `unlock` | `false` | One short options card; collapsing buys no space and leaves the page looking sparse |
 
 Only Sign and Redact get the control, because only they have a toolbar to put it

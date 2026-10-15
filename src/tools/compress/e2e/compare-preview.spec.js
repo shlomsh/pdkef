@@ -13,9 +13,9 @@ const MIXED = fs.readFileSync(new URL('../__fixtures__/mixed.pdf', import.meta.u
 // PdfCompressTool.tsx's `openCompare` doc comment), rather than waiting for
 // a tap. Since it now runs for every PDF result rather than only a tapped
 // one, the mobile-cost constraint in CLAUDE.md applies to every visitor who
-// compresses a PDF, not just the ones who go looking for the toggle. This
-// is that measurement: auto-open the panel under an emulated low-end
-// Android profile (4x CPU throttling via CDP, the same technique
+// compresses a PDF. The comparison is shown inline with no toggle (Full
+// screen opens the larger one). This is that measurement: render it under
+// an emulated low-end Android profile (4x CPU throttling via CDP, the same technique
 // Lighthouse's mobile preset uses - there is no lighter way to approximate
 // a slow device from Chromium) and time how long it takes, from the
 // done status to both page-1 previews rendering.
@@ -109,7 +109,8 @@ test.describe('compress tool - before/after preview', () => {
       await expect(inline).toBeVisible({ timeout: 15_000 });
       // The result column (UX guideline 18) sizes the slider so a whole
       // portrait page fits in the first screen beside the 360px rail; it used
-      // to be a wide strip below the cards (> 700px) that ran off the screen.
+      // to be a wide strip below the old quality cards (> 700px) that ran off
+      // the screen.
       const inlineBox = await inline.boundingBox();
       expect(inlineBox.width).toBeGreaterThanOrEqual(440);
       expect(inlineBox.y + inlineBox.height).toBeLessThanOrEqual(900);

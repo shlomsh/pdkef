@@ -471,3 +471,13 @@ for (const [width, height, maxHeight] of [[1440, 900, 90], [393, 852, 76]]) {
     expect(h1.height, 'h1 is a single line').toBeLessThanOrEqual(h1.font * 1.4);
   });
 }
+
+// /compress-image/ is the photo door to the Compress island, so its sheet asks for a photo. The
+// island's own default ("Drop a PDF or image here") is what /compress/ shows; only the page can pass
+// the other one, so this is checked on the built page.
+test('/compress-image/ sheet asks for a photo, not a PDF', async ({ page }) => {
+  await open(page, '/compress-image/');
+  const sheet = page.locator('[data-empty-state]').first();
+  await expect(sheet).toContainText('Drop a photo here');
+  await expect(sheet).not.toContainText('PDF');
+});

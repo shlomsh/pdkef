@@ -281,10 +281,10 @@ export function renderDraftPreview(file) {
  * actually show the JPEG artifacting a compression level introduces - the
  * 150px list thumbnail above is too small to judge quality by. 900px is
  * roughly the same render cost as one page of `compressPdf`'s own 1.5x
- * ("Recommended") tier against a standard 612pt-wide page (scale ~= 1.47),
+ * (Balanced) tier against a standard 612pt-wide page (scale ~= 1.47),
  * so opening the comparison costs about one extra page-render on top of
  * what compression itself already did - see PdfCompressTool.tsx for why
- * that stays affordable even opt-in on a phone.
+ * that stays affordable on a phone.
  *
  * Deliberately takes a `File | Blob`, unlike `renderThumbnail`'s File-only
  * doc comment above: the compressed side is a `Blob` fresh out of

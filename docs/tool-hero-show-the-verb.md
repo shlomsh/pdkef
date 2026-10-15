@@ -290,7 +290,9 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
   sketch's inline colours.
 - Compact sheets cap the verb at 24rem (`Dropzone.module.css`, `[data-compact]`): at the default 42rem
   the verb was 344px tall and pushed Compress's quality cards below the fold at 1440x820; at 24rem the
-  sheet ends at 496px and the cards sit on the first screen.
+  sheet ends at 496px and the cards sit on the first screen. Superseded 2026-10-15: Compress's quality
+  choices moved to after a file is picked, so Compress and Compress Image take the full sheet and the
+  `compact` cap is gone.
 - The hero hides until it is fully parsed (`ToolHero.astro`, a `tool-hero-end` marker, the TrustChips
   pattern): the hero is centred in the first screen, so a paint of a partly parsed hero (icon only,
   74px) placed it 143px low and the rest pulled it up, CLS 0.015 on /compress/ one load in three. The
@@ -302,7 +304,8 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
   fully parsed by an end marker so a partial paint cannot move it. Compress and Compress Image put the
   picture beside the words, centre the words against it, and centre their column against the hero. The
   quality cards' pros and cons open together behind one toggle, and the greyed-out button waits for a
-  file.
+  file. Superseded for Compress on 2026-10-15: no cards and no button before a file is picked, and the
+  picture sits above the words as on every other tool.
 - Merge's phone tile stays beside the name (`55b13f13`). The stacked hero put the tile above the h1 and
   cost the phone first screen 29px (51px on Linux fonts, where the second h1 line wraps). The sticky
   Download sheet can only rise to the top of its own container, so it ended 14px below a 659px viewport
@@ -313,7 +316,8 @@ integrated and checked by the lead as it lands, and a fresh zero-context reviewe
   a hand-off key opens. If the island never loads, a CSS-only reveal after 6s brings the page back, and
   an unmounted intake releases the marker.
 - DEBT-52 (`8dc1b5bb`, `822f03c8`): Compress's note slot is as tall as its tallest note, so no analysis
-  outcome shifts the options. When no note shows, the slot is empty space: an accepted gap.
+  outcome shifts the options. When no note shows, the slot is empty space: an accepted gap. Superseded
+  2026-10-15: the note moved into the file strip, which always reserves two lines.
 - Hebrew drag caption (`ade5f01c`): Shlomi's singular, "גררו לכאן כדי להוסיף קובץ", on every one-file
   tool; Merge and Image to PDF keep the plural. He kept the loaded card at its full-screen height
   (2026-10-15).

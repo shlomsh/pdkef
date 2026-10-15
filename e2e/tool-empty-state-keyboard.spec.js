@@ -5,8 +5,8 @@ import { test, expect } from '@playwright/test';
 // so Tab skipped it and the :has(input:focus-visible) ring could never match.
 // jsdom has no tab order or computed focusability, so this needs a real browser.
 //
-// One route per BasePdfTool caller: /merge/ is the "band" variant, /compress/
-// and /compress-image/ the `compact` one, /sign/ has the iOS hint opt-in.
+// One route per BasePdfTool caller: /merge/ is the "band" variant and /sign/
+// has the iOS hint opt-in.
 const toolRoutes = [
   '/merge/',
   '/split/',
