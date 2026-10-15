@@ -135,7 +135,12 @@ export default function DropzoneEmptyState({
       )}
 
       <p class={styles['dropzone-text']}>
-        <strong>{twoWidths(defaultHeading, heading)}</strong>
+        <strong class={styles['drag-heading']}>{twoWidths(defaultHeading, heading)}</strong>
+        {/* Shown instead of the heading while a file is dragged over the page
+            (BasePdfTool's `data-dragging`), by CSS alone. */}
+        <strong class={styles['drag-caption']}>
+          {multiple ? messages.dragCaptionMany : messages.dragCaptionOne}
+        </strong>
       </p>
 
       {/* The input is visually hidden, not `hidden`: display:none takes it out

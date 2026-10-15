@@ -165,6 +165,20 @@
   font-weight: 600;
 }
 
+/* While a file is dragged over the page, the heading gives way to the caption.
+   Hidden spans are display: none, so only one is ever read. */
+.drag-caption {
+  display: none;
+}
+
+:global([data-dragging]) .dropzone[data-empty-state] .drag-heading {
+  display: none;
+}
+
+:global([data-dragging]) .dropzone[data-empty-state] .drag-caption {
+  display: inline;
+}
+
 .dropzone-subtext {
   margin: 0;
   color: var(--color-muted);
