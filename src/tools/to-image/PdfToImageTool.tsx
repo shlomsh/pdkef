@@ -459,6 +459,8 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
     ? formatMessage(t.downloadOne, { format: formatLabel })
     : formatMessage(t.downloadMany, { count: imageCount, format: formatLabel });
   const sizeText = outputs.length > 0 ? isolateLtr(formatFileSize(totalBytes), t.dir) : '';
+  // Above the auto-build limit nothing builds until the tap: say so in the size slot.
+  const madeOnTap = outputs.length === 0 && selectedCount > AUTO_BUILD_PAGE_LIMIT;
   const imageFor = (pageNumber: number) => outputs.find((image) => image.pageNumber === pageNumber);
 
   const renderTile = (p: ImagePage) => {
@@ -567,7 +569,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
               </svg>
             )}
             <span class={styles['primary-label']}>{primaryText}</span>
-            <span class={styles['primary-detail']}>{sizeText}</span>
+            <span class={styles['primary-detail']}>{sizeText || (madeOnTap ? t.madeOnTap : '')}</span>
           </>
         )}
       </a>

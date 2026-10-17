@@ -247,6 +247,20 @@ describe('PdfToImageTool', () => {
     expect(primary().textContent).toMatch(/KB|MB/);
   });
 
+  it('above 30 pages says the images are made when you tap, until the build lands', async () => {
+    await open(31);
+    expect(primary().textContent).toContain('Made when you tap');
+    await act(async () => { primary().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    await advance(50);
+    expect(primary().textContent).toMatch(/KB|MB/);
+    expect(primary().textContent).not.toContain('Made when you tap');
+  });
+
+  it('at 30 pages the Download does not say it is made when you tap', async () => {
+    await open(30);
+    expect(primary().textContent).not.toContain('Made when you tap');
+  });
+
   it('still auto-builds at exactly 30 pages', async () => {
     await open(30);
     await advance(1700);
