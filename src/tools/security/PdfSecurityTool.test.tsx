@@ -33,6 +33,11 @@ vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportError: reportErrorSpy,
 }));
+const { renderPreviewMock } = vi.hoisted(() => ({ renderPreviewMock: vi.fn() }));
+vi.mock('../../lib/thumbnails.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  renderComparePreview: renderPreviewMock,
+}));
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 vi.mock('./security.js', () => ({
@@ -55,6 +60,7 @@ describe('PdfSecurityTool', () => {
   beforeEach(() => {
     takeHandoffMock.mockResolvedValue(null);
     saveHandoffMock.mockResolvedValue(true);
+    renderPreviewMock.mockResolvedValue('data:image/png;base64,AAAA');
   });
 
   afterEach(() => {
@@ -748,5 +754,77 @@ describe('PdfSecurityTool', () => {
     });
     expect(recentActions()).toEqual(['add_files', 'export']);
     expect(JSON.stringify(recentActions())).not.toMatch(/hunter2|private_name/);
+  });
+
+  describe('the page preview (HERO-07)', () => {
+    const tagOf = () => container.querySelector('[data-security-preview] [data-preview-tag]')?.textContent;
+    const submitWith = async (pw) => {
+      const input = container.querySelector('input[type="password"]');
+      await act(async () => {
+        input.value = pw;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    };
+
+    it('shows a Locked placeholder, with no render attempted, for a file that needs a password', async () => {
+      probeEncryption.mockResolvedValue('needs-password');
+      mount();
+      await loadFile();
+      expect(container.querySelector('[data-security-preview]')).not.toBeNull();
+      expect(tagOf()).toBe('Locked');
+      expect(container.querySelector('[data-security-preview] img')).toBeNull();
+      expect(renderPreviewMock).not.toHaveBeenCalled();
+    });
+
+    it('renders page 1 of the input, tagged Not protected, in protect mode', async () => {
+      probeEncryption.mockResolvedValue('open');
+      mount();
+      await loadFile();
+      await flush();
+      expect(tagOf()).toBe('Not protected');
+      expect(renderPreviewMock).toHaveBeenCalledTimes(1);
+      expect(renderPreviewMock.mock.calls[0][0]).toBeInstanceOf(File);
+      expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,AAAA');
+    });
+
+    it('renders the unlocked output bytes, tagged Unlocked, after a successful unlock', async () => {
+      probeEncryption.mockResolvedValue('needs-password');
+      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked'], { type: 'application/pdf' }));
+      mount();
+      await loadFile();
+      await submitWith('secret');
+      await flush();
+      expect(tagOf()).toBe('Unlocked');
+      const last = renderPreviewMock.mock.calls.at(-1)[0];
+      expect(last).not.toBeInstanceOf(File);
+      expect(last.size).toBe('unlocked'.length);
+    });
+
+    it('is tagged Protected after protecting', async () => {
+      probeEncryption.mockResolvedValue('open');
+      securityLib.protectPdf.mockResolvedValue(new Blob(['protected'], { type: 'application/pdf' }));
+      mount();
+      await loadFile();
+      await submitWith('secret');
+      await flush();
+      expect(tagOf()).toBe('Protected');
+    });
+
+    it('keeps the placeholder and reports when the render throws', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      probeEncryption.mockResolvedValue('open');
+      const boom = new Error('render failed');
+      renderPreviewMock.mockRejectedValue(boom);
+      mount();
+      await loadFile();
+      await flush();
+      expect(reportErrorSpy).toHaveBeenCalledWith('pdf_tool_run', boom, 'security_preview');
+      expect(container.querySelector('[data-security-preview] img')).toBeNull();
+      expect(tagOf()).toBe('Not protected');
+    });
   });
 });

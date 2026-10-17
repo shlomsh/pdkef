@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Download, Eraser, FileSignature, Shrink } from 'lucide-preact';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
@@ -7,6 +7,9 @@ import { recordAction } from '../../lib/actionTrail.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
+import PagePreview from './PagePreview.tsx';
+import { planPreview } from './previewPlan.js';
+import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
@@ -227,6 +230,9 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
 
   const hasFiles = !!file;
   const returnTool = returnToolOf(origin);
+  const preview = planPreview({ mode: mode as 'unlock' | 'protect' | null, status, noPassword });
+  const outputBlob = useMemo(() => (outputBytes ? new Blob([outputBytes], { type: 'application/pdf' }) : null), [outputBytes]);
+  const previewSource = preview?.source === 'input' ? file : preview?.source === 'output' ? outputBlob : null;
 
   return (
     <BasePdfTool
@@ -241,6 +247,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
+      hideIdentity
     >
       {hasFiles && !mode && status === 'error' && readError && (
         <div class="tool-workspace">
@@ -249,7 +256,13 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       )}
 
       {hasFiles && mode && (
-        <div class="tool-workspace">
+        <div class={styles['loaded-layout']}>
+          <div class={styles.strip}>
+            <ToolShell flush>
+              <FileActions />
+            </ToolShell>
+          </div>
+          <div class={styles.controls}>
           {noPassword ? (
             <p class={styles.line}>
               {status === 'error'
@@ -293,7 +306,11 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
           )}
 
           {status === 'error' && <ErrorMessage>{errorText}</ErrorMessage>}
+          </div>
 
+          {preview && <PagePreview plan={preview} source={previewSource} />}
+
+          <div class={styles.actions}>
           {status === 'done' && downloadUrl && (
             returnTool && mode === 'unlock' && outputBytes ? (
               <>
@@ -336,6 +353,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
               Could not hand this off. Download it instead and open it there.
             </p>
           )}
+          </div>
         </div>
       )}
 
