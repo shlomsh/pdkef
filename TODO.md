@@ -47,6 +47,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-45](backlog/tasks/SEO-45.md) · The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)
+- [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
