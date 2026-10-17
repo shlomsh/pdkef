@@ -1,9 +1,99 @@
+/* The loaded state: the document's first page is the centre, the strip, the
+   form and the done controls are a rail beside it (ux guidelines 18). DOM order
+   is strip, controls, result, actions, which is also the phone's reading order:
+   the primary stays above the preview so the keyboard never hides it. */
+.loaded-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'strip'
+    'controls'
+    'result'
+    'actions';
+  row-gap: 16px;
+  align-items: start;
+  text-align: start;
+}
+
+.strip { grid-area: strip; min-width: 0; }
+.controls { grid-area: controls; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.actions { grid-area: actions; min-width: 0; }
+.actions:empty { display: none; }
+
+.result {
+  grid-area: result;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: var(--color-surface-sunken);
+  border-radius: 18px;
+}
+
+.tag {
+  position: absolute;
+  top: 20px;
+  inset-inline-start: 20px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
+}
+
+.page {
+  display: block;
+  max-width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  background: var(--color-surface);
+  border-radius: 2px;
+  box-shadow: var(--shadow-md);
+}
+
+/* Stands in where the page cannot be drawn (locked, or a render that failed): A4-shaped. */
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1.414;
+  height: 50vh;
+  color: var(--color-muted);
+}
+
+@media (min-width: 1024px) {
+  .loaded-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      'result strip'
+      'result controls'
+      'result actions'
+      'result .';
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+  }
+
+  .strip { margin-bottom: 16px; }
+  .actions { margin-top: 20px; }
+  .result { padding: 20px; min-height: 420px; align-items: center; }
+  .page { max-height: 70vh; }
+  .placeholder { height: 70vh; max-height: 560px; }
+}
+
 .unlock-form {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin: 1.5rem 0;
-  max-width: 360px;
+  margin: 0;
 }
 
 .unlock-label {
@@ -29,7 +119,7 @@
 }
 
 .line {
-  margin: 1.5rem 0 0;
+  margin: 0;
   font-size: 0.9rem;
   color: var(--color-muted);
 }
@@ -39,7 +129,6 @@
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
-  max-width: 360px;
 }
 
 .handoff-row > * {
