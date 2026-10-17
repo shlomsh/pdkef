@@ -1,15 +1,16 @@
 /* The loaded state: the document's first page is the centre, the strip, the
-   form and the done controls are a rail beside it (ux guidelines 18). DOM order
-   is strip, controls, result, actions, which is also the phone's reading order:
-   the primary stays above the preview so the keyboard never hides it. */
+   form and the done controls are a rail beside it (ux guidelines 18). On the
+   phone the grid areas read strip, controls, actions, result: the primary (the
+   form, then Download once done) always sits above the preview, so the keyboard
+   never hides it and Download is never pushed below a 50vh page. */
 .loaded-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     'strip'
     'controls'
-    'result'
-    'actions';
+    'actions'
+    'result';
   row-gap: 16px;
   align-items: start;
   text-align: start;
@@ -18,6 +19,7 @@
 .strip { grid-area: strip; min-width: 0; }
 .controls { grid-area: controls; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
 .actions { grid-area: actions; min-width: 0; }
+.controls:empty { display: none; }
 .actions:empty { display: none; }
 
 .result {
@@ -49,24 +51,49 @@
   box-shadow: var(--shadow-xs);
 }
 
+.frame {
+  /* Fixed, so the rail never moves when the page image arrives or changes. */
+  width: 100%;
+  height: min(50vh, 560px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .page {
   display: block;
   max-width: 100%;
-  max-height: 50vh;
+  max-height: 100%;
   object-fit: contain;
   background: var(--color-surface);
   border-radius: 2px;
   box-shadow: var(--shadow-md);
 }
 
-/* Stands in where the page cannot be drawn (locked, or a render that failed): A4-shaped. */
+/* Stands in where the page cannot be drawn (locked, still drawing, or a render that failed): A4-shaped. */
 .placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1.414;
-  height: 50vh;
+  max-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  object-fit: contain;
   color: var(--color-muted);
+  background: var(--color-surface);
+  border-radius: 2px;
+  box-shadow: var(--shadow-md);
+}
+
+.pulse { animation: preview-pulse 1.4s ease-in-out infinite; }
+
+@keyframes preview-pulse {
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
 }
 
 @media (min-width: 1024px) {
@@ -85,8 +112,7 @@
   .strip { margin-bottom: 16px; }
   .actions { margin-top: 20px; }
   .result { padding: 20px; min-height: 420px; align-items: center; }
-  .page { max-height: 70vh; }
-  .placeholder { height: 70vh; max-height: 560px; }
+  .frame { height: min(70vh, 640px); }
 }
 
 .unlock-form {

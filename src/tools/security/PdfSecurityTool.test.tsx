@@ -822,9 +822,67 @@ describe('PdfSecurityTool', () => {
       mount();
       await loadFile();
       await flush();
-      expect(reportErrorSpy).toHaveBeenCalledWith('pdf_tool_run', boom, 'security_preview');
+      expect(reportErrorSpy).toHaveBeenCalledWith('pdf_render', boom, 'render_compare_preview');
       expect(container.querySelector('[data-security-preview] img')).toBeNull();
       expect(tagOf()).toBe('Not protected');
+    });
+
+    it('keeps the previous image on screen until the new render lands', async () => {
+      probeEncryption.mockResolvedValue('owner-restricted');
+      let finishUnlock;
+      securityLib.unlockPdf.mockImplementation(() => new Promise((resolve) => { finishUnlock = () => resolve(new Blob(['unlocked'], { type: 'application/pdf' })); }));
+      let resolveNew;
+      renderPreviewMock.mockReset();
+      renderPreviewMock
+        .mockResolvedValueOnce('data:image/png;base64,OLD')
+        .mockReturnValueOnce(new Promise((resolve) => { resolveNew = resolve; }));
+      mount();
+      await loadFile();
+      // The input page is drawn while the unlock runs; then the output replaces it.
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
+      expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
+      await act(async () => { finishUnlock(); });
+      for (let i = 0; i < 10 && renderPreviewMock.mock.calls.length < 2; i += 1) await flush();
+      expect(renderPreviewMock).toHaveBeenCalledTimes(2);
+      expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
+      expect(container.querySelector('[data-page-frame]').getAttribute('aria-busy')).toBe('true');
+      await act(async () => { resolveNew('data:image/png;base64,NEW'); });
+      expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,NEW');
+      expect(container.querySelector('[data-page-frame]').getAttribute('aria-busy')).toBeNull();
+    });
+
+    it('does not report the preview when the tool run already failed for the same file', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      probeEncryption.mockResolvedValue('owner-restricted');
+      securityLib.unlockPdf.mockRejectedValue(new securityLib.UnreadablePdfError(new Error('bad xref')));
+      renderPreviewMock.mockImplementation(() => new Promise((_, reject) => setTimeout(() => reject(new Error('render failed')), 5)));
+      mount();
+      await loadFile();
+      await flush();
+      expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+      expect(reportErrorSpy.mock.calls[0][0]).toBe('pdf_tool_run');
+    });
+  });
+
+  describe('the strip while loading or failing (HERO-07 review)', () => {
+    const stripText = () => container.querySelector('[class*="strip"]')?.textContent ?? '';
+    it('keeps the file name and Replace when the file cannot be read', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      probeEncryption.mockResolvedValue('unreadable');
+      mount();
+      await loadFile('broken.pdf');
+      expect(stripText()).toContain('broken.pdf');
+      expect(Array.from(container.querySelectorAll('button')).some((b) => /Replace/.test(b.textContent))).toBe(true);
+      expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    });
+
+    it('shows the file name while the encryption check is pending', async () => {
+      let resolveProbe;
+      probeEncryption.mockReturnValue(new Promise((resolve) => { resolveProbe = resolve; }));
+      mount();
+      await loadFile('slow.pdf');
+      expect(stripText()).toContain('slow.pdf');
+      await act(async () => { resolveProbe('open'); });
     });
   });
 });
