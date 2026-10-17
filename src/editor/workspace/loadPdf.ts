@@ -44,6 +44,13 @@ export interface PdfLoadOptions {
   initialize: () => void;
   onDocument: (document: PDFDocumentProxy, isCurrent: () => boolean) => Promise<void> | void;
   clearDraft: () => Promise<void> | void;
+  /**
+   * RED-56: where a document already handed to `onDocument` goes when its load is cancelled. The
+   * tool's `pdfDocument` prop may still be rendering it, so a tool that passes this (see
+   * `useDocumentRetirement`) destroys it after the prop has swapped; without it, cancel destroys
+   * immediately. A document never handed over has no reader and is always destroyed at once.
+   */
+  retireDocument?: (document: PDFDocumentProxy, release: () => void) => void;
   setStatus: (status: LoadStatus) => void;
   setAnnouncement: (message: string) => void;
   messages?: PdfLoadMessages;
@@ -88,6 +95,7 @@ export async function loadPdf({
   setAnnouncement,
   messages,
   onNeedsUnlock,
+  retireDocument,
 }: PdfLoadOptions) {
   const t: Required<PdfLoadMessages> = { ...englishPdfLoadMessages, ...messages };
   // A replacement is an ownership transfer: make the old load unable to write
@@ -98,12 +106,18 @@ export async function loadPdf({
   let loadingTask: PDFDocumentLoadingTask | null = null;
   let document: PDFDocumentProxy | null = null;
   let completed = false;
+  let published = false;
   const controller: PdfLoadController = {
     cancel: () => {
       if (cancelled) return;
       cancelled = true;
-      disposePdfHandle(loadingTask);
-      disposePdfHandle(document);
+      // Destroying the loading task tears down the document's transport as well.
+      const release = () => {
+        disposePdfHandle(loadingTask);
+        disposePdfHandle(document);
+      };
+      if (published && document && retireDocument) retireDocument(document, release);
+      else release();
       if (loadControllerRef.current === controller) {
         loadControllerRef.current = null;
       }
@@ -149,6 +163,7 @@ export async function loadPdf({
         return;
       }
     }
+    published = true;
     await onDocument(document, isCurrent);
     if (!isCurrent()) return;
     completed = true;
