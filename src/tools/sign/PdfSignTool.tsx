@@ -20,6 +20,7 @@ import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../ed
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
+import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './useFormFieldRegions.ts';
@@ -266,6 +267,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const copiedElementRef = useRef<EditorElement | null>(null);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
+  // RED-56: the old document is destroyed after the pdfDocument prop has swapped, not at cancel.
+  const retireDocument = useDocumentRetirement(pdfDocument);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   const activeExportRequestRef = useRef<number | null>(null);
@@ -457,7 +460,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   ) => {
     const presetElements = preset.elements;
     await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
+      file: selected, bytes, restored, loadIdRef, loadControllerRef, retireDocument, clearDraft, setStatus, setAnnouncement,
       messages: {
         timeout: t.pdfLoadTimeout,
         loadFailed: t.pdfLoadFailedGeneric,
