@@ -35,6 +35,10 @@ const returnToolOf = (from: string | null): ReturnTool | null => (from && from i
 // One name for the Download button, the share sheet and the hand-off, so they cannot drift.
 const outputFileName = (name: string, mode: string) => `${name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`;
 
+// The result cell before there is a mode: the encryption check is running, or the file could not be read.
+const CHECKING_PLAN = { tag: 'Checking', source: 'none', locked: false, protectedDone: false } as const;
+const UNREADABLE_PLAN = { tag: 'Not readable', source: 'none', locked: false, protectedDone: false } as const;
+
 const WRONG_PASSWORD = 'The password may be incorrect.';
 const DAMAGED = 'This file could not be unlocked. It may be damaged.';
 // Not the file's fault: the unlock itself threw something other than a password or a read error.
@@ -249,13 +253,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       fileMeta={describeFile(file)}
       hideIdentity
     >
-      {hasFiles && !mode && status === 'error' && readError && (
-        <div class="tool-workspace">
-          <ErrorMessage title="This file could not be read.">{readError}</ErrorMessage>
-        </div>
-      )}
-
-      {hasFiles && mode && (
+      {hasFiles && (
         <div class={styles['loaded-layout']}>
           <div class={styles.strip}>
             <ToolShell flush>
@@ -263,7 +261,10 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
             </ToolShell>
           </div>
           <div class={styles.controls}>
-          {noPassword ? (
+          {!mode && status === 'error' && readError && (
+            <ErrorMessage title="This file could not be read.">{readError}</ErrorMessage>
+          )}
+          {mode && (noPassword ? (
             <p class={styles.line}>
               {status === 'error'
                 ? 'Choose another file with Replace.'
@@ -303,15 +304,17 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                 </button>
               )}
             </form>
-          )}
+          ))}
 
-          {status === 'error' && <ErrorMessage>{errorText}</ErrorMessage>}
+          {mode && status === 'error' && <ErrorMessage>{errorText}</ErrorMessage>}
           </div>
 
-          {preview && <PagePreview plan={preview} source={previewSource} />}
+          {preview ? <PagePreview plan={preview} source={previewSource} failed={status === 'error'} /> : (
+            <PagePreview plan={readError ? UNREADABLE_PLAN : CHECKING_PLAN} source={null} pending={!readError} />
+          )}
 
           <div class={styles.actions}>
-          {status === 'done' && downloadUrl && (
+          {mode && status === 'done' && downloadUrl && (
             returnTool && mode === 'unlock' && outputBytes ? (
               <>
                 <ContinueButton tool={returnTool} disabled={handoffBusy} onClick={() => handOff(returnTool)} />
