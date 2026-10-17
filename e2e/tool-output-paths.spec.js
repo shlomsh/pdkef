@@ -89,7 +89,7 @@ const tools = [
     setup: async (page) => {
       await page.getByLabel('Add page numbers').check();
     },
-    actionName: 'Apply Changes',
+    actionName: 'Apply Changes · 1 page',
     downloadName: 'Download PDF',
   },
 ];

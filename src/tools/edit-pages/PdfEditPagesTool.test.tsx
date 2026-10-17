@@ -147,7 +147,7 @@ describe('PdfEditPagesTool UI flow', () => {
     // Page 2 should have is-removed class and button should be active
     expect(cards[1].className).toContain(pageGridStyles['is-removed']);
     expect(actionButton.disabled).toBe(false);
-    expect(actionButton.textContent).toContain('Apply Changes');
+    expect(actionButton.textContent).toBe('Apply Changes · 2 pages');
 
     // Click Page 2 again to keep it
     await act(async () => {
@@ -215,6 +215,40 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(cards[1].className).toContain(pageGridStyles['is-removed']);
     expect(cards[2].className).toContain(pageGridStyles['is-removed']);
     expect(actionButton.textContent).toContain('Apply Changes');
+  });
+
+  async function loadFive() {
+    mockState.numPages = 5;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfEditPagesTool />, container); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('d.pdf')]); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    return container.querySelectorAll(`.${pageGridStyles['page-card']}`);
+  }
+  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+  it('the label counts the pages the output keeps, singular for one', async () => {
+    const cards = await loadFive();
+    const btn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await click(cards[0]);
+    await click(cards[1]);
+    expect(btn.textContent).toBe('Apply Changes · 3 pages');
+    await click(cards[2]);
+    await click(cards[3]);
+    expect(btn.textContent).toBe('Apply Changes · 1 page');
+    mockState.numPages = 3;
+  });
+
+  it('the primary lives inside the pinned sheet, the hint stays outside', async () => {
+    await loadFive();
+    const sheet = container.querySelector('[data-edit-sheet]');
+    expect(sheet).not.toBeNull();
+    expect(sheet.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).not.toBeNull();
+    const hint = Array.from(container.querySelectorAll('p')).find((p) => p.textContent.includes('before applying changes'));
+    expect(hint).toBeTruthy();
+    expect(sheet.contains(hint)).toBe(false);
+    mockState.numPages = 3;
   });
 
   it('a failed export points to Unlock, where a protected PDF can be opened', async () => {

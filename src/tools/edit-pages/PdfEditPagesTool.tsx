@@ -17,7 +17,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { describeFile } from '../../lib/format.js';
+import { describeFile, formatFileSize } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -42,6 +42,7 @@ export default function PdfEditPagesTool() {
   useHoldUpdate(status === 'processing');
   useHoldUpdate(file !== null, 'open');
   const [progress, setProgress] = useState(0);
+  const [outputSize, setOutputSize] = useState<number | null>(null);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
@@ -276,6 +277,7 @@ export default function PdfEditPagesTool() {
       };
       const blob = await editPages(file, options, setProgress);
       setDownloadBlob(blob);
+      setOutputSize(blob.size);
       prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);
       setStatus('done');
       setAnnouncement('Your modified PDF is ready.');
@@ -301,7 +303,8 @@ export default function PdfEditPagesTool() {
   const hasEdits = removedPageNums.size > 0 || Object.keys(rotations).length > 0 || addPageNumbers || pageOrderChanged;
   const actionButtonDisabled = isAllRemoved || !hasEdits || status === 'processing';
 
-  let actionButtonText = 'Apply Changes';
+  const keptCount = pages.length - removedPageNums.size;
+  let actionButtonText = `Apply Changes · ${keptCount} ${keptCount === 1 ? 'page' : 'pages'}`;
   if (status === 'processing') {
     actionButtonText = 'Processing…';
   } else if (isAllRemoved) {
@@ -470,6 +473,7 @@ export default function PdfEditPagesTool() {
                 </p>
               )}
 
+              <div class={touchStyles['edit-sheet']} data-edit-sheet>
               <button
                 type="button"
                 class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
@@ -494,11 +498,13 @@ export default function PdfEditPagesTool() {
                   <DownloadButton
                     href={downloadUrl}
                     download={`${file.name.replace(/\.pdf$/i, '')}_modified.pdf`}
+                    detail={outputSize != null ? formatFileSize(outputSize) : undefined}
                     onClick={() => recordAction('download')}
                   />
                   <PdfShareButton visible={shareReady} onShare={handleShare} />
                 </>
               )}
+              </div>
             </>
           )}
         </div>
