@@ -1072,6 +1072,8 @@ export interface ToImageMessages {
   converting: string;
   convertFailed: string;
   buildFailed: string;
+  /** Detail line under the Download above the auto-build page limit, before anything is built. */
+  madeOnTap: string;
   cannotConvert: string;
   /** '{format}' is PNG or JPG. */
   downloadOne: string;
@@ -1138,6 +1140,7 @@ const englishToImageMessages: ToImageMessages = {
   converting: 'Converting…',
   convertFailed: 'The file may be damaged or password-protected - try another PDF.',
   buildFailed: 'Could not make the images. Tap to try again.',
+  madeOnTap: 'Made when you tap',
   cannotConvert: 'Could not make the images',
   downloadOne: 'Download {format}',
   downloadMany: 'Download {count} {format}s',
@@ -1204,6 +1207,7 @@ const hebrewToImageMessages: ToImageMessages = {
   converting: 'ממירים…',
   convertFailed: 'ייתכן שהקובץ פגום או מוגן בסיסמה. נסו קובץ PDF אחר.',
   buildFailed: 'לא הצלחנו ליצור את התמונות. הקישו כדי לנסות שוב.',
+  madeOnTap: 'נוצרות כשמקישים',
   cannotConvert: 'לא הצלחנו להכין את התמונות',
   downloadOne: 'הורדת {format}',
   downloadMany: 'הורדת {count} קובצי {format}',
