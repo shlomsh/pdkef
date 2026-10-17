@@ -37,4 +37,23 @@ describe('imagesToPdf', () => {
     const doc = await PDFDocument.load(await blob.arrayBuffer());
     expect(doc.getPageCount()).toBe(1);
   });
+
+  it('stops with an AbortError when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(imagesToPdf([pngFile('a.png')], undefined, controller.signal)).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+  });
+
+  it('stops between images when the signal aborts mid-run', async () => {
+    const controller = new AbortController();
+    const calls = [];
+    const run = imagesToPdf([pngFile('a.png'), pngFile('b.png'), pngFile('c.png')], (p) => {
+      calls.push(p);
+      controller.abort();
+    }, controller.signal);
+    await expect(run).rejects.toMatchObject({ name: 'AbortError' });
+    expect(calls).toHaveLength(1);
+  });
 });

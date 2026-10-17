@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { imagesToPdf } from './imageToPdf.js';
-import { sortByDate, sortByName } from '../../lib/sort.js';
-import { useObjectUrls, useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
+import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from './pageOrder.js';
+import { useImagesPdfBuild, type ImageEntry } from './useImagesPdfBuild.ts';
+import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import styles from '../../shell/FileList.module.css';
+import ToolShell, { FileActions, useToolShell } from '../../shell/ToolShell.tsx';
+import SortMenu from '../../shell/SortMenu.tsx';
+import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import sortToolbarStyles from './SortToolbar.module.css';
+import styles from './PdfImageToPdfTool.module.css';
 import ImageToPdfVerb from './verb/ImageToPdfVerb.tsx';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
@@ -15,71 +17,108 @@ import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
-import { reportError } from '../../lib/errorReport.ts';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
+import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 
 let nextId = 0;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 
-interface ImageEntry {
-  id: number;
-  file: File;
-  thumbnail: string;
-}
+const SORT_OPTIONS = [
+  { value: 'custom', label: 'Your order' },
+  { value: 'nameAsc', label: 'Name A–Z' },
+  { value: 'nameDesc', label: 'Name Z–A' },
+  { value: 'dateAsc', label: 'Oldest first' },
+  { value: 'dateDesc', label: 'Newest first' },
+];
 
 function toEntry(file: File): ImageEntry {
   return { id: nextId++, file, thumbnail: URL.createObjectURL(file) };
 }
 
-export default function PdfImageToPdfTool() {
+// Its own component so it can reach the shell context (BasePdfTool provides it to its children).
+function AddImagesTile() {
+  const { requestReplace } = useToolShell();
+  return (
+    <li class={styles['add-tile']}>
+      <button type="button" class={styles['add-button']} onClick={requestReplace}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        Add images
+      </button>
+    </li>
+  );
+}
+
+export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: QuietPolicy } = {}) {
   const [entries, setEntries] = useState<ImageEntry[]>([]);
-  const [status, setStatus] = useState('idle'); // idle | converting | done | error
-  useHoldUpdate(status === 'converting');
-  useHoldUpdate(entries.length > 0, 'open');
-  const [progress, setProgress] = useState(0);
-  const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
+  const [sortMode, setSortMode] = useState('custom');
+  const [customName, setCustomName] = useState<string | null>(null);
+  const [tapped, setTapped] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const listRef = useRef<HTMLUListElement | null>(null);
-  const sortableRef = useRef<Sortable | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const focusIdRef = useRef<number | null>(null);
+  const pendingTapRef = useRef(false);
+  const exportedRef = useRef(false);
+
+  const build = useImagesPdfBuild(entries, tapped, quietPolicy);
+  const { fresh, blob, url: downloadUrl } = build;
+  useHoldUpdate(build.building);
+  useHoldUpdate(entries.length > 0, 'open');
+  const status = build.failed ? 'error' : fresh ? 'done' : tapped ? 'converting' : 'idle';
+
+  const outputName = customName ?? defaultOutputName(entries);
+  const fileName = `${outputName}.pdf`;
 
   useEffect(() => {
-    clearPrepared();
-  }, [entries, clearPrepared]);
+    if (fresh && blob) prepare(blob, fileName);
+    else clearPrepared();
+  }, [fresh, blob, fileName, prepare, clearPrepared]);
 
   // Revoke every live thumbnail object URL on unmount.
   useRevokeOnUnmount(entries.map((e) => e.thumbnail));
 
-  // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop
-  // we read its final order back into Preact state, which becomes the
-  // source of truth again for every subsequent render.
+  // A keyboard move re-parents the tile, which can drop focus: put it back.
+  useEffect(() => {
+    if (focusIdRef.current === null) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-id="${focusIdRef.current}"] [data-page]`)?.focus();
+    focusIdRef.current = null;
+  }, [entries]);
+
+  const reordered = useCallback((next: ImageEntry[]) => {
+    setEntries(next);
+    setSortMode('custom');
+    recordAction('reorder');
+  }, []);
+
+  // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop we
+  // read its final order back into state, which is the source of truth again.
   useEffect(() => {
     if (!listRef.current) return undefined;
-    sortableRef.current?.destroy();
-    sortableRef.current = Sortable.create(listRef.current, {
+    const sortable = Sortable.create(listRef.current, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      handle: `.${styles['drag-handle']}`,
+      draggable: '[data-id]',
+      filter: 'button',
+      preventOnFilter: false,
+      delay: 150,
+      delayOnTouchOnly: true,
       ghostClass: styles['is-ghost'],
       chosenClass: styles['is-chosen'],
-      dragClass: styles['is-dragging'],
       forceFallback: false,
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        setEntries((current) => {
-          const next = [...current];
-          const [moved] = next.splice(evt.oldIndex as number, 1);
-          next.splice(evt.newIndex as number, 0, moved);
-          return next;
-        });
-        setStatus('idle');
-        clearDownload();
+        const { oldIndex, newIndex } = evt;
+        setEntries((current) => reorderEntries(current, oldIndex, newIndex));
+        setSortMode('custom');
         recordAction('reorder');
       },
     });
-    return () => sortableRef.current?.destroy();
+    return () => sortable.destroy();
   }, [entries.length > 0]);
 
   const addFiles = useCallback((fileList: FileList | File[]) => {
@@ -88,16 +127,12 @@ export default function PdfImageToPdfTool() {
     const rejected = incoming.filter((f) => !ACCEPTED_TYPES.includes(f.type));
 
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
-
     if (imageFiles.length === 0) return;
 
     const newEntries = imageFiles.map(toEntry);
     setEntries((current) => [...current, ...newEntries]);
-    setStatus('idle');
-    clearDownload();
-    setAnnouncement(
-      `${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`,
-    );
+    setSortMode('custom');
+    setAnnouncement(`${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`);
     recordAction('add_files');
   }, []);
 
@@ -115,8 +150,6 @@ export default function PdfImageToPdfTool() {
       }
       return current.filter((e) => e.id !== id);
     });
-    setStatus('idle');
-    clearDownload();
     recordAction('remove_file');
   }, []);
 
@@ -125,73 +158,60 @@ export default function PdfImageToPdfTool() {
       for (const entry of current) URL.revokeObjectURL(entry.thumbnail);
       return [];
     });
-    setStatus('idle');
-    setProgress(0);
+    setSortMode('custom');
+    setCustomName(null);
+    setTapped(false);
+    pendingTapRef.current = false;
     setRejectedFiles([]);
-    clearDownload();
     setAnnouncement('Cleared. Add images to start again.');
     recordAction('clear_all');
   }, []);
 
-  const moveEntry = useCallback((id: number, delta: number) => {
-    setEntries((current) => {
-      const index = current.findIndex((e) => e.id === id);
-      const newIndex = index + delta;
-      if (index === -1 || newIndex < 0 || newIndex >= current.length) return current;
-      const next = [...current];
-      const [moved] = next.splice(index, 1);
-      next.splice(newIndex, 0, moved);
-      setAnnouncement(`${moved.file.name} moved to position ${newIndex + 1} of ${next.length}.`);
-      return next;
-    });
-    setStatus('idle');
-    clearDownload();
-  }, []);
+  const onTileKeyDown = (event: KeyboardEvent, id: number) => {
+    const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
+      : event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : 0;
+    if (delta === 0) return;
+    event.preventDefault();
+    const next = moveEntry(entries, id, delta);
+    if (next === entries) return;
+    focusIdRef.current = id;
+    setAnnouncement(`${entries.find((e: ImageEntry) => e.id === id)?.file.name} moved to position ${next.findIndex((e: ImageEntry) => e.id === id) + 1} of ${next.length}.`);
+    reordered(next);
+  };
 
-  const onItemKeyDown = useCallback(
-    (event: KeyboardEvent, id: number) => {
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        moveEntry(id, -1);
-        recordAction('reorder');
-      } else if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        moveEntry(id, 1);
-        recordAction('reorder');
-      }
-    },
-    [moveEntry],
-  );
-
-  const applySort = useCallback((sortFn: (entries: ImageEntry[], direction: string) => ImageEntry[], direction: string) => {
-    setEntries((current) => sortFn(current, direction));
-    setStatus('idle');
-    clearDownload();
+  const applySort = (value: string) => {
+    if (value === 'custom') return;
+    setEntries((current) => sortEntries(current, value));
+    setSortMode(value);
     setAnnouncement('Images reordered.');
     recordAction('sort');
-  }, []);
+  };
 
-  const handleConvert = useCallback(async () => {
-    if (entries.length === 0) return;
-    recordAction('export');
-    setStatus('converting');
-    setProgress(0);
-    try {
-      const blob = await imagesToPdf(
-        entries.map((e) => e.file),
-        setProgress,
-      );
-      setDownloadBlob(blob);
-      prepare(blob, 'images.pdf');
-      setStatus('done');
-      setAnnouncement('Your PDF is ready.');
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'build_pdf_from_images');
-      console.error(err);
-      setStatus('error');
-      setAnnouncement('Conversion failed.');
+  // A tap on Download before the build is done: show the preparing look and deliver when it lands.
+  const onDownloadClick = (event: MouseEvent) => {
+    if (fresh && downloadUrl) {
+      if (!exportedRef.current) recordAction('export');
+      exportedRef.current = false;
+      recordAction('download');
+      return;
     }
-  }, [entries]);
+    event.preventDefault();
+    recordAction('export');
+    exportedRef.current = true;
+    pendingTapRef.current = true;
+    setTapped(true);
+    setAnnouncement('Preparing your PDF.');
+    build.buildNow();
+  };
+
+  // The tap's delivery: the build is fresh and its link is on screen, so the download goes out.
+  useEffect(() => {
+    if (!fresh || !pendingTapRef.current || !downloadUrl) return;
+    pendingTapRef.current = false;
+    setTapped(false);
+    setAnnouncement('Your PDF is ready.');
+    sheetRef.current?.querySelector<HTMLAnchorElement>('a[download]')?.click();
+  }, [fresh, downloadUrl]);
 
   const handleShare = async () => {
     const result = await sharePrepared();
@@ -203,6 +223,42 @@ export default function PdfImageToPdfTool() {
 
   const hasFiles = entries.length > 0;
   const fileSummary = `${entries.length} image${entries.length === 1 ? '' : 's'}`;
+  const tappedBusy = tapped && !fresh && !build.failed;
+
+  const sheet = (
+    <div
+      ref={sheetRef}
+      class={styles.sheet}
+      onPointerEnter={build.buildNow}
+      onFocusIn={build.buildNow}
+      onPointerDown={build.buildNow}
+    >
+      {build.failed ? (
+        <>
+          <ErrorMessage>A file may be damaged - remove it and try again.</ErrorMessage>
+          <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={build.retry}>
+            Try again
+          </button>
+        </>
+      ) : tappedBusy ? (
+        <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} disabled>
+          <ProgressRing progress={build.progress} label="Preparing…" />
+        </button>
+      ) : (
+        <>
+          {/* Silent until a tap: the ready look stays while a change waits for quiet. */}
+          <DownloadButton
+            autoFocus={false}
+            href={fresh && downloadUrl ? downloadUrl : '#'}
+            download={fileName}
+            detail={fresh && blob ? formatFileSize(blob.size) : undefined}
+            onClick={onDownloadClick}
+          />
+          <PdfShareButton visible={shareReady && fresh} onShare={handleShare} />
+        </>
+      )}
+    </div>
+  );
 
   return (
     <BasePdfTool
@@ -217,6 +273,7 @@ export default function PdfImageToPdfTool() {
       fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}
       onClearAll={reset}
       clearSummary={fileSummary}
+      hideIdentity
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
@@ -227,93 +284,59 @@ export default function PdfImageToPdfTool() {
       )}
 
       {hasFiles && (
-        <>
-          <div class={sortToolbarStyles.toolbar} role="toolbar" aria-label="Sort images">
-            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'asc')}>
-              A–Z
-            </button>
-            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'desc')}>
-              Z–A
-            </button>
-            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByDate, 'asc')}>
-              Oldest
-            </button>
-            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByDate, 'desc')}>
-              Newest
-            </button>
+        <div class={styles['loaded-layout']}>
+          <div class={styles.strip}>
+            <ToolShell flush>
+              <FileActions />
+            </ToolShell>
           </div>
 
-          <p class="sr-only" id="reorder-hint">
-            Drag an image by its handle to reorder, or focus an image and press
-            the arrow up or down keys to move it.
-          </p>
+          <div class={styles.controls}>
+            {entries.length > 1 && (
+              <SortMenu label="Order" ariaLabel="Order images" value={sortMode} options={SORT_OPTIONS} onChange={applySort} />
+            )}
+          </div>
 
-          <ul class={styles['file-list']} ref={listRef} aria-describedby="reorder-hint">
-            {entries.map((entry, index) => (
-              <li key={entry.id} class={styles['file-item']} data-id={entry.id}>
-                <span
-                  class={styles['drag-handle']}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${entry.file.name}, position ${index + 1} of ${entries.length}. Drag, or press arrow up or down to move.`}
-                  onKeyDown={(e) => onItemKeyDown(e, entry.id)}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="5" cy="3" r="1.4" fill="currentColor" />
-                    <circle cx="11" cy="3" r="1.4" fill="currentColor" />
-                    <circle cx="5" cy="8" r="1.4" fill="currentColor" />
-                    <circle cx="11" cy="8" r="1.4" fill="currentColor" />
-                    <circle cx="5" cy="13" r="1.4" fill="currentColor" />
-                    <circle cx="11" cy="13" r="1.4" fill="currentColor" />
-                  </svg>
-                </span>
+          <div class={styles.result}>
+            <p class={styles.heading}>
+              <OutputName name={outputName} label="PDF file name" onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)} />
+              <span class={styles['heading-meta']}>· {entries.length} {entries.length === 1 ? 'page' : 'pages'}</span>
+            </p>
+            <p class="sr-only" id="reorder-hint">
+              Drag a page to reorder, or focus a page and press the arrow keys to move it.
+            </p>
+            <ul class={styles.grid} ref={listRef} aria-describedby="reorder-hint">
+              {entries.map((entry, index) => (
+                <li key={entry.id} class={styles.tile} data-id={entry.id}>
+                  <div
+                    class={styles.page}
+                    data-page
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${entry.file.name}, page ${index + 1} of ${entries.length}. Drag, or press an arrow key to move.`}
+                    onKeyDown={(e) => onTileKeyDown(e, entry.id)}
+                  >
+                    <img src={entry.thumbnail} alt="" draggable={false} />
+                    <span class={styles.badge} aria-hidden="true">{index + 1}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class={styles.remove}
+                    aria-label={`Remove ${entry.file.name}`}
+                    onClick={() => removeEntry(entry.id)}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+              <AddImagesTile />
+            </ul>
+          </div>
 
-                <img class={`${styles.thumb} ${styles['is-loaded']}`} src={entry.thumbnail} alt="" width="40" />
-
-                <span class={styles['file-name']}>{entry.file.name}</span>
-
-                <button
-                  type="button"
-                  class={styles['remove-button']}
-                  aria-label={`Remove ${entry.file.name}`}
-                  onClick={() => removeEntry(entry.id)}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {!(status === 'done' && downloadUrl) && (
-            <button
-              type="button"
-              class={`${pdfToolStyles['tool-primary-action']}${status === 'converting' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
-              disabled={entries.length === 0 || status === 'converting'}
-              onClick={handleConvert}
-            >
-              {status === 'converting' ? (
-                <ProgressRing progress={progress} label="Converting…" />
-              ) : (
-                `Convert ${entries.length} image${entries.length === 1 ? '' : 's'} to PDF`
-              )}
-            </button>
-          )}
-
-          {status === 'error' && (
-            <ErrorMessage>
-              A file may be damaged - remove it and try again.
-            </ErrorMessage>
-          )}
-
-          {status === 'done' && downloadUrl && (
-            <>
-              <DownloadButton href={downloadUrl} download="images.pdf" onClick={() => recordAction('download')} />
-              <PdfShareButton visible={shareReady} onShare={handleShare} />
-            </>
-          )}
-        </>
+          {sheet}
+        </div>
       )}
 
       <p class="sr-only" role="status" aria-live="polite">

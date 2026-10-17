@@ -1,0 +1,267 @@
+/* The loaded state: the pages of the PDF are the centre (ux guideline 18),
+   the strip, the order menu and the primary controls are a rail beside them.
+   DOM order is strip, controls, result, sheet, which is also the phone's
+   reading order. Same shape as Compress's loaded layout. */
+.loaded-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'strip'
+    'controls'
+    'result'
+    'sheet';
+  row-gap: 16px;
+  align-items: start;
+  text-align: start;
+}
+
+.strip {
+  grid-area: strip;
+  min-width: 0;
+}
+
+.controls {
+  grid-area: controls;
+  min-width: 0;
+}
+
+.result {
+  grid-area: result;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface-sunken);
+  border-radius: 18px;
+}
+
+/* The output's name and page count, one line: the name ellipsises first. */
+.heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 0.35em;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+}
+
+.heading-meta {
+  flex: none;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.sheet {
+  grid-area: sheet;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet > button:first-child,
+.sheet > a:first-child {
+  margin-top: 0;
+}
+
+@media (min-width: 1024px) {
+  .loaded-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      'result strip'
+      'result controls'
+      'result sheet'
+      'result .';
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+  }
+
+  .strip {
+    margin-bottom: 16px;
+  }
+
+  .controls:not(:empty) {
+    margin-bottom: 4px;
+  }
+
+  .sheet {
+    margin-top: 20px;
+  }
+
+  .result {
+    padding: 20px;
+    min-height: 420px;
+  }
+}
+
+/* Below 1024px the primary controls are the sticky bottom sheet the other
+   tools use (ux guidelines 8). It stays in flow, so it never covers the
+   pages. The sheet bleeds to the card's edge: the card pads 12px below 768px
+   and 1.5rem from 768px to 1023px. */
+@media (max-width: 1023px) {
+  .sheet {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-inline: -12px;
+    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sheet {
+    margin-inline: -1.5rem;
+    padding-inline: 1.5rem;
+  }
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 8px;
+  }
+}
+
+.tile {
+  position: relative;
+  min-width: 0;
+}
+
+/* A page-like box: the image fits inside it whole, never cropped. */
+.page {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  touch-action: manipulation;
+}
+
+.page:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.page img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.badge {
+  position: absolute;
+  inset-block-end: 6px;
+  inset-inline-start: 6px;
+  min-width: 22px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--color-surface);
+  background: var(--color-text);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+/* 36px visible disc inside a 44px hit area. */
+.remove {
+  position: absolute;
+  inset-block-start: -4px;
+  inset-inline-end: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.remove::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-xs);
+}
+
+.remove svg {
+  position: relative;
+}
+
+.remove:hover {
+  color: var(--color-danger);
+}
+
+.remove:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-pill);
+}
+
+.add-tile {
+  min-width: 0;
+}
+
+.add-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-button:hover,
+.add-button:focus-visible {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.is-ghost {
+  opacity: 0.35;
+}
+
+.is-chosen .page {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}

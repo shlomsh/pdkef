@@ -5,7 +5,9 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
 import * as imageToPdfLib from './imageToPdf.js';
-import styles from '../../shell/FileList.module.css';
+import styles from './PdfImageToPdfTool.module.css';
+import outputNameStyles from '../../shell/OutputName.module.css';
+import sortMenuStyles from '../../shell/SortMenu.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
@@ -31,16 +33,24 @@ vi.mock('./imageToPdf.js', () => ({
   UnsupportedImageError: class UnsupportedImageError extends Error {},
 }));
 
+
+const QUIET = { baseMs: 100, stepMs: 50, maxMs: 300, burstWindowMs: 1000 };
+const pdfBlob = () => new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+
 describe('PdfImageToPdfTool UI flow', () => {
   let container;
   let originalCreateObjectURL;
   let originalRevokeObjectURL;
+  const build = () => vi.mocked(imageToPdfLib.imagesToPdf);
 
   beforeEach(() => {
+    vi.useFakeTimers();
     originalCreateObjectURL = window.URL.createObjectURL;
     originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
     window.URL.revokeObjectURL = vi.fn();
+    build().mockClear();
+    build().mockImplementation(() => Promise.resolve(pdfBlob()));
   });
 
   afterEach(() => {
@@ -52,13 +62,14 @@ describe('PdfImageToPdfTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   function mount() {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfImageToPdfTool />, container);
+      render(<PdfImageToPdfTool quietPolicy={QUIET} />, container);
     });
   }
 
@@ -70,6 +81,14 @@ describe('PdfImageToPdfTool UI flow', () => {
     });
   }
 
+  const wait = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+  const tileNames = () => Array.from(container.querySelectorAll(`.${styles.page}`)).map((el) => el.getAttribute('aria-label').split(',')[0]);
+  const removeButtons = () => container.querySelectorAll(`.${styles.remove}`);
+  const downloadLink = () => container.querySelector(`.${pdfToolStyles['download-button']}`);
+  const press = (el, key) => act(async () => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  });
+
   it('renders the initial file dropper zone', () => {
     mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
@@ -77,21 +96,17 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop images here');
   });
 
-  it('lists added images and enables convert with 1 or more files', async () => {
+  it('shows one page tile per image, with a number, and no Convert button', async () => {
     mount();
-    await loadFiles(['one.png']);
+    await loadFiles(['one.png', 'two.png']);
 
-    // The count moved into the read-only identity line when the header row
-    // it used to share with Clear all was dissolved.
     const identity = container.querySelector(`.${toolShellStyles.name}`);
-    expect(identity.textContent).toContain('1 image');
-
-    const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
-    expect(fileNames).toEqual(['one.png']);
-
-    const convertBtn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(convertBtn.disabled).toBe(false);
-    expect(convertBtn.textContent).toContain('Convert 1 image to PDF');
+    expect(identity.textContent).toContain('2 images');
+    expect(tileNames()).toEqual(['one.png', 'two.png']);
+    expect(Array.from(container.querySelectorAll(`.${styles.badge}`)).map((b) => b.textContent)).toEqual(['1', '2']);
+    expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
+    expect(container.textContent).not.toContain('Convert');
+    expect(container.querySelector(`.${styles['add-button']}`).textContent).toContain('Add images');
   });
 
   it('revokes every thumbnail URL on unmount, including ones added after the first render', async () => {
@@ -117,102 +132,189 @@ describe('PdfImageToPdfTool UI flow', () => {
   it('skips non-image files and shows a hint', async () => {
     mount();
     const input = container.querySelector('input[type="file"]');
-    const files = [makeImageFile('doc.pdf', 'application/pdf')];
     await act(async () => {
-      setInputFiles(input, files);
+      setInputFiles(input, [makeImageFile('doc.pdf', 'application/pdf')]);
     });
-
     const hint = container.querySelector(`.${pdfToolStyles['hint-message']}`);
     expect(hint.textContent).toContain('not a JPG or PNG');
   });
 
-  it('converts images and produces a download link', async () => {
+  it('builds at once on the first pick, without a button, and offers the download with its size', async () => {
     const nativeShare = mockNativeFileShare();
     mount();
     await loadFiles(['doc1.png', 'doc2.jpg']);
+    await wait(0);
 
-    const convertBtn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(convertBtn.textContent).toContain('Convert 2 images to PDF');
-
-    await act(async () => {
-      convertBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(imageToPdfLib.imagesToPdf).toHaveBeenCalled();
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
-    expect(downloadBtn).not.toBeNull();
-    expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
-    expect(downloadBtn.getAttribute('download')).toBe('images.pdf');
+    expect(build()).toHaveBeenCalledTimes(1);
+    expect(build().mock.calls[0][0].map((f) => f.name)).toEqual(['doc1.png', 'doc2.jpg']);
+    expect(build().mock.calls[0][2]).toBeInstanceOf(AbortSignal);
+    const link = downloadLink();
+    expect(link.getAttribute('href')).toBe('blob:testurl');
+    expect(link.getAttribute('download')).toBe('doc1.pdf');
+    expect(link.textContent).toContain('Download PDF');
+    expect(link.textContent).toContain('8 B');
 
     const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
-    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('images.pdf');
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('doc1.pdf');
     nativeShare.restore();
   });
 
-  it('swaps Convert for Download once converted, and brings Convert back on a change', async () => {
+  it('builds a burst of changes once, after the quiet wait, and keeps the ready look meanwhile', async () => {
     mount();
-    await loadFiles(['one.png', 'two.png']);
-    const primaries = () => container.querySelectorAll(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(primaries().length).toBe(1);
-    await act(async () => {
-      primaries()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-    expect(primaries().length).toBe(0);
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+    await loadFiles(['a.png', 'b.png', 'c.png']);
+    await wait(0);
+    expect(build()).toHaveBeenCalledTimes(1);
 
-    await act(async () => {
-      container.querySelectorAll(`.${styles['remove-button']}`)[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(primaries().length).toBe(1);
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    await act(async () => { removeButtons()[0].click(); });
+    await wait(20);
+    await act(async () => { removeButtons()[0].click(); });
+    await wait(60);
+    expect(build()).toHaveBeenCalledTimes(1);
+    // Silent: no ring, the button is still the download button.
+    expect(downloadLink()).not.toBeNull();
+    expect(container.textContent).not.toContain('Preparing');
+
+    await wait(300);
+    expect(build()).toHaveBeenCalledTimes(2);
+    expect(build().mock.calls[1][0].map((f) => f.name)).toEqual(['c.png']);
   });
 
-  it('removes an image when the remove button is clicked', async () => {
+  it('shows Preparing on a tap before ready, then delivers the download when the build lands', async () => {
+    const clicks = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount();
-    await loadFiles(['one.png', 'two.png']);
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    let release;
+    build().mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(pdfBlob()); }));
+    await act(async () => { removeButtons()[1].click(); });
 
-    let fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
-    expect(fileNames).toEqual(['one.png', 'two.png']);
+    await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await wait(0);
+    expect(container.querySelector(`.${pdfToolStyles['is-processing']}`).textContent).toContain('Preparing');
+    expect(clicks).not.toHaveBeenCalled();
 
-    const removeBtns = container.querySelectorAll(`.${styles['remove-button']}`);
-    await act(async () => {
-      removeBtns[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
-    expect(fileNames).toEqual(['two.png']);
+    await act(async () => { release(); });
+    await wait(0);
+    expect(container.querySelector(`.${pdfToolStyles['is-processing']}`)).toBeNull();
+    expect(downloadLink().getAttribute('href')).toBe('blob:testurl');
+    expect(clicks).toHaveBeenCalledTimes(1);
   });
 
-  it('attaches a Sortable instance to the file list once files are added', async () => {
+  it('names the download from the editable output name', async () => {
+    mount();
+    await loadFiles(['holiday.jpg', 'b.png']);
+    await wait(0);
+    const nameEl = () => container.querySelector(`.${outputNameStyles.name}`);
+    expect(nameEl().textContent).toBe('holiday');
+
+    await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+    await act(async () => { nameEl().textContent = 'Trip album'; });
+    await press(nameEl(), 'Enter');
+    await wait(0);
+
+    expect(nameEl().textContent).toBe('Trip album');
+    expect(downloadLink().getAttribute('download')).toBe('Trip album.pdf');
+  });
+
+  it('removes an image when its x is clicked, and changes the order key', async () => {
+    mount();
+    await loadFiles(['one.png', 'two.png']);
+    await wait(0);
+    expect(removeButtons()[0].getAttribute('aria-label')).toBe('Remove one.png');
+    await act(async () => { removeButtons()[0].click(); });
+    expect(tileNames()).toEqual(['two.png']);
+    await wait(500);
+    expect(build()).toHaveBeenCalledTimes(2);
+  });
+
+  it('moves a tile with the arrow keys, announces it, and builds the new order', async () => {
+    mount();
+    await loadFiles(['one.png', 'two.png', 'three.png']);
+    await wait(0);
+    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    await press(tiles()[0], 'ArrowRight');
+    expect(tileNames()).toEqual(['two.png', 'one.png', 'three.png']);
+    expect(container.querySelector('[role="status"][aria-live="polite"]').textContent).toBe('one.png moved to position 2 of 3.');
+    await press(tiles()[1], 'ArrowDown');
+    expect(tileNames()).toEqual(['two.png', 'three.png', 'one.png']);
+    await press(tiles()[2], 'ArrowRight');
+    expect(tileNames()).toEqual(['two.png', 'three.png', 'one.png']);
+    await press(tiles()[2], 'ArrowLeft');
+    expect(tileNames()).toEqual(['two.png', 'one.png', 'three.png']);
+
+    await wait(600);
+    expect(build()).toHaveBeenCalledTimes(2);
+    expect(build().mock.calls[1][0].map((f) => f.name)).toEqual(['two.png', 'one.png', 'three.png']);
+  });
+
+  it('goes back to an order already built without building again', async () => {
+    mount();
+    await loadFiles(['one.png', 'two.png']);
+    await wait(0);
+    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    await press(tiles()[0], 'ArrowRight');
+    await wait(600);
+    expect(build()).toHaveBeenCalledTimes(2);
+    await press(tiles()[1], 'ArrowLeft');
+    await wait(600);
+    expect(build()).toHaveBeenCalledTimes(2);
+    expect(downloadLink().getAttribute('href')).toBe('blob:testurl');
+  });
+
+  it('orders by name from the Order menu, then shows Your order after a manual move', async () => {
+    mount();
+    await loadFiles(['b.png', 'c.png', 'a.png']);
+    await wait(0);
+    const trigger = () => container.querySelector('button[aria-haspopup="listbox"]');
+    expect(trigger().getAttribute('aria-label')).toBe('Order images: Your order');
+    await act(async () => trigger().click());
+    await act(async () => { document.querySelector(`.${sortMenuStyles['sort-option']}[data-value="nameAsc"]`).click(); });
+    expect(tileNames()).toEqual(['a.png', 'b.png', 'c.png']);
+    expect(trigger().getAttribute('aria-label')).toBe('Order images: Name A–Z');
+
+    await press(container.querySelector(`.${styles.page}`), 'ArrowRight');
+    expect(trigger().getAttribute('aria-label')).toBe('Order images: Your order');
+  });
+
+  it('attaches a Sortable instance to the page grid, with no handle and a touch hold', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');
     mount();
-
     expect(createSpy).not.toHaveBeenCalled();
-
     await loadFiles(['a.png', 'b.png']);
-
-    const list = container.querySelector(`ul.${styles['file-list']}`);
-    expect(list).not.toBeNull();
+    const grid = container.querySelector(`ul.${styles.grid}`);
     expect(createSpy).toHaveBeenCalledTimes(1);
-    expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));
+    expect(createSpy).toHaveBeenCalledWith(grid, expect.objectContaining({ delay: 150, delayOnTouchOnly: true }));
+    expect(createSpy.mock.calls[0][1].handle).toBeUndefined();
+  });
+
+  it('shows the damaged-file message with Try again, which builds again', async () => {
+    mount();
+    build().mockImplementationOnce(() => Promise.reject(new Error('bad image')));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await loadFiles(['a.png']);
+    await wait(0);
+    expect(container.querySelector('[role="alert"]').textContent).toContain('A file may be damaged - remove it and try again.');
+    const retry = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    expect(retry.textContent).toContain('Try again');
+    await act(async () => { retry.click(); });
+    await wait(0);
+    expect(build()).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(downloadLink()).not.toBeNull();
   });
 
   it('records what the person did, by name only, in order', async () => {
     resetActionTrailForTests();
     mount();
     await loadFiles(['a.png', 'b.jpg']);
-    await act(async () => {
-      container.querySelector(`.${styles['remove-button']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise((r) => setTimeout(r, 20));
-    });
-    expect(recentActions()).toEqual(['add_files', 'remove_file', 'export']);
+    await wait(0);
+    await act(async () => { removeButtons()[0].click(); });
+    await wait(600);
+    expect(recentActions()).toEqual(['add_files', 'remove_file']);
+    await act(async () => { downloadLink().addEventListener('click', (e) => e.preventDefault()); downloadLink().click(); });
+    expect(recentActions()).toEqual(['add_files', 'remove_file', 'export', 'download']);
   });
 
   it('loads photos handed off from the home page, in pick order', async () => {
@@ -223,11 +325,8 @@ describe('PdfImageToPdfTool UI flow', () => {
       ],
     });
     mount();
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
+    await wait(0);
     expect(takeHandoffMock).toHaveBeenCalledWith('image-to-pdf');
-    const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
-    expect(fileNames).toEqual(['first.jpg', 'second.png']);
+    expect(tileNames()).toEqual(['first.jpg', 'second.png']);
   });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import Popover from '../../../shell/Popover.tsx';
-import styles from './MergeRail.module.css';
+import Popover from './Popover.tsx';
+import styles from './SortMenu.module.css';
 
 export interface SortMenuOption {
   value: string;
