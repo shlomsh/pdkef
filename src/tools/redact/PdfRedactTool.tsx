@@ -4,6 +4,7 @@ import RedactVerb from './verb/RedactVerb.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
+import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
@@ -367,6 +368,7 @@ export default function PdfRedactTool() {
   // ENC-02: a protected PDF is not a failed load. It gets one quiet state in place of the editor
   // (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
+  const retireDocument = useDocumentRetirement(pdfDocument);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
@@ -455,7 +457,7 @@ export default function PdfRedactTool() {
     // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
     const presetElements = preset.elements || [];
     await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus: setLoadStatus, setAnnouncement,
+      file: selected, bytes, restored, loadIdRef, loadControllerRef, retireDocument, clearDraft, setStatus: setLoadStatus, setAnnouncement,
       onNeedsUnlock: (kind) => {
         setNeedsUnlock(kind);
         setAnnouncement(kind === 'needs-password' ? 'This PDF has a password. Unlock opens it.' : 'This PDF is protected. Unlock takes the protection off.');

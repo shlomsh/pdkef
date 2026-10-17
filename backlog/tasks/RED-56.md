@@ -1,10 +1,9 @@
 ---
 id: "RED-56"
 title: "Redact: defer old-document dispose until after the pdfDocument prop swaps"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "next"
 depends_on: []
 ---
 
@@ -32,3 +31,13 @@ symptom; this ticket removes the cause.
 
 Dispose the old document only after the `pdfDocument` prop has swapped, so no code path uses a destroyed
 document. The `isStale` and `loadingTask.destroyed` guards can then be dropped, or kept as defense.
+
+## Done 2026-10-17
+
+`loadPdf` takes an optional `retireDocument(document, release)`. A document already handed to `onDocument`
+is no longer destroyed by `cancel()`; it goes to `useDocumentRetirement` (`src/editor-ui/hooks/`), which
+releases it in an effect after the first commit that no longer renders it, and on unmount. Redact and Sign
+both pass it. A document never handed over (errors, timeouts, owner-restricted) is still destroyed at once.
+The `isStale` and `loadingTask.destroyed` guards from 2ccc0eed stay as defense for in-flight async reads.
+Test: `useDocumentRetirement.test.tsx` (A then B: A survives the swap, is destroyed after it, never used
+after; unmount; published-but-never-committed).
