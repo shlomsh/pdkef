@@ -24,7 +24,9 @@ async function openAndPick(page, name, buffer) {
   await (await chooser).setFiles({ name, mimeType: 'application/pdf', buffer });
 }
 
-const shellWidth = (page) => page.locator('[data-tool-shell]').evaluate((el) => el.getBoundingClientRect().width);
+// The card itself, found from the shell (which now sits in the card's rail, HERO-07, so its own width is
+// the rail's, not the card's).
+const shellWidth = (page) => page.locator('[data-tool-shell]').evaluate((el) => el.closest('[data-tool-loaded]').getBoundingClientRect().width);
 
 test('the card is full width at 375 in every Unlock and Protect state', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
@@ -54,15 +56,8 @@ test('the card is full width at 375 in every Unlock and Protect state', async ({
   await expect(page.getByRole('link', { name: /Download Protected PDF/ })).toBeVisible({ timeout: 10_000 });
   widths['protect done'] = await shellWidth(page);
 
-  // Full width means the shell fills what #app offers inside the card's own padding and border.
-  // (The unlock done state's width is content-dependent on a short file name, so it is not the yardstick.)
-  const available = await page.locator('#app').evaluate((app) => {
-    const card = app.querySelector('[data-tool-shell]').parentElement;
-    const style = getComputedStyle(card);
-    const inset = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
-      + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
-    return app.getBoundingClientRect().width - inset;
-  });
+  // Full width means the card fills what #app offers.
+  const available = await page.locator('#app').evaluate((app) => app.getBoundingClientRect().width);
   expect(available).toBeGreaterThan(250);
   for (const [state, width] of Object.entries(widths)) {
     expect(Math.abs(width - available), `${state}: ${width}px against ${available}px`).toBeLessThanOrEqual(1);
