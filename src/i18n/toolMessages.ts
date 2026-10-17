@@ -1071,6 +1071,7 @@ export interface ToImageMessages {
   previewBringBack: string;
   converting: string;
   convertFailed: string;
+  buildFailed: string;
   cannotConvert: string;
   /** '{format}' is PNG or JPG. */
   downloadOne: string;
@@ -1118,8 +1119,8 @@ const englishToImageMessages: ToImageMessages = {
   layoutCombinedHint: 'The pages are stacked into one long image.',
   loadingPages: 'Loading document pages...',
   pickAtLeastOne: 'Pick at least one page',
-  hintAllIn: 'Every page is in. Click a page to leave it out.',
-  hintSomeOut: 'Dimmed pages are left out. Click one to bring it back.',
+  hintAllIn: 'Every page is in. Select a page to leave it out.',
+  hintSomeOut: 'Dimmed pages are left out. Select one to bring it back.',
   pageRow: 'Page {number}',
   tileLeftOut: 'left out',
   tallCaptionOne: 'One image, 1 page',
@@ -1136,6 +1137,7 @@ const englishToImageMessages: ToImageMessages = {
   previewBringBack: 'Bring back',
   converting: 'Converting…',
   convertFailed: 'The file may be damaged or password-protected - try another PDF.',
+  buildFailed: 'Could not make the images. Tap to try again.',
   cannotConvert: 'Could not make the images',
   downloadOne: 'Download {format}',
   downloadMany: 'Download {count} {format}s',
@@ -1183,8 +1185,8 @@ const hebrewToImageMessages: ToImageMessages = {
   layoutCombinedHint: 'העמודים מונחים זה על זה בתמונה ארוכה אחת.',
   loadingPages: 'טוענים את עמודי המסמך...',
   pickAtLeastOne: 'בחרו לפחות עמוד אחד',
-  hintAllIn: 'כל העמודים כלולים. לחצו על עמוד כדי להשאיר אותו בחוץ.',
-  hintSomeOut: 'עמודים עמומים נשארים בחוץ. לחצו על עמוד כדי להחזיר אותו.',
+  hintAllIn: 'כל העמודים כלולים. בחרו עמוד כדי להשאיר אותו בחוץ.',
+  hintSomeOut: 'עמודים עמומים נשארים בחוץ. בחרו עמוד כדי להחזיר אותו.',
   pageRow: 'עמוד {number}',
   tileLeftOut: 'בחוץ',
   tallCaptionOne: 'תמונה אחת, עמוד אחד',
@@ -1201,6 +1203,7 @@ const hebrewToImageMessages: ToImageMessages = {
   previewBringBack: 'להחזיר',
   converting: 'ממירים…',
   convertFailed: 'ייתכן שהקובץ פגום או מוגן בסיסמה. נסו קובץ PDF אחר.',
+  buildFailed: 'לא הצלחנו ליצור את התמונות. הקישו כדי לנסות שוב.',
   cannotConvert: 'לא הצלחנו להכין את התמונות',
   downloadOne: 'הורדת {format}',
   downloadMany: 'הורדת {count} קובצי {format}',

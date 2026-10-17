@@ -115,6 +115,28 @@ describe('convertPdfToImages library integration with real fixtures', () => {
     expect(images.map((image) => image.pageNumber)).toEqual([1, 2]);
   });
 
+  it('encodes each page right after rendering it and drops its canvas before the next', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const seen = [];
+    const widthsOfEarlier = [];
+    const original = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+      widthsOfEarlier.push(seen.map((c) => c.width));
+      seen.push(this);
+      return original.call(this, callback, type);
+    };
+    try {
+      const images = await convertPdfToImages(file, { format: 'image/png', layout: 'separate' });
+      expect(images.map((image) => image.pageNumber)).toEqual([1, 2, 3, 4, 5]);
+    } finally {
+      HTMLCanvasElement.prototype.toBlob = original;
+    }
+    expect(seen.length).toBe(5);
+    expect(new Set(seen).size).toBe(5);
+    widthsOfEarlier.forEach((widths) => expect(widths.every((w) => w === 0)).toBe(true));
+    expect(seen[0].width).toBe(0);
+  });
+
   it('stops between pages with an AbortError when its signal fires', async () => {
     const file = getFixtureFile('num-5.pdf');
     const controller = new AbortController();

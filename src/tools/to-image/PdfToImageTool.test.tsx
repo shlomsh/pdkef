@@ -2,6 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import * as pdfjsMock from 'pdfjs-dist';
 import PdfToImageTool from './PdfToImageTool.tsx';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -72,6 +73,12 @@ vi.mock('pdfjs-dist', () => {
 });
 
 
+const { lifecycle } = vi.hoisted(() => ({ lifecycle: vi.fn() }));
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: lifecycle,
+}));
+
 const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
 
 // SITE-42: the home page hands picked files over through the draft store's hand-off slot.
@@ -109,6 +116,7 @@ describe('PdfToImageTool', () => {
     vi.useFakeTimers();
     resetActionTrailForTests();
     convertCalls.n = 0;
+    lifecycle.mockClear();
     convertOverride.fn = null;
     // jsdom has no canvas backend: thumbnails.js needs a context and a data URL.
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function () {
@@ -374,8 +382,106 @@ describe('PdfToImageTool', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await open(2);
     await advance(1700);
+    expect(container.textContent).toContain('Could not make the images. Tap to try again.');
+    expect(container.textContent).not.toContain('damaged or password-protected');
+    expect(primary().getAttribute('data-state')).toBe('error');
+  });
+
+  it('retries a failed build on a tap on the primary, showing preparing and then the result', async () => {
+    let fail = true;
+    convertOverride.fn = async (file, opts) => {
+      if (fail) throw new Error('boom');
+      return defaultConvert(file, opts);
+    };
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await open(2);
+    await advance(1700);
+    expect(primary().getAttribute('data-state')).toBe('error');
+    fail = false;
+    let finish;
+    convertOverride.fn = (file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); });
+    await act(async () => primary().click());
+    expect(primary().getAttribute('data-state')).toBe('preparing');
+    expect(container.textContent).not.toContain('Tap to try again');
+    expect(convertCalls.n).toBe(2);
+    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
+    expect(primary().getAttribute('data-state')).toBe('saved');
+  });
+
+  it('shows the load error when the PDF cannot be read', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const original = pdfjsMock.getDocument.getMockImplementation();
+    pdfjsMock.getDocument.mockImplementation(() => ({
+      promise: Promise.reject(new Error('bad pdf')),
+      destroy: vi.fn(() => Promise.resolve()),
+    }));
+    try {
+      await open(3);
+      await advance(100);
+    } finally {
+      pdfjsMock.getDocument.mockImplementation(original);
+    }
     expect(container.textContent).toContain('damaged or password-protected');
     expect(primary().getAttribute('data-state')).toBe('error');
+  });
+
+  it('a Download tap after a no-op selector edit still lands the images', async () => {
+    await open(5);
+    await advance(1700);
+    expect(primary().textContent).toMatch(/KB/);
+    await type('1-5,');
+    await type('1-5');
+    await act(async () => primary().click());
+    await advance(100);
+    expect(primary().getAttribute('data-state')).toBe('saved');
+    expect(primary().textContent).toMatch(/KB/);
+  });
+
+  it('keeps the built images when the typed selection parses to the same pages', async () => {
+    await open(5);
+    await advance(1700);
+    URL.revokeObjectURL.mockClear();
+    await type('1,2,3,4,5');
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(primary().textContent).toMatch(/KB/);
+  });
+
+  it('does not reset the build progress when the primary is tapped mid-build', async () => {
+    let report;
+    convertOverride.fn = (file, opts) => new Promise((resolve) => {
+      report = opts.onProgress;
+      void resolve;
+    });
+    await open(3);
+    await advance(1700);
+    await act(async () => { report(0.6); });
+    await act(async () => primary().click());
+    expect(primary().textContent).toContain('60%');
+  });
+
+  it('counts a per-tile download like a Download tap', async () => {
+    await open(3);
+    await advance(1700);
+    const link = container.querySelector(`.${styles['tile-download']}`);
+    link.addEventListener('click', (e) => e.preventDefault());
+    await act(async () => link.click());
+    expect(recentActions()).toContain('download');
+    const events = lifecycle.mock.calls.map((c) => c[0]);
+    expect(events).toContain('tool_operation_started');
+    expect(events).toContain('tool_result_ready');
+  });
+
+  it('hides the Pages field and the leave-out hint for a single-page PDF', async () => {
+    await open(1);
+    expect(field()).toBeNull();
+    expect(container.querySelector(`.${styles['result-hint']}`)).toBeNull();
+    expect(container.querySelector(`.${styles.grid}`).getAttribute('data-single')).toBe('true');
+  });
+
+  it('words the hint for taps and clicks alike', async () => {
+    await open(3);
+    expect(container.textContent).toContain('Select a page to leave it out.');
+    expect(container.textContent).not.toContain('Click a page');
   });
 
   it('loads a PDF handed off from the home page as if picked', async () => {
