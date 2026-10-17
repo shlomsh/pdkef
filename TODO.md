@@ -6,6 +6,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Tool pages: show the verb
+
+- [HERO-07](backlog/tasks/HERO-07.md) P1 · An output at the centre for the tools that show none: PDF to Image, Compress Image, Unlock and Protect, Image to PDF (in progress)
+- [HERO-08](backlog/tasks/HERO-08.md) P2 · Redact on a phone folds its hero once loaded, and the editors' airplane line follows every other tool (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 8 then, 24 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 7 then, 24 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -47,22 +47,18 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |  |
+| SNG-24 | P3 | [SNG-24](backlog/tasks/SNG-24.md) · Sign on a phone: a one-line hero once a file is open, without moving the field toolbar |  |
 
 ## Tool pages: show the verb
 
 Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop.
 
-### Then, in order
+### Up next
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| HERO-07 | P1 | [HERO-07](backlog/tasks/HERO-07.md) · An output at the centre for the tools that show none: PDF to Image, Compress Image, Unlock and Protect, Image to PDF |  |
-
-### Parked
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| HERO-08 | P2 | [HERO-08](backlog/tasks/HERO-08.md) · Sign and Redact on a phone: a one-line hero once loaded, without moving the field toolbar |  |
+| HERO-07 | P1 | [HERO-07](backlog/tasks/HERO-07.md) · An output at the centre for the tools that show none: PDF to Image, Compress Image, Unlock and Protect, Image to PDF | In progress |
+| HERO-08 | P2 | [HERO-08](backlog/tasks/HERO-08.md) · Redact on a phone folds its hero once loaded, and the editors' airplane line follows every other tool | In progress |
 
 ## Form detector accuracy
 
