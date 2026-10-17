@@ -29,7 +29,7 @@ function usePageImage(source: Blob | null, quiet: () => boolean): { image: strin
       } catch (err) {
         // The old image or the placeholder stays; the preview is never worth an error in the person's way.
         if (!current) return;
-        if (!quiet()) reportError('pdf_render', err, 'render_compare_preview');
+        if (!quiet()) reportError('pdf_render', err, 'render_security_preview');
         setSettled(source);
       }
     })();
