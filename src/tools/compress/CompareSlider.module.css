@@ -99,4 +99,15 @@
 .compare-fill {
   max-width: none;
   touch-action: pan-y;
+  /* clip, not hidden: hidden would make the slider the grip's scroll container and the sticky grip below
+     would never move. clip still rounds the corners. */
+  overflow: clip;
+}
+
+/* A full-width page is taller than the screen, so the grip at the page's middle sat below the fold. Sticky
+   on both edges at 50% of the dialog body holds it at the middle of what is on screen, clamped to the page. */
+.compare-fill .compare-handle-grip {
+  position: sticky;
+  top: calc(50% - 22px);
+  bottom: calc(50% - 22px);
 }
