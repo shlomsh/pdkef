@@ -1,10 +1,9 @@
 ---
 id: "HERO-07"
 title: "An output at the centre for the tools that show none: PDF to Image, Compress Image, Unlock and Protect, Image to PDF"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "tool-pages"
-horizon: "now"
 depends_on: ["HERO-06"]
 ---
 
@@ -33,4 +32,5 @@ measured at 1440x900 and 375x812 before it lands.
   protected, Protected), the password and its explicit primary in the rail. Landed 2026-10-17.
 - [x] Compress Image: already met by HERO-06's Compress rebuild (the before/after slider is the centre).
 - [x] Split and PDF to Image share `src/shell/PageToggleTile.tsx`, so the keyboard reaches the magnifier.
-- [ ] Edit Pages keeps its primary until an edit exists, pinned on a phone with an honest page count.
+- [x] Edit Pages keeps its primary until an edit exists, pinned on a phone (sticky sheet below 1024px) with
+  an honest page count ("Apply Changes · 6 pages"). Landed 2026-10-17.

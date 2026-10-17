@@ -1,10 +1,9 @@
 ---
 id: "HERO-08"
 title: "Redact on a phone folds its hero once loaded, and the editors' airplane line follows every other tool"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "tool-pages"
-horizon: "now"
 depends_on: []
 ---
 
@@ -17,7 +16,7 @@ sideways at 1.8x pinch zoom (anchor x 389.9 to 240.9), so the fold was left out 
 
 *Re-scoped 2026-10-17.* Sign's phone layout is frozen for patches in favour of the next generation
 ([docs/sign-next-gen.md](../../docs/sign-next-gen.md)), so Sign's fold moved to SNG-24 and this ticket
-covers Redact and the page chrome both editors share.
+covers Redact (its fold and its airplane line).
 
 Measured at 393x852 (2026-10-15, and again 2026-10-17): the empty-state sheet's top ranges from 253px
 (Merge) to 472px (Sign); both editors render the "Turn on airplane mode" line above the card (Redact: line
@@ -31,6 +30,8 @@ Recorded as intended, not changed:
 
 ## Acceptance
 
-- [ ] Redact on a 375px phone shows a one-line hero once loaded; Sign's hero is unchanged (SNG-24).
-- [ ] The airplane line sits below the card on Sign and Redact, as on every other tool.
-- [ ] Sign's toolbar-zoom spec and the tool-layout and first-screen guards stay green.
+- [x] Redact on a 375px phone shows a one-line hero once loaded; Sign's hero is unchanged (SNG-24).
+- [x] The airplane line sits below the card on Redact, as on every other tool. On Sign it stays above the
+  card: below it, the form moved up and the toolbar-zoom spec saw the same 149px jump as the fold, so Sign's
+  line moved to SNG-24 with its fold.
+- [x] Sign's toolbar-zoom spec and the tool-layout and first-screen guards stay green.
