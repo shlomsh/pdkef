@@ -59,10 +59,10 @@ export function useImagesPdfBuild(entries: ImageEntry[], urgent: boolean, quietP
       },
       onError: (k, err: any) => {
         // expected: a superseded build is aborted on purpose and is not a failure
-        if (err?.name === 'AbortError' || k !== keyRef.current) return;
+        if (err?.name === 'AbortError') return;
         reportError('pdf_tool_run', err, 'build_pdf_from_images');
         console.error(err);
-        setFailedKey(k);
+        if (k === keyRef.current) setFailedKey(k);
       },
     });
     preparerRef.current = preparer;

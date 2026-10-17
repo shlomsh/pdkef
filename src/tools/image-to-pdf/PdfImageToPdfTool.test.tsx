@@ -14,6 +14,12 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
+
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: vi.fn(),
+}));
 
 function makeImageFile(name, type = 'image/png') {
   return new File(['fake-image-bytes'], name, { type });
@@ -328,5 +334,154 @@ describe('PdfImageToPdfTool UI flow', () => {
     await wait(0);
     expect(takeHandoffMock).toHaveBeenCalledWith('image-to-pdf');
     expect(tileNames()).toEqual(['first.jpg', 'second.png']);
+  });
+
+  const resultEvents = () => reportToolLifecycleEvent.mock.calls.filter(([event]) => event === 'tool_result_ready');
+
+  it('reports no result for background builds, and exactly one for a tap then delivery', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    reportToolLifecycleEvent.mockClear();
+    mount();
+    await loadFiles(['a.png', 'b.png', 'c.png']);
+    await wait(0);
+    await act(async () => { removeButtons()[0].click(); });
+    await wait(600);
+    await act(async () => { removeButtons()[0].click(); });
+    await wait(600);
+    expect(build()).toHaveBeenCalledTimes(3);
+    expect(resultEvents()).toHaveLength(0);
+
+    await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await wait(0);
+    expect(resultEvents()).toHaveLength(1);
+  });
+
+  const tapDownload = () => act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+
+  it('does not deliver a stale tap after the only image is removed and a good one is added', async () => {
+    const clicks = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let fail;
+    build().mockImplementationOnce(() => new Promise((_, reject) => { fail = () => reject(new Error('bad image')); }));
+    mount();
+    await loadFiles(['a.png']);
+    await wait(0);
+    await tapDownload();
+    await act(async () => { fail(); });
+    await wait(0);
+    await act(async () => { removeButtons()[0].click(); });
+    await loadFiles(['b.png']);
+    await wait(600);
+    expect(build()).toHaveBeenCalledTimes(2);
+    expect(clicks).not.toHaveBeenCalled();
+  });
+
+  it('records export again on the first tap after Clear all', async () => {
+    resetActionTrailForTests();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    build().mockImplementationOnce(() => new Promise(() => {}));
+    mount();
+    await loadFiles(['a.png']);
+    await wait(0);
+    const exports = () => recentActions().filter((a) => a === 'export').length;
+    await tapDownload();
+    expect(exports()).toBe(1);
+    const byText = (t) => Array.from(document.querySelectorAll('button')).filter((b) => b.textContent.trim() === t);
+    await act(async () => { (byText('Clear all')[0] ?? byText('Clear')[0]).click(); });
+    await act(async () => { byText('Clear all').at(-1).click(); });
+    expect(container.querySelector(`.${styles.grid}`)).toBeNull();
+    await loadFiles(['b.png']);
+    await wait(0);
+    await tapDownload();
+    expect(exports()).toBe(2);
+  });
+
+  it('keeps the size and Share on screen while a change waits for quiet', async () => {
+    const nativeShare = mockNativeFileShare();
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    expect(downloadLink().textContent).toContain('8 B');
+    await act(async () => { removeButtons()[0].click(); });
+    await wait(20);
+    expect(downloadLink().textContent).toContain('8 B');
+    const share = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    expect(share).not.toBeNull();
+    await act(async () => share.click());
+    expect(nativeShare.share).not.toHaveBeenCalled();
+    nativeShare.restore();
+  });
+
+  it('keeps the same focused anchor while a tapped build is busy', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    build().mockImplementationOnce(() => new Promise(() => {}));
+    await act(async () => { removeButtons()[1].click(); });
+    const before = downloadLink();
+    await act(async () => { before.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await wait(0);
+    const busy = container.querySelector(`.${pdfToolStyles['is-processing']}`);
+    expect(busy).toBe(before);
+    expect(busy.tagName).toBe('A');
+    expect(busy.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('moves focus to the next tile after removing one, or the previous if it was last', async () => {
+    mount();
+    await loadFiles(['a.png', 'b.png', 'c.png']);
+    await wait(0);
+    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    await act(async () => { removeButtons()[1].click(); });
+    expect(document.activeElement).toBe(tiles()[1]);
+    expect(tiles()[1].getAttribute('aria-label')).toContain('c.png');
+    await act(async () => { removeButtons()[1].click(); });
+    expect(document.activeElement).toBe(tiles()[0]);
+  });
+
+  it('ignores arrow keys with a modifier, and does not swallow them at the ends', async () => {
+    mount();
+    await loadFiles(['one.png', 'two.png']);
+    await wait(0);
+    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    const fire = (el, init) => { const e = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }); el.dispatchEvent(e); return e; };
+    let e;
+    await act(async () => { e = fire(tiles()[0], { key: 'ArrowRight', shiftKey: true }); });
+    expect(e.defaultPrevented).toBe(false);
+    expect(tileNames()).toEqual(['one.png', 'two.png']);
+    await act(async () => { e = fire(tiles()[0], { key: 'ArrowLeft' }); });
+    expect(e.defaultPrevented).toBe(false);
+    await act(async () => { e = fire(tiles()[0], { key: 'ArrowRight' }); });
+    expect(e.defaultPrevented).toBe(true);
+  });
+
+  it('keeps focus on the moved tile through repeated keyboard moves', async () => {
+    mount();
+    await loadFiles(['one.png', 'two.png', 'three.png']);
+    await wait(0);
+    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    tiles()[0].focus();
+    await press(tiles()[0], 'ArrowRight');
+    expect(document.activeElement).toBe(tiles()[1]);
+    await press(tiles()[1], 'ArrowRight');
+    expect(document.activeElement).toBe(tiles()[2]);
+  });
+
+  it('announces a repeated message again', async () => {
+    mount();
+    await loadFiles(['b.png', 'a.png']);
+    await wait(0);
+    const live = () => container.querySelector('[role="status"][aria-live="polite"]').textContent;
+    const trigger = () => container.querySelector('button[aria-haspopup="listbox"]');
+    const pick = async (v) => {
+      await act(async () => trigger().click());
+      await act(async () => { document.querySelector(`.${sortMenuStyles['sort-option']}[data-value="${v}"]`).click(); });
+    };
+    await pick('nameAsc');
+    const first = live();
+    await pick('nameDesc');
+    expect(live()).not.toBe(first);
+    expect(live().trim()).toBe('Images reordered.');
   });
 });

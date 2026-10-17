@@ -302,14 +302,14 @@ minus three files it landed differently, plus one addition:
 
 | Tool | Island + test | Tool-owned components | Notes |
 | --- | --- | --- | --- |
-| `merge` | `PdfMergeTool.{tsx,test.tsx}` | `MergeTool/` (whole folder, ARCH-18) | `SortToolbar.module.css`'s header comment cites "MERGE-06," but its only real consumer today is `PdfImageToPdfTool.tsx` (verified: it is not imported, only mentioned in a comment, by anything Merge-owned) - see `tools/image-to-pdf` below. |
+| `merge` | `PdfMergeTool.{tsx,test.tsx}` | `MergeTool/` (whole folder, ARCH-18) | The sort control is `SortMenu` in `src/shell` (two consumers, Merge and Image to PDF); the old `SortToolbar.module.css` is gone. |
 | `sign` | `PdfSignTool.{tsx,test.tsx}` | `SignTool/` (whole folder, ARCH-18) | |
 | `redact` | `PdfRedactTool.{tsx,test.tsx,module.css}` | `RedactBox.tsx`, `RedactToolbar.tsx` | |
 | `compress` | `PdfCompressTool.{tsx,test.tsx,module.css}` | - | also owns `compress-image` per CLAUDE.md's tool list; no separate island exists for it today, `compressImage.js` just moves alongside |
 | `split` | `PdfSplitTool.{tsx,test.tsx,module.css}` | - | |
 | `edit-pages` | `PdfEditPagesTool.{tsx,test.tsx}` | - | |
 | `to-image` | `PdfToImageTool.{tsx,test.tsx,module.css}` | - | |
-| `image-to-pdf` | `PdfImageToPdfTool.{tsx,test.tsx}` | - | `SortToolbar.module.css` moves here (see `merge` row) |
+| `image-to-pdf` | `PdfImageToPdfTool.{tsx,test.tsx,module.css}` | `verb/` | Uses `SortMenu` from `src/shell`, shared with Merge (see `merge` row) |
 | `security` | `PdfSecurityTool.{tsx,test.tsx,module.css}` | - | |
 
 ### Stays flat in `src/components/` (the ARCH-18 end state)

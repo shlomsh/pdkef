@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from './pageOrder.js';
 import { useImagesPdfBuild, type ImageEntry } from './useImagesPdfBuild.ts';
@@ -55,13 +55,19 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
   const [entries, setEntries] = useState<ImageEntry[]>([]);
   const [sortMode, setSortMode] = useState('custom');
   const [customName, setCustomName] = useState<string | null>(null);
-  const [tapped, setTapped] = useState(false);
+  // Analytics follow the person's Download tap only (Merge's rule, ANALYTICS.md):
+  // background builds report nothing.
+  const [tap, setTap] = useState<'idle' | 'converting' | 'done'>('idle');
+  const tapped = tap === 'converting';
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const listRef = useRef<HTMLUListElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const focusIdRef = useRef<number | null>(null);
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+  const lastSizeRef = useRef<string | undefined>(undefined);
   const pendingTapRef = useRef(false);
   const exportedRef = useRef(false);
 
@@ -69,25 +75,38 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
   const { fresh, blob, url: downloadUrl } = build;
   useHoldUpdate(build.building);
   useHoldUpdate(entries.length > 0, 'open');
-  const status = build.failed ? 'error' : fresh ? 'done' : tapped ? 'converting' : 'idle';
+  const status = build.failed && tapped ? 'error' : tap;
 
   const outputName = customName ?? defaultOutputName(entries);
   const fileName = `${outputName}.pdf`;
 
   useEffect(() => {
     if (fresh && blob) prepare(blob, fileName);
-    else clearPrepared();
-  }, [fresh, blob, fileName, prepare, clearPrepared]);
+    // While a change waits for quiet the last PDF stays prepared, so the sheet keeps its shape;
+    // Share is inert then (see handleShare).
+    else if (entries.length === 0) clearPrepared();
+  }, [fresh, blob, fileName, entries.length, prepare, clearPrepared]);
+  if (fresh && blob) lastSizeRef.current = formatFileSize(blob.size);
+  if (entries.length === 0) lastSizeRef.current = undefined;
 
   // Revoke every live thumbnail object URL on unmount.
   useRevokeOnUnmount(entries.map((e) => e.thumbnail));
 
   // A keyboard move re-parents the tile, which can drop focus: put it back.
-  useEffect(() => {
-    if (focusIdRef.current === null) return;
-    listRef.current?.querySelector<HTMLElement>(`[data-id="${focusIdRef.current}"] [data-page]`)?.focus();
+  // A layout effect, so the focus is back before the next auto-repeated key lands.
+  // Also where focus goes after a tile is removed.
+  useLayoutEffect(() => {
+    const id = focusIdRef.current;
+    if (id === null) return;
     focusIdRef.current = null;
+    const list = listRef.current;
+    list?.querySelector<HTMLElement>(`[data-id="${id}"] [data-page]`)?.focus();
   }, [entries]);
+
+  // Repeats of the same sentence must still be announced: alternate a trailing no-break space.
+  const announce = useCallback((text: string) => {
+    setAnnouncement((previous) => (previous === text ? `${text}\u00A0` : text));
+  }, []);
 
   const reordered = useCallback((next: ImageEntry[]) => {
     setEntries(next);
@@ -132,7 +151,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     const newEntries = imageFiles.map(toEntry);
     setEntries((current) => [...current, ...newEntries]);
     setSortMode('custom');
-    setAnnouncement(`${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`);
+    announce(`${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`);
     recordAction('add_files');
   }, []);
 
@@ -141,15 +160,30 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
   // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
   useHandoffFilesIntake('image-to-pdf', (files) => addFiles(files));
 
+  const resetTap = useCallback(() => {
+    setTap('idle');
+    pendingTapRef.current = false;
+    exportedRef.current = false;
+  }, []);
+
   const removeEntry = useCallback((id: number) => {
-    setEntries((current) => {
-      const removed = current.find((e) => e.id === id);
-      if (removed) {
-        setAnnouncement(`${removed.file.name} removed.`);
-        URL.revokeObjectURL(removed.thumbnail);
-      }
-      return current.filter((e) => e.id !== id);
-    });
+    const current = entriesRef.current;
+    const index = current.findIndex((e) => e.id === id);
+    const removed = current[index];
+    if (removed) {
+      announce(`${removed.file.name} removed.`);
+      URL.revokeObjectURL(removed.thumbnail);
+    }
+    const left = current.filter((e) => e.id !== id);
+    const nextFocus = left[index] ?? left[index - 1];
+    // Emptying the list returns to the empty state, which has no tile to focus.
+    focusIdRef.current = nextFocus ? nextFocus.id : null;
+    setEntries(left);
+    if (left.length === 0) {
+      resetTap();
+      setCustomName(null);
+      setSortMode('custom');
+    }
     recordAction('remove_file');
   }, []);
 
@@ -160,22 +194,21 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     });
     setSortMode('custom');
     setCustomName(null);
-    setTapped(false);
-    pendingTapRef.current = false;
+    resetTap();
     setRejectedFiles([]);
-    setAnnouncement('Cleared. Add images to start again.');
+    announce('Cleared. Add images to start again.');
     recordAction('clear_all');
   }, []);
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
       : event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : 0;
-    if (delta === 0) return;
-    event.preventDefault();
+    if (delta === 0 || event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
     const next = moveEntry(entries, id, delta);
     if (next === entries) return;
+    event.preventDefault();
     focusIdRef.current = id;
-    setAnnouncement(`${entries.find((e: ImageEntry) => e.id === id)?.file.name} moved to position ${next.findIndex((e: ImageEntry) => e.id === id) + 1} of ${next.length}.`);
+    announce(`${entries.find((e: ImageEntry) => e.id === id)?.file.name} moved to position ${next.findIndex((e: ImageEntry) => e.id === id) + 1} of ${next.length}.`);
     reordered(next);
   };
 
@@ -183,7 +216,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     if (value === 'custom') return;
     setEntries((current) => sortEntries(current, value));
     setSortMode(value);
-    setAnnouncement('Images reordered.');
+    announce('Images reordered.');
     recordAction('sort');
   };
 
@@ -193,32 +226,44 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
       if (!exportedRef.current) recordAction('export');
       exportedRef.current = false;
       recordAction('download');
+      setTap('converting');
       return;
     }
     event.preventDefault();
+    if (tapped) return;
     recordAction('export');
     exportedRef.current = true;
     pendingTapRef.current = true;
-    setTapped(true);
-    setAnnouncement('Preparing your PDF.');
+    setTap('converting');
+    announce('Preparing your PDF.');
     build.buildNow();
   };
+
+  // A tap on a ready link: the browser delivers it, so the tap is done at once.
+  useEffect(() => {
+    if (tap === 'converting' && fresh && !pendingTapRef.current) setTap('done');
+  }, [tap, fresh]);
 
   // The tap's delivery: the build is fresh and its link is on screen, so the download goes out.
   useEffect(() => {
     if (!fresh || !pendingTapRef.current || !downloadUrl) return;
     pendingTapRef.current = false;
-    setTapped(false);
-    setAnnouncement('Your PDF is ready.');
+    setTap('done');
+    announce('Your PDF is ready.');
     sheetRef.current?.querySelector<HTMLAnchorElement>('a[download]')?.click();
   }, [fresh, downloadUrl]);
 
   const handleShare = async () => {
+    // Stale: a change is waiting for quiet, and the prepared PDF is the previous one.
+    if (!fresh) {
+      announce('Your PDF is updating. Try Share again in a moment.');
+      return;
+    }
     const result = await sharePrepared();
     if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setAnnouncement('PDF shared successfully.');
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+    if (result.status === 'shared') announce('PDF shared successfully.');
+    else if (result.status === 'canceled') announce('Sharing canceled. Your PDF is still ready.');
+    else if (result.status === 'error') announce('Could not open the share sheet. Please try again.');
   };
 
   const hasFiles = entries.length > 0;
@@ -240,21 +285,19 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
             Try again
           </button>
         </>
-      ) : tappedBusy ? (
-        <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} disabled>
-          <ProgressRing progress={build.progress} label="Preparing…" />
-        </button>
-      ) : (
+) : (
         <>
-          {/* Silent until a tap: the ready look stays while a change waits for quiet. */}
+          {/* Silent until a tap: while a change waits for quiet the sheet keeps its shape, with the
+              last size shown and Share still there (inert until the new PDF lands). */}
           <DownloadButton
             autoFocus={false}
             href={fresh && downloadUrl ? downloadUrl : '#'}
             download={fileName}
-            detail={fresh && blob ? formatFileSize(blob.size) : undefined}
+            detail={lastSizeRef.current}
             onClick={onDownloadClick}
+            busy={tappedBusy ? <ProgressRing progress={build.progress} label="Preparing…" /> : undefined}
           />
-          <PdfShareButton visible={shareReady && fresh} onShare={handleShare} />
+          <PdfShareButton visible={shareReady} onShare={handleShare} />
         </>
       )}
     </div>
