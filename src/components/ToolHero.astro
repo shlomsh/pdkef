@@ -104,7 +104,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   data-hero-stacked={stacked ? '' : undefined}
   data-hero-editor={isEditor ? '' : undefined}
   data-hero-condense-on-load={condenseOnLoad ? '' : undefined}
-  data-hero-editor-fold={slug === 'redact' ? '' : undefined}
+  data-hero-editor-fold={isEditor ? '' : undefined}
 >
   <div data-hero-row class="mb-3 flex gap-4">
     <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>
@@ -393,7 +393,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
 
      Since HERO-06 (2026-10-15) every tool also folds through
      `data-hero-condense-on-load` at the end of this style, at every width
-     (Sign excluded: its phone layout waits for the next generation, HERO-08), whatever the density. The Compress button
+     (Sign and Redact on a coarse phone only, through `data-hero-editor-fold`), whatever the density. The Compress button
      these notes cite is gone (Compress runs on pick); the rules here are kept
      for the draft-hint and hand-off paths until that block is shown to cover
      them too. */

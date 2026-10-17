@@ -202,6 +202,10 @@ async function measure(page, scale, direction) {
       physicalGapPx: (elRect.top - rect.bottom) * s,
       insideViewport,
       elementInsideViewport,
+      barLeft: rect.left,
+      barRight: rect.right,
+      vvLeft: viewport ? viewport.left : -Infinity,
+      vvRight: viewport ? viewport.right : Infinity,
       vvScaleProperty: getComputedStyle(document.documentElement).getPropertyValue('--vv-scale').trim(),
     };
   }, [barHandle, elHandle, scale, direction]);
@@ -270,6 +274,17 @@ function assertHoldsUnderZoom(results, { label, expectWrap }) {
     expect(r.physicalHeight, `${label}: physical height holds at ${r.scale}x`)
       .toBeLessThan(baseline.physicalHeight + TOLERANCE_PX);
     expect(r.rows, `${label}: row count holds at ${r.scale}x`).toBe(baseline.rows);
+    // The field can be inside the shrunk viewport while the bar's resting place is not: an RTL bar for
+    // a field near the left edge reaches far to its right (x 390 on a 440px phone, against a viewport
+    // 244px wide at 1.8x). `visualViewportClamp` then pulls the bar on screen, a translate by design
+    // (HERO-08), so its anchor and gap stop matching the 1x rest. Size and row count still hold above.
+    const restFits = baseline.barLeft >= r.vvLeft - 1 && baseline.barRight <= r.vvRight + 1;
+    if (!restFits) {
+      // eslint-disable-next-line no-console
+      console.log(`${label}: at ${r.scale}x the bar's rest (${baseline.barLeft.toFixed(1)}..${baseline.barRight.toFixed(1)}) is outside the viewport (${r.vvLeft.toFixed(1)}..${r.vvRight.toFixed(1)}); clamped to ${r.barLeft.toFixed(1)}..${r.barRight.toFixed(1)}.`);
+      expect(r.insideViewport, `${label}: the clamp keeps the bar on screen at ${r.scale}x`).toBe(true);
+      continue;
+    }
     // The anchor corner's *horizontal* position is a CSS (layout-space)
     // value `shift()`/`size()` compute without ever reading `--vv-scale`, so
     // it must be exactly stable, not just close - any drift here is the
