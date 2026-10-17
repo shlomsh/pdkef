@@ -1,15 +1,15 @@
 /* PDF to Image's loaded state (ux guidelines §18): the pages are the centre,
    the strip, the options and the primary control are a rail beside them. DOM
-   order is strip, controls, result, sheet, which is also the phone's reading
-   order. The grid, the primary-control states and the phone sheet follow
+   order is strip, controls, result, sheet; on a phone the pages come right
+   after the strip so the output is on the first screen. The grid, the primary-control states and the phone sheet follow
    Compress (loaded layout) and Split (page tiles). */
 .loaded-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     'strip'
-    'controls'
     'result'
+    'controls'
     'sheet';
   row-gap: 16px;
   align-items: start;
@@ -390,7 +390,21 @@
   }
 }
 
+/* One page: it cannot be left out, so it sits alone and larger. */
+.grid[data-single] {
+  grid-template-columns: minmax(0, 280px);
+  justify-content: center;
+}
+
+.grid[data-single] .tile {
+  cursor: default;
+}
+
 @media (max-width: 767px) {
+  .grid[data-single] {
+    grid-template-columns: minmax(0, 60%);
+  }
+
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem;

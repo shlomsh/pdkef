@@ -92,6 +92,8 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const [pageSelector, setPageSelector] = useState('');
   const [pageSelectorError, setPageSelectorError] = useState('');
   const [status, setStatus] = useState<Status>('idle');
+  /** The PDF itself could not be read. Its own state, so the build effect (which sees 0 selected pages) can never overwrite it with 'ready'. */
+  const [loadError, setLoadError] = useState(false);
   const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState<OutputImage[]>([]);
   const [saved, setSaved] = useState(false);
@@ -129,6 +131,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const selectedCount = selectedPages.length;
   const renderedCount = pages.filter((p) => p.thumbnail).length;
   const isTall = layout === 'concatenated';
+  const singlePage = numPages === 1;
   inputsRef.current = { file, format, scale, layout, pages: selectedPages };
 
   useEffect(() => () => revokeAll(outputsRef.current), []);
@@ -193,7 +196,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   }, [file]);
 
   useEffect(() => {
-    if (!file || status === 'loading') return;
+    if (!file || status === 'loading' || loadError) return;
     if (selectedCount === 0) {
       keyRef.current = null;
       preparerRef.current?.dispose();
@@ -214,13 +217,15 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
     // selectedPages is derived from pages; the join keys the effect on the
     // actual selection, not object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, format, scale, layout, selectedPages.join(','), status === 'loading']);
+  }, [file, format, scale, layout, selectedPages.join(','), status === 'loading', loadError]);
 
   /** Heading for Download or Share: start the build now (a large selection starts here only). */
   const requestNow = () => {
     const preparer = preparerRef.current;
-    if (!preparer || !file || selectedCount === 0 || status === 'loading' || outputs.length > 0) return;
-    if (selectedCount > AUTO_BUILD_PAGE_LIMIT && keyRef.current && !preparer.building && preparer.pendingKey === null) {
+    if (!preparer || !file || selectedCount === 0 || status === 'loading' || status === 'error' || loadError || outputs.length > 0) return;
+    // Nothing built, nothing building, nothing queued (a large selection, or an
+    // edit that dropped the images without changing the key): queue it now.
+    if (keyRef.current && !preparer.building && preparer.pendingKey === null) {
       preparer.change(keyRef.current);
     }
     preparer.now();
@@ -293,7 +298,8 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
       if (!run.isCurrent()) return;
       // expected: a password-protected PDF is the person's file, not our failure
       if (err?.name !== 'PasswordException') reportError('pdf_render', err, 'load_document');
-      setStatus('error');
+      setLoadError(true);
+      setStatus('ready');
     } finally {
       if (source) {
         try {
@@ -315,6 +321,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
     setNumPages(0);
     setPageSelector('');
     setPageSelectorError('');
+    setLoadError(false);
     setStatus('loading');
     void loadDocument(pdfs[0]);
   };
@@ -333,10 +340,14 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
 
   const handlePageSelectorChange = (value: string) => {
     setPageSelector(value);
-    invalidate();
     try {
       const parsed = parsePageSelector(value, numPages);
-      setPages((prev) => prev.map((p) => ({ ...p, selected: parsed.includes(p.pageNumber) })));
+      // An edit that leaves the selection as it was ("," typed then removed)
+      // keeps the images already built.
+      if (parsed.join(',') !== selectedPages.join(',')) {
+        invalidate();
+        setPages((prev) => prev.map((p) => ({ ...p, selected: parsed.includes(p.pageNumber) })));
+      }
       setPageSelectorError('');
     } catch (err: any) {
       // expected: the person's own page range did not parse; its message is shown under the field.
@@ -351,6 +362,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   // dashed, marked), never by moving the tile, so the next tap lands on the
   // page the finger is over.
   const togglePageSelection = (pageNumber: number) => {
+    if (singlePage) return;
     invalidate();
     setPages((prev) => {
       const next = prev.map((p) => (p.pageNumber === pageNumber ? { ...p, selected: !p.selected } : p));
@@ -384,15 +396,23 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
       event.preventDefault();
       return;
     }
+    if (status === 'error' && !loadError && preparerRef.current && keyRef.current) {
+      // The last build failed: a tap tries it again, now.
+      event.preventDefault();
+      pendingTap.current = true;
+      setTap('processing');
+      setStatus('preparing');
+      setAnnouncement(t.announcePreparingTap);
+      preparerRef.current.change(keyRef.current);
+      preparerRef.current.now();
+      return;
+    }
     if (status === 'preparing' || (status === 'ready' && outputs.length === 0)) {
       // The build has not landed: show it now and deliver on ready.
       event.preventDefault();
       pendingTap.current = true;
       setTap('processing');
-      if (status !== 'preparing') {
-        setProgress(0);
-        setStatus('preparing');
-      }
+      if (status !== 'preparing') setStatus('preparing');
       setAnnouncement(t.announcePreparingTap);
       requestNow();
       return;
@@ -422,15 +442,17 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   };
 
   const hasFiles = !!file;
+  const failed = status === 'error' || loadError;
   const formatLabel = format === 'image/jpeg' ? 'JPG' : 'PNG';
   const expectedCount = isTall ? 1 : selectedCount;
   const imageCount = outputs.length || expectedCount;
   const totalBytes = outputs.reduce((sum, image) => sum + image.blob.size, 0);
-  const primaryState = status === 'loading' || selectedCount === 0
-    ? 'empty'
-    : status === 'preparing' ? 'preparing'
-      : status === 'error' ? 'error'
-        : saved ? 'saved' : 'ready';
+  const primaryState = loadError ? 'error'
+    : status === 'loading' || selectedCount === 0
+      ? 'empty'
+      : status === 'preparing' ? 'preparing'
+        : status === 'error' ? 'error'
+          : saved ? 'saved' : 'ready';
   const primaryIsLink = outputs.length === 1 && (primaryState === 'ready' || primaryState === 'saved');
   const primaryText = imageCount === 1
     ? formatMessage(t.downloadOne, { format: formatLabel })
@@ -470,7 +492,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
               href={image.url}
               download={image.filename}
               aria-label={formatMessage(t.downloadPageAria, { number: p.pageNumber })}
-              onClick={(e) => { e.stopPropagation(); recordAction('download'); }}
+              onClick={(e) => { e.stopPropagation(); recordAction('download'); setTap('processing'); }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 4v11" />
@@ -515,9 +537,9 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
               <div class={styles['tall-column']}>{pages.map(renderTile)}</div>
             </div>
           ) : (
-            <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderTile)}</div>
+            <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined} data-single={singlePage ? 'true' : undefined}>{pages.map(renderTile)}</div>
           )}
-          {pages.length > 0 && (
+          {pages.length > 1 && (
             <p class={styles['result-hint']}>{selectedCount === numPages ? t.hintAllIn : t.hintSomeOut}</p>
           )}
           {pages.length > 0 && renderedCount < numPages && <span class="sr-only" role="status">{t.loadingPages}</span>}
@@ -572,7 +594,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
         )}
       </a>
 
-      {selectedCount > 0 && status !== 'error' && (
+      {selectedCount > 0 && !failed && (
         <PdfShareButton
           visible={shareReady}
           onShare={handleShare}
@@ -580,7 +602,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
         />
       )}
 
-      {status === 'error' && <ErrorMessage>{t.convertFailed}</ErrorMessage>}
+      {failed && <ErrorMessage>{loadError ? t.convertFailed : t.buildFailed}</ErrorMessage>}
     </div>
   );
 
@@ -589,7 +611,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
       emptyArt={<PdfToImageVerb />}
       hasFiles={hasFiles}
       analyticsTool="pdf-to-image"
-      analyticsStatus={status === 'error' ? 'error' : tap}
+      analyticsStatus={failed ? 'error' : tap}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
@@ -633,6 +655,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
               onChange={(next) => changeSetting(layout, next, setLayout)}
               dir={t.dir}
             />
+            {!singlePage && (
             <div class={pdfToolStyles['page-selector-field']}>
               <label class={pdfToolStyles['page-selector-label']} for="page-selector-input">
                 {t.pagesLabel}
@@ -649,6 +672,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
                 aria-describedby={pageSelectorError ? 'page-selector-error' : undefined}
               />
             </div>
+            )}
             {pageSelectorError && (
               <p id="page-selector-error" class={pdfToolStyles['page-selector-error']} role="alert">
                 {pageSelectorError}
@@ -677,7 +701,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
             target={target}
             onClose={() => setPreviewPage(null)}
             onStep={(delta) => setPreviewPage((current) => (current == null ? null : Math.max(1, Math.min(numPages, current + delta))))}
-            toggle={page ? {
+            toggle={page && !singlePage ? {
               label: page.selected ? t.previewLeaveOut : t.previewBringBack,
               pressed: !page.selected,
               always: true,

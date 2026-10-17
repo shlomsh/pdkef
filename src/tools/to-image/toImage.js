@@ -100,30 +100,40 @@ export async function convertPdfToImages(
   const pageNumbers = parsePageSelector(pages, pdf.numPages);
 
   try {
+    const stacked = layout === 'concatenated' && pageNumbers.length > 1;
     const canvases = [];
+    const images = [];
     for (let i = 0; i < pageNumbers.length; i += 1) {
       throwIfAborted(signal);
       const page = await pdf.getPage(pageNumbers[i]);
-      canvases.push(await renderPageToCanvas(page, scale, format));
+      const canvas = await renderPageToCanvas(page, scale, format);
+      if (stacked) {
+        canvases.push(canvas);
+      } else {
+        // Separate pages: encode now and free the bitmap before the next page,
+        // so only one page canvas is alive at a time.
+        throwIfAborted(signal);
+        let blob;
+        try {
+          blob = await canvasToBlob(canvas, format, quality);
+        } finally {
+          canvas.width = 0;
+          canvas.height = 0;
+        }
+        const filename =
+          pageNumbers.length === 1
+            ? `${baseName}.${extension}`
+            : `${baseName}-page-${pageNumbers[i]}.${extension}`;
+        images.push({ pageNumber: pageNumbers[i], blob, filename });
+      }
       onProgress?.((i + 1) / pageNumbers.length);
     }
 
     throwIfAborted(signal);
-    if (layout === 'concatenated' && canvases.length > 1) {
+    if (stacked) {
       const combined = stackCanvases(canvases, format);
       const blob = await canvasToBlob(combined, format, quality);
       return [{ pageNumber: pageNumbers[0], blob, filename: `${baseName}.${extension}` }];
-    }
-
-    const images = [];
-    for (let i = 0; i < canvases.length; i += 1) {
-      throwIfAborted(signal);
-      const blob = await canvasToBlob(canvases[i], format, quality);
-      const filename =
-        canvases.length === 1
-          ? `${baseName}.${extension}`
-          : `${baseName}-page-${pageNumbers[i]}.${extension}`;
-      images.push({ pageNumber: pageNumbers[i], blob, filename });
     }
     return images;
   } finally {
