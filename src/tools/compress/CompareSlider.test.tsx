@@ -109,6 +109,57 @@ describe('CompareSlider', () => {
     expect(handle.getAttribute('aria-valuenow')).toBe('90');
   });
 
+  // On a tall page the grip can be off screen; a press anywhere on the page must still move the line.
+  it('a mouse press anywhere on the page moves the line, not only on the handle', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" fill />, container);
+    });
+
+    const slider = container.querySelector(`.${styles['compare-slider']}`);
+    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    const image = container.querySelector(`.${styles['compare-image']}`);
+    slider.getBoundingClientRect = () => MOCK_RECT;
+
+    act(() => {
+      image.dispatchEvent(new MouseEvent('mousedown', { clientX: 200, bubbles: true, cancelable: true }));
+    });
+    expect(slider.style.getPropertyValue('--reveal')).toBe('25%');
+    act(() => {
+      fireMouse('mousemove', 400);
+    });
+    act(() => {
+      fireMouse('mouseup', 400);
+    });
+    expect(handle.getAttribute('aria-valuenow')).toBe('75');
+  });
+
+  it('a press on the handle starts one gesture, not two', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container);
+    });
+
+    const slider = container.querySelector(`.${styles['compare-slider']}`);
+    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    slider.getBoundingClientRect = () => MOCK_RECT;
+    let rectReads = 0;
+    slider.getBoundingClientRect = () => {
+      rectReads += 1;
+      return MOCK_RECT;
+    };
+
+    act(() => {
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 300, bubbles: true, cancelable: true }));
+    });
+    expect(rectReads).toBe(1);
+    act(() => {
+      fireMouse('mouseup', 300);
+    });
+  });
+
   it('clamps drag past either edge of the rect to 0-100', () => {
     container = document.createElement('div');
     document.body.appendChild(container);

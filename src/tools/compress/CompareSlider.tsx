@@ -102,7 +102,15 @@ export default function CompareSlider({
   };
 
   return (
-    <div ref={containerRef} class={fill ? `${styles['compare-slider']} ${styles['compare-fill']}` : styles['compare-slider']} style={{ '--reveal': `${position}%` } as any}>
+    // The press starts on the whole slider, not only the grip: on a tall page in full screen the grip can be
+    // scrolled away, and a press anywhere on the page still puts the line there.
+    <div
+      ref={containerRef}
+      class={fill ? `${styles['compare-slider']} ${styles['compare-fill']}` : styles['compare-slider']}
+      style={{ '--reveal': `${position}%` } as any}
+      onMouseDown={handleStart}
+      onTouchStart={handleStart}
+    >
       <img class={styles['compare-image']} src={beforeSrc} alt={`${beforeLabel} - page 1`} draggable={false} />
       <div class={styles['compare-after']}>
         <img class={styles['compare-image']} src={afterSrc} alt={`${afterLabel} - page 1`} draggable={false} />
@@ -123,8 +131,6 @@ export default function CompareSlider({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(position)}
-        onMouseDown={handleStart}
-        onTouchStart={handleStart}
         onKeyDown={handleKeyDown}
       >
         <span class={styles['compare-handle-grip']} aria-hidden="true">
