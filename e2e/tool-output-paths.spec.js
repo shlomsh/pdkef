@@ -121,8 +121,8 @@ test.describe('uncovered tools produce a real downloadable file', () => {
         : page.getByRole('link', { name: tool.downloadName, exact: true });
       await expect(download).toBeVisible();
 
-      const href = await download.getAttribute('href');
-      expect(href).toMatch(/^blob:/);
+      // A tool that builds on pick shows its link before the build lands; wait for the real object URL.
+      await expect(download).toHaveAttribute('href', /^blob:/, { timeout: 30_000 });
 
       const downloadAttr = await download.getAttribute('download');
       expect(downloadAttr).toBeTruthy();
