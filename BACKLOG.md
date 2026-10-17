@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 8 then, 24 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 53 live: 4 up next, 8 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -47,7 +47,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |  |
-| SNG-24 | P3 | [SNG-24](backlog/tasks/SNG-24.md) · Sign on a phone: a one-line hero once a file is open and the airplane line below the card, without moving the field toolbar |  |
 
 ## Tool pages: show the verb
 
@@ -168,7 +167,7 @@ Small, independent, good for a spare hour.
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
 - Redact: finish removal: 21 done, 1 retired
-- Sign: finish fill mode: 2 done, 1 retired
+- Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 45 done, 3 retired
