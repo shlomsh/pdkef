@@ -4,7 +4,6 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
-import { pageNumbersToRangeString } from './split.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -20,17 +19,6 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportToolLifecycleEvent: lifecycleSpy,
 }));
-
-// Test split.js library. parsePageSelector's own cases moved to
-// src/lib/pageSelector.test.js (DEBT-23: it's shared with PDF to Image now).
-describe('split.js library helpers', () => {
-  it('converts page numbers back to range strings', () => {
-    expect(pageNumbersToRangeString([])).toBe('');
-    expect(pageNumbersToRangeString([1, 2, 3])).toBe('1-3');
-    expect(pageNumbersToRangeString([1, 2, 3, 5])).toBe('1-3, 5');
-    expect(pageNumbersToRangeString([1, 3, 4, 5, 7, 8])).toBe('1, 3-5, 7-8');
-  });
-});
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });

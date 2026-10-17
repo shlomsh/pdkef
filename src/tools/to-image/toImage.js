@@ -67,11 +67,17 @@ function stackCanvases(canvases, format) {
   return combined;
 }
 
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw new DOMException('Conversion aborted', 'AbortError');
+}
+
 // Converts a PDF File into image Blob(s) using PDF.js.
 // format: 'image/png' | 'image/jpeg'.
 // scale: render multiplier (1 = ~72dpi, 2 = ~144dpi, 3 = ~216dpi).
 // layout: 'separate' (one image per page, default) | 'concatenated' (all
 // pages stacked into a single tall image).
+// signal: an AbortSignal checked between pages; an abort throws an AbortError
+// DOMException (the quiet-time prepare cancels a superseded build this way).
 export async function convertPdfToImages(
   file,
   {
@@ -81,8 +87,10 @@ export async function convertPdfToImages(
     layout = 'separate',
     pages = '',
     onProgress,
+    signal,
   } = {},
 ) {
+  throwIfAborted(signal);
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
   const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
@@ -94,11 +102,13 @@ export async function convertPdfToImages(
   try {
     const canvases = [];
     for (let i = 0; i < pageNumbers.length; i += 1) {
+      throwIfAborted(signal);
       const page = await pdf.getPage(pageNumbers[i]);
       canvases.push(await renderPageToCanvas(page, scale, format));
       onProgress?.((i + 1) / pageNumbers.length);
     }
 
+    throwIfAborted(signal);
     if (layout === 'concatenated' && canvases.length > 1) {
       const combined = stackCanvases(canvases, format);
       const blob = await canvasToBlob(combined, format, quality);
@@ -107,6 +117,7 @@ export async function convertPdfToImages(
 
     const images = [];
     for (let i = 0; i < canvases.length; i += 1) {
+      throwIfAborted(signal);
       const blob = await canvasToBlob(canvases[i], format, quality);
       const filename =
         canvases.length === 1

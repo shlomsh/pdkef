@@ -4,9 +4,9 @@ import { createQuietPreparer, type QuietPolicy } from '../../lib/quietPrepare.ts
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import SplitVerb from './verb/SplitVerb.tsx';
-import { pageNumbersToRangeString, splitPdf, outputBaseName, extractedFileName } from './split.js';
+import { splitPdf, outputBaseName, extractedFileName } from './split.js';
 import OutputName from '../../shell/OutputName.tsx';
-import { parsePageSelector } from '../../lib/pageSelector.js';
+import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pageSelector.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';

@@ -1042,19 +1042,47 @@ export interface ToImageMessages {
   layoutCombined: string;
   pagesLabel: string;
   pageSelectorPlaceholder: string;
-  /** '{format}' is PNG or JPG. */
-  convertTo: string;
+  /** The one-line description under the selected Format option. */
+  formatPngHint: string;
+  formatJpgHint: string;
+  /** The one-line description under the selected Output option. */
+  layoutSeparateHint: string;
+  layoutCombinedHint: string;
+  loadingPages: string;
+  pickAtLeastOne: string;
+  hintAllIn: string;
+  hintSomeOut: string;
+  /** A tile's caption and accessible name. */
+  pageRow: string;
+  tileLeftOut: string;
+  /** '{count}' is the number of pages in the one tall image. */
+  tallCaptionOne: string;
+  tallCaptionMany: string;
+  downloadPageAria: string;
+  /* The shared page-preview dialog, as Split's. */
+  openPreview: string;
+  previewTitle: string;
+  previewClose: string;
+  previewPrev: string;
+  previewNext: string;
+  previewLoading: string;
+  previewLeftOut: string;
+  previewLeaveOut: string;
+  previewBringBack: string;
   converting: string;
   convertFailed: string;
+  cannotConvert: string;
   /** '{format}' is PNG or JPG. */
   downloadOne: string;
+  /** '{count}' images, '{format}' is PNG or JPG. */
   downloadMany: string;
-  pageRow: string;
-  downloadRow: string;
+  /** '{label}' is the line above, '{size}' the total size. */
+  downloadDetail: string;
   shareOne: string;
   shareMany: string;
   /* Screen-reader announcements. */
   announceReady: string;
+  announcePreparingTap: string;
   announceShared: string;
   announceShareCanceled: string;
   announceShareError: string;
@@ -1081,19 +1109,41 @@ const englishToImageMessages: ToImageMessages = {
   layoutGroupLabel: 'Output layout',
   layoutLabel: 'Output',
   layoutSeparate: 'One image per page',
-  layoutCombined: 'Single combined image',
+  layoutCombined: 'One tall image',
   pagesLabel: 'Pages',
   pageSelectorPlaceholder: 'All pages, or e.g. 1-3, 5, 8-',
-  convertTo: 'Convert to {format}',
+  formatPngHint: 'Sharp text and lines. Larger files.',
+  formatJpgHint: 'Smaller files, best for photos.',
+  layoutSeparateHint: 'Each page is saved as its own image.',
+  layoutCombinedHint: 'The pages are stacked into one long image.',
+  loadingPages: 'Loading document pages...',
+  pickAtLeastOne: 'Pick at least one page',
+  hintAllIn: 'Every page is in. Click a page to leave it out.',
+  hintSomeOut: 'Dimmed pages are left out. Click one to bring it back.',
+  pageRow: 'Page {number}',
+  tileLeftOut: 'left out',
+  tallCaptionOne: 'One image, 1 page',
+  tallCaptionMany: 'One image, {count} pages',
+  downloadPageAria: 'Download page {number}',
+  openPreview: 'Open page {number} larger',
+  previewTitle: 'Page {number} of {total}',
+  previewClose: 'Close',
+  previewPrev: 'Previous page',
+  previewNext: 'Next page',
+  previewLoading: 'Rendering the page…',
+  previewLeftOut: 'Left out of the download',
+  previewLeaveOut: 'Leave out',
+  previewBringBack: 'Bring back',
   converting: 'Converting…',
   convertFailed: 'The file may be damaged or password-protected - try another PDF.',
+  cannotConvert: 'Could not make the images',
   downloadOne: 'Download {format}',
-  downloadMany: 'Download all {count} images',
-  pageRow: 'Page {number}',
-  downloadRow: 'Download',
+  downloadMany: 'Download {count} {format}s',
+  downloadDetail: '{label} · {size}',
   shareOne: 'Share {format}',
   shareMany: 'Share {count} images',
   announceReady: 'Your images are ready.',
+  announcePreparingTap: 'Converting. The download starts as soon as it is ready.',
   announceShared: 'Images shared successfully.',
   announceShareCanceled: 'Sharing canceled. Your images are still ready.',
   announceShareError: 'Could not open the share sheet. Please try again.',
@@ -1122,21 +1172,43 @@ const hebrewToImageMessages: ToImageMessages = {
   layoutGroupLabel: 'סידור הפלט',
   layoutLabel: 'פלט',
   layoutSeparate: 'תמונה לכל עמוד',
-  layoutCombined: 'תמונה אחת לכל העמודים',
+  layoutCombined: 'תמונה אחת ארוכה',
   pagesLabel: 'עמודים',
   // RLI around the sentence, LRI around the example: the input is dir=ltr so typed digits
   // stay in order, and a bare Hebrew placeholder would scramble the range's punctuation there.
   pageSelectorPlaceholder: '\u2067כל העמודים, או לדוגמה \u20661-3, 5, 8-\u2069\u2069',
-  convertTo: 'המרה ל-{format}',
+  formatPngHint: 'טקסט וקווים חדים. קבצים גדולים יותר.',
+  formatJpgHint: 'קבצים קטנים יותר, מתאים במיוחד לתמונות.',
+  layoutSeparateHint: 'כל עמוד נשמר כתמונה משלו.',
+  layoutCombinedHint: 'העמודים מונחים זה על זה בתמונה ארוכה אחת.',
+  loadingPages: 'טוענים את עמודי המסמך...',
+  pickAtLeastOne: 'בחרו לפחות עמוד אחד',
+  hintAllIn: 'כל העמודים כלולים. לחצו על עמוד כדי להשאיר אותו בחוץ.',
+  hintSomeOut: 'עמודים עמומים נשארים בחוץ. לחצו על עמוד כדי להחזיר אותו.',
+  pageRow: 'עמוד {number}',
+  tileLeftOut: 'בחוץ',
+  tallCaptionOne: 'תמונה אחת, עמוד אחד',
+  tallCaptionMany: 'תמונה אחת, {count} עמודים',
+  downloadPageAria: 'הורדת עמוד {number}',
+  openPreview: 'הגדלת עמוד {number}',
+  previewTitle: 'עמוד {number} מתוך {total}',
+  previewClose: 'סגירה',
+  previewPrev: 'העמוד הקודם',
+  previewNext: 'העמוד הבא',
+  previewLoading: 'מציירים את העמוד…',
+  previewLeftOut: 'לא ייכלל בהורדה',
+  previewLeaveOut: 'להשאיר בחוץ',
+  previewBringBack: 'להחזיר',
   converting: 'ממירים…',
   convertFailed: 'ייתכן שהקובץ פגום או מוגן בסיסמה. נסו קובץ PDF אחר.',
+  cannotConvert: 'לא הצלחנו להכין את התמונות',
   downloadOne: 'הורדת {format}',
-  downloadMany: 'הורדת כל {count} התמונות',
-  pageRow: 'עמוד {number}',
-  downloadRow: 'הורדה',
+  downloadMany: 'הורדת {count} קובצי {format}',
+  downloadDetail: '{label} · {size}',
   shareOne: 'שיתוף {format}',
   shareMany: 'שיתוף {count} תמונות',
   announceReady: 'התמונות מוכנות.',
+  announcePreparingTap: 'ממירים. ההורדה תתחיל ברגע שהכול מוכן.',
   announceShared: 'התמונות שותפו.',
   announceShareCanceled: 'השיתוף בוטל. התמונות עדיין מוכנות.',
   announceShareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
