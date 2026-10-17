@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 53 live: 4 up next, 8 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -39,6 +39,7 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |  |
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |  |
 | SNG-23 | P2 | [SNG-23](backlog/tasks/SNG-23.md) · In the Simulator, the first tap on a field after tapping outside does not focus it |  |
+| SIGN-41 | P2 | [SIGN-41](backlog/tasks/SIGN-41.md) · Sign: a click between two fields snaps to a different one depending on where the page sits on screen |  |
 
 ### Parked
 

@@ -384,7 +384,9 @@ test('an app-wide default follows the latest choice, but a document that already
 
   // --- a: document A chooses black ---
   await openFreshSignTool(page, bufferA, 'style-doc-a.pdf');
-  const textA = await addTextAt(page, 0.2, 0.2);
+  // Clear of every field: (0.2, 0.2) sits in the gap between Full name and the ID comb, and which of the
+  // two it snaps to moved with the page's on-screen offset (SIGN-41). A comb's input draws no text.
+  const textA = await addTextAt(page, 0.85, 0.2);
   await textA.input.fill('A');
   await setTextColor(textA.element, '#000000');
   await expect(textA.input).toHaveCSS('color', 'rgb(0, 0, 0)');
