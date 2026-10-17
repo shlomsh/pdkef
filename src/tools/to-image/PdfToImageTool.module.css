@@ -125,55 +125,9 @@
   gap: var(--space-3);
 }
 
+/* The tile itself (frame, thumbnail, toggle, magnifier) is src/shell/PageToggleTile. */
 .tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.4rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  cursor: pointer;
   min-width: 0;
-  transition: border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
-}
-
-.tile:hover {
-  border-color: var(--color-border-strong);
-}
-
-.tile:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Left out: dimmed, dashed, marked; stays exactly where it was. */
-.tile.is-out {
-  opacity: 0.45;
-  border-style: dashed;
-  background: transparent;
-}
-
-.tile-art {
-  position: relative;
-}
-
-.tile-thumb {
-  aspect-ratio: 3 / 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--color-surface-soft);
-}
-
-.tile-thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
 }
 
 .tile-caption {
@@ -193,12 +147,19 @@
 
 /* The magnifier and the per-page download sit in the thumbnail's two bottom
    corners: always visible (no hover-only affordance), 22px faces with a 44px
-   hit area from the pseudo-element, as Split's rotate and magnifier. */
-.preview-btn,
+   hit area from the pseudo-element, as Split's rotate and magnifier. The
+   magnifier's look is PageToggleTile's; this places it. */
+.preview-btn {
+  bottom: 0.3rem;
+  inset-inline-end: 0.3rem;
+}
+
 .tile-download {
   position: absolute;
   bottom: 0.3rem;
+  inset-inline-start: 0.3rem;
   z-index: 1;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -213,15 +174,6 @@
   box-shadow: var(--shadow-xs);
 }
 
-.preview-btn {
-  inset-inline-end: 0.3rem;
-}
-
-.tile-download {
-  inset-inline-start: 0.3rem;
-}
-
-.preview-btn::before,
 .tile-download::before {
   content: '';
   position: absolute;
@@ -232,14 +184,12 @@
   transform: translate(-50%, -50%);
 }
 
-.preview-btn:hover,
 .tile-download:hover {
   color: var(--color-primary-text);
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
 }
 
-.preview-btn:focus-visible,
 .tile-download:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
@@ -269,21 +219,6 @@
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-surface);
-}
-
-.tall-column .tile {
-  gap: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-}
-
-.tall-column .tile-thumb {
-  border-radius: 0;
-}
-
-.tall-column .tile.is-out {
-  border: 0;
 }
 
 .tall-column .tile-caption {
@@ -396,10 +331,6 @@
   justify-content: center;
 }
 
-.grid[data-single] .tile {
-  cursor: default;
-}
-
 @media (max-width: 767px) {
   .grid[data-single] {
     grid-template-columns: minmax(0, 60%);
@@ -408,11 +339,6 @@
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem;
-  }
-
-  .tile {
-    padding: 0.25rem;
-    gap: 0.25rem;
   }
 
   .tile-caption {
@@ -427,7 +353,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tile,
   .primary {
     transition: none;
   }

@@ -91,6 +91,8 @@ describe('PdfToImageTool', () => {
   let container;
   const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   const tiles = () => Array.from(container.querySelectorAll(`.${styles.tile}`));
+  const toggleOf = (tile) => tile.querySelector('button[aria-pressed]');
+  const pressed = (tile) => toggleOf(tile).getAttribute('aria-pressed');
   const primary = () => container.querySelector(`.${styles.primary}`);
   const field = () => container.querySelector('#page-selector-input');
   const radio = (label) =>
@@ -181,21 +183,21 @@ describe('PdfToImageTool', () => {
 
   it('leaves a tile out on click, and the Pages field reads "1, 3-5"', async () => {
     await open(5);
-    await act(async () => tiles()[1].click());
-    expect(tiles()[1].getAttribute('aria-checked')).toBe('false');
-    expect(tiles()[1].classList.contains(styles['is-out'])).toBe(true);
+    await act(async () => toggleOf(tiles()[1]).click());
+    expect(pressed(tiles()[1])).toBe('false');
+    expect(tiles()[1].getAttribute('data-out')).toBe('true');
     expect(field().value).toBe('1, 3-5');
     expect(primary().textContent).toContain('Download 4 PNGs');
-    await act(async () => tiles()[1].click());
+    await act(async () => toggleOf(tiles()[1]).click());
     expect(field().value).toBe('1-5');
   });
 
   it('dims the other tiles when "2-3" is typed in Pages', async () => {
     await open(5);
     await type('2-3');
-    expect(tiles().map((t) => t.getAttribute('aria-checked'))).toEqual(['false', 'true', 'true', 'false', 'false']);
-    expect(tiles()[0].classList.contains(styles['is-out'])).toBe(true);
-    expect(tiles()[1].classList.contains(styles['is-out'])).toBe(false);
+    expect(tiles().map(pressed)).toEqual(['false', 'true', 'true', 'false', 'false']);
+    expect(tiles()[0].getAttribute('data-out')).toBe('true');
+    expect(tiles()[1].getAttribute('data-out')).toBeNull();
     await advance(2100);
     expect(convertCalls.last.pages).toBe('2-3');
   });
@@ -278,10 +280,10 @@ describe('PdfToImageTool', () => {
     const dialog = find();
     expect(dialog).not.toBeNull();
     expect(dialog.textContent).toContain('Page 2 of 5');
-    expect(tiles()[1].getAttribute('aria-checked')).toBe('true');
+    expect(pressed(tiles()[1])).toBe('true');
     const leaveOut = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Leave out');
     await act(async () => leaveOut.click());
-    expect(tiles()[1].getAttribute('aria-checked')).toBe('false');
+    expect(pressed(tiles()[1])).toBe('false');
     expect(Array.from(dialog.querySelectorAll('button')).some((b) => b.textContent === 'Bring back')).toBe(true);
   });
 
@@ -322,7 +324,7 @@ describe('PdfToImageTool', () => {
     await open(5);
     await type('99');
     expect(container.querySelector(`.${pdfToolStyles['page-selector-error']}`).textContent).toContain('99');
-    expect(tiles().every((t) => t.getAttribute('aria-checked') === 'true')).toBe(true);
+    expect(tiles().every((t) => pressed(t) === 'true')).toBe(true);
   });
 
   it('drops a conversion whose file was replaced while it ran', async () => {

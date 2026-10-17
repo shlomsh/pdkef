@@ -118,38 +118,14 @@
   gap: var(--space-3);
 }
 
+/* The tile itself (frame, thumbnail, toggle, magnifier) is src/shell/PageToggleTile;
+   what is here is Split's own state and controls on it. */
 .cell {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.4rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  cursor: pointer;
   min-width: 0;
-  transition: border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out),
-    box-shadow 0.15s var(--ease-out);
 }
 
-.cell:hover {
-  border-color: var(--color-border-strong);
-}
-
-.cell:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Left out: dimmed, dashed, number struck; stays exactly where it was. */
-.cell.is-out {
-  opacity: 0.45;
-  border-style: dashed;
-  background: transparent;
-}
-
-.cell.is-out .cell-number {
+/* Left out: the number is struck. */
+[data-out='true'] .cell-number {
   text-decoration: line-through;
 }
 
@@ -157,72 +133,6 @@
 .cell.is-own-file {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-}
-
-.cell-thumb {
-  aspect-ratio: 3 / 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--color-surface-soft);
-}
-
-/* Wraps the thumbnail and the magnifier. Transparent to layout on wide screens
-   (the magnifier sits under rotate, relative to the cell); the phone block makes
-   it the positioning box so the magnifier takes the thumbnail's bottom corner. */
-.cell-art {
-  display: contents;
-}
-
-.cell-thumb-img {
-  width: 100%;
-  height: 100%;
-  /* .cell-thumb is a flex container, and a flex item shrinks by default
-     (flex-shrink: 1) to fit the main axis - which silently squeezed the
-     rotated state's widened box (133.333%) back down to the container's own
-     width, while height (the cross axis, unaffected by shrink) applied as
-     specified. That mismatch cropped/shrank a rotated thumbnail instead of
-     filling the cell (Shlomi, manual QA on a real ID scan). */
-  flex-shrink: 0;
-  object-fit: cover;
-  object-position: top center;
-  transition: transform 0.2s var(--ease-out);
-}
-
-/* A page's own rotation (delta from the per-cell rotate control) previews
-   here; split.js applies the same value at export via pageOps.js's
-   applyRotation. 90/270 swap the image's own box before rotating so the
-   post-rotate footprint still fills the (portrait) container exactly - the
-   percentages are the container's own aspect ratio (3:4) inverted.
-
-   object-fit switches to contain here (base is cover, tuned for the
-   unrotated portrait crop): on the swapped box, `cover` with a "top"
-   anchor scales the source to fill a box far wider than tall, which
-   crops down to a thin sliver near the source's top edge - on a real ID
-   scan that sliver sat above the photo, hiding it entirely (Shlomi,
-   manual QA). Letterboxing the full page is the correct trade: nothing
-   in the source is ever cropped away by a rotation the person didn't
-   ask to also re-crop. */
-.cell-thumb[data-rotation='90'] .cell-thumb-img,
-.cell-thumb[data-rotation='270'] .cell-thumb-img {
-  width: 133.333%;
-  height: 75%;
-  object-fit: contain;
-  object-position: center;
-}
-
-.cell-thumb[data-rotation='90'] .cell-thumb-img {
-  transform: rotate(90deg);
-}
-
-.cell-thumb[data-rotation='180'] .cell-thumb-img {
-  transform: rotate(180deg);
-}
-
-.cell-thumb[data-rotation='270'] .cell-thumb-img {
-  transform: rotate(270deg);
 }
 
 /* Always visible (not hover/tap-revealed): the cell body's own tap already
@@ -233,6 +143,7 @@
   top: 0.3rem;
   inset-inline-end: 0.3rem;
   z-index: 1;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -272,47 +183,12 @@
   outline-offset: 1px;
 }
 
-/* The page magnifier sits under rotate, same box, hit area and focus ring.
-   Opens the shared preview dialog (src/shell/PagePreviewDialog.tsx). */
+/* The page magnifier sits under rotate. Its look is PageToggleTile's; the
+   thumbnail box starts at the tile's padding (0.4rem, 0.25rem on a phone), so
+   the offsets below are rotate's, less that padding. */
 .preview-btn {
-  position: absolute;
-  top: calc(0.3rem + 22px + 0.3rem);
-  inset-inline-end: 0.3rem;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
-  color: var(--color-muted);
-  cursor: pointer;
-  box-shadow: var(--shadow-xs);
-}
-
-.preview-btn::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 44px;
-  height: 44px;
-  transform: translate(-50%, -50%);
-}
-
-.preview-btn:hover {
-  color: var(--color-primary-text);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-.preview-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-  outline-offset: 1px;
+  top: calc(0.2rem + 22px);
+  inset-inline-end: -0.1rem;
 }
 
 .cell-number,
@@ -689,9 +565,9 @@
     gap: 0.5rem;
   }
 
-  .cell {
-    padding: 0.25rem;
-    gap: 0.25rem;
+  .preview-btn {
+    top: calc(0.35rem + 22px);
+    inset-inline-end: 0.05rem;
   }
 
   .cell-number,
@@ -716,19 +592,14 @@
     display: none;
   }
 
-  .cell-art {
-    display: block;
-    position: relative;
-  }
-
   .preview-btn {
     top: auto;
     bottom: 0.3rem;
+    inset-inline-end: 0.3rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cell,
   .primary {
     transition: none;
   }

@@ -9,6 +9,7 @@ import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
 import OptionRow from './OptionRow.tsx';
 import styles from './PdfToImageTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PageToggleTile from '../../shell/PageToggleTile.tsx';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
@@ -463,63 +464,40 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const renderTile = (p: ImagePage) => {
     const image = !isTall && p.selected ? imageFor(p.pageNumber) : undefined;
     return (
-      <div
+      <PageToggleTile
         key={p.pageNumber}
-        class={`${styles.tile}${p.selected ? '' : ` ${styles['is-out']}`}`}
-        onClick={() => togglePageSelection(p.pageNumber)}
-        role="checkbox"
-        aria-checked={p.selected}
-        aria-label={formatMessage(t.pageRow, { number: p.pageNumber })}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            togglePageSelection(p.pageNumber);
-          }
-        }}
-      >
-        <div class={styles['tile-art']}>
-          <div class={styles['tile-thumb']}>
-            {p.thumbnail ? (
-              <img class={styles['tile-thumb-img']} src={p.thumbnail} alt="" />
-            ) : (
-              <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
-            )}
-          </div>
-          {image && (
-            <a
-              class={styles['tile-download']}
-              href={image.url}
-              download={image.filename}
-              aria-label={formatMessage(t.downloadPageAria, { number: p.pageNumber })}
-              onClick={(e) => { e.stopPropagation(); recordAction('download'); setTap('processing'); }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 4v11" />
-                <path d="M7 11l5 5 5-5" />
-                <path d="M5 20h14" />
-              </svg>
-            </a>
-          )}
-          <button
-            type="button"
-            class={styles['preview-btn']}
-            aria-label={formatMessage(t.openPreview, { number: p.pageNumber })}
-            onClick={(e) => { e.stopPropagation(); openPreview(p.pageNumber); }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="7" cy="7" r="4.5" />
-              <path d="M10.3 10.3L14 14" />
-            </svg>
-          </button>
-        </div>
-        {(!isTall || !p.selected) && (
+        class={styles.tile}
+        selected={p.selected}
+        thumbnail={p.thumbnail}
+        label={formatMessage(t.pageRow, { number: p.pageNumber })}
+        onToggle={() => togglePageSelection(p.pageNumber)}
+        onPreview={() => openPreview(p.pageNumber)}
+        previewLabel={formatMessage(t.openPreview, { number: p.pageNumber })}
+        previewClass={styles['preview-btn']}
+        flush={isTall}
+        locked={singlePage}
+        caption={(!isTall || !p.selected) ? (
           <span class={styles['tile-caption']}>
             {!isTall && <span>{formatMessage(t.pageRow, { number: p.pageNumber })}</span>}
             {!p.selected && <span class={styles['out-mark']}>{t.tileLeftOut}</span>}
           </span>
-        )}
-      </div>
+        ) : undefined}
+        extra={image ? (
+          <a
+            class={styles['tile-download']}
+            href={image.url}
+            download={image.filename}
+            aria-label={formatMessage(t.downloadPageAria, { number: p.pageNumber })}
+            onClick={(e) => { e.stopPropagation(); recordAction('download'); setTap('processing'); }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 4v11" />
+              <path d="M7 11l5 5 5-5" />
+              <path d="M5 20h14" />
+            </svg>
+          </a>
+        ) : undefined}
+      />
     );
   };
 

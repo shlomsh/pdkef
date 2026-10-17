@@ -1,0 +1,199 @@
+/* The page tile Split and PDF to Image share. The wrapper has no role: the
+   toggle is a real button stretched over the whole tile (inset 0), and the
+   magnifier and any extra control are its siblings, above it, so the keyboard
+   reaches each one and Enter on the magnifier opens the preview instead of
+   toggling the page. The thumbnail and caption only draw; the button takes the
+   press. */
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  min-width: 0;
+  transition: border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out),
+    box-shadow 0.15s var(--ease-out);
+}
+
+.tile:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* Left out: dimmed, dashed; stays exactly where it was. */
+.tile[data-out='true'] {
+  opacity: 0.45;
+  border-style: dashed;
+  background: transparent;
+}
+
+/* Tiles stacked into one continuous column: no frame, no gaps. */
+.tile[data-flush='true'],
+.tile[data-flush='true'][data-out='true'] {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.tile[data-flush='true'] .thumb {
+  border-radius: 0;
+}
+
+.toggle {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle:disabled {
+  cursor: default;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Wraps the thumbnail and the controls that sit on it. It draws only; the
+   controls inside take pointer events back for themselves. */
+.art {
+  position: relative;
+  pointer-events: none;
+}
+
+.caption-slot {
+  display: contents;
+  pointer-events: none;
+}
+
+.thumb {
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-surface-soft);
+}
+
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  /* .thumb is a flex container, and a flex item shrinks by default
+     (flex-shrink: 1) to fit the main axis - which silently squeezed the
+     rotated state's widened box (133.333%) back down to the container's own
+     width, while height (the cross axis, unaffected by shrink) applied as
+     specified. That mismatch cropped/shrank a rotated thumbnail instead of
+     filling the cell (Shlomi, manual QA on a real ID scan). */
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.2s var(--ease-out);
+}
+
+/* A page's own rotation (delta from Split's per-cell rotate control) previews
+   here; split.js applies the same value at export via pageOps.js's
+   applyRotation. 90/270 swap the image's own box before rotating so the
+   post-rotate footprint still fills the (portrait) container exactly - the
+   percentages are the container's own aspect ratio (3:4) inverted.
+
+   object-fit switches to contain here (base is cover, tuned for the
+   unrotated portrait crop): on the swapped box, `cover` with a "top"
+   anchor scales the source to fill a box far wider than tall, which
+   crops down to a thin sliver near the source's top edge - on a real ID
+   scan that sliver sat above the photo, hiding it entirely (Shlomi,
+   manual QA). Letterboxing the full page is the correct trade: nothing
+   in the source is ever cropped away by a rotation the person didn't
+   ask to also re-crop. */
+.thumb[data-rotation='90'] .thumb-img,
+.thumb[data-rotation='270'] .thumb-img {
+  width: 133.333%;
+  height: 75%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.thumb[data-rotation='90'] .thumb-img {
+  transform: rotate(90deg);
+}
+
+.thumb[data-rotation='180'] .thumb-img {
+  transform: rotate(180deg);
+}
+
+.thumb[data-rotation='270'] .thumb-img {
+  transform: rotate(270deg);
+}
+
+/* The magnifier: always visible, a 22px face with a 44px hit area from the
+   pseudo-element. The tool places it (its own class sets top/bottom/inset). */
+.preview-btn {
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+}
+
+.preview-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.preview-btn:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.preview-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  outline-offset: 1px;
+}
+
+@media (max-width: 767px) {
+  .tile {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+
+  .tile[data-flush='true'] {
+    padding: 0;
+    gap: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    transition: none;
+  }
+}

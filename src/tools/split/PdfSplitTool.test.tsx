@@ -8,6 +8,9 @@ import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './PdfSplitTool.module.css';
+import tileStyles from '../../shell/PageToggleTile.module.css';
+
+const toggleOf = (tile) => tile.querySelector('button[aria-pressed]');
 import outputNameStyles from '../../shell/OutputName.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -233,7 +236,7 @@ describe('PdfSplitTool UI flow', () => {
     // Should render 4 page cells, all included, inside the one-document frame
     const cards = container.querySelectorAll(`.${styles.cell}`);
     expect(cards.length).toBe(4);
-    expect(container.querySelectorAll(`.${styles['is-out']}`).length).toBe(0);
+    expect(container.querySelectorAll('[data-out]').length).toBe(0);
     expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
     expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_test.pdf');
 
@@ -380,11 +383,11 @@ describe('PdfSplitTool UI flow', () => {
     });
 
     const cells = () => Array.from(container.querySelectorAll(`.${styles.cell}`));
-    await act(async () => cells()[1].click());
+    await act(async () => toggleOf(cells()[1]).click());
 
     // Same four cells, same order; the second is dimmed, not moved
-    expect(cells().map((c) => c.getAttribute('aria-label'))).toEqual(['Page 1', 'Page 2', 'Page 3', 'Page 4']);
-    expect(cells()[1].classList.contains(styles['is-out'])).toBe(true);
+    expect(cells().map((c) => toggleOf(c).getAttribute('aria-label'))).toEqual(['Page 1', 'Page 2', 'Page 3', 'Page 4']);
+    expect(cells()[1].getAttribute('data-out')).toBe('true');
     expect(container.querySelector('#page-selector-input').value).toBe('1, 3-4');
     expect(container.querySelector(`.${styles['canvas-count']}`).textContent).toBe('3 of 4 pages');
 
@@ -495,7 +498,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     const cell = container.querySelectorAll(`.${styles.cell}`)[1];
-    await act(async () => cell.click());
+    await act(async () => toggleOf(cell).click());
     await act(async () => cell.querySelector(`.${styles['rotate-btn']}`).click());
     await act(async () => container.querySelector(`.${styles['undo-chip']} button`).click());
     expect(recentActions()).toEqual(['add_files', 'select_pages', 'rotate', 'undo']);
@@ -518,13 +521,13 @@ describe('PdfSplitTool UI flow', () => {
     const rotateBtn = cell.querySelector(`.${styles['rotate-btn']}`);
 
     await act(async () => rotateBtn.click());
-    expect(cell.getAttribute('aria-checked')).toBe('true'); // rotating never toggles inclusion
-    expect(cell.querySelector(`.${styles['cell-thumb']}`).getAttribute('data-rotation')).toBe('90');
+    expect(toggleOf(cell).getAttribute('aria-pressed')).toBe('true'); // rotating never toggles inclusion
+    expect(cell.querySelector(`.${tileStyles.thumb}`).getAttribute('data-rotation')).toBe('90');
 
     const undoChip = container.querySelector(`.${styles['undo-chip']}`);
     expect(undoChip.textContent).toContain('Rotated page 2');
     await act(async () => undoChip.querySelector('button').click());
-    expect(cell.querySelector(`.${styles['cell-thumb']}`).getAttribute('data-rotation')).toBeNull();
+    expect(cell.querySelector(`.${tileStyles.thumb}`).getAttribute('data-rotation')).toBeNull();
     expect(container.querySelector(`.${styles['undo-chip']}`)).toBeNull();
   });
 
@@ -573,12 +576,12 @@ describe('PdfSplitTool UI flow', () => {
 
     const cells = () => Array.from(container.querySelectorAll(`.${styles.cell}`));
     await act(async () => cells()[0].querySelector(`.${styles['rotate-btn']}`).click());
-    await act(async () => cells()[2].click()); // toggle page 3 out, inside the window
-    expect(cells()[2].classList.contains(styles['is-out'])).toBe(true);
+    await act(async () => toggleOf(cells()[2]).click()); // toggle page 3 out, inside the window
+    expect(cells()[2].getAttribute('data-out')).toBe('true');
 
     await act(async () => container.querySelector(`.${styles['undo-chip']} button`).click());
-    expect(cells()[0].querySelector(`.${styles['cell-thumb']}`).getAttribute('data-rotation')).toBeNull();
-    expect(cells()[2].classList.contains(styles['is-out'])).toBe(true);
+    expect(cells()[0].querySelector(`.${tileStyles.thumb}`).getAttribute('data-rotation')).toBeNull();
+    expect(cells()[2].getAttribute('data-out')).toBe('true');
   });
 
   it('shares separately split PDFs as multiple native files', async () => {
@@ -821,7 +824,7 @@ describe('PdfSplitTool UI flow', () => {
     }
 
     function thumbnails() {
-      return container.querySelectorAll(`.${styles['cell-thumb-img']}`);
+      return container.querySelectorAll(`.${tileStyles['thumb-img']}`);
     }
 
     /** A 3-page replacement whose own pages never finish rendering, so every
@@ -976,7 +979,7 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
     });
     await wait(50);
   }
-  const toggleFirstCell = () => act(async () => container.querySelectorAll(`.${styles.cell}`)[0].click());
+  const toggleFirstCell = () => act(async () => toggleOf(container.querySelectorAll(`.${styles.cell}`)[0]).click());
 
   beforeEach(() => {
     lifecycleSpy.mockClear();
@@ -1195,11 +1198,11 @@ describe('splitPdf library integration with real fixtures', () => {
       const dialog = await waitDialog();
       expect(dialog).not.toBeNull();
       expect(dialog.textContent).toContain('Page 2 of 5');
-      expect(cells()[1].getAttribute('aria-checked')).toBe('true');
+      expect(toggleOf(cells()[1]).getAttribute('aria-pressed')).toBe('true');
 
       const leaveOut = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Leave out');
       await act(async () => leaveOut.click());
-      expect(cells()[1].getAttribute('aria-checked')).toBe('false');
+      expect(toggleOf(cells()[1]).getAttribute('aria-pressed')).toBe('false');
       expect(Array.from(dialog.querySelectorAll('button')).some((b) => b.textContent === 'Bring back')).toBe(true);
 
       await act(async () => dialog.querySelector('button[aria-label="Next page"]').click());
@@ -1216,7 +1219,7 @@ describe('PdfSplitTool quiet-time prepare', () => {
   const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   const primary = () => container.querySelector(`.${styles.primary}`);
   const cell = (i) => container.querySelectorAll(`.${styles.cell}`)[i];
-  const toggle = (i) => act(async () => cell(i).click());
+  const toggle = (i) => act(async () => toggleOf(cell(i)).click());
 
   beforeEach(async () => {
     vi.useFakeTimers();
