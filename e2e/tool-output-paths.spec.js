@@ -90,7 +90,8 @@ const tools = [
       await page.getByLabel('Add page numbers').check();
     },
     actionName: 'Apply Changes · 1 page',
-    downloadName: 'Download PDF',
+    // The link carries the output's size since HERO-07 ("Download PDF · 1.2 KB").
+    downloadNameMatch: /^Download PDF/,
   },
 ];
 

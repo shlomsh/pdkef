@@ -79,6 +79,9 @@ const variants = Astro.props.variants ?? resolved.variants;
 // Sign and Redact are the editors. They share the desktop first screen of the page-grid tools (HERO-05),
 // but only on an empty desktop stage (see `data-editor` below).
 const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
+// Sign alone keeps its airplane line above the card: below it, the form moves up and Sign's field toolbar
+// jumps under pinch zoom. Sign's phone layout waits for the next generation (SNG-24).
+const noteAboveCard = tool.slug === 'sign';
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
@@ -197,6 +200,12 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   <div class="tool-stage flex flex-col" data-layout="hero" data-editor={isEditor || undefined}>
     <ToolHero icon={tool.icon} title={tool.h1} titleName={tool.h1Name} subhead={tool.subhead} subheadAccent={messages.heroAccent} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} condenseOnLoad />
 
+    {noteAboveCard && (
+      <p data-tool-restore-followup data-airplane-note class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
+        {messages.airplaneModeNotice}
+      </p>
+    )}
+
     {/* !max-w-[1280px] overrides global.css's bare `main { max-width: 1400px }`
         (still 1400 for every other page type - content guides, licenses,
         404 - which never asked to match home). Keeps this tool's drop
@@ -221,15 +230,17 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       </section>
     </main>
 
-    {/* The airplane-mode line sits below the card for every tool, so it moves
-        nothing the first screen has already laid out. The desktop empty-state
-        grid places it by its `data-airplane-note` marker; the editors also carry
-        `data-tool-restore-followup`, which hides it while a restore is pending.
-        It stays a bare <p>: e2e/tool-layout.spec.js's `body > div > div` locator
-        must keep resolving to the app bar only. */}
+    {/* The airplane-mode line sits below the card for every tool but Sign (see
+        `noteAboveCard`), so it moves nothing the first screen has already laid
+        out. The desktop empty-state grid places it by its `data-airplane-note`
+        marker; the editors also carry `data-tool-restore-followup`, which hides
+        it while a restore is pending. It stays a bare <p>: e2e/tool-layout.spec.js's
+        `body > div > div` locator must keep resolving to the app bar only. */}
+    {!noteAboveCard && (
     <p data-tool-restore-followup={isEditor ? '' : undefined} data-airplane-note class="type-body mx-auto w-full max-w-[1280px] px-4 pb-1 text-center text-[var(--color-muted)] min-[560px]:px-6">
       {messages.airplaneModeNotice}
     </p>
+    )}
     <a data-how-link href="#how-it-works" class="text-[var(--color-primary-text)]">
       {messages.howItWorks}
       <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" /></svg>
