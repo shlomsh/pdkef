@@ -89,3 +89,32 @@
     margin-inline-start: auto;
   }
 }
+
+/* Below 1024px the primary, its error and the done controls are a sticky
+   bottom sheet, as in Compress (ux guidelines 8). The sheet bleeds to the
+   card's edge: 12px of card padding below 768px, 1.5rem from 768px to
+   1023px. Desktop keeps the button in flow. */
+.edit-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 1023px) {
+  .edit-sheet {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-inline: -12px;
+    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .edit-sheet {
+    margin-inline: -1.5rem;
+    padding-inline: 1.5rem;
+  }
+}
