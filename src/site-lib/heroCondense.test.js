@@ -11,15 +11,14 @@ describe('loaded tool hero is one line for every tool', () => {
     expect(tag).not.toMatch(/condenseOnLoad=\{tool\.slug/);
   });
 
-  it('non-editors condense at every width; Redact folds on a phone; Sign keeps its own hero', () => {
+  it('non-editors condense at every width; both editors fold on a phone', () => {
     expect(hero).toContain('[data-hero-condense-on-load]:not([data-hero-editor])');
-    // Folding Sign on a phone lifted the form field and made Sign's field
-    // toolbar jump 149px sideways at 1.8x pinch zoom
-    // (toolbar-zoom-physical-size.spec.js:292). Its phone layout waits for the
-    // next generation (HERO-08), so only Redact carries the fold marker.
+    // Sign and Redact fold on a coarse phone once loaded (HERO-08, SNG-24). The
+    // toolbar-zoom spec's 149px "jump" under the fold was visualViewportClamp
+    // pulling an off-screen bar into view, not a layout fault.
     expect(hero).toContain('[data-hero-editor-fold][data-hero-condense-on-load]');
-    expect(hero).toMatch(/data-hero-editor-fold=\{slug === 'redact'/);
-    // Every selector that folds an editor hero requires the Redact-only marker.
+    expect(hero).toMatch(/data-hero-editor-fold=\{isEditor/);
+    // Every selector that folds an editor hero requires the fold marker.
     const bare = hero.match(/\[data-hero-editor\]\[data-hero-condense-on-load\]/g) ?? [];
     expect(bare).toEqual([]);
   });

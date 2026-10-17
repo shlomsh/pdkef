@@ -213,16 +213,14 @@ for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900,
 
 // HERO-05: Sign and Redact carry the desktop first screen's markup at every width (the static HTML is
 // one document), so below 1024px each of its rules must be off: the stage stays a stack, the hero is
-// the row it always was (name and rest read as one inline line), and the How it works link is hidden.
-// The airplane line sits between the hero and the card on Sign (its phone layout belongs to
-// docs/sign-next-gen.md, SNG-24) and below the card on Redact, like every other tool (HERO-08).
+// the row it always was (name and rest read as one inline line), the airplane line sits below the
+// card as on every other tool (HERO-08, SNG-24), and the How it works link is hidden.
 for (const route of ['/sign/', '/redact/']) {
-  const noteFirst = route === '/sign/';
   for (const [width, height] of [[390, 844], [768, 1024], [1023, 768]]) {
     test(`${route} below the desktop first screen is unchanged at ${width}x${height}`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await open(page, route);
-      const probe = await page.evaluate((noteFirst) => {
+      const probe = await page.evaluate(() => {
         const stage = document.querySelector('.tool-stage');
         const hero = document.querySelector('.tool-hero');
         const note = document.querySelector('[data-airplane-note]');
@@ -234,22 +232,17 @@ for (const route of ['/sign/', '/redact/']) {
           stacked: hero.hasAttribute('data-hero-stacked'),
           name: getComputedStyle(hero.querySelector('[data-hero-name]')).display,
           rest: getComputedStyle(hero.querySelector('[data-hero-rest]')).display,
-          domOrder: noteFirst
-            ? following(hero, note) && following(note, main)
-            : following(hero, main) && following(main, note),
-          visualOrder: noteFirst
-            ? R(hero).bottom <= R(note).top + 0.5 && R(note).bottom <= R(main).top + 0.5
-            : R(hero).bottom <= R(main).top + 0.5 && R(main).bottom <= R(note).top + 0.5,
+          domOrder: following(hero, main) && following(main, note),
+          visualOrder: R(hero).bottom <= R(main).top + 0.5 && R(main).bottom <= R(note).top + 0.5,
           how: getComputedStyle(document.querySelector('[data-how-link]')).display,
         };
-      }, noteFirst);
+      });
       expect(probe.display, 'stage').not.toBe('grid');
       expect(probe.stacked, 'data-hero-stacked stays off').toBe(false);
       expect(probe.name, 'name span').toBe('inline');
       expect(probe.rest, 'rest span').toBe('inline');
-      const order = noteFirst ? 'hero, note, card' : 'hero, card, note';
-      expect(probe.domOrder, `DOM order ${order}`).toBe(true);
-      expect(probe.visualOrder, `visual order ${order}`).toBe(true);
+      expect(probe.domOrder, 'DOM order hero, card, note').toBe(true);
+      expect(probe.visualOrder, 'visual order hero, card, note').toBe(true);
       expect(probe.how, 'How it works link').toBe('none');
     });
   }
