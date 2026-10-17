@@ -10,6 +10,7 @@ import * as draftStore from '../../lib/drafts/draftStore.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import railStyles from './components/MergeRail.module.css';
+import sortMenuStyles from '../../shell/SortMenu.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import outputNameStyles from '../../shell/OutputName.module.css';
 import downloadStyles from './components/DownloadElement.module.css';
@@ -530,7 +531,7 @@ describe('PdfMergeTool UI flow', () => {
   it('sorts with the styled menu, Reverse folded in as its own option, and regroups the plan to match', async () => {
     mount();
     await loadFiles(['b.pdf', 'a.pdf', 'c.pdf']);
-    const trigger = () => container.querySelector(`button.${railStyles['sort-trigger']}`);
+    const trigger = () => container.querySelector(`button.${sortMenuStyles['sort-trigger']}`);
     const choose = async (label) => {
       await act(async () => { trigger().click(); });
       const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === label);
@@ -593,7 +594,7 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     const controls = () => container.querySelector('[data-merge-file-controls]');
     const describe = (el) => {
-      if (el.matches(`.${railStyles['sort-select-wrap']}`)) return 'sort';
+      if (el.matches(`.${sortMenuStyles['sort-select-wrap']}`)) return 'sort';
       if (el.matches(`.${railStyles['rearranged-note']}`)) return 'reset-order';
       if (el.matches(`.${railStyles['page-numbers-row']}`)) return 'page-numbers';
       if (el.tagName === 'BUTTON') return el.textContent.trim();
@@ -989,7 +990,7 @@ describe('PdfMergeTool UI flow', () => {
         draftProbe.props.onRestore(restoreOf('b.pdf', 'a.pdf', 'c.pdf'));
         await flush(10);
       });
-      const trigger = () => container.querySelector(`button.${railStyles['sort-trigger']}`);
+      const trigger = () => container.querySelector(`button.${sortMenuStyles['sort-trigger']}`);
       await act(async () => { trigger().click(); });
       const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === 'Name A to Z');
       await act(async () => { option.click(); });

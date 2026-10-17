@@ -39,7 +39,7 @@ import DownloadElement, { type DownloadElementState } from './components/Downloa
 import FileName from './components/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
-import SortMenu from './components/SortMenu.tsx';
+import SortMenu from '../../shell/SortMenu.tsx';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { usePreparedMerge } from './components/usePreparedMerge.ts';
 import type { PageStripProps } from './components/PageStrip.tsx';
