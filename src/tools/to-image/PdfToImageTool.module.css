@@ -1,142 +1,420 @@
-/* Colocated from global.css in E2.2.8. The E2.2 plan expected `.toolbar`/
-   `.toolbar-label` to be shared across Merge/ImageToPdf/ToImage/EditPages
-   (a "ToolToolbar.module.css"), but the real consumers turned out to be only
-   PdfToImageTool.jsx (its Format/Quality/Output option groups) — Merge and
-   ImageToPdf render their own sort row with the scoped SortToolbar module (a different,
-   editor-territory class), not this one. Genuinely single-consumer, so this
-   is a per-component module rather than a shared one. */
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: var(--space-3);
-}
-
-.toolbar-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15rem;
-  color: var(--color-muted);
-  font-size: 0.82rem;
-  font-weight: 500;
-  margin-inline-end: 0.2rem;
-}
-
-/* Phones: each group is its label on a line, then its options sharing the
-   card's full width in equal parts, 44px tall. Format splits in halves,
-   Quality in thirds; Output's two long options cannot share 345px, so each
-   takes the full width rather than leaving one stranded on a half-empty
-   line. */
-@media (max-width: 767px) {
-  .toolbar {
-    gap: 0.5rem;
-    margin-top: var(--space-4);
-  }
-
-  .toolbar-label {
-    flex-basis: 100%;
-    margin: 0;
-  }
-
-  .toolbar button {
-    flex: 1 1 auto;
-    min-height: 44px;
-  }
-
-  /* Pages reads like the groups above it: label on its line, field below. */
-  .pages-field:is(div) {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
-    margin-top: var(--space-4);
-  }
-}
-
-.toolbar button {
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 0.4rem 0.85rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  transition: border-color 0.15s var(--ease-out), background-color 0.15s var(--ease-out),
-    color 0.15s var(--ease-out), transform 0.12s var(--ease-spring);
-}
-
-.toolbar button:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-text);
-}
-
-.toolbar button:active {
-  transform: scale(0.95);
-}
-
-.toolbar button[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-text);
-}
-
-/* --- Quality-preset info tooltip (E2.4) --- */
-.info-icon {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin-inline-start: 0.1rem;
-  color: var(--color-muted);
-  border-radius: 50%;
-  cursor: help;
-  transition: color 0.15s var(--ease-out);
-}
-
-.info-icon:hover,
-.info-icon:focus-visible {
-  color: var(--color-primary-text);
-  outline: none;
-}
-
-.tooltip-bubble {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  /* Start-aligned to the icon beside the label, so it opens into the card,
-     never past the screen's start edge. */
-  inset-inline-start: 0;
-  width: max-content;
-  max-width: 260px;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.6rem 0.75rem;
-  background: var(--color-text);
-  color: var(--color-surface);
-  font-size: 0.78rem;
-  font-weight: 400;
-  line-height: 1.4;
+/* PDF to Image's loaded state (ux guidelines §18): the pages are the centre,
+   the strip, the options and the primary control are a rail beside them. DOM
+   order is strip, controls, result, sheet, which is also the phone's reading
+   order. The grid, the primary-control states and the phone sheet follow
+   Compress (loaded layout) and Split (page tiles). */
+.loaded-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'strip'
+    'controls'
+    'result'
+    'sheet';
+  row-gap: 16px;
+  align-items: start;
   text-align: start;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  z-index: 10;
 }
 
-.info-icon:hover .tooltip-bubble,
-.info-icon:focus-visible .tooltip-bubble {
+.strip {
+  grid-area: strip;
+  min-width: 0;
+}
+
+.controls {
+  grid-area: controls;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.tooltip-row strong {
-  color: var(--color-surface);
+.result {
+  grid-area: result;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface-sunken);
+  border-radius: 18px;
+}
+
+.result-action {
+  grid-area: sheet;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .loaded-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      'result strip'
+      'result controls'
+      'result sheet'
+      'result .';
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+  }
+
+  .result-action {
+    margin-top: 20px;
+  }
+
+  .result {
+    padding: 20px;
+    min-height: 420px;
+  }
+
+  .strip {
+    margin-bottom: 16px;
+  }
+}
+
+/* Below 1024px the primary controls are the sticky bottom sheet the other
+   tools use (ux guidelines 8). It stays in flow, so it never covers the
+   result. It bleeds to the card's edge: the card pads 12px below 768px and
+   1.5rem from 768px to 1023px (the same bleed as Compress). */
+@media (max-width: 1023px) {
+  .result-sheet {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-inline: -12px;
+    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .result-sheet {
+    margin-inline: -1.5rem;
+    padding-inline: 1.5rem;
+  }
 }
 
 /* The page-range input stays dir="ltr" so typed digits keep their order; in an
    RTL edition its text (placeholder included) still sits on the start edge. */
 .page-selector-rtl {
   text-align: right;
+}
+
+/* ---------- the pages ---------- */
+
+.result-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.result-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+/* Own grid, deliberately not PageGrid's `.pages-grid`: that one is a 440px
+   scrollbox, and a scrollbox inside the page defeats the sticky sheet. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
+}
+
+.tile:hover {
+  border-color: var(--color-border-strong);
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Left out: dimmed, dashed, marked; stays exactly where it was. */
+.tile.is-out {
+  opacity: 0.45;
+  border-style: dashed;
+  background: transparent;
+}
+
+.tile-art {
+  position: relative;
+}
+
+.tile-thumb {
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-surface-soft);
+}
+
+.tile-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.tile-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-align: center;
+  min-width: 0;
+}
+
+.out-mark {
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+/* The magnifier and the per-page download sit in the thumbnail's two bottom
+   corners: always visible (no hover-only affordance), 22px faces with a 44px
+   hit area from the pseudo-element, as Split's rotate and magnifier. */
+.preview-btn,
+.tile-download {
+  position: absolute;
+  bottom: 0.3rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+}
+
+.preview-btn {
+  inset-inline-end: 0.3rem;
+}
+
+.tile-download {
+  inset-inline-start: 0.3rem;
+}
+
+.preview-btn::before,
+.tile-download::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.preview-btn:hover,
+.tile-download:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.preview-btn:focus-visible,
+.tile-download:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  outline-offset: 1px;
+}
+
+/* One tall image: the same tiles in one continuous column, no gaps, under a
+   single caption. */
+.tall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tall-caption {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.tall-column {
+  width: min(100%, 220px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.tall-column .tile {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.tall-column .tile-thumb {
+  border-radius: 0;
+}
+
+.tall-column .tile.is-out {
+  border: 0;
+}
+
+.tall-column .tile-caption {
+  position: absolute;
+  top: 0.3rem;
+  inset-inline-start: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+
+/* ---------- the primary control ---------- */
+
+/* One node, one size, five states (ready, preparing, saved, empty, error). */
+.primary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  min-height: 56px;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+
+.primary:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-surface);
+}
+
+.primary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.primary-label {
+  line-height: 1.2;
+}
+
+/* The total size joins here when the build lands; the line is always
+   reserved so nothing moves. */
+.primary-detail {
+  min-height: 1.2em;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.primary[data-state='empty'],
+.primary[data-state='error'] {
+  background: var(--color-surface);
+  color: var(--color-muted);
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+  cursor: default;
+}
+
+.primary[data-state='preparing'] {
+  /* Same fill, a touch lighter, so ProgressRing's white ring reads. */
+  background: color-mix(in srgb, var(--color-primary) 78%, var(--color-surface));
+  border-color: transparent;
+  cursor: progress;
+}
+
+.primary[data-state='saved'] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.primary[data-state='saved'] .primary-detail {
+  flex-basis: 100%;
+  text-align: center;
+}
+
+.primary-check {
+  flex-shrink: 0;
+}
+
+/* ---------- density ---------- */
+
+@media (min-width: 1024px) {
+  .primary {
+    min-height: 64px;
+  }
+
+  /* A short document on a wide canvas: fewer, bigger tiles. */
+  .grid[data-scale='large'] {
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .tile {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+
+  .tile-caption {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .primary {
+    transition: none;
+  }
 }

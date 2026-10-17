@@ -65,8 +65,10 @@ const tools = [
     name: 'PDF to Image',
     path: '/pdf-to-image',
     file: { name: 'source.pdf', mimeType: 'application/pdf', bufferFn: makePdfBuffer },
-    actionName: 'Convert to PNG',
-    downloadName: 'Download PNG',
+    // Converted on idle, like Split: Download is a ready link once the build
+    // lands, its name carrying the size ("Download PNG · 412 KB").
+    actionName: null,
+    downloadNameMatch: /^Download PNG/,
   },
   {
     name: 'Image to PDF',

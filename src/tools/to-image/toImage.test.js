@@ -114,4 +114,15 @@ describe('convertPdfToImages library integration with real fixtures', () => {
 
     expect(images.map((image) => image.pageNumber)).toEqual([1, 2]);
   });
+
+  it('stops between pages with an AbortError when its signal fires', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const controller = new AbortController();
+    const run = convertPdfToImages(file, {
+      format: 'image/png',
+      signal: controller.signal,
+      onProgress: (value) => { if (value >= 2 / 5) controller.abort(); },
+    });
+    await expect(run).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });

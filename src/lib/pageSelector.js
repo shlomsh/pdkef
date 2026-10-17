@@ -99,3 +99,29 @@ export function parsePageSelector(selector, pageCount) {
   }
   return inRange.sort((a, b) => a - b);
 }
+
+// Converts a list of page numbers (e.g. [1, 2, 3, 5, 7, 8]) into a minimal range string
+// (e.g. "1-3, 5, 7-8").
+export function pageNumbersToRangeString(numbers) {
+  if (!numbers || numbers.length === 0) return '';
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const ranges = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+
+  for (let i = 1; i <= sorted.length; i += 1) {
+    const current = sorted[i];
+    if (current === prev + 1) {
+      prev = current;
+    } else {
+      if (start === prev) {
+        ranges.push(`${start}`);
+      } else {
+        ranges.push(`${start}-${prev}`);
+      }
+      start = current;
+      prev = current;
+    }
+  }
+  return ranges.join(', ');
+}

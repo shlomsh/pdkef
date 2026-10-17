@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePageSelector, PageSelectorError } from './pageSelector.js';
+import { parsePageSelector, pageNumbersToRangeString, PageSelectorError } from './pageSelector.js';
 
 // DEBT-23: one parser for Split and PDF to Image. These cases carry forward
 // every case both tools' own tests had for parsePageSelector, plus coverage
@@ -51,5 +51,14 @@ describe('parsePageSelector', () => {
 
   it('bound-checks an open-ended start range', () => {
     expect(() => parsePageSelector('-11', 10)).toThrow(/11/);
+  });
+});
+
+describe('pageNumbersToRangeString', () => {
+  it('converts page numbers back to range strings', () => {
+    expect(pageNumbersToRangeString([])).toBe('');
+    expect(pageNumbersToRangeString([1, 2, 3])).toBe('1-3');
+    expect(pageNumbersToRangeString([1, 2, 3, 5])).toBe('1-3, 5');
+    expect(pageNumbersToRangeString([1, 3, 4, 5, 7, 8])).toBe('1, 3-5, 7-8');
   });
 });
