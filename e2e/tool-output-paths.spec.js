@@ -74,9 +74,10 @@ const tools = [
     name: 'Image to PDF',
     path: '/image-to-pdf',
     file: { name: 'source.png', mimeType: 'image/png', bufferFn: async () => pngBuffer },
-    actionName: 'Convert 1 image to PDF',
-    downloadName: 'Download PDF',
-    downloadAttr: 'images.pdf',
+    // Built on pick, like PDF to Image; the name follows the first image.
+    actionName: null,
+    downloadNameMatch: /^Download PDF/,
+    downloadAttr: 'source.pdf',
   },
   {
     name: 'Edit Pages',
