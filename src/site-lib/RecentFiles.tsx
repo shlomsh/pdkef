@@ -82,12 +82,15 @@ export default function RecentFiles({
                 onClick={() => onOpenRecent?.(file)}
               >
                 {identity}
-                <span class={styles.sub}>{meta.gridTitle}</span>
-                {typeof file.pageCount === 'number' && (
-                  <span class={styles.sub}>
-                    {file.pageCount === 1 ? messages.pageCountOne : formatMessage(messages.pageCountOther, { count: file.pageCount })}
-                  </span>
-                )}
+                {/* Tool and page count share one line: the desktop tile's height is
+                    reserved for the name plus two detail lines (RecentFiles.module.css),
+                    and a third one is clipped (e2e/home/recent-tile-fits.spec.js). */}
+                <span class={styles.sub}>
+                  {meta.gridTitle}
+                  {typeof file.pageCount === 'number' && ` · ${
+                    file.pageCount === 1 ? messages.pageCountOne : formatMessage(messages.pageCountOther, { count: file.pageCount })
+                  }`}
+                </span>
                 {savedAtLabel && (
                   // formatSavedAt resolves against the browser's locale, so
                   // this is often an LTR "2 days ago" on an RTL page (/he/),
