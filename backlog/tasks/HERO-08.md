@@ -16,7 +16,8 @@ sideways at 1.8x pinch zoom (anchor x 389.9 to 240.9), so the fold was left out 
 
 *Re-scoped 2026-10-17.* Sign's phone layout is frozen for patches in favour of the next generation
 ([docs/sign-next-gen.md](../../docs/sign-next-gen.md)), so Sign's fold moved to SNG-24 and this ticket
-covers Redact (its fold and its airplane line).
+covers Redact (its fold and its airplane line). SNG-24 later found the toolbar jump was the spec's
+zoom gate, not Sign, and gave Sign the same fold and line the same day.
 
 Measured at 393x852 (2026-10-15, and again 2026-10-17): the empty-state sheet's top ranges from 253px
 (Merge) to 472px (Sign); both editors render the "Turn on airplane mode" line above the card (Redact: line
