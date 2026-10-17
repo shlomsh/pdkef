@@ -822,7 +822,7 @@ describe('PdfSecurityTool', () => {
       mount();
       await loadFile();
       await flush();
-      expect(reportErrorSpy).toHaveBeenCalledWith('pdf_render', boom, 'render_compare_preview');
+      expect(reportErrorSpy).toHaveBeenCalledWith('pdf_render', boom, 'render_security_preview');
       expect(container.querySelector('[data-security-preview] img')).toBeNull();
       expect(tagOf()).toBe('Not protected');
     });
