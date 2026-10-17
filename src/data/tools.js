@@ -444,16 +444,16 @@ export const tools = [
     steps: [
       { title: 'Add your PDF', text: 'Select or drag-and-drop the file you want to convert.' },
       { title: 'Choose format and quality', text: 'Pick PNG or JPG, and a quality level from Standard to Maximum.' },
-      { title: 'Convert and download', text: 'Click Convert and download your image, one file per page.' },
+      { title: 'Download', text: 'Your images are ready as soon as you stop adjusting. Download them, one file per page or one tall image.' },
     ],
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your converted images.' },
       { question: 'Does PDkef add a watermark to converted images?', answer: 'No. JPG and PNG exports here have no watermark and no forced resolution downgrade. Because the conversion runs on your device, there is no server cost to recoup by limiting quality.' },
       { question: 'Are my files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your PDF never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'What is the difference between PNG and JPG?', answer: 'PNG keeps a transparent background and is lossless, which is best for text-heavy or graphic pages. JPG uses a white background and smaller file sizes, which works well for photos and scans.' },
-      { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file. "Download all" saves them one at a time rather than as a single zip file, since this tool has no zip library bundled - your browser may ask to allow multiple downloads the first time. You can also choose "Single combined image" to stack every page into one tall image instead.' },
+      { question: 'What happens with a multi-page PDF?', answer: 'Each page becomes its own image file by default. Download saves them one at a time rather than as a zip, so your browser may ask to allow multiple downloads the first time. Choose "One tall image" to stack every page into a single image instead.' },
       { question: 'Can I turn a scanned worksheet or slide deck into images?', answer: 'Yes. Open the PDF, choose JPG or PNG, and each page - a scanned worksheet, presentation slide, or contract page - becomes its own image file ready to share or embed.' },
-      { question: 'Can I convert just a few pages instead of the whole PDF?', answer: 'Yes. Type the pages you want in the page selector, for example 1-3, 5, or 8- for page 8 to the end, and only those pages convert. Useful for pulling one diagram or photo out of a long scanned document without converting the rest.' },
+      { question: 'Can I convert just a few pages instead of the whole PDF?', answer: 'Yes. Select a page to leave it out, or type the pages you want in the Pages field, for example 1-3, 5, or 8- for page 8 to the end. Useful for pulling one diagram or photo out of a long scanned document without converting the rest.' },
       { question: 'What resolution do the images come out at?', answer: 'Pick Standard (about 72 DPI, the smallest files, fine for screens), High (about 144 DPI, sharp for most printing, and the default) or Maximum (about 216 DPI, best for zooming in or large prints). The setting controls how many pixels each page is rendered at, so a higher one gives you a sharper and larger image.' },
     ],
   },
@@ -488,8 +488,8 @@ export const tools = [
     faqIconPos: 'bl',
     steps: [
       { title: 'Add your images', text: 'Select or drag-and-drop the JPG or PNG files you want to combine.' },
-      { title: 'Reorder them', text: 'Sort by name or date, or drag images into the order you want.' },
-      { title: 'Convert and download', text: 'Click Convert and download a single PDF with one image per page.' },
+      { title: 'Reorder them', text: 'Drag the pages into the order you want, or sort them by name or date.' },
+      { title: 'Download', text: 'Your PDF is ready as soon as you stop arranging, one image per page. Rename it if you like, then download.' },
     ],
     faq: [
       { question: 'Is the image to PDF tool really free?', answer: 'Yes. Like all tools on PDkef, this is completely free with no limits, no signup, and no watermark on the resulting PDF.' },
