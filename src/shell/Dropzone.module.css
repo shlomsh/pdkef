@@ -103,64 +103,8 @@
     visibility: hidden;
   }
 
-  /* Compress and Compress Image (`compact`) show their quality choices under
-     the sheet before a file is picked, so the sheet takes its content's height
-     and leaves the rest of the first screen to them; otherwise the column ran
-     past the fold and the hero centred far below the top. */
-  :global(.tool-stage[data-layout='hero']) .dropzone[data-empty-state][data-compact],
-  :global(.tool-stage[data-layout='hero']) .dropzone[aria-busy][data-compact] {
-    min-height: 0;
-  }
-
   .dropzone[data-empty-state] > :first-child {
     max-width: 42rem;
-  }
-
-  /* Compact tools keep their choices on the first screen: the picture sits at
-     the inline-start and the words and picker beside it, so the sheet is about
-     as tall as the verb box instead of a column of picture over text. */
-  .dropzone[data-empty-state][data-compact] {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    column-gap: 1.25rem;
-    row-gap: 0.75rem;
-    /* The picture spans all five rows; the words sit in the middle three, between two
-       equal flexible rows, so they centre against the picture. */
-    grid-template-rows: 1fr auto auto auto 1fr;
-    padding-block: 1.5rem;
-    padding-inline: 0.5rem 2rem;
-    text-align: start;
-  }
-
-  .dropzone[data-empty-state][data-compact] > :first-child {
-    grid-row: 1 / -1;
-    align-self: center;
-    max-width: none;
-    width: 100%;
-  }
-
-  .dropzone[data-empty-state][data-compact] > :not(:first-child) {
-    grid-column: 2;
-    justify-self: start;
-    margin-inline: 0;
-  }
-
-  .dropzone[data-empty-state][data-compact] > :nth-child(2) {
-    grid-row: 2;
-  }
-
-  .dropzone[data-empty-state][data-compact] > :nth-child(3) {
-    grid-row: 3;
-  }
-
-  .dropzone[data-empty-state][data-compact] > :nth-child(4) {
-    grid-row: 4;
-  }
-
-  /* The iOS and cloud-drive notices, when a phone-class device shows them. */
-  .dropzone[data-empty-state][data-compact] > :nth-child(n + 5) {
-    grid-row: 5;
-    align-self: start;
   }
 
   .dropzone[data-empty-state] .dropzone-text {

@@ -11,7 +11,6 @@ interface DropzoneEmptyStateProps {
   message?: string;
   inputRef?: Ref<HTMLInputElement>;
   onFiles: (files: File[] | FileList) => void;
-  compact?: boolean;
   messages?: ShellMessages;
   /** MOBI-09: opt-in only (the Sign tool page sets this; every other
    * BasePdfTool caller leaves it unset). Whether the notice actually shows
@@ -35,7 +34,6 @@ export default function DropzoneEmptyState({
   message,
   inputRef,
   onFiles,
-  compact = false,
   messages = englishShellMessages,
   showIosFilesHint = false,
   showCloudDriveHint = false,
@@ -110,7 +108,6 @@ export default function DropzoneEmptyState({
       // .dropzone for the box styling but must never be hidden by it) - see
       // the `html[data-draft-hint]` rule in Dropzone.module.css.
       data-empty-state
-      data-compact={compact || undefined}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
