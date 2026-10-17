@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
 import pdfToolStyles from './PdfTool.module.css';
 
 /**
@@ -27,15 +28,30 @@ import pdfToolStyles from './PdfTool.module.css';
  * (Compress): there the result landing is not "you just finished", and taking
  * focus would pull it off the option the person is still adjusting. The
  * tool's live region still announces the result.
+ *
+ * `busy` (HERO-07) swaps the content for a progress look while keeping the same
+ * focused anchor (aria-disabled, so a tap does nothing but the tool's own
+ * handler runs first): focus is not lost when a tap starts a wait.
  */
-export default function DownloadButton({ href, download, label = 'Download PDF', detail, onClick, autoFocus = true }: { href: string; download: string; label?: string; detail?: string; onClick?: (event: MouseEvent) => void; autoFocus?: boolean }) {
+export default function DownloadButton({ href, download, label = 'Download PDF', detail, onClick, autoFocus = true, busy }: { href: string; download: string; label?: string; detail?: string; onClick?: (event: MouseEvent) => void; autoFocus?: boolean; busy?: ComponentChildren }) {
   const ref = useRef<HTMLAnchorElement | null>(null);
   useEffect(() => {
     if (autoFocus) ref.current?.focus({ preventScroll: true });
   }, []);
 
   return (
-    <a ref={ref} class={pdfToolStyles['download-button']} href={href} download={download} onClick={onClick}>
+    <a
+      ref={ref}
+      class={busy ? `${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}` : pdfToolStyles['download-button']}
+      href={href}
+      download={download}
+      aria-disabled={busy ? 'true' : undefined}
+      onClick={(event) => {
+        onClick?.(event);
+        if (busy) event.preventDefault();
+      }}
+    >
+      {busy ? busy : (<>
       <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
         <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
@@ -44,6 +60,7 @@ export default function DownloadButton({ href, download, label = 'Download PDF',
         {label}
         {detail && <span class={pdfToolStyles['download-button-detail']}>{detail}</span>}
       </span>
+      </>)}
     </a>
   );
 }
