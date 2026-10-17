@@ -10,6 +10,7 @@ import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pageSelec
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PageToggleTile from '../../shell/PageToggleTile.tsx';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
@@ -632,42 +633,25 @@ export default function PdfSplitTool({
   const canvasCount = formatMessage(t.pageCountOf, { selected: selectedCount, pages: pageWord(numPages) });
 
   const renderCell = (p: SplitPage) => (
-    <div
+    <PageToggleTile
       key={p.pageNumber}
-      class={`${styles.cell}${p.selected ? '' : ` ${styles['is-out']}`}${perCellCaptions && p.selected ? ` ${styles['is-own-file']}` : ''}`}
-      onClick={() => togglePageSelection(p.pageNumber)}
-      role="checkbox"
-      aria-checked={p.selected}
-      aria-label={formatMessage(t.pageAria, { number: p.pageNumber })}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          togglePageSelection(p.pageNumber);
-        }
-      }}
+      class={`${styles.cell}${perCellCaptions && p.selected ? ` ${styles['is-own-file']}` : ''}`}
+      selected={p.selected}
+      thumbnail={p.thumbnail}
+      rotation={p.rotation}
+      label={formatMessage(t.pageAria, { number: p.pageNumber })}
+      onToggle={() => togglePageSelection(p.pageNumber)}
+      onPreview={() => openPreview(p.pageNumber)}
+      previewLabel={formatMessage(t.openPreview, { number: p.pageNumber })}
+      previewClass={styles['preview-btn']}
+      caption={perCellCaptions && p.selected ? (
+        <span class={styles['cell-caption']} dir="ltr" title={`${baseName}-page-${p.pageNumber}.pdf`}>
+          {'…-page-'}{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
+        </span>
+      ) : (
+        <span class={styles['cell-number']}>{formatMessage(t.pageCell, { number: p.pageNumber })}</span>
+      )}
     >
-      {/* On a phone the magnifier sits in the thumbnail's bottom corner, opposite rotate. */}
-      <div class={styles['cell-art']}>
-        <div class={styles['cell-thumb']} data-rotation={p.rotation || undefined}>
-          {p.thumbnail ? (
-            <img class={styles['cell-thumb-img']} src={p.thumbnail} alt="" />
-          ) : (
-            <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
-          )}
-        </div>
-        <button
-          type="button"
-          class={styles['preview-btn']}
-          aria-label={formatMessage(t.openPreview, { number: p.pageNumber })}
-          onClick={(e) => { e.stopPropagation(); openPreview(p.pageNumber); }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="7" cy="7" r="4.5" />
-            <path d="M10.3 10.3L14 14" />
-          </svg>
-        </button>
-      </div>
       {/* Always visible, not hover/tap-gated: the cell body's own click
           already toggles inclusion (the frame is the mode), so a second,
           select-to-reveal gesture like Merge's would collide with it on
@@ -677,7 +661,7 @@ export default function PdfSplitTool({
         type="button"
         class={styles['rotate-btn']}
         aria-label={formatMessage(t.rotateAria, { number: p.pageNumber })}
-        onClick={(e) => { e.stopPropagation(); rotatePage(p.pageNumber); }}
+        onClick={() => rotatePage(p.pageNumber)}
       >
         {/* The same rotate-clockwise arrow Edit Pages uses (Shlomi, 2026-09-14:
             a page-with-arrow glyph was not readable as rotate at 14px). */}
@@ -686,14 +670,7 @@ export default function PdfSplitTool({
           <path d="M21 3v5h-5" />
         </svg>
       </button>
-      {perCellCaptions && p.selected ? (
-        <span class={styles['cell-caption']} dir="ltr" title={`${baseName}-page-${p.pageNumber}.pdf`}>
-          {'…-page-'}{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
-        </span>
-      ) : (
-        <span class={styles['cell-number']}>{formatMessage(t.pageCell, { number: p.pageNumber })}</span>
-      )}
-    </div>
+    </PageToggleTile>
   );
 
   return (

@@ -32,7 +32,7 @@ test.describe('Split: the stage keeps the mode in view', () => {
         buffer: await makePdfBuffer(40),
       });
 
-      const cells = page.getByRole('checkbox', { name: /^Page \d+$/ });
+      const cells = page.getByRole('button', { name: /^Page \d+$/ });
       await expect(cells).toHaveCount(40);
 
       // Scroll the last cell into view, then check the control's rect.
@@ -62,7 +62,7 @@ test.describe('Split: the stage keeps the mode in view', () => {
       mimeType: 'application/pdf',
       buffer: await makePdfBuffer(12),
     });
-    const cells = page.getByRole('checkbox', { name: /^Page \d+$/ });
+    const cells = page.getByRole('button', { name: /^Page \d+$/ });
     await expect(cells).toHaveCount(12);
     // scrollIntoViewIfNeeded is satisfied by a cell hidden behind the sticky
     // sheet, so scroll the way a person would: first cell just under the header.
@@ -108,11 +108,11 @@ test.describe('Split: the stage keeps the mode in view', () => {
 
     // Leaving a page out dims it in place - toggling selection never moves a
     // cell (review 2026-09-14, P1), only switching mode may.
-    const before = await page.getByRole('checkbox', { name: 'Page 2', exact: true }).boundingBox();
-    await page.getByRole('checkbox', { name: 'Page 2', exact: true }).click();
-    await expect(page.getByRole('checkbox', { name: 'Page 2', exact: true })).toHaveAttribute('aria-checked', 'false');
+    const before = await page.getByRole('button', { name: 'Page 2', exact: true }).boundingBox();
+    await page.getByRole('button', { name: 'Page 2', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Page 2', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(heading).toHaveText('2 PDFs, one page each');
-    const after = await page.getByRole('checkbox', { name: 'Page 2', exact: true }).boundingBox();
+    const after = await page.getByRole('button', { name: 'Page 2', exact: true }).boundingBox();
     if (!before || !after) throw new Error('cell has no bounding box');
     expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
