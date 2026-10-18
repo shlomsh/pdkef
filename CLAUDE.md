@@ -34,7 +34,7 @@ npm install
 npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
-npm run check:fast        # the loop (~15s): guards, units for what changed, tsc (astro check on .astro/config edits)
+npm run check:fast        # the loop (~10s): guards, units the diff reaches, tsc; CI runs the full suite
 npm run check:push        # lead's pre-push gate, no Playwright: the CI oracle narrowed to the diff, parallel
 npm run check:e2e         # the diff's Playwright projects, chromium only (--perf adds perf); before landing rendering changes
 npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
