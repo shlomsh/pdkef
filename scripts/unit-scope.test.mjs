@@ -273,10 +273,43 @@ describe('runUnitByImpact', () => {
     expect(calls[1].args).toEqual(['vitest', 'run']);
   });
 
-  it('runs the full suite directly when scope narrows but ends up with zero seeds', () => {
+  it('runs nothing when scope narrows but ends up with zero seeds (QUAL-24)', () => {
     const { spawn, calls } = fakeSpawn([{ status: 0 }]);
-    runUnitByImpact({ all: false, seeds: [] }, spawn);
-    expect(calls).toHaveLength(1);
-    expect(calls[0].args).toEqual(['vitest', 'run']);
+    expect(runUnitByImpact({ all: false, seeds: [] }, spawn)).toBe(0);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('selectUnitTests: local mode (QUAL-24) never widens to the whole suite', () => {
+  const local = (files, exists = () => true) => selectUnitTests({ files, exists, mode: 'local' });
+
+  it('an empty diff selects no unit tests', () => {
+    expect(local([])).toEqual({ all: false, seeds: [], reasons: ['empty diff: no unit tests'] });
+  });
+
+  it('an oracle file notes that CI runs everything and still seeds itself', () => {
+    const scope = local([file(ORACLE_FILE)]);
+    expect(scope.all).toBe(false);
+    expect(scope.seeds).toEqual([ORACLE_FILE]);
+    expect(scope.reasons[0]).toBe(`CI runs the full suite: CI oracle changed: ${ORACLE_FILE}`);
+  });
+
+  it('an unpaired deletion contributes nothing and does not widen', () => {
+    const scope = local([file('tmp-area/gone.js', 'D'), file('tmp-area/kept.js')], (p) => p !== 'tmp-area/gone.js');
+    expect(scope.all).toBe(false);
+    expect(scope.seeds).toEqual(['tmp-area/kept.js']);
+    expect(scope.reasons[0]).toMatch(/^CI runs the full suite: unpaired deletion/);
+  });
+
+  it('a deletion alone leaves no seeds', () => {
+    const scope = local([file('tmp-area/gone.js', 'D')], () => false);
+    expect(scope.all).toBe(false);
+    expect(scope.seeds).toEqual([]);
+    expect(scope.reasons.at(-1)).toBe('no unit test reaches this diff');
+  });
+
+  it('ci mode is unchanged for the same oracle input', () => {
+    expect(selectUnitTests({ files: [file(ORACLE_FILE)], exists: () => true }).all).toBe(true);
+    expect(selectUnitTests({ files: [], exists: () => true }).all).toBe(true);
   });
 });

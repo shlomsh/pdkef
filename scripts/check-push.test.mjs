@@ -100,7 +100,7 @@ describe('fileCannotReachDist / reachesDist', () => {
   it('reachesDist is true when ANY file in the diff reaches dist, even mixed with docs', () => {
     expect(reachesDist(['backlog/tasks/ARCH-29.md', 'src/lib/format.js'])).toBe(true);
     expect(reachesDist(['backlog/tasks/ARCH-29.md', 'docs/x.md'])).toBe(false);
-    expect(reachesDist([])).toBe(true); // no base or no diff: fail open
+    expect(reachesDist([])).toBe(false); // empty diff: guards only (QUAL-24)
   });
 });
 
@@ -110,10 +110,12 @@ describe('planSteps', () => {
     expect(steps).toEqual(DOCS_ONLY_STEPS);
   });
 
-  it('no resolvable base (empty file list) fails open: build and every dist guard run', () => {
+  it('an empty diff runs no build and no dist guards (QUAL-24)', () => {
     const files = [];
     const steps = planSteps({ ...wide([], 'no usable base'), docsOnly: classify(files).docs_only, reachesDist: reachesDist(files) });
-    expect(steps).toEqual(expect.arrayContaining(['unit', 'typecheck', 'build', ...DIST_GUARD_STEPS]));
+    expect(steps).not.toContain('build');
+    for (const g of DIST_GUARD_STEPS) expect(steps).not.toContain(g);
+    expect(steps).toEqual(expect.arrayContaining(ALWAYS_GUARD_STEPS));
   });
 
   it('a scripts-only diff (tooling, no build script touched): unit + typecheck, no build, no e2e', () => {
