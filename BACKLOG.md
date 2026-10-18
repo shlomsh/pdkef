@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -65,13 +65,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 ## Robustness and debt
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| QUAL-23 | P2 | [QUAL-23](backlog/tasks/QUAL-23.md) · Four chromium e2e shards, and the hero first-screen spec runs per test | In progress |
-| QUAL-24 | P2 | [QUAL-24](backlog/tasks/QUAL-24.md) · Local checks run only what the diff reaches; CI runs every unit test; nightly hunts flakes | In progress |
 
 ### Then, in order
 
@@ -173,7 +166,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 46 done, 3 retired
+- Robustness and debt: 48 done, 3 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 8 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

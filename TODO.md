@@ -6,11 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [QUAL-23](backlog/tasks/QUAL-23.md) P2 · Four chromium e2e shards, and the hero first-screen spec runs per test (in progress)
-- [QUAL-24](backlog/tasks/QUAL-24.md) P2 · Local checks run only what the diff reaches; CI runs every unit test; nightly hunts flakes (in progress)
-
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

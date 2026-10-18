@@ -1,10 +1,9 @@
 ---
 id: "QUAL-24"
 title: "Local checks run only what the diff reaches; CI runs every unit test; nightly hunts flakes"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 ---
 
 # QUAL-24 · Light local checks, more on CI and nightly
@@ -39,4 +38,9 @@ unpaired deletion or a CI oracle file widen the same way.
 
 ## Result
 
-*(pending)*
+- `check:fast` on this branch's whole diff (ci.yml, scripts, one spec, two tickets): 68.5s before
+  (full unit suite plus `astro check`), 6.9s after (15 seeds, tsc). `check:push` on the same diff:
+  7.6s. The full unit suite still passes locally (422 files, 7897 tests).
+- CI run 39141500514: `checks` ran every unit file in 194s and `typecheck` ran as its own job in
+  63s, both beside the e2e shards; the whole run took 225s.
+- The nightly `--repeat-each=2` pass is wired but first runs on the next cron after this lands.
