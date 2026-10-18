@@ -1,37 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { chooseTypecheck, parseArgs, summaryLine } from './check-fast.mjs';
+import { typecheckSteps, parseArgs, summaryLine, unitsDetail } from './check-fast.mjs';
 import { ORACLE_FILES } from './unit-scope.mjs';
 
-describe('chooseTypecheck', () => {
-  const ok = { astroTypesExist: true };
-
-  it('runs tsc for a .ts/.tsx-only edit', () => {
-    expect(chooseTypecheck({ ...ok, files: ['src/tools/sign/fill/fillTap.ts', 'src/tools/sign/PdfSignTool.tsx'] }).tool).toBe('tsc');
+describe('typecheckSteps', () => {
+  it('runs tsc alone once .astro/types.d.ts exists', () => {
+    expect(typecheckSteps({ astroTypesExist: true })).toEqual(['tsc']);
   });
 
-  it('runs tsc for an empty diff', () => {
-    expect(chooseTypecheck({ ...ok, files: [] }).tool).toBe('tsc');
-  });
-
-  it.each([
-    'src/pages/index.astro',
-    'tsconfig.json',
-    'astro.config.mjs',
-    'package.json',
-    'package-lock.json',
-    'src/content.config.ts',
-    'scripts/check-fast.mjs',
-    'scripts/check-push.mjs',
-  ])('runs astro check when %s changed', (file) => {
-    expect(chooseTypecheck({ ...ok, files: ['src/lib/pdfRender.js', file] }).tool).toBe('astro');
-  });
-
-  it('fails open to astro check without a base', () => {
-    expect(chooseTypecheck({ ...ok, files: null }).tool).toBe('astro');
-  });
-
-  it('fails open to astro check before .astro/types.d.ts exists', () => {
-    expect(chooseTypecheck({ files: ['src/lib/a.ts'], astroTypesExist: false }).tool).toBe('astro');
+  it('syncs astro types first when they are missing', () => {
+    expect(typecheckSteps({ astroTypesExist: false })).toEqual(['astro-sync', 'tsc']);
   });
 });
 
@@ -47,6 +24,13 @@ describe('parseArgs', () => {
   it('rejects --since without a ref', () => {
     expect(parseArgs(['--since'])).toHaveProperty('error');
     expect(parseArgs(['--since', '--other'])).toHaveProperty('error');
+  });
+});
+
+describe('unitsDetail', () => {
+  it('counts seeds, or says skipped when none', () => {
+    expect(unitsDetail({ seeds: ['a', 'b'] })).toBe('2 seeds');
+    expect(unitsDetail({ seeds: [] })).toBe('skipped');
   });
 });
 

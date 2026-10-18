@@ -194,8 +194,8 @@ specs, and `scripts/` other than the handful `npm run build` itself invokes) gat
 dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
 every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach
 `dist/` on its own - Playwright cannot run against a stale one. A docs-only diff runs only `check:backlog` and
-`check:guidance`, as CI does; no resolvable base fails open (build and every dist
-guard), while an empty diff runs no unit tests and no build.
+`check:guidance`, as CI does; an empty diff, or no resolvable base, runs the guards and `tsc` only:
+no unit tests and no build, since CI runs both in full.
 
 ARCH-31 (measured 2026-09-26: a `merge.test.js`-only push ran 67s of Playwright, and 50 of the last
 79 pushes ran every spec) narrows three things. A diff of only `*.test.*`/`*.spec.js` files (plus

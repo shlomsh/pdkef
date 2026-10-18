@@ -19,6 +19,10 @@
 // object, or runs the exact npm script ci.yml's `checks`/`build` jobs run -
 // never a second narrowing decision.
 //
+// Local runs never widen (QUAL-24): units are `vitest related` over the diff,
+// typecheck is tsc (after `astro sync` when types are missing), and an empty
+// diff runs the guards only. CI carries the full suite and `astro check`.
+//
 // Usage: npm run check:push          guards + unit + typecheck + build + dist
 //                                     guards, concurrently where independent;
 //                                     no Playwright
@@ -34,7 +38,7 @@ import { dirname, join, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, classify, isDocsOnly } from './change-scope.mjs';
 import { resolveScope, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
-import { chooseTypecheck, runTypecheck } from './check-fast.mjs';
+import { typecheckSteps, runTypecheck } from './check-fast.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -99,10 +103,10 @@ export function fileCannotReachDist(file) {
   return false;
 }
 
-// No resolvable base or no changed files means we cannot tell what the diff
-// touched, so fail open, the same direction affected-scope.mjs's wide() takes.
+// An empty diff (no changed files, or no resolvable base) touches nothing, so
+// it runs the guards only: no build, no dist guards (QUAL-24).
 export function reachesDist(files) {
-  if (files.length === 0) return true;
+  if (files.length === 0) return false;
   return files.some((file) => !fileCannotReachDist(file));
 }
 
@@ -267,7 +271,7 @@ function printScope({ base, dirty, scope, unitScope }) {
     // Vitest's own module graph) from the Nx-decided everything/e2e_paths
     // above - a core-project (`everything: true`) verdict no longer implies
     // the unit step runs everything too.
-    `  unit:           ${unitScope.all ? '(full suite)' : `${unitScope.seeds.length} seed(s): ${unitScope.seeds.join(' ')}`}`,
+    `  unit:           ${unitScope.seeds.length === 0 ? '(none)' : `${unitScope.seeds.length} seed(s): ${unitScope.seeds.join(' ')}`}`,
     `  unit_reason:    ${unitScope.reasons.join('; ')}`,
     `  e2e_paths:      ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
     `  fonts:          ${scope.fonts}`,
@@ -306,7 +310,7 @@ function previewOwnerCwd() {
 // without any runner needing an async twin.
 function runStep(id, { scope, unitScope, typecheck }) {
   if (id === 'unit') return runUnitByImpact(unitScope);
-  if (id === 'typecheck') return runTypecheck(typecheck.tool);
+  if (id === 'typecheck') return typecheck.reduce((status, tool) => status || runTypecheck(tool), 0);
   // Locally Playwright runs chromium only; webkit is CI's.
   if (id === 'e2e:product') return runE2eProduct(scope, ['chromium']);
   if (id === 'e2e:perf') return runE2ePerf(scope);
@@ -321,9 +325,9 @@ function computeScope() {
   const files = base ? changedFiles(base) : [];
   const docsOnly = classify(files).docs_only;
   const nxScope = resolveScope({ explicitBase: base ?? undefined });
-  const unitScope = resolveUnitScope({ explicitBase: base ?? undefined });
+  const unitScope = resolveUnitScope({ explicitBase: base ?? undefined, mode: 'local' });
   const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: reachesDist(files) }, files);
-  const typecheck = chooseTypecheck({ files: base ? files : null, astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
+  const typecheck = typecheckSteps({ astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
   return { base, dirty, scope, unitScope, typecheck };
 }
 
@@ -388,7 +392,7 @@ async function main() {
   const startAll = Date.now();
   const { base, dirty, scope, unitScope, typecheck } = ctx;
   printScope({ base, dirty, scope, unitScope });
-  console.error(`  typecheck:      ${typecheck.tool} (${typecheck.reason}; CI always runs astro check)`);
+  console.error(`  typecheck:      ${typecheck.join(' + ')} (CI runs astro check)`);
 
   const steps = planSteps(scope, { mode, perf });
   if (steps.length === 0) {

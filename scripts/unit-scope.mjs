@@ -266,23 +266,39 @@ export const WIDEN_RULES = [
 // No git/vitest call in here - scripts/unit-scope.test.mjs exercises this
 // directly with synthetic inputs, the way affected-scope.test.mjs pins
 // deriveScope().
-export function selectUnitTests({ files, exists = () => true }) {
+// `mode: 'ci'` (default) fails open to the whole suite. `mode: 'local'`
+// (QUAL-24) never does: what CI would widen on is noted as a reason and
+// selection carries on with the seeds the diff does reach.
+export function selectUnitTests({ files, exists = () => true, mode = 'ci' }) {
+  const local = mode === 'local';
   if (files.length === 0) {
-    return { all: true, seeds: [], reasons: ['empty changed-file list'] };
+    return local
+      ? { all: false, seeds: [], reasons: ['empty diff: no unit tests'] }
+      : { all: true, seeds: [], reasons: ['empty changed-file list'] };
   }
 
   const paths = files.map((f) => f.path);
+  const reasons = [];
+  // Returns the CI-widening result, or in local mode records the reason and
+  // lets selection continue.
+  const widen = (reason) => {
+    if (!local) return { all: true, seeds: [], reasons: [reason] };
+    reasons.push(`CI runs the full suite: ${reason}`);
+    return null;
+  };
 
   const oracleHits = paths.filter((p) => ORACLE_FILES.has(p));
   if (oracleHits.length > 0) {
-    return { all: true, seeds: [], reasons: [`CI oracle changed: ${oracleHits.join(', ')}`] };
+    const early = widen(`CI oracle changed: ${oracleHits.join(', ')}`);
+    if (early) return early;
   }
 
   for (const rule of WIDEN_RULES) {
     if (rule.tests !== 'all') continue;
     const hits = paths.filter(rule.match);
     if (hits.length > 0) {
-      return { all: true, seeds: [], reasons: [`widen rule "${rule.id}" (${rule.reason}): ${hits.join(', ')}`] };
+      const early = widen(`widen rule "${rule.id}" (${rule.reason}): ${hits.join(', ')}`);
+      if (early) return early;
     }
   }
 
@@ -292,15 +308,15 @@ export function selectUnitTests({ files, exists = () => true }) {
   // rejected as the primary mechanism for this - a generic basename both
   // false-positives (an unrelated file of the same name) and false-negatives
   // (a re-export hides the real reference) too easily to trust for
-  // something CI treats as authoritative - so an unpaired deletion widens to
-  // the whole suite instead, the same fail-open direction every other
-  // ambiguous case here takes.
+  // something CI treats as authoritative - so in CI an unpaired deletion
+  // widens to the whole suite instead, the same fail-open direction every
+  // other ambiguous case here takes. Locally it just contributes nothing.
   const deletions = files.filter((f) => f.status === 'D');
   if (deletions.length > 0) {
-    return { all: true, seeds: [], reasons: [`unpaired deletion (no reliable way to find its tests): ${deletions.map((f) => f.path).join(', ')}`] };
+    const early = widen(`unpaired deletion (no reliable way to find its tests): ${deletions.map((f) => f.path).join(', ')}`);
+    if (early) return early;
   }
 
-  const reasons = [];
   const extraTests = new Set();
   for (const rule of WIDEN_RULES) {
     if (rule.tests === 'all') continue;
@@ -314,7 +330,9 @@ export function selectUnitTests({ files, exists = () => true }) {
   const seeds = [...new Set([...existingChanged, ...extraTests])].sort();
 
   if (seeds.length === 0) {
-    return { all: true, seeds: [], reasons: ['no seed file survives on disk'] };
+    return local
+      ? { all: false, seeds: [], reasons: [...reasons, 'no unit test reaches this diff'] }
+      : { all: true, seeds: [], reasons: ['no seed file survives on disk'] };
   }
 
   return { all: false, seeds, reasons: reasons.length ? reasons : ['narrowed to vitest related'] };
@@ -326,14 +344,15 @@ export function selectUnitTests({ files, exists = () => true }) {
 // different diffs for the same push), reads real file statuses and real
 // disk state, and calls selectUnitTests() above. This is the one function
 // CI, check:push and check:fast all call - see the header comment.
-export function resolveUnitScope({ explicitBase, explicitHead } = {}) {
+export function resolveUnitScope({ explicitBase, explicitHead, mode = 'ci' } = {}) {
   const base = resolveBase(explicitBase);
   if (!base) {
+    if (mode === 'local') return { all: false, seeds: [], reasons: ['no usable base: unit tests skipped, CI runs them'] };
     return { all: true, seeds: [], reasons: [`no usable base (${explicitBase ?? 'origin/main'})`] };
   }
 
   const files = changedFilesWithStatus(base, explicitHead);
-  return selectUnitTests({ files, exists: (p) => existsSync(join(ROOT, p)) });
+  return selectUnitTests({ files, exists: (p) => existsSync(join(ROOT, p)), mode });
 }
 
 // Exported for scripts/check-push.mjs and scripts/affected-scope.mjs's
@@ -343,6 +362,10 @@ export function resolveUnitScope({ explicitBase, explicitHead } = {}) {
 // exits through spawnSync normally) is the "vitest related errors" fail-open
 // case: fall back to the full, unnarrowed `vitest run`.
 export function runUnitByImpact(scope, spawn = spawnSync) {
+  if (!scope.all && scope.seeds.length === 0) {
+    console.error('unit-scope: no unit tests selected');
+    return 0;
+  }
   if (!scope.all && scope.seeds.length > 0) {
     const result = spawn('npx', ['vitest', 'related', ...scope.seeds, '--run', '--passWithNoTests'], { stdio: 'inherit', cwd: ROOT });
     if (!result.error) return result.status ?? 1;
