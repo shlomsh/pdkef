@@ -1,16 +1,15 @@
 ---
 id: "DEBT-54"
 title: "Edit Pages opens a PDF whose catalog lost its page list, and says how often that happens"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
 # DEBT-54 · Edit Pages opens a PDF whose catalog lost its page list
 
-*Filed 2026-10-18 from the daily error read.* On 16 Oct one person's file failed to open in Edit Pages
+*Filed 2026-10-18 from the daily error read. Done 2026-10-18 (dafab5b6).* On 16 Oct one person's file failed to open in Edit Pages
 (`pdf_tool_run`, step `load_document`, build 3a21898). The live pdf-lib chunk names the throw site:
 `PDFDocument.load` succeeded, then `getPageCount()` -> `catalog.Pages()` -> `context.lookup(ref, PDFDict)`
 threw `UnexpectedObjectTypeError`. The catalog's `/Pages` did not resolve to a page-tree dictionary.
