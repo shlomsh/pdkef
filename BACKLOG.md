@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -71,6 +71,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | QUAL-23 | P2 | [QUAL-23](backlog/tasks/QUAL-23.md) · Four chromium e2e shards, and the hero first-screen spec runs per test | In progress |
+| QUAL-24 | P2 | [QUAL-24](backlog/tasks/QUAL-24.md) · Local checks run only what the diff reaches; CI runs every unit test; nightly hunts flakes | In progress |
 
 ### Then, in order
 
