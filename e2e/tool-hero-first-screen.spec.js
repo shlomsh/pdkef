@@ -8,6 +8,11 @@ import { readFileSync } from 'node:fs';
 // on the hero's text column loads, a drag over the page lights the stage, and reduced motion stops
 // the verb. jsdom has no layout, viewport, animation clock, layout-shift entries or media emulation,
 // so none of this can be proved there.
+//
+// Per-test scheduling (QUAL-23): at 135s on CI this file was the floor of its e2e shard, because
+// files are sharded whole. Every test opens its own page and nothing here is module state, so
+// Playwright may spread them across workers and shards.
+test.describe.configure({ mode: 'parallel' });
 
 const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/', '/sign/', '/redact/'];
 // Compress joined the other tools' sheet on 2026-10-15: its quality choices moved to after a file is

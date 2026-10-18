@@ -33,15 +33,15 @@ on:
 # they run, so a broken classifier costs time, never coverage.
 #
 # `build` runs every guard that reads dist/ (csp, seo, redirects, css, weight);
-# `e2e` is a two-shard matrix beside it, each shard building for itself and
-# running its half of the product e2e. Splitting it from `build` was QUAL-05
+# `e2e` is a four-shard matrix beside it (two shards until QUAL-23), each
+# shard building for itself and running its share of the product e2e. Splitting it from `build` was QUAL-05
 # (2026-09-13): the product e2e was the long pole in `build` at 1:45-2:10 on
 # two workers, and halving it needs no knowledge of the code, unlike the
 # per-tool gating ARCH-20 plans. Each shard pays the fixed cost (npm ci,
 # build, browser install) again, which is the trade the ticket accepts.
-# `e2e-webkit` (QUAL-09, 2026-09-14) is a third, unsharded job beside it: the
-# 21 webkit tests and the perf budgets run once there, so the two chromium
-# shards install and run chromium only.
+# `e2e-webkit` (QUAL-09, 2026-09-14) is a separate, unsharded job beside it:
+# the webkit tests and the perf budgets run once there, so the chromium shards
+# install and run chromium only.
 #
 # ARCH-20 (2026-09-14): `checks`, each `e2e` shard, each `font-guards` shard and `export-guards` narrow
 # their own unit/e2e work to what a real Nx project graph (one project per
@@ -259,8 +259,11 @@ jobs:
     - name: Check Sign-only modules stay out of every page's first paint
       run: npm run test:lazy-modules
 
-  # The product e2e suite, split into two shards so each pays roughly half
-  # the Playwright wall time (QUAL-05). Every chromium spec except the font
+  # The product e2e suite, split into shards (QUAL-05: two; QUAL-23,
+  # 2026-10-18: four). Files shard whole and in path order, so two shards put
+  # every e2e/** spec in shard 1 (355s of test time on run 39124382451) and
+  # every src/tools/*/e2e/** spec in shard 2 (567s). The repo is public, so a
+  # shard costs runner time only, about 45-60s of fixed cost each. Every chromium spec except the font
   # guards (their own job below) and webkit/perf (their own job, `e2e-webkit`,
   # QUAL-09). Each shard builds for itself (10s) instead
   # of waiting for `build` and downloading its dist/: measured on the first
@@ -275,7 +278,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
 
     steps:
     - uses: actions/checkout@v5
@@ -289,7 +292,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # Right after npm ci (needs node_modules for `nx`), so both shards agree
+    # Right after npm ci (needs node_modules for `nx`), so every shard agrees
     # on the same affected paths - see the workflow header comment and
     # docs/nx-affected-ci.md. Empty e2e_paths means either everything=true
     # (run the full suite) or nothing e2e-relevant is affected; either way,
@@ -324,7 +327,7 @@ jobs:
     # webkit's apt libraries, against 38s for the single uncached install
     # there, so the cache only saved the download, not the apt cost, and
     # wasn't worth it. That combination no longer runs in this job. This job
-    # now installs chromium only, and each of the two shards pays that apt
+    # now installs chromium only, and each shard pays that apt
     # cost separately; `font-guards`'s own comment below measured its
     # chromium-only apt half at 12-19s per shard, so a hit here is worth
     # trading for even though the old combined case was not. PROJECTION, not
@@ -343,10 +346,10 @@ jobs:
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
     # $E2E_PATHS is empty (no filter, the full suite) when affected-scope.mjs
     # saw everything=true.
-    - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/2)
+    - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/4)
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
-      run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/2 --pass-with-no-tests $E2E_PATHS
+      run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/4 --pass-with-no-tests $E2E_PATHS
 
     - name: Upload Playwright artifacts
       if: failure()
