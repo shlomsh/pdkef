@@ -644,6 +644,58 @@ describe('PdfCompressTool UI flow', () => {
       await settled();
     });
 
+    // DEBT-56: an <img> painted before its photo decodes has no height, so the centred panel is its
+    // label row alone and jumps when the decode lands (CLS 0.0127 on CI's hand-off to Compress Image).
+    it('keeps the skeleton until the original photo has decoded', async () => {
+      const decode = deferred();
+      HTMLImageElement.prototype.decode = vi.fn(() => decode.promise);
+      try {
+        const run = deferred();
+        compressImageLib.compressImageToTarget.mockImplementation(() => run.promise);
+        mount();
+        await pick(makeImageFile('decode.jpg', 900_000), ran(compressImageLib.compressImageToTarget, 1));
+        await wait(20);
+        expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
+        expect(result().querySelector('img')).toBeNull();
+        await act(async () => {
+          decode.resolve();
+        });
+        await waitFor(() => result().querySelector('img') !== null);
+        expect(result().querySelector('img').getAttribute('src')).toBe('blob:testurl');
+        expect(result().querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
+        await act(async () => {
+          run.resolve(makeImageResult());
+        });
+        await settled();
+      } finally {
+        delete HTMLImageElement.prototype.decode;
+      }
+    });
+
+    // DEBT-56: an already-small photo can finish before it decodes; the photo then arriving under the
+    // centred stats moved them up 70px. The skeleton holds its place instead.
+    it('a result that lands before the photo decodes holds the photo place with the skeleton', async () => {
+      const decode = deferred();
+      HTMLImageElement.prototype.decode = vi.fn(() => decode.promise);
+      try {
+        compressImageLib.compressImageToTarget.mockImplementation((passthroughFile) =>
+          Promise.resolve(makeImageResult({ blob: passthroughFile })),
+        );
+        mount();
+        await pick(makeImageFile('small.jpg', 5_000));
+        expect(result().querySelector(`.${styles['stats-grid']}`)).not.toBeNull();
+        expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
+        expect(result().querySelector('img')).toBeNull();
+        await act(async () => {
+          decode.resolve();
+        });
+        await waitFor(() => result().querySelector('img') !== null);
+        expect(result().querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
+      } finally {
+        delete HTMLImageElement.prototype.decode;
+      }
+    });
+
     it('renders the original once per file: one render at pick, one for the compressed page after the run', async () => {
       const file = await loadPdf('once.pdf', 100000);
       await wait(20);

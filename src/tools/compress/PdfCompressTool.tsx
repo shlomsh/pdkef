@@ -77,6 +77,16 @@ interface PdfCompressToolProps {
 /** The state a build depends on; the quiet-time preparer caches and supersedes by it. */
 const buildKey = (level: string, targetKB: number, flatten: boolean) => `${level}|${targetKB}|${flatten}`;
 
+// Resolves with `url` once the browser has decoded it, so the <img> showing it has its height on the
+// first frame it paints. Painted earlier, the centred in-flight panel was its label row alone and
+// jumped 142px when the photo decoded (DEBT-56). The skeleton holds the place until then.
+const decoded = (url: string) => {
+  const img = new Image();
+  img.src = url;
+  // expected: a decode failure is the <img>'s to show; waiting longer would not help it
+  return (img.decode ? img.decode() : Promise.resolve()).then(() => url, () => url);
+};
+
 /** Thrown inside a build that was superseded; its result is dropped, never reported. */
 class StaleRun extends Error {}
 
@@ -211,6 +221,8 @@ export default function PdfCompressTool({
   // to the file, not to a run, so resetOutput leaves it alone. The promise lets
   // openCompare wait for a render still pending (null when it failed).
   const [originalPreview, setOriginalPreview] = useState<string | null>(null);
+  // True while the original is still rendering or decoding, so a result that lands first holds its place.
+  const [originalPending, setOriginalPending] = useState(false);
   const originalTokenRef = useRef(0);
   const originalPromiseRef = useRef<Promise<string | null> | null>(null);
   const originalImageUrlRef = useRef<string | null>(null);
@@ -221,6 +233,7 @@ export default function PdfCompressTool({
     if (originalImageUrlRef.current) URL.revokeObjectURL(originalImageUrlRef.current);
     originalImageUrlRef.current = null;
     setOriginalPreview(null);
+    setOriginalPending(false);
   };
 
   useEffect(() => () => {
@@ -229,22 +242,32 @@ export default function PdfCompressTool({
 
   const loadOriginalPreview = (source: File) => {
     const token = originalTokenRef.current;
+    setOriginalPending(true);
     if (deriveFileKind(source) === 'image') {
       const url = URL.createObjectURL(source);
       originalImageUrlRef.current = url;
-      originalPromiseRef.current = Promise.resolve(url);
-      setOriginalPreview(url);
+      originalPromiseRef.current = decoded(url).then((u) => {
+        if (token === originalTokenRef.current) {
+          setOriginalPreview(u);
+          setOriginalPending(false);
+        }
+        return u;
+      });
       return;
     }
     const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
     originalPromiseRef.current = (async () => {
       try {
         const { renderComparePreview } = await import('../../lib/thumbnails.js');
-        const url = await renderComparePreview(source, width);
-        if (token === originalTokenRef.current) setOriginalPreview(url);
+        const url = await decoded(await renderComparePreview(source, width));
+        if (token === originalTokenRef.current) {
+          setOriginalPreview(url);
+          setOriginalPending(false);
+        }
         return url as string;
       } catch (err) {
         if (token === originalTokenRef.current) {
+          setOriginalPending(false);
           reportError('pdf_render', err, 'render_compare_preview');
           console.error(err);
         }
@@ -944,7 +967,7 @@ export default function PdfCompressTool({
     </p>
   );
   const originalBox = originalPreview && (
-    <div class={styles['compare-original']}>
+    <div key="original" class={styles['compare-original']}>
       <img src={originalPreview} alt={`${t.compareBeforeLabel} - page 1`} draggable={false} />
     </div>
   );
@@ -952,15 +975,17 @@ export default function PdfCompressTool({
   const resultSection = (
     <section class={styles.result}>
       {hasFiles && status !== 'done' && status !== 'error' && (
+        // Keyed apart: reused, the skeleton's own box would move and shrink into the panel's, a
+        // layout shift (0.116 at 1440x820, DEBT-56); replaced, the panel is new content.
         originalPreview ? (
-          <div class={styles['compare-panel']}>
+          <div key="panel" class={styles['compare-panel']}>
             {labelRow(t.compressing)}
             {originalBox}
           </div>
         ) : (
           // Only the page's placeholder: the progress itself is the sheet's
           // button (Download's place), so it is said once, not twice.
-          <div class={styles['compare-skeleton']} aria-hidden="true" />
+          <div key="skeleton" class={styles['compare-skeleton']} aria-hidden="true" />
         )
       )}
 
@@ -1049,7 +1074,7 @@ export default function PdfCompressTool({
         </p>
       )}
       {isDone && resultNotice && <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>{resultNotice}</p>}
-      {isDone && passthrough && originalBox}
+      {isDone && passthrough && (originalBox || (originalPending && <div key="original-skeleton" class={styles['compare-skeleton']} aria-hidden="true" />))}
       {isDone && imageReason === 'smaller' && level === 'target' && !metTarget && (
         <p class={styles['compress-warning']}>
           {formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })}

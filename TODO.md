@@ -6,6 +6,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Robustness and debt
+
+- [DEBT-56](backlog/tasks/DEBT-56.md) P2 · Compress Image's in-flight preview jumps when the photo decodes after first paint (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
