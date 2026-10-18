@@ -1,10 +1,10 @@
 ---
 id: "QUAL-26"
 title: "A newer push to the same pull request cancels its older CI run"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
-horizon: "later"
+horizon: "now"
 ---
 
 # QUAL-26 · Cancel superseded PR runs

@@ -6,6 +6,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Robustness and debt
+
+- [QUAL-25](backlog/tasks/QUAL-25.md) P2 · Playwright jobs run in the Playwright container image, so no job installs a browser (in progress)
+- [QUAL-26](backlog/tasks/QUAL-26.md) P3 · A newer push to the same pull request cancels its older CI run (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

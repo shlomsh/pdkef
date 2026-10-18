@@ -1,10 +1,10 @@
 ---
 id: "QUAL-25"
 title: "Playwright jobs run in the Playwright container image, so no job installs a browser"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
+horizon: "now"
 ---
 
 # QUAL-25 · Playwright jobs in the Playwright container
