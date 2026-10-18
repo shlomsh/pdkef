@@ -159,5 +159,18 @@
     },
     "fixedIn": "331f830f",
     "ticket": "MERGE-23"
+  },
+  {
+    "id": "DEBT-54",
+    "title": "Edit Pages: a PDF whose catalog lost its page list failed to open",
+    "match": {
+      "area": "pdf_tool_run",
+      "step": "load_document",
+      "slug": "edit-pdf",
+      "module": "pdf-lib"
+    },
+    "fixedIn": "dafab5b6",
+    "ticket": "DEBT-54",
+    "note": "the error name is a minified class, so the entry matches on area, step and chunk. Only a file with exactly one surviving page-tree root is repaired; a report from a build with the fix is a file it could not repair if a pdf_page_tree failed event shows on the same day, otherwise a regression"
   }
 ]
