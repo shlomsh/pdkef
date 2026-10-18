@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 4 up next, 10 then, 24 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -72,6 +72,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
+| QUAL-25 | P2 | [QUAL-25](backlog/tasks/QUAL-25.md) · Playwright jobs run in the Playwright container image, so no job installs a browser |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
 
 ### Waiting
@@ -96,6 +97,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
+| QUAL-26 | P3 | [QUAL-26](backlog/tasks/QUAL-26.md) · A newer push to the same pull request cancels its older CI run |  |
 
 ## Search and languages
 
