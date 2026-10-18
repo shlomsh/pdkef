@@ -61,6 +61,13 @@ on:
 # DEBT-35: every build here is stamped with the commit, exactly like a Vercel build, so the build
 # guards run on what ships and e2e/error-report-build.spec.js (which reads this variable) fails if
 # a stamped build ever stops carrying the tag. Workflow-level, not per step: five jobs build.
+# QUAL-26: a newer push to the same pull request cancels its older run. Every
+# other event (push to main, the nightly, a manual dispatch) gets a group of
+# its own run id, so it always runs to the end.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
 
@@ -263,6 +270,13 @@ jobs:
   # `build` still vouch for what these specs load.
   e2e:
     runs-on: ubuntu-latest
+    # QUAL-25: the Playwright image ships this exact Playwright's browsers and
+    # their system libraries (and git), so no job here installs or caches a
+    # browser. The tag must match @playwright/test in package-lock.json;
+    # `npm run test:dependency-governance` fails when they drift.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
+      options: --ipc=host
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
@@ -272,6 +286,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+
+    # The workspace is owned by the runner user, the container runs as root,
+    # and every later git call (affected-scope's diff) needs the repo trusted.
+    - name: Trust the checkout inside the container
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -298,39 +317,6 @@ jobs:
 
     - name: Build
       run: npm run build
-
-    - name: Resolve Playwright version
-      id: playwright
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
-
-    # Chromium only (QUAL-09): webkit and the perf budgets moved to the
-    # unsharded `e2e-webkit` job below. Caching was measured and rejected for
-    # the old, pre-QUAL-09 combined chromium+webkit shape that used to run
-    # here: a cache hit was 5s to restore plus 46s of `install-deps` for
-    # webkit's apt libraries, against 38s for the single uncached install
-    # there, so the cache only saved the download, not the apt cost, and
-    # wasn't worth it. That combination no longer runs in this job. This job
-    # now installs chromium only, and each shard pays that apt
-    # cost separately; `font-guards`'s own comment below measured its
-    # chromium-only apt half at 12-19s per shard, so a hit here is worth
-    # trading for even though the old combined case was not. PROJECTION, not
-    # a fresh CI measurement (nothing here can exercise GitHub's real cache
-    # backend) - whoever reviews the next few runs should confirm the cache
-    # actually hits and actually saves the time this comment assumes.
-    - name: Install Playwright browsers (cache miss)
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system dependencies (cache hit)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
 
     # One command per project (QUAL-09): webkit now lives in its own job
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
@@ -365,11 +351,23 @@ jobs:
   # plus the perf budgets are installed and run exactly once, here.
   e2e-webkit:
     runs-on: ubuntu-latest
+    # QUAL-25: the Playwright image ships this exact Playwright's browsers and
+    # their system libraries (and git), so no job here installs or caches a
+    # browser. The tag must match @playwright/test in package-lock.json;
+    # `npm run test:dependency-governance` fails when they drift.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
+      options: --ipc=host
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
+
+    # The workspace is owned by the runner user, the container runs as root,
+    # and every later git call (affected-scope's diff) needs the repo trusted.
+    - name: Trust the checkout inside the container
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -396,43 +394,6 @@ jobs:
 
     - name: Build
       run: npm run build
-
-    - name: Resolve Playwright version
-      id: playwright
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        # Own key, distinct from `e2e`'s and `font-guards`'s: this job caches
-        # a different browser set (chromium + webkit) than either, and
-        # sharing a key with one of them would evict on alternating runs.
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit
-
-    # Also installs chromium: the `perf` project is chromium-based (see
-    # `devices['Desktop Chrome']` in playwright.config.js), and the perf
-    # budgets run in this job too, on the job that has the spare time after
-    # dropping webkit from the two chromium shards.
-    #
-    # QUAL-09's own measurement (run 34788031094) was against the old shape
-    # where each of the two chromium shards paid `install --with-deps chromium
-    # webkit` uncached, at 51s a shard; that measurement never covered this
-    # job, which pays the combined apt cost exactly once instead of twice.
-    # Caching that one-time apt cost trades a restore for a chromium+webkit
-    # `install-deps`, which is worth it whenever the restore is cheaper than
-    # apt, per the same reasoning as `e2e` above. PROJECTION, not a fresh CI
-    # measurement (nothing here can exercise GitHub's real cache backend) -
-    # whoever reviews the next few runs should confirm the cache actually
-    # hits and actually saves the time this comment assumes.
-    - name: Install Playwright browsers (cache miss)
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium webkit
-
-    - name: Install Playwright system dependencies (cache hit)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium webkit
 
     - name: Run Playwright e2e tests (product webkit)
       env:
@@ -571,6 +532,13 @@ jobs:
   # `export-guards` job below, alongside the guard that owns the baseline.
   font-guards:
     runs-on: ubuntu-latest
+    # QUAL-25: the Playwright image ships this exact Playwright's browsers and
+    # their system libraries (and git), so no job here installs or caches a
+    # browser. The tag must match @playwright/test in package-lock.json;
+    # `npm run test:dependency-governance` fails when they drift.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
+      options: --ipc=host
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
@@ -580,6 +548,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+
+    # The workspace is owned by the runner user, the container runs as root,
+    # and every later git call (affected-scope's diff) needs the repo trusted.
+    - name: Trust the checkout inside the container
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -601,27 +574,6 @@ jobs:
     - name: Build
       if: steps.affected.outputs.fonts != 'false'
       run: npm run build
-
-    - name: Resolve Playwright version
-      id: playwright
-      if: steps.affected.outputs.fonts != 'false'
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      if: steps.affected.outputs.fonts != 'false'
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
-
-    - name: Install Playwright browsers
-      if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system dependencies
-      if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
 
     - name: Run Playwright e2e tests (font guards, shard ${{ matrix.shard }}/2)
       if: steps.affected.outputs.fonts != 'false'
@@ -651,11 +603,23 @@ jobs:
   # specs do not need sharding.
   export-guards:
     runs-on: ubuntu-latest
+    # QUAL-25: the Playwright image ships this exact Playwright's browsers and
+    # their system libraries (and git), so no job here installs or caches a
+    # browser. The tag must match @playwright/test in package-lock.json;
+    # `npm run test:dependency-governance` fails when they drift.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
+      options: --ipc=host
     needs: scope
     if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
+
+    # The workspace is owned by the runner user, the container runs as root,
+    # and every later git call (affected-scope's diff) needs the repo trusted.
+    - name: Trust the checkout inside the container
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -677,27 +641,6 @@ jobs:
     - name: Build
       if: steps.affected.outputs.export_guards != 'false'
       run: npm run build
-
-    - name: Resolve Playwright version
-      id: playwright
-      if: steps.affected.outputs.export_guards != 'false'
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      if: steps.affected.outputs.export_guards != 'false'
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
-
-    - name: Install Playwright browsers
-      if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system dependencies
-      if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
 
     - name: Run Playwright e2e tests (export guards)
       if: steps.affected.outputs.export_guards != 'false'
