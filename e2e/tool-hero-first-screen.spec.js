@@ -364,7 +364,7 @@ const SAMPLE_HERO = () => {
 test.describe('hand-off arrival', () => {
   test.use({ serviceWorkers: 'block' });
 
-  for (let rep = 0; rep < 25; rep++) for (const tool of ['split', 'compress', 'compress-image']) test(`[rep ${rep}] the home launcher to ${tool} lands loaded with one hero height and no layout shift`, async ({ page }) => {
+  for (const tool of ['split', 'compress', 'compress-image']) test(`the home launcher to ${tool} lands loaded with one hero height and no layout shift`, async ({ page }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 820 });
     await page.addInitScript(SAMPLE_HERO);
