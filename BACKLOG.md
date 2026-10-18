@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -70,7 +70,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-25 | P2 | [QUAL-25](backlog/tasks/QUAL-25.md) · Playwright jobs run in the Playwright container image, so no job installs a browser | In progress |
 | QUAL-26 | P3 | [QUAL-26](backlog/tasks/QUAL-26.md) · A newer push to the same pull request cancels its older CI run | In progress |
 
 ### Then, in order
@@ -173,7 +172,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 49 done, 3 retired
+- Robustness and debt: 49 done, 4 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 8 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

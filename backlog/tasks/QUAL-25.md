@@ -1,10 +1,9 @@
 ---
 id: "QUAL-25"
 title: "Playwright jobs run in the Playwright container image, so no job installs a browser"
-status: "in_progress"
+status: "retired"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 ---
 
 # QUAL-25 · Playwright jobs in the Playwright container
@@ -37,3 +36,13 @@ system libraries, so those steps and the cache go away.
 
 - A full CI run on a branch is green with every Playwright job in the container, and the
   per-job and whole-run seconds are recorded here against the numbers above.
+
+## Result: retired 2026-10-18, measured slower
+
+Built and run on a branch (run 39148705682, every Playwright job in
+`mcr.microsoft.com/playwright:v1.64.0-noble`, green). Pulling the image ("Initialize containers")
+cost 26-40s per job, against the 11-15s `install-deps` it replaced on a chromium job (browsers come
+from `actions/cache`) and 38-39s on `e2e-webkit`. Every chromium job got 15-25s slower, webkit broke
+even, and the whole run took 251s against 225s on the runner (run 39141500514). The runner image plus
+the browser cache is the faster path here; reconsider only if GitHub starts caching container images
+between jobs.
