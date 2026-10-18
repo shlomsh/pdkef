@@ -105,17 +105,18 @@ repository at run time (`pdfRender.test.js`, `noCamelCaseSvgAttrs.test.js`, the 
 ARCH-28 blind-spot inventory. A matching row either adds specific test files to the seed list (passing
 a test file's own path as a `related` seed selects exactly that file - Vitest seeds its "affected" set
 with the `related` list itself before walking import edges) or widens the whole push to the full suite.
-Also fail-open, same direction as every rule below: no usable base, an empty changed-file list, an
-unpaired deletion (`vitest related` on a path that no longer exists silently selects zero tests, and a
-git-grep-based fallback was rejected as too unreliable to trust - see the file's own comment), or a
-`vitest related` process that could not even be spawned all widen to the whole suite. A **core-folder**
-change (`src/lib/`, `src/editor/`, `src/shell/`, `src/pages/`) no longer forces the whole suite for
-units - only `WIDEN_RULES` or the fail-open cases above do; Nx's `CORE_PROJECTS` rule (below) still
-forces `everything` for e2e/font/export scope, which is unrelated and unaffected by this. One code
-path, three callers - CI's `checks` job (`affected-scope.mjs --run unit`, which now delegates here),
-`check:push` (`runUnitByImpact` on its own once-resolved `resolveUnitScope()`), and `check:fast`
-(`scripts/check-fast.mjs` calls `selectUnitTests()` on its own diff) - so none of them can select a
-different test set for the same diff.
+Locally this never widens (QUAL-24): where CI's rules would run everything - an oracle file, a `WIDEN_RULES`
+whole-suite row, an unpaired deletion (`vitest related` on a path that no longer exists silently selects
+zero tests, and a git-grep fallback was rejected as unreliable), or no base - the local run prints "CI runs
+the full suite" and keeps only the tests `vitest related` reaches; an empty diff runs no unit tests, and an
+unusable `--since` fails instead of widening. A **core-folder** change (`src/lib/`, `src/editor/`,
+`src/shell/`, `src/pages/`) does not force the whole suite for units; Nx's `CORE_PROJECTS` rule (below)
+still forces `everything` for e2e/font/export scope, which is unrelated. CI's `checks` job runs the whole
+unit suite, unnarrowed, on every push; `check:fast` and `check:push` select by impact on their own diff.
+
+**What runs where.** Local = the diff (guards, reachable units, `tsc`). CI push = the full unit suite,
+`typecheck` as its own job, and e2e/fonts/export narrowed by scope on four chromium shards (QUAL-23).
+Nightly = every chromium e2e spec twice (`--repeat-each=2`) to surface flaky specs.
 
 Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by
 `unit-scope.mjs`) leaves git's rename detection on (`-M`), unlike `changedFiles()`'s own deliberate
@@ -129,12 +130,11 @@ widen.
 `npm run check:fast -- --since <ref>` tests what changed since `<ref>` (working tree plus untracked),
 not the whole branch: the lead passes each subagent the commit its task started from. Without
 `--since` the base is the merge-base with `origin/main`; a ref that does not resolve or is not an
-ancestor of HEAD fails open to the whole suite and `astro check`. Its typecheck is `tsc --noEmit` with an
-incremental cache in `node_modules/.cache/` (5s cold, 2s warm), and `astro check` (18-21s whatever
-changed) only when the diff touches an `.astro` file, a tsconfig, `astro.config.mjs`, the package
-manifest, `src/content.config.ts` or `check-fast.mjs` itself (`chooseTypecheck()`). It ends with one
+ancestor of HEAD fails with an error rather than widening. Its typecheck is always `tsc --noEmit` with an
+incremental cache in `node_modules/.cache/` (5s cold, 2s warm), after `astro sync` when
+`.astro/types.d.ts` is missing; `astro check` (18-21s) runs only in CI's own `typecheck` job. It ends with one
 `check:fast PASS|FAIL ...` line with per-step seconds; read that instead of re-running or piping the
-output through `tail`. check:push and CI keep `astro check` and the whole-branch base. Measured on
+output through `tail`. check:push keeps the whole-branch base. Measured on
 2026-09-26 (ARCH-30): the unit step has a floor near 9s for any Sign edit because
 `PdfSignTool.test.tsx` alone takes 6s, and 3 parallel runs nearly double it, so one check per task
 beats several.
@@ -180,7 +180,7 @@ Playwright: guards, unit, typecheck, build and the dist guards, with independent
 concurrently (guards + unit + typecheck + build in one stage, dist guards after the build; output
 shown only for a failure, the first failure kills the stage). `npm run check:e2e` is the build plus
 the Playwright projects the diff selects, chromium only (webkit is CI's); `-- --perf` adds the
-wall-clock perf project. Subagents run neither, only `check:fast`. CI still runs everything.
+wall-clock perf project. Subagents run neither, only `check:fast`. CI still runs the whole unit suite.
 
 The local pre-push command: computes the same scope as CI, once, then runs only the steps that scope
 needs, stopping at the first failure. It never re-derives the scope itself - it calls
@@ -194,15 +194,14 @@ specs, and `scripts/` other than the handful `npm run build` itself invokes) gat
 dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
 every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach
 `dist/` on its own - Playwright cannot run against a stale one. A docs-only diff runs only `check:backlog` and
-`check:guidance`, as CI does; no resolvable base or an empty diff fails open (build and every dist
-guard).
+`check:guidance`, as CI does; no resolvable base fails open (build and every dist
+guard), while an empty diff runs no unit tests and no build.
 
 ARCH-31 (measured 2026-09-26: a `merge.test.js`-only push ran 67s of Playwright, and 50 of the last
 79 pushes ran every spec) narrows three things. A diff of only `*.test.*`/`*.spec.js` files (plus
 docs) runs no Playwright for a unit test and only the changed specs otherwise, with the font and
 export guards only when one of their own specs changed (`narrowTestOnlyChange()`); a spec helper or
-fixture keeps the Nx verdict. The typecheck is check:fast's `chooseTypecheck()`: tsc unless the diff
-touches an `.astro` file or a type config; CI always runs `astro check`. Port 4173 is machine-wide
+fixture keeps the Nx verdict. The local typecheck is always `tsc`; CI's `typecheck` job runs `astro check`. Port 4173 is machine-wide
 and Playwright reuses whatever holds it locally, so check:push refuses to start when another
 worktree's process (or one whose directory it cannot read) holds it.
 
