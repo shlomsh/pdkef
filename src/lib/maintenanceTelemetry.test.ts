@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { parseMaintenanceEvent } from './maintenanceEventSchema.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import {
   signFormDetectionNotStarted,
@@ -14,6 +15,8 @@ import {
   signExportSucceeded,
   signFormDetectionCompleted,
   signFormDetectionFailed,
+  pdfPageTreeRepaired,
+  pdfPageTreeFailed,
 } from './maintenanceTelemetry.ts';
 
 const sensitiveValues = {
@@ -178,6 +181,20 @@ describe('anonymous maintenance telemetry', () => {
       type: 'pageview',
       url: 'https://pdkef.com/',
     });
+  });
+});
+
+describe('page tree events', () => {
+  it('repaired always has one root and survives the parser unchanged', () => {
+    const event = pdfPageTreeRepaired('pages_ref_missing');
+    expect(event.properties).toEqual({ outcome: 'repaired', shape: 'pages_ref_missing', roots: 'one' });
+    expect(parseMaintenanceEvent(event)).toEqual(event);
+    expect(Object.isFrozen(event)).toBe(true);
+  });
+  it('failed carries the roots and survives the parser unchanged', () => {
+    const event = pdfPageTreeFailed('no_pages_key', 'several');
+    expect(event.properties).toEqual({ outcome: 'failed', shape: 'no_pages_key', roots: 'several' });
+    expect(parseMaintenanceEvent(event)).toEqual(event);
   });
 });
 

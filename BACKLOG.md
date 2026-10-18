@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 53 live: 4 up next, 8 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -66,12 +66,19 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| DEBT-54 | P2 | [DEBT-54](backlog/tasks/DEBT-54.md) · Edit Pages opens a PDF whose catalog lost its page list, and says how often that happens | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
+| DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
 
 ### Waiting
 

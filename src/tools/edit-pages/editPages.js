@@ -1,5 +1,6 @@
 import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { loadPdfWithPages } from './loadPdfPages.ts';
 
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.
@@ -22,7 +23,7 @@ export async function editPages(
 ) {
   const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
-  const srcDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const srcDoc = (await loadPdfWithPages(bytes)).doc;
   // An owner-only file loads without a password, but its page streams are still
   // encrypted: copying them out would save a valid PDF of blank pages.
   if (srcDoc.isEncrypted) throw new Error('This PDF is password protected.');
