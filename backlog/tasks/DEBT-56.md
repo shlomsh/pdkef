@@ -1,16 +1,15 @@
 ---
 id: "DEBT-56"
 title: "Compress Image's in-flight preview jumps when the photo decodes after first paint"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
 # DEBT-56 · Compress Image's in-flight preview jumps when the photo decodes after first paint
 
-*Filed 2026-10-18.* `e2e/tool-hero-first-screen.spec.js` "the home launcher to compress-image lands
+*Filed 2026-10-18. Done 2026-10-18 (e0a84f2b).* `e2e/tool-hero-first-screen.spec.js` "the home launcher to compress-image lands
 loaded with one hero height and no layout shift" failed on CI Linux with CLS `0.0127010038399402`
 (`< 0.01` expected), in run 38812242018 (main, push) and run 39141112058 (workflow_dispatch). Both
 runs report the same value to 16 digits, which rules out measurement noise: it is one specific
@@ -56,5 +55,6 @@ shift that happens on some runs and not others.
   Both were seen red before the fix.
 - Measured after the fix: 0 shifts in 120 throttled hand-offs (Compress Image and Compress, 30
   each at 6x and 1x CPU).
-- The e2e check passes repeatedly on CI Linux (`--repeat-each`), and passes 15 of 15 locally at 6x
-  CPU throttling.
+- CI Linux, run 39144253336 (workflow_dispatch on this branch, every hand-off check repeated 25
+  times by a temporary commit since reverted): 75 of 75 passed, all three tools, and the rest of
+  the run green. Locally the whole spec file passed 10 times over (1030 tests).
