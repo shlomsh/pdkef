@@ -1,7 +1,7 @@
 /**
- * Sign's maintenance events on the wire (DEBT-27, folded in from DEBT-24): the
- * one schema shared by the browser that sends them and `api/report.ts`, which
- * counts them next to error reports.
+ * Maintenance events on the wire (DEBT-27, folded in from DEBT-24; Sign's two
+ * and the PDF page-tree repair, DEBT-54): the one schema shared by the browser
+ * that sends them and `api/report.ts`, which counts them next to error reports.
  *
  * Why here and not Vercel Analytics: Hobby has no custom events, so
  * `window.va('event', ...)` was dropped on Vercel's side, and two of the four
@@ -18,7 +18,7 @@
 // No imports, and none may be added: `api/report.ts` loads this file in the
 // deployed function (see errorReportSchema.ts and functionImports.test.js).
 
-export const MAINTENANCE_EVENT_NAMES = ['sign_export', 'sign_form_detection'] as const;
+export const MAINTENANCE_EVENT_NAMES = ['sign_export', 'sign_form_detection', 'pdf_page_tree'] as const;
 export type MaintenanceEventName = (typeof MAINTENANCE_EVENT_NAMES)[number];
 
 export const EXPORT_DURATION_BUCKETS = ['under_1s', 'under_5s', 'under_30s', '30s_or_more'] as const;
@@ -53,6 +53,28 @@ export type PageKind = (typeof PAGE_KINDS)[number];
 export const FORM_DETECTION_ERROR_CODES = [...EXPORT_ERROR_CODES, 'modules_unavailable', 'not_started'] as const;
 export type FormDetectionErrorCode = (typeof FORM_DETECTION_ERROR_CODES)[number];
 
+/**
+ * A PDF whose page list could not be read as written (DEBT-54), one event per
+ * such failure. `shape` is what the catalog's /Pages was: it had no key, it
+ * pointed at an object the parser does not hold, or at something that is not a
+ * dictionary. `roots` is how many /Type /Pages dictionaries with no /Parent
+ * survived in the file: none, one (the repair has a page tree to adopt) or
+ * several. `outcome` says whether the repair produced a usable page list. All of
+ * it is decided on the device from the file's structure and is never document
+ * content, like `page_kind`.
+ */
+export const PAGE_TREE_OUTCOMES = ['repaired', 'failed'] as const;
+export const PAGE_TREE_SHAPES = ['no_pages_key', 'pages_ref_missing', 'pages_wrong_type'] as const;
+export type PageTreeShape = (typeof PAGE_TREE_SHAPES)[number];
+export const PAGE_TREE_ROOTS = ['none', 'one', 'several'] as const;
+export type PageTreeRoots = (typeof PAGE_TREE_ROOTS)[number];
+
+export type PdfPageTreeProperties = Readonly<{
+  outcome: 'repaired' | 'failed';
+  shape: PageTreeShape;
+  roots: PageTreeRoots;
+}>;
+
 export type SignExportProperties =
   | Readonly<{ outcome: 'success'; duration_bucket: ExportDurationBucket }>
   | Readonly<{ outcome: 'failure'; duration_bucket: ExportDurationBucket; error_code: ExportErrorCode }>;
@@ -62,7 +84,7 @@ export type FormDetectionProperties =
   | Readonly<{ outcome: 'success'; field_count_bucket: FieldCountBucket; page_kind?: PageKind }>
   | Readonly<{ outcome: 'failure'; error_code: FormDetectionErrorCode }>;
 
-export type MaintenanceEventProperties = SignExportProperties | FormDetectionProperties;
+export type MaintenanceEventProperties = SignExportProperties | FormDetectionProperties | PdfPageTreeProperties;
 
 /**
  * Keyed on the name, so `sign_export` cannot be handed a field count and have
@@ -70,7 +92,8 @@ export type MaintenanceEventProperties = SignExportProperties | FormDetectionPro
  */
 export type MaintenanceEvent =
   | Readonly<{ name: 'sign_export'; properties: SignExportProperties }>
-  | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>;
+  | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>
+  | Readonly<{ name: 'pdf_page_tree'; properties: PdfPageTreeProperties }>;
 
 const has = (list: readonly string[], value: unknown): value is string =>
   typeof value === 'string' && list.includes(value);
@@ -118,6 +141,16 @@ function parseDetection(p: Record<string, unknown>): FormDetectionProperties | n
   return null;
 }
 
+function parsePageTree(p: Record<string, unknown>): PdfPageTreeProperties | null {
+  if (!exactKeys(p, ['outcome', 'shape', 'roots'])) return null;
+  if (!has(PAGE_TREE_OUTCOMES, p.outcome) || !has(PAGE_TREE_SHAPES, p.shape) || !has(PAGE_TREE_ROOTS, p.roots)) return null;
+  return Object.freeze({
+    outcome: p.outcome as PdfPageTreeProperties['outcome'],
+    shape: p.shape as PageTreeShape,
+    roots: p.roots as PageTreeRoots,
+  });
+}
+
 /**
  * Accepts exactly `{name, properties}` with the property set that name and
  * outcome allow, every value off its list, and nothing else. Run on both
@@ -135,6 +168,10 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
     const parsed = parseDetection(properties);
     return parsed && Object.freeze({ name, properties: parsed });
   }
+  if (name === 'pdf_page_tree') {
+    const parsed = parsePageTree(properties);
+    return parsed && Object.freeze({ name, properties: parsed });
+  }
   return null;
 }
 
@@ -146,6 +183,6 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
  */
 export function maintenanceEventField(event: MaintenanceEvent, engine: string): string {
   const p = event.properties as Record<string, string>;
-  const detail = [p.field_count_bucket, p.page_kind, p.duration_bucket, p.error_code].filter(Boolean);
+  const detail = [p.field_count_bucket, p.page_kind, p.shape, p.roots, p.duration_bucket, p.error_code].filter(Boolean);
   return [event.name, p.outcome, ...detail, engine].join('|');
 }

@@ -206,7 +206,7 @@ if (rejectRows.length) {
   for (const [field, count] of rejectRows) console.log(`${count} | ${field.split('|').join(' | ')}`);
 } else console.log(`(none in the last ${days} days)`);
 
-// Sign's maintenance events: events:<day> holds `name|outcome|detail...|engine` -> count.
+// Maintenance events: events:<day> holds `name|outcome|detail...|engine` -> count.
 function sumEvents(results) {
   const sums = new Map();
   for (const result of results) {
@@ -223,7 +223,7 @@ function sumEvents(results) {
       return [count, name, outcome ?? '', parts.slice(2, -1).join(' '), engine];
     });
 }
-console.log('\nSign maintenance events');
+console.log('\nMaintenance events');
 const eventRows = sumEvents(eventReplies.map((r) => r.result));
 if (eventRows.length) {
   console.log('count | event | outcome | detail | engine');

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { editPages } from './editPages.js';
-import { getPdfLib } from '../../lib/pdfLib.js';
+import { loadPdfWithPages } from './loadPdfPages.ts';
 import { useEditHistory } from './useEditHistory.js';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
@@ -37,6 +37,13 @@ const EMPTY_EDIT_STATE: EditState = { pages: [], removedPageNums: new Set(), rot
 
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
+  // The bytes everything after opening reads: the person's file, or its
+  // repaired copy when the page list had to be rebuilt (DEBT-54). `file` stays
+  // the original, so the name, memory and hand-off never change identity.
+  const workingFileRef = useRef<File | null>(null);
+  // The file picked last. A load that finishes after a newer pick is stale and
+  // must not touch the page list or the working file.
+  const pickedFileRef = useRef<File | null>(null);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
   useHoldUpdate(status === 'processing');
@@ -116,6 +123,8 @@ export default function PdfEditPagesTool() {
     recordAction(file ? 'replace_file' : 'add_files');
 
     setFile(selectedFile);
+    workingFileRef.current = selectedFile;
+    pickedFileRef.current = selectedFile;
     setStatus('loading-file');
     setProgress(0);
     setAddPageNumbers(false);
@@ -128,11 +137,21 @@ export default function PdfEditPagesTool() {
     try {
       // Loaded here, not at module scope: pdf-lib is 628 KiB and this is the
       // first moment the page needs it, so /edit-pdf/ ships without it until a
-      // file is picked. The catch below already covers a failure.
-      const { PDFDocument } = await getPdfLib();
-      const bytes = await selectedFile.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      const pageCount = pdfDoc.getPageCount();
+      // file is picked (the loader imports it lazily). The catch below already
+      // covers a failure.
+      const loaded = await loadPdfWithPages(await selectedFile.arrayBuffer());
+      if (pickedFileRef.current !== selectedFile) return;
+      const pageCount = loaded.pageCount;
+      // The thumbnails (pdf.js) and the export need the repaired bytes: pdf.js
+      // rejects the unrepaired file. Handing them the same working file means
+      // the repair runs, and is counted, once.
+      const workingFile = loaded.repaired
+        ? new File([loaded.bytes as BlobPart], selectedFile.name, {
+            type: 'application/pdf',
+            lastModified: selectedFile.lastModified,
+          })
+        : selectedFile;
+      workingFileRef.current = workingFile;
 
       const initialPages = Array.from({ length: pageCount }, (_, i) => ({
         pageNumber: i + 1,
@@ -148,7 +167,7 @@ export default function PdfEditPagesTool() {
       // that finishes rendering after the user has already committed a
       // change (e.g. rotated a page) survives an undo past that commit
       // instead of reverting to the placeholder the snapshot was taken with.
-      renderPdfThumbnails(selectedFile, (pageIndex: number, dataUrl: string) => {
+      renderPdfThumbnails(workingFile, (pageIndex: number, dataUrl: string) => {
         amend((current: EditState) => ({
           ...current,
           pages: current.pages.map((p) =>
@@ -162,6 +181,7 @@ export default function PdfEditPagesTool() {
     } catch (err) {
       reportError('pdf_tool_run', err, 'load_document');
       console.error(err);
+      if (pickedFileRef.current !== selectedFile) return;
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     }
@@ -275,7 +295,7 @@ export default function PdfEditPagesTool() {
         rotations,
         addPageNumbers,
       };
-      const blob = await editPages(file, options, setProgress);
+      const blob = await editPages(workingFileRef.current ?? file, options, setProgress);
       setDownloadBlob(blob);
       setOutputSize(blob.size);
       prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);

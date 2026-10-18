@@ -4,6 +4,9 @@ import {
   EXPORT_ERROR_CODES,
   FIELD_COUNT_BUCKETS,
   PAGE_KINDS,
+  PAGE_TREE_OUTCOMES,
+  PAGE_TREE_ROOTS,
+  PAGE_TREE_SHAPES,
   FORM_DETECTION_ERROR_CODES,
   maintenanceEventField,
   parseMaintenanceEvent,
@@ -30,17 +33,23 @@ const detectionFailure = (error_code: string) => ({
   properties: { outcome: 'failure', error_code },
 });
 
+const pageTree = (outcome: unknown, shape: unknown, roots: unknown) => ({
+  name: 'pdf_page_tree',
+  properties: { outcome, shape, roots },
+});
+
 const legit: unknown[] = [
   ...EXPORT_DURATION_BUCKETS.map(exportSuccess),
   ...EXPORT_DURATION_BUCKETS.flatMap((d) => EXPORT_ERROR_CODES.map((c) => exportFailure(d, c))),
   ...FIELD_COUNT_BUCKETS.map(detectionSuccess),
   ...FORM_DETECTION_ERROR_CODES.map(detectionFailure),
+  ...PAGE_TREE_OUTCOMES.flatMap((o) => PAGE_TREE_SHAPES.flatMap((s) => PAGE_TREE_ROOTS.map((r) => pageTree(o, s, r)))),
 ];
 
 describe('parseMaintenanceEvent accepts', () => {
   it('covers every list value', () => {
     expect(FORM_DETECTION_ERROR_CODES).toHaveLength(6);
-    expect(legit).toHaveLength(4 + 16 + 4 + 6);
+    expect(legit).toHaveLength(4 + 16 + 4 + 6 + 2 * 3 * 3);
   });
   it.each(legit.map((e) => [JSON.stringify(e), e] as const))('round-trips %s', (_label, event) => {
     expect(parseMaintenanceEvent(event)).toEqual(event);
@@ -188,7 +197,26 @@ describe('parseMaintenanceEvent rejects', () => {
   });
 });
 
+describe('pdf_page_tree', () => {
+  it('rejects a value off a list, a wrong type, an extra key and a missing key', () => {
+    expect(parseMaintenanceEvent(pageTree('success', 'no_pages_key', 'one'))).toBeNull();
+    expect(parseMaintenanceEvent(pageTree('repaired', 'other', 'one'))).toBeNull();
+    expect(parseMaintenanceEvent(pageTree('repaired', 'no_pages_key', 'two'))).toBeNull();
+    expect(parseMaintenanceEvent(pageTree('repaired', 'no_pages_key', 1))).toBeNull();
+    expect(parseMaintenanceEvent(pageTree('repaired', null, 'one'))).toBeNull();
+    expect(
+      parseMaintenanceEvent({ name: 'pdf_page_tree', properties: { outcome: 'repaired', shape: 'no_pages_key', roots: 'one', page_count: 'x' } }),
+    ).toBeNull();
+    expect(parseMaintenanceEvent({ name: 'pdf_page_tree', properties: { outcome: 'repaired', shape: 'no_pages_key' } })).toBeNull();
+    expect(parseMaintenanceEvent({ name: 'pdf_page_tree', properties: { outcome: 'failure', error_code: 'cancelled' } })).toBeNull();
+  });
+});
+
 describe('maintenanceEventField', () => {
+  it('page tree', () => {
+    const e = parseMaintenanceEvent(pageTree('repaired', 'no_pages_key', 'one'))!;
+    expect(maintenanceEventField(e, 'chromium-140')).toBe('pdf_page_tree|repaired|no_pages_key|one|chromium-140');
+  });
   it('export failure', () => {
     const e = parseMaintenanceEvent(exportFailure('under_5s', 'processing_failed'))!;
     expect(maintenanceEventField(e, 'chromium-140')).toBe('sign_export|failure|under_5s|processing_failed|chromium-140');

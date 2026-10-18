@@ -18,6 +18,8 @@ import type {
   ExportErrorCode,
   FieldCountBucket,
   PageKind,
+  PageTreeRoots,
+  PageTreeShape,
   MaintenanceEvent,
 } from './maintenanceEventSchema';
 
@@ -137,6 +139,26 @@ export function signFormDetectionUnavailable(): MaintenanceEvent {
   return Object.freeze({
     name: 'sign_form_detection',
     properties: Object.freeze({ outcome: 'failure', error_code: 'modules_unavailable' }),
+  });
+}
+
+/**
+ * A PDF's page list was rebuilt from its surviving page tree (DEBT-54). Only
+ * one root can be adopted, so `roots` is always 'one'. The shape and the root
+ * count are structure facts decided on the device, never document content.
+ */
+export function pdfPageTreeRepaired(shape: PageTreeShape): MaintenanceEvent {
+  return Object.freeze({
+    name: 'pdf_page_tree',
+    properties: Object.freeze({ outcome: 'repaired', shape, roots: 'one' }),
+  });
+}
+
+/** The page list could not be rebuilt: no root to adopt, or several to choose between. */
+export function pdfPageTreeFailed(shape: PageTreeShape, roots: PageTreeRoots): MaintenanceEvent {
+  return Object.freeze({
+    name: 'pdf_page_tree',
+    properties: Object.freeze({ outcome: 'failed', shape, roots }),
   });
 }
 

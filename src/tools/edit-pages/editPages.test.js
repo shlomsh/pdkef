@@ -3,6 +3,7 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { editPages } from './editPages.js';
+import { ORIGINAL_WIDTHS, noPagesKey } from '../../test/pdfPageTreeFixtures.ts';
 
 describe('editPages library integration with real fixtures', () => {
   function getFixtureFile(name) {
@@ -31,6 +32,20 @@ describe('editPages library integration with real fixtures', () => {
     await loadingTask.destroy();
     return { pageCount: pdf.numPages, pageTexts, pageRotations };
   }
+
+  // DEBT-54: a catalog that lost /Pages, with its page-tree root intact, exports
+  // in the document's own order through the real loader.
+  it('exports a file whose catalog lost its page list, in the requested order', async () => {
+    const file = new File([noPagesKey()], 'lost.pdf', { type: 'application/pdf' });
+    const resultBlob = await editPages(file, { pageOrder: [3, 1], removedPageNums: new Set([2]) });
+
+    const task = pdfjs.getDocument({ data: new Uint8Array(await resultBlob.arrayBuffer()) });
+    const pdf = await task.promise;
+    const widths = [];
+    for (let i = 1; i <= pdf.numPages; i++) widths.push((await pdf.getPage(i)).view[2]);
+    await task.destroy();
+    expect(widths).toEqual([ORIGINAL_WIDTHS[2], ORIGINAL_WIDTHS[0]]);
+  });
 
   it('removes pages 2 and 4 from num-5.pdf to yield pages "11", "13", "15"', async () => {
     const file = getFixtureFile('num-5.pdf');
