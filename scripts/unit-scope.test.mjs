@@ -120,6 +120,15 @@ describe('selectUnitTests: global config widens (Category 3 of the blind-spot in
 });
 
 describe('selectUnitTests: a core-folder change narrows, it does not force the whole suite (the central ARCH-28 fix)', () => {
+  // DEBT-54: renaming a heading in errors-read.mjs broke errors-read.test.mjs,
+  // which runs the script as a child process, and neither check:fast nor
+  // check:push selected it.
+  it('scripts/errors-read.mjs selects the test that runs it as a child process', () => {
+    const scope = selectUnitTests({ files: [file('scripts/errors-read.mjs')], exists: () => true });
+    expect(scope.all).toBe(false);
+    expect(scope.seeds).toContain('scripts/errors-read.test.mjs');
+  });
+
   it('src/lib/drafts/draftStore.js selects a handful of seeds, not the whole suite', () => {
     const scope = selectUnitTests({ files: [file('src/lib/drafts/draftStore.js')], exists: () => true });
     expect(scope.all).toBe(false);
@@ -208,6 +217,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/lib/format.js',
       'src/components/HeroDemo/HeroDemo.tsx',
       'backlog/tasks/ARCH-28.md',
+      'scripts/errors-read.mjs',
     ];
     const example = candidates.find((c) => rule.match(c));
     expect(example, `no candidate path in this test matches rule "${id}" - add one`).toBeDefined();
