@@ -1,10 +1,9 @@
 ---
 id: "QUAL-26"
 title: "A newer push to the same pull request cancels its older CI run"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "now"
 ---
 
 # QUAL-26 · Cancel superseded PR runs
@@ -20,10 +19,18 @@ there is vetted on its own), and the nightly and manual dispatch must never be c
 ## Scope
 
 - A workflow-level `concurrency` group keyed on the PR (`ci-${{ github.event.pull_request.number ||
-  github.run_id }}`) with `cancel-in-progress` true only for `pull_request` events, so `push`,
-  `schedule` and `workflow_dispatch` runs each get a unique group and are never cancelled.
+  github.run_id }}`) with `cancel-in-progress: true`; `push`, `schedule` and `workflow_dispatch` runs each get a unique
+  group (their run id) that nothing else joins, so they are never cancelled.
 
 ## Done when
 
 - Two quick pushes to a test PR show the first run cancelled and the second green, and a push to
   `main` during a running `main` run leaves both to finish.
+
+## Result
+
+Proved on throwaway draft PR #41 (closed, 2026-10-18). With `cancel-in-progress:
+${{ github.event_name == 'pull_request' }}` the newer push only queued: run 39149174024 waited behind
+the running 39149143468 and was then replaced by the next push, while the running one carried on.
+With a literal `true`, the next push (run 39149307133) cancelled the running 39149143468 and the queued
+39149207999. Push, nightly and dispatch runs stay apart because their group is their own run id.
