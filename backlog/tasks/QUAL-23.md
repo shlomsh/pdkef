@@ -1,10 +1,9 @@
 ---
 id: "QUAL-23"
 title: "Four chromium e2e shards, and the hero first-screen spec runs per test"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 ---
 
 # QUAL-23 · Four chromium e2e shards
@@ -42,4 +41,15 @@ The repository is public, so extra runner minutes cost nothing; each shard's fix
 
 ## Result
 
-*(pending the CI measurement)*
+Two full-suite runs on the branch (workflow_dispatch, no narrowing), 2026-10-18:
+
+| run | e2e shards (job wall) | whole run |
+| --- | --- | --- |
+| 39141112058 | 164 / 172 / 193 / 153s | 268s |
+| 39141500514 | 161 / 149 / 159 / 213s | 225s |
+
+Against 298-310s and 337-361s for the two shards on main's last full runs, and 330-360s for the
+whole run. The hero spec's tests now spread over both workers of their shard.
+Run 39141112058's one red was `tool-hero-first-screen.spec.js` "hand-off arrival ... compress-image
+... no layout shift" (CLS 0.0127 against 0.01); the same test failed on main in run 38812242018
+before this change, so it is an existing flake, not one this introduced.
