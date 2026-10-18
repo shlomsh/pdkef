@@ -51,6 +51,8 @@ test('the Download element keeps the same DOM node across preparing and ready (M
     await firstCard.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(300);
     await firstCard.tap();
+    // The tap must select the cell, or its Rotate button never shows.
+    await expect(firstCard).toHaveAttribute('data-selected');
   } else {
     await firstCard.hover();
   }
@@ -62,7 +64,10 @@ test('the Download element keeps the same DOM node across preparing and ready (M
     new MutationObserver(() => el.__states.push(el.dataset.state))
       .observe(el, { attributes: true, attributeFilter: ['data-state'] });
   });
-  await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
+  await firstCard.getByRole('button', { name: /^Rotate page/ }).click();
+  // Nightly 959 (webkit) read ready>saved: a forced click on a hidden Rotate
+  // changed nothing, so Download had nothing to prepare. Fail here instead.
+  await expect(firstCard).toHaveAttribute('data-rotation', '90');
 
   // UX guidelines §2: the rebuild waits for quiet and is silent, so the
   // element stays ready after the change. Preparing shows only for a tap
