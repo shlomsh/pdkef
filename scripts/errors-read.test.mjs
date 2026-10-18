@@ -110,7 +110,7 @@ describe('errors-read wiring', () => {
     expect(stdout).toContain('Rejected by the endpoint');
     expect(stdout).toContain('2 | oversize | chromium-143');
     expect(at('Reports not sent')).toBeGreaterThan(at('count | area | name | frame'));
-    expect(at('Reports not sent')).toBeLessThan(at('Sign maintenance events'));
+    expect(at('Reports not sent')).toBeLessThan(at('Maintenance events'));
     expect(stdout).toContain('redact: failed 5 (08e10cf 3, unstamped 2)');
     expect(stdout).toContain('UNTRACED  redact: 5 failures left no report and no drop record');
     expect(stdout).toMatch(/redact \| 0 \| 4 \| 0 \| 5 \|/);

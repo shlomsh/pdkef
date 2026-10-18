@@ -249,6 +249,12 @@ export const WIDEN_RULES = [
     match: (f) => f.startsWith('backlog/tasks/'),
     tests: ['scripts/backlog-data.test.mjs'],
   },
+  {
+    id: 'errors-read-child-process',
+    reason: 'errors-read.test.mjs runs scripts/errors-read.mjs with execFile, not import; a heading rename broke it unseen (DEBT-54)',
+    match: (f) => f === 'scripts/errors-read.mjs',
+    tests: ['scripts/errors-read.test.mjs'],
+  },
 ];
 
 // ---------------------------------------------------------------------------
