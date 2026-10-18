@@ -63,10 +63,12 @@ on:
 # a stamped build ever stops carrying the tag. Workflow-level, not per step: five jobs build.
 # QUAL-26: a newer push to the same pull request cancels its older run. Every
 # other event (push to main, the nightly, a manual dispatch) gets a group of
-# its own run id, so it always runs to the end.
+# its own run id, which nothing else ever joins, so it always runs to the end.
+# A `cancel-in-progress` expression on the event name queued the newer PR run
+# but left the running one going (PR #41), hence the literal `true`.
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 env:
   VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
