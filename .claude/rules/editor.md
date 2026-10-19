@@ -311,10 +311,16 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Feedback), then Replace with the other finishing action, then export at the far edge - one kind of
   thing per group. Redact's own order is unchanged: it already led with Blur, its named tool, since
   f48fcbd8.
-- The view-density segmented control's selected segment is a tint (`--color-primary-tint` fill,
-  `--color-primary-text`), not the solid `--color-primary` fill: that fill is what `.active` means on
-  a toolbar button (a tool armed for the next click), and a persistent view setting wearing it read as
-  a tool that was always on.
+- The view-density segmented control's selected segment is the pale `--color-primary-soft` fill with a
+  `--color-primary-text` icon and a 1px `--color-border-strong` inset ring, not the solid
+  `--color-primary` fill: that fill is what `.active` means on a toolbar button (a tool armed for the
+  next click), and a persistent view setting wearing it read as a tool that was always on. The mint
+  `--color-primary-tint` it wore next was the loudest block in a fresh row (2026-10-19).
+- **On a fresh file the row is quiet**: tools, Replace and the disabled exports are all the plain
+  button. Teal fill means one thing, ready: an armed tool or an export that can run. Disabled
+  Download/Share drop to the plain button with a muted label, never a tinted fill (a disabled control
+  that is the loudest in the row inverts the hierarchy). Replace's lime highlight lives only in the
+  shell file banner, where it is the row's one control.
 
 ## pdf.js render direction
 
