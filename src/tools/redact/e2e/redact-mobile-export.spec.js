@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
-// EditorExportActions.tsx (shared by Sign and Redact) keeps one intentional gap
-// between its two surfaces: the sticky toolbar's Download carries
-// `.desktop-download`, hidden below 920px once Share exists to take its place,
-// while the completion row below the document never hides either control. That
-// gap is a real CSS media query (SignToolbar.module.css, reused by Redact), so
-// jsdom - which never loads module CSS or runs a layout engine - cannot prove it
+// EditorExportActions.tsx (shared by Sign and Redact) drops the sticky toolbar's
+// Download below 920px once Share exists (`.desktop-download`), unless the tool
+// passes keepDownloadOnPhone. Redact does, so its phone toolbar carries both;
+// Sign's toolbar is too full and still drops it. The completion row below the
+// document never hides either control. The wrap is real CSS (SignToolbar.module.css,
+// reused by Redact), so jsdom - which never loads module CSS or runs a layout engine - cannot prove it
 // (see CLAUDE.md's "some editor bugs require a browser, not jsdom"). This is the
 // one guard that does.
 
@@ -43,17 +43,17 @@ async function openRedactTool(page) {
 test.describe('redact export actions on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('hides the sticky toolbar\'s Download once native Share exists, but keeps both below the document', async ({ page }) => {
+  test('keeps the sticky toolbar\'s Download beside Share on a phone, and both below the document', async ({ page }) => {
     await openRedactTool(page);
 
     const toolbar = page.getByRole('toolbar', { name: 'PDF redaction' });
     const toolbarShare = toolbar.getByRole('button', { name: 'Share', exact: true });
     const toolbarDownload = toolbar.getByRole('button', { name: 'Download', exact: true });
 
-    // The intentional gap: on a phone, with Share available, the toolbar
-    // keeps editing tools and drops its own Download rather than wrapping.
+    // Redact opts in to keepDownloadOnPhone: Share and Download both stay in
+    // the phone toolbar (12 controls, 6+6).
     await expect(toolbarShare).toBeVisible();
-    await expect(toolbarDownload).toBeHidden();
+    await expect(toolbarDownload).toBeVisible();
 
     // The completion row below the document is the reliable place to finish
     // either way, so it must never hide either control.
