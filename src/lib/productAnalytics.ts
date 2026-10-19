@@ -10,7 +10,7 @@
  */
 
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
-import { parseUsageEvent, type AnalyticsTool, type ToolLifecycleEvent } from './usageEventSchema';
+import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type ToolLifecycleEvent } from './usageEventSchema';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
 export {
@@ -32,13 +32,28 @@ export function resetUsageEventsForTests(): void {
   seen.clear();
 }
 
+/** How this page load started, off the browser's navigation timing (DEBT-57); undefined when it names none on the list. */
+function readNavigationType(): NavigationType | undefined {
+  try {
+    const type = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
+    return (NAVIGATION_TYPES as readonly string[]).includes(type as string) ? (type as NavigationType) : undefined;
+  } catch {
+    // expected: a browser without navigation timing sends the event without nav
+    return undefined;
+  }
+}
+
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
 export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: AnalyticsTool): void {
   try {
     const build = readBuildCommit();
     const pair = `${event}|${tool}`;
     const first = !seen.has(pair);
-    const parsed = parseUsageEvent({ name: event, properties: { tool, ...(build ? { build } : {}), ...(first ? { first } : {}) } });
+    const nav = first ? readNavigationType() : undefined;
+    const parsed = parseUsageEvent({
+      name: event,
+      properties: { tool, ...(build ? { build } : {}), ...(first ? { first } : {}), ...(nav ? { nav } : {}) },
+    });
     if (!parsed || handedOff >= MAX_USAGE_EVENTS_PER_PAGE) return;
     if (sendBeacon(parsed)) {
       handedOff += 1;

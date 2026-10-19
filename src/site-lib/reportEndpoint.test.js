@@ -249,7 +249,7 @@ describe('/api/report stays silent', () => {
       expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^errors:total:/)]]);
       expect(calls[1].map((c) => c[0])).toEqual(['EXPIRE', 'HINCRBY', 'EXPIRE']);
       expect(calls[1][1][1]).toMatch(/^drops:\d{4}-\d{2}-\d{2}$/);
-      expect(calls[1][1][2]).toBe('drafts|export|ignored|DOMException|AbortError|-|ios-17');
+      expect(calls[1][1][2]).toBe('drafts|export|ignored|DOMException|AbortError|-|ios-17|-');
       expect(JSON.stringify(calls)).not.toContain('rejects:');
     });
 

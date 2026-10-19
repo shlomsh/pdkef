@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
-import { addUntraced, failuresByBuild, fingerprintHistory, parseDayReplies, sliceWindow, toolRates, untracedTools } from './errors-insights.mjs';
+import { addUntraced, failuresByBuild, fingerprintHistory, pageStartsByTool, parseDayReplies, sliceWindow, toolRates, untracedTools } from './errors-insights.mjs';
 import { validateRegistry } from './errors-known.mjs';
 import { renderTriage, triage } from './errors-triage.mjs';
 
@@ -196,7 +196,8 @@ function sumCounts(results) {
 console.log('\nReports not sent (drop records)');
 const dropRows = sumCounts(dropReplies.map((r) => r.result));
 if (dropRows.length) {
-  console.log('count | area | step | reason | type | name | build | engine');
+  // cause (DEBT-57) is last; a record stored before it has none.
+  console.log('count | area | step | reason | type | name | build | engine | cause');
   for (const [field, count] of dropRows) console.log(`${count} | ${field.split('|').join(' | ')}`);
 } else console.log(`(none in the last ${days} days)`);
 console.log('\nRejected by the endpoint');
@@ -236,6 +237,11 @@ if (usageRows.length) {
   console.log('tool | accepted | started | ready | failed | ready/accepted | pages accepted | pages started | pages ready | pages failed');
   for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
+const startLines = pageStartsByTool(perDay, days);
+if (startLines.length) {
+  console.log('\nHow page loads that opened a file started');
+  for (const line of startLines) console.log(line);
+}
 const buildLines = failuresByBuild(perDay, days);
 if (buildLines.length) {
   console.log('\nFailures by build');

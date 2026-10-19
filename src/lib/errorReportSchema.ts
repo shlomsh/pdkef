@@ -182,11 +182,18 @@ export function pageAge(ms: number): PageAge {
  * - `type`: what was thrown, coarsely: a built-in error class, `custom` for any other `Error`
  *   subclass, or the `typeof` of anything that is not an `Error`;
  * - `name`: only when the error's name is on `DROP_NAMES`, so a minified or invented name never travels;
+ * - `cause` (DEBT-57): what the message says happened, matched on the device into `DROP_CAUSES`, so the
+ *   message itself never travels. A TypeError with no frame of ours on an iPhone could have been a chunk
+ *   that did not load or a file that could not be read, and nothing in the record told them apart;
  * - `area`, `step`, `build`: as in a report.
  * A deduplicated or capped report is not a drop: its cause already travelled.
  */
 export const DROP_REASONS = ['non_error', 'no_frame', 'ignored', 'encrypted', 'invalid'] as const;
 export type DropReason = (typeof DROP_REASONS)[number];
+
+/** What an `Error`'s message says happened: a script chunk or a request that did not load, a file the browser could not read, memory, or none of these. */
+export const DROP_CAUSES = ['module_load', 'network', 'file_read', 'memory', 'other'] as const;
+export type DropCause = (typeof DROP_CAUSES)[number];
 
 export const DROP_TYPES = [
   'Error', 'TypeError', 'RangeError', 'ReferenceError', 'SyntaxError', 'URIError', 'EvalError',
@@ -233,21 +240,23 @@ export type DropRecord = Readonly<{
   type: DropType;
   name?: string;
   build?: string;
+  cause?: DropCause;
 }>;
 
-const DROP_KEYS: ReadonlySet<string> = new Set(['kind', 'area', 'step', 'reason', 'type', 'name', 'build']);
+const DROP_KEYS: ReadonlySet<string> = new Set(['kind', 'area', 'step', 'reason', 'type', 'name', 'build', 'cause']);
+const DROP_CAUSE_SET: ReadonlySet<string> = new Set(DROP_CAUSES);
 const DROP_REASON_SET: ReadonlySet<string> = new Set(DROP_REASONS);
 const DROP_TYPE_SET: ReadonlySet<string> = new Set(DROP_TYPES);
 const DROP_NAME_SET: ReadonlySet<string> = new Set(DROP_NAMES);
 
 /**
- * Accepts exactly a drop record: the five required keys, optional `name` and `build`, nothing else.
+ * Accepts exactly a drop record: the five required keys, optional `name`, `build` and `cause`, nothing else.
  * Run on both sides, like `parseErrorReport`.
  */
 export function parseDropRecord(value: unknown): DropRecord | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   if (!Object.keys(value).every((key) => DROP_KEYS.has(key))) return null;
-  const { kind, area, step, reason, type, name, build } = value as Record<string, unknown>;
+  const { kind, area, step, reason, type, name, build, cause } = value as Record<string, unknown>;
   if (kind !== 'dropped') return null;
   if (typeof area !== 'string' || !AREAS.has(area)) return null;
   if (typeof step !== 'string' || !STEP.test(step)) return null;
@@ -255,6 +264,7 @@ export function parseDropRecord(value: unknown): DropRecord | null {
   if (typeof type !== 'string' || !DROP_TYPE_SET.has(type)) return null;
   if ('name' in value && (typeof name !== 'string' || !DROP_NAME_SET.has(name))) return null;
   if ('build' in value && (typeof build !== 'string' || !BUILD.test(build))) return null;
+  if ('cause' in value && (typeof cause !== 'string' || !DROP_CAUSE_SET.has(cause))) return null;
   return Object.freeze({
     kind: 'dropped' as const,
     area: area as ErrorArea,
@@ -263,11 +273,15 @@ export function parseDropRecord(value: unknown): DropRecord | null {
     type: type as DropType,
     ...('name' in value ? { name: name as string } : {}),
     ...('build' in value ? { build: build as string } : {}),
+    ...('cause' in value ? { cause: cause as DropCause } : {}),
   });
 }
 
-/** The counter field a drop record is stored under; an absent `name` or `build` reads `-`. */
+/**
+ * The counter field a drop record is stored under; an absent `name`, `build` or `cause` reads `-`.
+ * `cause` comes after the engine (DEBT-57), so fields stored before it keep their first seven parts.
+ */
 export function dropRecordField(record: DropRecord, engine: string): string {
-  const { area, step, reason, type, name, build } = record;
-  return `${area}|${step}|${reason}|${type}|${name ?? '-'}|${build ?? '-'}|${engine}`;
+  const { area, step, reason, type, name, build, cause } = record;
+  return `${area}|${step}|${reason}|${type}|${name ?? '-'}|${build ?? '-'}|${engine}|${cause ?? '-'}`;
 }

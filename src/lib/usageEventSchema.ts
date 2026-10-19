@@ -47,10 +47,18 @@ export type ToolLifecycleEvent = (typeof TOOL_LIFECYCLE_EVENTS)[number];
  *
  * `first` (DEBT-48): true on the first event of its kind from this tool in a page load, so the
  * endpoint can also count page loads. Only ever the literal true; it says nothing about the person or file.
+ *
+ * `nav` (DEBT-57): on a `first` event only, how the page load started, as the browser's own
+ * navigation timing names it. 178 page loads opened a file in Redact on 19 Oct 2026 against about 33
+ * visitors, and nothing could say whether they were reloads or fresh arrivals. It links no page load
+ * to another.
  */
+export const NAVIGATION_TYPES = ['navigate', 'reload', 'back_forward', 'prerender'] as const;
+export type NavigationType = (typeof NAVIGATION_TYPES)[number];
+
 export type UsageEvent = Readonly<{
   name: ToolLifecycleEvent;
-  properties: Readonly<{ tool: AnalyticsTool; build?: string; first?: true }>;
+  properties: Readonly<{ tool: AnalyticsTool; build?: string; first?: true; nav?: NavigationType }>;
 }>;
 
 const BUILD = /^[0-9a-f]{7}$/;
@@ -78,8 +86,10 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (!isPlainObject(properties)) return null;
   const stamped = 'build' in properties;
   const once = 'first' in properties;
-  if (!exactKeys(properties, ['tool', ...(stamped ? ['build'] : []), ...(once ? ['first'] : [])])) return null;
+  const navigated = 'nav' in properties;
+  if (!exactKeys(properties, ['tool', ...(stamped ? ['build'] : []), ...(once ? ['first'] : []), ...(navigated ? ['nav'] : [])])) return null;
   if (once && properties.first !== true) return null;
+  if (navigated && (!once || !has(NAVIGATION_TYPES, properties.nav))) return null;
   if (!has(ANALYTICS_TOOLS, properties.tool)) return null;
   if (stamped && (typeof properties.build !== 'string' || !BUILD.test(properties.build))) return null;
   return Object.freeze({
@@ -88,6 +98,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
       tool: properties.tool as AnalyticsTool,
       ...(stamped ? { build: properties.build as string } : {}),
       ...(once ? { first: true as const } : {}),
+      ...(navigated ? { nav: properties.nav as NavigationType } : {}),
     }),
   });
 }
@@ -103,3 +114,7 @@ export function usageEventField(event: UsageEvent): string {
 
 /** The page-load counter beside an event's run counter: `once:tool_result_ready|merge`. Readers skip it as a run. */
 export const usageOnceField = (event: UsageEvent): string => `once:${usageEventField(event)}`;
+
+/** How a page load started, beside its once field: `nav:tool_file_accepted|redact|reload`. Undefined without `nav`. */
+export const usageNavField = (event: UsageEvent): string | undefined =>
+  event.properties.nav ? `nav:${event.name}|${event.properties.tool}|${event.properties.nav}` : undefined;

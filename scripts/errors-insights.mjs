@@ -153,6 +153,25 @@ export function toolRates(perDay, windowDays, opts = {}) {
   return rows;
 }
 
+// How the page loads that opened a file in each tool started (DEBT-57), from `nav:tool_file_accepted|<tool>|<type>`
+// fields: `redact: reload 150, navigate 20`, most first. Tells one visitor reloading from many arriving.
+export function pageStartsByTool(perDay, windowDays) {
+  const tools = new Map();
+  for (const d of perDay.slice(0, windowDays)) {
+    for (const [field, count] of d.usage) {
+      if (!field.startsWith('nav:tool_file_accepted|') || !(count > 0)) continue;
+      const [, tool, nav] = field.slice(4).split('|');
+      if (!tool || !nav) continue;
+      const types = tools.get(tool) ?? new Map();
+      types.set(nav, (types.get(nav) ?? 0) + count);
+      tools.set(tool, types);
+    }
+  }
+  return [...tools]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([tool, types]) => `${tool}: ${[...types].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t, c]) => `${t} ${c}`).join(', ')}`);
+}
+
 // Failures per tool in the window, split by the build that stamped them: `redact: failed 5 (08e10cf 3, unstamped 2)`.
 export function failuresByBuild(perDay, windowDays) {
   const tools = new Map();

@@ -37,9 +37,15 @@ describe('engineBucket', () => {
     ['Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Version/26.6 Mobile/15E148 Safari/604.1', 'ios-26'],
     ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Mobile/15E148 Safari/604.1', 'ios-26'],
     ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', 'ios-17'],
-    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1', 'ios-18+'],
-    ['Mozilla/5.0 (iPhone; CPU iPhone OS 16_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1', 'ios-16'],
-    ['Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 CriOS/126.0.0.0 Mobile/15E148', 'ios-17'],
+    // DEBT-57: an iPhone browser that is not Safari is named, since it carries no Version/ to read.
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1', 'ios-chrome-18+'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 16_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1', 'ios-chrome-16'],
+    ['Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 CriOS/126.0.0.0 Mobile/15E148', 'ios-chrome-17'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/390.0.812345678 Mobile/15E148 Safari/604.1', 'ios-google-18+'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/140.0 Mobile/15E148 Safari/605.1.15', 'ios-firefox-18+'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 EdgiOS/140.0.3485.54 Mobile/15E148 Safari/605.1.15', 'ios-edge-18+'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22H31 Instagram 400.0.0.0', 'ios-app-18+'],
+    ['Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/480.0]', 'ios-app-17'],
     ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.1 Safari/605.1.15', 'safari-18'],
     ['Mozilla/5.0 (Windows NT 10.0; rv:130.0) Gecko/20100101 Firefox/130.0', 'firefox-130'],
     ['Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0', 'chromium-128'],
@@ -164,6 +170,16 @@ describe('usage commands', () => {
       ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
     ]);
   });
+
+  it('a first event with nav also counts how its page load started (DEBT-57)', () => {
+    const event = { name: 'tool_file_accepted', properties: { tool: 'redact', build: '7636880', first: true, nav: 'reload' } } as const;
+    expect(usageCommands(event, '2026-10-01')).toEqual([
+      ['HINCRBY', 'usage:2026-10-01', 'tool_file_accepted|redact|7636880', 1],
+      ['HINCRBY', 'usage:2026-10-01', 'once:tool_file_accepted|redact|7636880', 1],
+      ['HINCRBY', 'usage:2026-10-01', 'nav:tool_file_accepted|redact|reload', 1],
+      ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+  });
 });
 
 describe('withDayExpiry', () => {
@@ -178,7 +194,7 @@ describe('dropCommands', () => {
   const record = { kind: 'dropped', area: 'drafts', step: 'export', reason: 'ignored', type: 'DOMException', name: 'AbortError', build: '08e10cf' } as const;
   it('counts one field under drops:<day>, with an expiry and no sample', () => {
     expect(dropCommands(record, 'ios-17', '2026-10-01')).toEqual([
-      ['HINCRBY', 'drops:2026-10-01', 'drafts|export|ignored|DOMException|AbortError|08e10cf|ios-17', 1],
+      ['HINCRBY', 'drops:2026-10-01', 'drafts|export|ignored|DOMException|AbortError|08e10cf|ios-17|-', 1],
       ['EXPIRE', 'drops:2026-10-01', 90 * 24 * 60 * 60],
     ]);
   });

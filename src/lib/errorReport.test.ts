@@ -14,6 +14,7 @@ import {
   resetErrorReportingForTests,
   setReportingEnabledForTests,
   toDropRecord,
+  dropCause,
   toErrorReport,
   type PageContext,
 } from './errorReport.ts';
@@ -417,6 +418,35 @@ describe('toDropRecord (DEBT-44)', () => {
     expect(toDropRecord('drafts', 's', 'save_draft', 'abc1234')?.build).toBe('abc1234');
     expect('build' in (toDropRecord('drafts', 's', 'save_draft') as object)).toBe(false);
     expect(toDropRecord('drafts', 's', 'has space')).toBeNull();
+  });
+});
+
+describe('dropCause (DEBT-57)', () => {
+  it.each([
+    ['Safari, a chunk that did not load', new TypeError('Importing a module script failed.'), 'module_load'],
+    ['Chromium, a chunk that did not load', new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/pdf.js'), 'module_load'],
+    ['Firefox, a chunk that did not load', new TypeError('error loading dynamically imported module: https://pdkef.com/_astro/a.js'), 'module_load'],
+    ['Safari, a request that did not complete', new TypeError('Load failed'), 'network'],
+    ['Chromium, a request that did not complete', new TypeError('Failed to fetch'), 'network'],
+    ['Firefox, a request that did not complete', new TypeError('NetworkError when attempting to fetch resource.'), 'network'],
+    ['a file the browser could not read', new DOMException('The requested file could not be read, typically due to permission problems.', 'NotReadableError'), 'file_read'],
+    ['Safari, a file it could not read', new DOMException('The I/O read operation failed.', 'NotReadableError'), 'file_read'],
+    ['an allocation that failed', new RangeError('Array buffer allocation failed'), 'memory'],
+    ['Safari out of memory', new RangeError('Out of memory'), 'memory'],
+    ['anything else', new TypeError("undefined is not an object (evaluating 'a.b')"), 'other'],
+  ])('%s', (_what, error, cause) => expect(dropCause(error)).toBe(cause));
+
+  it('has no cause for a value that is not an Error', () => {
+    expect(dropCause('Load failed')).toBeUndefined();
+    expect(dropCause(null)).toBeUndefined();
+  });
+
+  it('puts the cause on the drop record, never the message', () => {
+    const e = new TypeError('Importing a module script failed.');
+    e.stack = '';
+    const record = toDropRecord('pdf_render', e, 'load_document');
+    expect(record).toMatchObject({ reason: 'no_frame', type: 'TypeError', cause: 'module_load' });
+    expect(JSON.stringify(record)).not.toContain('Importing');
   });
 });
 

@@ -5,6 +5,7 @@ import {
   addUntraced,
   failuresByBuild,
   fingerprintHistory,
+  pageStartsByTool,
   parseDayReplies,
   sliceWindow,
   toolRates,
@@ -277,6 +278,16 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
     const lines = failuresByBuild([day('d1', { usage: { 'tool_operation_failed|redact|08e10cf': 3, 'tool_operation_failed|redact': 2, 'tool_operation_failed|sign|aaaaaaa': 1, 'tool_operation_started|merge': 9 } })], 1);
     expect(lines).toEqual(['redact: failed 5 (08e10cf 3, unstamped 2)', 'sign: failed 1 (aaaaaaa 1)']);
     expect(failuresByBuild([day('d1')], 1)).toEqual([]);
+  });
+
+  it('pageStartsByTool says how the page loads that opened a file started, newest window only (DEBT-57)', () => {
+    const days = [
+      day('d1', { usage: { 'nav:tool_file_accepted|redact|reload': 150, 'nav:tool_file_accepted|redact|navigate': 20, 'nav:tool_operation_started|redact|reload': 9, 'tool_file_accepted|redact': 178 } }),
+      day('d0', { usage: { 'nav:tool_file_accepted|redact|navigate': 5, 'nav:tool_file_accepted|merge|back_forward': 2 } }),
+    ];
+    expect(pageStartsByTool(days, 1)).toEqual(['redact: reload 150, navigate 20']);
+    expect(pageStartsByTool(days, 2)).toEqual(['merge: back_forward 2', 'redact: reload 150, navigate 25']);
+    expect(pageStartsByTool([day('d1')], 1)).toEqual([]);
   });
 
   const failing = [day('d1', { usage: { 'tool_operation_failed|redact': 4, 'tool_operation_failed|merge': 3 }, counts: { 'pdf_tool_run|E|c.js:1:1|s|e': 1 } })];

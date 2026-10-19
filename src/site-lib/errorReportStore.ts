@@ -3,7 +3,7 @@
 // how much of a user agent survives. Nothing here does I/O.
 import { MAX_REPORT_BYTES, dropRecordField, type DropRecord, type ErrorReport } from '../lib/errorReportSchema.js';
 import { maintenanceEventField, type MaintenanceEvent } from '../lib/maintenanceEventSchema.js';
-import { usageEventField, usageOnceField, type UsageEvent } from '../lib/usageEventSchema.js';
+import { usageEventField, usageNavField, usageOnceField, type UsageEvent } from '../lib/usageEventSchema.js';
 
 /**
  * Reports, drop records and Sign events counted per UTC day; past it the day is full. Budget: the
@@ -24,20 +24,32 @@ const TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export type Command = readonly (string | number)[];
 
+/** iPhone browsers other than Safari, by the token each puts in its user agent (DEBT-57). */
+const IOS_APPS: [string, RegExp][] = [
+  ['chrome', /\bCriOS\//],
+  ['google', /\bGSA\//],
+  ['firefox', /\bFxiOS\//],
+  ['edge', /\bEdgiOS\//],
+];
+
 /**
  * The engine, as coarsely as is useful for "does it only happen on iOS 26":
- * family and major version, never the full user agent.
+ * family and major version, never the full user agent. An iPhone browser
+ * other than Safari reads `ios-<browser>-<os>`, `app` for an in-app browser.
  */
 export function engineBucket(userAgent: string): string {
   const major = (re: RegExp) => re.exec(userAgent)?.[1];
   // Every iOS browser is WebKit, so any iPhone/iPad UA is bucketed as iOS. From iOS 26 the OS token is frozen
   // at 18_x (measured: iOS 26.2 Safari says "iPhone OS 18_7"), so Version/ names the real major and a bare 18 means 18+.
+  // A browser other than Safari is named first (DEBT-57): a Google-app or Chrome visitor's failure once read as
+  // "iOS 18" when it was neither Safari nor necessarily iOS 18. Anything else without Version/ is an in-app browser.
   if (/iPhone|iPad|iPod/.test(userAgent)) {
+    const app = IOS_APPS.find(([, token]) => token.test(userAgent))?.[0];
     const safari = major(/Version\/(\d{1,3})/);
-    if (safari) return `ios-${safari}`;
+    if (safari && !app) return `ios-${safari}`;
     const v = major(/OS (\d{1,3})[_.]/);
-    if (!v) return 'ios';
-    return Number(v) >= 18 ? 'ios-18+' : `ios-${v}`;
+    const os = !v ? '' : Number(v) >= 18 ? '-18+' : `-${v}`;
+    return `ios-${app ?? 'app'}${os}`;
   }
   const firefox = major(/Firefox\/(\d{1,4})/);
   if (firefox) return `firefox-${firefox}`;
@@ -99,11 +111,13 @@ export function usageCapCommands(day: string): Command[] {
   return [['INCR', usageTotalKey(day)]];
 }
 
-/** Second step for a usage event: a count per day and tool event, no sample. */
+/** Second step for a usage event: a count per day and tool event, no sample; a first event adds its page-load counts. */
 export function usageCommands(event: UsageEvent, day: string): Command[] {
+  const nav = usageNavField(event);
   return [
     ['HINCRBY', `usage:${day}`, usageEventField(event), 1],
     ...(event.properties.first ? [['HINCRBY', `usage:${day}`, usageOnceField(event), 1] as const] : []),
+    ...(nav ? [['HINCRBY', `usage:${day}`, nav, 1] as const] : []),
     ['EXPIRE', `usage:${day}`, TTL_SECONDS],
   ];
 }
