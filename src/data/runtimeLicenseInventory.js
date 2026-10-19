@@ -2,7 +2,7 @@
 export const RUNTIME_LICENSE_PACKAGES = [
   {
     "name": "@astrojs/preact",
-    "version": "6.0.6",
+    "version": "6.1.0",
     "license": "MIT",
     "url": "https://docs.astro.build/en/guides/integrations-guide/preact/"
   },
@@ -68,7 +68,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@vercel/functions",
-    "version": "3.9.11",
+    "version": "3.10.1",
     "license": "Apache-2.0",
     "url": "https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package"
   },
@@ -80,7 +80,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.3.8",
+    "version": "7.4.0",
     "license": "MIT",
     "url": "https://astro.build"
   },
@@ -110,7 +110,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "lucide-preact",
-    "version": "1.54.0",
+    "version": "1.58.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },
