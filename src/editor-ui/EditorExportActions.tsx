@@ -50,6 +50,9 @@ export interface EditorExportActionsProps {
    * purpose - see the comment on the `isToolbar` return below. */
   shareLabel?: string;
   downloadLabel?: string;
+  /** Toolbar variant: keep Download visible on a phone beside Share instead of
+   * dropping it below 920px. Redact opts in; Sign's toolbar is too full. */
+  keepDownloadOnPhone?: boolean;
   dir?: 'ltr' | 'rtl';
   lang?: string;
 }
@@ -98,6 +101,7 @@ export default function EditorExportActions({
   describedBy,
   shareLabel = 'Share',
   downloadLabel = 'Download',
+  keepDownloadOnPhone = false,
   dir = 'ltr',
   lang = 'en',
 }: EditorExportActionsProps) {
@@ -132,7 +136,7 @@ export default function EditorExportActions({
     <button
       type="button"
       className={isToolbar
-        ? `${styles.button} ${styles.download}${canShare ? ` ${styles['desktop-download']}` : ''}`
+        ? `${styles.button} ${styles.download}${canShare && !keepDownloadOnPhone ? ` ${styles['desktop-download']}` : ''}`
         : `${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`}
       onClick={onDownload}
       disabled={disabled}

@@ -363,6 +363,7 @@ export default function RedactToolbar({
 
         <EditorExportActions
           variant="toolbar"
+          keepDownloadOnPhone
           canShare={canSharePdf}
           shareReady={shareReady}
           disabled={elementsCount === 0 || exporting}
