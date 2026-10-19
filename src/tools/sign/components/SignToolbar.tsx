@@ -814,7 +814,7 @@ export default function SignToolbar({
               Share/Download at the far edge. */}
           <button
             type="button"
-            className={`${styles.button} ${styles.highlight}`}
+            className={styles.button}
             onClick={requestReplace}
             title={shellMessages.replaceTitle}
             aria-label={shellMessages.replaceLabel}

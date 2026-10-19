@@ -4,6 +4,7 @@ import { render } from 'preact';
 import type { ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { FILE_ACTIONS } from '../../../shell/ToolShell.tsx';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { FillContext, FILL_OFF, type FillContextValue } from '../fill/FillContext.tsx';
@@ -61,6 +62,29 @@ describe('SignToolbar Component', () => {
       container.remove();
     }
     document.body.innerHTML = '';
+  });
+
+  it('Replace is a plain toolbar button, not the row highlight', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            setDialogOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            onSavePdf={() => {}}
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+    const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${FILE_ACTIONS.replace.label}"]`);
+    expect(button).not.toBeNull();
+    expect(button!.className.split(/\s+/).filter(Boolean)).toEqual([styles.button]);
   });
 
   it('renders all tool buttons and propagates selection via context', async () => {

@@ -350,7 +350,7 @@ export default function RedactToolbar({
             Both meant "I want a different file"; this one says it once. */}
         <button
           type="button"
-          className={`${styles.button} ${styles.highlight}`}
+          className={styles.button}
           onClick={requestReplace}
           title={FILE_ACTIONS.replace.title}
           aria-label={FILE_ACTIONS.replace.label}

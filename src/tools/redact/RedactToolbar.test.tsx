@@ -2,6 +2,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RedactToolbar from './RedactToolbar.tsx';
+import { FILE_ACTIONS } from '../../shell/ToolShell.tsx';
+import styles from '../../editor-ui/SignToolbar.module.css';
 
 describe('RedactToolbar returning-work status', () => {
   let container = document.createElement('div');
@@ -48,6 +50,13 @@ describe('RedactToolbar returning-work status', () => {
       );
     });
   }
+
+  it('Replace is a plain toolbar button, not the row highlight', () => {
+    mount();
+    const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${FILE_ACTIONS.replace.label}"]`);
+    expect(button).not.toBeNull();
+    expect(button!.className.split(/\s+/).filter(Boolean)).toEqual([styles.button]);
+  });
 
   it('keeps the neutral starter tip for a manually opened file', () => {
     mount();
