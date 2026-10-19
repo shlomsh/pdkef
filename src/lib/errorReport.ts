@@ -14,6 +14,7 @@ import {
   parseDropRecord,
   parseErrorReport,
   type ErrorArea,
+  type DropCause,
   type DropRecord,
   type DropType,
   type ErrorReport,
@@ -68,6 +69,23 @@ function dropType(error: unknown): DropType {
   return error.constructor === Error ? 'Error' : 'custom';
 }
 
+// Each browser's own wording, matched on the device so only the category travels (DEBT-57).
+const CAUSE_PATTERNS: [DropCause, RegExp][] = [
+  // Safari, Chromium, Firefox: a dynamically imported chunk that did not load or parse.
+  ['module_load', /importing a module script failed|failed to fetch dynamically imported module|error loading dynamically imported module/i],
+  ['network', /^load failed$|failed to fetch|networkerror when attempting to fetch|network connection was lost/i],
+  ['file_read', /could not be read|i\/o read operation failed/i],
+  ['memory', /allocation failed|out of memory/i],
+];
+
+/** What an Error's message says happened, as one of `DROP_CAUSES`; undefined for a thrown non-Error. Pure. */
+export function dropCause(error: unknown): DropCause | undefined {
+  if (!(error instanceof Error)) return undefined;
+  const message = String(error.message);
+  for (const [cause, pattern] of CAUSE_PATTERNS) if (pattern.test(message)) return cause;
+  return error.name === 'NotReadableError' ? 'file_read' : 'other';
+}
+
 /**
  * The drop record for an error `toErrorReport` returned null for (DEBT-44), so a counted failure
  * always leaves a trace. Mirrors `toErrorReport`'s order to name the reason. Pure; null when the
@@ -76,6 +94,7 @@ function dropType(error: unknown): DropType {
 export function toDropRecord(area: ErrorArea, error: unknown, step: string, build?: string): DropRecord | null {
   let reason: DropRecord['reason'] = 'invalid';
   let name: string | undefined;
+  const cause = dropCause(error);
   if (!(error instanceof Error)) reason = 'non_error';
   else {
     name = errorName(error);
@@ -93,6 +112,7 @@ export function toDropRecord(area: ErrorArea, error: unknown, step: string, buil
     type: dropType(error),
     ...(name !== undefined && DROP_NAME_SET.has(name) ? { name } : {}),
     ...(build ? { build } : {}),
+    ...(cause ? { cause } : {}),
   });
 }
 

@@ -5,7 +5,9 @@ import {
   ANALYTICS_TOOLS,
   TOOL_LIFECYCLE_EVENTS,
   parseUsageEvent,
+  NAVIGATION_TYPES,
   usageEventField,
+  usageNavField,
   usageOnceField,
 } from './usageEventSchema.ts';
 
@@ -50,6 +52,31 @@ describe('the first flag', () => {
   });
   it('has a once field that shares the event field spelling', () => {
     expect(usageOnceField(parseUsageEvent(first)!)).toBe('once:tool_operation_failed|redact');
+  });
+});
+
+describe('how the page load started (DEBT-57)', () => {
+  const firstWith = (nav: unknown) => ({ name: 'tool_file_accepted', properties: { tool: 'redact', first: true, nav } });
+  it.each(NAVIGATION_TYPES.map((nav) => [nav]))('accepts nav %s on a first event, and files it beside the once field', (nav) => {
+    const parsed = parseUsageEvent(firstWith(nav));
+    expect(parsed).toEqual(firstWith(nav));
+    expect(usageNavField(parsed!)).toBe(`nav:tool_file_accepted|redact|${nav}`);
+  });
+  it('lists the four navigation types the browser names', () => {
+    expect([...NAVIGATION_TYPES]).toEqual(['navigate', 'reload', 'back_forward', 'prerender']);
+  });
+  it('accepts nav beside a build', () => {
+    const stamped = { name: 'tool_file_accepted', properties: { tool: 'redact', build: '08e10cf', first: true, nav: 'reload' } };
+    expect(parseUsageEvent(stamped)).toEqual(stamped);
+  });
+  it.each([['an unknown value', 'typed'], ['a number', 1], ['null', null]])('rejects nav as %s', (_what, nav) => {
+    expect(parseUsageEvent(firstWith(nav))).toBeNull();
+  });
+  it('rejects nav on an event that is not the first of its kind', () => {
+    expect(parseUsageEvent({ name: 'tool_file_accepted', properties: { tool: 'redact', nav: 'reload' } })).toBeNull();
+  });
+  it('has no nav field without nav', () => {
+    expect(usageNavField(parseUsageEvent({ name: 'tool_file_accepted', properties: { tool: 'redact', first: true } })!)).toBeUndefined();
   });
 });
 

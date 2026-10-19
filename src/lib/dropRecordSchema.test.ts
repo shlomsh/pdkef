@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DROP_NAMES, IGNORED_NAMES, dropRecordField, parseDropRecord, parseErrorReport } from './errorReportSchema.ts';
+import { DROP_CAUSES, DROP_NAMES, IGNORED_NAMES, dropRecordField, parseDropRecord, parseErrorReport } from './errorReportSchema.ts';
 import { parseMaintenanceEvent } from './maintenanceEventSchema.ts';
 import { parseUsageEvent } from './usageEventSchema.ts';
 
@@ -13,6 +13,10 @@ describe('parseDropRecord (DEBT-44)', () => {
     expect(Object.isFrozen(parseDropRecord(base))).toBe(true);
   });
 
+  it('accepts a cause off the closed list (DEBT-57)', () => {
+    for (const cause of DROP_CAUSES) expect(parseDropRecord({ ...base, cause })).toEqual({ ...base, cause });
+  });
+
   it.each([
     ['another kind', { ...base, kind: 'report' }],
     ['an unknown area', { ...base, area: 'nowhere' }],
@@ -22,6 +26,7 @@ describe('parseDropRecord (DEBT-44)', () => {
     ['a name off the list', { ...base, name: 'fm' }],
     ['a message smuggled as a name', { ...base, name: 'secret.pdf' }],
     ['a malformed build', { ...base, build: 'HEAD' }],
+    ['a cause off the list', { ...base, cause: 'Load failed' }],
     ['an extra key', { ...base, message: 'x' }],
     ['a missing key', { kind: 'dropped', area: 'redact', step: 'export', reason: 'no_frame' }],
     ['an array', [base]],
@@ -40,9 +45,9 @@ describe('parseDropRecord (DEBT-44)', () => {
     for (const name of IGNORED_NAMES) expect(DROP_NAMES).toContain(name);
   });
 
-  it('stores under one field, with - for an absent name or build', () => {
-    expect(dropRecordField(parseDropRecord(base)!, 'ios-26')).toBe('redact|export|non_error|string|-|-|ios-26');
-    const full = parseDropRecord({ ...base, reason: 'encrypted', type: 'custom', name: 'EncryptedPDFError', build: '08e10cf' })!;
-    expect(dropRecordField(full, 'chromium-154')).toBe('redact|export|encrypted|custom|EncryptedPDFError|08e10cf|chromium-154');
+  it('stores under one field, with - for an absent name, build or cause, the cause last', () => {
+    expect(dropRecordField(parseDropRecord(base)!, 'ios-26')).toBe('redact|export|non_error|string|-|-|ios-26|-');
+    const full = parseDropRecord({ ...base, reason: 'encrypted', type: 'custom', name: 'EncryptedPDFError', build: '08e10cf', cause: 'other' })!;
+    expect(dropRecordField(full, 'chromium-154')).toBe('redact|export|encrypted|custom|EncryptedPDFError|08e10cf|chromium-154|other');
   });
 });

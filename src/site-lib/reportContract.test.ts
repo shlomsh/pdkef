@@ -68,10 +68,11 @@ describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {
   const aborted = new DOMException('x', 'AbortError');
   // The beacon carries no user agent here, so the engine bucket is `other`.
   it.each([
-    ['a string throw', 'boom', 'redact|export|non_error|string|-|08e10cf|other'],
-    ['an error with no frame of ours', new DOMException('x', 'NotReadableError'), 'redact|export|no_frame|DOMException|NotReadableError|08e10cf|other'],
-    ['an ignored name', aborted, 'redact|export|ignored|DOMException|AbortError|08e10cf|other'],
-    ['the encrypted-file error under a minified name', encrypted, 'redact|export|encrypted|Error|EncryptedPDFError|08e10cf|other'],
+    ['a string throw', 'boom', 'redact|export|non_error|string|-|08e10cf|other|-'],
+    ['an error with no frame of ours', new DOMException('x', 'NotReadableError'), 'redact|export|no_frame|DOMException|NotReadableError|08e10cf|other|file_read'],
+    ['a chunk that did not load (DEBT-57)', new TypeError('Importing a module script failed.'), 'redact|export|no_frame|TypeError|-|08e10cf|other|module_load'],
+    ['an ignored name', aborted, 'redact|export|ignored|DOMException|AbortError|08e10cf|other|other'],
+    ['the encrypted-file error under a minified name', encrypted, 'redact|export|encrypted|Error|EncryptedPDFError|08e10cf|other|other'],
   ])('%s is counted as a drop record', async (_what, thrown, field) => {
     reportError('redact', thrown, 'export');
     const commands = await deliver();

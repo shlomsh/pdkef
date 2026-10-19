@@ -20,6 +20,7 @@ beforeEach(() => {
 afterEach(() => {
   setReportingEnabledForTests(false);
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('reportToolLifecycleEvent', () => {
@@ -43,6 +44,27 @@ describe('reportToolLifecycleEvent', () => {
       '{"name":"tool_operation_failed","properties":{"tool":"merge","first":true}}',
       '{"name":"tool_operation_started","properties":{"tool":"redact","first":true}}',
     ]);
+  });
+
+  it('says how the page load started on the first event of a kind only (DEBT-57)', async () => {
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([{ type: 'reload' }] as unknown as PerformanceEntryList);
+    reportToolLifecycleEvent('tool_file_accepted', 'redact');
+    reportToolLifecycleEvent('tool_file_accepted', 'redact');
+    const bodies = await Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()));
+    expect(bodies).toEqual([
+      '{"name":"tool_file_accepted","properties":{"tool":"redact","first":true,"nav":"reload"}}',
+      '{"name":"tool_file_accepted","properties":{"tool":"redact"}}',
+    ]);
+  });
+
+  it('leaves nav out when the browser names no navigation, or one off the list', async () => {
+    const spy = vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    reportToolLifecycleEvent('tool_file_accepted', 'redact');
+    spy.mockReturnValue([{ type: 'something_new' }] as unknown as PerformanceEntryList);
+    reportToolLifecycleEvent('tool_file_accepted', 'merge');
+    const bodies = await Promise.all(beacon.mock.calls.map(([, blob]) => (blob as Blob).text()));
+    expect(bodies.every((b) => !b.includes('nav'))).toBe(true);
+    expect(bodies).toHaveLength(2);
   });
 
   it('stays first until a beacon is actually handed off', async () => {
