@@ -38,6 +38,15 @@
 .page-canvas { display: block; width: 100%; height: auto; pointer-events: none; border-radius: var(--radius-sm); }
 .page-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; }
 .export-actions { display: flex; gap: var(--space-3); width: 100%; margin-top: 2rem; }
-.export-action { flex: 1; }
-.export-share { display: flex; align-items: center; justify-content: center; gap: var(--space-2); color: var(--color-primary-text); background: var(--color-surface); border-color: var(--color-primary); }
-.export-share:hover:not(:disabled) { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
+/* The transparent border is what keeps the pair the same size: Share draws a
+   1px outline and Download does not, so without it the two halves of an even
+   split come out 2px apart. Scoped through the row for the specificity, since
+   `.tool-primary-action`'s own `border: none` is later in the cascade. */
+.export-actions .export-action { flex: 1; border: 1px solid transparent; }
+/* Doubled class on purpose. Share is the quieter half of the finish pair, but
+   it also carries `.tool-primary-action`, whose sheet EditorExportActions
+   imports after this one - at equal specificity the later fill won and Share
+   came out as solid as Download. Winning on specificity keeps that independent
+   of import order. */
+.export-action.export-share { display: flex; align-items: center; justify-content: center; gap: var(--space-2); color: var(--color-primary-text); background: var(--color-surface); border: 1px solid var(--color-primary); }
+.export-action.export-share:hover:not(:disabled) { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
