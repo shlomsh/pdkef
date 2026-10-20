@@ -92,6 +92,21 @@
   margin: 0;
 }
 
+/* On a phone the caption has wrapped below the pair anyway, so there is no
+   reason for the two buttons to bunch at the start of the row at the width of
+   their own labels. Take the line and split it evenly, the way the completion
+   row below the document does. */
+@media (max-width: 719px) {
+  .action-row > div {
+    inline-size: 100%;
+  }
+
+  .action-row > div > button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
 .caption {
   margin: 0;
   min-width: 0;
