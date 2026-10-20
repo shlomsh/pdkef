@@ -1,17 +1,43 @@
 ---
 id: "MOBI-38"
 title: "Sign and Redact: the file name scrolls, the toolbar stays"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "polish"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
 # MOBI-38 · Sign and Redact: the file name scrolls, the toolbar stays
 
-*Filed 2026-10-20, from Shlomi's phone review of Redact.*
+*Filed 2026-10-20, from Shlomi's phone review of Redact. Retired the same day, before any
+code: the 42pt it was written to reclaim does not exist on a phone. Kept as the record of why,
+so the measurement is not redone.*
+
+## Why this is retired
+
+The band under the file name is not a file-name row. On a phone it is the **status row**, and the
+file name is only its tenant while nothing is armed. `ToolShell.module.css`'s `@media (max-width:
+559px)` block puts `.editor .text` (the name) and `.editor .status` (the armed-tool hint, the "Stop"
+chip, Redact's undo chip) in **one grid cell**, and `data-status-active` swaps which one is visible.
+The comment above it says why in as many words: the cell's height is the max of both in every state
+*so that arming cannot move the toolbar under it*, which `editor.md` requires for the second click of
+a double-click, and `visibility` rather than `display` keeps the hidden name contributing its height.
+
+So scrolling the name away reclaims nothing. The row has to stay for the hint and the Stop chip,
+it is already sized to the taller of the two states, and the name costs no height of its own. The
+measured 573pt stands, and the 615pt in the plan below was never available.
+
+What the plan got right and is worth keeping: the rejections in "What was considered and rejected"
+were each measured, and the band table is accurate. The error was reading a 156pt sticky card as
+"identity + toolbar" from its DOM, without reading the phone stylesheet that collapses the first
+into the tool's own status line.
+
+**If the working area is worth another look**, the honest targets are the toolbar's two rows (which
+Shlomi has chosen to keep for their labels) or the 63pt above the card, not this row.
+
+---
+
+*The original plan follows, unchanged.*
 
 ## Problem
 

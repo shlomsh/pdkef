@@ -14,7 +14,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [MOBI-38](backlog/tasks/MOBI-38.md) P2 · Sign and Redact: the file name scrolls, the toolbar stays
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 
 ## Waiting, by date
