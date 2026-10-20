@@ -51,9 +51,13 @@ that alongside the restored title. Kept: it is product copy, not a ranking edit.
 Nothing else on `/merge/` changes until the 10-28 read. No other page has a title lead changed since its
 last crawl (checked 2026-10-14 against every `seoTitle`/`h1` edit since 08-20).
 
+That held for the copy but not the layout: HERO-02/03 landed on 2026-10-15, before the recrawl, so Google read
+the restored title together with the full-height first screen, Merge's acted-out sheet, and the H1 split into
+`data-hero-name` / `data-hero-rest` spans (same H1 text byte for byte). The 10-28 read covers both.
+
 ## Acceptance
 
 - [x] Deployed (`ebdd1f9c`, CI green, live title checked 2026-10-14); `/merge/` requested for indexing by Shlomi 2026-10-14
-- [ ] Crawl date after the deploy confirmed in URL Inspection, and the indexed title matches the live one
+- [x] Crawl date after the deploy confirmed in URL Inspection, and the indexed title matches the live one (2026-10-20: last crawl 2026-10-15 12:40, Googlebot smartphone, indexed, Google-selected canonical `/merge/`; the crawled HTML carries the restored title and build `8dc1b5b`, which contains `670c17f7` and HERO-02/03)
 - [ ] 2026-10-28 read: `merge pdf online` and `merge pdf free` impressions and position on `/merge/`, 10-day windows before and after the recrawl
 - [ ] Outcome recorded in `docs/seo-competitive-findings.md`: back on page one (the lead phrase matters, so keep Merge's vocabulary in the body and never in the title lead), or still gone (not the title, look at what else changed since 09-12)
