@@ -22,6 +22,8 @@ import { chooseStyle } from '../chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
+import ExportHandoffs from '../../../editor-ui/ExportHandoffs.tsx';
+import { Eraser, Shrink } from 'lucide-preact';
 import FormFieldHints from './FormFieldHints.tsx';
 import type { FormFieldRegions } from '../useFormFieldRegions.ts';
 import { describeFormDetectionFailure } from '../formDetectionDetail.ts';
@@ -93,6 +95,8 @@ const BLANK_AREA_EXCLUDED_SELECTOR = [
 // unit test that mounts PdfWorkspace on its own - falls back to, so
 // SignToolbar always has something to read rather than an optional prop it
 // has to guard everywhere.
+const NOOP_HANDOFF = () => {};
+
 const NOOP_FIELD_NAVIGATION: FieldNavigation = {
   hasFields: false,
   hasNext: false,
@@ -152,6 +156,10 @@ export default function PdfWorkspace({
   placeSignatureAt,
   canSharePdf = false,
   shareReady = false,
+  handoffExport = false,
+  handoffBusy = false,
+  handoffFailed = false,
+  onHandoff = NOOP_HANDOFF,
   errorDetail = null,
   fieldNavigation = NOOP_FIELD_NAVIGATION,
   messages,
@@ -189,6 +197,11 @@ export default function PdfWorkspace({
   ) => void;
   canSharePdf?: boolean;
   shareReady?: boolean;
+  /** Whether a signed export of the document as it stands exists to carry on. */
+  handoffExport?: boolean;
+  handoffBusy?: boolean;
+  handoffFailed?: boolean;
+  onHandoff?: (tool: string) => void;
   /** Overrides the default error copy below with a specific, nameable reason. */
   errorDetail?: string | null;
   /** Next/Previous across detected fields (MOBI-06); PdfSignTool.tsx builds the
@@ -788,6 +801,21 @@ export default function PdfWorkspace({
             onShare={handleSharePdf}
             describedBy={exportReadiness.blocked ? 'sign-export-readiness' : undefined}
           />
+          {handoffExport && (
+            <>
+              <ExportHandoffs
+                items={[
+                  { tool: 'compress', label: t.compressItHandoff, Icon: Shrink },
+                  { tool: 'redact', label: t.redactItHandoff, Icon: Eraser },
+                ]}
+                busy={handoffBusy}
+                onHandoff={onHandoff}
+              />
+              {handoffFailed && (
+                <p className={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+              )}
+            </>
+          )}
         </>
       )}
 

@@ -75,6 +75,9 @@
    DOM children whatever their rendering, so Sign counts twelve at every width,
    including below 239px where only eleven render. */
 .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 6; }
+/* Thirteen: Sign with Share once Download stays on the phone
+   (keepDownloadOnPhone, 2026-10-20). Seven is its even split, 7+6. */
+.toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 7; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -103,10 +106,13 @@
    different state from "armed for the next click" - a ring, not a new colour,
    since the button is already carrying .active's fill. */
 .locked { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary); }
-.download { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-surface); }
-.download:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: var(--color-surface); }
-.share { color: var(--color-primary-text); border-color: var(--color-primary); }
-.share:hover { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
+/* QUAL-27 (Shlomi, 2026-10-20): export is never filled in the toolbar. The
+   toolbar is where you work, and the completion row under the document is
+   the call to action, so Download and Share are the plain button here, with
+   the plain hover. Teal on a toolbar button now means one thing, an armed
+   tool. A restored draft once lit both up with nobody asking. The classes
+   stay for the disabled state below. Guard:
+   e2e/tool-toolbars/toolbar-export-quiet.spec.js. */
 /* Download and Share are disabled until there is something to export, so a
    fresh file shows them disabled. Their branded variants set their own fills,
    so they drop back to the plain button at rest, like a disabled Undo, with a
@@ -356,7 +362,7 @@
    class of problem: the bases are equal, the growth is equal, so the widths are
    equal whatever the markup underneath. Basing them on --btn-min-size means the
    touch floor is the starting point rather than an afterthought. */
-@media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
+@media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } }
 
 /* Below 920px, the only regime where the toolbar wraps. Twelve visible 44px
    targets plus gaps need ~581px of line and a 360px phone offers ~263px, so the
@@ -449,6 +455,15 @@
     .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
+  /* 2026-10-20: 629.6px is where thirteen controls stop fitting one line
+     (13 * 44 + 12 * 4.8), one tier up from twelve's 580.8px. Thirteen is Sign
+     with Share, now that Download stays on the phone. Rounded up to 630px, not
+     floored, for the reason the 581px rule below gives: the content box lands
+     on x.2 and a floor would leave a band where the cap has not engaged. */
+  @container toolbar (max-width: 630px) {
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
   /* 580.8px is where twelve controls stop fitting one line at the touch floor
      (12 * 44 + 11 * 4.8), one tier up from eleven's 532.0px. Sign is the
      twelve, with Share and without it alike (see the 11-of rule's comment for
@@ -520,13 +535,27 @@
      wrap under the uncorrected 5-per-row share as 4+4+1. This shipped exactly
      that way once already, reproduced deterministically (every run, not an
      intermittent flake) against a real build and caught by CI. */
+  /* 2026-10-20: thirteen (Sign with Share) balances only as 7+6, and seven
+     stop fitting at 336.8px of content (a 433px window gives 336.2px). Below
+     that, thirteen strands 6+6+1 at every current phone width, so Feedback
+     stands down and the twelve left render 6+6, 4+4+4 and 3+3+3+3, which
+     balance everywhere below. Feedback stays in the site footer. This is why
+     the "do not strip Feedback from every phone" note further down no longer
+     applies to Sign with Share: here the strand is real at every phone width.
+     Sits after the 581px rule and before the 288px one, so the 288px cap of
+     four still wins below it by source order. */
+  @container toolbar (max-width: 337px) {
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > [data-optional-control] { display: none; }
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 6; }
+  }
+
   /* Feedback does not act on the document, so at the narrowest widths it
      stands down and lets the controls that do take the split above. Nothing of
      Sign's goes at 251px, though: Sign shows twelve here and splits 4+4+4 (the
-     288px rule's cap of four), and Feedback - its only
-     `[data-optional-control]` since the History control came out on
-     2026-09-20 - holds its place until the 239px step below, where eleven
-     render and split 4+4+3. Twelve and eleven both balance, which is why Sign
+     288px rule's cap of four). Feedback - its only `[data-optional-control]`
+     - already stood down below 337px when Sign has Share (thirteen, see the
+     337px rule above), so twelve render; without Share it holds its place
+     until the 239px step below, where eleven render and split 4+4+3. Twelve and eleven both balance, which is why Sign
      needs no stand-down earlier than that one. Ten cannot be balanced here
      at all: the 44px touch floor caps the line at four regardless of
      --controls-per-row, and greedy flex turns ten into 4+4+2 at a cap of four
@@ -712,3 +741,17 @@
 
 .toolbar .button[data-icon-only] { gap: 0; }
 .toolbar .button[data-icon-only] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+
+/* 2026-10-20: on a phone every toolbar control, Sign's and Redact's alike, shows
+   its word under the icon. Last in the file so it outranks the two rules above
+   that take the label off (`.toolbar .label` in the 1299px block and the
+   data-icon-only one) at equal specificity. The font-size is RED-61's: the
+   control's width less 8px over 5.2, never above 0.66rem, 100cqi being the
+   toolbar's content box. Wrapping is allowed so "Full screen" breaks between
+   its words rather than overflowing. The Shapes chevron leaves the flow and
+   sits in the corner, so it does not stack as a third line under the word. */
+@media (max-width: 480px) {
+  .toolbar .button { position: relative; flex-direction: column; gap: 2px; line-height: 1.1; padding-inline: 0.125rem; font-size: min(0.66rem, calc(((100cqi - (var(--controls-per-row, 6) - 1) * var(--toolbar-gap)) / var(--controls-per-row, 6) - 8px) / 5.2)); }
+  .toolbar .label, .toolbar .button[data-icon-only] .label { position: static; width: auto; height: auto; margin: 0; padding: 0; overflow: visible; clip: auto; white-space: normal; text-align: center; border-width: 0; }
+  .toolbar .chevron { position: absolute; inset-block-start: 3px; inset-inline-end: 3px; margin: 0; }
+}

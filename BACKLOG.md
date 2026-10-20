@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 4 up next, 10 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -151,7 +151,6 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
-| QUAL-27 | P2 | [QUAL-27](backlog/tasks/QUAL-27.md) · Export reads as ready without anyone asking for it, on every draft restore |  |
 
 ### Parked
 
@@ -169,7 +168,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 51 done, 4 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 8 done, 1 retired
+- Polish: 9 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired

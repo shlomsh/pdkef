@@ -73,11 +73,13 @@ async function readToolbarLine(page) {
 // the viewport less 112.8px of page gutters and toolbar padding in this band.
 // Sign's twelve need 580.8px and hold one line down to a 694px viewport;
 // Redact's nine need 434.4px and hold down to 544px (measured, both, after
-// History came out on 2026-09-20). 700px is the lowest step both clear, and
-// Sign is back on it - it spent a day at 768px while thirteen controls needed
-// 629.6px. Below its own floor a toolbar is the wrapped grid, whose balance is
-// toolbar-touch-targets.spec.js's job.
-const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
+// History came out on 2026-09-20). Since 2026-10-20 Sign keeps Download beside
+// Share below 920px (keepDownloadOnPhone), so with Share it counts thirteen,
+// which need 629.6px and hold one line down to a 743px window (630.2px of
+// content); from 742px it is a balanced 7+6. Redact's floor is still 700px.
+// Below its own floor a toolbar is the wrapped grid, whose balance is
+// toolbar-touch-targets.spec.js's and sign-toolbar-labels-fit.spec.js's job.
+const WIDTHS = [768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 
 // Generous: Download is a real button among eight to twelve others, never
 // the whole row. 40% is well above its labelled width at every measured case
@@ -87,17 +89,17 @@ const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf' },
-  { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf' },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf', floor: 743 },
+  { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf', floor: 700 },
 ];
 
 for (const tool of tools) {
-  test(`${tool.name} toolbar stays one line with Share present, ${WIDTHS[0]}px and up`, async ({ page }) => {
+  test(`${tool.name} toolbar stays one line with Share present, ${tool.floor}px and up`, async ({ page }) => {
     await stubSharePresent(page);
     await page.setViewportSize({ width: 1600, height: 1000 });
     await openTool(page, tool.path, tool.fixture);
 
-    for (const width of WIDTHS) {
+    for (const width of [tool.floor, ...WIDTHS]) {
       await page.setViewportSize({ width, height: 1000 });
       const { childCount, tops, downloadWidth, toolbarWidth } = await readToolbarLine(page);
       expect(childCount, `${tool.name} at ${width}px: expected several visible controls`).toBeGreaterThan(5);

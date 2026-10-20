@@ -840,6 +840,7 @@ export default function SignToolbar({
             downloadTitle={exportBlocked ? blockedExportTitle : t.downloadTitle}
             shareTitle={exportBlocked ? blockedExportTitle : (shareReady ? t.shareTitleReady : t.shareTitleUnsaved)}
             describedBy={exportBlocked ? 'sign-export-readiness' : undefined}
+            keepDownloadOnPhone
           />
         </div>
         {exportBlocked && <ExportReadinessNotice fieldCount={exportIssueCount} onReview={onReviewExportIssues} messages={messages} />}
