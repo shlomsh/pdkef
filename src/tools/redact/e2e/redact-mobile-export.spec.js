@@ -76,6 +76,58 @@ test.describe('redact export actions on a phone', () => {
     await expect(completionShare).toBeVisible();
   });
 
+  // RedactFinish gives EditorExportActions' completion row `inline-size: auto`
+  // and `flex: none` on its buttons, so the pair can neither shrink nor wrap.
+  // In full screen on a phone the container is narrower than the two buttons at
+  // their natural width and Share runs off the right edge (reported 2026-10-20
+  // with a screenshot). Real layout in a real Fullscreen API element, so this
+  // is a Playwright guard or none.
+  //
+  // Asserted as a layout property, never a pixel threshold: the system font
+  // stack draws these labels at a different width on every platform, so the
+  // only portable question is whether a button ends up outside the row that
+  // holds it (tests.md, "Rendered text width is per-platform").
+  test('keeps the finish row\'s Download and Share inside the card in full screen', async ({ page }) => {
+    await openRedactTool(page);
+
+    // The finish row exists from the first element, no export needed.
+    await page.getByRole('button', { name: 'Blackout', exact: true }).click();
+    const overlay = page.locator('.redact-draw-area').first();
+    await overlay.scrollIntoViewIfNeeded();
+    const area = await overlay.boundingBox();
+    if (!area) throw new Error('PDF redaction overlay has no bounding box');
+    await page.mouse.move(area.x + area.width * 0.3, area.y + area.height * 0.3);
+    await page.mouse.down();
+    await page.mouse.move(area.x + area.width * 0.6, area.y + area.height * 0.36, { steps: 6 });
+    await page.mouse.up();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
+
+    await page.getByRole('button', { name: /Full screen/i }).click();
+
+    const row = page.locator('[class*="action-row"]').first();
+    await expect(row).toBeVisible();
+
+    const spill = await row.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      return [...el.querySelectorAll('button')].map((button) => ({
+        name: (button.textContent || '').trim(),
+        past: Math.round(button.getBoundingClientRect().right - box.right),
+        before: Math.round(box.left - button.getBoundingClientRect().left),
+      }));
+    });
+
+    for (const button of spill) {
+      expect(
+        button.past,
+        `"${button.name}" runs ${button.past}px past the end of the row that holds it`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        button.before,
+        `"${button.name}" starts ${button.before}px before the row that holds it`,
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+
   test('keeps the toolbar\'s own Download visible when native Share is unavailable', async ({ page }) => {
     // Force the "no native Share" shape explicitly rather than relying on a
     // browser's ambient default: WebKit ships a real Web Share API, so an
