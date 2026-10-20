@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -143,7 +143,6 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| MOBI-38 | P2 | [MOBI-38](backlog/tasks/MOBI-38.md) · Sign and Redact: the file name scrolls, the toolbar stays |  |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 
 ### Then, in order
@@ -169,7 +168,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 51 done, 4 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 8 done, 0 retired
+- Polish: 8 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
