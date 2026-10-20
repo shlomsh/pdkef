@@ -66,6 +66,8 @@ import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
+import { exportAtRevision, handoffHref, type SignedExport } from './exportHandoff.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -142,6 +144,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // belt) and shown as NeedsUnlock (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
+  // The last signed export of the document as it stands (the Compress it / Redact it
+  // hand-offs carry it on), and the most recent one prepared for sharing, which the
+  // Download and Share taps promote to it. Both retire with the document revision.
+  const [signedExport, setSignedExport] = useState<SignedExport | null>(null);
+  const preparedExportRef = useRef<SignedExport | null>(null);
+  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
+  const [handoffFailed, setHandoffFailed] = useState(false);
 
   // Every setting a person chooses while filling (colour, font, size,
   // direction, alignment, bold, italic, date format, symbol mark and size,
@@ -322,6 +331,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // an older version available for download or sharing.
   useEffect(() => {
     clearPrepared();
+    preparedExportRef.current = null;
+    setSignedExport(null);
+    setHandoffFailed(false);
     if (activeExportRequestRef.current === null) return;
     // A speculative background export getting superseded by a further edit is
     // routine (MOBI-07) - it never surfaced as "preparing" in the first place,
@@ -942,7 +954,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   // Apply signing and prepare the PDF for sharing or downloading.
   const handleSavePdf = () => runExport((signedBlob, filename) => {
+    const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
     if (prepare(signedBlob, filename)) {
+      preparedExportRef.current = made;
+      setSignedExport(made);
       // navigator.share() needs a fresh user activation. PDF generation is
       // asynchronous, so retain the File and let the next tap open the
       // native share sheet instead of risking a browser-blocked request.
@@ -960,12 +975,14 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const handleDownloadPdf = () => {
     setErrorDetail(null);
     if (downloadPrepared()) {
+      setSignedExport(exportAtRevision(preparedExportRef.current, documentRevisionRef.current));
       recordAction('download');
       setAnnouncement(t.downloadStarted);
       return;
     }
 
     runExport((signedBlob, filename) => {
+      setSignedExport({ blob: signedBlob, name: filename, revision: documentRevisionRef.current });
       recordAction('download');
       download(signedBlob, filename);
       setStatus('editing');
@@ -976,6 +993,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
+      setSignedExport(exportAtRevision(preparedExportRef.current, documentRevisionRef.current));
       recordAction('share');
       setAnnouncement(t.pdfSignedSuccessfully);
     } else if (result.status === 'canceled') {
@@ -983,6 +1001,30 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     } else if (result.status === 'error') {
       console.error(result.error);
       setAnnouncement(t.shareOpenFailed);
+    }
+  };
+
+  // Carries the signed export to another tool through the one-shot hand-off baton
+  // (draftStore's saveHandoff, taken by useHandoffIntake on the other end), as Redact does.
+  const requestHandoff = async (tool: string) => {
+    const current = exportAtRevision(signedExport, documentRevisionRef.current);
+    if (handoffBusy || !current) return;
+    setHandoffBusy(true);
+    setHandoffFailed(false);
+    try {
+      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
+      const saved = await saveHandoff(tool, {
+        fileName: current.name,
+        fileType: 'application/pdf',
+        fileBytes: await current.blob.arrayBuffer(),
+      });
+      if (!saved) throw new Error('handoff');
+      window.location.href = handoffHref(tool, window.location.pathname);
+    } catch (err) {
+      // expected: saveHandoff reports its own failure, this shows the quiet line
+      console.error(err);
+      setHandoffFailed(true);
+      setHandoffBusy(false);
     }
   };
 
@@ -1007,7 +1049,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (!file || elements.length === 0 || exportReadiness.blocked || status !== 'editing') return;
     const timer = setTimeout(() => {
       runExport((signedBlob, filename) => {
-        prepare(signedBlob, filename);
+        if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
       }, { speculative: true });
     }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -1084,6 +1126,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
                 placeSignatureAt={placeSignatureAt}
                 canSharePdf={canSharePdf}
                 shareReady={shareReady}
+                handoffExport={exportAtRevision(signedExport, documentRevision) !== null}
+                handoffBusy={handoffBusy}
+                handoffFailed={handoffFailed}
+                onHandoff={(tool) => { void requestHandoff(tool); }}
                 errorDetail={errorDetail}
                 fieldNavigation={fieldNavigation}
                 messages={t}

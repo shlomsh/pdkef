@@ -275,6 +275,10 @@ export interface SignMessages {
   protectedHandoffFailed: string;
   signedPdfReadyToShare: string;
   pdfSignedDownloadStarted: string;
+  /** The next-tool verbs under the finish pair, and the line when carrying the file on fails. */
+  compressItHandoff: string;
+  redactItHandoff: string;
+  handoffFailed: string;
   downloadStarted: string;
   pdfSignedSuccessfully: string;
   sharingCanceledStillReady: string;

@@ -1,10 +1,9 @@
 ---
 id: "QUAL-27"
 title: "Export reads as ready without anyone asking for it, on every draft restore"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "next"
 depends_on: []
 ---
 
@@ -66,3 +65,13 @@ For whoever picks this up, with Shlomi deciding:
   controls are in the state the rule names.
 - Sign and Redact assert the same thing, since they share the component.
 - Shlomi sees it on his phone before it lands.
+
+## Outcome
+
+Shlomi chose direction 2 on 2026-10-20: export is never filled in the toolbar, on any width, in
+either tool. `SignToolbar.module.css` drops `.download`'s and `.share`'s fills (and the phone block's
+`.share` fill); disabled keeps the muted plain button. The rule in `.claude/rules/editor.md` now says
+teal on a toolbar button means an armed tool. Guard: `e2e/tool-toolbars/toolbar-export-quiet.spec.js`
+places a whiteout, reloads, lets the draft restore and asserts both controls wear the plain button's
+colours, for Sign, `/he/sign/` and Redact at 390px and 1440px. Red before the change (filled
+`rgb(0, 121, 121)`), green after.

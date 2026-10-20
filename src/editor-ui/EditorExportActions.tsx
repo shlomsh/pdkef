@@ -69,15 +69,6 @@ function ShareReadyIcon() {
   );
 }
 
-function SharePendingIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <polyline points="12 7 12 12 15.5 14" />
-    </svg>
-  );
-}
-
 function DownloadIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -107,9 +98,9 @@ export default function EditorExportActions({
 }: EditorExportActionsProps) {
   const isToolbar = variant === 'toolbar';
 
-  // Label stays "Share" in both states (MOBI-07): the icon carries ready-vs-
-  // pending instead, so the button's own min-content width never changes and
-  // reflows nothing around it every time an export finishes.
+  // Icon and label stay the same in every state (MOBI-07): readiness only
+  // changes what a tap does, so the button's own min-content width never
+  // changes and reflows nothing around it every time an export finishes.
   const shareButton = canShare && (
     <button
       type="button"
@@ -123,7 +114,7 @@ export default function EditorExportActions({
       dir={isToolbar ? dir : undefined}
       lang={isToolbar ? lang : undefined}
     >
-      {shareReady ? <ShareReadyIcon /> : <SharePendingIcon />}
+      <ShareReadyIcon />
       {isToolbar ? <span className={styles.label}>{shareLabel}</span> : 'Share'}
     </button>
   );
@@ -145,7 +136,7 @@ export default function EditorExportActions({
       dir={isToolbar ? dir : undefined}
       lang={isToolbar ? lang : undefined}
     >
-      {isToolbar && <DownloadIcon />}
+      <DownloadIcon />
       {isToolbar ? <span className={styles.label}>{downloadLabel}</span> : 'Download'}
     </button>
   );

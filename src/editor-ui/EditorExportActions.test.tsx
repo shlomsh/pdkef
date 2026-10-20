@@ -150,6 +150,33 @@ describe('EditorExportActions parity contract', () => {
     });
   });
 
+  // Shlomi 2026-10-20: the icons and labels never change with readiness, so
+  // the pair's width never moves, and both variants draw the same glyphs.
+  (['toolbar', 'completion'] as const).forEach((variant) => {
+    it(`${variant}: Share draws the same icon whether or not a file is ready, and Download has one`, () => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      const svgFor = (label: string, shareReady: boolean) => {
+        act(() => {
+          render(
+            <EditorExportActions variant={variant} canShare shareReady={shareReady} disabled={false}
+              onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />,
+            container,
+          );
+        });
+        const button = required(
+          Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === label),
+          `${label} button`,
+        );
+        return button.querySelector('svg')?.outerHTML ?? null;
+      };
+      const pending = svgFor('Share', false);
+      expect(pending).not.toBeNull();
+      expect(svgFor('Share', true)).toBe(pending);
+      expect(svgFor('Download', false)).not.toBeNull();
+    });
+  });
+
   // The toolbar variant has a structural contract of its own (SignToolbar's
   // "every visible control is a direct child of .toolbar" test): this
   // component must render Share/Download unwrapped, as siblings, or the

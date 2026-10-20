@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { FileSignature, Shrink } from 'lucide-preact';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
+import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './RedactFinish.module.css';
 import { finishCountText, finishPagesText, finishStatusText, type FinishFacts } from './finishState.ts';
@@ -60,16 +61,11 @@ export default function RedactFinish({
             <>
               {status && <p class={styles.line} role="status">{status}</p>}
               {pages && <p class={styles.line}>{pages}</p>}
-              <div class={styles['handoff-row']}>
-                <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => onHandoff('compress')}>
-                  <Shrink size={16} aria-hidden="true" />
-                  Compress it
-                </button>
-                <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => onHandoff('sign')}>
-                  <FileSignature size={16} aria-hidden="true" />
-                  Sign it
-                </button>
-              </div>
+              <ExportHandoffs
+                items={[{ tool: 'compress', label: 'Compress it', Icon: Shrink }, { tool: 'sign', label: 'Sign it', Icon: FileSignature }]}
+                busy={handoffBusy}
+                onHandoff={(tool) => onHandoff(tool as 'compress' | 'sign')}
+              />
               {handoffFailed && (
                 <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
                   Could not hand this off. Download it instead and open it there.
