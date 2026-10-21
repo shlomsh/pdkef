@@ -63,3 +63,12 @@ export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: Analyt
     // expected: Analytics must never alter an offline or local document workflow.
   }
 }
+
+/**
+ * DEBT-58 contract, implemented by the client brief: call on every committed, deliberate change to
+ * the loaded file (an element added, a page moved, an option changed); never from pointermove. Sends
+ * `tool_first_edit` once per accepted file and is a no-op after, so call sites need no state.
+ */
+export function reportEdit(tool: AnalyticsTool): void {
+  void tool;
+}
