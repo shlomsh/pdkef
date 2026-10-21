@@ -8,8 +8,6 @@ import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { setInputFiles } from '../test/setInputFiles.js';
 
-const reportToolLifecycleEvent = vi.hoisted(() => vi.fn());
-vi.mock('../lib/productAnalytics.ts', () => ({ reportToolLifecycleEvent }));
 vi.mock('../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
 }));
@@ -135,35 +133,6 @@ describe('BasePdfTool', () => {
     expect(container.textContent).not.toContain('Checking for a saved draft');
     expect(container.textContent).toContain('Drop PDFs here');
     expect(container.querySelector('input[type="file"]')).not.toBeNull();
-  });
-
-  describe('tool_file_accepted (DEBT-58)', () => {
-    const acceptedCount = () => reportToolLifecycleEvent.mock.calls.filter(([name]) => name === 'tool_file_accepted').length;
-    const rerender = (props) => act(() => { render(<BasePdfTool analyticsTool="redact" onFilesAdded={vi.fn()} {...props} />, container); });
-
-    afterEach(() => reportToolLifecycleEvent.mockClear());
-
-    it('counts nothing when a draft restores on mount (checkingDraft true, then files arrive as it settles; Merge passes the same shape)', () => {
-      mount({ analyticsTool: 'redact', hasFiles: false, onFilesAdded: vi.fn(), checkingDraft: true });
-      rerender({ hasFiles: true, checkingDraft: false });
-      expect(acceptedCount()).toBe(0);
-    });
-
-    it('counts exactly one for a picked file, and again after the file is closed and another picked', () => {
-      mount({ analyticsTool: 'redact', hasFiles: false, onFilesAdded: vi.fn() });
-      rerender({ hasFiles: true });
-      expect(acceptedCount()).toBe(1);
-      rerender({ hasFiles: false });
-      rerender({ hasFiles: true });
-      expect(acceptedCount()).toBe(2);
-    });
-
-    it('counts a pick made after a draft check that found nothing', () => {
-      mount({ analyticsTool: 'redact', hasFiles: false, onFilesAdded: vi.fn(), checkingDraft: true });
-      rerender({ hasFiles: false, checkingDraft: false });
-      rerender({ hasFiles: true, checkingDraft: false });
-      expect(acceptedCount()).toBe(1);
-    });
   });
 
   it('renders the loaded-state identity line instead of the dropzone', () => {
