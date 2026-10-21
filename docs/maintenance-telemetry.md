@@ -23,3 +23,41 @@ The server keeps daily counts of identical reports, plus the latest full example
 When an error has no position in our own code, the browser sends a drop record instead of a report (DEBT-44): the area, step, a coarse type, a name from a closed list and the build. Since DEBT-57 it also carries `cause`, what the error's message says happened, matched on the device into a closed list (`module_load`, `network`, `file_read`, `memory`, `other`); the message itself never travels.
 
 Each distinct report is sent at most once per page load, and at most 10 per page. Nothing is sent when offline, a report never blocks or slows a tool, and failures are ignored.
+
+## The store, and what to do when it outgrows the free plan
+
+Decided 2026-10-21: stay on Upstash. Everything above is counted in one Upstash Redis database,
+created through the Vercel Marketplace and reached over Upstash's REST protocol only: plain `fetch`
+POSTs to `${KV_REST_API_URL}/pipeline` with a Bearer token (`api/report.ts`,
+`scripts/errors-read.mjs`), no SDK. At the time it held 105 keys, about 3.5 KB per day of usage
+counts. Commands per event and the monthly worst case are budgeted in the comment at the top of
+`src/site-lib/errorReportStore.ts`.
+
+The free plan allows 500K commands a month. Past that, every command fails with
+`ERR max requests limit exceeded` until the month turns, so counting stops; it does not slow down.
+Funnel version 2 (DEBT-58) sends a page view on every tool page load, so this arrives sooner as
+traffic grows. `errors:read` warns when a day reaches its own daily cap.
+
+What we found when we looked for more room (prices read on 2026-10-21; check them again before acting):
+
+| Option | Command limit | Cost at about 600K commands a month | Change needed |
+| --- | --- | --- | --- |
+| Upstash pay-as-you-go, same database | none, billed per use | about $1.20 ($0.20 per 100K, no free 500K once paid) | none: same database, same env vars |
+| Upstash Fixed 250 MB | unlimited | $10 a month flat | none |
+| Redis Cloud (formerly Redis Labs) Essentials free | none; 30 MB, 30 connections, 100 ops/sec, 5 GB bandwidth | $0 | a Redis client (`redis` or `ioredis`) in place of `fetch`, or a self-hosted REST proxy |
+| Own Redis + `hiett/serverless-redis-http` proxy on Railway | none | about $5 a month (estimate) | two services to run and keep up |
+
+No other host speaks Upstash's REST protocol, so nothing else is a true drop-in.
+
+When the cap starts to bite, the plan is Upstash pay-as-you-go on the same database:
+
+1. Add a payment method. Check first whether this Marketplace-made account takes it in the Vercel
+   dashboard (Storage, then the database) or in the Upstash console; that was not confirmed.
+2. Expect a 1 to 2 second blip while it switches. Adding a card moves every free Upstash database on
+   the account to pay-as-you-go, not only this one.
+3. Set a monthly budget on the database (a few dollars) so a bug cannot run up a bill; at the budget
+   it is throttled, not charged.
+
+Sources: upstash.com/pricing/redis, upstash.com/docs/redis/howto/upgradedatabase,
+upstash.com/docs/redis/troubleshooting/max_requests_limit, and Redis Cloud's Essentials plan details
+on redis.io (plan table updated December 2025).
