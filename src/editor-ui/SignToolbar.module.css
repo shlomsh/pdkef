@@ -285,6 +285,12 @@
 /* One source for the control's footprint: the arrows below and the
    reservation after them both read these, so the two cannot drift apart. */
 .help { --field-nav-size: 2.75rem; --field-nav-gap: .3rem; }
+/* A mouse does not need a touch target: with a fine pointer the arrows match the
+   keep-on switch's own 2rem, so the row reserved for them is no taller than the
+   switch beside it. Left at 44px, the reservation alone was 12px of empty card
+   above and below a one-line hint on desktop. Coarse pointers keep 44px. Both the
+   arrows and `.help-reserve-nav` read this one variable. */
+@media (hover: hover) and (pointer: fine) { .help { --field-nav-size: 2rem; } }
 .field-nav { display: flex; align-items: center; gap: var(--field-nav-gap); flex: none; }
 /* SIGN-30, regressed by e114c8c. `fieldNav` mounts only while somebody is
    filling fields (an idle document shows no arrows, and that call stands),
