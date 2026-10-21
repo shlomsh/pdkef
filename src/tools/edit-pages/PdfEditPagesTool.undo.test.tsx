@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import Sortable from 'sortablejs';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import pageGridStyles from '../../shell/PageGrid.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -11,6 +12,11 @@ import { setInputFiles } from '../../test/setInputFiles.js';
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
+
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportEdit: vi.fn(),
+}));
 
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 3 } }));
 
@@ -46,6 +52,7 @@ describe('PdfEditPagesTool undo/redo', () => {
 
   beforeEach(() => {
     resetActionTrailForTests();
+    reportEdit.mockClear();
   });
 
   afterEach(() => {
@@ -91,6 +98,21 @@ describe('PdfEditPagesTool undo/redo', () => {
     const img = card.querySelector(`.${pageGridStyles['page-card-thumb']}`);
     return img ? img.style.transform : null;
   }
+
+  it('DEBT-58: loading a file is not an edit; a rotate is, and an unchanged Keep all is not', async () => {
+    await loadPdf();
+    expect(reportEdit).not.toHaveBeenCalled();
+
+    await act(async () => {
+      toolbarButton('Keep all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(reportEdit).not.toHaveBeenCalled();
+
+    await act(async () => {
+      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(reportEdit).toHaveBeenCalledWith('edit-pdf');
+  });
 
   it('starts with Undo and Redo both disabled', async () => {
     await loadPdf();

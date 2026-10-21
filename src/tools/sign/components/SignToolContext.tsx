@@ -1,6 +1,7 @@
 import { createContext } from 'preact';
+import { reportEdit } from '../../../lib/productAnalytics.ts';
 import type { ComponentChildren } from 'preact';
-import { useReducer, useContext, useMemo } from 'preact/hooks';
+import { useCallback, useReducer, useContext, useMemo } from 'preact/hooks';
 import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
@@ -346,7 +347,14 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
 }
 
 export function SignToolProvider({ children }: { children: ComponentChildren }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState);
+  // DEBT-58: a committed, deliberate change is exactly an action-history entry (gestures log on
+  // release, never on pointermove). LOAD_DOCUMENT and SET_ELEMENTS carry loads and restores and
+  // never log, so they cannot count as an edit.
+  const dispatch = useCallback((action: SignToolAction) => {
+    rawDispatch(action);
+    if (action.type === 'ADD_ACTION_HISTORY') reportEdit('sign');
+  }, []);
 
   const contextValue = useMemo(() => ({ state, dispatch }), [state]);
 

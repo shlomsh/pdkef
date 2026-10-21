@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { Shrink, FileSignature } from 'lucide-preact';
@@ -373,6 +374,7 @@ export default function PdfMergeTool({
     });
     setSortMode('added');
     recordAction('reorder');
+    reportEdit('merge');
   }, []);
 
   useEffect(() => {
@@ -562,7 +564,7 @@ export default function PdfMergeTool({
     for (const entry of newEntries) inspectEntry(entry);
   }, [inspectEntry]);
 
-  const addFiles = useCallback((fileList: FileList | File[], options: { force?: boolean } = {}) => {
+  const addFiles = useCallback((fileList: FileList | File[], options: { force?: boolean; fresh?: boolean } = {}) => {
     const incoming = Array.from(fileList);
     // MERGE-02, MERGE-22: classify through deriveFileKind, which falls back to the
     // extension when a drag source or picker hands over a File with an
@@ -600,6 +602,8 @@ export default function PdfMergeTool({
       for (const entry of newEntries) pendingPlanIndexRef.current.set(entry.id, planIndex);
     }
     insertEntries(newEntries, atIndex);
+    // DEBT-58: the first files into an empty list are the file arriving, not an edit.
+    if (entries.length > 0 && !options.fresh) reportEdit('merge');
     recordAction('add_files');
     setAnnouncement(
       newEntries.length === 1 ? t.filesAddedOne : formatMessage(t.filesAddedMany, { count: newEntries.length }),
@@ -644,7 +648,7 @@ export default function PdfMergeTool({
     clearWorkspace();
     setRestoreHydrationComplete(true);
     setAddPageNumbers(readRememberedOptions().addPageNumbers);
-    addFiles(files, { force: true });
+    addFiles(files, { force: true, fresh: true });
   });
 
   const removeEntry = useCallback((id: number) => {
@@ -673,6 +677,7 @@ export default function PdfMergeTool({
       return { entries: current.entries.filter((e) => e.id !== id), plan: removeFile(current.plan, id) };
     });
     recordAction('remove_file');
+    reportEdit('merge');
   }, [t.fileRemoved, t.removedUndo, t.filesAddedOne, registerUndo, inspectEntry]);
 
   useEffect(() => () => {
@@ -697,6 +702,7 @@ export default function PdfMergeTool({
   const reorderEntries = useCallback((next: FileEntry[], message: string) => {
     setModel((current) => ({ entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) }));
     setAnnouncement(message);
+    reportEdit('merge');
   }, []);
 
   const moveFileEntry = useCallback((id: number, delta: number) => {
@@ -712,6 +718,7 @@ export default function PdfMergeTool({
     });
     setSortMode('added');
     recordAction('reorder');
+    reportEdit('merge');
   }, [t.fileMovedTo]);
 
   const onRowKeyDown = useCallback(
@@ -750,10 +757,12 @@ export default function PdfMergeTool({
     setModel((current) => ({ entries: current.entries, plan: regroupPlan(current.plan, current.entries.map((e) => e.id)) }));
     setAnnouncement(t.filesReordered);
     recordAction('sort');
+    reportEdit('merge');
   }, [t.filesReordered]);
 
   const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
     setModel((current) => ({ entries: current.entries, plan: update(current.plan) }));
+    reportEdit('merge');
   }, []);
 
   const onPageNumbersChange = useCallback((event: Event) => {

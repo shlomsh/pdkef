@@ -6,12 +6,16 @@
 // EDIT_COMMITTED, so the harness applies each commit with the real reducer
 // (state/redactState.ts) and reads elements, history, the document revision
 // and the selection back from it.
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 import useRedactCommands, { type RedactCommandDeps } from './useRedactCommands.ts';
 import { initialRedactState, redactReducer, type EditCommit } from './state/redactState.ts';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { RedactElement } from './redactElements.ts';
 import type { ElementUpdateKind } from '../../editor/model/updateKind.ts';
+
+vi.mock('../../lib/productAnalytics.ts', () => ({ reportEdit: vi.fn() }));
+beforeEach(() => vi.mocked(reportEdit).mockClear());
 
 interface Box {
   id: string;
@@ -217,5 +221,27 @@ describe('useRedactCommands.update', () => {
     // entry is pushed - mirrors createUpdateEntry's own null-on-no-change.
     expect(h.getRevision()).toBe(1);
     expect(h.getHistory().past).toHaveLength(0);
+  });
+});
+
+describe('DEBT-58 reportEdit', () => {
+  it('reports a committed add, update and remove as redact edits, and nothing before one', () => {
+    const h = makeHarness([box({ id: 'a' })]);
+    expect(reportEdit).not.toHaveBeenCalled();
+
+    h.commands.add([box({ id: 'b' })], { type: 'ADD_BLACKOUT', description: 'Added' });
+    expect(reportEdit).toHaveBeenCalledTimes(1);
+    expect(reportEdit).toHaveBeenLastCalledWith('redact');
+
+    h.commands.update('a', [{ id: 'a', changes: { left: 10 } }]);
+    expect(reportEdit).toHaveBeenCalledTimes(2);
+
+    h.commands.remove(new Set(['a']), { type: 'DELETE', description: 'Removed', pageIndex: 0 });
+    expect(reportEdit).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not report an add with nothing to add', () => {
+    makeHarness().commands.add([], { type: 'X', description: 'x' });
+    expect(reportEdit).not.toHaveBeenCalled();
   });
 });
