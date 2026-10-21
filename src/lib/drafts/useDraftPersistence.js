@@ -3,6 +3,7 @@ import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChange
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../useHoldUpdate.ts';
 import { reportError } from '../errorReport.ts';
+import { markArrival, consumeRecentOpen } from '../fileArrival.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -244,6 +245,8 @@ export function useDraftPersistence({
       if (cancelled) return;
       clearTimeout(timeoutId);
       if (record && record.fileBytes) {
+        // DEBT-58: a recent tile's open and a plain reopen both land here; the tile left a note.
+        markArrival(consumeRecentOpen(tool) ? 'recent' : 'restore');
         onRestore(record);
       } else {
         // No draft to restore after all. draftStore already clears the

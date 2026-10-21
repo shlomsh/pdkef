@@ -5,6 +5,7 @@ import {
 import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
 import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
+import { markArrival, consumeRecentOpen } from '../../../lib/fileArrival.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 import { mimeTypeOf } from '../../../lib/fileKind.js';
 import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
@@ -314,6 +315,7 @@ export function useMergeDraft({
       const restore = parseRestorableRecord(record);
       if (restore) {
         restoredFilesRef.current = restore.files;
+        markArrival(consumeRecentOpen(TOOL) ? 'recent' : 'restore');
         latest.current.onRestore(restore);
       } else {
         // No usable draft: draftStore already cleared the localStorage hint
