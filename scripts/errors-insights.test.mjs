@@ -268,6 +268,10 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
     expect(parseDayReplies([], ['d1'])[0].rejectsTotal).toBe(0);
   });
 
+  it('failuresByBuild reads a dash as unstamped and a fourth part as a source, not a build', () => {
+    const lines = failuresByBuild([day('d1', { usage: { 'tool_operation_failed|redact|08e10cf|restore': 3, 'tool_operation_failed|redact|-|restore': 2, 'pg:tool_operation_failed|redact|restore|-|-|-': 5 } })], 1);
+    expect(lines).toEqual(['redact: failed 5 (08e10cf 3, unstamped 2)']);
+  });
   it('toolRates sums stamped and unstamped usage into one tool', () => {
     const rows = toolRates([day('d1', { usage: { 'tool_operation_started|redact': 6, 'tool_operation_started|redact|08e10cf': 4, 'tool_operation_failed|redact|08e10cf': 3, 'tool_operation_failed|redact': 2 } })], 1);
     expect(rows.map((r) => r.tool)).toEqual(['redact']);
@@ -288,6 +292,11 @@ describe('DEBT-44: drops, rejects and build-stamped usage', () => {
     expect(pageStartsByTool(days, 1)).toEqual(['redact: reload 150, navigate 20']);
     expect(pageStartsByTool(days, 2)).toEqual(['merge: back_forward 2', 'redact: reload 150, navigate 25']);
     expect(pageStartsByTool([day('d1')], 1)).toEqual([]);
+  });
+
+  it('pageStartsByTool also reads the nav slot of the pg field newer builds send (DEBT-58)', () => {
+    const days = [day('d1', { usage: { 'pg:tool_file_accepted|redact|restore|-|reload|-': 4, 'pg:tool_file_accepted|redact|pick|-|-|-': 2, 'pg:tool_page_viewed|redact|-|-|reload|week': 9, 'nav:tool_file_accepted|redact|reload': 1 } })];
+    expect(pageStartsByTool(days, 1)).toEqual(['redact: reload 5']);
   });
 
   const failing = [day('d1', { usage: { 'tool_operation_failed|redact': 4, 'tool_operation_failed|merge': 3 }, counts: { 'pdf_tool_run|E|c.js:1:1|s|e': 1 } })];

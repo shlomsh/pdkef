@@ -74,7 +74,7 @@ describe('errors-read wiring', () => {
     // The window is one day: yesterday's fingerprint and starts are history, not counts.
     expect(stdout).toContain('2 | redact | TypeError | redact.Zn9K1YuS.js:44:99875 | apply_boxes | chromium-143');
     expect(stdout).not.toContain('7 | drafts');
-    expect(stdout).toMatch(/redact \| 0 \| 21 \| 0 \| 11 \|/);
+    expect(stdout).toMatch(/redact \| 0 \| 0 \| 0 \| 21 \| 0 \| 11 \|/);
     expect(stdout).toContain('window 1 day, history 3');
   });
 
@@ -113,19 +113,26 @@ describe('errors-read wiring', () => {
     expect(at('Reports not sent')).toBeLessThan(at('Maintenance events'));
     expect(stdout).toContain('redact: failed 5 (08e10cf 3, unstamped 2)');
     expect(stdout).toContain('UNTRACED  redact: 5 failures left no report and no drop record');
-    expect(stdout).toMatch(/redact \| 0 \| 4 \| 0 \| 5 \|/);
+    expect(stdout).toMatch(/redact \| 0 \| 0 \| 0 \| 4 \| 0 \| 5 \|/);
   });
 
-  it('prints page-load counts next to the run counts, and never adds them to the runs', async () => {
+  it('prints all six events per tool, then the page-load funnel by lane', async () => {
     const one = [{
       usage: {
-        'tool_file_accepted|redact': 6, 'tool_operation_started|redact': 9, 'tool_result_ready|redact': 4, 'tool_operation_failed|redact': 4,
-        'once:tool_file_accepted|redact': 5, 'once:tool_operation_started|redact': 5, 'once:tool_result_ready|redact': 3, 'once:tool_operation_failed|redact|08e10cf': 1,
+        'tool_page_viewed|redact': 9, 'tool_file_accepted|redact': 6, 'tool_first_edit|redact|-|pick': 5, 'tool_operation_started|redact': 9,
+        'tool_result_ready|redact': 4, 'tool_operation_failed|redact': 4,
+        'once:tool_page_viewed|redact': 8, 'pg:tool_page_viewed|redact|-|-|navigate|new': 8, 'once:tool_file_accepted|redact': 5,
+        'pg:tool_file_accepted|redact|pick|-|-|-': 3, 'pg:tool_file_accepted|redact|restore|-|-|-': 1, 'pg:tool_result_ready|redact|restore|-|-|-': 1,
       },
     }];
     const { stdout } = await readWith(['--days', '1', '--history', '2'], (n) => repliesFor(n, one));
-    expect(stdout).toContain('tool | accepted | started | ready | failed | ready/accepted | pages accepted | pages started | pages ready | pages failed');
-    expect(stdout).toContain('redact | 6 | 9 | 4 | 4 | 67% | 5 | 5 | 3 | 1');
+    expect(stdout).toContain('tool | viewed | accepted | first edit | started | ready | failed | ready/accepted');
+    expect(stdout).toContain('redact | 9 | 6 | 5 | 9 | 4 | 4 | 67%');
+    expect(stdout).toContain('Funnel (page loads)');
+    expect(stdout).toContain('redact | all | 8 | 5 | 0 | 0 | 1 | 0');
+    expect(stdout).toContain('redact | unknown | - | 1 | 0 | 0 | 0 | 0');
+    expect(stdout).toContain('redact visits: new 8');
+    expect(stdout).toContain('redact accepted by source: pick 3, restore 1, unknown 1');
   });
 
   it('says none when nothing was dropped or rejected', async () => {

@@ -82,6 +82,26 @@ describe('what the browser sends is what the endpoint stores (DEBT-44)', () => {
 
   it('a usage event is counted with its build', async () => {
     reportToolLifecycleEvent('tool_operation_failed', 'redact');
-    expect(counted(await deliver(), 'usage:')).toEqual(['tool_operation_failed|redact|08e10cf', 'once:tool_operation_failed|redact|08e10cf']);
+    expect(counted(await deliver(), 'usage:')).toEqual([
+      'tool_operation_failed|redact|08e10cf',
+      'pg:tool_operation_failed|redact|-|-|-|-',
+    ]);
+  });
+
+  it('a first event with a source and a page view with a visit are counted with their pg field (DEBT-58)', async () => {
+    const post = (properties: object, name: string) =>
+      POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify({ name, properties }) }));
+    const fetchSpy = vi.fn(async (_url: string, _init: RequestInit) =>
+      new Response(JSON.stringify([{ result: 2 }, { result: 1 }]), { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+    await post({ tool: 'sign', build: '08e10cf', first: true, source: 'handoff', from: 'merge' }, 'tool_file_accepted');
+    await post({ tool: 'sign', first: true, visit: 'week' }, 'tool_page_viewed');
+    const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body as string) as unknown[][]);
+    expect(counted(commands, 'usage:')).toEqual([
+      'tool_file_accepted|sign|08e10cf|handoff',
+      'pg:tool_file_accepted|sign|handoff|merge|-|-',
+      'tool_page_viewed|sign',
+      'pg:tool_page_viewed|sign|-|-|-|week',
+    ]);
   });
 });

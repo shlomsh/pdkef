@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
+import { funnelLines, sumUsage } from './errors-funnel.mjs';
 import { addUntraced, failuresByBuild, fingerprintHistory, pageStartsByTool, parseDayReplies, sliceWindow, toolRates, untracedTools } from './errors-insights.mjs';
 import { validateRegistry } from './errors-known.mjs';
 import { renderTriage, triage } from './errors-triage.mjs';
@@ -14,31 +15,6 @@ import { renderTriage, triage } from './errors-triage.mjs';
 // The one git door for the stale-tab note: repo root, short timeout; failures are caught by the caller.
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runGit = (args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] });
-
-// usage:<day> holds `<event>|<tool>` or `<event>|<tool>|<build>` -> count, and the same behind `once:` for page loads.
-// Sums the days into one row per tool, sorted by accepted descending; ready/accepted is a whole percent, or '-' without
-// accepted; the four page-load counts follow the run counts.
-function sumUsage(results) {
-  const byTool = new Map();
-  for (const result of results) {
-    for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
-      const field = String(result[n]);
-      const once = field.startsWith('once:');
-      const [event, tool] = (once ? field.slice(5) : field).split('|'); // a third part is the build, summed into the tool
-      const col = { tool_file_accepted: 0, tool_operation_started: 1, tool_result_ready: 2, tool_operation_failed: 3 }[event];
-      if (col === undefined || !tool) continue;
-      const row = byTool.get(tool) ?? [0, 0, 0, 0, 0, 0, 0, 0];
-      row[col + (once ? 4 : 0)] += Number(result[n + 1]) || 0;
-      byTool.set(tool, row);
-    }
-  }
-  return [...byTool]
-    .filter(([, c]) => c.some(Boolean))
-    .sort((a, b) => b[1][0] - a[1][0] || a[0].localeCompare(b[0]))
-    .map(([tool, [accepted, started, ready, failed, ...pages]]) => [
-      tool, accepted, started, ready, failed, accepted ? `${Math.round((ready / accepted) * 100)}%` : '-', ...pages,
-    ]);
-}
 
 function envFromFile() {
   try {
@@ -234,9 +210,14 @@ if (eventRows.length) {
 console.log('\nTool usage');
 const usageRows = sumUsage(usageReplies.map((r) => r.result));
 if (usageRows.length) {
-  console.log('tool | accepted | started | ready | failed | ready/accepted | pages accepted | pages started | pages ready | pages failed');
+  console.log('tool | viewed | accepted | first edit | started | ready | failed | ready/accepted');
   for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
+const funnel = funnelLines(usageReplies.map((r) => r.result));
+if (funnel.length) {
+  console.log('\nFunnel (page loads)');
+  for (const line of funnel) console.log(line);
+}
 const startLines = pageStartsByTool(perDay, days);
 if (startLines.length) {
   console.log('\nHow page loads that opened a file started');
