@@ -149,6 +149,11 @@ export default function BasePdfTool({
   // not put through the gate a second time.
   const agreedRef = useRef(false);
   const previouslyHadFilesRef = useRef(false);
+  // True from the first render that is checking for a draft until that check
+  // settles empty or the first file lands. Files arriving inside it were
+  // restored, not opened (DEBT-58). Read in the same commit that flips
+  // `checkingDraft` off, so it cannot be inferred from the flag alone.
+  const restoreWindowRef = useRef(checkingDraft);
   const previousAnalyticsStatusRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -167,11 +172,13 @@ export default function BasePdfTool({
   // file, options, error object, or local draft. See ANALYTICS.md.
   useEffect(() => {
     if (!analyticsTool) return;
-    if (hasFiles && !previouslyHadFilesRef.current) {
+    if (checkingDraft) restoreWindowRef.current = true;
+    if (hasFiles && !previouslyHadFilesRef.current && !restoreWindowRef.current) {
       reportToolLifecycleEvent('tool_file_accepted', analyticsTool);
     }
+    if (hasFiles || !checkingDraft) restoreWindowRef.current = false;
     previouslyHadFilesRef.current = hasFiles;
-  }, [analyticsTool, hasFiles]);
+  }, [analyticsTool, hasFiles, checkingDraft]);
 
   useEffect(() => {
     if (!analyticsTool || !analyticsStatus) return;
