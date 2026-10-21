@@ -15,7 +15,9 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import DownloadButton from '../../shell/DownloadButton.tsx';
+import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
+import { Download, FileSignature, Shrink } from 'lucide-preact';
+import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
@@ -36,6 +38,10 @@ interface EditState {
 
 const EMPTY_EDIT_STATE: EditState = { pages: [], removedPageNums: new Set(), rotations: {} };
 
+// The finish Download link takes focus when it appears, as the shell's
+// DownloadButton does; a stable ref keeps re-renders from stealing it back.
+const focusOnMount = (el: HTMLAnchorElement | null) => el?.focus({ preventScroll: true });
+
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
   // The bytes everything after opening reads: the person's file, or its
@@ -51,6 +57,10 @@ export default function PdfEditPagesTool() {
   useHoldUpdate(file !== null, 'open');
   const [progress, setProgress] = useState(0);
   const [outputSize, setOutputSize] = useState<number | null>(null);
+  // The result's bytes, kept beside its object URL so a hand-off can park them.
+  const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
+  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
+  const [handoffFailed, setHandoffFailed] = useState(false);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
@@ -120,6 +130,8 @@ export default function PdfEditPagesTool() {
     clearPrepared();
     setStatus('idle');
     setProgress(0);
+    setOutputBlob(null);
+    setHandoffFailed(false);
     clearDownload();
   };
 
@@ -136,6 +148,8 @@ export default function PdfEditPagesTool() {
     setProgress(0);
     setAddPageNumbers(false);
     clearDownload();
+    setOutputBlob(null);
+    setHandoffFailed(false);
     clearPrepared();
     // A new file starts a fresh document: reset (not commit) so the previous
     // file's undo/redo stacks don't leak across files.
@@ -305,6 +319,7 @@ export default function PdfEditPagesTool() {
       const blob = await editPages(workingFileRef.current ?? file, options, setProgress);
       setDownloadBlob(blob);
       setOutputSize(blob.size);
+      setOutputBlob(blob);
       prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);
       setStatus('done');
       setAnnouncement('Your modified PDF is ready.');
@@ -324,11 +339,34 @@ export default function PdfEditPagesTool() {
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
+  const outputName = file ? `${file.name.replace(/\.pdf$/i, '')}_modified.pdf` : '';
+
+  // Hands the result to Compress or Sign without re-picking: the same one-shot
+  // baton Merge and Redact use (draftStore.js saveHandoff, taken on the other end).
+  const requestHandoff = async (tool: string) => {
+    if (handoffBusy || !outputBlob) return;
+    setHandoffBusy(true);
+    setHandoffFailed(false);
+    try {
+      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
+      const saved = await saveHandoff(tool, { fileName: outputName, fileType: 'application/pdf', fileBytes: await outputBlob.arrayBuffer() });
+      if (!saved) throw new Error('handoff');
+      window.location.href = `/${tool}/`;
+    } catch (err) {
+      // expected: saveHandoff reports its own failure, this shows the quiet failure line
+      console.error(err);
+      setHandoffFailed(true);
+      setHandoffBusy(false);
+    }
+  };
+
   const hasFiles = !!file;
   const isAllRemoved = removedPageNums.size === pages.length && pages.length > 0;
   const pageOrderChanged = pages.some((p, i) => p.pageNumber !== i + 1);
   const hasEdits = removedPageNums.size > 0 || Object.keys(rotations).length > 0 || addPageNumbers || pageOrderChanged;
   const actionButtonDisabled = isAllRemoved || !hasEdits || status === 'processing';
+
+  const isDone = status === 'done' && !!downloadUrl;
 
   const keptCount = pages.length - removedPageNums.size;
   let actionButtonText = `Apply Changes · ${keptCount} ${keptCount === 1 ? 'page' : 'pages'}`;
@@ -501,18 +539,20 @@ export default function PdfEditPagesTool() {
               )}
 
               <div class={touchStyles['edit-sheet']} data-edit-sheet>
-              <button
-                type="button"
-                class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
-                disabled={actionButtonDisabled}
-                onClick={handleApplyChanges}
-              >
-                {status === 'processing' ? (
-                  <ProgressRing progress={progress} label="Processing…" />
-                ) : (
-                  actionButtonText
-                )}
-              </button>
+              {!isDone && (
+                <button
+                  type="button"
+                  class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
+                  disabled={actionButtonDisabled}
+                  onClick={handleApplyChanges}
+                >
+                  {status === 'processing' ? (
+                    <ProgressRing progress={progress} label="Processing…" />
+                  ) : (
+                    actionButtonText
+                  )}
+                </button>
+              )}
 
               {status === 'error' && (
                 <ErrorMessage>
@@ -520,18 +560,42 @@ export default function PdfEditPagesTool() {
                 </ErrorMessage>
               )}
 
-              {status === 'done' && downloadUrl && (
+              {isDone && (
                 <>
-                  <DownloadButton
-                    href={downloadUrl}
-                    download={`${file.name.replace(/\.pdf$/i, '')}_modified.pdf`}
-                    detail={outputSize != null ? formatFileSize(outputSize) : undefined}
-                    onClick={() => recordAction('download')}
-                  />
-                  <PdfShareButton visible={shareReady} onShare={handleShare} />
+                  <div class={touchStyles['finish-pair']}>
+                    <a
+                      ref={focusOnMount}
+                      class={touchStyles['finish-download']}
+                      href={downloadUrl}
+                      download={outputName}
+                      onClick={() => recordAction('download')}
+                    >
+                      <Download size={16} aria-hidden="true" />
+                      Download PDF
+                    </a>
+                    <PdfShareButton visible={shareReady} onShare={handleShare} className={touchStyles['finish-share']} />
+                  </div>
+                  <p class={touchStyles['finish-caption']}>
+                    {outputName}{outputSize != null ? ` · ${formatFileSize(outputSize)}` : ''}
+                  </p>
                 </>
               )}
               </div>
+
+              {isDone && (
+                <>
+                  <ExportHandoffs
+                    items={[{ tool: 'compress', label: 'Compress it', Icon: Shrink }, { tool: 'sign', label: 'Sign it', Icon: FileSignature }]}
+                    busy={handoffBusy}
+                    onHandoff={requestHandoff}
+                  />
+                  {handoffFailed && (
+                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
+                      Could not hand this off. Download it instead and open it there.
+                    </p>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>

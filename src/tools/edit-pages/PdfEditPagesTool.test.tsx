@@ -8,6 +8,8 @@ import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import pageGridStyles from '../../shell/PageGrid.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
+import touchStyles from './PdfEditPagesTool.module.css';
+import handoffStyles from '../../editor-ui/ExportHandoffs.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 
@@ -48,12 +50,16 @@ vi.mock('./editPages.js', () => {
 });
 
 
-const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
+const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({
+  takeHandoffMock: vi.fn(() => Promise.resolve(null)),
+  saveHandoffMock: vi.fn(() => Promise.resolve(true)),
+}));
 
 // SITE-42: the home page hands picked files over through the draft store's hand-off slot.
 vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: takeHandoffMock,
+  saveHandoff: saveHandoffMock,
 }));
 
 describe('PdfEditPagesTool UI flow', () => {
@@ -314,12 +320,12 @@ describe('PdfEditPagesTool UI flow', () => {
     });
 
     // Check download button is present
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    const downloadBtn = container.querySelector(`.${touchStyles['finish-download']}`);
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('document_modified.pdf');
 
-    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    const shareButton = container.querySelector(`.${touchStyles['finish-share']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('document_modified.pdf');
@@ -344,6 +350,56 @@ describe('PdfEditPagesTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;
     nativeShare.restore();
+  });
+
+  describe('finish state', () => {
+    async function applyOneEdit() {
+      window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+      window.URL.revokeObjectURL = vi.fn();
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfEditPagesTool />, container); });
+      await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]); });
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
+      await act(async () => { cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const apply = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+      await act(async () => { apply.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    }
+
+    it('drops the Apply button once the result is ready', async () => {
+      await applyOneEdit();
+      expect(container.querySelector('[data-edit-sheet]').querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
+    });
+
+    it('puts Download and Share in one finish pair', async () => {
+      const nativeShare = mockNativeFileShare();
+      await applyOneEdit();
+      const pair = container.querySelector(`.${touchStyles['finish-pair']}`);
+      expect(pair).not.toBeNull();
+      expect(pair.querySelector(`.${touchStyles['finish-download']}`)).not.toBeNull();
+      expect(pair.querySelector(`.${touchStyles['finish-share']}`)).not.toBeNull();
+      expect(container.querySelector(`.${touchStyles['finish-caption']}`).textContent).toContain('document_modified.pdf');
+      nativeShare.restore();
+    });
+
+    it('renders the next-tool chips outside the sheet and parks the bytes on a click', async () => {
+      await applyOneEdit();
+      const chips = container.querySelectorAll(`.${handoffStyles['handoff-button']}`);
+      expect(chips.length).toBe(2);
+      expect(container.querySelector('[data-edit-sheet]').querySelector(`.${handoffStyles['handoff-button']}`)).toBeNull();
+      vi.stubGlobal('location', { href: '/edit-pages/' });
+      try {
+        await act(async () => { chips[0].click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+        expect(saveHandoffMock).toHaveBeenCalledWith('compress', expect.objectContaining({
+          fileName: 'document_modified.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),
+        }));
+        expect(window.location.href).toBe('/compress/');
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
   });
 
   it('loads a PDF handed off from the home page as if picked', async () => {
