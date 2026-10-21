@@ -1855,7 +1855,14 @@ export interface ShellMessages {
   oldBrowserNotice: string;
   /** SEO-46: the quiet rating ask after a download (src/shell/RatingPrompt.tsx). */
   ratingQuestion: string;
-  ratingThanks: string;
+  /** After 4 or 5 stars: thanks plus a nudge to share. */
+  ratingThanksHigh: string;
+  ratingShare: string;
+  ratingShareCopied: string;
+  ratingStarGithub: string;
+  /** After 1 to 3 stars: an invitation to report what went wrong. */
+  ratingThanksLow: string;
+  ratingTellMe: string;
   /** Aria label of one star button, e.g. "3 stars". */
   ratingStarOne: string;
   ratingStarOther: string;
@@ -1913,8 +1920,13 @@ const englishShellMessages: ShellMessages = {
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
   cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
   oldBrowserNotice: 'This tool needs {browser} {version} or newer to open PDFs. A quick update, or another browser, will do it.',
-  ratingQuestion: 'How did it go?',
-  ratingThanks: 'Thanks, that helps.',
+  ratingQuestion: 'PDkef is free and open source. If it helped, a rating helps other people find it.',
+  ratingThanksHigh: "Thank you, that really helps. Know someone who'd use it?",
+  ratingShare: 'Share',
+  ratingShareCopied: 'Link copied',
+  ratingStarGithub: 'Star it on GitHub',
+  ratingThanksLow: "Thank you. If something went wrong, I'd love to hear about it.",
+  ratingTellMe: 'Tell me on GitHub',
   ratingStarOne: '1 star',
   ratingStarOther: '{count} stars',
 };
@@ -1970,8 +1982,13 @@ const hebrewShellMessages: ShellMessages = {
   cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
   oldBrowserNotice: 'כדי לפתוח קבצי PDF בכלי הזה צריך {browser} {version} ומעלה. עדכון קצר, או דפדפן אחר, יסדרו את זה.',
   // TODO(SEO-46): AI draft, not reviewed copy - pending Shlomi's read-through.
-  ratingQuestion: 'איך היה?',
-  ratingThanks: 'תודה, זה עוזר.',
+  ratingQuestion: 'PDkef חינמי ובקוד פתוח. אם זה עזר לכם, דירוג יעזור גם לאחרים למצוא אותו.',
+  ratingThanksHigh: 'תודה רבה, זה עוזר מאוד. מכירים מישהו שיוכל להשתמש בזה?',
+  ratingShare: 'שתפו',
+  ratingShareCopied: 'הקישור הועתק',
+  ratingStarGithub: 'כוכב ב-GitHub',
+  ratingThanksLow: 'תודה. אם משהו השתבש, אשמח לשמוע על זה.',
+  ratingTellMe: 'ספרו לי ב-GitHub',
   ratingStarOne: 'כוכב אחד',
   ratingStarOther: '{count} כוכבים',
 };

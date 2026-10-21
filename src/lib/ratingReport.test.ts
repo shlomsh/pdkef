@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
 import { sendBeacon } from './errorReport.ts';
-import { markRated, ratedKey, reportRating, shouldAsk } from './ratingReport.ts';
+import { markAsked, markRated, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, shouldAsk } from './ratingReport.ts';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
@@ -16,22 +16,49 @@ const blocked = {
   setItem: () => { throw new Error('blocked'); },
 };
 
+const NOW = 1_800_000_000_000;
+
 afterEach(() => vi.mocked(sendBeacon).mockClear());
 
 describe('shouldAsk / markRated', () => {
   it('asks on a fresh device, once per tool', () => {
     const s = memoryStorage();
-    expect(shouldAsk(s, 'compress')).toBe(true);
+    expect(shouldAsk(s, 'compress', NOW)).toBe(true);
     markRated(s, 'compress');
-    expect(shouldAsk(s, 'compress')).toBe(false);
-    expect(shouldAsk(s, 'split')).toBe(true);
+    expect(shouldAsk(s, 'compress', NOW)).toBe(false);
+    expect(shouldAsk(s, 'split', NOW)).toBe(true);
     expect(ratedKey('compress')).toBe('pdkef:rated:compress');
   });
   it('treats blocked or missing storage as already rated', () => {
-    expect(shouldAsk(blocked, 'compress')).toBe(false);
-    expect(shouldAsk(null, 'compress')).toBe(false);
+    expect(shouldAsk(blocked, 'compress', NOW)).toBe(false);
+    expect(shouldAsk(null, 'compress', NOW)).toBe(false);
     expect(() => markRated(blocked, 'compress')).not.toThrow();
     expect(() => markRated(null, 'compress')).not.toThrow();
+  });
+});
+
+describe('ask cadence', () => {
+  it('asks a fresh device', () => {
+    expect(shouldAsk(memoryStorage(), 'merge', NOW)).toBe(true);
+  });
+  it('never asks a rated tool, even after the gap', () => {
+    const s = memoryStorage({ [ratedKey('merge')]: '1', [ASKED_AT_KEY]: String(NOW - 99 * RATING_ASK_GAP_MS) });
+    expect(shouldAsk(s, 'merge', NOW)).toBe(false);
+  });
+  it('waits 14 days device-wide after any ask', () => {
+    const s = memoryStorage();
+    markAsked(s, NOW);
+    expect(s.getItem(ASKED_AT_KEY)).toBe(String(NOW));
+    expect(RATING_ASK_GAP_MS).toBe(14 * 24 * 60 * 60 * 1000);
+    expect(shouldAsk(s, 'split', NOW + RATING_ASK_GAP_MS - 1)).toBe(false);
+    expect(shouldAsk(s, 'split', NOW + RATING_ASK_GAP_MS)).toBe(true);
+  });
+  it('treats a garbage asked-at as absent', () => {
+    expect(shouldAsk(memoryStorage({ [ASKED_AT_KEY]: 'banana' }), 'split', NOW)).toBe(true);
+  });
+  it('markAsked never throws on blocked storage', () => {
+    expect(() => markAsked(blocked, NOW)).not.toThrow();
+    expect(() => markAsked(null, NOW)).not.toThrow();
   });
 });
 
