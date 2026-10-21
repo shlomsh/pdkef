@@ -17,6 +17,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
 }));
 
 import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
+import { takeArrival, resetFileArrivalForTests } from '../../lib/fileArrival.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
@@ -303,5 +304,38 @@ describe('useEditorDraftPersistence - HERO-02 hand-off marker', () => {
     expect(root.hasAttribute('data-handoff-pending')).toBe(true);
     act(() => render(null, container));
     expect(root.hasAttribute('data-handoff-pending')).toBe(false);
+  });
+});
+
+describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
+  let container: HTMLDivElement;
+  const record = (from?: string) => ({
+    fileName: 'a.pdf',
+    fileType: 'application/pdf',
+    fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+    ...(from ? { from } : {}),
+  });
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    resetFileArrivalForTests();
+    (loadDraft as any).mockReset();
+    (loadDraft as any).mockResolvedValue(null);
+    (takeHandoff as any).mockReset();
+  });
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+
+  it('marks a hand-off as handoff with the sending tool, right before loadPdf', async () => {
+    (takeHandoff as any).mockResolvedValue(record('merge'));
+    let seen: unknown;
+    const props = baseProps({ tool: 'sign', loadPdf: vi.fn(() => { seen = takeArrival(); }) });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+    expect(seen).toEqual({ source: 'handoff', from: 'merge' });
   });
 });

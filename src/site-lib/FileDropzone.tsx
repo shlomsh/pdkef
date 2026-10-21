@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
 import { saveHandoff, setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
+import { noteRecentOpen } from '../lib/fileArrival.ts';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
@@ -269,6 +270,7 @@ export default function FileDropzone({
     if (busy || !recent.cacheId || !recent.tool) return;
     setBusy(true);
     setCurrentEntry(recent.tool, recent.cacheId);
+    noteRecentOpen(recent.tool);
     window.location.href = withFillModeParam(toolHref(recent.tool), window.location.search);
   };
 

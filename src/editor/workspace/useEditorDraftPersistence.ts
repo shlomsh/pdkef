@@ -5,12 +5,14 @@ import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.
 import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
+import { markHandoffArrival } from '../../lib/useHandoffIntake.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoffPending.ts';
 
 interface DraftRecord {
   fileName: string;
   fileType?: string;
   fileBytes: ArrayBuffer;
+  from?: string;
   elements?: unknown[];
   extra?: { actionHistory?: unknown[]; carried?: Partial<DocumentStyle>; details?: DetailEdits };
 }
@@ -122,6 +124,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
       }
       loadStartedRef.current = true;
       cancelReleaseRef.current = releaseHandoffPendingWhenLoaded();
+      markHandoffArrival(handoff.from);
       loadPdf(fileFrom(handoff), handoff.fileBytes, { elements: [], actionHistory: [] }, true);
       return true;
     },

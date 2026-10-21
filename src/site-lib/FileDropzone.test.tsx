@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from '../i18n/toolMessages';
+import { consumeRecentOpen } from '../lib/fileArrival.ts';
 import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
@@ -169,6 +170,8 @@ describe('FileDropzone', () => {
 
       expect(container.querySelector('dialog')).toBeNull();
       expect(setCurrentEntry).toHaveBeenCalledWith('sign', 'sha256:active');
+      // DEBT-58: the tool page reads this to call its restore a recent open, not a restore.
+      expect(consumeRecentOpen('sign')).toBe(true);
       expect(saveHandoff).not.toHaveBeenCalled();
       // And it never reads the entry, which is the difference between a tile
       // that opens and one that hangs: the record carries the whole PDF, and

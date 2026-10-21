@@ -39,7 +39,8 @@ vi.mock('../thumbnails.js', () => ({
 }));
 
 import { renderDraftPreview } from '../thumbnails.js';
-import { saveDraft, attachDraftPreview, isStoragePersisted } from './draftStore.js';
+import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft } from './draftStore.js';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../fileArrival.ts';
 
 function Harness({ apiRef, props }) {
   apiRef.current = { result: useDraftPersistence(props) };
@@ -581,5 +582,42 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
       'qa-alpha.pdf': 'data:image/jpeg;base64,alpha',
       'qa-bravo.pdf': 'data:image/jpeg;base64,bravo',
     });
+  });
+});
+
+describe('useDraftPersistence - how a restored file arrived (DEBT-58)', () => {
+  let container;
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    resetFileArrivalForTests();
+    sessionStorage.clear();
+    loadDraft.mockResolvedValue({ fileName: 'a.pdf', fileBytes: new ArrayBuffer(4) });
+  });
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    loadDraft.mockResolvedValue(null);
+  });
+
+  const mountAndRead = async () => {
+    let seen;
+    const onRestore = vi.fn(() => { seen = takeArrival(); });
+    await act(async () => {
+      render(<Harness apiRef={{ current: null }} props={baseProps({ onRestore })} />, container);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(onRestore).toHaveBeenCalledTimes(1);
+    return seen;
+  };
+
+  it('marks a plain draft restore as restore', async () => {
+    expect(await mountAndRead()).toEqual({ source: 'restore' });
+  });
+
+  it('marks a restore the home page asked for from a recent tile as recent', async () => {
+    noteRecentOpen('sign');
+    expect(await mountAndRead()).toEqual({ source: 'recent' });
   });
 });

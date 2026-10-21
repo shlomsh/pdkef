@@ -2,6 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { takeArrival, resetFileArrivalForTests } from './fileArrival.ts';
 import { filesFromHandoff, useHandoffFilesIntake, useHandoffIntake } from './useHandoffIntake.ts';
 
 const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn() }));
@@ -328,5 +329,40 @@ describe('useHandoffIntake', () => {
     });
     expect(takeHandoffMock).toHaveBeenCalledWith('sign');
     history.pushState({}, '', '/');
+  });
+});
+
+describe('hand-off arrival mark (DEBT-58)', () => {
+  let container;
+  beforeEach(() => {
+    takeHandoffMock.mockReset();
+    resetFileArrivalForTests();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+  const run = async (ui) => {
+    await act(async () => {
+      render(ui, container);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  };
+
+  it('marks a hand-off from an analytics tool with that tool, before the callback runs', async () => {
+    takeHandoffMock.mockResolvedValueOnce({ from: 'redact', fileName: 'a.pdf', fileBytes: buf(1) });
+    let seen;
+    await run(<Harness tool="unlock" onFile={() => { seen = takeArrival(); }} />);
+    expect(seen).toEqual({ source: 'handoff', from: 'redact' });
+  });
+
+  it('marks a hand-off from something that is not an analytics tool without a from', async () => {
+    takeHandoffMock.mockResolvedValueOnce({ from: 'home', files: [{ fileName: 'a.pdf', fileBytes: buf(1) }] });
+    let seen;
+    await run(<FilesHarness tool="merge" onFiles={() => { seen = takeArrival(); }} />);
+    expect(seen).toEqual({ source: 'handoff' });
   });
 });

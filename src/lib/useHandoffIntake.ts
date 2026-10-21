@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { takeHandoff } from './drafts/draftStore.js';
 import { handoffFitsPage, handoffKindsForPage } from './handoffKinds.ts';
+import { markArrival } from './fileArrival.ts';
+import { ANALYTICS_TOOLS, type AnalyticsTool } from './usageEventSchema.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from './handoffPending.ts';
 
 type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
@@ -17,6 +19,12 @@ export function filesFromHandoff(record: HandoffRecord | null | undefined): File
   return entries.map(
     (e) => new File([e.fileBytes as ArrayBuffer], e.fileName as string, { type: e.fileType || 'application/pdf' }),
   );
+}
+
+/** DEBT-58: say the file about to open came by hand-off; `from` only when the sender is an analytics tool. */
+export function markHandoffArrival(from: unknown): void {
+  const known = (ANALYTICS_TOOLS as readonly unknown[]).includes(from);
+  markArrival('handoff', known ? (from as AnalyticsTool) : undefined);
 }
 
 /**
@@ -84,6 +92,7 @@ export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], fro
         return;
       }
       cancelRelease = releaseHandoffPendingWhenLoaded();
+      markHandoffArrival(record?.from);
       onFilesRef.current(files, record?.from);
     });
 

@@ -30,6 +30,7 @@ import {
   loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
   setCurrentEntry, readCurrentEntryId,
 } from '../../../lib/drafts/draftStore.js';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../../lib/fileArrival.ts';
 import { planForFile } from '../mergePlan.ts';
 import { flushBeforeUpdateReload, isUpdateHeld } from '../../../lib/appUpdate/updateHolds.ts';
 
@@ -180,6 +181,28 @@ describe('useMergeDraft', () => {
     ]);
     expect(restored.options).toEqual({ addPageNumbers: true });
     expect(apiRef.current.isRestoring).toBe(false);
+  });
+
+  it.each([
+    ['restore', false],
+    ['recent', true],
+  ])('marks a restored draft as %s right before onRestore (DEBT-58)', async (source, fromTile) => {
+    resetFileArrivalForTests();
+    if (fromTile) noteRecentOpen('merge');
+    await saveDraft('merge', {
+      files: [{ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('a').buffer }],
+      plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+      options: {},
+      fileName: 'merged_a',
+      pageCount: 1,
+      fileCount: 1,
+      schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+    });
+    let seen;
+    const onRestore = vi.fn(() => { seen = takeArrival(); });
+    await mount({ current: null }, baseOptions({ onRestore }));
+    expect(onRestore).toHaveBeenCalledTimes(1);
+    expect(seen).toEqual({ source });
   });
 
   it('restores a renamed output name, and null when the record never had one', async () => {
