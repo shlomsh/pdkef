@@ -11,12 +11,15 @@ interface Props {
   name?: string;
   description: string;
   faq?: FaqItem[];
+  /** SEO-46: real, at-least-minimum-votes rating; omitted means no markup at all. */
+  rating?: { average: number; count: number } | null;
 }
 
 const {
   name = 'PDkef',
   description,
   faq,
+  rating,
 } = Astro.props as Props;
 
 const pageUrl = new URL(Astro.url.pathname, Astro.site).toString();
@@ -39,6 +42,15 @@ const softwareApp = {
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   author,
   creator: author,
+  ...(rating && {
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: rating.average,
+      ratingCount: rating.count,
+      bestRating: 5,
+      worstRating: 1,
+    },
+  }),
 };
 
 const faqSchema = faq && {
