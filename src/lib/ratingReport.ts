@@ -10,13 +10,32 @@ export type RatingStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 export const ratedKey = (tool: RatingTool): string => `pdkef:rated:${tool}`;
 
-/** True only on a device that can remember the answer and has not been asked about this tool. */
-export function shouldAsk(storage: RatingStorage | null, tool: RatingTool): boolean {
+/** Device-wide: when any rating prompt was last shown (epoch ms). */
+export const ASKED_AT_KEY = 'pdkef:rating-asked-at';
+export const RATING_ASK_GAP_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * True only on a device that can remember the answer, has not rated this tool, and has not been
+ * shown any rating prompt in the last 14 days. A garbage asked-at value counts as absent.
+ */
+export function shouldAsk(storage: RatingStorage | null, tool: RatingTool, now: number): boolean {
   try {
-    return storage !== null && storage.getItem(ratedKey(tool)) === null;
+    if (storage === null || storage.getItem(ratedKey(tool)) !== null) return false;
+    const askedAt = Number(storage.getItem(ASKED_AT_KEY));
+    const valid = storage.getItem(ASKED_AT_KEY) !== null && Number.isFinite(askedAt);
+    return !valid || now - askedAt >= RATING_ASK_GAP_MS;
   } catch {
-    // expected: blocked storage counts as already rated, so nobody is asked twice
+    // expected: blocked storage counts as already asked, so nobody is asked twice
     return false;
+  }
+}
+
+/** Call when the prompt is shown: ignoring it counts as asked. */
+export function markAsked(storage: RatingStorage | null, now: number): void {
+  try {
+    storage?.setItem(ASKED_AT_KEY, String(now));
+  } catch {
+    // expected: blocked storage only means the question can come back on a later visit
   }
 }
 
