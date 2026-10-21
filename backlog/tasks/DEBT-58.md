@@ -1,14 +1,14 @@
 ---
 id: "DEBT-58"
-title: "A draft that restores by itself counts as a file someone opened"
-status: "open"
+title: "A funnel that reads intent: visit, file in front, first edit, asked, got it"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
 depends_on: []
 ---
 
-# DEBT-58 · A draft that restores by itself counts as a file someone opened
+# DEBT-58 · A funnel that reads intent: visit, file in front, first edit, asked, got it
 
 *Filed 2026-10-21.* `tool_file_accepted` fires whenever `hasFiles` turns true, with no guard for a
 restore:
@@ -47,20 +47,35 @@ count) and the CRITICAL_VERSION forced reload (12 Oct bumped it too and logged 5
 stays unexplained, and it cost nobody anything: no failed run and no error report. It is not what
 this ticket fixes.
 
-## What should change
+## Decision (2026-10-21, Shlomi)
 
-`BasePdfTool` already receives the signal it needs. Redact and Sign pass `checkingDraft={isRestoring}`
-and Merge has its own restore, so the accepted event can tell a restore from a pick without any tool
-changing its public state. Settle the ordering first: confirm whether `hasFiles` flips while
-`checkingDraft` is still true, and if it does not, carry the reason the file arrived rather than
-inferring it from a flag that has already cleared.
+Usage and the funnel are two questions. A restore is usage and must be counted, labelled, not
+dropped: dropping it (the first attempt, reverted) also dropped recent-tile opens and hand-offs,
+which arrive the same way. More data is better than less; what matters is the intent behind it.
 
-Record the decision in ANALYTICS.md's change log the way the Merge and Split entries are recorded, so
-the funnel before and after stays comparable.
+The funnel, each stage counted once per page load (`first`), run counts kept beside for volume:
+
+1. `tool_page_viewed` with `visit`: `new`, or returning `today` / `week` / `month` / `older`,
+   decided on the device from a day it keeps and never sends.
+2. `tool_file_accepted` with `source`: `pick`, `drop`, `paste`, `replace`, `recent`, `handoff`
+   (plus `from`), `restore`. Fires on every arrival, a replacement over a loaded file included.
+3. `tool_first_edit`: the first deliberate change to that file (an element added, a page moved, an
+   option changed). Sign, Redact, Edit Pages, Merge, Split, Compress.
+4. `tool_operation_started`, 5. `tool_result_ready`, plus `tool_operation_failed`, unchanged.
+
+Stages 3 to 5 carry the `source` of the file they are about, so the fresh lane and the resume lane
+read apart from daily counts alone. Wire contract: `src/lib/usageEventSchema.ts`,
+`src/lib/fileArrival.ts`, `src/lib/visitRecency.ts`. Storage stays inside the command budget: the
+page-load field `pg:` carries source, from, nav and visit in one counter, replacing DEBT-57's `nav:`.
+
+Background builds counted as started/ready (Compress, Split) are DEBT-59.
 
 ## Acceptance
 
-- A draft restoring on mount sends no `tool_file_accepted`, in Redact, Sign and Merge.
-- Picking a file, dropping one, and replacing one each still send exactly one.
-- A unit test covers restore and pick for one editor tool and for Merge, red before the change.
-- ANALYTICS.md carries the dated change-log row and the reason.
+- Every arrival path sends one `tool_file_accepted` with the right `source`, in every tool; a
+  restore, a recent tile and a hand-off are told apart.
+- `tool_page_viewed` once per tool page load with `visit`; the day stays on the device.
+- `tool_first_edit` once per accepted file in the six tools named, never from pointermove.
+- Later events carry the source of the file they are about.
+- `errors:read` prints the five stages per tool as page loads, by lane and by visit.
+- Unit tests red before each change; ANALYTICS.md carries the vocabulary and the dated row.

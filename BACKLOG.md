@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -70,7 +70,8 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-58 | P2 | [DEBT-58](backlog/tasks/DEBT-58.md) · A draft that restores by itself counts as a file someone opened |  |
+| DEBT-58 | P2 | [DEBT-58](backlog/tasks/DEBT-58.md) · A funnel that reads intent: visit, file in front, first edit, asked, got it | In progress |
+| DEBT-59 | P2 | [DEBT-59](backlog/tasks/DEBT-59.md) · Background builds count as started and ready, so completed outruns opened | In progress |
 
 ### Then, in order
 
