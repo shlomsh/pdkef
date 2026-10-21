@@ -391,6 +391,38 @@ describe('/api/report stays silent', () => {
       expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
     });
   });
+
+  describe('star ratings', () => {
+    const rating = { name: 'tool_rating', properties: { tool: 'merge', stars: 5 } };
+    const answer = (total) => async () => new Response(JSON.stringify([{ result: total }, { result: 1 }]), { status: 200 });
+    const post = (value) => POST(jsonRequest(value));
+
+    it('issues HINCRBY rating:<tool> with no EXPIRE on it', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(7));
+      expect((await post(rating)).status).toBe(204);
+      const commands = sentPipelines(fetchSpy).flat();
+      expect(commands[0]).toEqual(['INCR', expect.stringMatching(/^rating:total:\d{4}-\d{2}-\d{2}$/)]);
+      expect(commands).toContainEqual(['HINCRBY', 'rating:merge', '5', 1]);
+      expect(commands.filter(([name, key]) => name === 'EXPIRE' && key === 'rating:merge')).toEqual([]);
+    });
+
+    it('issues nothing past the cap', async () => {
+      vi.resetModules();
+      const { POST: fresh } = await import('../../api/report.ts');
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(301));
+      expect((await fresh(jsonRequest(rating))).status).toBe(204);
+      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('HINCRBY');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('counts a bad rating as a reject', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const bad = { ...rating, properties: { tool: 'merge', stars: 6 } };
+      expect((await post(bad)).status).toBe(204);
+      expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
+      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('rating:merge');
+    });
+  });
 });
 
 expiryContract('error report', 'errors', report, 'HINCRBY');
