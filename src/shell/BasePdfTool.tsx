@@ -9,6 +9,8 @@ import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
 import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
+import { markArrival } from '../lib/fileArrival.ts';
+import type { FileSource } from '../lib/usageEventSchema.ts';
 import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
@@ -149,6 +151,7 @@ export default function BasePdfTool({
   // not put through the gate a second time.
   const agreedRef = useRef(false);
   const previouslyHadFilesRef = useRef(false);
+  const previousFileRef = useRef<File | null>(null);
   const previousAnalyticsStatusRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -166,12 +169,20 @@ export default function BasePdfTool({
   // This is intentionally based on a tool's coarse public state, never its
   // file, options, error object, or local draft. See ANALYTICS.md.
   useEffect(() => {
+    if (analyticsTool) reportToolLifecycleEvent('tool_page_viewed', analyticsTool);
+  }, [analyticsTool]);
+
+  useEffect(() => {
     if (!analyticsTool) return;
-    if (hasFiles && !previouslyHadFilesRef.current) {
+    // A replacement keeps hasFiles true, so a single-file tool's new `file` is the signal.
+    const replaced = hasFiles && previouslyHadFilesRef.current && !multiple
+      && file !== null && previousFileRef.current !== null && file !== previousFileRef.current;
+    if ((hasFiles && !previouslyHadFilesRef.current) || replaced) {
       reportToolLifecycleEvent('tool_file_accepted', analyticsTool);
     }
     previouslyHadFilesRef.current = hasFiles;
-  }, [analyticsTool, hasFiles]);
+    previousFileRef.current = file;
+  }, [analyticsTool, hasFiles, file, multiple]);
 
   useEffect(() => {
     if (!analyticsTool || !analyticsStatus) return;
@@ -212,17 +223,24 @@ export default function BasePdfTool({
 
   // A dropped file arrives already chosen, so this is the earliest the user can
   // be asked - and because the file is in hand, the question can name it.
-  const receiveFiles = useCallback((fileList: FileList | File[] | null | undefined) => {
+  // Says how the files got here, right before the tool is handed them. A second file in a
+  // single-file tool is a replacement whatever the gesture was.
+  const handOn = useCallback((files: File[], source: FileSource) => {
+    markArrival(hasFiles && !multiple ? 'replace' : source);
+    onFilesAdded(files);
+  }, [hasFiles, multiple, onFilesAdded]);
+
+  const receiveFiles = useCallback((fileList: FileList | File[] | null | undefined, source: FileSource = 'pick') => {
     const incoming = Array.from(fileList || []);
     if (incoming.length === 0) return;
     // Already agreed to, one step ago, in order to get the picker open at all.
     if (agreedRef.current) {
       agreedRef.current = false;
-      onFilesAdded(incoming);
+      handOn(incoming, source);
       return;
     }
     if (!costsSomething) {
-      onFilesAdded(incoming);
+      handOn(incoming, source);
       return;
     }
     // A picker only offers what `accept` allows; a drop or paste can carry
@@ -233,11 +251,11 @@ export default function BasePdfTool({
     // none, and only the question stands between it and the open document.
     const acceptable = incoming.filter((file) => !file.type || acceptsFile(file, accept));
     if (acceptable.length === 0) {
-      onFilesAdded(incoming);
+      handOn(incoming, source);
       return;
     }
     setPendingFiles(acceptable);
-  }, [costsSomething, onFilesAdded, accept]);
+  }, [costsSomething, handOn, accept]);
 
   const onInputChange = (event: Event) => {
     // Copy the FileList out before clearing the input. `value = ''` resets the
@@ -247,7 +265,7 @@ export default function BasePdfTool({
     const target = event.currentTarget as HTMLInputElement;
     const files = Array.from(target.files || []);
     target.value = '';
-    receiveFiles(files);
+    receiveFiles(files, 'pick');
   };
 
   // Once a file is loaded, the small dropzone is gone, so the whole tool
@@ -279,10 +297,10 @@ export default function BasePdfTool({
   // walking it is async, so only that case leaves the synchronous path.
   const receiveDrop = (dataTransfer: DataTransfer | null | undefined) => {
     if (dropHasDirectory(dataTransfer)) {
-      void filesFromDataTransfer(dataTransfer).then(receiveFiles);
+      void filesFromDataTransfer(dataTransfer).then((files) => receiveFiles(files, 'drop'));
       return;
     }
-    receiveFiles(dataTransfer?.files);
+    receiveFiles(dataTransfer?.files, 'drop');
   };
 
   const onWorkspaceDrop = (event: DragEvent) => {
@@ -306,7 +324,7 @@ export default function BasePdfTool({
       const files = filesFromPaste(event);
       if (files.length === 0) return;
       event.preventDefault();
-      receiveFiles(files);
+      receiveFiles(files, 'paste');
     };
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
@@ -335,7 +353,7 @@ export default function BasePdfTool({
     if (pendingFiles) {
       const files = pendingFiles;
       setPendingFiles(null);
-      onFilesAdded(files);
+      handOn(files, 'pick');
       return;
     }
     setConfirmPickerOpen(false);
