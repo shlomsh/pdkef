@@ -29,6 +29,7 @@ import { englishCompressMessages, formatMessage, type CompressMessages, type She
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 
 // Wording only: below this saving the result says so plainly. The file is still offered (COMP-01).
 const SLIGHT_GAIN_PERCENT = 5;
@@ -159,6 +160,9 @@ export default function PdfCompressTool({
   const [resultKey, setResultKey] = useState<string | null>(null);
   // True only after a tap on Download or Share before the build is done: the one moment the compressing look shows.
   const [tapped, setTapped] = useState(false);
+  // DEBT-59 analytics: the person's Download, Share or Retry is the start; the quiet-time builds after an
+  // option change are not counted (the model Merge and Split use). 'done' once that tap's result is delivered.
+  const [tap, setTap] = useState<'idle' | 'processing' | 'done'>('idle');
   // Quiet-time preparer (src/lib/quietPrepare.ts), one per opened file so a new file starts with an empty cache.
   const preparerRef = useRef<ReturnType<typeof createQuietPreparer<Built>> | null>(null);
   // The key of the options on screen; a result for any other key is dropped.
@@ -300,6 +304,7 @@ export default function PdfCompressTool({
     clearPrepared();
     setResultKey(null);
     setTapped(false);
+    setTap('idle');
     pendingTapRef.current = null;
     setStatus('idle');
     setProgress(0);
@@ -567,6 +572,7 @@ export default function PdfCompressTool({
     runTokenRef.current += 1;
     pendingTapRef.current = null;
     setTapped(false);
+    setTap('idle');
     setCompareStatus('idle');
     setFullscreenStatus('idle');
     if (status === 'error') setStatus('processing');
@@ -581,12 +587,14 @@ export default function PdfCompressTool({
     if (nextLevel === level) return;
     setLevel(nextLevel);
     recordAction('change_setting');
+    reportEdit(analyticsTool);
     changeKey(buildKey(nextLevel, targetKB, flatten));
   };
 
   const handleFlattenChange = (next: boolean) => {
     setFlatten(next);
     recordAction('change_setting');
+    reportEdit(analyticsTool);
     changeKey(buildKey(level, targetKB, next));
   };
 
@@ -595,6 +603,7 @@ export default function PdfCompressTool({
     const next = Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1;
     setTargetKB(next);
     recordAction('change_setting');
+    reportEdit(analyticsTool);
     changeKey(buildKey(level, next, flatten));
   };
 
@@ -756,6 +765,7 @@ export default function PdfCompressTool({
 
   // Try again after a failed run: a tap, so the compressing look shows, and the build starts at once.
   const retry = () => {
+    setTap('processing');
     setTapped(true);
     setStatus('processing');
     setProgress(0);
@@ -767,9 +777,11 @@ export default function PdfCompressTool({
   const onDownloadClick = (event: MouseEvent) => {
     if (fresh && downloadUrl) {
       recordAction('download');
+      setTap('processing');
       return;
     }
     event.preventDefault();
+    setTap('processing');
     pendingTapRef.current = 'download';
     setTapped(true);
     setProgress(0);
@@ -789,6 +801,11 @@ export default function PdfCompressTool({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fresh, downloadUrl, passthrough]);
 
+  // The tapped result is delivered: 'processing' rendered once so BasePdfTool reported the start.
+  useEffect(() => {
+    if (tap === 'processing' && fresh && status === 'done' && pendingTapRef.current === null) setTap('done');
+  }, [tap, fresh, status, downloadUrl, passthrough]);
+
   const handleShare = async () => {
     // The prepared files belong to the last result; a stale one waits for the new build instead.
     if (!fresh) {
@@ -800,6 +817,7 @@ export default function PdfCompressTool({
     }
     const result = await sharePrepared();
     if (result.status === 'shared') recordAction('share');
+    if (result.status === 'shared') setTap('processing');
     if (result.status === 'shared') setAnnouncement(kind === 'image' ? t.imageSharedSuccessfully : t.sharedSuccessfully);
     else if (result.status === 'canceled') setAnnouncement(kind === 'image' ? t.imageSharingCanceled : t.sharingCanceled);
     else if (result.status === 'error') setAnnouncement(t.shareError);
@@ -1132,7 +1150,7 @@ export default function PdfCompressTool({
       emptyArt={<CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />}
       hasFiles={hasFiles}
       analyticsTool={analyticsTool}
-      analyticsStatus={status}
+      analyticsStatus={status === 'error' ? 'error' : tap}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       accept="application/pdf,image/jpeg,image/png"

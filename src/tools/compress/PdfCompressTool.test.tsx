@@ -18,6 +18,13 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
+const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: lifecycleSpy,
+  reportEdit: editSpy,
+}));
+
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 
@@ -133,6 +140,8 @@ describe('PdfCompressTool UI flow', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    lifecycleSpy.mockClear();
+    editSpy.mockClear();
     probeEncryption.mockImplementation(() => Promise.resolve('open'));
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
     imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult()));
@@ -1411,6 +1420,68 @@ describe('PdfCompressTool UI flow', () => {
     expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressImageLib.compressImageToTarget).not.toHaveBeenCalled();
+  });
+
+  // DEBT-59: the funnel counts the person's tap, not the builds an option change starts.
+  describe('usage events (DEBT-59)', () => {
+    const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
+
+    it('counts neither started nor ready for the builds a pick and option changes start', async () => {
+      await loadPdf('test_doc.pdf', 50000);
+      await choose('Smallest');
+      await choose('Sharpest');
+      expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(3);
+      expect(status()).toBe('done');
+      expect(events('tool_operation_started')).toBe(0);
+      expect(events('tool_result_ready')).toBe(0);
+    });
+
+    it('counts one started and one ready for a Download tap, again after a change', async () => {
+      await loadPdf('test_doc.pdf', 50000);
+      await act(async () => { downloadButton().click(); });
+      await settled();
+      expect(events('tool_operation_started')).toBe(1);
+      expect(events('tool_result_ready')).toBe(1);
+      await choose('Smallest');
+      expect(events('tool_operation_started')).toBe(1);
+      await act(async () => { downloadButton().click(); });
+      await settled();
+      expect(events('tool_operation_started')).toBe(2);
+      expect(events('tool_result_ready')).toBe(2);
+    });
+
+    it('counts a tap on a stale result as started, and ready once the build lands', async () => {
+      await loadPdf('test_doc.pdf', 50000);
+      const slow = deferred();
+      imagesLib.compressPdfImages.mockImplementationOnce(() => slow.promise);
+      await act(async () => { radio('Smallest').click(); });
+      await act(async () => { downloadButton().click(); });
+      expect(events('tool_operation_started')).toBe(1);
+      expect(events('tool_result_ready')).toBe(0);
+      await act(async () => { slow.resolve(imagesResult()); });
+      await settled();
+      expect(events('tool_operation_started')).toBe(1);
+      expect(events('tool_result_ready')).toBe(1);
+    });
+
+    it('counts a failed build, then started and ready for the Try again tap', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      imagesLib.compressPdfImages.mockImplementationOnce(() => Promise.reject(new Error('boom')));
+      await loadPdf('flaky.pdf');
+      expect(events('tool_operation_failed')).toBe(1);
+      expect(events('tool_operation_started')).toBe(0);
+      await act(async () => { findButton('Try again').click(); });
+      await settled();
+      expect(events('tool_operation_started')).toBe(1);
+      expect(events('tool_result_ready')).toBe(1);
+    });
+
+    it('reports an edit when the person changes an option, not on arrival', async () => {
+      await loadPdf('test_doc.pdf', 50000);
+      expect(editSpy).not.toHaveBeenCalled();
+      await choose('Smallest');
+      expect(editSpy).toHaveBeenCalledWith('compress');
+    });
   });
 
   it('records what the person did, by name only, in order', async () => {

@@ -25,6 +25,7 @@ import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { loadPdfjs } from '../../lib/loadPdfjs.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../shell/PagePreviewDialog.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
 import {
@@ -442,6 +443,7 @@ export default function PdfSplitTool({
       setPageSelectorError(isPartial ? '' : selectorErrorText(err));
     }
     recordAction('select_pages');
+    reportEdit('split');
   };
 
   // Review 2026-09-14, P1: a toggled cell stays where it is. Membership is
@@ -458,6 +460,7 @@ export default function PdfSplitTool({
       return next;
     });
     recordAction('select_pages');
+    reportEdit('split');
   };
 
   // Rotation is a page property, not a selection one: it applies in either
@@ -469,6 +472,7 @@ export default function PdfSplitTool({
     );
     setAnnouncement(formatMessage(t.announceRotated, { number: pageNumber }));
     recordAction('rotate');
+    reportEdit('split');
     registerUndo(formatMessage(t.undoRotated, { number: pageNumber }), () => {
       invalidate();
       setPages((prev) =>
@@ -495,6 +499,7 @@ export default function PdfSplitTool({
       return next;
     });
     recordAction('select_pages');
+    reportEdit('split');
   };
 
   const selectNone = () => {
@@ -503,6 +508,7 @@ export default function PdfSplitTool({
     setPageSelector('');
     setPageSelectorError('');
     recordAction('select_pages');
+    reportEdit('split');
   };
 
   const chooseMode = (next: Mode) => {
@@ -510,6 +516,7 @@ export default function PdfSplitTool({
     invalidate();
     setMode(next);
     recordAction('change_setting');
+    reportEdit('split');
     setAnnouncement(next === 'combined' ? t.announceCombined : t.announceSeparate);
   };
 
