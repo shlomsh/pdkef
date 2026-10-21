@@ -102,7 +102,6 @@ interface BasePdfToolProps {
  * between tools is declared here as configuration - one file or many, what work
  * a replacement would cost - not re-implemented per tool.
  */
-const OWN_RATING_TOOLS: ReadonlySet<AnalyticsTool> = new Set(['sign', 'redact', 'merge']);
 
 export default function BasePdfTool({
   hasFiles,
@@ -480,7 +479,7 @@ export default function BasePdfTool({
 
       {/* SEO-46: the once-per-device rating ask, under whatever the tool's done state shows.
           Sign, Redact and Merge mount their own beside their hand-offs. */}
-      {analyticsTool && !OWN_RATING_TOOLS.has(analyticsTool) && <RatingPrompt tool={analyticsTool} downloaded={downloaded} messages={sm} />}
+      {analyticsTool && <RatingPrompt tool={analyticsTool} downloaded={downloaded} messages={sm} />}
 
       {/* MEM-03: replacing a single loaded file always asks now - not to
           protect work about to be lost (nothing is; the current file moves
