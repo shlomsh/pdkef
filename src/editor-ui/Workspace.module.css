@@ -37,13 +37,20 @@
 .page-wrapper { position: relative; width: 100%; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); user-select: none; }
 .page-canvas { display: block; width: 100%; height: auto; pointer-events: none; border-radius: var(--radius-sm); }
 .page-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; }
-.export-actions { display: flex; gap: var(--space-3); width: 100%; margin-top: 2rem; }
+.export-actions { display: flex; gap: var(--space-3); width: 100%; margin-top: var(--space-4); }
 /* The transparent border is what keeps the pair the same size: Share draws a
    1px outline and Download does not, so without it the two halves of an even
    split come out 2px apart. Scoped through the row for the specificity, since
    `.tool-primary-action`'s own `border: none` is later in the cascade. */
 /* Both halves carry an icon (2026-10-20), so both set it apart from the word the way Share always did. */
 .export-actions .export-action { flex: 1; border: 1px solid transparent; display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
+/* Compact and flat (Shlomi, 2026-10-21, design C): on a phone the finish pair
+   under the document repeats the toolbar's export, so it stays a 44px touch
+   target without the shell's lifted call-to-action look - no shadow, no hover
+   lift, less padding. `.tool-primary-action` itself is untouched; Merge and
+   the other tools keep it. Guard: e2e/handoff/editor-finish-compact.spec.js. */
+.export-actions .export-action { min-height: 44px; padding: .55rem .75rem; font-size: .95rem; box-shadow: none; border-radius: var(--radius-sm); }
+.export-actions .export-action:hover:not(:disabled), .export-actions .export-action:active:not(:disabled) { box-shadow: none; transform: none; }
 /* Doubled class on purpose. Share is the quieter half of the finish pair, but
    it also carries `.tool-primary-action`, whose sheet EditorExportActions
    imports after this one - at equal specificity the later fill won and Share

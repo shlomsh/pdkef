@@ -22,11 +22,11 @@
   min-height: 44px;
   padding: 0.5rem 0.25rem;
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-primary-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text);
   background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: center;
