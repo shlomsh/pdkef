@@ -40,6 +40,56 @@ async function openRedactTool(page) {
   await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
 }
 
+// Shared by the phone and desktop cases below (2026-10-21: equal halves at
+// every width, the caption on its own line under the pair).
+async function expectEvenFinishPair(page) {
+  await openRedactTool(page);
+
+  await page.getByRole('button', { name: 'Blackout', exact: true }).click();
+  const overlay = page.locator('.redact-draw-area').first();
+  await overlay.scrollIntoViewIfNeeded();
+  const area = await overlay.boundingBox();
+  if (!area) throw new Error('PDF redaction overlay has no bounding box');
+  await page.mouse.move(area.x + area.width * 0.3, area.y + area.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(area.x + area.width * 0.6, area.y + area.height * 0.36, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
+
+  const pair = page.locator('[class*="action-row"] [class*="export-actions"]').first();
+  await expect(pair).toBeVisible();
+
+  const look = await pair.evaluate((el) => {
+    const [download, share] = [...el.querySelectorAll('button')];
+    const widthOf = (b) => b.getBoundingClientRect().width;
+    return {
+      widths: [Math.round(widthOf(download)), Math.round(widthOf(share))],
+      rowWidth: Math.round(el.getBoundingClientRect().width),
+      spanned: Math.round(widthOf(download) + widthOf(share)),
+      downloadFill: getComputedStyle(download).backgroundColor,
+      shareFill: getComputedStyle(share).backgroundColor,
+    };
+  });
+
+  // Equal halves, not labels of two different lengths sitting side by side.
+  expect(
+    Math.abs(look.widths[0] - look.widths[1]),
+    `Download is ${look.widths[0]}px and Share is ${look.widths[1]}px`,
+  ).toBeLessThanOrEqual(1);
+
+  // And they use the row they are given rather than bunching at its start.
+  expect(
+    look.rowWidth - look.spanned,
+    `the pair spans ${look.spanned}px of a ${look.rowWidth}px row`,
+  ).toBeLessThanOrEqual(24);
+
+  // Share is the quieter of the two, whatever the palette happens to be.
+  expect(
+    look.shareFill,
+    `Share and Download are both painted ${look.shareFill}`,
+  ).not.toBe(look.downloadFill);
+}
+
 test.describe('redact export actions on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -135,51 +185,7 @@ test.describe('redact export actions on a phone', () => {
   // EditorExportActions, so later in the cascade at equal specificity) painted
   // its primary fill straight over `.export-share`'s outline.
   test('gives the finish row an even pair, with Share quieter than Download', async ({ page }) => {
-    await openRedactTool(page);
-
-    await page.getByRole('button', { name: 'Blackout', exact: true }).click();
-    const overlay = page.locator('.redact-draw-area').first();
-    await overlay.scrollIntoViewIfNeeded();
-    const area = await overlay.boundingBox();
-    if (!area) throw new Error('PDF redaction overlay has no bounding box');
-    await page.mouse.move(area.x + area.width * 0.3, area.y + area.height * 0.3);
-    await page.mouse.down();
-    await page.mouse.move(area.x + area.width * 0.6, area.y + area.height * 0.36, { steps: 6 });
-    await page.mouse.up();
-    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
-
-    const pair = page.locator('[class*="action-row"] [class*="export-actions"]').first();
-    await expect(pair).toBeVisible();
-
-    const look = await pair.evaluate((el) => {
-      const [download, share] = [...el.querySelectorAll('button')];
-      const widthOf = (b) => b.getBoundingClientRect().width;
-      return {
-        widths: [Math.round(widthOf(download)), Math.round(widthOf(share))],
-        rowWidth: Math.round(el.getBoundingClientRect().width),
-        spanned: Math.round(widthOf(download) + widthOf(share)),
-        downloadFill: getComputedStyle(download).backgroundColor,
-        shareFill: getComputedStyle(share).backgroundColor,
-      };
-    });
-
-    // Equal halves, not labels of two different lengths sitting side by side.
-    expect(
-      Math.abs(look.widths[0] - look.widths[1]),
-      `Download is ${look.widths[0]}px and Share is ${look.widths[1]}px`,
-    ).toBeLessThanOrEqual(1);
-
-    // And they use the row they are given rather than bunching at its start.
-    expect(
-      look.rowWidth - look.spanned,
-      `the pair spans ${look.spanned}px of a ${look.rowWidth}px row`,
-    ).toBeLessThanOrEqual(24);
-
-    // Share is the quieter of the two, whatever the palette happens to be.
-    expect(
-      look.shareFill,
-      `Share and Download are both painted ${look.shareFill}`,
-    ).not.toBe(look.downloadFill);
+    await expectEvenFinishPair(page);
   });
 
   test('keeps the toolbar\'s own Download visible when native Share is unavailable', async ({ page }) => {
@@ -206,5 +212,13 @@ test.describe('redact export actions on a phone', () => {
     const toolbar = page.getByRole('toolbar', { name: 'PDF redaction' });
     await expect(toolbar.getByRole('button', { name: 'Share', exact: true })).toHaveCount(0);
     await expect(toolbar.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
+  });
+});
+
+test.describe('redact export actions on desktop', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('gives the finish row the same even pair as the phone', async ({ page }) => {
+    await expectEvenFinishPair(page);
   });
 });

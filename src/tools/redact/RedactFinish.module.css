@@ -31,42 +31,23 @@
   gap: 0.75rem;
 }
 
-/* EditorExportActions' completion row is full-width with a top margin; here it only holds its buttons.
-   It wraps and may shrink: the pair is the only thing that can outgrow a narrow
-   card, and a wrapped Share reads better than one that leaves the screen. */
+/* EditorExportActions' completion row, here without its own top margin: the
+   pair takes the whole line and splits it evenly at every width (2026-10-21,
+   Shlomi: the desktop pair read as two labels of different lengths), so the
+   caption wraps onto its own line under it. `.tool-primary-action` carries
+   `width: 100%`; `flex: 1 1 0` with `min-width: 0` overrides it so neither
+   button resolves to the row's whole width and spills out of the card, which
+   once measured 147px past the row in full screen on a 390px phone. */
 .action-row > div {
-  inline-size: auto;
-  max-inline-size: 100%;
-  flex-wrap: wrap;
+  inline-size: 100%;
   margin: 0;
 }
 
 .action-row > div > button {
-  /* `.tool-primary-action` carries `width: 100%` for the full-width completion
-     row below the document. Left in place here, where the container is
-     shrink-to-fit, both buttons resolve to the container's whole width and the
-     second one spills straight out of the card - measured at 147px past the row
-     in full screen on a 390px phone (reported 2026-10-20). Size to the label
-     instead, and let the pair wrap rather than truncate. */
-  flex: 0 1 auto;
-  width: auto;
-  /* The completion pair's own top margin would lift the caption off centre. */
+  flex: 1 1 0;
+  min-width: 0;
+  /* The completion pair's own top margin would push the row off its gap. */
   margin: 0;
-}
-
-/* On a phone the caption has wrapped below the pair anyway, so there is no
-   reason for the two buttons to bunch at the start of the row at the width of
-   their own labels. Take the line and split it evenly, the way the completion
-   row below the document does. */
-@media (max-width: 719px) {
-  .action-row > div {
-    inline-size: 100%;
-  }
-
-  .action-row > div > button {
-    flex: 1 1 0;
-    min-width: 0;
-  }
 }
 
 .caption {
