@@ -1,6 +1,6 @@
 # PDkef analytics approach
 
-Last updated: 2026-10-01
+Last updated: 2026-10-21
 
 ## Purpose
 
@@ -38,11 +38,11 @@ blocked, offline, or unavailable.
   sampling at current traffic. Revisit sampling only after volume makes the
   dashboard materially noisier or creates cost pressure.
 
-The four tool lifecycle events (`tool_file_accepted`, `tool_operation_started`,
-`tool_result_ready`, `tool_operation_failed`, each with only `{tool}`) go to
+The six tool lifecycle events (see the vocabulary below, each with `{tool}` and the few closed
+properties listed there) go to
 PDkef's own `/api/report` address as daily counts per event and tool (no browser
 family), kept for 90 days under their own daily cap of 2,400 (`USAGE_DAILY_CAP`), and
-read with `npm run errors:read` under "Tool usage". Vercel Web Analytics is the
+read with `npm run errors:read` under "Tool usage" and "Funnel (page loads)". Vercel Web Analytics is the
 transport for page views only. Sign's
 two maintenance events (`sign_form_detection`, `sign_export`) are separate events.
 They also go to `/api/report`, like error reports, and are kept
@@ -52,17 +52,35 @@ event delivery.
 The first event of each kind a tool sends on a page also carries `first: true`, which counts
 page loads next to runs. It marks nothing about the person or the file.
 
-## Event vocabulary, version 1
+## Event vocabulary, version 2 (DEBT-58)
 
-Every event has exactly one `tool` property. That preserves room within the
-standard Vercel property allowance and makes breakdowns consistent.
+Usage and the funnel are read from the same events. Usage is how many people had a tool in front
+of them and how they got there; the funnel is what they went on to do. Each funnel stage is read as
+page loads (the `first` event of its kind on a page), with run counts beside it for volume, so a
+person who exports three times is one page load that finished, not three.
 
-| Event | When it fires | What it answers |
-| --- | --- | --- |
-| `tool_file_accepted` | A valid local input is accepted by a tool | Which tool visitors actually begin using |
-| `tool_operation_started` | The user starts merge, compress, conversion, edit, unlock/protect, signing, or redaction. For Merge, which has no explicit Merge step since MERGE-12, this is the tap on Download; the background pre-merges that make Download instant are not counted. Split (DEBT-46) works the same way | Where an accepted file becomes active work |
-| `tool_result_ready` | Local processing completes and an output is ready | Successful completions by tool |
-| `tool_operation_failed` | A processing operation reaches a known failure state | Aggregate failure pressure by tool |
+| Stage | Event | When it fires | What it answers |
+| --- | --- | --- | --- |
+| 1. Visited | `tool_page_viewed` | The tool page loads | How many came to the tool, and whether they had been before |
+| 2. File in front | `tool_file_accepted` | A valid local input is accepted, by any route, a replacement over a loaded file included | Which tool visitors actually begin using, and how the file got there |
+| 3. Worked on it | `tool_first_edit` | The first deliberate change to that file: an element added, moved or deleted in Sign or Redact, a page moved in Edit Pages, a list changed in Merge, an option changed in Split or Compress (Compress Image too). Once per file. PDF to Image, Image to PDF, Unlock and Protect have no such step and skip this stage | Whether the person engaged, which tells a return from a reload |
+| 4. Asked for it | `tool_operation_started` | The person starts merge, compress, conversion, edit, unlock/protect, signing, or redaction, by a tap. Background builds that make a Download instant are never counted (Merge since MERGE-12, Split since DEBT-46, Compress since DEBT-59) | Where an engaged file becomes a request |
+| 5. Got it | `tool_result_ready` | That request's output is delivered | Successful completions by tool |
+| | `tool_operation_failed` | A processing operation reaches a known failure state | Aggregate failure pressure by tool |
+
+Properties, each from a closed list and only where it says:
+
+- `source`, on every event but the page view: how the file it is about arrived. `pick`, `drop`
+  and `paste` (chosen here), `replace` (chosen over a loaded file), `recent` (a recent-file tile on
+  the home page), `handoff` (another tool's done row, with `from` naming that tool on the accepted
+  event), and `restore` (the tool reopened the work it was on, with nobody asking). Because later
+  events carry it too, the fresh lane (everything but `restore`) and the resume lane (`restore`)
+  read apart from daily counts alone.
+- `visit`, on the page view only: `new`, or returning `today`, `week` (1 to 7 days), `month` (8 to
+  30) or `older`. The browser keeps the day it last opened a tool page in its own storage and works
+  the bucket out on the device; the day and the key never leave it, and no two events can be tied
+  together by it.
+- `first`, `nav` and `build` as before.
 
 Sign also emits `sign_form_detection` once per opened document, when the
 form-field check finishes: `outcome`, a coarse `field_count_bucket` on success,
@@ -158,3 +176,5 @@ additions if their question remains unanswered:
 | 2026-10-01 | Move the four lifecycle events from Vercel custom events to `/api/report` (DEBT-28). | Hobby never recorded custom events, so the funnel had never been seen; daily per-tool counts on our own address keep the same allowlist and add no browser detail. |
 | 2026-10-02 | Error reports carry the last 10 UI action names (DEBT-31). | A crash's trigger was inferred from code, not read from the report (the DEBT-30 Merge crash); closed list of names, no free text, in memory until an error is reported. |
 | 2026-10-04 | Split (DEBT-46) counts `tool_operation_started` on the Download tap or a completed Share and `tool_result_ready` when that download or share is delivered; idle prepares after each option change are not counted. | Production showed 1 accepted, 6 started, 0 ready on 2026-10-04 from background rebuilds, which made the funnel unreadable. Same model as Merge. |
+| 2026-10-21 | Funnel version 2 (DEBT-58): add `tool_page_viewed` with `visit` and `tool_first_edit`; every arrival is counted, with `source`; later events carry the source of their file. A first attempt that stopped counting restores was reverted the same day. | A restore is real usage and dropping it also dropped recent-tile opens and hand-offs, which arrive the same way. Shlomi's call: count everything, label the intent. `visit` is a coarse bucket worked out on the device, not an identity: it links no event to another, so it stays inside the privacy boundary above. Counts before this date have no source or visit and are not comparable stage for stage. |
+| 2026-10-21 | Background builds no longer count as started or ready in Compress and Compress Image (DEBT-59). Split already counted taps only since DEBT-46 (its 11 Oct numbers predate that deploy); PDF to Image, Image to PDF, Unlock and Protect were audited and already count taps only. | Days with more results ready than files opened (Compress 8 Oct: 3 opened, 16 ready) were background builds after each option change; read per page load the funnel was sound every day. Same model as Merge and Split. |
