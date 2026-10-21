@@ -118,3 +118,78 @@
     padding-inline: 1.5rem;
   }
 }
+
+/* Finish pattern shared with Sign and Redact (Shlomi, 2026-10-21): the sheet
+   holds one compact, flat 44px row instead of three stacked call-to-actions.
+   Scoped here on purpose; the shell's primary-action, download and share
+   looks stay as other tools use them. */
+.edit-sheet > button {
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.edit-sheet > button:hover:not(:disabled),
+.edit-sheet > button:active:not(:disabled) {
+  box-shadow: none;
+  transform: none;
+}
+
+.finish-pair {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.finish-download,
+.finish-share {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.finish-download {
+  color: var(--color-surface);
+  background: var(--color-primary);
+}
+
+.finish-download:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.finish-share {
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+}
+
+.finish-share:hover {
+  color: var(--color-surface);
+  background: var(--color-primary);
+}
+
+.finish-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
