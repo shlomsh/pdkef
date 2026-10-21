@@ -74,10 +74,10 @@ export function usePdfShare() {
     sharingRef.current = true;
 
     try {
-      await navigator.share({
-        title: preparedFiles.length === 1 ? preparedFiles[0].name : `${preparedFiles.length} files`,
-        files: preparedFiles,
-      });
+      // Files only. iOS Safari turns `title`/`text`/`url` into an extra item, so
+      // Save to Files writes a stray "text" file beside the PDF (DEBT-60); the
+      // sheet's preview row comes from the file itself.
+      await navigator.share({ files: preparedFiles });
       return { status: 'shared' };
     } catch (error) {
       // expected: the error is returned to the caller in the result, not discarded
