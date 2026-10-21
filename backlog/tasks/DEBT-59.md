@@ -1,10 +1,9 @@
 ---
 id: "DEBT-59"
 title: "Background builds count as started and ready, so completed outruns opened"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -26,3 +25,10 @@ load (`once:`) the funnel is sound on every one of those days; the extra is runs
 - Every other tool audited for the same pattern, and fixed where found.
 - A unit test per tool, red before the change: option changes with no tap send neither event.
 - ANALYTICS.md change-log row.
+
+## Outcome (2026-10-21)
+
+Compress and Compress Image count started and ready on a tap only. Split was already correct since
+DEBT-46 (its 11 Oct numbers predate that deploy); PDF to Image, Image to PDF, Unlock and Protect were
+audited and already count taps only. Verified on a production build: two option changes sent no
+started or ready, each Download tap sent one of each.
