@@ -62,6 +62,8 @@ export interface DocumentationShellMessages {
   lastUpdated: string;
   /** Shown on Sign/Redact tool pages, invites the visitor to test offline. */
   airplaneModeNotice: string;
+  /** SEO-46: the visible rating line on a tool page that has one. `{average}` and `{count}` are filled with the same numbers the JSON-LD carries; the numbers are never translated. */
+  ratingLine: string;
   /** The home page's own accessible names: the brand link when it is not a
    * back link (`homeAriaLabel` is the tool-page wording), the tool dock's
    * <nav> and the offline-install tab list. */
@@ -126,6 +128,7 @@ const englishMessages = {
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
+  ratingLine: '{average} from {count} ratings',
   homepageAriaLabel: 'PDkef homepage',
   toolDockAriaLabel: 'PDF tools',
   installGuidesAriaLabel: 'Device installation guides',
@@ -168,6 +171,7 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
+  ratingLine: '{count} דירוגים, ממוצע {average}',
   heroAccent: 'אצלכם במכשיר',
   homepageAriaLabel: 'דף הבית של PDkef',
   toolDockAriaLabel: 'כלי PDF',
@@ -213,6 +217,7 @@ const indonesianMessages = {
   inEnglish: 'dalam bahasa Inggris',
   lastUpdated: 'Terakhir diperbarui',
   airplaneModeNotice: 'Aktifkan mode pesawat dan coba sendiri. Tetap berfungsi.',
+  ratingLine: '{average} dari {count} penilaian',
   homepageAriaLabel: 'Beranda PDkef',
   toolDockAriaLabel: 'Alat PDF',
   installGuidesAriaLabel: 'Panduan instalasi per perangkat',

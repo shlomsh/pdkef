@@ -105,12 +105,16 @@ for (const file of htmlFiles) {
   const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
   let hasSoftwareApp = false;
   let faqSchema = null;
+  let softwareAppData = null;
   let organizationSchema = null;
 
   for (const script of jsonLdScripts) {
     try {
       const data = JSON.parse(script.textContent);
-      if (data['@type'] === 'SoftwareApplication') hasSoftwareApp = true;
+      if (data['@type'] === 'SoftwareApplication') {
+        hasSoftwareApp = true;
+        softwareAppData = data;
+      }
       if (data['@type'] === 'FAQPage') faqSchema = data;
       if (data['@type'] === 'Organization') organizationSchema = data;
     } catch (e) {
@@ -135,6 +139,24 @@ for (const file of htmlFiles) {
   // 5. SoftwareApplication schema is expected on all main pages except licenses
   if (!hasSoftwareApp && !relPath.includes('licenses')) {
     error(`Missing SoftwareApplication JSON-LD`);
+  }
+
+  // 5b. SEO-46: aggregateRating is never required, but when a page carries one it must be a real
+  // one: at least 50 votes, a value in 1..5, and the visible badge must show the same numbers.
+  const agg = softwareAppData && softwareAppData.aggregateRating;
+  if (agg) {
+    const value = Number(agg.ratingValue);
+    const count = Number(agg.ratingCount);
+    if (!(count >= 50)) error(`aggregateRating ratingCount ${agg.ratingCount} is under the 50-vote minimum`);
+    if (!(value >= 1 && value <= 5)) error(`aggregateRating ratingValue ${agg.ratingValue} is outside 1..5`);
+    const badge = document.querySelector('[data-rating]');
+    const text = badge ? badge.textContent : '';
+    if (!badge) error('aggregateRating without a visible [data-rating] badge');
+    else if (!text.includes(String(agg.ratingValue)) || !text.includes(String(agg.ratingCount))) {
+      error(`rating badge "${text.trim()}" does not show ${agg.ratingValue} and ${agg.ratingCount}`);
+    }
+  } else if (document.querySelector('[data-rating]')) {
+    error('visible [data-rating] badge without aggregateRating JSON-LD');
   }
 
   // 6. FAQ schema matches on-page FAQ

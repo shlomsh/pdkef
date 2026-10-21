@@ -21,6 +21,7 @@ import OfflineProof from '../components/OfflineProof.astro';
 import LocalePackRequest from '../components/LocalePackRequest.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
+import { ratingForPage, ratingText } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
 
 interface Variant {
@@ -78,6 +79,8 @@ const alternates = Astro.props.alternates ?? resolved.alternates;
 const variants = Astro.props.variants ?? resolved.variants;
 // Sign and Redact are the editors. They share the desktop first screen of the page-grid tools (HERO-05),
 // but only on an empty desktop stage (see `data-editor` below).
+// SEO-46: a real aggregate from the build-time read, or null (offline build, store down, under the minimum).
+const rating = await ratingForPage(tool.slug);
 const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
@@ -95,7 +98,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   socialImageAlt={messages.socialImageAlt}
 >
   <Fragment slot="head">
-    <SeoSchema name={tool.schemaName} description={tool.seoDescription} faq={tool.faq} />
+    <SeoSchema name={tool.schemaName} description={tool.seoDescription} faq={tool.faq} rating={rating} />
 
     {/* Pre-collapses the marketing hero (see ToolHero.astro) for a returning
         visitor who has a saved Sign/Redact draft, before the async IndexedDB
@@ -562,6 +565,12 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       the translated subhead, aboutLead and FAQ (see he/sign.yaml). Revisit
       once the card itself has a reviewed translation. */}
   {tool.languages && locale === 'en' && <ToolLanguagesCard languages={tool.languages} />}
+
+  {rating && (
+    <p data-rating class="mx-auto mb-4 w-full max-w-[1080px] px-6 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)]">
+      {ratingText(messages.ratingLine, rating)}
+    </p>
+  )}
 
   <ToolAboutCard
     icon={tool.icon}
