@@ -55,6 +55,7 @@ import type { ActionHistoryEntry, HistoryPlace, PlaceHistoryEntry } from '../../
 import {
   initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
   canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces, selectDetailEdits,
+  type SavedExport,
 } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
@@ -874,11 +875,11 @@ export default function PdfRedactTool() {
     return reexport(commit, { details: state.edits.details });
   };
 
-  const handleSavePdf = async (exportAction = 'download', overrides: ExportOverrides = {}): Promise<boolean> => {
-    if (!file) return false;
+  const exportRedacted = async (exportAction: 'download' | 'share' | 'handoff' = 'download', overrides: ExportOverrides = {}): Promise<SavedExport | null> => {
+    if (!file) return null;
     if (elements.length === 0) {
       setAnnouncement('Draw a box or delete something first.');
-      return false;
+      return null;
     }
 
     const hasBoxes = elements.some((el) => el.type !== 'delete');
@@ -917,14 +918,18 @@ export default function PdfRedactTool() {
         finish: (doc) => removePlaces(doc, places as SavedPlace[]),
         details: overrides.details ?? selectDetailEdits(state),
       });
-      if (!run.isCurrent()) return false;
+      if (!run.isCurrent()) return null;
       run.settle();
       const filename = redactedFileName(sourceFile.name);
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
-      dispatch({ type: 'EXPORT_SAVED', saved: { blob: redactedBlob, name: filename } });
+      const saved = { blob: redactedBlob, name: filename };
+      dispatch({ type: 'EXPORT_SAVED', saved });
 
-      if (exportAction === 'share' && prepare(redactedBlob, filename)) {
+      if (exportAction === 'handoff') {
+        // The chips want the file, not a download: make it, keep it, deliver nothing.
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Ready to hand off.' });
+      } else if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       } else {
@@ -933,7 +938,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       }
-      return true;
+      return saved;
     } catch (err) {
       reportError('redact', err, 'export');
       console.error(err);
@@ -945,12 +950,12 @@ export default function PdfRedactTool() {
         run.settle();
         setNeedsUnlock('owner-restricted');
         dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: 'This PDF is protected.' });
-        return false;
+        return null;
       }
       // A failure nobody is waiting for any more: the invalidation effect has
       // already put the editor back, and reporting it would blame the user's
       // current boxes for a run they replaced.
-      if (!run.isCurrent()) return false;
+      if (!run.isCurrent()) return null;
       run.settle();
       reportToolLifecycleEvent('tool_operation_failed', 'redact');
       // Recoverable: keep the workspace mounted so the boxes that caused the
@@ -959,9 +964,15 @@ export default function PdfRedactTool() {
       // failed document load, which never gets this far).
       const detail = 'Could not export the PDF. Your edits are still here. Try again.';
       dispatch({ type: 'EXPORT_FAILED', detail, announcement: `The download stopped. ${detail}` });
-      return false;
+      return null;
     }
   };
+
+  // The export Download, Share and the hand-off chips all run: makes the redacted file
+  // and keeps it as exportedForHandoff. Saving it to the device is exportRedacted's
+  // delivery step, chosen by exportAction, so a hand-off never triggers a download.
+  const handleSavePdf = async (exportAction: 'download' | 'share' = 'download', overrides: ExportOverrides = {}): Promise<boolean> =>
+    (await exportRedacted(exportAction, overrides)) !== null;
 
   // Skips regenerating the redacted PDF when a Share-prepared file already
   // matches the current elements (usePdfShare.downloadPrepared - cleared
@@ -990,24 +1001,26 @@ export default function PdfRedactTool() {
     }
   };
 
-  // Finding #4: hands the exported redacted bytes to Compress without
+  // Finding #4: hands the redacted bytes to Compress or Sign without
   // re-picking, the same one-shot baton Merge's own hand-off uses
   // (draftStore.js's saveHandoff/takeHandoff, consumed on the other end by
   // useHandoffIntake.ts) - reused here rather than copied, since Redact is
   // a tool and cannot import another tool's PdfMergeTool.tsx (module
-  // boundaries). Disabled until exportedForHandoff exists (an export has
-  // actually succeeded), mirroring Merge's own `prepared.status !== 'ready'`
-  // gate on its hand-off buttons.
+  // boundaries). The chips show whenever Download is enabled: an export that
+  // still matches the document (any edit drops it) is handed on as is, else
+  // the same export Download runs is made first, without saving it to the device.
   const requestHandoff = async (tool: 'compress' | 'sign') => {
-    if (handoffBusy || !exportedForHandoff) return;
+    if (handoffBusy) return;
     setHandoffBusy(true);
     dispatch({ type: 'HANDOFF_STARTED' });
     try {
+      const exported = exportedForHandoff ?? await exportRedacted('handoff');
+      if (!exported) throw new Error('export');
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const saved = await saveHandoff(tool, {
-        fileName: exportedForHandoff.name,
+        fileName: exported.name,
         fileType: 'application/pdf',
-        fileBytes: await exportedForHandoff.blob.arrayBuffer(),
+        fileBytes: await exported.blob.arrayBuffer(),
       });
       if (!saved) throw new Error('handoff');
       window.location.href = `/${tool}/`;

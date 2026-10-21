@@ -3506,11 +3506,11 @@ describe('PdfRedactTool UI flow', () => {
         });
 
         // Two boxes are on the page; the blob that just resolved has one.
-        // Nothing may offer it: no download, and no "Compress" hand-off
-        // armed with bytes that are missing the box already restored.
+        // Nothing may offer it: no download, and no saved state kept for the
+        // hand-off with bytes that are missing the box already restored (the
+        // chips still show, but a tap makes a fresh export).
         expect(createObjectURL).not.toHaveBeenCalled();
-        expect(Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
-          .find((button) => button.textContent.includes('Compress'))).toBeUndefined();
+        expect(container.textContent).not.toContain('Saved redacted_');
 
         // Dropping the export still has to hand the editor back.
         expect(query(container, `.${workspaceStyles.workspace}`)

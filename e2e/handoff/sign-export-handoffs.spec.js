@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 
-/* Shlomi 2026-10-20: under Sign's Download/Share pair, once a signed export
-   exists, "Compress it" and "Redact it" carry that file on (Merge's done
-   state is the model). They show only for the export of the document as it
-   stands: any further edit retires them, so a stale file is never handed on. */
+/* Shlomi 2026-10-21: under Sign's Download/Share pair, "Compress it" and
+   "Redact it" show whenever export is ready (the same moment Download is
+   enabled and something is placed), a restored draft included, and carry the
+   signed file on without a download first. */
 
 async function makeFixture() {
   const doc = await PDFDocument.create();
@@ -36,17 +36,12 @@ async function dragBox(page, pageArea, from, to) {
   await page.mouse.up();
 }
 
-test('after a signed download, Compress it and Redact it carry the file on', async ({ page }) => {
+test('Compress it and Redact it show once export is ready, and carry the file on without a download', async ({ page }) => {
   const pageArea = await openAndWhiteout(page);
-  await dragBox(page, pageArea, [0.3, 0.3], [0.6, 0.4]);
   await expect(page.getByRole('button', { name: 'Compress it' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Redact it' })).toHaveCount(0);
 
-  const completion = page.locator('[class*="export-actions"]').last();
-  const downloaded = page.waitForEvent('download');
-  await completion.getByRole('button', { name: 'Download', exact: true }).click();
-  await downloaded;
-
+  await dragBox(page, pageArea, [0.3, 0.3], [0.6, 0.4]);
   const compress = page.getByRole('button', { name: 'Compress it' });
   const redact = page.getByRole('button', { name: 'Redact it' });
   await expect(compress).toBeVisible();
@@ -60,17 +55,15 @@ test('after a signed download, Compress it and Redact it carry the file on', asy
   await expect(page.getByText(/^signed_/).first()).toBeVisible();
 });
 
-test('another edit after the download retires the hand-offs', async ({ page }) => {
+test('a restored draft shows the hand-offs with no action', async ({ page }) => {
   const pageArea = await openAndWhiteout(page);
   await dragBox(page, pageArea, [0.3, 0.3], [0.6, 0.4]);
-  const completion = page.locator('[class*="export-actions"]').last();
-  const downloaded = page.waitForEvent('download');
-  await completion.getByRole('button', { name: 'Download', exact: true }).click();
-  await downloaded;
-  await expect(page.getByRole('button', { name: 'Compress it' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Redact it' })).toBeVisible();
 
-  await page.locator('[role="toolbar"]').first().getByRole('button', { name: 'Whiteout', exact: true }).click();
-  await dragBox(page, pageArea, [0.3, 0.75], [0.6, 0.9]  /* below the floating toolbar */);
-  await expect(page.getByRole('button', { name: 'Compress it' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Redact it' })).toHaveCount(0);
+  // The draft save is debounced; reloading before it lands restores the file with no work on it,
+  // where no chips is the right answer.
+  await expect(page.getByText('Draft saved').first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Compress it' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Redact it' })).toBeVisible();
 });
