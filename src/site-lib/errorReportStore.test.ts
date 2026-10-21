@@ -162,23 +162,33 @@ describe('usage commands', () => {
     ]);
   });
 
-  it('a first event also counts its once field, before the expiry', () => {
+  it('a first event also counts its pg field, before the expiry', () => {
     const event = { name: 'tool_operation_failed', properties: { tool: 'redact', first: true } } as const;
     expect(usageCommands(event, '2026-10-01')).toEqual([
       ['HINCRBY', 'usage:2026-10-01', 'tool_operation_failed|redact', 1],
-      ['HINCRBY', 'usage:2026-10-01', 'once:tool_operation_failed|redact', 1],
+      ['HINCRBY', 'usage:2026-10-01', 'pg:tool_operation_failed|redact|-|-|-|-', 1],
       ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
     ]);
   });
 
-  it('a first event with nav also counts how its page load started (DEBT-57)', () => {
-    const event = { name: 'tool_file_accepted', properties: { tool: 'redact', build: '7636880', first: true, nav: 'reload' } } as const;
+  it('a first event with nav, source and visit carries them in the one pg field (DEBT-58)', () => {
+    const event = { name: 'tool_file_accepted', properties: { tool: 'redact', build: '7636880', first: true, nav: 'reload', source: 'handoff', from: 'merge' } } as const;
     expect(usageCommands(event, '2026-10-01')).toEqual([
-      ['HINCRBY', 'usage:2026-10-01', 'tool_file_accepted|redact|7636880', 1],
-      ['HINCRBY', 'usage:2026-10-01', 'once:tool_file_accepted|redact|7636880', 1],
-      ['HINCRBY', 'usage:2026-10-01', 'nav:tool_file_accepted|redact|reload', 1],
+      ['HINCRBY', 'usage:2026-10-01', 'tool_file_accepted|redact|7636880|handoff', 1],
+      ['HINCRBY', 'usage:2026-10-01', 'pg:tool_file_accepted|redact|handoff|merge|reload|-', 1],
       ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
     ]);
+  });
+
+  it('a page view carries its visit in pg, and a later event with a source adds no pg field', () => {
+    const view = { name: 'tool_page_viewed', properties: { tool: 'sign', first: true, visit: 'week' } } as const;
+    expect(usageCommands(view, '2026-10-01').map((c) => c[2])).toEqual([
+      'tool_page_viewed|sign',
+      'pg:tool_page_viewed|sign|-|-|-|week',
+      90 * 24 * 60 * 60,
+    ]);
+    const later = { name: 'tool_result_ready', properties: { tool: 'sign', source: 'restore' } } as const;
+    expect(usageCommands(later, '2026-10-01').map((c) => c[2])).toEqual(['tool_result_ready|sign|-|restore', 90 * 24 * 60 * 60]);
   });
 });
 

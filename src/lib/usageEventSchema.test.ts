@@ -7,7 +7,6 @@ import {
   parseUsageEvent,
   NAVIGATION_TYPES,
   usageEventField,
-  usageOnceField,
   usagePageField,
   FILE_SOURCES,
   VISITS,
@@ -51,9 +50,6 @@ describe('the first flag', () => {
   });
   it.each([false, 'true', 1, null])('rejects first: %s', (value) => {
     expect(parseUsageEvent({ ...first, properties: { tool: 'redact', first: value } })).toBeNull();
-  });
-  it('has a once field that shares the event field spelling', () => {
-    expect(usageOnceField(parseUsageEvent(first)!)).toBe('once:tool_operation_failed|redact');
   });
 });
 

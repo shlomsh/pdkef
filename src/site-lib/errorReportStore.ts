@@ -3,12 +3,12 @@
 // how much of a user agent survives. Nothing here does I/O.
 import { MAX_REPORT_BYTES, dropRecordField, type DropRecord, type ErrorReport } from '../lib/errorReportSchema.js';
 import { maintenanceEventField, type MaintenanceEvent } from '../lib/maintenanceEventSchema.js';
-import { usageEventField, usageNavField, usageOnceField, type UsageEvent } from '../lib/usageEventSchema.js';
+import { usageEventField, usagePageField, type UsageEvent } from '../lib/usageEventSchema.js';
 
 /**
  * Reports, drop records and Sign events counted per UTC day; past it the day is full. Budget: the
  * cap step is one INCR, and the day's first count adds one EXPIRE on the total. A report then costs
- * 5 commands, a Sign event or drop record 3, a usage event 3 (4 when it is a page's first of its kind, DEBT-48), a reject 3, and anything past a cap 1.
+ * 5 commands, a Sign event or drop record 3, a usage event 3 (4 when it is a page's first of its kind: its pg field, DEBT-58, which also does what the once and nav fields of DEBT-48/57 did), a reject 3, and anything past a cap 1.
  * Drops share the 1000 cap, so the worst case of the error path is still 1000 x 5. Counted traffic
  * tops out near 1000 x 5 + 2400 x 4 + 200 x 3 = 15.2K commands a day (about 456K a month), inside
  * Upstash Free's 500K with room for reads. Raise any cap only with that sum in view. Past the cap each request still costs 1 command until an instance caches the cap; the
@@ -111,13 +111,12 @@ export function usageCapCommands(day: string): Command[] {
   return [['INCR', usageTotalKey(day)]];
 }
 
-/** Second step for a usage event: a count per day and tool event, no sample; a first event adds its page-load counts. */
+/** Second step for a usage event: a count per day and tool event, no sample; a first event adds its page-load (pg) count. */
 export function usageCommands(event: UsageEvent, day: string): Command[] {
-  const nav = usageNavField(event);
+  const page = usagePageField(event);
   return [
     ['HINCRBY', `usage:${day}`, usageEventField(event), 1],
-    ...(event.properties.first ? [['HINCRBY', `usage:${day}`, usageOnceField(event), 1] as const] : []),
-    ...(nav ? [['HINCRBY', `usage:${day}`, nav, 1] as const] : []),
+    ...(page ? [['HINCRBY', `usage:${day}`, page, 1] as const] : []),
     ['EXPIRE', `usage:${day}`, TTL_SECONDS],
   ];
 }

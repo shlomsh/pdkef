@@ -159,12 +159,9 @@ export function usageEventField(event: UsageEvent): string {
   return build ? `${event.name}|${tool}|${build}` : `${event.name}|${tool}`;
 }
 
-/** The page-load counter beside an event's run counter: `once:tool_result_ready|merge`. Readers skip it as a run. */
-export const usageOnceField = (event: UsageEvent): string => `once:${usageEventField(event)}`;
-
 /**
  * Everything about a page load's first event of its kind, in one counter so it costs one command
- * (DEBT-58, replacing DEBT-57's `nav:` field): `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`,
+ * (DEBT-58, replacing DEBT-48's `once:` and DEBT-57's `nav:` fields, which older days still hold): `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`,
  * `-` for each one absent. Undefined on an event that is not `first`.
  */
 export const usagePageField = (event: UsageEvent): string | undefined => {

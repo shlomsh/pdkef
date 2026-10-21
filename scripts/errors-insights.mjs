@@ -91,7 +91,7 @@ const EVENT_KEY = {
 
 const emptyTotals = () => ({ accepted: 0, started: 0, ready: 0, failed: 0 });
 
-// A usage field is `event|tool` or `event|tool|build`; both count toward the tool. `once:` fields
+// A usage field is `event|tool`, `event|tool|build` or with a source after the build; all count toward the tool. `once:` fields
 // count page loads, not runs, and are left to errors-read.
 function sumByTool(days) {
   const m = new Map();
@@ -159,9 +159,12 @@ export function pageStartsByTool(perDay, windowDays) {
   const tools = new Map();
   for (const d of perDay.slice(0, windowDays)) {
     for (const [field, count] of d.usage) {
-      if (!field.startsWith('nav:tool_file_accepted|') || !(count > 0)) continue;
-      const [, tool, nav] = field.slice(4).split('|');
-      if (!tool || !nav) continue;
+      if (!(count > 0)) continue;
+      // Older days: `nav:<event>|<tool>|<nav>`; since DEBT-58 the nav rides in `pg:<event>|<tool>|<source>|<from>|<nav>|<visit>`.
+      let tool, nav;
+      if (field.startsWith('nav:tool_file_accepted|')) [, tool, nav] = field.slice(4).split('|');
+      else if (field.startsWith('pg:tool_file_accepted|')) [, tool, , , nav] = field.slice(3).split('|');
+      if (!tool || !nav || nav === '-') continue;
       const types = tools.get(tool) ?? new Map();
       types.set(nav, (types.get(nav) ?? 0) + count);
       tools.set(tool, types);
@@ -177,7 +180,9 @@ export function failuresByBuild(perDay, windowDays) {
   const tools = new Map();
   for (const d of perDay.slice(0, windowDays)) {
     for (const [field, count] of d.usage) {
-      const [event, tool, build] = field.split('|');
+      if (/^(once|pg|nav):/.test(field)) continue;
+      const [event, tool, rawBuild] = field.split('|'); // the 4th part, a source, is never a build
+      const build = rawBuild === '-' ? undefined : rawBuild;
       if (event !== 'tool_operation_failed' || !tool || !(count > 0)) continue;
       const builds = tools.get(tool) ?? new Map();
       builds.set(build ?? 'unstamped', (builds.get(build ?? 'unstamped') ?? 0) + count);
