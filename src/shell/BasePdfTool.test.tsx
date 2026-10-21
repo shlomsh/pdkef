@@ -6,7 +6,12 @@ import BasePdfTool from './BasePdfTool.tsx';
 import styles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import { reportToolLifecycleEvent } from '../lib/productAnalytics.ts';
+import { markArrival } from '../lib/fileArrival.ts';
 import { setInputFiles } from '../test/setInputFiles.js';
+
+vi.mock('../lib/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
+vi.mock('../lib/fileArrival.ts', () => ({ markArrival: vi.fn() }));
 
 vi.mock('../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
@@ -687,6 +692,90 @@ describe('BasePdfTool', () => {
       const zone = container.querySelector('[data-empty-state]');
       expect(zone.querySelector('[data-testid="verb"]')).not.toBeNull();
       expect(zone.querySelector(`.${styles['dropzone-icon']}`)).toBeNull();
+    });
+  });
+
+  describe('funnel events (DEBT-58)', () => {
+    const calls = (name) => reportToolLifecycleEvent.mock.calls.filter(([n]) => n === name);
+    afterEach(() => {
+      vi.clearAllMocks();
+      markArrival.mockReset();
+    });
+
+    it('sends tool_page_viewed once on mount', () => {
+      mount({ hasFiles: false, onFilesAdded: vi.fn(), analyticsTool: 'sign' });
+      expect(calls('tool_page_viewed')).toEqual([['tool_page_viewed', 'sign']]);
+      act(() => render(<BasePdfTool hasFiles={false} onFilesAdded={vi.fn()} analyticsTool="sign" />, container));
+      expect(calls('tool_page_viewed')).toHaveLength(1);
+    });
+
+    it('marks pick before onFilesAdded runs', () => {
+      const order = [];
+      markArrival.mockImplementation((s) => order.push(`mark:${s}`));
+      mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
+      selectFile(container.querySelector('input[type="file"]'));
+      expect(order).toEqual(['mark:pick', 'added']);
+    });
+
+    it('marks drop before onFilesAdded runs', () => {
+      const order = [];
+      markArrival.mockImplementation((s) => order.push(`mark:${s}`));
+      mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
+      act(() => {
+        container.querySelector(`.${styles.dropzone}`).dispatchEvent(fileDragEvent('drop'));
+      });
+      expect(order).toEqual(['mark:drop', 'added']);
+    });
+
+    it('marks paste before onFilesAdded runs', () => {
+      const order = [];
+      markArrival.mockImplementation((s) => order.push(`mark:${s}`));
+      mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
+      const file = new File([''], 'p.pdf', { type: 'application/pdf' });
+      const event = new Event('paste', { bubbles: true, cancelable: true });
+      event.clipboardData = { files: [file], items: [{ kind: 'file', getAsFile: () => file }], types: ['Files'] };
+      act(() => {
+        document.body.dispatchEvent(event);
+      });
+      expect(order).toEqual(['mark:paste', 'added']);
+    });
+
+    it('marks replace for any gesture when a single-file tool already holds a file', () => {
+      const onFilesAdded = vi.fn();
+      mount({ hasFiles: true, multiple: false, onFilesAdded, analyticsTool: 'sign' });
+      act(() => {
+        container.querySelector('[data-tool-loaded]').dispatchEvent(fileDragEvent('drop'));
+      });
+      act(() => dialogButton(dialogNamed(container, 'confirm-replace-title'), 'Replace file').click());
+      expect(onFilesAdded).toHaveBeenCalledTimes(1);
+      expect(markArrival.mock.calls).toEqual([['replace']]);
+    });
+
+    it('keeps a multi-file tool on the gesture source', () => {
+      mount({ hasFiles: true, multiple: true, onFilesAdded: vi.fn(), analyticsTool: 'merge' });
+      selectFile(container.querySelector('input[type="file"]'));
+      expect(markArrival.mock.calls).toEqual([['pick']]);
+    });
+
+    it('sends one tool_file_accepted when the file changes while loaded, none for the same file', () => {
+      const a = new File([''], 'a.pdf');
+      const b = new File([''], 'b.pdf');
+      const props = { hasFiles: true, multiple: false, onFilesAdded: vi.fn(), analyticsTool: 'sign' };
+      mount({ ...props, file: a });
+      expect(calls('tool_file_accepted')).toHaveLength(1);
+      const rerender = (file) => act(() => render(<BasePdfTool {...props} file={file} />, container));
+      rerender(a);
+      expect(calls('tool_file_accepted')).toHaveLength(1);
+      rerender(b);
+      expect(calls('tool_file_accepted')).toHaveLength(2);
+    });
+
+    it('a restore sends one accepted and marks nothing', () => {
+      const props = { onFilesAdded: vi.fn(), analyticsTool: 'sign', multiple: false };
+      mount({ ...props, hasFiles: false, checkingDraft: true });
+      act(() => render(<BasePdfTool {...props} hasFiles={true} checkingDraft={false} file={new File([''], 'r.pdf')} />, container));
+      expect(calls('tool_file_accepted')).toHaveLength(1);
+      expect(markArrival).not.toHaveBeenCalled();
     });
   });
 });

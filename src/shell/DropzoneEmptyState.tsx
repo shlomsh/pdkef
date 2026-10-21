@@ -10,7 +10,7 @@ interface DropzoneEmptyStateProps {
   accept?: string;
   message?: string;
   inputRef?: Ref<HTMLInputElement>;
-  onFiles: (files: File[] | FileList) => void;
+  onFiles: (files: File[] | FileList, source?: 'pick' | 'drop') => void;
   messages?: ShellMessages;
   /** MOBI-09: opt-in only (the Sign tool page sets this; every other
    * BasePdfTool caller leaves it unset). Whether the notice actually shows
@@ -94,10 +94,10 @@ export default function DropzoneEmptyState({
     // MERGE-10: a dropped folder yields its files (walked, sorted by name);
     // a plain drop keeps the synchronous path.
     if (dropHasDirectory(event.dataTransfer)) {
-      void filesFromDataTransfer(event.dataTransfer).then(onFiles);
+      void filesFromDataTransfer(event.dataTransfer).then((files) => onFiles(files, 'drop'));
       return;
     }
-    onFiles(event.dataTransfer.files);
+    onFiles(event.dataTransfer.files, 'drop');
   };
 
   return (
