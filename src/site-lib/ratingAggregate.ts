@@ -32,6 +32,9 @@ export function summarize(counts: StarCounts, min: number = RATING_MIN_VOTES): R
  * Page slug -> the rating tools whose votes it shows. Unlock and Protect share one page
  * (/unlock/), so their votes are pooled; a slug not listed here (none today) gets no rating.
  */
+// No @types/node in this repo; the build provides process.env.
+declare const process: { env: Record<string, string | undefined> };
+
 export const RATING_TOOLS_BY_PAGE: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   RATING_TOOLS.map((t) => [t, [t]]),
 );
@@ -65,6 +68,7 @@ export async function loadRatings(
     }
     return out;
   } catch {
+    // expected: no store, no network or a slow one means a build with no ratings, never a failed build
     return {};
   }
 }

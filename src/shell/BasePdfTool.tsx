@@ -15,6 +15,7 @@ import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
+import RatingPrompt, { useDownloaded } from './RatingPrompt.tsx';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
 
 /* Splits a formatted sentence on the \u0000key\u0000 markers left in place of
@@ -101,6 +102,8 @@ interface BasePdfToolProps {
  * between tools is declared here as configuration - one file or many, what work
  * a replacement would cost - not re-implemented per tool.
  */
+const OWN_RATING_TOOLS: ReadonlySet<AnalyticsTool> = new Set(['sign', 'redact', 'merge']);
+
 export default function BasePdfTool({
   hasFiles,
   onFilesAdded,
@@ -143,6 +146,7 @@ export default function BasePdfTool({
   hideIdentity = false,
   dropAnywhere = true,
 }: BasePdfToolProps) {
+  const downloaded = useDownloaded();
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
@@ -473,6 +477,10 @@ export default function BasePdfTool({
       )}
 
       {children}
+
+      {/* SEO-46: the once-per-device rating ask, under whatever the tool's done state shows.
+          Sign, Redact and Merge mount their own beside their hand-offs. */}
+      {analyticsTool && !OWN_RATING_TOOLS.has(analyticsTool) && <RatingPrompt tool={analyticsTool} downloaded={downloaded} messages={sm} />}
 
       {/* MEM-03: replacing a single loaded file always asks now - not to
           protect work about to be lost (nothing is; the current file moves

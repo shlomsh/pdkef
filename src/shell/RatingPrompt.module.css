@@ -1,0 +1,67 @@
+/* --- Rating ask (SEO-46) ---
+   One quiet line below a finished download: the question, five stars, then a thanks line that
+   takes the same box so nothing moves when it swaps in. Tokens only. */
+.rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  margin-top: 1rem;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.question {
+  margin: 0;
+}
+
+.stars {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 0;
+}
+
+.star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.star svg {
+  fill: none;
+  stroke: currentColor;
+  transition: fill 0.12s var(--ease-out);
+}
+
+/* Fill the hovered star and every one before it (the stars are in DOM order); keyboard focus shows the ring. */
+.stars:hover .star svg {
+  fill: currentColor;
+}
+.stars .star:hover ~ .star svg {
+  fill: none;
+}
+
+.star:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .star {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+.thanks {
+  margin: 0;
+}

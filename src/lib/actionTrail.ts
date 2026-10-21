@@ -7,6 +7,7 @@
 import { ACTIONS, MAX_ACTIONS, type ActionName } from './errorReportSchema.ts';
 
 const trail: ActionName[] = [];
+const listeners = new Set<(name: ActionName) => void>();
 const KNOWN: ReadonlySet<string> = new Set(ACTIONS);
 
 /**
@@ -15,6 +16,13 @@ const KNOWN: ReadonlySet<string> = new Set(ACTIONS);
  */
 export function recordAction(name: ActionName): void {
   if (!KNOWN.has(name)) return; // a cast or untyped caller must not poison every report
+  for (const listener of listeners) {
+    try {
+      listener(name);
+    } catch {
+      // expected: a listener must never break the tool that recorded the action
+    }
+  }
   if (trail[trail.length - 1] === name) return;
   trail.push(name);
   if (trail.length > MAX_ACTIONS) trail.shift();
@@ -27,4 +35,10 @@ export function recentActions(): readonly ActionName[] {
 
 export function resetActionTrailForTests(): void {
   trail.length = 0;
+}
+
+/** Hears every recorded action, repeats included (SEO-46: the moment of a download). Returns the unsubscribe. */
+export function onAction(listener: (name: ActionName) => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }

@@ -1853,6 +1853,12 @@ export interface ShellMessages {
   /** Shown only once a file is added, and only when `src/lib/browserSupport.ts`
    * places the browser below what pdf.js needs. Never blocks the page. */
   oldBrowserNotice: string;
+  /** SEO-46: the quiet rating ask after a download (src/shell/RatingPrompt.tsx). */
+  ratingQuestion: string;
+  ratingThanks: string;
+  /** Aria label of one star button, e.g. "3 stars". */
+  ratingStarOne: string;
+  ratingStarOther: string;
 }
 
 const englishShellMessages: ShellMessages = {
@@ -1907,6 +1913,10 @@ const englishShellMessages: ShellMessages = {
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
   cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
   oldBrowserNotice: 'This tool needs {browser} {version} or newer to open PDFs. A quick update, or another browser, will do it.',
+  ratingQuestion: 'How did it go?',
+  ratingThanks: 'Thanks, that helps.',
+  ratingStarOne: '1 star',
+  ratingStarOther: '{count} stars',
 };
 
 const hebrewShellMessages: ShellMessages = {
@@ -1959,6 +1969,11 @@ const hebrewShellMessages: ShellMessages = {
   iosFilesHint: 'באייפון או אייפד, שתפו את קובץ ה-PDF ל-Files מתוך Mail, WhatsApp או כל אפליקציה אחרת, ואז לחצו על בחירת קובץ. הוא ייפתח בכרטיסיית "אחרונים" ב-Files, עם הקובץ ששמרתם הרגע למעלה.',
   cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
   oldBrowserNotice: 'כדי לפתוח קבצי PDF בכלי הזה צריך {browser} {version} ומעלה. עדכון קצר, או דפדפן אחר, יסדרו את זה.',
+  // TODO(SEO-46): AI draft, not reviewed copy - pending Shlomi's read-through.
+  ratingQuestion: 'איך היה?',
+  ratingThanks: 'תודה, זה עוזר.',
+  ratingStarOne: 'כוכב אחד',
+  ratingStarOther: '{count} כוכבים',
 };
 
 const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {
