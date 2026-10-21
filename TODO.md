@@ -6,11 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [DEBT-58](backlog/tasks/DEBT-58.md) P2 · A funnel that reads intent: visit, file in front, first edit, asked, got it (in progress)
-- [DEBT-59](backlog/tasks/DEBT-59.md) P2 · Background builds count as started and ready, so completed outruns opened (in progress)
-
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

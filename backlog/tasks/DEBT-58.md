@@ -1,10 +1,9 @@
 ---
 id: "DEBT-58"
 title: "A funnel that reads intent: visit, file in front, first edit, asked, got it"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -79,3 +78,15 @@ Background builds counted as started/ready (Compress, Split) are DEBT-59.
 - Later events carry the source of the file they are about.
 - `errors:read` prints the five stages per tool as page loads, by lane and by visit.
 - Unit tests red before each change; ANALYTICS.md carries the vocabulary and the dated row.
+
+## Outcome (2026-10-21)
+
+Shipped as specified. Verified on a production build in Chromium: page view (new, then today), pick,
+first edit once, reload as restore, edit after restore, recent tile, Compress taps, Unlock page view
+with no file. A fresh-context review found six defects; all six are fixed with red-first tests
+(restore marks only where it applies, Unlock/Protect page view on load, no stale marks from files
+joining a loaded list, Merge Undo continuing its file, no-op Redact updates, deploy-day counts).
+
+Two rare orderings stay as they are, both bounded to one mislabelled run: a Merge restore landing
+before a home-page hand-off in the same load counts the hand-off as an edit of the restored list, and
+a Download tapped while Compress is building, then an option change, leaves one started with no ready.
