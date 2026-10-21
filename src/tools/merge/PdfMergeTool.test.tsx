@@ -18,12 +18,13 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { hebrewMergeMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
-import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
+import { reportEdit, reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import { reportError } from '../../lib/errorReport.ts';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportToolLifecycleEvent: vi.fn(),
+  reportEdit: vi.fn(),
 }));
 vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -111,6 +112,7 @@ describe('PdfMergeTool UI flow', () => {
     mergeLib.mergePdfs.mockClear();
     mergeLib.inspectPdf.mockClear();
     reportToolLifecycleEvent.mockClear();
+    reportEdit.mockClear();
     reportError.mockClear();
     draftStore.saveHandoff.mockClear();
     draftStore.deleteDraft.mockClear();
@@ -473,6 +475,24 @@ describe('PdfMergeTool UI flow', () => {
     const lastCall = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(lastCall[0].map((f) => f.name)).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
     expect(lastCall[1].plan.map((p) => p.fileIndex)).toEqual([0, 0, 1, 1, 2, 2]);
+  });
+
+  it('DEBT-58: the first files arriving are not an edit; a remove and a later add are', async () => {
+    mount();
+    await loadFiles(['one.pdf', 'two.pdf']);
+    await settle();
+    expect(reportEdit).not.toHaveBeenCalled();
+
+    const removeBtns = container.querySelectorAll(`.${railStyles['file-remove']}`);
+    await act(async () => {
+      removeBtns[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(reportEdit).toHaveBeenCalledTimes(1);
+    expect(reportEdit).toHaveBeenCalledWith('merge');
+
+    reportEdit.mockClear();
+    await loadFiles(['three.pdf']);
+    expect(reportEdit).toHaveBeenCalledWith('merge');
   });
 
   it('a second undoable action 3s later restarts the 5s window, keeping the chip visible at 6s (wave 3)', async () => {

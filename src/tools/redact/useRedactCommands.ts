@@ -17,6 +17,7 @@ import {
   type ActionHistoryEntry,
   type ElementUpdate,
 } from '../../editor/model/actionHistory.ts';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 import type { EditCommit } from './state/redactState.ts';
 import { classifyElementUpdate, createUpdateEntry, type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 
@@ -104,6 +105,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       elements: additions.map((el, i) => captureAddedElement(el, baseIndex + i)),
     });
     commit({ edit: { kind: 'add', additions }, entry });
+    reportEdit('redact');
     if (options.undoChip) registerUndo(options.chipMessage ?? options.description, entry, options.undoExtra);
   };
 
@@ -118,6 +120,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       elements: snapshots,
     });
     commit({ edit: { kind: 'remove', ids }, entry });
+    reportEdit('redact');
     registerUndo(options.chipMessage ?? options.description, entry);
   };
 
@@ -132,6 +135,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
     const changes = perBox.find(({ id: boxId }) => boxId === id)?.changes ?? {};
     const primaryKind = options?.primary && primaryUpdateKind(element, options.primary);
     const describe = options?.describe ?? ((kind: ElementUpdateKind) => describeUpdate(primaryKind ?? kind, element));
+    reportEdit('redact');
     const entry = createUpdateEntry(element, changes, describe);
     if (!entry) {
       commit({ edit, entry: null });

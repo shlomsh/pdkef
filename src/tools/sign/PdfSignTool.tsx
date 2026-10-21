@@ -1065,6 +1065,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       emptyArt={<SignVerb />}
       onFilesAdded={handleFilesAdded}
       multiple={false}
+      // Editor-mode shell draws no preview; the shell uses it to count a replacement (DEBT-58).
+      file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null, shellMessages)}
       draftSaveState={draftSaveState}

@@ -643,6 +643,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
       // DEBT-28: a file in, then one started and one ready, nothing failed.
       expect(lifecycleSpy.mock.calls).toEqual([
+        ['tool_page_viewed', 'redact'],
         ['tool_file_accepted', 'redact'],
         ['tool_operation_started', 'redact'],
         ['tool_result_ready', 'redact'],
@@ -691,6 +692,7 @@ describe('PdfRedactTool UI flow', () => {
       // DEBT-31: the trigger is on the trail even though the export threw.
       expect(recentActions()).toContain('export');
       expect(lifecycleSpy.mock.calls).toEqual([
+        ['tool_page_viewed', 'redact'],
         ['tool_file_accepted', 'redact'],
         ['tool_operation_started', 'redact'],
         ['tool_operation_failed', 'redact'],

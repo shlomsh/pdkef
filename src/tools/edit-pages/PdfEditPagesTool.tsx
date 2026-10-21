@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { reportEdit } from '../../lib/productAnalytics.ts';
 import Sortable from 'sortablejs';
 import { editPages } from './editPages.js';
 import { loadPdfWithPages } from './loadPdfPages.ts';
@@ -62,7 +63,13 @@ export default function PdfEditPagesTool() {
   // routes its change through `commit`, whose updater always receives the
   // live present - never a ref or a snapshot taken earlier that could have
   // gone stale. See useEditHistory.js for why that matters.
-  const { present, canUndo, canRedo, commit, undo, redo, amend, reset } = useEditHistory(EMPTY_EDIT_STATE);
+  const { present, canUndo, canRedo, commit: commitEdit, undo, redo, amend, reset } = useEditHistory(EMPTY_EDIT_STATE);
+  // DEBT-58: every deliberate change to the pages (rotate, remove, move) passes through this one
+  // commit; loading, restoring and thumbnails use reset/amend instead, so they never count.
+  const commit = useCallback((updater: (current: EditState) => EditState) => {
+    commitEdit(updater);
+    reportEdit('edit-pdf');
+  }, [commitEdit]);
   const { pages, removedPageNums, rotations } = present as EditState;
 
   // Wire up SortableJS on the grid whenever pages are loaded
