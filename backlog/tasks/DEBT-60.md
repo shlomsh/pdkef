@@ -1,10 +1,9 @@
 ---
 id: "DEBT-60"
 title: "Share PDF > Save to Files writes a stray 'text' file beside the PDF"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -18,6 +17,8 @@ which passes `title` (the file name) alongside `files` to `navigator.share`.
 
 Done: the share call carries only what the sheet needs, a unit test pins the payload, and Save to Files
 on the Simulator shows 1 item.
+
+*Landed 2026-10-21 in 713bc6fc.*
 
 ## Notes
 
