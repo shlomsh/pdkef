@@ -17,10 +17,11 @@ import { setInputFiles } from '../../test/setInputFiles.js';
 import * as pdfjsDist from 'pdfjs-dist';
 import { hebrewSplitMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 
-const { lifecycleSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn() }));
+const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportToolLifecycleEvent: lifecycleSpy,
+  reportEdit: editSpy,
 }));
 
 function makePdfFile(name) {
@@ -983,6 +984,7 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
 
   beforeEach(() => {
     lifecycleSpy.mockClear();
+    editSpy.mockClear();
     resetActionTrailForTests();
   });
 
@@ -1024,6 +1026,19 @@ describe('PdfSplitTool usage events (DEBT-46)', () => {
     expect(primary().getAttribute('data-state')).toBe('ready');
     expect(events('tool_operation_started')).toBe(0);
     expect(events('tool_result_ready')).toBe(0);
+  });
+
+  it('reports an edit when the person changes a page or the mode, not on arrival (DEBT-58)', async () => {
+    await openFixture();
+    await wait(150);
+    expect(editSpy).not.toHaveBeenCalled();
+    await toggleFirstCell();
+    expect(editSpy).toHaveBeenCalledWith('split');
+    editSpy.mockClear();
+    const separate = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent === 'One PDF per page');
+    await act(async () => separate.click());
+    expect(editSpy).toHaveBeenCalledWith('split');
   });
 
   it('reports started then ready for a Download tap, again after a change', async () => {
