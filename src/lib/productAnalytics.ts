@@ -10,7 +10,9 @@
  */
 
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
-import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type ToolLifecycleEvent } from './usageEventSchema';
+import { resetFileArrivalForTests, takeArrival, type Arrival } from './fileArrival.ts';
+import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type ToolLifecycleEvent, type Visit } from './usageEventSchema';
+import { readAndStampVisit } from './visitRecency.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
 export {
@@ -27,9 +29,40 @@ let handedOff = 0;
 // `event|tool` pairs already handed off this page load; the next one of a pair is not `first`.
 const seen = new Set<string>();
 
+// The arrival of the file in front of the person (DEBT-58), and whether its first edit went out.
+let current: Arrival | undefined;
+let accepted = false;
+let editSent = false;
+// The visit bucket, read and stamped once per page load.
+let visit: { value: Visit | undefined } | null = null;
+
 export function resetUsageEventsForTests(): void {
   handedOff = 0;
   seen.clear();
+  current = undefined;
+  accepted = false;
+  editSent = false;
+  visit = null;
+  resetFileArrivalForTests();
+}
+
+function pageVisit(): Visit | undefined {
+  visit ??= { value: readAndStampVisit() };
+  return visit.value;
+}
+
+const SOURCE_EVENTS: readonly ToolLifecycleEvent[] = [
+  'tool_first_edit',
+  'tool_operation_started',
+  'tool_result_ready',
+  'tool_operation_failed',
+];
+
+/** The arrival properties an event carries: its own for an accepted file, the current one's source after. */
+function arrivalProps(event: ToolLifecycleEvent, arrival: Arrival | undefined): Partial<Arrival> {
+  if (!arrival) return {};
+  if (event === 'tool_file_accepted') return arrival;
+  return SOURCE_EVENTS.includes(event) ? { source: arrival.source } : {};
 }
 
 /** How this page load started, off the browser's navigation timing (DEBT-57); undefined when it names none on the list. */
@@ -50,10 +83,24 @@ export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: Analyt
     const pair = `${event}|${tool}`;
     const first = !seen.has(pair);
     const nav = first ? readNavigationType() : undefined;
+    const arrival = event === 'tool_file_accepted' ? takeArrival() : current;
+    const visitProp = event === 'tool_page_viewed' ? pageVisit() : undefined;
     const parsed = parseUsageEvent({
       name: event,
-      properties: { tool, ...(build ? { build } : {}), ...(first ? { first } : {}), ...(nav ? { nav } : {}) },
+      properties: {
+        tool,
+        ...(build ? { build } : {}),
+        ...(first ? { first } : {}),
+        ...(nav ? { nav } : {}),
+        ...arrivalProps(event, arrival),
+        ...(visitProp ? { visit: visitProp } : {}),
+      },
     });
+    if (event === 'tool_file_accepted') {
+      current = arrival;
+      accepted = true;
+      editSent = false;
+    }
     if (!parsed || handedOff >= MAX_USAGE_EVENTS_PER_PAGE) return;
     if (sendBeacon(parsed)) {
       handedOff += 1;
@@ -65,10 +112,13 @@ export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: Analyt
 }
 
 /**
- * DEBT-58 contract, implemented by the client brief: call on every committed, deliberate change to
+ * DEBT-58: call on every committed, deliberate change to
  * the loaded file (an element added, a page moved, an option changed); never from pointermove. Sends
- * `tool_first_edit` once per accepted file and is a no-op after, so call sites need no state.
+ * `tool_first_edit` once per accepted file and is a no-op after (and before any file is accepted),
+ * so call sites need no state.
  */
 export function reportEdit(tool: AnalyticsTool): void {
-  void tool;
+  if (!accepted || editSent) return;
+  editSent = true;
+  reportToolLifecycleEvent('tool_first_edit', tool);
 }

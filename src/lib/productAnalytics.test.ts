@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { markArrival } from './fileArrival.ts';
 import { setReportingEnabledForTests } from './errorReport.ts';
 import {
   MAX_USAGE_EVENTS_PER_PAGE,
+  reportEdit,
   reportToolLifecycleEvent,
   resetUsageEventsForTests,
   type AnalyticsTool,
@@ -109,5 +111,88 @@ describe('reportToolLifecycleEvent', () => {
     page(null);
     reportToolLifecycleEvent('tool_result_ready', 'merge');
     expect(JSON.parse(await (beacon.mock.calls[1]![1] as Blob).text()).properties).toEqual({ tool: 'merge' });
+  });
+});
+
+describe('the funnel (DEBT-58)', () => {
+  const store = (throws = false) => {
+    const m = new Map<string, string>();
+    return {
+      getItem: (k: string) => {
+        if (throws) throw new Error('blocked');
+        return m.get(k) ?? null;
+      },
+      setItem: (k: string, v: string) => void m.set(k, v),
+    };
+  };
+  const props = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).properties));
+
+  it('adds visit to the page view and stamps it once per page load', async () => {
+    const ls = store();
+    vi.stubGlobal('localStorage', ls);
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    const [a, b] = await props();
+    expect(a).toEqual({ tool: 'sign', first: true, visit: 'new' });
+    expect(b.visit).toBe('new');
+    expect(ls.getItem('pdkef:last-tool-visit')).not.toBeNull();
+  });
+
+  it('omits visit without storage', async () => {
+    vi.stubGlobal('localStorage', store(true));
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    expect((await props())[0]).toEqual({ tool: 'sign', first: true });
+  });
+
+  it('sends the marked source (and from for a handoff) on tool_file_accepted', async () => {
+    markArrival('handoff', 'merge');
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    markArrival('drop');
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    const [a, b, c] = await props();
+    expect(a).toMatchObject({ source: 'handoff', from: 'merge' });
+    expect(b).toMatchObject({ source: 'drop' });
+    expect(b.from).toBeUndefined();
+    expect(c.source).toBeUndefined();
+  });
+
+  it('attaches the current arrival source, never from, to later events', async () => {
+    markArrival('handoff', 'merge');
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    for (const e of ['tool_first_edit', 'tool_operation_started', 'tool_result_ready', 'tool_operation_failed'] as const) {
+      reportToolLifecycleEvent(e, 'sign');
+    }
+    const [, ...rest] = await props();
+    expect(rest).toHaveLength(4);
+    for (const p of rest) {
+      expect(p.source).toBe('handoff');
+      expect(p.from).toBeUndefined();
+    }
+  });
+
+  it('puts no source on later events before any file arrived with a mark', async () => {
+    reportToolLifecycleEvent('tool_result_ready', 'sign');
+    expect((await props())[0].source).toBeUndefined();
+  });
+});
+
+describe('reportEdit', () => {
+  const names = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).name));
+
+  it('sends nothing before a file was accepted', () => {
+    reportEdit('sign');
+    expect(beacon).not.toHaveBeenCalled();
+  });
+
+  it('sends tool_first_edit once per accepted file', async () => {
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    reportEdit('sign');
+    reportEdit('sign');
+    expect(await names()).toEqual(['tool_file_accepted', 'tool_first_edit']);
+    reportToolLifecycleEvent('tool_file_accepted', 'sign');
+    reportEdit('sign');
+    reportEdit('sign');
+    expect(await names()).toEqual(['tool_file_accepted', 'tool_first_edit', 'tool_file_accepted', 'tool_first_edit']);
   });
 });

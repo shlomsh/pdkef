@@ -7,8 +7,10 @@ import {
   parseUsageEvent,
   NAVIGATION_TYPES,
   usageEventField,
-  usageNavField,
   usageOnceField,
+  usagePageField,
+  FILE_SOURCES,
+  VISITS,
 } from './usageEventSchema.ts';
 
 const ev = (name: unknown, tool: unknown) => ({ name, properties: { tool } });
@@ -17,9 +19,9 @@ const legit = TOOL_LIFECYCLE_EVENTS.flatMap((n) => ANALYTICS_TOOLS.map((t) => ev
 
 describe('parseUsageEvent accepts', () => {
   it('covers every list value', () => {
-    expect(TOOL_LIFECYCLE_EVENTS).toHaveLength(4);
+    expect(TOOL_LIFECYCLE_EVENTS).toHaveLength(6);
     expect(ANALYTICS_TOOLS).toHaveLength(11);
-    expect(legit).toHaveLength(44);
+    expect(legit).toHaveLength(66);
   });
   it.each(legit.map((e) => [JSON.stringify(e), e] as const))('round-trips %s', (_label, event) => {
     expect(parseUsageEvent(event)).toEqual(event);
@@ -35,7 +37,7 @@ describe('parseUsageEvent accepts', () => {
   });
   it('gives every event a distinct counter field', () => {
     const fields = legit.map((e) => usageEventField(parseUsageEvent(e)!));
-    expect(new Set(fields).size).toBe(44);
+    expect(new Set(fields).size).toBe(66);
     expect(usageEventField(parseUsageEvent(ev('tool_result_ready', 'merge'))!)).toBe('tool_result_ready|merge');
   });
 });
@@ -57,10 +59,10 @@ describe('the first flag', () => {
 
 describe('how the page load started (DEBT-57)', () => {
   const firstWith = (nav: unknown) => ({ name: 'tool_file_accepted', properties: { tool: 'redact', first: true, nav } });
-  it.each(NAVIGATION_TYPES.map((nav) => [nav]))('accepts nav %s on a first event, and files it beside the once field', (nav) => {
+  it.each(NAVIGATION_TYPES.map((nav) => [nav]))('accepts nav %s on a first event, and files it in the page field', (nav) => {
     const parsed = parseUsageEvent(firstWith(nav));
     expect(parsed).toEqual(firstWith(nav));
-    expect(usageNavField(parsed!)).toBe(`nav:tool_file_accepted|redact|${nav}`);
+    expect(usagePageField(parsed!)).toBe(`pg:tool_file_accepted|redact|-|-|${nav}|-`);
   });
   it('lists the four navigation types the browser names', () => {
     expect([...NAVIGATION_TYPES]).toEqual(['navigate', 'reload', 'back_forward', 'prerender']);
@@ -75,8 +77,8 @@ describe('how the page load started (DEBT-57)', () => {
   it('rejects nav on an event that is not the first of its kind', () => {
     expect(parseUsageEvent({ name: 'tool_file_accepted', properties: { tool: 'redact', nav: 'reload' } })).toBeNull();
   });
-  it('has no nav field without nav', () => {
-    expect(usageNavField(parseUsageEvent({ name: 'tool_file_accepted', properties: { tool: 'redact', first: true } })!)).toBeUndefined();
+  it('has dashes in the page field without nav', () => {
+    expect(usagePageField(parseUsageEvent({ name: 'tool_file_accepted', properties: { tool: 'redact', first: true } })!)).toBe('pg:tool_file_accepted|redact|-|-|-|-');
   });
 });
 
@@ -165,5 +167,70 @@ describe('parseUsageEvent with a build stamp (DEBT-44)', () => {
   });
   it('rejects any other extra property', () => {
     expect(parseUsageEvent({ name: 'tool_operation_failed', properties: { tool: 'redact', build: '08e10cf', file: 'a' } })).toBeNull();
+  });
+});
+
+describe('source, from and visit (DEBT-58)', () => {
+  const props = (name: string, p: Record<string, unknown>) => ({ name, properties: { tool: 'sign', ...p } });
+  it.each(FILE_SOURCES.map((s) => [s]))('accepts source %s on a file event, and files it', (source) => {
+    const e = props('tool_file_accepted', { source });
+    expect(parseUsageEvent(e)).toEqual(e);
+    expect(usageEventField(parseUsageEvent(e)!)).toBe(`tool_file_accepted|sign|-|${source}`);
+  });
+  it.each(['tool_first_edit', 'tool_operation_started', 'tool_result_ready', 'tool_operation_failed'])('accepts source on %s', (name) => {
+    const e = props(name, { source: 'restore' });
+    expect(parseUsageEvent(e)).toEqual(e);
+  });
+  it('never accepts source on tool_page_viewed', () => {
+    expect(parseUsageEvent(props('tool_page_viewed', { source: 'pick' }))).toBeNull();
+  });
+  it.each([['unknown', 'upload'], ['number', 1], ['null', null]])('rejects source as %s', (_w, source) => {
+    expect(parseUsageEvent(props('tool_file_accepted', { source }))).toBeNull();
+  });
+  it('accepts from only on tool_file_accepted with source handoff', () => {
+    const ok = props('tool_file_accepted', { source: 'handoff', from: 'merge' });
+    expect(parseUsageEvent(ok)).toEqual(ok);
+    expect(parseUsageEvent(props('tool_result_ready', { source: 'handoff', from: 'merge' }))).toBeNull();
+    expect(parseUsageEvent(props('tool_file_accepted', { source: 'pick', from: 'merge' }))).toBeNull();
+    expect(parseUsageEvent(props('tool_file_accepted', { from: 'merge' }))).toBeNull();
+    expect(parseUsageEvent(props('tool_file_accepted', { source: 'handoff', from: 'ocr' }))).toBeNull();
+  });
+  it.each(VISITS.map((v) => [v]))('accepts visit %s on tool_page_viewed only', (visit) => {
+    const e = props('tool_page_viewed', { visit });
+    expect(parseUsageEvent(e)).toEqual(e);
+    expect(parseUsageEvent(props('tool_file_accepted', { visit }))).toBeNull();
+  });
+  it.each([['unknown', 'yesterday'], ['number', 1]])('rejects visit as %s', (_w, visit) => {
+    expect(parseUsageEvent(props('tool_page_viewed', { visit }))).toBeNull();
+  });
+  it('accepts nav only beside first', () => {
+    expect(parseUsageEvent(props('tool_page_viewed', { nav: 'reload' }))).toBeNull();
+    const e = props('tool_page_viewed', { first: true, nav: 'reload' });
+    expect(parseUsageEvent(e)).toEqual(e);
+  });
+});
+
+describe('usageEventField shapes', () => {
+  const f = (p: Record<string, unknown>) => usageEventField(parseUsageEvent({ name: 'tool_result_ready', properties: { tool: 'merge', ...p } })!);
+  it('has four shapes', () => {
+    expect(f({})).toBe('tool_result_ready|merge');
+    expect(f({ build: '08e10cf' })).toBe('tool_result_ready|merge|08e10cf');
+    expect(f({ build: '08e10cf', source: 'restore' })).toBe('tool_result_ready|merge|08e10cf|restore');
+    expect(f({ source: 'restore' })).toBe('tool_result_ready|merge|-|restore');
+  });
+});
+
+describe('usagePageField', () => {
+  it('fills every slot, with dashes for the absent', () => {
+    const e = parseUsageEvent({
+      name: 'tool_file_accepted',
+      properties: { tool: 'sign', first: true, nav: 'reload', source: 'handoff', from: 'merge' },
+    })!;
+    expect(usagePageField(e)).toBe('pg:tool_file_accepted|sign|handoff|merge|reload|-');
+    const v = parseUsageEvent({ name: 'tool_page_viewed', properties: { tool: 'sign', first: true, visit: 'week' } })!;
+    expect(usagePageField(v)).toBe('pg:tool_page_viewed|sign|-|-|-|week');
+  });
+  it('is undefined when the event is not first', () => {
+    expect(usagePageField(parseUsageEvent({ name: 'tool_page_viewed', properties: { tool: 'sign', visit: 'new' } })!)).toBeUndefined();
   });
 });
