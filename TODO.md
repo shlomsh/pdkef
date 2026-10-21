@@ -11,6 +11,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
 - [SEO-42](backlog/tasks/SEO-42.md) P2 · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console (in progress)
 - [SEO-44](backlog/tasks/SEO-44.md) P2 · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
+- [SEO-46](backlog/tasks/SEO-46.md) P2 · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars (in progress)
 
 ### Polish
 
