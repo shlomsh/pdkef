@@ -2,7 +2,9 @@
 // and counts them in Upstash Redis (DEBT-17), keeping the latest example of
 // each (DEBT-27), and also counts Sign's maintenance events and the reports a
 // tool chose not to send (drop records, DEBT-44; counts only, no sample),
-// per-tool usage (counts only, no engine, no sample), and every body it
+// per-tool usage (counts only, no engine, no sample), anonymous star ratings
+// (SEO-46: a permanent count per tool and star under rating:<tool>, no expiry,
+// no engine, no time, under their own daily cap), and every body it
 // refuses (oversize, bad JSON, a shape no parser accepts), by reason and
 // engine under its own small daily cap. The second request-time component after middleware.ts; Astro
 // itself stays output 'static' with no adapter, so this is a plain function
@@ -18,6 +20,7 @@
 // day. Nothing from the request is logged.
 import { MAX_REPORT_BYTES, parseDropRecord, parseErrorReport } from '../src/lib/errorReportSchema.js';
 import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
+import { parseRatingEvent } from '../src/lib/ratingSchema.js';
 import { parseUsageEvent } from '../src/lib/usageEventSchema.js';
 import {
   DAILY_CAP,
@@ -41,6 +44,7 @@ import {
   withDayExpiry,
   type Command,
 } from '../src/site-lib/errorReportStore.js';
+import { RATING_DAILY_CAP, ratingCapCommands, ratingCommands, ratingTotalKey } from '../src/site-lib/ratingStore.js';
 
 // No @types/node in this repo; the function runtime provides process.env.
 declare const process: { env: Record<string, string | undefined> };
@@ -64,6 +68,7 @@ async function pipeline(
 // forged reports costs no store calls at all.
 let cappedDay = '';
 let cappedUsageDay = '';
+let cappedRatingDay = '';
 let cappedRejectDay = '';
 
 // Counts a refused body by reason and engine, under its own cap. Errors here are the caller's to swallow.
@@ -107,8 +112,9 @@ export async function POST(request: Request): Promise<Response> {
     const event = report ? null : parseMaintenanceEvent(json);
     const drop = report || event ? null : parseDropRecord(json);
     const usage = report || event || drop ? null : parseUsageEvent(json);
+    const rating = report || event || drop || usage ? null : parseRatingEvent(json);
     if (!store) return NO_CONTENT();
-    if (!report && !event && !drop && !usage) {
+    if (!report && !event && !drop && !usage && !rating) {
       await countReject(store, request, declared, body);
       return NO_CONTENT();
     }
@@ -120,6 +126,15 @@ export async function POST(request: Request): Promise<Response> {
       if (typeof total?.result === 'number' && total.result > USAGE_DAILY_CAP) cappedUsageDay = day;
       else if (typeof total?.result === 'number') {
         await pipeline(store, withDayExpiry(usageTotalKey(day), total.result, usageCommands(usage, day)));
+      }
+      return NO_CONTENT();
+    }
+    if (rating) {
+      if (day === cappedRatingDay) return NO_CONTENT();
+      const [total] = await pipeline(store, ratingCapCommands(day));
+      if (typeof total?.result === 'number' && total.result > RATING_DAILY_CAP) cappedRatingDay = day;
+      else if (typeof total?.result === 'number') {
+        await pipeline(store, withDayExpiry(ratingTotalKey(day), total.result, ratingCommands(rating)));
       }
       return NO_CONTENT();
     }
