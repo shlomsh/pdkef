@@ -67,7 +67,7 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { exportAtRevision, handoffHref, type SignedExport } from './exportHandoff.ts';
+import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './exportHandoff.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -1004,13 +1004,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     }
   };
 
-  // Carries the signed export to another tool through the one-shot hand-off baton
+  // Carries a signed export to another tool through the one-shot hand-off baton
   // (draftStore's saveHandoff, taken by useHandoffIntake on the other end), as Redact does.
-  const requestHandoff = async (tool: string) => {
-    const current = exportAtRevision(signedExport, documentRevisionRef.current);
-    if (handoffBusy || !current) return;
-    setHandoffBusy(true);
-    setHandoffFailed(false);
+  const carryOn = async (tool: string, current: SignedExport) => {
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const saved = await saveHandoff(tool, {
@@ -1026,6 +1022,31 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       setHandoffFailed(true);
       setHandoffBusy(false);
     }
+  };
+
+  // The chips show whenever export is ready. A file already made for this revision
+  // (a download, or the prepared share file) goes straight on; otherwise the export
+  // runs first, without downloading, and its result is handed on.
+  const requestHandoff = async (tool: string) => {
+    if (handoffBusy) return;
+    setHandoffBusy(true);
+    setHandoffFailed(false);
+    const ready = exportToHandOff(signedExport, preparedExportRef.current, documentRevisionRef.current);
+    if (ready) {
+      setSignedExport(ready);
+      await carryOn(tool, ready);
+      return;
+    }
+    let handedOn = false;
+    await runExport((signedBlob, filename) => {
+      handedOn = true;
+      const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
+      setSignedExport(made);
+      setStatus('editing');
+      void carryOn(tool, made);
+    });
+    // A failed or superseded export hands nothing on: runExport shows its own error.
+    if (!handedOn) setHandoffBusy(false);
   };
 
   // Whether the current elements contain text no bundled font can draw. Mirrors
@@ -1046,7 +1067,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // still live, per the gesture golden rule - and re-fires on every later
   // edit, letting each speculative export invalidate the previous one.
   useEffect(() => {
-    if (!file || elements.length === 0 || exportReadiness.blocked || status !== 'editing') return;
+    if (!file || !signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })) return;
     const timer = setTimeout(() => {
       runExport((signedBlob, filename) => {
         if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
@@ -1128,7 +1149,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
                 placeSignatureAt={placeSignatureAt}
                 canSharePdf={canSharePdf}
                 shareReady={shareReady}
-                handoffExport={exportAtRevision(signedExport, documentRevision) !== null}
+                handoffExport={handoffBusy || signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })}
                 handoffBusy={handoffBusy}
                 handoffFailed={handoffFailed}
                 onHandoff={(tool) => { void requestHandoff(tool); }}

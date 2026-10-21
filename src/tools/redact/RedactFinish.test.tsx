@@ -38,6 +38,24 @@ describe('RedactFinish', () => {
     mount(facts());
     expect(container.textContent).toContain('Saves with 3 boxes and 1 deletion');
     expect(buttons().join('|')).toContain('Download');
+  });
+
+  it('shows the hand-offs as soon as Download is enabled, before any save', () => {
+    const { onHandoff } = mount(facts({ phase: 'ready' }));
+    expect(buttons()).toContain('Compress it');
+    expect(buttons()).toContain('Sign it');
+    expect(container.textContent).not.toContain('Saved redacted_x.pdf');
+    const sign = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Sign it'))!;
+    act(() => sign.click());
+    expect(onHandoff).toHaveBeenCalledWith('sign');
+  });
+
+  it('shows the hand-offs after a cancelled export, and none when empty or exporting', () => {
+    mount(facts({ phase: 'cancelled' }));
+    expect(buttons()).toContain('Compress it');
+    mount(facts({ phase: 'exporting', progress: 0.2 }));
+    expect(buttons()).not.toContain('Compress it');
+    mount(facts({ phase: 'empty', boxCount: 0, deletionCount: 0 }));
     expect(buttons()).not.toContain('Compress it');
   });
 

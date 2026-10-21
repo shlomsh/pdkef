@@ -61,6 +61,11 @@ export default function RedactFinish({
             <>
               {status && <p class={styles.line} role="status">{status}</p>}
               {pages && <p class={styles.line}>{pages}</p>}
+            </>
+          )}
+          {/* Everywhere Download is enabled: a tap makes the export first if none matches the document. */}
+          {phase !== 'exporting' && (
+            <>
               <ExportHandoffs
                 items={[{ tool: 'compress', label: 'Compress it', Icon: Shrink }, { tool: 'sign', label: 'Sign it', Icon: FileSignature }]}
                 busy={handoffBusy}
