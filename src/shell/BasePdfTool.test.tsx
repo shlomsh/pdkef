@@ -751,10 +751,17 @@ describe('BasePdfTool', () => {
       expect(markArrival.mock.calls).toEqual([['replace']]);
     });
 
-    it('keeps a multi-file tool on the gesture source', () => {
+    it('marks nothing when files join a multi-file list that is already loaded: no acceptance follows, so a mark would go stale', () => {
       mount({ hasFiles: true, multiple: true, onFilesAdded: vi.fn(), analyticsTool: 'merge' });
       selectFile(container.querySelector('input[type="file"]'));
-      expect(markArrival.mock.calls).toEqual([['pick']]);
+      expect(markArrival).not.toHaveBeenCalled();
+    });
+
+    it('a page whose tool is only known later (Unlock/Protect) still sends its page view on mount, once', () => {
+      mount({ hasFiles: false, onFilesAdded: vi.fn(), pageTool: 'unlock' });
+      expect(calls('tool_page_viewed')).toEqual([['tool_page_viewed', 'unlock']]);
+      act(() => render(<BasePdfTool hasFiles onFilesAdded={vi.fn()} pageTool="unlock" analyticsTool="protect" />, container));
+      expect(calls('tool_page_viewed')).toHaveLength(1);
     });
 
     it('sends one tool_file_accepted when the file changes while loaded, none for the same file', () => {

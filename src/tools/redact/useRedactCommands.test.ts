@@ -240,6 +240,12 @@ describe('DEBT-58 reportEdit', () => {
     expect(reportEdit).toHaveBeenCalledTimes(3);
   });
 
+  it('does not report an update that changes nothing', () => {
+    const h = makeHarness([box({ id: 'a', left: 10 })]);
+    h.commands.update('a', [{ id: 'a', changes: { left: 10 } }]);
+    expect(reportEdit).not.toHaveBeenCalled();
+  });
+
   it('does not report an add with nothing to add', () => {
     makeHarness().commands.add([], { type: 'X', description: 'x' });
     expect(reportEdit).not.toHaveBeenCalled();

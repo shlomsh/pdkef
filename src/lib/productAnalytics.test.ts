@@ -180,16 +180,30 @@ describe('the funnel (DEBT-58)', () => {
 describe('reportEdit', () => {
   const names = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).name));
 
+  it('an acceptance nobody marked (Merge undoing the removal of its last file) keeps the file it continues', async () => {
+    markArrival('pick');
+    reportToolLifecycleEvent('tool_file_accepted', 'merge');
+    reportEdit('merge');
+    reportToolLifecycleEvent('tool_file_accepted', 'merge');
+    reportEdit('merge');
+    reportToolLifecycleEvent('tool_result_ready', 'merge');
+    const sent = await Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text())));
+    expect(sent.map((e) => e.name)).toEqual(['tool_file_accepted', 'tool_first_edit', 'tool_file_accepted', 'tool_result_ready']);
+    expect(sent[3].properties.source).toBe('pick');
+  });
+
   it('sends nothing before a file was accepted', () => {
     reportEdit('sign');
     expect(beacon).not.toHaveBeenCalled();
   });
 
   it('sends tool_first_edit once per accepted file', async () => {
+    markArrival('pick');
     reportToolLifecycleEvent('tool_file_accepted', 'sign');
     reportEdit('sign');
     reportEdit('sign');
     expect(await names()).toEqual(['tool_file_accepted', 'tool_first_edit']);
+    markArrival('replace');
     reportToolLifecycleEvent('tool_file_accepted', 'sign');
     reportEdit('sign');
     reportEdit('sign');

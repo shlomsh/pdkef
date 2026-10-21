@@ -17,7 +17,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
 }));
 
 import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
-import { takeArrival, resetFileArrivalForTests } from '../../lib/fileArrival.ts';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../lib/fileArrival.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
@@ -316,6 +316,7 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
     ...(from ? { from } : {}),
   });
   beforeEach(() => {
+    sessionStorage.clear();
     container = document.createElement('div');
     document.body.appendChild(container);
     resetFileArrivalForTests();
@@ -337,5 +338,18 @@ describe('useEditorDraftPersistence - arrival mark (DEBT-58)', () => {
     });
     await waitAsync();
     expect(seen).toEqual({ source: 'handoff', from: 'merge' });
+  });
+
+  it('marks a restore with the source the draft hook gives, right before loadPdf', async () => {
+    (takeHandoff as any).mockResolvedValue(null);
+    (loadDraft as any).mockResolvedValue(record());
+    noteRecentOpen('sign');
+    let seen: unknown;
+    const props = baseProps({ tool: 'sign', loadPdf: vi.fn(() => { seen = takeArrival(); }) });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+    expect(seen).toEqual({ source: 'recent' });
   });
 });

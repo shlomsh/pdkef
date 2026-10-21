@@ -59,6 +59,9 @@ interface BasePdfToolProps {
   /** Optional anonymous lifecycle reporting for this tool. */
   analyticsTool?: AnalyticsTool;
   analyticsStatus?: string;
+  /** The tool this page is, for its page view (DEBT-58), when `analyticsTool` is only known later
+   * (Unlock/Protect learn theirs from the file). Defaults to `analyticsTool`. */
+  pageTool?: AnalyticsTool;
   /** The shell's own strings (dropzone, file actions, confirmations) for a
    * localized page; every key not given keeps its English default. */
   shellMessages?: Partial<ShellMessages>;
@@ -130,6 +133,7 @@ export default function BasePdfTool({
   checkingDraft = false,
   analyticsTool,
   analyticsStatus,
+  pageTool,
   shellMessages,
   showIosFilesHint = false,
   showCloudDriveHint = false,
@@ -168,9 +172,14 @@ export default function BasePdfTool({
 
   // This is intentionally based on a tool's coarse public state, never its
   // file, options, error object, or local draft. See ANALYTICS.md.
+  // One page view per mount, sent as soon as the page's tool is known.
+  const pageViewedRef = useRef(false);
+  const viewedTool = pageTool ?? analyticsTool;
   useEffect(() => {
-    if (analyticsTool) reportToolLifecycleEvent('tool_page_viewed', analyticsTool);
-  }, [analyticsTool]);
+    if (!viewedTool || pageViewedRef.current) return;
+    pageViewedRef.current = true;
+    reportToolLifecycleEvent('tool_page_viewed', viewedTool);
+  }, [viewedTool]);
 
   useEffect(() => {
     if (!analyticsTool) return;
@@ -224,9 +233,11 @@ export default function BasePdfTool({
   // A dropped file arrives already chosen, so this is the earliest the user can
   // be asked - and because the file is in hand, the question can name it.
   // Says how the files got here, right before the tool is handed them. A second file in a
-  // single-file tool is a replacement whatever the gesture was.
+  // single-file tool is a replacement whatever the gesture was. Files joining a loaded list are
+  // work on it, not an arrival: nothing will take a mark, so none is left to go stale.
   const handOn = useCallback((files: File[], source: FileSource) => {
-    markArrival(hasFiles && !multiple ? 'replace' : source);
+    if (!hasFiles) markArrival(source);
+    else if (!multiple) markArrival('replace');
     onFilesAdded(files);
   }, [hasFiles, multiple, onFilesAdded]);
 

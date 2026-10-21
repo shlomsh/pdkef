@@ -6,6 +6,7 @@ import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
 import { markHandoffArrival } from '../../lib/useHandoffIntake.ts';
+import { markArrival } from '../../lib/fileArrival.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoffPending.ts';
 
 interface DraftRecord {
@@ -128,7 +129,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
       loadPdf(fileFrom(handoff), handoff.fileBytes, { elements: [], actionHistory: [] }, true);
       return true;
     },
-    onRestore: (record: object) => {
+    onRestore: (record: object, source: 'restore' | 'recent') => {
       // A manual pick wins even when its ArrayBuffer or PDF load is still in flight.
       if (loadStartedRef.current) return;
       const validated = validateDraftRecord(migrateDraftRecord(record), isElement);
@@ -145,6 +146,8 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
         return;
       }
       loadStartedRef.current = true;
+      // DEBT-58: marked here, past the bail above, so a restore that loses to a pick never relabels it.
+      markArrival(source);
       loadPdf(
         fileFrom(validated),
         validated.fileBytes,

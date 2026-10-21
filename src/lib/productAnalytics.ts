@@ -96,7 +96,9 @@ export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: Analyt
         ...(visitProp ? { visit: visitProp } : {}),
       },
     });
-    if (event === 'tool_file_accepted') {
+    // An acceptance nobody marked after a first one (Merge's Undo bringing back the last file it
+    // removed) continues the file in front of the person: it keeps that file's source and first edit.
+    if (event === 'tool_file_accepted' && (arrival || !accepted)) {
       current = arrival;
       accepted = true;
       editSent = false;

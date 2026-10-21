@@ -3,7 +3,7 @@ import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChange
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../useHoldUpdate.ts';
 import { reportError } from '../errorReport.ts';
-import { markArrival, consumeRecentOpen } from '../fileArrival.ts';
+import { consumeRecentOpen } from '../fileArrival.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -68,7 +68,8 @@ export const RESTORE_TIMEOUT_MS = 4000;
  *   clean baseline; only a real editor operation may make this true.
  * @param {() => Promise<boolean>} [opts.beforeRestore] - runs first on mount; return
  *   true to claim the load (a pending home-page handoff) and skip the draft restore
- * @param {(record: object) => void} opts.onRestore - rehydrate the tool from a draft
+ * @param {(record: object, source: 'restore' | 'recent') => void} opts.onRestore - rehydrate the tool from a draft;
+ *   `source` says whether a recent tile asked for it (DEBT-58), for the tool to mark if it applies the restore
  * @returns {{ clearDraft: () => Promise<void>, isRestoring: boolean,
  *   draftSaveState: 'idle'|'pending'|'saved'|'error'|'conflict'|'unpersisted', draftSaveRevision: number }}
  *   `draftSaveState` describes the current revision only. In particular, a
@@ -224,6 +225,8 @@ export function useDraftPersistence({
       return;
     }
     restoreAttempted.current = true;
+    // DEBT-58: a recent tile's note is spent on this attempt whatever it finds, so it cannot label a later reopen.
+    const source = consumeRecentOpen(tool) ? 'recent' : 'restore';
     let cancelled = false;
     // Only ever moves isRestoring from true to false, so a late timeout firing
     // after the real check already settled (or vice versa) is a harmless no-op.
@@ -245,9 +248,7 @@ export function useDraftPersistence({
       if (cancelled) return;
       clearTimeout(timeoutId);
       if (record && record.fileBytes) {
-        // DEBT-58: a recent tile's open and a plain reopen both land here; the tile left a note.
-        markArrival(consumeRecentOpen(tool) ? 'recent' : 'restore');
-        onRestore(record);
+        onRestore(record, source);
       } else {
         // No draft to restore after all. draftStore already clears the
         // localStorage hint for next time; this clears the *live* DOM
