@@ -60,6 +60,7 @@ move today.
 | SEO-34 home page targets `pdf tools` | retired into SEO-39 | 2026-10-08 | **Read 10-08:** indexed title is the targeted one; `pdf tools` has no row. `/` gets navigational clicks only. Authority term | |
 | SEO-35 merge decision | retired into SEO-39 | 2026-10-08 | **Read 10-08: not "small or none".** `/merge/` reached page one (1,597 merge and 551 combine impressions at 7.2 and 9.2) at 0.5% CTR, on the pre-09-12 title; SEO-35's own title has not been crawled | reindex `/merge/`, read its CTR next refresh |
 | SEO-45 Merge title lead | blocked on read | 2026-10-14 | **`/merge/` left Google's results the day its new title was crawled (10-08):** 1.51K impressions at 6.7 (10-01 to 10-07) to 15 (10-09 to 10-11), not found in 12 result pages. Indexed, canonical, rendered and Googlebot-identical; `/compress/` and `/split/` recrawled the same days did not drop, and kept their title's lead. Old title and H1 restored word for word; circumstantial, three pages and one change | deployed and indexing requested 2026-10-14; read 2026-10-28 |
+| SEO-46 Real star ratings | open, later | 2026-10-21 | PDF24 shows `4.9 ★ (15,074) · Free` on its SERP from a per-tool opt-in vote form and a baked-in JSON-LD `aggregateRating`. Honest route: ask once in the done state, keep a durable per-tool aggregate, bake it in at build time, emit only past a minimum of real votes | design in the ticket; nothing built |
 | SEO-18 sign-in-your-language page | open, shipped | 2026-09-12 | `/sign-pdf-in-your-language/` live, hub `sign`; one page, eight-row table guarded by a test against `LANGUAGE_COVERAGE`; divergences named; indexing requested 2026-09-12 | 2026-10-08 crawl state, then the eight-week read 2026-11-07 |
 | SEO-16, 20 to 24, 26, 30 | open | | not started; 20 to 24 wait on the Week 4 gate | per section 4 |
 | SEO-27 localization decision | retired | 2026-09-11 | superseded: the Hindi half was settled by LOC-01's measurement, the Hebrew-guides half is LOC-05 | |
@@ -251,7 +252,7 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
 - **Google discards our meta description on some queries** and snippets from body copy, so the intro
   paragraph in `src/data/tools.js` is doing snippet work whether we meant it to or not. ([SEO-04](../backlog/tasks/SEO-04.md))
 - **Do not emit `AggregateRating`.** PDF24 carries review stars on every blur SERP; we have no reviews,
-  and fabricated structured data is worse than none. Declined deliberately. ([SEO-04](../backlog/tasks/SEO-04.md))
+  and fabricated structured data is worse than none. Declined deliberately. ([SEO-04](../backlog/tasks/SEO-04.md)) The one route to stars is real ratings we collect ourselves: [SEO-46](../backlog/tasks/SEO-46.md).
 - **The Sign query cluster is device intent, not language intent, and it ranks on the OS guides, not
   `/sign/`.** All 58 queries are iphone/android/computer/whatsapp phrasings at positions 43-66;
   `/sign/` itself ranks on queries GSC withholds, so we do not know what it ranks for. The language
