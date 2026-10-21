@@ -6,6 +6,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Robustness and debt
+
+- [DEBT-60](backlog/tasks/DEBT-60.md) P2 · Share PDF > Save to Files writes a stray 'text' file beside the PDF (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
