@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { reportEdit } from '../../lib/productAnalytics.ts';
+import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { Shrink, FileSignature } from 'lucide-preact';
@@ -469,10 +470,12 @@ export default function PdfMergeTool({
   // A restored draft: fresh entries for the stored files (the index doubles as
   // the id, which is what the stored plan's fileId already is), then the same
   // inspection a fresh pick gets, for thumbnails and to re-check each file.
-  const onDraftRestore = useCallback((restored: MergeDraftRestore) => {
+  const onDraftRestore = useCallback((restored: MergeDraftRestore, source: 'restore' | 'recent') => {
     // SITE-42: files handed off from the home page are the newest intent and
     // win; a restore resolving after them must not overwrite or join them.
     if (handedOffRef.current) return;
+    // DEBT-58: marked past that bail, so a restore that loses never relabels the hand-off.
+    markArrival(source);
     restoreScrollPendingRef.current = true;
     const restoredEntries = restored.files.map((file) => toEntry(file));
     const idByIndex = restoredEntries.map((e) => e.id);

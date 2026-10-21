@@ -121,7 +121,7 @@ describe('errors-read wiring', () => {
       usage: {
         'tool_page_viewed|redact': 9, 'tool_file_accepted|redact': 6, 'tool_first_edit|redact|-|pick': 5, 'tool_operation_started|redact': 9,
         'tool_result_ready|redact': 4, 'tool_operation_failed|redact': 4,
-        'once:tool_page_viewed|redact': 8, 'pg:tool_page_viewed|redact|-|-|navigate|new': 8, 'once:tool_file_accepted|redact': 5,
+        'pg:tool_page_viewed|redact|-|-|navigate|new': 8, 'once:tool_file_accepted|redact': 1,
         'pg:tool_file_accepted|redact|pick|-|-|-': 3, 'pg:tool_file_accepted|redact|restore|-|-|-': 1, 'pg:tool_result_ready|redact|restore|-|-|-': 1,
       },
     }];

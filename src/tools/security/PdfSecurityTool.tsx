@@ -243,6 +243,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       emptyArt={<UnlockVerb />}
       hasFiles={hasFiles}
       analyticsTool={mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined}
+      pageTool={intent === 'protect' ? 'protect' : 'unlock'}
       // A mistyped password is the form working, not an operation that failed: it stays out of the failure count.
       analyticsStatus={status === 'error' && errorText === WRONG_PASSWORD ? 'needs_password' : status}
       onFilesAdded={(files: FileList | File[]) => handleFilesAdded(files)}

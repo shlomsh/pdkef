@@ -5,7 +5,7 @@ import {
 import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
 import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
-import { markArrival, consumeRecentOpen } from '../../../lib/fileArrival.ts';
+import { consumeRecentOpen } from '../../../lib/fileArrival.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 import { mimeTypeOf } from '../../../lib/fileKind.js';
 import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
@@ -72,7 +72,8 @@ export interface UseMergeDraftOptions {
    * restored set. Those derived values are not a user edit and must not
    * replay the autosave/status cycle. */
   restoreHydrationComplete?: boolean;
-  onRestore: (restored: MergeDraftRestore) => void;
+  /** `source` (DEBT-58): whether a recent tile asked for it; Merge marks it only if it applies the restore. */
+  onRestore: (restored: MergeDraftRestore, source: 'restore' | 'recent') => void;
   /** Tests shorten the wait; the tool never passes it. */
   autosaveDebounceMs?: number;
 }
@@ -308,6 +309,8 @@ export function useMergeDraft({
       }
     };
     const timeoutId = setTimeout(stopWaiting, RESTORE_TIMEOUT_MS);
+    // DEBT-58: the recent tile's note is spent on this attempt whatever it finds.
+    const source = consumeRecentOpen(TOOL) ? 'recent' : 'restore';
     (async () => {
       const record = await loadDraft(TOOL);
       if (cancelled) return;
@@ -315,8 +318,7 @@ export function useMergeDraft({
       const restore = parseRestorableRecord(record);
       if (restore) {
         restoredFilesRef.current = restore.files;
-        markArrival(consumeRecentOpen(TOOL) ? 'recent' : 'restore');
-        latest.current.onRestore(restore);
+        latest.current.onRestore(restore, source);
       } else {
         // No usable draft: draftStore already cleared the localStorage hint
         // when `record` came back null; a record that came back non-null but

@@ -186,7 +186,7 @@ describe('useMergeDraft', () => {
   it.each([
     ['restore', false],
     ['recent', true],
-  ])('marks a restored draft as %s right before onRestore (DEBT-58)', async (source, fromTile) => {
+  ])('hands a restored draft on as %s, marking nothing itself (DEBT-58)', async (source, fromTile) => {
     resetFileArrivalForTests();
     if (fromTile) noteRecentOpen('merge');
     await saveDraft('merge', {
@@ -198,11 +198,11 @@ describe('useMergeDraft', () => {
       fileCount: 1,
       schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
     });
-    let seen;
-    const onRestore = vi.fn(() => { seen = takeArrival(); });
+    const onRestore = vi.fn();
     await mount({ current: null }, baseOptions({ onRestore }));
     expect(onRestore).toHaveBeenCalledTimes(1);
-    expect(seen).toEqual({ source });
+    expect(onRestore).toHaveBeenCalledWith(expect.anything(), source);
+    expect(takeArrival()).toBeUndefined();
   });
 
   it('restores a renamed output name, and null when the record never had one', async () => {

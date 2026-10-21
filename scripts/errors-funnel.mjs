@@ -69,9 +69,9 @@ export function sumUsage(results) {
 const laneOf = (source) => (!source ? 'unknown' : source === 'restore' ? 'resume' : 'fresh');
 
 /**
- * Page loads per tool, from the `pg:` fields. A day's `once:` fields count every first event; the `pg:` ones
- * count the same events once the new build sends them, so what `once:` has beyond `pg:` came from older builds
- * and reads as the unknown lane with no visit. Returns Map tool -> { lanes: {fresh|resume|unknown: counts by
+ * Page loads per tool, from the `pg:` fields, plus the `once:` fields of days stored before DEBT-58, which
+ * read as the unknown lane with no visit. The two never count the same page load: the store wrote one or
+ * the other. Returns Map tool -> { lanes: {fresh|resume|unknown: counts by
  * event}, viewed, visits: {visit: n}, sources: {source: accepted n} }.
  */
 export function funnelByTool(results) {
@@ -83,12 +83,10 @@ export function funnelByTool(results) {
   const add = (map, key, n) => { map[key] = (map[key] ?? 0) + n; };
   for (const result of results) {
     const once = new Map();
-    const pg = new Map();
     eachField(result, (p, count) => {
       const key = `${p.event}|${p.tool}`;
       if (p.kind === 'once') once.set(key, (once.get(key) ?? 0) + count);
       if (p.kind !== 'pg') return;
-      pg.set(key, (pg.get(key) ?? 0) + count);
       const t = get(p.tool);
       if (p.event === 'tool_page_viewed') {
         t.viewed += count;
@@ -98,9 +96,9 @@ export function funnelByTool(results) {
         if (p.event === 'tool_file_accepted') add(t.sources, p.source ?? 'unknown', count);
       }
     });
-    for (const [key, total] of once) {
-      const extra = total - (pg.get(key) ?? 0);
-      if (extra <= 0) continue;
+    // The store writes `once:` no more (DEBT-58), so whatever a day holds came from before the deploy: add it.
+    for (const [key, extra] of once) {
+      if (!(extra > 0)) continue;
       const [event, tool] = key.split('|');
       const t = get(tool);
       if (event === 'tool_page_viewed') t.viewed += extra;

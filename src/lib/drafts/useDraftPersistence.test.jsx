@@ -600,24 +600,35 @@ describe('useDraftPersistence - how a restored file arrived (DEBT-58)', () => {
     loadDraft.mockResolvedValue(null);
   });
 
+  // The hook says how the file came back; the tool marks it only if it really applies the restore,
+  // since a pick or hand-off already under way wins over it (review of DEBT-58).
   const mountAndRead = async () => {
-    let seen;
-    const onRestore = vi.fn(() => { seen = takeArrival(); });
+    const onRestore = vi.fn();
     await act(async () => {
       render(<Harness apiRef={{ current: null }} props={baseProps({ onRestore })} />, container);
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(onRestore).toHaveBeenCalledTimes(1);
-    return seen;
+    expect(takeArrival()).toBeUndefined();
+    return onRestore;
   };
 
-  it('marks a plain draft restore as restore', async () => {
-    expect(await mountAndRead()).toEqual({ source: 'restore' });
+  it('hands a plain draft restore on as restore, marking nothing itself', async () => {
+    const onRestore = await mountAndRead();
+    expect(onRestore).toHaveBeenCalledWith(expect.anything(), 'restore');
   });
 
-  it('marks a restore the home page asked for from a recent tile as recent', async () => {
+  it('hands a restore the home page asked for from a recent tile on as recent', async () => {
     noteRecentOpen('sign');
-    expect(await mountAndRead()).toEqual({ source: 'recent' });
+    const onRestore = await mountAndRead();
+    expect(onRestore).toHaveBeenCalledWith(expect.anything(), 'recent');
+  });
+
+  it('spends the recent-tile note even when there is no draft, so a later reopen is not called recent', async () => {
+    noteRecentOpen('sign');
+    loadDraft.mockResolvedValue(null);
+    const onRestore = await mountAndRead();
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('pdkef:arrival:recent')).toBeNull();
   });
 });

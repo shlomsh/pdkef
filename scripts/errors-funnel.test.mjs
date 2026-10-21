@@ -37,7 +37,6 @@ describe('funnelLines', () => {
     'pg:tool_file_accepted|sign|pick|-|-|-': 3, 'pg:tool_file_accepted|sign|handoff|merge|-|-': 1, 'pg:tool_file_accepted|sign|restore|-|-|-': 2,
     'pg:tool_first_edit|sign|pick|-|-|-': 2, 'pg:tool_operation_started|sign|pick|-|-|-': 2, 'pg:tool_result_ready|sign|pick|-|-|-': 2,
     'pg:tool_result_ready|sign|restore|-|-|-': 1, 'pg:tool_operation_failed|sign|restore|-|-|-': 1,
-    'once:tool_page_viewed|sign': 10, 'once:tool_file_accepted|sign': 6, 'once:tool_result_ready|sign': 3, 'once:tool_operation_failed|sign': 1,
   });
   // an older day: once: only, so everything reads as unknown with no visit
   const old = flat({ 'once:tool_page_viewed|sign': 5, 'once:tool_file_accepted|sign': 2, 'nav:tool_file_accepted|sign|reload': 2 });
@@ -53,12 +52,12 @@ describe('funnelLines', () => {
       'sign visits: new 6, week 4',
       'sign accepted by source: pick 3, restore 2, unknown 2, handoff 1',
     ]);
-    console.log(lines.join('\n'));
   });
 
-  it('a mixed day keeps only what pg: does not already cover as unknown', () => {
+  it('a deploy day adds the old builds\' once: page loads to the new pg: ones, as unknown (the store writes once: no more)', () => {
     const mixed = flat({ 'pg:tool_file_accepted|merge|pick|-|-|-': 2, 'once:tool_file_accepted|merge': 5 });
-    expect(funnelLines([mixed])).toContain('merge | unknown | - | 3 | 0 | 0 | 0 | 0');
+    expect(funnelLines([mixed])).toContain('merge | all | 0 | 7 | 0 | 0 | 0 | 0');
+    expect(funnelLines([mixed])).toContain('merge | unknown | - | 5 | 0 | 0 | 0 | 0');
   });
 
   it('prints nothing when there are no page-load fields', () => {

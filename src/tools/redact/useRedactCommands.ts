@@ -135,7 +135,6 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
     const changes = perBox.find(({ id: boxId }) => boxId === id)?.changes ?? {};
     const primaryKind = options?.primary && primaryUpdateKind(element, options.primary);
     const describe = options?.describe ?? ((kind: ElementUpdateKind) => describeUpdate(primaryKind ?? kind, element));
-    reportEdit('redact');
     const entry = createUpdateEntry(element, changes, describe);
     if (!entry) {
       commit({ edit, entry: null });
@@ -150,6 +149,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       });
     const fullEntry = otherUpdates.length === 0 ? entry : { ...entry, updates: [...entry.updates, ...otherUpdates] };
     commit({ edit, entry: fullEntry });
+    reportEdit('redact');
   };
 
   return { add, remove, update };
