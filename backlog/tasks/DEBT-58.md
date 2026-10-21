@@ -1,10 +1,9 @@
 ---
 id: "DEBT-58"
 title: "A draft that restores by itself counts as a file someone opened"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
