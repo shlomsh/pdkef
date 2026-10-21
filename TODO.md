@@ -8,7 +8,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [DEBT-58](backlog/tasks/DEBT-58.md) P2 · A draft that restores by itself counts as a file someone opened
+- [DEBT-58](backlog/tasks/DEBT-58.md) P2 · A funnel that reads intent: visit, file in front, first edit, asked, got it (in progress)
+- [DEBT-59](backlog/tasks/DEBT-59.md) P2 · Background builds count as started and ready, so completed outruns opened (in progress)
 
 ### Search and languages
 
