@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import styles from './RatingPrompt.module.css';
 import { onAction } from '../lib/actionTrail.ts';
 import { markAsked, markRated, reportRating, shouldAsk, type RatingStorage } from '../lib/ratingReport.ts';
@@ -14,6 +14,7 @@ type RatingMessages = Pick<
 // Same value as GITHUB_REPO_URL in src/data/organizationSchema.js; src/shell does not import src/data.
 const GITHUB_REPO_URL = 'https://github.com/shlomsh/pdkef';
 const SHOW_DELAY_MS = 1500;
+const FOLLOW_UP_SETTLE_MS = 500;
 
 function localStore(): RatingStorage | null {
   try {
@@ -24,10 +25,14 @@ function localStore(): RatingStorage | null {
   }
 }
 
-/** True once a download was recorded on this page (every tool already calls `recordAction('download')`). */
+/**
+ * True once the person took the result on this page: a download, or a completed share (tools call
+ * `recordAction('share')` only once the share sheet reports it shared). On iPhone, Download replaces
+ * the page with the PDF, so Share PDF is the moment the ask can actually be seen there.
+ */
 export function useDownloaded(): boolean {
   const [downloaded, setDownloaded] = useState(false);
-  useEffect(() => onAction((name) => { if (name === 'download') setDownloaded(true); }), []);
+  useEffect(() => onAction((name) => { if (name === 'download' || name === 'share') setDownloaded(true); }), []);
   return downloaded;
 }
 
@@ -47,6 +52,14 @@ type ShareState = 'idle' | 'copied' | 'link';
 export default function RatingPrompt({ tool, downloaded, messages = englishShellMessages }: { tool: RatingTool; downloaded: boolean; messages?: RatingMessages }) {
   const [phase, setPhase] = useState<Phase>('hidden');
   const [share, setShare] = useState<ShareState>('idle');
+  // When the follow-up was swapped in. On iPhone the same tap that rated was also delivered to the
+  // link that took the star's place, so for a moment the follow-up ignores activation.
+  const swappedAt = useRef(0);
+  const settling = (event: Event): boolean => {
+    if (Date.now() - swappedAt.current >= FOLLOW_UP_SETTLE_MS) return false;
+    event.preventDefault();
+    return true;
+  };
   useEffect(() => {
     if (!downloaded || phase !== 'hidden') return;
     const timer = setTimeout(() => {
@@ -64,10 +77,12 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
   const rate = (stars: Stars) => {
     reportRating(tool, stars);
     markRated(localStore(), tool);
+    swappedAt.current = Date.now();
     setPhase(stars >= 4 ? 'high' : 'low');
   };
 
-  const onShare = async () => {
+  const onShare = async (event: Event) => {
+    if (settling(event)) return;
     const url = pageUrl();
     try {
       if (typeof navigator.share === 'function') {
@@ -105,21 +120,24 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
           </div>
         </>
       ) : phase === 'high' ? (
-        <p class={styles.text} role="status">
-          {messages.ratingThanksHigh}{' '}
-          {share === 'link' ? (
-            <a class={styles.link} href={pageUrl()}>{messages.ratingShare}</a>
-          ) : (
-            <button type="button" class={styles.link} onClick={onShare}>
-              {share === 'copied' ? messages.ratingShareCopied : messages.ratingShare}
-            </button>
-          )}{' '}
-          <a class={styles.link} href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">{messages.ratingStarGithub}</a>
-        </p>
+        <>
+          <p class={styles.text} role="status">{messages.ratingThanksHigh}</p>
+          {/* Two separate targets, never adjacent inline text: on a phone a thumb landed on the wrong one. */}
+          <div class={styles.actions}>
+            {share === 'link' ? (
+              <a class={`${styles.link} ${styles.action}`} href={pageUrl()} onClick={settling}>{messages.ratingShare}</a>
+            ) : (
+              <button type="button" class={`${styles.link} ${styles.action}`} onClick={onShare}>
+                {share === 'copied' ? messages.ratingShareCopied : messages.ratingShare}
+              </button>
+            )}
+            <a class={`${styles.link} ${styles.action}`} href={GITHUB_REPO_URL} onClick={settling} target="_blank" rel="noopener noreferrer">{messages.ratingStarGithub}</a>
+          </div>
+        </>
       ) : (
         <p class={styles.text} role="status">
           {messages.ratingThanksLow}{' '}
-          <a class={styles.link} href={`${GITHUB_REPO_URL}/issues`} target="_blank" rel="noopener noreferrer">{messages.ratingTellMe}</a>
+          <a class={styles.link} href={`${GITHUB_REPO_URL}/issues`} onClick={settling} target="_blank" rel="noopener noreferrer">{messages.ratingTellMe}</a>
         </p>
       )}
     </div>

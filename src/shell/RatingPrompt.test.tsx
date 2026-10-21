@@ -71,6 +71,20 @@ describe('RatingPrompt', () => {
     expect(gh.rel).toBe('noopener noreferrer');
   });
 
+  // On iPhone the tap that rated also landed on "Star it on GitHub", which appeared under the finger.
+  it('ignores a follow-up activation in the first half second, then lets it through', () => {
+    showAfterDelay();
+    act(() => stars()[4].click());
+    const click = () => {
+      const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+      (container.querySelector('a') as HTMLAnchorElement).dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(click()).toBe(true);
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(click()).toBe(false);
+  });
+
   it('a low rating offers the issues link', () => {
     showAfterDelay();
     act(() => stars()[1].click());
@@ -86,7 +100,12 @@ describe('RatingPrompt', () => {
   describe('Share', () => {
     const nav = navigator as unknown as Record<string, unknown>;
     afterEach(() => { delete nav.share; delete nav.clipboard; document.head.querySelectorAll('link[rel=canonical]').forEach((l) => l.remove()); });
-    const tapShare = () => { showAfterDelay(); act(() => stars()[4].click()); return act(async () => { buttons()[0].click(); }); };
+    const tapShare = () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      act(() => { vi.advanceTimersByTime(600); }); // past the follow-up's settle window
+      return act(async () => { buttons()[0].click(); });
+    };
 
     it('uses navigator.share with the canonical url', async () => {
       const link = document.createElement('link');
@@ -129,6 +148,14 @@ describe('RatingPrompt', () => {
     act(() => recordAction('add_files'));
     expect(container.textContent).toBe('false');
     act(() => recordAction('download'));
+    expect(container.textContent).toBe('true');
+  });
+
+  // On iPhone, Download replaces the page with the PDF; Share PDF is how a phone takes the result.
+  it('useDownloaded also flips on a completed share', () => {
+    function Probe() { return <i>{String(useDownloaded())}</i>; }
+    act(() => render(<Probe />, container));
+    act(() => recordAction('share'));
     expect(container.textContent).toBe('true');
   });
 });
