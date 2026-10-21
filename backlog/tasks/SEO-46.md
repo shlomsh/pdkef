@@ -1,7 +1,7 @@
 ---
 id: "SEO-46"
 title: "Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "search-and-languages"
 horizon: "later"
