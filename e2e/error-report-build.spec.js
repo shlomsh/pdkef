@@ -29,7 +29,19 @@ test('a reported error carries the commit the page was built from, and only that
   if (stamped !== null) expect(stamped).toMatch(BUILD_SHAPE);
   if (EXPECTED !== null) expect(stamped).toBe(EXPECTED);
 
-  const beacon = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/report');
+  // /api/report also carries usage events (DEBT-44: `tool_page_viewed` goes out on load), so
+  // wait for the error report itself, not the first request to the endpoint. Taking the first
+  // one raced the usage event and lost about 1 run in 6 (CI on fc26f6a6, 2026-10-21).
+  const isErrorReport = (request) => {
+    if (new URL(request.url()).pathname !== '/api/report') return false;
+    try {
+      return JSON.parse(request.postData() ?? 'null')?.area === 'uncaught';
+    } catch {
+      // expected: a body that is not JSON is not the report this test waits for
+      return false;
+    }
+  };
+  const beacon = page.waitForRequest(isErrorReport);
   await page.evaluate(() => {
     // A frame inside our own built output is what makes an error reportable.
     const error = new Error('probe');
