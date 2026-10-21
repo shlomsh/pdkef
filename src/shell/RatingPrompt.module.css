@@ -51,6 +51,32 @@
   cursor: pointer;
 }
 
+/* The 4-5 star follow-up: Share and Star sit on their own row on a phone, beside the thanks on a wide screen. */
+.actions {
+  display: flex;
+  flex-basis: 100%;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+@media (min-width: 40rem) {
+  .actions {
+    flex-basis: auto;
+  }
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (pointer: coarse) {
+  .action {
+    min-height: 2.75rem;
+    padding: 0 0.5rem;
+  }
+}
+
 .link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -82,12 +108,15 @@
   transition: fill 0.12s var(--ease-out);
 }
 
-/* Fill the hovered star and every one before it (the stars are in DOM order); keyboard focus shows the ring. */
-.stars:hover .star svg {
-  fill: currentColor;
-}
-.stars .star:hover ~ .star svg {
-  fill: none;
+/* Fill the hovered star and every one before it (the stars are in DOM order); keyboard focus shows the ring.
+   Only where hover is real: iOS spends the first tap on a :hover change, so a star took two taps. */
+@media (hover: hover) {
+  .stars:hover .star svg {
+    fill: currentColor;
+  }
+  .stars .star:hover ~ .star svg {
+    fill: none;
+  }
 }
 
 .star:focus-visible {
