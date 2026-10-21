@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 6 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -65,12 +65,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 ## Robustness and debt
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-60 | P2 | [DEBT-60](backlog/tasks/DEBT-60.md) · Share PDF > Save to Files writes a stray 'text' file beside the PDF | In progress |
 
 ### Then, in order
 
@@ -173,7 +167,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 53 done, 4 retired
+- Robustness and debt: 54 done, 4 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 9 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
