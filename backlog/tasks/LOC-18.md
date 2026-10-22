@@ -93,3 +93,9 @@ document still in English and laid out left to right; it now takes Sign's Hebrew
 direction (test first in `EditorExportActions.test.tsx`).
 
 Left for item 2: the rest of the `/he/sign/` read-through, then the same sign-off on `hebrewSignMessages`.
+
+## 2026-10-22: /he/sign/ signed off too, item 2 done
+
+Shlomi: "sign also looks good enough from a brief reading". `hebrewSignMessages`' draft comments now say
+so, and the languages page's Sign island cell is `reviewed`. Item 2 is done; item 1 (the two portal-limit
+guides) waits on the signed-in limits listed above.
