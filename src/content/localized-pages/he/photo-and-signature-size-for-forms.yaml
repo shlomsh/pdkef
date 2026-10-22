@@ -1,6 +1,12 @@
 pageId: 'photo-and-signature-size-for-forms'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Claude Opus 5.5'
+reviewedAt: '2026-10-22'
+reviewNotes: >-
+  2026-10-22: AI draft with Israeli content, not a translation: the 150KB and 800KB measurements and the five portal limits
+  were checked on each portal's own page and measured in a real browser. Published
+  for Shlomi's own read, the way /he/split/ was.
 sourceHash: 'fnv1a64:8a2798446a8340ee'
 title: 'הקטנת תמונה לטופס: גודל תמונה בקילובייטים | PDkef'
 description: 'מכסה של 150KB לתמונה לכרטיס סטודנט, 800KB לטופס בקופת חולים. מה קובע אם התמונה תיכנס, מה הכלי עושה, ומה לא, עם מדידות אמיתיות ומגבלות ממקורות רשמיים.'
