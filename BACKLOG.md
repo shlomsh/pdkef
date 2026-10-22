@@ -12,7 +12,7 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| RED-66 | P1 | [RED-66](backlog/tasks/RED-66.md) · One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept |  |
+| RED-66 | P1 | [RED-66](backlog/tasks/RED-66.md) · One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept | In progress |
 
 ### Waiting
 
