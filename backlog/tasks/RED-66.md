@@ -1,7 +1,7 @@
 ---
 id: "RED-66"
 title: "One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "redact"
 horizon: "now"

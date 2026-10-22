@@ -8,7 +8,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Redact: finish removal
 
-- [RED-66](backlog/tasks/RED-66.md) P1 · One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept
+- [RED-66](backlog/tasks/RED-66.md) P1 · One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept (in progress)
 
 ### Search and languages
 
