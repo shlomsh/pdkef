@@ -55,9 +55,37 @@ That held for the copy but not the layout: HERO-02/03 landed on 2026-10-15, befo
 the restored title together with the full-height first screen, Merge's acted-out sheet, and the H1 split into
 `data-hero-name` / `data-hero-rest` spans (same H1 text byte for byte). The 10-28 read covers both.
 
+## Second hypothesis: Google's September 2026 spam update (added 2026-10-22)
+
+Search Engine Roundtable reported phase two of the September 2026 spam update hitting on 2026-09-30, and
+a later headline asked whether its final phase ran 2026-10-04 to 10-06 (unconfirmed by Google). `/merge/`
+fell on 10-08/09, two to four days after that window, so the drop may be the update's doing and not
+the title's. Nothing here confirms it; it is a second reading for the same data.
+
+Shlomi's reads on 2026-10-22, from Search Console:
+
+- **`/merge/`, all queries, 28 days** (2.87K impressions, 14 clicks, position 7.5 overall): near zero every
+  day from 10-09 to 10-20, on every query, not only `merge pdf online`. Seven days past the 10-15 recrawl
+  of the restored title, nothing came back. The page is out of the results entirely, not demoted on one
+  phrase.
+- **The whole domain, daily, 09-01 to 10-12** (19.1K impressions, 689 clicks): no dip in the 10-04 to
+  10-06 window. Impressions peaked around 10-07/08, dipped 10-09/10, and were back above the peak by
+  10-12. The rest of the site recovered; `/merge/` did not.
+- **Security & Manual Actions:** empty.
+
+What would tell the two apart at the 10-28 read:
+
+- **The title:** `/merge/` comes back within a couple of weeks of the 10-15 recrawl, on its old queries.
+- **The spam update:** `/merge/` stays out on every query while the rest of the domain holds or grows. A
+  spam-system demotion of one URL does not lift on a recrawl; it lifts when the system re-evaluates the
+  page, which can take months and is not something a title change controls. If that is the reading,
+  the next step is to look at what on `/merge/` could look like scaled or keyword-stuffed (the merge and
+  combine phrasings repeated across title, H1, steps and FAQ, the MERGE-22 photos FAQ) against
+  `/compress/` and `/split/`, which were not hit.
+
 ## Acceptance
 
 - [x] Deployed (`ebdd1f9c`, CI green, live title checked 2026-10-14); `/merge/` requested for indexing by Shlomi 2026-10-14
 - [x] Crawl date after the deploy confirmed in URL Inspection, and the indexed title matches the live one (2026-10-20: last crawl 2026-10-15 12:40, Googlebot smartphone, indexed, Google-selected canonical `/merge/`; the crawled HTML carries the restored title and build `8dc1b5b`, which contains `670c17f7` and HERO-02/03)
-- [ ] 2026-10-28 read: `merge pdf online` and `merge pdf free` impressions and position on `/merge/`, 10-day windows before and after the recrawl
-- [ ] Outcome recorded in `docs/seo-competitive-findings.md`: back on page one (the lead phrase matters, so keep Merge's vocabulary in the body and never in the title lead), or still gone (not the title, look at what else changed since 09-12)
+- [ ] 2026-10-28 read: `merge pdf online` and `merge pdf free` impressions and position on `/merge/`, 10-day windows before and after the recrawl, plus `/merge/` on all queries and the domain total over the same windows (to tell the title from the spam update)
+- [ ] Outcome recorded in `docs/seo-competitive-findings.md`: back on page one (the lead phrase matters, so keep Merge's vocabulary in the body and never in the title lead), or still gone while the domain holds (the spam-update reading: look at what on `/merge/` differs from `/compress/` and `/split/`)
