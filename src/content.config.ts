@@ -335,6 +335,8 @@ const homeFounderStory = z.strictObject({
   paragraph1: plain(40, 400),
   paragraph2: plain(40, 400),
   paragraph3: plain(20, 300),
+  // The handwritten name under the story; the template falls back to 'Shlomi'.
+  signoff: plain(2, 30).optional(),
   // Exactly three: the template renders a fixed 3-row list (Free Forever /
   // Private / Open Source in English), not a variable-length one.
   pills: z.array(homeFounderStoryPill).length(3),

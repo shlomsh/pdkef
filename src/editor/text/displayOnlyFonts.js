@@ -50,7 +50,8 @@ export const DISPLAY_ONLY_FONTS = [
       "CSS family name 'Gveret Levin Demo' in " +
       "src/components/HeroDemo/HeroDemo.module.css and used only by the " +
       "Hebrew edition of the homepage hero demo's handwritten caption " +
-      "(LOC-09), the Hebrew counterpart to 'Caveat Demo' above. Never " +
+      "(LOC-09), the Hebrew counterpart to 'Caveat Demo' above, and by the " +
+      "handwritten name under the Hebrew home page's founder story. Never " +
       "registered in src/editor/text/fontManifest.js and never handed to " +
       "signPdf, so it carries no export/shaping obligations of its own.",
   },
