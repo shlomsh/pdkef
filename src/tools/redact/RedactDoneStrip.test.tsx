@@ -55,6 +55,11 @@ describe('RedactDoneStrip', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('does not announce the saved line itself, the bottom row and the tool do', () => {
+    mount(facts());
+    expect(container.querySelector('[data-redact-done-strip] [role="status"]')).toBeNull();
+  });
+
   it('reports a failed hand-off', () => {
     mount(facts(), { handoffFailed: true });
     expect(container.textContent).toContain('Could not hand this off. Download it instead and open it there.');

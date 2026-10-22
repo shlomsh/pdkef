@@ -21,7 +21,7 @@ export default function RedactDoneStrip({ facts, handoffBusy, handoffFailed, onH
       <button type="button" class={styles.close} aria-label="Close" onClick={onClose}>
         <X size={18} aria-hidden="true" />
       </button>
-      <DoneResult facts={facts} />
+      <DoneResult facts={facts} live={false} />
       <DoneHandoffs fileSize={facts.fileSize} busy={handoffBusy} failed={handoffFailed} onHandoff={onHandoff} />
       {children}
     </section>

@@ -22,6 +22,9 @@ async function makeFixture() {
     page.drawText(HEBREW_TITLE, { x: 40 + dx, y: 280, size: 24, font: hebrew });
   }
   page.drawText('Name: Dana Levi', { x: 40, y: 200, size: 14, font });
+  // A second page with no box keeps its text, so the check lists its rows
+  // (a file saved wholly as pictures gets one line instead, RED-66).
+  doc.addPage([300, 400]).drawText('Page two keeps its text', { x: 40, y: 330, size: 14, font });
   return Buffer.from(await doc.save());
 }
 

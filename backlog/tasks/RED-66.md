@@ -84,3 +84,16 @@ No new event. Compare, two weeks before and after: Redact `tool_result_ready` ag
 - Copy in the repo voice, no em dashes, Hebrew wording to match.
 - SEO-46 is in progress on the same rating component: the rating row reuses `RatingPrompt`, and any change to its
   trigger or cadence is agreed in SEO-46 first.
+
+## Built (2026-10-22)
+
+- The strip hangs from the sticky toolbar card as an overlay: it never moves the page, and it covers the
+  top of what scrolls under the card until the next edit or the ✕, like the card itself. Putting it in
+  the card's flow would push the page down on every save.
+- The bottom pair keeps the plain "Download" label. "Download again" next to Share wraps to two lines
+  on a phone, past the compact pair's 52px (`editor-finish-compact.spec.js`), and the result line above
+  it already says the file is saved.
+- Redact has no Hebrew edition, so there is no Hebrew wording to match yet.
+- One `RatingPrompt` moves between the strip and the bottom row; it keeps its phase across that remount
+  for the page's life, so the ask is never shown twice or lost mid-question. Trigger and cadence are
+  unchanged.

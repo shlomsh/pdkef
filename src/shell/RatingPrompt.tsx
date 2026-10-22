@@ -44,13 +44,24 @@ function pageUrl(): string {
 type Phase = 'hidden' | 'asking' | 'high' | 'low';
 type ShareState = 'idle' | 'copied' | 'link';
 
+// The live phase per tool for this page load. A host may move one <RatingPrompt> between tree positions
+// (an unmount and a fresh mount); markAsked is already written by then, so without this the ask is lost.
+const livePhase = new Map<RatingTool, Phase>();
+export function resetRatingPromptForTests(): void {
+  livePhase.clear();
+}
+
 /**
  * SEO-46: a quiet support ask under a finished download. Appears ~1.5s after the first download
  * on a device not asked in the last 14 days; one tap sends `{tool, stars}`, remembers it, and
  * swaps the content inside the same fixed-height row. Never modal, never takes focus.
  */
 export default function RatingPrompt({ tool, downloaded, messages = englishShellMessages }: { tool: RatingTool; downloaded: boolean; messages?: RatingMessages }) {
-  const [phase, setPhase] = useState<Phase>('hidden');
+  const [phase, setPhaseState] = useState<Phase>(() => (downloaded ? livePhase.get(tool) : undefined) ?? 'hidden');
+  const setPhase = (next: Phase) => {
+    livePhase.set(tool, next);
+    setPhaseState(next);
+  };
   const [share, setShare] = useState<ShareState>('idle');
   // When the follow-up was swapped in. On iPhone the same tap that rated was also delivered to the
   // link that took the star's place, so for a moment the follow-up ignores activation.

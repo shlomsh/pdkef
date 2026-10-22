@@ -1042,22 +1042,36 @@ export default function PdfRedactTool() {
   };
 
   // RED-66: the toolbar Download finishes where the person is looking. It asks
-  // for the strip under the sticky toolbar; the strip shows once the save lands
-  // and goes with the next edit (which ends the 'saved' phase), a failed save
-  // or the ✕. The toolbar button says "Saved" for a moment each time.
+  // for the strip under the sticky toolbar; the strip shows once the save lands,
+  // stays up through a re-export (Download again, Remove it) so the rating ask in
+  // it is not lost, and goes with the next edit (which ends the 'saved' phase), a
+  // failed save or the ✕. The toolbar button says "Saved" for a moment after each
+  // of its own clicks lands, never after a save started elsewhere.
   const [stripOpen, setStripOpen] = useState(false);
   const [toolbarSaves, setToolbarSaves] = useState(0);
   const [downloadConfirmed, setDownloadConfirmed] = useState(false);
-  const showStrip = stripOpen && finishPhase === 'saved';
+  const confirmedSaveRef = useRef(0);
+  const showStrip = stripOpen && (finishPhase === 'saved' || (finishPhase === 'exporting' && exportedForHandoff !== null));
   useEffect(() => {
     if (finishPhase !== 'exporting' && finishPhase !== 'saved') setStripOpen(false);
   }, [finishPhase]);
+  // An edit discards the saved export (and a Remove it re-export starts from
+  // there): that is the next edit, so the strip goes even if a save follows.
+  const hadExportRef = useRef(false);
   useEffect(() => {
-    if (!showStrip) return;
+    if (hadExportRef.current && exportedForHandoff === null) setStripOpen(false);
+    hadExportRef.current = exportedForHandoff !== null;
+  }, [exportedForHandoff]);
+  useEffect(() => {
+    if (!stripOpen || finishPhase !== 'saved' || confirmedSaveRef.current === toolbarSaves) return;
+    confirmedSaveRef.current = toolbarSaves;
     setDownloadConfirmed(true);
+  }, [stripOpen, finishPhase, toolbarSaves]);
+  useEffect(() => {
+    if (!downloadConfirmed) return;
     const timer = setTimeout(() => setDownloadConfirmed(false), 2000);
-    return () => { clearTimeout(timer); setDownloadConfirmed(false); };
-  }, [showStrip, toolbarSaves]);
+    return () => clearTimeout(timer);
+  }, [downloadConfirmed]);
   const handleToolbarDownload = () => {
     setStripOpen(true);
     setToolbarSaves((n) => n + 1);
