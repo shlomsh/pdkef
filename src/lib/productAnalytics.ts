@@ -11,7 +11,7 @@
 
 import { readBuildCommit, sendBeacon } from './errorReport.ts';
 import { resetFileArrivalForTests, takeArrival, type Arrival } from './fileArrival.ts';
-import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type ToolLifecycleEvent, type Visit } from './usageEventSchema';
+import { NAVIGATION_TYPES, parseUsageEvent, type AnalyticsTool, type NavigationType, type ToolLifecycleEvent, type ViewOnlyPage, type Visit } from './usageEventSchema';
 import { readAndStampVisit } from './visitRecency.ts';
 
 // The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
@@ -78,6 +78,18 @@ function readNavigationType(): NavigationType | undefined {
 
 /** Hands one funnel event to `/api/report` by beacon; capped per page, never throws. */
 export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: AnalyticsTool): void {
+  report(event, tool);
+}
+
+/**
+ * DEBT-61: the home page's one page view, with the same visit bucket and the same last-visit day as
+ * the tool pages, so a person is counted once a day on the first PDkef page they see.
+ */
+export function reportHomePageView(): void {
+  report('tool_page_viewed', 'home');
+}
+
+function report(event: ToolLifecycleEvent, tool: AnalyticsTool | ViewOnlyPage): void {
   try {
     const build = readBuildCommit();
     const pair = `${event}|${tool}`;

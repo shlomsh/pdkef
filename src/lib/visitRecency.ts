@@ -1,7 +1,8 @@
 /**
  * New or returning, and since when (DEBT-58): decided on the device for `tool_page_viewed`'s
- * `visit`. The browser keeps the day it last opened a PDkef tool page; only the bucket travels,
- * never the day or the key, so no event can be tied to another.
+ * `visit`. The browser keeps the day it last opened a PDkef tool page or, since DEBT-61, the home
+ * page; only the bucket travels, never the day or the key, so no event can be tied to another. The
+ * key keeps its old name so nobody already counted reads as new again.
  */
 import type { Visit } from './usageEventSchema';
 

@@ -196,6 +196,16 @@ describe('source, from and visit (DEBT-58)', () => {
     expect(parseUsageEvent(e)).toEqual(e);
     expect(parseUsageEvent(props('tool_file_accepted', { visit }))).toBeNull();
   });
+  it('DEBT-61: accepts the home page on tool_page_viewed only, never as a tool elsewhere', () => {
+    const home = { name: 'tool_page_viewed', properties: { tool: 'home', first: true, visit: 'new' } };
+    expect(parseUsageEvent(home)).toEqual(home);
+    expect(usagePageField(parseUsageEvent(home)!)).toBe('pg:tool_page_viewed|home|-|-|-|new');
+    for (const name of TOOL_LIFECYCLE_EVENTS.filter((n) => n !== 'tool_page_viewed')) {
+      expect(parseUsageEvent(ev(name, 'home'))).toBeNull();
+    }
+    expect(parseUsageEvent(props('tool_file_accepted', { source: 'handoff', from: 'home' }))).toBeNull();
+    expect(ANALYTICS_TOOLS).not.toContain('home');
+  });
   it.each([['unknown', 'yesterday'], ['number', 1]])('rejects visit as %s', (_w, visit) => {
     expect(parseUsageEvent(props('tool_page_viewed', { visit }))).toBeNull();
   });

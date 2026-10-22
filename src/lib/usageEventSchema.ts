@@ -32,6 +32,13 @@ export const ANALYTICS_TOOLS = [
 export type AnalyticsTool = (typeof ANALYTICS_TOOLS)[number];
 
 /**
+ * DEBT-61: pages that only count their own views, on `tool_page_viewed` and nothing else. Not tools:
+ * ratings, hand-offs and `from` never take them.
+ */
+export const VIEW_ONLY_PAGES = ['home'] as const;
+export type ViewOnlyPage = (typeof VIEW_ONLY_PAGES)[number];
+
+/**
  * In funnel order: `errors:read` prints the columns in this order (DEBT-58).
  * `tool_page_viewed`: the tool page loaded. `tool_first_edit`: the first deliberate change to the
  * file in front of the person since it arrived (an element added, a page moved, an option changed).
@@ -85,7 +92,7 @@ export type Visit = (typeof VISITS)[number];
 export type UsageEvent = Readonly<{
   name: ToolLifecycleEvent;
   properties: Readonly<{
-    tool: AnalyticsTool;
+    tool: AnalyticsTool | ViewOnlyPage;
     build?: string;
     first?: true;
     nav?: NavigationType;
@@ -126,7 +133,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   if (!exactKeys(properties, ['tool', ...present])) return null;
   const p = properties as Record<string, unknown>;
   const on = (key: (typeof OPTIONAL_KEYS)[number]) => present.includes(key);
-  if (!has(ANALYTICS_TOOLS, p.tool)) return null;
+  if (!has(ANALYTICS_TOOLS, p.tool) && !(name === 'tool_page_viewed' && has(VIEW_ONLY_PAGES, p.tool))) return null;
   if (on('build') && (typeof p.build !== 'string' || !BUILD.test(p.build))) return null;
   if (on('first') && p.first !== true) return null;
   if (on('nav') && (!on('first') || !has(NAVIGATION_TYPES, p.nav))) return null;
@@ -136,7 +143,7 @@ export function parseUsageEvent(value: unknown): UsageEvent | null {
   return Object.freeze({
     name: name as ToolLifecycleEvent,
     properties: Object.freeze({
-      tool: p.tool as AnalyticsTool,
+      tool: p.tool as AnalyticsTool | ViewOnlyPage,
       ...(on('build') ? { build: p.build as string } : {}),
       ...(on('first') ? { first: true as const } : {}),
       ...(on('nav') ? { nav: p.nav as NavigationType } : {}),
