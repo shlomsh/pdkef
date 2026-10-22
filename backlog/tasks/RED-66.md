@@ -1,11 +1,9 @@
 ---
 id: "RED-66"
 title: "One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -85,7 +83,7 @@ No new event. Compare, two weeks before and after: Redact `tool_result_ready` ag
 - SEO-46 is in progress on the same rating component: the rating row reuses `RatingPrompt`, and any change to its
   trigger or cadence is agreed in SEO-46 first.
 
-## Built (2026-10-22)
+## Built (2026-10-22, landed in 07212fb1..cfc3db82)
 
 - The strip hangs from the sticky toolbar card as an overlay: it never moves the page, and it covers the
   top of what scrolls under the card until the next edit or the ✕, like the card itself. Putting it in

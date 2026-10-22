@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-66](backlog/tasks/RED-66.md) P1 · One done state wherever Download is clicked: pinned strip, tidy bottom row, feedback kept (in progress)
-
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
