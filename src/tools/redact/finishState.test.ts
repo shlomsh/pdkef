@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { finishCountText, finishPagesText, finishStatusText, type FinishFacts } from './finishState.ts';
 
 const base: FinishFacts = {
-  phase: 'ready', progress: 0, fileName: 'redacted_x.pdf', pageCount: 2, picturePages: 0, boxCount: 0, deletionCount: 0,
+  phase: 'ready', progress: 0, fileName: 'redacted_x.pdf', pageCount: 2, picturePages: 0, boxCount: 0, deletionCount: 0, fileSize: null,
 };
 const f = (o: Partial<FinishFacts>): FinishFacts => ({ ...base, ...o });
 
@@ -18,6 +18,9 @@ describe('finishStatusText', () => {
   it('says what was saved, with page plurals', () => {
     expect(finishStatusText(f({ phase: 'saved' }))).toBe('Saved redacted_x.pdf · 2 pages');
     expect(finishStatusText(f({ phase: 'saved', pageCount: 1 }))).toBe('Saved redacted_x.pdf · 1 page');
+  });
+  it('adds the size once the file is saved', () => {
+    expect(finishStatusText(f({ phase: 'saved', fileSize: 2048 }))).toBe('Saved redacted_x.pdf · 2 pages · 2.0 KB');
   });
   it('says a change stopped the download', () => {
     expect(finishStatusText(f({ phase: 'cancelled' }))).toBe('You changed something, so that download stopped. Download again when ready.');

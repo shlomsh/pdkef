@@ -37,4 +37,16 @@ describe('ExportHandoffs', () => {
     act(() => sign.click());
     expect(onHandoff).toHaveBeenCalledExactlyOnceWith('sign');
   });
+
+  it('renders an optional detail after the label, and nothing when absent', () => {
+    act(() => render(
+      <ExportHandoffs items={[{ ...ITEMS[0], detail: '45.2 KB' }, ITEMS[1]]} busy={false} onHandoff={vi.fn()} />,
+      container,
+    ));
+    const [withDetail, without] = Array.from(container.querySelectorAll<HTMLButtonElement>('button'));
+    expect(withDetail.textContent?.trim()).toBe('Compress it45.2 KB');
+    expect(withDetail.querySelectorAll('span')).toHaveLength(1);
+    expect(without.querySelectorAll('span')).toHaveLength(0);
+    expect(without.textContent?.trim()).toBe('Sign it');
+  });
 });

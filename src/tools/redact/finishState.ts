@@ -1,3 +1,5 @@
+import { formatFileSize } from '../../lib/format.js';
+
 // All wording for Redact's finish area, as pure functions of a few facts.
 export type FinishPhase = 'empty' | 'ready' | 'exporting' | 'saved' | 'cancelled';
 
@@ -10,6 +12,8 @@ export interface FinishFacts {
   picturePages: number;
   boxCount: number;
   deletionCount: number;
+  /** Bytes of the saved file; null until saved. */
+  fileSize: number | null;
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -20,8 +24,10 @@ export function finishStatusText(f: FinishFacts): string | null {
       const pct = Math.round(Math.min(1, Math.max(0, f.progress)) * 100);
       return `Saving ${f.fileName}… ${pct}%`;
     }
-    case 'saved':
-      return `Saved ${f.fileName} · ${plural(f.pageCount, 'page', 'pages')}`;
+    case 'saved': {
+      const base = `Saved ${f.fileName} · ${plural(f.pageCount, 'page', 'pages')}`;
+      return typeof f.fileSize === 'number' ? `${base} · ${formatFileSize(f.fileSize)}` : base;
+    }
     case 'cancelled':
       return 'You changed something, so that download stopped. Download again when ready.';
     default:

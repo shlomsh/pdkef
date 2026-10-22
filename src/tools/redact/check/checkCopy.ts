@@ -16,7 +16,11 @@ export const CHECK_FAILED = "I couldn't read the saved file to check it. Your do
 
 export const NO_MATCH = 'No match in the text I could read.';
 
-export const NOTHING_COVERED = "Nothing you covered or deleted had text I could read, so there was nothing to look for. You can search for something below.";
+export const ALL_CLEAR = 'I searched the saved file for what you covered and deleted. No match in the text I could read.';
+
+export const NOTHING_COVERED_SHORT = 'Nothing you covered or deleted had text I could read.';
+
+export const SEARCH_SUMMARY = 'Search the saved file';
 
 export const SEARCH_LABEL = 'Look for something else in the saved file';
 
@@ -103,8 +107,8 @@ export function removedMessage(place: Pick<SavedPlace, 'kind' | 'text'>): string
 export function picturePagesNote(pages: readonly number[]): string | null {
   if (pages.length === 0) return null;
   return pages.length === 1
-    ? `Page ${pageList(pages)} is a picture, so look it over yourself.`
-    : `Pages ${pageList(pages)} are pictures, so look them over yourself.`;
+    ? `Page ${pageList(pages)} is a picture. Have a look at it before you share.`
+    : `Pages ${pageList(pages)} are pictures. Have a look at them before you share.`;
 }
 
 /** The caller passes how many attachments the *saved* file still has (`saved.attachments.length`). */

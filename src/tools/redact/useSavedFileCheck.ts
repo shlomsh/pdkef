@@ -33,7 +33,7 @@ export default function useSavedFileCheck({
   originalBytes: heldBytes,
   saved,
   boxes,
-  findTerms,
+  deletedWords,
   picturePages,
   measure,
   announce,
@@ -45,7 +45,8 @@ export default function useSavedFileCheck({
   originalBytes: ArrayBuffer | null;
   saved: Blob | null;
   boxes: CheckBox[];
-  findTerms: CheckTerm[];
+  /** Words the person deleted, checked alongside what the boxes cover. */
+  deletedWords: CheckTerm[];
   picturePages: number[];
   measure?: MeasureText;
   /** Says the traces verdict once a check finishes. */
@@ -91,7 +92,7 @@ export default function useSavedFileCheck({
       const originalBytes = new Uint8Array(heldBytes);
       try {
         const { runSavedFileCheck } = await import('./check/runCheck.ts');
-        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: findTerms, picturePages, measure });
+        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: deletedWords, picturePages, measure });
         if (!current) return;
         setState({ status: 'done', outcome, typed: [] });
         const { detailEdits, detailRows } = latest.current;

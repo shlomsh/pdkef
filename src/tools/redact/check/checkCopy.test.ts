@@ -83,11 +83,11 @@ describe('picturePagesNote', () => {
   });
 
   it('is singular for one page', () => {
-    expect(picturePagesNote([0])).toBe('Page 1 is a picture, so look it over yourself.');
+    expect(picturePagesNote([0])).toBe('Page 1 is a picture. Have a look at it before you share.');
   });
 
   it('is plural for several pages', () => {
-    expect(picturePagesNote([0, 2])).toBe('Pages 1 and 3 are pictures, so look them over yourself.');
+    expect(picturePagesNote([0, 2])).toBe('Pages 1 and 3 are pictures. Have a look at them before you share.');
   });
 });
 

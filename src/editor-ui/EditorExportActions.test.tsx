@@ -239,4 +239,65 @@ describe('EditorExportActions parity contract', () => {
     );
     expect(downloadButton.classList.contains(styles['desktop-download'])).toBe(false);
   });
+  it('toolbar: confirmed swaps Download for the Saved label and a check, same plain button', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const mount = (confirmed: boolean) => act(() => {
+      render(
+        <div className={styles.toolbar}>
+          <EditorExportActions variant="toolbar" canShare={false} shareReady={false} disabled={false} confirmed={confirmed}
+            onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />
+        </div>,
+        container,
+      );
+    });
+    mount(false);
+    const before = required(container.querySelector('button'), 'button');
+    expect(before.querySelector('[aria-hidden="true"]:not(svg)')?.textContent).toContain('Saved');
+    mount(true);
+    const button = required(container.querySelector('button'), 'button');
+    expect(button.parentElement).toBe(container.querySelector(`.${styles.toolbar}`));
+    const visible = Array.from(button.querySelectorAll('[aria-hidden="true"]')).filter((el) => el.textContent?.trim());
+    expect(visible.map((el) => el.textContent?.trim())).toEqual(['Download']);
+    expect(button.textContent).toContain('Saved');
+    expect(button.classList.contains(styles.download)).toBe(true);
+  });
+
+  it('toolbar: confirmedLabel overrides Saved; unconfirmed renders no hidden twin', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <EditorExportActions variant="toolbar" canShare={false} shareReady={false} disabled={false} confirmed confirmedLabel="Guardado"
+          onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />,
+        container,
+      );
+    });
+    expect(container.querySelector('button')?.textContent).toContain('Guardado');
+    act(() => {
+      render(
+        <EditorExportActions variant="toolbar" canShare={false} shareReady={false} disabled={false}
+          onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />,
+        container,
+      );
+    });
+    expect(container.querySelector('button [aria-hidden="true"]:not(svg)')).toBeNull();
+  });
+
+  it('completion: renders a caller-supplied downloadLabel, falling back to Download', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const labelOf = (downloadLabel?: string) => {
+      act(() => {
+        render(
+          <EditorExportActions variant="completion" canShare={false} shareReady={false} disabled={false} downloadLabel={downloadLabel}
+            onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />,
+          container,
+        );
+      });
+      return container.querySelector('button')?.textContent?.trim();
+    };
+    expect(labelOf()).toBe('Download');
+    expect(labelOf('Save a copy')).toBe('Save a copy');
+  });
 });

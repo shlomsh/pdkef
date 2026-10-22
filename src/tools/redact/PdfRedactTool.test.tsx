@@ -2911,22 +2911,21 @@ describe('PdfRedactTool UI flow', () => {
 
     const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
 
-    it('forgets the Find terms of the previous file when another file is opened (SNG-08)', async () => {
+    it('checks only deleted words automatically, never a Find search (RED-66)', async () => {
       const seen: string[][] = [];
-      checkOverride.current = (args: { findTerms: Array<{ label: string }> }) => {
-        seen.push(args.findTerms.map((t) => t.label));
+      checkOverride.current = (args: { deletedWords: Array<{ label: string }> }) => {
+        seen.push(args.deletedWords.map((t) => t.label));
         return { state: { status: 'idle' }, search: vi.fn() };
       };
       try {
         await loadFileAndGetDrawArea();
         await openFindAndSearch('jane doe');
         await clickRedactAll();
-        expect(seen.at(-1)).toContain('jane doe');
-
-        await openSecondFile('second.pdf');
-
+        expect(seen.length).toBeGreaterThan(0);
         expect(seen.at(-1)).not.toContain('jane doe');
       } finally {
+        // Unmount first: swapping the hook under a mounted island shifts its hook slots.
+        act(() => render(null, container));
         checkOverride.current = null;
       }
     });

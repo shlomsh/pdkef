@@ -1,10 +1,9 @@
 import type { ComponentChildren } from 'preact';
-import { FileSignature, Shrink } from 'lucide-preact';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
-import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './RedactFinish.module.css';
-import { finishCountText, finishPagesText, finishStatusText, type FinishFacts } from './finishState.ts';
+import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
+import { finishCountText, finishStatusText, type FinishFacts } from './finishState.ts';
 
 export interface RedactFinishProps {
   facts: FinishFacts;
@@ -18,15 +17,35 @@ export interface RedactFinishProps {
   handoffFailed: boolean;
   /** The saved-file check slot, rendered last. */
   children?: ComponentChildren;
+  /** The rating ask, rendered after the check. */
+  rating?: ComponentChildren;
 }
 
 export default function RedactFinish({
-  facts, canShare, shareReady, onDownload, onPrepareShare, onShare, onHandoff, handoffBusy, handoffFailed, children,
+  facts, canShare, shareReady, onDownload, onPrepareShare, onShare, onHandoff, handoffBusy, handoffFailed, children, rating,
 }: RedactFinishProps) {
   const { phase } = facts;
+  const saved = phase === 'saved';
   const status = finishStatusText(facts);
-  const count = finishCountText(facts);
-  const pages = finishPagesText(facts);
+  const count = saved ? null : finishCountText(facts);
+
+  const actions = (
+    <div class={styles['action-row']}>
+      <EditorExportActions
+        variant="completion"
+        canShare={canShare}
+        shareReady={shareReady}
+        disabled={phase === 'exporting'}
+        onDownload={onDownload}
+        onPrepareShare={onPrepareShare}
+        onShare={onShare}
+        downloadLabel={saved ? 'Download again' : undefined}
+        downloadTitle="Download the redacted PDF"
+        shareTitle={shareReady ? 'Share the redacted PDF' : 'Prepare the redacted PDF for sharing'}
+      />
+      {count && <p class={styles.caption} data-redact-count>{count}</p>}
+    </div>
+  );
 
   return (
     <div class={styles.finish}>
@@ -34,20 +53,8 @@ export default function RedactFinish({
         <p class={styles.empty}>Draw a box or delete something, then download it here.</p>
       ) : (
         <>
-          <div class={styles['action-row']}>
-          <EditorExportActions
-            variant="completion"
-            canShare={canShare}
-            shareReady={shareReady}
-            disabled={phase === 'exporting'}
-            onDownload={onDownload}
-            onPrepareShare={onPrepareShare}
-            onShare={onShare}
-            downloadTitle="Download the redacted PDF"
-            shareTitle={shareReady ? 'Share the redacted PDF' : 'Prepare the redacted PDF for sharing'}
-          />
-          {count && <p class={styles.caption} data-redact-count>{count}</p>}
-          </div>
+          {saved && <DoneResult facts={facts} />}
+          {actions}
           {phase === 'exporting' && (
             <span class={`${pdfToolStyles['tool-primary-action-progress']} ${pdfToolStyles['tool-primary-action-progress--standalone']}`}>
               <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
@@ -57,30 +64,14 @@ export default function RedactFinish({
             </span>
           )}
           {phase === 'cancelled' && status && <p class={styles.line} role="status">{status}</p>}
-          {phase === 'saved' && (
-            <>
-              {status && <p class={styles.line} role="status">{status}</p>}
-              {pages && <p class={styles.line}>{pages}</p>}
-            </>
-          )}
           {/* Everywhere Download is enabled: a tap makes the export first if none matches the document. */}
           {phase !== 'exporting' && (
-            <>
-              <ExportHandoffs
-                items={[{ tool: 'compress', label: 'Compress it', Icon: Shrink }, { tool: 'sign', label: 'Sign it', Icon: FileSignature }]}
-                busy={handoffBusy}
-                onHandoff={(tool) => onHandoff(tool as 'compress' | 'sign')}
-              />
-              {handoffFailed && (
-                <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-                  Could not hand this off. Download it instead and open it there.
-                </p>
-              )}
-            </>
+            <DoneHandoffs fileSize={facts.fileSize} busy={handoffBusy} failed={handoffFailed} onHandoff={onHandoff} />
           )}
         </>
       )}
       {children}
+      {rating}
     </div>
   );
 }

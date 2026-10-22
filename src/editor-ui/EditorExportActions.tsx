@@ -1,3 +1,4 @@
+import { Check } from 'lucide-preact';
 import styles from './SignToolbar.module.css';
 import workspaceStyles from './Workspace.module.css';
 import pdfToolStyles from '../shell/PdfTool.module.css';
@@ -50,6 +51,12 @@ export interface EditorExportActionsProps {
    * purpose - see the comment on the `isToolbar` return below. */
   shareLabel?: string;
   downloadLabel?: string;
+  /** Toolbar variant: show `confirmedLabel` with a check in place of the
+   * Download label once a file was saved. The button stays the plain toolbar
+   * button and keeps its width (both labels share one grid cell). Leave
+   * undefined to keep the single static label. */
+  confirmed?: boolean;
+  confirmedLabel?: string;
   /** Toolbar variant: keep Download visible on a phone beside Share instead of
    * dropping it below 920px. Redact opts in; Sign's toolbar is too full. */
   keepDownloadOnPhone?: boolean;
@@ -91,12 +98,34 @@ export default function EditorExportActions({
   shareTitle,
   describedBy,
   shareLabel = 'Share',
-  downloadLabel = 'Download',
+  downloadLabel,
+  confirmed,
+  confirmedLabel = 'Saved',
   keepDownloadOnPhone = false,
   dir = 'ltr',
   lang = 'en',
 }: EditorExportActionsProps) {
   const isToolbar = variant === 'toolbar';
+
+  // Both labels sit in one grid cell, the inactive one hidden, so the button is
+  // always as wide as the wider label and nothing reflows when it flips (MOBI-07).
+  const downloadContent = confirmed === undefined ? (
+    <>
+      <DownloadIcon />
+      <span className={styles.label}>{downloadLabel ?? 'Download'}</span>
+    </>
+  ) : (
+    <span className={styles['label-swap']}>
+      <span className={styles['label-swap-cell']} aria-hidden={confirmed ? 'true' : undefined} data-inactive={confirmed ? '' : undefined}>
+        <DownloadIcon />
+        <span className={styles.label}>{downloadLabel ?? 'Download'}</span>
+      </span>
+      <span className={styles['label-swap-cell']} aria-hidden={confirmed ? undefined : 'true'} data-inactive={confirmed ? undefined : ''}>
+        <Check size={18} stroke-width={2.5} aria-hidden="true" />
+        <span className={styles.label}>{confirmedLabel}</span>
+      </span>
+    </span>
+  );
 
   // Icon and label stay the same in every state (MOBI-07): readiness only
   // changes what a tap does, so the button's own min-content width never
@@ -136,8 +165,7 @@ export default function EditorExportActions({
       dir={isToolbar ? dir : undefined}
       lang={isToolbar ? lang : undefined}
     >
-      <DownloadIcon />
-      {isToolbar ? <span className={styles.label}>{downloadLabel}</span> : 'Download'}
+      {isToolbar ? downloadContent : <><DownloadIcon />{downloadLabel ?? 'Download'}</>}
     </button>
   );
 

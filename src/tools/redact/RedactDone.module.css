@@ -1,0 +1,11 @@
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.line {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}

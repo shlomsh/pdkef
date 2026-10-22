@@ -175,3 +175,28 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* RED-66: the disclosure under the summary lines, closed when the check is all clear. */
+.more {
+  margin: 0;
+}
+
+.summary {
+  display: inline-block;
+  min-height: 2.25rem;
+  padding: 0.4rem 0;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.more[open] > .summary {
+  margin-bottom: 0.25rem;
+}
+
+@media (pointer: coarse) {
+  .summary {
+    min-height: 2.75rem;
+  }
+}

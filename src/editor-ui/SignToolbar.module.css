@@ -130,6 +130,11 @@
 .button:disabled:not(.download):not(.share):hover { color: var(--color-text); background: var(--color-surface); border-color: var(--color-border); }
 .button:disabled:not(.download):not(.share):active { transform: none; }
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Download <-> Saved swap (RED-66): both cells share one grid cell so the button
+   is as wide as the wider label; the inactive one only holds the width. */
+.label-swap { display: inline-grid; }
+.label-swap-cell { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-width: 0; }
+.label-swap-cell[data-inactive] { visibility: hidden; }
 /* The Shapes trigger's menu chevron, a sibling of the label rather than inside it, so
    it stays visible where the label is hidden (the 1299px block). */
 .chevron { flex-shrink: 0; margin-inline-start: -2px; }

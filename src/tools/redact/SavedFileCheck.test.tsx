@@ -5,7 +5,7 @@ import SavedFileCheck from './SavedFileCheck.tsx';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 import type { Finding } from './check/types.ts';
 import type { DocumentTraces } from '../../editor/adapters/pdf/documentTraces.js';
-import { DETAILS_CHANGED, DETAILS_REVIEW, DETAILS_SURVIVED } from './check/checkCopy.ts';
+import { ALL_CLEAR, picturePagesNote, DETAILS_CHANGED, DETAILS_REVIEW, DETAILS_SURVIVED } from './check/checkCopy.ts';
 
 const EMPTY: DocumentTraces = {
   title: null, author: null, subject: null, keywords: null, creator: null, producer: null,
@@ -99,5 +99,47 @@ describe('SavedFileCheck details line', () => {
     const line = container.querySelector('[data-details-changed]') as HTMLElement;
     expect([...line.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['שם.pdf']);
     expect(line.textContent).toContain('Details: שם.pdf deleted.');
+  });
+});
+
+describe('SavedFileCheck disclosure (RED-66)', () => {
+  const container = document.createElement('div');
+  afterEach(() => act(() => render(null, container)));
+  const term = { label: 'Haifa', source: 'covered' as const, finder: () => [] };
+  const stateOf = (findings: Finding[], picturePages: number[], pageCount: number, typed: unknown[] = []) => ({
+    status: 'done',
+    typed,
+    outcome: {
+      results: [{ term, findings }], unsolidPages: [], traces: withTraces(EMPTY, EMPTY),
+      context: { saved: { places: [], picturePages, pages: new Array(pageCount).fill(null) }, original: new Array(pageCount).fill(null) },
+    },
+  }) as unknown as SavedFileCheckState;
+  const show = (state: SavedFileCheckState) =>
+    act(() => render(<SavedFileCheck state={state} onSearch={vi.fn()} onCover={vi.fn()} />, container));
+  const more = () => container.querySelector('[data-check-more]') as HTMLDetailsElement;
+
+  it('is closed with the all-clear line for a text file with no match', () => {
+    show(stateOf([], [], 2));
+    expect(more().open).toBe(false);
+    expect(container.textContent).toContain(ALL_CLEAR);
+  });
+
+  it('shows one picture line and no rows for a one-page picture file', () => {
+    show(stateOf([], [0], 1));
+    expect(container.textContent).toContain(picturePagesNote([0]));
+    expect(container.textContent).not.toContain(ALL_CLEAR);
+    expect(container.querySelectorAll('[data-check-term]')).toHaveLength(0);
+  });
+
+  it('opens on a surviving in-text finding and lists the row', () => {
+    show(stateOf([{ kind: 'in-text', pageIndex: 0 }], [], 2));
+    expect(more().open).toBe(true);
+    expect(container.querySelectorAll('[data-check-term="Haifa"]')).toHaveLength(1);
+  });
+
+  it('shows typed results', () => {
+    const typed = [{ term: { label: 'Zed', source: 'typed', finder: () => [] }, findings: [] }];
+    show(stateOf([], [], 2, typed));
+    expect(container.querySelector('[data-check-term="Zed"]')).not.toBeNull();
   });
 });

@@ -63,6 +63,8 @@ interface BasePdfToolProps {
   /** The tool this page is, for its page view (DEBT-58), when `analyticsTool` is only known later
    * (Unlock/Protect learn theirs from the file). Defaults to `analyticsTool`. */
   pageTool?: AnalyticsTool;
+  /** RED-66: the tool mounts its own RatingPrompt beside its done state, so the shell mounts none. */
+  ownsRating?: boolean;
   /** The shell's own strings (dropzone, file actions, confirmations) for a
    * localized page; every key not given keeps its English default. */
   shellMessages?: Partial<ShellMessages>;
@@ -136,6 +138,7 @@ export default function BasePdfTool({
   analyticsTool,
   analyticsStatus,
   pageTool,
+  ownsRating = false,
   shellMessages,
   showIosFilesHint = false,
   showCloudDriveHint = false,
@@ -478,8 +481,8 @@ export default function BasePdfTool({
       {children}
 
       {/* SEO-46: the once-per-device rating ask, under whatever the tool's done state shows.
-          Sign, Redact and Merge mount their own beside their hand-offs. */}
-      {analyticsTool && <RatingPrompt tool={analyticsTool} downloaded={downloaded} messages={sm} />}
+          A tool that sets `ownsRating` (Redact, RED-66) mounts it beside its hand-offs instead. */}
+      {analyticsTool && !ownsRating && <RatingPrompt tool={analyticsTool} downloaded={downloaded} messages={sm} />}
 
       {/* MEM-03: replacing a single loaded file always asks now - not to
           protect work about to be lost (nothing is; the current file moves

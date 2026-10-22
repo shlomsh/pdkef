@@ -16,15 +16,15 @@ import {
   DETAILS_SURVIVED,
   findingText,
   NO_MATCH,
-  NOTHING_COVERED,
-  picturePagesNote,
   REMOVE_IT,
   REMOVING,
   SEARCH_BUTTON,
   SEARCH_LABEL,
+  SEARCH_SUMMARY,
   unsolidNote,
 } from './check/checkCopy.ts';
 import type { InPlaceFinding } from './check/checkCopy.ts';
+import { checkView } from './check/checkView.ts';
 import type { CheckTerm } from './check/types.ts';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 
@@ -77,6 +77,7 @@ export default function SavedFileCheck({
   onReviewDetails?: () => void;
 }) {
   const [query, setQuery] = useState('');
+  const [opened, setOpened] = useState(false);
   if (state.status === 'idle') return null;
   if (state.status === 'checking') {
     return <p className={pdfToolStyles['hint-message']} role="status">{CHECKING}</p>;
@@ -86,9 +87,17 @@ export default function SavedFileCheck({
   }
 
   const { outcome, typed } = state;
-  const results = [...outcome.results, ...typed];
+  const { saved, original } = outcome.context;
+  const view = checkView({
+    results: outcome.results,
+    typed,
+    pageCount: saved.pages?.length || original.length,
+    picturePages: saved.picturePages,
+    unsolidPages: outcome.unsolidPages,
+    detailsSurvived: detailsSurvived.length,
+    hasNote: Boolean(note),
+  });
   const unsolid = unsolidNote(outcome.unsolidPages);
-  const pictures = picturePagesNote(outcome.context.saved.picturePages);
 
   return (
     <section className={styles.check} aria-label="Check of the saved file" data-saved-file-check>
@@ -106,11 +115,13 @@ export default function SavedFileCheck({
           </p>
         )
       )}
-      <p className={styles.lead}>{CHECK_LEAD}</p>
-      {outcome.results.length === 0 && <p className={styles.note}>{NOTHING_COVERED}</p>}
-      {results.length > 0 && (
+      {view.lines.map((line) => <p key={line} className={styles.note}>{line}</p>)}
+      <details className={styles.more} open={view.expanded || opened} data-check-more onToggle={(event) => setOpened((event.currentTarget as HTMLDetailsElement).open)}>
+        <summary className={styles.summary}>{SEARCH_SUMMARY}</summary>
+        <p className={styles.lead}>{CHECK_LEAD}</p>
+      {view.rows.length > 0 && (
         <ul className={styles.terms}>
-          {results.map(({ term, findings }) => (
+          {view.rows.map(({ term, findings }) => (
             <li key={`${term.source}:${term.label}`} data-check-term={term.label}>
               <span className={styles.term}>&ldquo;{term.label}&rdquo;</span>
               {findings.length === 0 ? (
@@ -138,14 +149,14 @@ export default function SavedFileCheck({
           ))}
         </ul>
       )}
-      {results.some(({ findings }) => findings.some(canCover)) && <p className={styles.note}>{COVER_IT_NOTE}</p>}
-      {pictures && <p className={styles.note}>{pictures}</p>}
+      {view.rows.some(({ findings }) => findings.some(canCover)) && <p className={styles.note}>{COVER_IT_NOTE}</p>}
       <form
         className={styles.search}
         onSubmit={(event) => {
           event.preventDefault();
           onSearch(query);
           setQuery('');
+          setOpened(true);
         }}
       >
         <label className={styles.label}>
@@ -159,6 +170,7 @@ export default function SavedFileCheck({
         </label>
         <button type="submit" className={styles.submit} disabled={!query.trim()}>{SEARCH_BUTTON}</button>
       </form>
+      </details>
     </section>
   );
 }

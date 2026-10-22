@@ -77,6 +77,8 @@ export default function RedactToolbar({
   onToggleFind,
   findBar = null,
   statusMessage,
+  downloadConfirmed = false,
+  doneStrip = null,
   peeking = false,
   onPeekChange,
 }: {
@@ -131,6 +133,10 @@ export default function RedactToolbar({
   /** A message from the island (export progress, done, an export cancelled by
    * an edit) for the status slot. The undo chip wins the slot when both exist. */
   statusMessage?: ComponentChildren;
+  /** RED-66: the toolbar Download says "Saved" for a moment after it saved. */
+  downloadConfirmed?: boolean;
+  /** RED-66: the done strip, hung under this sticky card so it stays where the person clicked. */
+  doneStrip?: ComponentChildren;
   /** RED-31: the Peek button is held down (or Space is). View state only. */
   peeking?: boolean;
   onPeekChange?: (on: boolean) => void;
@@ -368,6 +374,7 @@ export default function RedactToolbar({
           shareReady={shareReady}
           disabled={elementsCount === 0 || exporting}
           onDownload={handleDownloadPdf}
+          confirmed={downloadConfirmed}
           onPrepareShare={handlePrepareShare}
           onShare={handleSharePdf}
           downloadTitle={elementsCount === 0 ? 'Draw a box or delete something first' : 'Download the redacted PDF'}
@@ -379,6 +386,7 @@ export default function RedactToolbar({
       </div>
       {brushControls}
       {findBar}
+      {doneStrip}
     </ToolShell>
   );
 }
