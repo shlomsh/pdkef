@@ -16,3 +16,4 @@
 @source "../pages/index.astro";
 @source "../pages/[locale]/index.astro";
 @source "../layouts/HomePageLayout.astro";
+@source "../site-lib/contentMarkup.ts";

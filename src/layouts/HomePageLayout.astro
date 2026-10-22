@@ -254,8 +254,10 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
             <p class="type-body mt-0 max-w-[800px] text-[var(--color-muted)]">
               {founderStory.paragraph3}
             </p>
-            <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
-              <a class="font-semibold not-italic text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi</a>
+            {/* Handwritten in the demo caption's face (declared in HeroDemo.module.css,
+                which every home edition renders), so the page fetches no extra font. */}
+            <p class="mb-0 mt-4 text-[var(--color-muted)]">
+              <a class:list={[dir === 'rtl' ? "[font-family:'Gveret_Levin_Demo',cursive]" : "[font-family:'Caveat_Demo',cursive] font-bold",'text-[1.9rem] leading-none text-[var(--color-primary-text)] no-underline hover:underline hover:text-[var(--color-primary-hover)]']} href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">{founderStory.signoff ?? 'Shlomi'}</a>
             </p>
           </div>
           <div class="flex flex-1 flex-col justify-center overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">

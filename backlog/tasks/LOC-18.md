@@ -53,3 +53,32 @@ sync `docs/i18n-status/data/i18n-status.json` per `content-and-copy.md`'s proced
 Both halves are waiting on Shlomi, not on an agent - `status: blocked` rather than `open` for that
 reason. No further engineering scoping needed here; when either input arrives, do the corresponding
 "Done means" step above.
+
+## 2026-10-22: public portal limits, researched
+
+Three research passes; every row below was re-checked by fetching the portal's own page and finding the
+quoted words on it (2026-10-22).
+
+| Portal | Upload | Limit |
+| --- | --- | --- |
+| Bituach Leumi, "שליחת מסמכים" ([FAQ](https://www.btl.gov.il/About/faq/TroubleShooting/FaqGeneral/Pages/איך-ניתן-לשלוח-לכם-מסמכים.aspx)) | claim documents | 10 MB per file, up to 15 files; JPG, PNG, TIFF, BMP, PDF |
+| Bituach Leumi, "שירות אישי" ([FAQ](https://www.btl.gov.il/About/faq/TroubleShooting/FaqIshi/Pages/כיצד--ניתן-לשלוח-מסמכים-בשירות-אישי.aspx)) | personal-area documents | 5 MB per file; JPG, PNG, TIF, PDF |
+| Bituach Leumi, פניות הציבור ([page](https://www.btl.gov.il/about/contact_us/pages/pniot_hatsibur.aspx)) | inquiry attachments | 10 MB per file; PDF, PNG, JPG, TIFF |
+| NITE, special accommodations ([page](https://www.nite.org.il/special-test-accommodations-guidance/upload-documents/)) | supporting documents | 8 MB per file, PDF only |
+| Open University, student card ([page](https://www.openu.ac.il/registration/guidelines/pages/studentid.aspx)) | ID photo | JPG, up to 150KB |
+| Maccabi, administrative form ([page](https://www.maccabi4u.co.il/forms/administrative_issues/)) | attachments | 800KB; txt, pdf, jpg, gif (this one form only) |
+| Ministry of Defense, Hachvana deposit ([page](https://www.hachvana.mod.gov.il/GrantAndDeposit/DepositUpTo5/Pages/education.aspx)) | scanned voucher | 10 MB per file, up to 10 files; PDF, PNG, TIFF, JPG |
+
+Reported by the research but not re-fetched here (gov.il answers scripts with 403): Bituach Leumi's
+multi-year self-employed report on gov.il, 500KB per file and 10MB total, black and white up to 300 DPI
+(`gov.il/he/service/annual_report`); courts general request, 30MB total, PDF only (from an archive.org copy
+of `gov.il/he/service/general_labor_court_application`). gov.il's own attachment guide says each ministry
+sets its own limit. Confirm both in a browser before quoting them.
+
+No public number found, so these need someone signed in: the Tax Authority personal area, the Civil
+Service Commission's "נספחים" upload, university applicant portals (HUJI, TAU, Technion, BGU), the IDF
+recruits site, PIBA's online photo upload, and the upload screens of Clalit, Maccabi (app), Meuhedet and
+Leumit.
+
+The 500KB gov.il report and the 150KB Open University photo are the guide's natural examples: real
+limits a phone scan misses.
