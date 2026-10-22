@@ -41,14 +41,13 @@ export interface EditorExportActionsProps {
    * export is blocked. Sign wires this to ExportReadinessNotice; Redact has
    * no such notice and leaves it undefined. */
   describedBy?: string;
-  /** LOC-09 stage 1: toolbar-variant-only label/bidi overrides, read from
-   * src/i18n/toolMessages.ts's SignMessages by SignToolbar.tsx. Default to
-   * this file's own long-standing English literals, so Redact (which passes
-   * none of these) and the completion variant (out of scope this stage, and
-   * which keeps its own hardcoded `dir="ltr" lang="en"` wrapper) are
-   * unaffected. Applied to the two buttons directly rather than a wrapping
-   * element, since the toolbar variant renders them as a bare Fragment on
-   * purpose - see the comment on the `isToolbar` return below. */
+  /** Label and bidi overrides, read from src/i18n/toolMessages.ts's
+   * SignMessages by SignToolbar.tsx and PdfWorkspace.tsx. Default to this
+   * file's own long-standing English literals, so Redact (which passes none of
+   * these) is unaffected. The toolbar variant applies dir/lang to the two
+   * buttons directly, since it renders them as a bare Fragment on purpose (see
+   * the comment on the `isToolbar` return below); the completion variant
+   * applies them to its row, so the primary action sits at the start. */
   shareLabel?: string;
   downloadLabel?: string;
   /** Toolbar variant: show `confirmedLabel` with a check in place of the
@@ -145,7 +144,7 @@ export default function EditorExportActions({
       lang={isToolbar ? lang : undefined}
     >
       <ShareReadyIcon />
-      {isToolbar ? <span className={styles.label}>{shareLabel}</span> : 'Share'}
+      {isToolbar ? <span className={styles.label}>{shareLabel}</span> : shareLabel}
     </button>
   );
 
@@ -181,7 +180,7 @@ export default function EditorExportActions({
   }
 
   return (
-    <div className={workspaceStyles['export-actions']} dir="ltr" lang="en">
+    <div className={workspaceStyles['export-actions']} dir={dir} lang={lang}>
       {downloadButton}
       {shareButton}
     </div>
