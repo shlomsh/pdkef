@@ -1,7 +1,7 @@
 ---
 id: "DEBT-61"
 title: "The home page counts its own visits, new or returning, like the tool pages"
-status: "in_progress"
+status: "done"
 priority: "P2"
 horizon: "now"
 epic: "robustness"
@@ -28,5 +28,8 @@ where most people arrive.
   is counted once a day on the first PDkef page they see. From this change, someone who arrives through
   the home page has their tenure on the `home` row, and their tool page reads `today`. ANALYTICS.md
   records the break.
+- The visit day only exists since 21 Oct 2026, so every browser from before read as `new`. Without a
+  visit day, a browser that has recent files (kept 28 days on the device since MEM-01) now reads as
+  returning, aged by its newest file. Someone who only browsed before 21 Oct still reads as `new`.
 - `errors:read` prints the home row with no script change (it is generic over the page name); a unit
   test pins that.

@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { localDay, readAndStampVisit, visitFor } from './visitRecency.ts';
+import { lastDayFromRecents, localDay, readAndStampVisit, visitFor } from './visitRecency.ts';
+import { RECENT_FILES_META_KEY } from './drafts/recentFilesKey.js';
+
+describe('lastDayFromRecents (DEBT-61)', () => {
+  const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 15).getTime();
+  it('is the local day of the newest saved file', () => {
+    const raw = JSON.stringify([{ id: 'a', savedAt: at(2026, 10, 2) }, { id: 'b', savedAt: at(2026, 10, 9) }, { id: 'c', savedAt: 'x' }]);
+    expect(lastDayFromRecents(raw)).toBe('2026-10-09');
+  });
+  it.each([[null], [''], ['not json'], ['{}'], ['[]'], ['[{"savedAt":"soon"}]'], ['[null, 3]']])('%s gives no day', (raw) => {
+    expect(lastDayFromRecents(raw)).toBeNull();
+  });
+});
 
 function fakeStorage(throws = false) {
   const m = new Map<string, string>();
@@ -46,6 +58,20 @@ describe('readAndStampVisit', () => {
     expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-10-21');
     expect(readAndStampVisit(now)).toBe('today');
     expect(readAndStampVisit(new Date(2026, 9, 25))).toBe('week');
+  });
+  it('DEBT-61: a browser with no visit day but recent files from before is returning, aged by its newest file', () => {
+    localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 18, 9).getTime() }]));
+    expect(readAndStampVisit(new Date(2026, 9, 22, 12))).toBe('week');
+    expect(localStorage.getItem('pdkef:last-tool-visit')).toBe('2026-10-22');
+  });
+  it('DEBT-61: a recent file 8 to 30 days old reads as month', () => {
+    localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 2, 9).getTime() }]));
+    expect(readAndStampVisit(new Date(2026, 9, 22, 12))).toBe('month');
+  });
+  it('DEBT-61: the visit day wins over recent files', () => {
+    localStorage.setItem('pdkef:last-tool-visit', '2026-10-21');
+    localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify([{ id: 'a', savedAt: new Date(2026, 9, 2, 9).getTime() }]));
+    expect(readAndStampVisit(new Date(2026, 9, 22, 12))).toBe('week');
   });
   it('is undefined when storage throws', () => {
     vi.stubGlobal('localStorage', fakeStorage(true));
