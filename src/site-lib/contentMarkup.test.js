@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
+  CONTENT_FLOW_CLASS,
   CONTENT_PARAGRAPH_CLASS,
   STEP_LIST_CLASS,
   INLINE_LINK_CLASS,
@@ -155,14 +156,30 @@ describe('content block classes', () => {
     for (const [name, value] of Object.entries(BLOCKS)) expect(value.split(' '), name).toContain('type-lead');
   });
 
+  // The whole-site audit (same day) found each block type bringing its own
+  // trailing gap: paragraphs 29-32px of padding, ContentTable and figures a
+  // 24px margin, CompareTable none, and step lists none at all (their p-0
+  // outranked the padding), so step 3 on /open-source-pdf-editor/ ran into
+  // the paragraph after it. One flow container owns the gap between blocks.
+  it('spaces blocks with one flow gap', () => {
+    expect(CONTENT_FLOW_CLASS).toContain('gap-[var(--space-content-row)]');
+  });
+
   it.each(['src/components/ContentPage.astro', 'src/components/ToolAboutCard.astro'])(
-    '%s takes its paragraph and step classes from here, with no measure of its own',
+    '%s takes its block classes from here and leaves the gaps to the flow',
     (file) => {
       const source = readFileSync(file, 'utf8');
-      expect(source).toMatch(/CONTENT_PARAGRAPH_CLASS/);
-      expect(source).toMatch(/STEP_LIST_CLASS/);
+      for (const name of ['CONTENT_FLOW_CLASS', 'CONTENT_PARAGRAPH_CLASS', 'STEP_LIST_CLASS']) expect(source).toMatch(name);
       expect(source).not.toMatch(/max-w-\[\d+ch\]/);
       expect(source).not.toMatch(/list-decimal/);
+      expect(source).not.toMatch(/space-content-row/);
+    },
+  );
+
+  it.each(['src/components/ContentImage.astro', 'src/components/ContentTable.astro', 'src/components/compareFigure.css'])(
+    '%s brings no trailing margin of its own',
+    (file) => {
+      expect(readFileSync(file, 'utf8')).not.toMatch(/margin(-bottom)?: *(0 0 )?1\.5rem/);
     },
   );
 });

@@ -9,7 +9,7 @@ import ContentTable from './ContentTable.astro';
 import OtherGuides from './OtherGuides.astro';
 import { CONTENT_ICONS } from '../data/contentIcons';
 import { guides } from '../data/contentPages.js';
-import { CONTENT_PARAGRAPH_CLASS, STEP_ITEM_CLASS, STEP_LIST_CLASS, STEP_NUMBER_CLASS, STEP_TEXT_CLASS, renderInline } from '../site-lib/contentMarkup';
+import { CONTENT_FLOW_CLASS, CONTENT_PARAGRAPH_CLASS, STEP_ITEM_CLASS, STEP_LIST_CLASS, STEP_NUMBER_CLASS, STEP_TEXT_CLASS, renderInline } from '../site-lib/contentMarkup';
 import type { DocumentationShellMessages } from '../i18n/documentationMessages';
 
 interface Props { entry: any; pageId?: string; locale?: string; labels: DocumentationShellMessages; resolveLink?: (pageId: string, locale: string) => { href: string; effectiveLocale?: string; fallback?: boolean }; }
@@ -17,22 +17,10 @@ const { entry, pageId = entry.data.pageId ?? entry.id, locale = 'en', labels, re
 const page = entry.data;
 const englishHref = `/${pageId}/`;
 const isDeviceGuide = guides.some((guide) => guide.href === englishHref);
-// DEMO-01: type-lead is the role, space-content-row is the trailing gap
-// before whatever comes next (another paragraph or a list/table/columns
-// block) - PARAGRAPH_BEFORE_TEXT and PARAGRAPH_BEFORE_BLOCK used to carry
-// two different hand-typed margins (mb-4 vs mb-6) for what is the same
-// "content row precedes another content row" purpose, so they now share
-// one token. Same consolidation for the list/columns gap (gap-5/gap-6 -> the
-// one space-layout-gap token) and their own before-block trailing space.
-const PARAGRAPH_LAST = CONTENT_PARAGRAPH_CLASS;
-const PARAGRAPH_BEFORE_TEXT = `${CONTENT_PARAGRAPH_CLASS} space-content-row`;
-const PARAGRAPH_BEFORE_BLOCK = `${CONTENT_PARAGRAPH_CLASS} space-content-row`;
-const LIST_LAST = STEP_LIST_CLASS;
-const LIST_BEFORE_BLOCK = `${STEP_LIST_CLASS} space-content-row`;
-const COLUMNS_LAST = 'space-layout-gap grid grid-cols-3 max-[768px]:grid-cols-1';
-const COLUMNS_BEFORE_BLOCK = 'space-layout-gap space-content-row grid grid-cols-3 max-[768px]:grid-cols-1';
-const isLast = (list: any[], index: number) => index === list.length - 1;
-function paragraphClass(list: any[], index: number) { return isLast(list, index) ? PARAGRAPH_LAST : list[index + 1].kind === 'prose' ? PARAGRAPH_BEFORE_TEXT : PARAGRAPH_BEFORE_BLOCK; }
+// Every block of a section sits in one CONTENT_FLOW_CLASS column, which owns
+// the gap between any two blocks; no block carries a trailing margin of its
+// own (2026-10-22: per-block gaps had drifted to 0, 24 and 32px).
+const COLUMNS = 'space-layout-gap grid grid-cols-3 max-[768px]:grid-cols-1';
 ---
 
 {page.sections.map((section: any) => (
@@ -40,17 +28,19 @@ function paragraphClass(list: any[], index: number) { return isLast(list, index)
     <CardDecor sketch={section.sketch} icon={CONTENT_ICONS[section.icon as keyof typeof CONTENT_ICONS]} iconPos={section.iconPos} iconSize={280} />
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]" set:html={renderInline(section.kicker)} />
     <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]" set:html={renderInline(section.heading)} />
-    {section.blocks.map((block: any, index: number) => (
+    <div class={CONTENT_FLOW_CLASS}>
+    {section.blocks.map((block: any) => (
       <Fragment>
-        {block.kind === 'prose' && <p class={paragraphClass(section.blocks, index)} set:html={renderInline(block.text)} />}
-        {(block.kind === 'steps' || block.kind === 'checklist') && (() => { const ListTag = block.kind === 'steps' ? 'ol' : 'ul'; return <ListTag class={isLast(section.blocks,index) ? LIST_LAST : LIST_BEFORE_BLOCK}>{block.items.map((item: string, n: number) => <li class={STEP_ITEM_CLASS}><span class={STEP_NUMBER_CLASS}>{n + 1}</span><span class={STEP_TEXT_CLASS} set:html={renderInline(item)} /></li>)}</ListTag>; })()}
+        {block.kind === 'prose' && <p class={CONTENT_PARAGRAPH_CLASS} set:html={renderInline(block.text)} />}
+        {(block.kind === 'steps' || block.kind === 'checklist') && (() => { const ListTag = block.kind === 'steps' ? 'ol' : 'ul'; return <ListTag class={STEP_LIST_CLASS}>{block.items.map((item: string, n: number) => <li class={STEP_ITEM_CLASS}><span class={STEP_NUMBER_CLASS}>{n + 1}</span><span class={STEP_TEXT_CLASS} set:html={renderInline(item)} /></li>)}</ListTag>; })()}
         {block.kind === 'compare' && <CompareTable builtInLabel={block.builtInLabel} rows={block.rows} caption={block.caption} />}
         {block.kind === 'image' && <ContentImage {...block} />}
         {block.kind === 'compareFigure' && <CompareFigure {...block} />}
         {block.kind === 'table' && <ContentTable {...block} />}
-        {block.kind === 'columns' && <div class={isLast(section.blocks,index) ? COLUMNS_LAST : COLUMNS_BEFORE_BLOCK}>{block.items.map((column: any) => { const ColumnIcon = CONTENT_ICONS[column.icon as keyof typeof CONTENT_ICONS]; return <div class="flex flex-col gap-2"><div class="type-card mb-1 flex items-center gap-2 text-[var(--color-text)]"><ColumnIcon size={17} class="text-[var(--color-primary-text)]" /><Fragment set:html={renderInline(column.title)} /></div><p class="type-body m-0 text-[var(--color-muted)]" set:html={renderInline(column.body, 'muted')} /></div>; })}</div>}
+        {block.kind === 'columns' && <div class={COLUMNS}>{block.items.map((column: any) => { const ColumnIcon = CONTENT_ICONS[column.icon as keyof typeof CONTENT_ICONS]; return <div class="flex flex-col gap-2"><div class="type-card mb-1 flex items-center gap-2 text-[var(--color-text)]"><ColumnIcon size={17} class="text-[var(--color-primary-text)]" /><Fragment set:html={renderInline(column.title)} /></div><p class="type-body m-0 text-[var(--color-muted)]" set:html={renderInline(column.body, 'muted')} /></div>; })}</div>}
       </Fragment>
     ))}
+    </div>
   </FeatureCard>
 ))}
 

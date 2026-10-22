@@ -5,7 +5,7 @@
 import FeatureCard from './FeatureCard.astro';
 import CardDecor from './CardDecor.astro';
 import { documentationShellMessages, type AboutCardMessages } from '../i18n/documentationMessages';
-import { CONTENT_PARAGRAPH_CLASS, STEP_ITEM_CLASS, STEP_LIST_CLASS, STEP_NUMBER_CLASS, STEP_TEXT_CLASS } from '../site-lib/contentMarkup';
+import { CONTENT_FLOW_CLASS, CONTENT_PARAGRAPH_CLASS, STEP_ITEM_CLASS, STEP_LIST_CLASS, STEP_NUMBER_CLASS, STEP_TEXT_CLASS } from '../site-lib/contentMarkup';
 
 interface Step {
   title: string;
@@ -55,16 +55,20 @@ const resolvedTag = tag ?? labels.howItWorks;
   <div>
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{resolvedTag}</span>
     <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{heading}</h2>
-    <p class={`${CONTENT_PARAGRAPH_CLASS} space-content-row`}>{lead}</p>
+    <div class={CONTENT_FLOW_CLASS}>
+    <p class={CONTENT_PARAGRAPH_CLASS}>{lead}</p>
     <ol class={STEP_LIST_CLASS}>
       {steps.map((step, n) => (
         <li class={STEP_ITEM_CLASS}><span class={STEP_NUMBER_CLASS}>{n + 1}</span><span class={STEP_TEXT_CLASS}><strong class="font-semibold">{step.title}.</strong> {step.text}</span></li>
       ))}
     </ol>
+    </div>
     <section class="mt-7 border-t border-[var(--color-border)] pt-7">
       <h2 class="type-feature space-heading-content mt-0 text-[var(--color-text)]">{labels.freeForEveryone}</h2>
-      <p class={`${CONTENT_PARAGRAPH_CLASS} space-content-row`} set:html={freeNoteLead} />
-      <p class={CONTENT_PARAGRAPH_CLASS} set:html={labels.openSourceNote} />
+      <div class={CONTENT_FLOW_CLASS}>
+        <p class={CONTENT_PARAGRAPH_CLASS} set:html={freeNoteLead} />
+        <p class={CONTENT_PARAGRAPH_CLASS} set:html={labels.openSourceNote} />
+      </div>
     </section>
   </div>
 </FeatureCard>

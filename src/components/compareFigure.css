@@ -7,10 +7,7 @@
    so these comments never ship, and the CSP hash is computed from the
    minified text the page carries. */
 .compare-figure {
-  margin: 0 0 1.5rem;
-}
-.compare-figure:last-child {
-  margin-bottom: 0;
+  margin: 0;
 }
 .compare-figure-box {
   position: relative;
