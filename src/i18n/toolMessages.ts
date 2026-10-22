@@ -1508,9 +1508,8 @@ const englishSignMessages: SignMessages = {
   dir: 'ltr',
 };
 
-// LOC-09 stage 1: an AI draft, not yet reviewed by a native speaker - the same
-// caveat hebrewMergeMessages and hebrewCompressMessages above carry. Pending
-// Shlomi's read-through.
+// LOC-09 stage 1, drafted by AI; Shlomi read the rendered /he/sign/ editor
+// through briefly on 2026-10-22 (LOC-18) and approved it as it stands.
 const hebrewSignMessages: SignMessages = {
   toolbarLabel: 'הערות PDF',
   textButton: 'טקסט',
@@ -1574,10 +1573,9 @@ const hebrewSignMessages: SignMessages = {
   viewFullscreen: 'מסך מלא',
   viewExitFullscreen: 'יציאה ממסך מלא',
   viewDensityLabel: 'צפיפות התצוגה',
-  // LOC-16 stage 2-5 (2026-09-13): AI draft, not yet reviewed by a native
-  // speaker - same caveat as the rest of this catalogue, extending coverage
-  // from the toolbar row to popovers, dialogs, element controls and
-  // screen-reader announcements across the whole Sign editor.
+  // LOC-16 stage 2-5 (2026-09-13): popovers, dialogs, element controls and
+  // screen-reader announcements across the whole Sign editor; covered by the
+  // same 2026-10-22 read-through as the toolbar row above.
   ellipseLabel: 'אליפסה',
   rectangleLabel: 'מלבן',
   lineLabel: 'קו',

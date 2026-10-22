@@ -168,7 +168,7 @@
         "islands": {
           "merge": "published",
           "compress": "reviewed",
-          "sign": "draft"
+          "sign": "reviewed"
         },
         "editor": "decided-english"
       }
