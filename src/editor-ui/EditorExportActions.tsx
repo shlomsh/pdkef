@@ -107,24 +107,25 @@ export default function EditorExportActions({
 }: EditorExportActionsProps) {
   const isToolbar = variant === 'toolbar';
 
-  // Both labels sit in one grid cell, the inactive one hidden, so the button is
-  // always as wide as the wider label and nothing reflows when it flips (MOBI-07).
+  // The icon and the word swap inside the usual `svg + .label` pair, so every
+  // toolbar rule that reads that shape still applies. Both words share one grid
+  // cell, the inactive one hidden, so the label is always as wide as the wider
+  // word and nothing reflows when it flips (MOBI-07).
   const downloadContent = confirmed === undefined ? (
     <>
       <DownloadIcon />
       <span className={styles.label}>{downloadLabel ?? 'Download'}</span>
     </>
   ) : (
-    <span className={styles['label-swap']}>
-      <span className={styles['label-swap-cell']} aria-hidden={confirmed ? 'true' : undefined} data-inactive={confirmed ? '' : undefined}>
-        <DownloadIcon />
-        <span className={styles.label}>{downloadLabel ?? 'Download'}</span>
+    <>
+      {confirmed ? <Check size={18} stroke-width={2.5} aria-hidden="true" /> : <DownloadIcon />}
+      <span className={styles.label}>
+        <span className={styles['label-swap']}>
+          <span className={styles['label-swap-word']} aria-hidden={confirmed ? 'true' : undefined} data-inactive={confirmed ? '' : undefined}>{downloadLabel ?? 'Download'}</span>
+          <span className={styles['label-swap-word']} aria-hidden={confirmed ? undefined : 'true'} data-inactive={confirmed ? undefined : ''}>{confirmedLabel}</span>
+        </span>
       </span>
-      <span className={styles['label-swap-cell']} aria-hidden={confirmed ? undefined : 'true'} data-inactive={confirmed ? undefined : ''}>
-        <Check size={18} stroke-width={2.5} aria-hidden="true" />
-        <span className={styles.label}>{confirmedLabel}</span>
-      </span>
-    </span>
+    </>
   );
 
   // Icon and label stay the same in every state (MOBI-07): readiness only
