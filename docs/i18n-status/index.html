@@ -226,8 +226,8 @@
 
   <section>
     <div class="section-head">
-      <h2>Held and declined, with the proof</h2>
-      <p>Each card is the measured case. A hold is not a no: the re-check date is when it comes back.</p>
+      <h2>Every language, with the proof</h2>
+      <p>Each card is the measured case: the live language's latest read first, then the holds and declines. A hold is not a no: the re-check date is when it comes back.</p>
     </div>
     <div class="cards" id="cards"></div>
   </section>
@@ -375,9 +375,9 @@
       cov.append(legend);
     }
 
-    // Cards for hold / no / open
+    // Cards for every language, the live ones first
     const cards = $('#cards'); cards.replaceChildren();
-    for (const l of rows.filter((x) => x.decision !== 'keep')) cards.append(card(l));
+    for (const l of rows) cards.append(card(l));
 
     // Gates
     const gates = $('#gates'); gates.replaceChildren();
@@ -415,7 +415,7 @@
       t.append(tb);
       c.append(el('div', { style: 'overflow-x:auto' }, t));
     }
-    if (l.next) c.append(el('div', { class: 'next' }, el('b', {}, 'What reopens it: '), l.next));
+    if (l.next) c.append(el('div', { class: 'next' }, el('b', {}, l.decision === 'keep' ? 'Next: ' : 'What reopens it: '), l.next));
     return c;
   }
 

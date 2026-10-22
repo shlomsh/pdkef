@@ -275,3 +275,29 @@ discovered through the sitemap, Google-selected canonical is the URL itself. So 
 from about 09-22 and came back with the 10-05 crawl, after the Valid export's data ended (10-04). The
 11-06 read covers it; no request needed. The "Crawled - currently not indexed" drilldown (10-08) lists
 `/he/sign/` (crawled 10-05) and `/sitemap.xml`: the report lags the inspection and should clear.
+
+## 2026-10-22 read: past the bar on impressions, short on clicks
+
+Shlomi's property export, 10-07 to 10-20 against 09-23 to 10-06 (SEO-45 has the whole read).
+
+- **Israel:** 4,271 impressions (from 1,333), 33 clicks (from 16), position 9.0 (from 15.7). That is about
+  46% of the site's impressions in the window, the only segment that grew while the rest of the world lost
+  38% of impressions and 9% of clicks. The `/he/` pages account for almost all of it (`/he/merge/` 3,680,
+  `/he/compress/` 315, `/he/sign/` 122, the guides), and took 32 clicks, from 14. Insights over 28 days has
+  `/he/merge/` third by clicks (22) behind `/redact/` and `/compress/`, under the live `איחוד ומיזוג` title.
+- **The 11-06 success bar is already met:** `מיזוג קבצי pdf בחינם` at 2.0 (187 impressions), `איחוד קבצי
+  pdf חינם` 4.8 (129), `איחוד קבצי pdf` 7.3 (331), `מיזוג קבצי pdf` 8.0 (285). The איחוד title added on
+  09-17 and crawled 10-08 is the one title change in these weeks that visibly worked.
+- **Clicks are the gap.** Those four merge queries: about 930 impressions, 2 clicks. Israel's CTR is 0.8%
+  against 5.6% everywhere else.
+- **Why, from Shlomi's SERP for `מיזוג קבצי pdf בחינם` (2026-10-22, signed in, English interface):** we are
+  the fifth organic result, under PDF24 with `5.0 ★ (24,259) · Free`, an AI Overview that lists PDF24, Adobe,
+  AvePDF and PDF Converter but not us, then freepdfconvert, Adobe and lexa.co.il. Our title and snippet are
+  the live Hebrew ones and read well. Search Console's position 2.0 is not what a searcher sees, so this is
+  not a copy problem. The levers are the star rating (SEO-46; PDF24's stars show on the Hebrew page too) and
+  being one of the tools the AI Overview names.
+
+For the 11-06 read: impressions are settled, read clicks and CTR per query, Israel only, against this
+window. For the localization gate: Hebrew ranks natively where `/merge/` cannot hold page one in English, so
+the gate's field half (an English page of ours already in the top ten) may undervalue a weak native field.
+Raise it at the 11-08 Indonesian read (LOC-17), not before.

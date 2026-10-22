@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updated": "2026-09-13",
+    "updated": "2026-10-22",
     "reCheck": {
       "date": "2026-11-12",
       "ticket": "LOC-12"
@@ -81,7 +81,7 @@
       "decisionDate": "2026-09-11",
       "reCheck": "2026-11-06",
       "reasoning": "Chosen first because review costs nothing (in-house), Israel already converts best of any country from English queries, and the Hebrew incumbents are visibly weak: machine-flavoured, LTR-laid-out, none claiming on-device processing or real RTL support. LOC-01 called Hebrew's small Trends share \"informative, not decisive\" for exactly that reason. LOC-11 later confirmed Hebrew is one of the weakest demand cases measured; the decision stands because the marginal cost is zero.",
-      "next": "First read at the 2026-10-08 refresh (LOC-06's per-locale table); success criteria read at the eight-week mark, 2026-11-06: any Hebrew-query impression at all, or one of the three target phrasings in Israel's top 20. As of 2026-09-13 the home page, its dock, cards and interactive demo are fully Hebrew (LOC-16 item 1, mirrored motion, Shlomi's read on the built page) and the Sign editor's toolbar row is a Hebrew draft, with the rest of the editor still English (LOC-16 item 2).",
+      "next": "Read 2026-11-06 (LOC-03). Impressions are past the success bar already; what is left to read is clicks and CTR per query, Israel only. The click gap is the results page, not the copy: under a starred PDF24 and an AI Overview, so the levers are SEO-46's real ratings and being a tool the AI Overview names. Gate question for the 11-08 Indonesian read (LOC-17): Hebrew ranks natively where /merge/ cannot hold page one in English, so the field half of the ROI gate may be better measured on the native SERP.",
       "evidence": [
         {
           "metric": "Trends share vs English, 4 anchor tasks (IL)",
@@ -117,6 +117,34 @@
           "gate": "other top-20 countries",
           "verdict": "pass",
           "source": "LOC-03 § Scope"
+        },
+        {
+          "metric": "GSC Israel, 10-07 to 10-20, against 09-23 to 10-06 (1,333 impressions, 16 clicks, 15.7)",
+          "value": "4,271 imp, 33 clicks, 9.0",
+          "gate": "rest of the world: impressions -38%, clicks -9%; Israel is about 46% of the site's impressions",
+          "verdict": "pass",
+          "source": "LOC-03 § 10-22 read"
+        },
+        {
+          "metric": "The 11-06 bar, Israel's top 20: מיזוג קבצי pdf בחינם, איחוד קבצי pdf חינם, איחוד קבצי pdf, מיזוג קבצי pdf",
+          "value": "all four, 2.0 to 8.0",
+          "gate": "top 20",
+          "verdict": "pass",
+          "source": "LOC-03 § 10-22 read"
+        },
+        {
+          "metric": "Clicks on those four phrasings; Israel's CTR 0.8%",
+          "value": "2 / ~930 imp",
+          "gate": "CTR outside Israel 5.6%",
+          "verdict": "fail",
+          "source": "LOC-03 § 10-22 read"
+        },
+        {
+          "metric": "SERP for מיזוג קבצי pdf בחינם (10-22): under PDF24's 5.0 stars (24,259) and an AI Overview that does not name us; our title and snippet are the live ones",
+          "value": "5th organic",
+          "gate": "GSC position 2.0",
+          "verdict": "na",
+          "source": "LOC-03; SEO-46"
         }
       ],
       "coverage": {
