@@ -63,3 +63,4 @@
 @source "../pages/unlock.astro";
 /* LOC-02: localized tool pages, same shell components as above. */
 @source "../pages/[locale]/[tool].astro";
+@source "../site-lib/contentMarkup.ts";

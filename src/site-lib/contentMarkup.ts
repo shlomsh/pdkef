@@ -46,6 +46,20 @@ export const STRONG_CLASS = {
 
 export type InlineTone = keyof typeof STRONG_CLASS;
 
+/**
+ * The block classes of a content card, shared by the guides (ContentPage) and
+ * the tool pages' "How it works" card (ToolAboutCard), which are one design.
+ * Every block runs the same 68ch measure in the same ink, so a card's
+ * paragraphs and steps share both edges (Shlomi, 2026-10-22). Callers add only
+ * the trailing gap: `space-content-row` before another block, `mb-0` last.
+ */
+export const CONTENT_PARAGRAPH_CLASS = 'type-lead mt-0 max-w-[68ch] text-[var(--color-text)]';
+export const STEP_LIST_CLASS = 'type-lead space-layout-gap m-0 flex max-w-[68ch] list-none flex-col p-0';
+export const STEP_ITEM_CLASS = 'flex items-start gap-4';
+export const STEP_NUMBER_CLASS =
+  'mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]';
+export const STEP_TEXT_CLASS = 'type-lead text-[var(--color-text)]';
+
 const TAG = /<[^>]*>/g;
 const OPEN_LINK = /^<a href="([^"]+)"( target="_blank" rel="noopener noreferrer")?>$/;
 const CLOSE = /^<\/([a-zA-Z][a-zA-Z0-9]*)>$/;
