@@ -3,7 +3,6 @@ id: "DEBT-61"
 title: "The home page counts its own visits, new or returning, like the tool pages"
 status: "done"
 priority: "P2"
-horizon: "now"
 epic: "robustness"
 depends_on: []
 ---
