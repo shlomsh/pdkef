@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
+  CONTENT_PARAGRAPH_CLASS,
+  STEP_LIST_CLASS,
   INLINE_LINK_CLASS,
   STRONG_CLASS,
   inlineHtmlProblems,
@@ -127,4 +130,34 @@ describe('renderInline', () => {
   it('throws rather than rendering markup that never passed the schema', () => {
     expect(() => renderInline('<script>alert(1)</script>')).toThrow(/Unrenderable inline HTML/);
   });
+});
+
+// Shlomi, 2026-10-22: the tool pages' "How it works" card and the guides'
+// cards are one design. Its paragraphs ran 68ch, its free note 64ch and its
+// steps the full card width, in two text colors; on /he/split/ that read as a
+// paragraph in a different style. One measure, one ink, one step list, owned here.
+describe('content block classes', () => {
+  const MEASURE = 'max-w-[68ch]';
+  const BLOCKS = { CONTENT_PARAGRAPH_CLASS, STEP_LIST_CLASS };
+
+  it('gives every block the same line length', () => {
+    for (const [name, value] of Object.entries(BLOCKS)) expect(value, name).toContain(MEASURE);
+  });
+
+  // A ch is measured in the element's own font: a list at the body size ran
+  // its 68ch 22px short of the type-lead paragraphs beside it.
+  it('measures every block in the same font, so 68ch is one width', () => {
+    for (const [name, value] of Object.entries(BLOCKS)) expect(value.split(' '), name).toContain('type-lead');
+  });
+
+  it.each(['src/components/ContentPage.astro', 'src/components/ToolAboutCard.astro'])(
+    '%s takes its paragraph and step classes from here, with no measure of its own',
+    (file) => {
+      const source = readFileSync(file, 'utf8');
+      expect(source).toMatch(/CONTENT_PARAGRAPH_CLASS/);
+      expect(source).toMatch(/STEP_LIST_CLASS/);
+      expect(source).not.toMatch(/max-w-\[\d+ch\]/);
+      expect(source).not.toMatch(/list-decimal/);
+    },
+  );
 });

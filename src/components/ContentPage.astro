@@ -9,7 +9,7 @@ import ContentTable from './ContentTable.astro';
 import OtherGuides from './OtherGuides.astro';
 import { CONTENT_ICONS } from '../data/contentIcons';
 import { guides } from '../data/contentPages.js';
-import { renderInline } from '../site-lib/contentMarkup';
+import { CONTENT_PARAGRAPH_CLASS, STEP_ITEM_CLASS, STEP_LIST_CLASS, STEP_NUMBER_CLASS, STEP_TEXT_CLASS, renderInline } from '../site-lib/contentMarkup';
 import type { DocumentationShellMessages } from '../i18n/documentationMessages';
 
 interface Props { entry: any; pageId?: string; locale?: string; labels: DocumentationShellMessages; resolveLink?: (pageId: string, locale: string) => { href: string; effectiveLocale?: string; fallback?: boolean }; }
@@ -24,11 +24,11 @@ const isDeviceGuide = guides.some((guide) => guide.href === englishHref);
 // "content row precedes another content row" purpose, so they now share
 // one token. Same consolidation for the list/columns gap (gap-5/gap-6 -> the
 // one space-layout-gap token) and their own before-block trailing space.
-const PARAGRAPH_LAST = 'type-lead m-0 max-w-[68ch] text-[var(--color-text)]';
-const PARAGRAPH_BEFORE_TEXT = 'type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]';
-const PARAGRAPH_BEFORE_BLOCK = 'type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]';
-const LIST_LAST = 'space-layout-gap m-0 flex list-none flex-col p-0';
-const LIST_BEFORE_BLOCK = 'space-layout-gap space-content-row m-0 flex list-none flex-col p-0';
+const PARAGRAPH_LAST = `${CONTENT_PARAGRAPH_CLASS} mb-0`;
+const PARAGRAPH_BEFORE_TEXT = `${CONTENT_PARAGRAPH_CLASS} space-content-row`;
+const PARAGRAPH_BEFORE_BLOCK = `${CONTENT_PARAGRAPH_CLASS} space-content-row`;
+const LIST_LAST = STEP_LIST_CLASS;
+const LIST_BEFORE_BLOCK = `${STEP_LIST_CLASS} space-content-row`;
 const COLUMNS_LAST = 'space-layout-gap grid grid-cols-3 max-[768px]:grid-cols-1';
 const COLUMNS_BEFORE_BLOCK = 'space-layout-gap space-content-row grid grid-cols-3 max-[768px]:grid-cols-1';
 const isLast = (list: any[], index: number) => index === list.length - 1;
@@ -43,7 +43,7 @@ function paragraphClass(list: any[], index: number) { return isLast(list, index)
     {section.blocks.map((block: any, index: number) => (
       <Fragment>
         {block.kind === 'prose' && <p class={paragraphClass(section.blocks, index)} set:html={renderInline(block.text)} />}
-        {(block.kind === 'steps' || block.kind === 'checklist') && (() => { const ListTag = block.kind === 'steps' ? 'ol' : 'ul'; return <ListTag class={isLast(section.blocks,index) ? LIST_LAST : LIST_BEFORE_BLOCK}>{block.items.map((item: string, n: number) => <li class="flex items-start gap-4"><span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">{n + 1}</span><span class="type-lead text-[var(--color-text)]" set:html={renderInline(item)} /></li>)}</ListTag>; })()}
+        {(block.kind === 'steps' || block.kind === 'checklist') && (() => { const ListTag = block.kind === 'steps' ? 'ol' : 'ul'; return <ListTag class={isLast(section.blocks,index) ? LIST_LAST : LIST_BEFORE_BLOCK}>{block.items.map((item: string, n: number) => <li class={STEP_ITEM_CLASS}><span class={STEP_NUMBER_CLASS}>{n + 1}</span><span class={STEP_TEXT_CLASS} set:html={renderInline(item)} /></li>)}</ListTag>; })()}
         {block.kind === 'compare' && <CompareTable builtInLabel={block.builtInLabel} rows={block.rows} caption={block.caption} />}
         {block.kind === 'image' && <ContentImage {...block} />}
         {block.kind === 'compareFigure' && <CompareFigure {...block} />}
