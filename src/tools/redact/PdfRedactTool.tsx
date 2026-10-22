@@ -1148,7 +1148,7 @@ export default function PdfRedactTool() {
               },
             }}
             onUndoAction={runUndoChip}
-            statusMessage={finishStatusText(finishFacts)}
+            statusMessage={showStrip ? null : finishStatusText(finishFacts)}
             peeking={peekAll}
             onPeekChange={setPeekAll}
             showWelcomeTip={showWelcomeTip}

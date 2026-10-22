@@ -18,7 +18,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  flex-wrap: wrap;
+  gap: 0 0.3rem;
   min-height: 44px;
   padding: 0.5rem 0.25rem;
   font: inherit;
@@ -41,12 +42,10 @@
   cursor: default;
 }
 
-/* The note after a verb ("45.2 KB"): quieter than the label, and allowed to
-   shrink with an ellipsis so two halves never wrap at 390px. */
+/* The note after a verb ("45.2 KB"): quieter than the label. When a half is
+   too narrow for both, the button wraps and the note takes its own line, read
+   whole rather than cut off. */
 .detail {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   font-weight: 400;
   color: var(--color-muted);
 }
