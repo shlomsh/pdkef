@@ -20,24 +20,33 @@ import { formatFileSize } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
+import {
+  englishImageToPdfMessages,
+  formatMessage,
+  type ImageToPdfMessages,
+  type ShellMessages,
+} from '../../i18n/toolMessages';
 
 let nextId = 0;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 
-const SORT_OPTIONS = [
-  { value: 'custom', label: 'Your order' },
-  { value: 'nameAsc', label: 'Name A–Z' },
-  { value: 'nameDesc', label: 'Name Z–A' },
-  { value: 'dateAsc', label: 'Oldest first' },
-  { value: 'dateDesc', label: 'Newest first' },
+const sortOptions = (t: ImageToPdfMessages) => [
+  { value: 'custom', label: t.sortCustom },
+  { value: 'nameAsc', label: t.sortNameAsc },
+  { value: 'nameDesc', label: t.sortNameDesc },
+  { value: 'dateAsc', label: t.sortDateAsc },
+  { value: 'dateDesc', label: t.sortDateDesc },
 ];
+
+const imageCount = (t: ImageToPdfMessages, count: number) =>
+  formatMessage(count === 1 ? t.imageCountOne : t.imageCountOther, { count });
 
 function toEntry(file: File): ImageEntry {
   return { id: nextId++, file, thumbnail: URL.createObjectURL(file) };
 }
 
 // Its own component so it can reach the shell context (BasePdfTool provides it to its children).
-function AddImagesTile() {
+function AddImagesTile({ label }: { label: string }) {
   const { requestReplace } = useToolShell();
   return (
     <li class={styles['add-tile']}>
@@ -45,13 +54,22 @@ function AddImagesTile() {
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
         </svg>
-        Add images
+        {label}
       </button>
     </li>
   );
 }
 
-export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: QuietPolicy } = {}) {
+export interface PdfImageToPdfToolProps {
+  quietPolicy?: QuietPolicy;
+  /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
+   * edition; every key not overridden keeps the English default. */
+  messages?: Partial<ImageToPdfMessages>;
+  shellMessages?: Partial<ShellMessages>;
+}
+
+export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp, shellMessages }: PdfImageToPdfToolProps = {}) {
+  const t: ImageToPdfMessages = { ...englishImageToPdfMessages, ...messagesProp };
   const [entries, setEntries] = useState<ImageEntry[]>([]);
   const [sortMode, setSortMode] = useState('custom');
   const [customName, setCustomName] = useState<string | null>(null);
@@ -151,7 +169,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     const newEntries = imageFiles.map(toEntry);
     setEntries((current) => [...current, ...newEntries]);
     setSortMode('custom');
-    announce(`${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`);
+    announce(formatMessage(newEntries.length === 1 ? t.announceAddedOne : t.announceAddedMany, { count: newEntries.length }));
     recordAction('add_files');
   }, []);
 
@@ -171,7 +189,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     const index = current.findIndex((e) => e.id === id);
     const removed = current[index];
     if (removed) {
-      announce(`${removed.file.name} removed.`);
+      announce(formatMessage(t.announceRemoved, { name: removed.file.name }));
       URL.revokeObjectURL(removed.thumbnail);
     }
     const left = current.filter((e) => e.id !== id);
@@ -196,7 +214,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     setCustomName(null);
     resetTap();
     setRejectedFiles([]);
-    announce('Cleared. Add images to start again.');
+    announce(t.announceCleared);
     recordAction('clear_all');
   }, []);
 
@@ -208,7 +226,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     if (next === entries) return;
     event.preventDefault();
     focusIdRef.current = id;
-    announce(`${entries.find((e: ImageEntry) => e.id === id)?.file.name} moved to position ${next.findIndex((e: ImageEntry) => e.id === id) + 1} of ${next.length}.`);
+    announce(formatMessage(t.announceMoved, { name: entries.find((e: ImageEntry) => e.id === id)?.file.name ?? '', position: next.findIndex((e: ImageEntry) => e.id === id) + 1, total: next.length }));
     reordered(next);
   };
 
@@ -216,7 +234,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     if (value === 'custom') return;
     setEntries((current) => sortEntries(current, value));
     setSortMode(value);
-    announce('Images reordered.');
+    announce(t.announceReordered);
     recordAction('sort');
   };
 
@@ -235,7 +253,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     exportedRef.current = true;
     pendingTapRef.current = true;
     setTap('converting');
-    announce('Preparing your PDF.');
+    announce(t.announcePreparing);
     build.buildNow();
   };
 
@@ -249,25 +267,25 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     if (!fresh || !pendingTapRef.current || !downloadUrl) return;
     pendingTapRef.current = false;
     setTap('done');
-    announce('Your PDF is ready.');
+    announce(t.announceReady);
     sheetRef.current?.querySelector<HTMLAnchorElement>('a[download]')?.click();
   }, [fresh, downloadUrl]);
 
   const handleShare = async () => {
     // Stale: a change is waiting for quiet, and the prepared PDF is the previous one.
     if (!fresh) {
-      announce('Your PDF is updating. Try Share again in a moment.');
+      announce(t.announceUpdating);
       return;
     }
     const result = await sharePrepared();
     if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') announce('PDF shared successfully.');
-    else if (result.status === 'canceled') announce('Sharing canceled. Your PDF is still ready.');
-    else if (result.status === 'error') announce('Could not open the share sheet. Please try again.');
+    if (result.status === 'shared') announce(t.announceShared);
+    else if (result.status === 'canceled') announce(t.announceShareCanceled);
+    else if (result.status === 'error') announce(t.announceShareError);
   };
 
   const hasFiles = entries.length > 0;
-  const fileSummary = `${entries.length} image${entries.length === 1 ? '' : 's'}`;
+  const fileSummary = imageCount(t, entries.length);
   const tappedBusy = tapped && !fresh && !build.failed;
 
   const sheet = (
@@ -280,9 +298,9 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
     >
       {build.failed ? (
         <>
-          <ErrorMessage>A file may be damaged - remove it and try again.</ErrorMessage>
+          <ErrorMessage>{t.buildFailed}</ErrorMessage>
           <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={build.retry}>
-            Try again
+            {t.tryAgain}
           </button>
         </>
 ) : (
@@ -293,11 +311,12 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
             autoFocus={false}
             href={fresh && downloadUrl ? downloadUrl : '#'}
             download={fileName}
+            label={t.downloadLabel}
             detail={lastSizeRef.current}
             onClick={onDownloadClick}
-            busy={tappedBusy ? <ProgressRing progress={build.progress} label="Preparing…" /> : undefined}
+            busy={tappedBusy ? <ProgressRing progress={build.progress} label={t.preparing} /> : undefined}
           />
-          <PdfShareButton visible={shareReady} onShare={handleShare} />
+          <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} />
         </>
       )}
     </div>
@@ -311,18 +330,19 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
       analyticsStatus={status}
       onFilesAdded={addFiles}
       accept="image/jpeg,image/png"
-      emptyStateMessage="Drop images here"
+      emptyStateMessage={t.dropHere}
       fileLabel={fileSummary}
       fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}
       onClearAll={reset}
       clearSummary={fileSummary}
       hideIdentity
+      shellMessages={shellMessages}
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? `Skipped “${rejectedFiles[0]}” - not a JPG or PNG.`
-            : `Skipped ${rejectedFiles.length} files - not JPG or PNG.`}
+            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}
 
@@ -336,17 +356,17 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
 
           <div class={styles.controls}>
             {entries.length > 1 && (
-              <SortMenu label="Order" ariaLabel="Order images" value={sortMode} options={SORT_OPTIONS} onChange={applySort} />
+              <SortMenu label={t.sortLabel} ariaLabel={t.sortAriaLabel} value={sortMode} options={sortOptions(t)} onChange={applySort} />
             )}
           </div>
 
           <div class={styles.result}>
             <p class={styles.heading}>
-              <OutputName name={outputName} label="PDF file name" onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)} />
-              <span class={styles['heading-meta']}>· {entries.length} {entries.length === 1 ? 'page' : 'pages'}</span>
+              <OutputName name={outputName} label={t.fileNameLabel} onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)} />
+              <span class={styles['heading-meta']}>· {entries.length} {entries.length === 1 ? t.pageCountOne : t.pageCountOther}</span>
             </p>
             <p class="sr-only" id="reorder-hint">
-              Drag a page to reorder, or focus a page and press the arrow keys to move it.
+              {t.reorderHint}
             </p>
             <ul class={styles.grid} ref={listRef} aria-describedby="reorder-hint">
               {entries.map((entry, index) => (
@@ -356,7 +376,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
                     data-page
                     tabIndex={0}
                     role="button"
-                    aria-label={`${entry.file.name}, page ${index + 1} of ${entries.length}. Drag, or press an arrow key to move.`}
+                    aria-label={formatMessage(t.tileLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
                     onKeyDown={(e) => onTileKeyDown(e, entry.id)}
                   >
                     <img src={entry.thumbnail} alt="" draggable={false} />
@@ -365,7 +385,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
                   <button
                     type="button"
                     class={styles.remove}
-                    aria-label={`Remove ${entry.file.name}`}
+                    aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
                     onClick={() => removeEntry(entry.id)}
                   >
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -374,7 +394,7 @@ export default function PdfImageToPdfTool({ quietPolicy }: { quietPolicy?: Quiet
                   </button>
                 </li>
               ))}
-              <AddImagesTile />
+              <AddImagesTile label={t.addImages} />
             </ul>
           </div>
 

@@ -15,6 +15,7 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
+import { hebrewShellMessages, hebrewImageToPdfMessages } from '../../i18n/toolMessages';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -483,5 +484,25 @@ describe('PdfImageToPdfTool UI flow', () => {
     await pick('nameDesc');
     expect(live()).not.toBe(first);
     expect(live().trim()).toBe('Images reordered.');
+  });
+  // LOC: /he/image-to-pdf/ passes the Hebrew catalogue; nothing the island renders stays English.
+  it('renders Hebrew controls, hints and announcements from the messages prop', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => {
+      render(<PdfImageToPdfTool messages={hebrewImageToPdfMessages} shellMessages={hebrewShellMessages} />, container);
+    });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makeImageFile('b.png'), makeImageFile('a.png'), makeImageFile('c.txt', 'text/plain')]);
+    });
+    await act(async () => { vi.advanceTimersByTime(1000); });
+    const text = container.textContent;
+    for (const word of ['הוספת תמונות', 'סדר', 'עמודים', 'הורדת PDF']) expect(text).toContain(word);
+    for (const english of ['Add images', 'Order', 'pages', 'Download PDF']) expect(text).not.toContain(english);
+    expect(text).toContain('דילגנו על "c.txt"');
+    expect(container.querySelector('[data-page]').getAttribute('aria-label')).toBe('b.png, עמוד 1 מתוך 2. גררו, או לחצו על מקש חץ כדי להזיז.');
+    expect(container.querySelector('button[aria-label="הסרת b.png"]')).not.toBeNull();
+    expect(container.querySelector('#reorder-hint').textContent).toBe(hebrewImageToPdfMessages.reorderHint);
+    expect(container.querySelector('[role="status"][aria-live="polite"]').textContent).toBe('2 תמונות נוספו.');
   });
 });

@@ -5,13 +5,15 @@
 # "חיתוך קובץ PDF" and "הפרדת עמודים". Voice and shared closer as merge.yaml.
 toolSlug: 'split'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Claude Opus 5.5'
+reviewedAt: '2026-10-22'
 reviewNotes: >-
-  2026-10-08: AI draft, awaits Shlomi's read. Not reviewed, so reviewer and
-  reviewedAt are empty. The vocabulary (פיצול, חיתוך, הפרדת עמודים) is a
-  hypothesis, not a measured Hebrew query. A draft emits no hreflang and is
-  only built in a PDKEF_DOCS_PREVIEW build.
-  10-15: hash moved only because h1Name was added; translation unchanged.
+  2026-10-08: AI draft. 2026-10-22: AI review against the current English
+  /split/ (unchanged since the 10-15 h1Name hash refresh) and published for
+  Shlomi's own read, the way /he/pdf-to-image/ was. Google autocomplete in
+  Israel (2026-10-22) confirms the lead phrasing: "פיצול pdf", "פיצול pdf
+  חינם", "פיצול מסמכי pdf". חיתוך and הפרדת עמודים stay as secondary words.
 sourceHash: 'fnv1a64:75afbaffa623add6'
 seoTitle: 'פיצול PDF בחינם - חילוץ עמודים ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-

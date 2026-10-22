@@ -70,4 +70,13 @@ describe('OutputName', () => {
     expect(container.textContent).toBe('extracted_a.pdf');
     expect(nameEl().textContent).toBe('a');
   });
+
+  // Outside the isolate, a Hebrew page laid the prefix out on the far side of
+  // the name: "num-3.pdf_extracted" for extracted_num-3.pdf (2026-10-22).
+  it('keeps the prefix inside the file name isolate, so RTL pages read it in order', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<OutputName prefix="extracted_" name="num-3" label="x" onRename={() => {}} />, container));
+    expect(container.querySelector('bdi')?.textContent).toBe('extracted_num-3.pdf');
+  });
 });

@@ -202,12 +202,13 @@ export default function OutputName({
 
   return (
     <>
-      {prefix ? <span class={styles.prefix}>{prefix}</span> : null}
-      {/* The name and its extension are one file name, so one isolate (UX
-          guideline 9). `<bdi>` takes its direction from the name's first
+      {/* The prefix, the name and its extension are one file name, so one
+          isolate (UX guideline 9). `<bdi>` takes its direction from the first
           strong character, which is why the name carries no `dir` of its own;
-          the extension is an LTR run inside it. */}
+          the extension is an LTR run inside it. A prefix outside the isolate
+          landed on the far side of the name on a Hebrew page. */}
       <bdi class={`${styles['doc-heading-file']}${wrapClass}`}>
+        {prefix ? <span class={styles.prefix}>{prefix}</span> : null}
         <span
           key={remountKey.current}
           ref={nameRef}
