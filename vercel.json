@@ -249,6 +249,16 @@
       "permanent": true
     },
     {
+      "source": "/he/pdf-wont-compress-to-100kb",
+      "destination": "/he/pdf-wont-compress-to-100kb/",
+      "permanent": true
+    },
+    {
+      "source": "/he/photo-and-signature-size-for-forms",
+      "destination": "/he/photo-and-signature-size-for-forms/",
+      "permanent": true
+    },
+    {
       "source": "/id/kompres-pdf-di-bawah-1-mb",
       "destination": "/id/kompres-pdf-di-bawah-1-mb/",
       "permanent": true

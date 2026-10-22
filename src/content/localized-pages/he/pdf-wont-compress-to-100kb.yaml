@@ -1,6 +1,12 @@
 pageId: 'pdf-wont-compress-to-100kb'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Claude Opus 5.5'
+reviewedAt: '2026-10-22'
+reviewNotes: >-
+  2026-10-22: AI draft with Israeli content, not a translation: the 500KB measurements and the seven portal limits
+  were checked on each portal's own page and measured in a real browser. Published
+  for Shlomi's own read, the way /he/split/ was.
 sourceHash: 'fnv1a64:7d62ce7cad2aa6e6'
 title: 'כיווץ קובץ PDF למגבלת העלאה: ביטוח לאומי ועוד | PDkef'
 description: >-
