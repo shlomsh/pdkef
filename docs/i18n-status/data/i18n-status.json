@@ -149,7 +149,7 @@
       ],
       "coverage": {
         "shell": "reviewed",
-        "home": "published",
+        "home": "reviewed",
         "tools": {
           "sign": "reviewed",
           "merge": "reviewed",

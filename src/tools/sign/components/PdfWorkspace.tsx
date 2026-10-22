@@ -799,6 +799,10 @@ export default function PdfWorkspace({
             onDownload={handleDownloadPdf}
             onPrepareShare={handleSavePdf}
             onShare={handleSharePdf}
+            shareLabel={t.shareButton}
+            downloadLabel={t.downloadButton}
+            dir={t.dir}
+            lang={t.lang}
             describedBy={exportReadiness.blocked ? 'sign-export-readiness' : undefined}
           />
           {handoffExport && (

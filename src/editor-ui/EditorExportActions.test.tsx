@@ -301,4 +301,21 @@ describe('EditorExportActions parity contract', () => {
     expect(labelOf()).toBe('Download');
     expect(labelOf('Save a copy')).toBe('Save a copy');
   });
+
+  it('completion: takes the caller locale for both labels and the row direction', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <EditorExportActions variant="completion" canShare shareReady={false} disabled={false}
+          shareLabel="שיתוף" downloadLabel="הורדה" dir="rtl" lang="he"
+          onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />,
+        container,
+      );
+    });
+    const row = container.firstElementChild as HTMLElement;
+    expect(row.getAttribute('dir')).toBe('rtl');
+    expect(row.getAttribute('lang')).toBe('he');
+    expect([...container.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual(['הורדה', 'שיתוף']);
+  });
 });

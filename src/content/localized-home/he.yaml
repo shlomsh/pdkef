@@ -88,13 +88,14 @@ closing:
   backLink: 'חזרה לסביבת העבודה ↑'
 locale: 'he'
 status: 'published'
-reviewer: 'Claude Sonnet 5'
-reviewedAt: '2026-09-17'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-10-22'
 reviewNotes: >-
   Hebrew drafted by Claude Sonnet 5 per docs/home-page-localization-plan.md
-  section 7, read through by Shlomi. 09-12 (SEO-34) English retargeted;
-  re-approved. 09-15 (MEM-03) draftPersistence re-translated, not yet
-  re-reviewed. 09-17 subhead says איחוד, chosen by Shlomi. 09-18/09-19 hash
-  refreshed mechanically. 10-01 (QUAL-14) closing headingStroke set to נסו,
+  section 7. 2026-10-22 (LOC-18): Shlomi's own read-through of the rendered
+  /he/ page, the native review this file was waiting for; it added the
+  sensitive-documents line to the founder story and the handwritten Hebrew
+  name, and approved the rest as it stands, draftPersistence included.
+  Earlier: 09-17 subhead says איחוד and 10-01 closing headingStroke נסו, both
   chosen by Shlomi.
 sourceHash: 'fnv1a64:4dcb8e973cace7dd'

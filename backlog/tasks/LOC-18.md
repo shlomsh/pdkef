@@ -82,3 +82,14 @@ Leumit.
 
 The 500KB gov.il report and the 150KB Open University photo are the guide's natural examples: real
 limits a phone scan misses.
+
+## 2026-10-22: the home page is signed off
+
+Shlomi read the rendered `/he/` page through. From his read: the founder story gained the
+sensitive-documents line and the handwritten Hebrew name (`8c2d7b73`, `a595ea25`, `9bc1367e`).
+`he.yaml` now names him as reviewer, the launcher messages' draft comments are gone, and the languages
+page's home cell is `reviewed`. While reading `/he/sign/` he found the Download and Share row under the
+document still in English and laid out left to right; it now takes Sign's Hebrew labels and the page
+direction (test first in `EditorExportActions.test.tsx`).
+
+Left for item 2: the rest of the `/he/sign/` read-through, then the same sign-off on `hebrewSignMessages`.
