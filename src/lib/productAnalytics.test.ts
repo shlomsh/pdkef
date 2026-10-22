@@ -4,6 +4,7 @@ import { setReportingEnabledForTests } from './errorReport.ts';
 import {
   MAX_USAGE_EVENTS_PER_PAGE,
   reportEdit,
+  reportHomePageView,
   reportToolLifecycleEvent,
   resetUsageEventsForTests,
   type AnalyticsTool,
@@ -126,6 +127,17 @@ describe('the funnel (DEBT-58)', () => {
     };
   };
   const props = async () => Promise.all(beacon.mock.calls.map(async ([, b]) => JSON.parse(await (b as Blob).text()).properties));
+
+  it('DEBT-61: the home page view carries the visit, and a tool page opened later that day reads today', async () => {
+    vi.stubGlobal('localStorage', store());
+    reportHomePageView();
+    resetUsageEventsForTests(); // the next page load
+    reportToolLifecycleEvent('tool_page_viewed', 'sign');
+    expect(await props()).toEqual([
+      { tool: 'home', first: true, visit: 'new' },
+      { tool: 'sign', first: true, visit: 'today' },
+    ]);
+  });
 
   it('adds visit to the page view and stamps it once per page load', async () => {
     const ls = store();
