@@ -6,7 +6,7 @@
 toolSlug: 'split'
 locale: 'he'
 status: 'published'
-reviewer: 'Claude Opus 5.5'
+reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-10-22'
 reviewNotes: >-
   2026-10-08: AI draft. 2026-10-22: AI review against the current English
@@ -14,6 +14,7 @@ reviewNotes: >-
   Shlomi's own read, the way /he/pdf-to-image/ was. Google autocomplete in
   Israel (2026-10-22) confirms the lead phrasing: "פיצול pdf", "פיצול pdf
   חינם", "פיצול מסמכי pdf". חיתוך and הפרדת עמודים stay as secondary words.
+  2026-10-22: Shlomi's read-through; no changes.
 sourceHash: 'fnv1a64:75afbaffa623add6'
 seoTitle: 'פיצול PDF בחינם - חילוץ עמודים ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-

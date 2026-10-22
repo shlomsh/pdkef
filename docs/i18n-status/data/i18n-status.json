@@ -145,6 +145,20 @@
           "gate": "GSC position 2.0",
           "verdict": "na",
           "source": "LOC-03; SEO-46"
+        },
+        {
+          "metric": "Trends, IL, 12 months (10-22): כיווץ pdf / הקטנת קובץ pdf vs איחוד קבצי pdf",
+          "value": "~10 / ~3 vs ~55",
+          "gate": "enough Hebrew demand to build an edition",
+          "verdict": "pass",
+          "source": "Trends screenshot 2026-10-22; /he/compress/ is already live"
+        },
+        {
+          "metric": "Trends, IL, 12 months (10-22): השחרת pdf, השחרת מסמך, טשטוש pdf, מחיקת טקסט pdf, טיפקס pdf vs איחוד קבצי pdf",
+          "value": "0 all year (one blip for איך להשחיר pdf)",
+          "gate": "enough Hebrew demand to build an edition",
+          "verdict": "fail",
+          "source": "Trends screenshot 2026-10-22; no Hebrew Redact"
         }
       ],
       "coverage": {
@@ -153,7 +167,10 @@
         "tools": {
           "sign": "reviewed",
           "merge": "reviewed",
-          "compress": "reviewed"
+          "compress": "reviewed",
+          "split": "reviewed",
+          "pdf-to-image": "reviewed",
+          "image-to-pdf": "reviewed"
         },
         "guides": {
           "sign-pdf-no-signup": "reviewed",
@@ -168,7 +185,10 @@
         "islands": {
           "merge": "published",
           "compress": "reviewed",
-          "sign": "reviewed"
+          "sign": "reviewed",
+          "split": "reviewed",
+          "pdf-to-image": "reviewed",
+          "image-to-pdf": "reviewed"
         },
         "editor": "decided-english"
       }

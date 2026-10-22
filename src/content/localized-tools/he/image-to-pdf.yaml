@@ -5,7 +5,7 @@
 toolSlug: 'image-to-pdf'
 locale: 'he'
 status: 'published'
-reviewer: 'Claude Sonnet 5.5'
+reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-10-22'
 reviewNotes: >-
   2026-10-22: AI draft published on Shlomi's request, not yet read by him.
@@ -13,6 +13,7 @@ reviewNotes: >-
   (המרת תמונה ל-PDF, בחינם, לקובץ PDF) comes from Hebrew autocomplete, not
   from a measured query volume. The control labels live in
   src/i18n/toolMessages.ts.
+  2026-10-22: Shlomi's read-through; no changes.
 sourceHash: 'fnv1a64:fed88d44a1f41820'
 seoTitle: 'המרת תמונה ל-PDF בחינם - JPG או PNG לקובץ אחד בלי סימן מים | PDkef'
 seoDescription: >-
