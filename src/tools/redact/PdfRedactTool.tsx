@@ -77,7 +77,7 @@ import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
-import { reportError } from '../../lib/errorReport.ts';
+import { dropCause, reportError } from '../../lib/errorReport.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
@@ -956,7 +956,11 @@ export default function PdfRedactTool() {
       // failure are still there to fix, instead of unmounting the editor
       // behind a dead-end error screen (status='error' is reserved for a
       // failed document load, which never gets this far).
-      const detail = 'Could not export the PDF. Your edits are still here. Try again.';
+      // A tab left open across a deploy asks for chunks the new deploy no longer serves, so a retry
+      // fails the same way (seen 2026-10-22: one tab, four tries). A reload fixes it and restores the draft.
+      const detail = dropCause(err) === 'module_load'
+        ? 'PDkef was updated while this page was open. Reload the page to continue. Your edits are kept.'
+        : 'Could not export the PDF. Your edits are still here. Try again.';
       dispatch({ type: 'EXPORT_FAILED', detail, announcement: `The download stopped. ${detail}` });
       return null;
     }

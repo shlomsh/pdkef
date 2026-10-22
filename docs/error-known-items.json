@@ -172,5 +172,18 @@
     "fixedIn": "dafab5b6",
     "ticket": "DEBT-54",
     "note": "the error name is a minified class, so the entry matches on area, step and chunk. Only a file with exactly one surviving page-tree root is repaired; a report from a build with the fix is a file it could not repair if a pdf_page_tree failed event shows on the same day, otherwise a regression"
+  },
+  {
+    "id": "RED-67",
+    "title": "Redact: a tab left open across a deploy cannot load its export code",
+    "match": {
+      "area": "redact",
+      "step": "export",
+      "slug": "redact",
+      "module": "preload-helper"
+    },
+    "open": true,
+    "ticket": "RED-67",
+    "note": "the environment, not a defect: the tab asks for chunks the new deploy no longer serves. Since RED-67 the person is asked to reload; the report still travels so MEM-12 can size how often tabs outlive a deploy"
   }
 ]

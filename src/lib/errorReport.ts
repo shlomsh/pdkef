@@ -71,8 +71,9 @@ function dropType(error: unknown): DropType {
 
 // Each browser's own wording, matched on the device so only the category travels (DEBT-57).
 const CAUSE_PATTERNS: [DropCause, RegExp][] = [
-  // Safari, Chromium, Firefox: a dynamically imported chunk that did not load or parse.
-  ['module_load', /importing a module script failed|failed to fetch dynamically imported module|error loading dynamically imported module/i],
+  // Safari, Chromium, Firefox: a dynamically imported chunk that did not load or parse. Vite's own
+  // preload helper says "Unable to preload CSS" when the chunk's stylesheet is the part that is gone.
+  ['module_load', /importing a module script failed|failed to fetch dynamically imported module|error loading dynamically imported module|unable to preload css/i],
   ['network', /^load failed$|failed to fetch|networkerror when attempting to fetch|network connection was lost/i],
   ['file_read', /could not be read|i\/o read operation failed/i],
   ['memory', /allocation failed|out of memory/i],
