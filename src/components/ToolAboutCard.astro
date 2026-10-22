@@ -64,7 +64,7 @@ const resolvedTag = tag ?? labels.howItWorks;
     <section class="mt-7 border-t border-[var(--color-border)] pt-7">
       <h2 class="type-feature space-heading-content mt-0 text-[var(--color-text)]">{labels.freeForEveryone}</h2>
       <p class={`${CONTENT_PARAGRAPH_CLASS} space-content-row`} set:html={freeNoteLead} />
-      <p class={`${CONTENT_PARAGRAPH_CLASS} mb-0`} set:html={labels.openSourceNote} />
+      <p class={CONTENT_PARAGRAPH_CLASS} set:html={labels.openSourceNote} />
     </section>
   </div>
 </FeatureCard>

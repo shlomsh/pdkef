@@ -49,12 +49,14 @@ export type InlineTone = keyof typeof STRONG_CLASS;
 /**
  * The block classes of a content card, shared by the guides (ContentPage) and
  * the tool pages' "How it works" card (ToolAboutCard), which are one design.
- * Every block runs the same 68ch measure in the same ink, so a card's
- * paragraphs and steps share both edges (Shlomi, 2026-10-22). Callers add only
- * the trailing gap: `space-content-row` before another block, `mb-0` last.
+ * Every block fills the card in the same font and ink, so its paragraphs,
+ * steps, headings, divider and tables share both edges and both margins are
+ * the card's own padding (Shlomi, 2026-10-22: a 68ch measure left one side
+ * empty). Callers add only the trailing gap: `space-content-row` before
+ * another block, nothing last.
  */
-export const CONTENT_PARAGRAPH_CLASS = 'type-lead mt-0 max-w-[68ch] text-[var(--color-text)]';
-export const STEP_LIST_CLASS = 'type-lead space-layout-gap m-0 flex max-w-[68ch] list-none flex-col p-0';
+export const CONTENT_PARAGRAPH_CLASS = 'type-lead m-0 text-[var(--color-text)]';
+export const STEP_LIST_CLASS = 'type-lead space-layout-gap m-0 flex list-none flex-col p-0';
 export const STEP_ITEM_CLASS = 'flex items-start gap-4';
 export const STEP_NUMBER_CLASS =
   'mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]';

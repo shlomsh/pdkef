@@ -24,7 +24,7 @@ const isDeviceGuide = guides.some((guide) => guide.href === englishHref);
 // "content row precedes another content row" purpose, so they now share
 // one token. Same consolidation for the list/columns gap (gap-5/gap-6 -> the
 // one space-layout-gap token) and their own before-block trailing space.
-const PARAGRAPH_LAST = `${CONTENT_PARAGRAPH_CLASS} mb-0`;
+const PARAGRAPH_LAST = CONTENT_PARAGRAPH_CLASS;
 const PARAGRAPH_BEFORE_TEXT = `${CONTENT_PARAGRAPH_CLASS} space-content-row`;
 const PARAGRAPH_BEFORE_BLOCK = `${CONTENT_PARAGRAPH_CLASS} space-content-row`;
 const LIST_LAST = STEP_LIST_CLASS;
