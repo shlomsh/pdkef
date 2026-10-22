@@ -52,6 +52,5 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
-- [SEO-47](backlog/tasks/SEO-47.md) · Keyword Planner volumes for the blurry cluster, and a GSC check for blurry queries already landing on us
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
