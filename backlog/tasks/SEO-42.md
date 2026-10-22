@@ -46,3 +46,20 @@ copy; only Merge's `seoTitle` carries "No Upload" (`src/data/tools.js`).
 - Previously noted: Search Console keeps 16 months, so the 28 days ending on the deploy date can be read after the fact. Needs Shlomi: for `/split/` and `/compress/`, impressions, clicks, CTR and average position for the 28 days before the deploy date, and the same window 28 days after.
 
 - 2026-10-08: Shlomi requested indexing for `/split/` and `/compress/` in Search Console after the title deploy. The 28-day after-read counts from the first crawl that shows the new titles (check Insights or URL Inspection).
+
+## 2026-10-22: the page totals are confounded, read per query
+
+From the property export in SEO-45 (10-07 to 10-20 against 09-23 to 10-06):
+
+- `/compress/` halved, 901 to 451 impressions and 28 to 18 clicks, while its position improved (9.5 to 8.6)
+  and the English compress queries held (469 to 427 impressions, visible rows only). Over the same days
+  `/compress-image/` went from 57 to 350. The likeliest reading is that the image page took some of the
+  PDF page's queries; it is not confirmed.
+- The window also overlaps the head-term test ending across the English tool pages (SEO-45): Merge, Sign,
+  Unlock and Split all left the results in these weeks, on titles that did and did not change.
+- `/split/` has had zero impressions a day since about 10-17, so its title is not being shown to anyone.
+
+So the 11-06 read cannot use page totals. Read CTR on the same `/compress/` queries (`compress pdf to
+100kb`, `compress pdf to 100kb free` and their kin) at matched positions, before and after. In the same
+pull, filter Page `/compress-image/` with a query containing `pdf`: if PDF-intent queries are landing there,
+that is SEO-19's fold-in question, not this ticket's. Split stays unread.

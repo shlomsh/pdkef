@@ -83,6 +83,59 @@ What would tell the two apart at the 10-28 read:
   combine phrasings repeated across title, H1, steps and FAQ, the MERGE-22 photos FAQ) against
   `/compress/` and `/split/`, which were not hit.
 
+## Revised read, 2026-10-22: a head-term test that ended, not a penalty
+
+Shlomi's Search Console export, the whole property, 10-07 to 10-20 against 09-23 to 10-06 (two 14-day
+windows; query rows are capped at 1,000, so query sums are lower bounds).
+
+**The property looks flat and is not.** 9.22K impressions against 9.33K, 309 clicks against 319. Israel
+tripled (1,333 to 4,271 impressions, position 15.7 to 9.0, 16 to 33 clicks) and hid the rest: outside
+Israel, impressions fell 38% (about 8,000 to 4,950) and clicks 9% (303 to 276). United States 1,556 to 684,
+United Kingdom 460 to 232, Indonesia 541 to 283, India 2,111 to 1,626.
+
+**By page, after against before:**
+
+| Page | Impressions | Clicks | Position |
+| --- | --- | --- | --- |
+| `/merge/` | 352 / 2,515 | 2 / 12 | 9.8 / 7.1 |
+| `/redact/` | 3,320 / 3,834 | 247 / 259 | 4.8 / 5.6 |
+| `/compress/` | 451 / 901 | 18 / 28 | 8.6 / 9.5 |
+| `/compress-image/` | 350 / 57 | 5 / 2 | 8.6 / 9.2 |
+| `/sign/` | 106 / 218 | 0 / 1 | 7.4 / 9.2 |
+| `/unlock/` | 71 / 185 | 0 / 0 | 45.2 / 12.0 |
+| `/split/` | 195 / 171 | 2 / 0 | 37.1 / 47.3 (zero a day from about 10-17) |
+| `/he/merge/` | 3,680 / 861 | 16 / 6 | 7.9 / 11.5 |
+
+By query family (English): merge/combine 2,369 to 305, sign 104 to 6, unlock/password 159 to 22, while
+compress 469 to 427 and blur/redact 2,043 to 1,651 held their positions (`blur pdf` 5.5 to 4.6).
+
+What this says:
+
+- **Merge's page one was a sample, not a ranking.** `merge pdf online` had 573 impressions in 14 days at
+  position 5.0, about 40 a day, on a family Keyword Planner puts at 1M-10M a month (`combine pdf`, findings
+  doc section 2). A page holding position 5 there would see thousands a day. Google was showing `/merge/`
+  in a sliver of searches and stopped on 10-08; Split's sliver ended about 10-13, Sign's and Unlock's in
+  the same weeks. What was lost is about 2,160 impressions and 10 clicks per two weeks.
+- **It is not a site-level demotion.** Merge is about 2,160 of the roughly 3,050 impressions lost outside
+  Israel. Redact and Compress lost volume at the same or better positions, which is demand or fewer variant
+  queries, not rank. A spam-system or quality demotion would have moved those positions too, so the
+  spam-update reading above is weaker than it looked when it was added.
+- **It is not the recrawl or the HTML Google read on it.** `/sign/` (last crawled 09-19) and `/unlock/`
+  (09-16) dropped without a recrawl; `/redact/` was recrawled 10-08 and held (crawl dates from the 10-14
+  capture in `docs/seo-last-crawled.json`).
+- **It is not a swap to `/he/merge/`.** Israel's 4,271 impressions are about the sum of the `/he/` pages
+  (`/he/merge/` 3,680, `/he/compress/` 315, `/he/sign/` 122, the guides), so the Hebrew rise is Israeli
+  demand. It began the day `/he/merge/` was recrawled under the title that added `איחוד` (LOC-03), the one
+  title change this window shows working.
+- **Three tools are not in Google at all.** The same capture has `/pdf-to-image/`, `/image-to-pdf/` and
+  `/edit-pdf/` never crawled. Low crawl priority and a head-term test that ended are the same signal:
+  authority, which is SEO-03, not anything in this repo.
+
+For the 10-28 read: expect `/merge/` not to return on the head terms whatever the title. A return would
+mean a new test, not a verdict on the title. Read it against the domain outside Israel, not the property
+total. Head-term title tests are unreadable while those pages are not ranking (SEO-42 has the same
+problem, plus its own confound).
+
 ## Acceptance
 
 - [x] Deployed (`ebdd1f9c`, CI green, live title checked 2026-10-14); `/merge/` requested for indexing by Shlomi 2026-10-14

@@ -59,7 +59,8 @@ move today.
 | SEO-33 compress vocabulary | retired into SEO-39 | 2026-10-08 | **Read 10-08:** no head-term row for size reducer, shrink or resize; only kb-target variants at 12.6. Words stay, no more vocabulary work | |
 | SEO-34 home page targets `pdf tools` | retired into SEO-39 | 2026-10-08 | **Read 10-08:** indexed title is the targeted one; `pdf tools` has no row. `/` gets navigational clicks only. Authority term | |
 | SEO-35 merge decision | retired into SEO-39 | 2026-10-08 | **Read 10-08: not "small or none".** `/merge/` reached page one (1,597 merge and 551 combine impressions at 7.2 and 9.2) at 0.5% CTR, on the pre-09-12 title; SEO-35's own title has not been crawled | reindex `/merge/`, read its CTR next refresh |
-| SEO-45 Merge title lead | blocked on read | 2026-10-14 | **`/merge/` left Google's results the day its new title was crawled (10-08):** 1.51K impressions at 6.7 (10-01 to 10-07) to 15 (10-09 to 10-11), not found in 12 result pages. Indexed, canonical, rendered and Googlebot-identical; `/compress/` and `/split/` recrawled the same days did not drop, and kept their title's lead. Old title and H1 restored word for word; circumstantial, three pages and one change | deployed and indexing requested 2026-10-14; read 2026-10-28 |
+| SEO-45 Merge title lead | blocked on read | 2026-10-22 | **Revised 10-22: a head-term test that ended, not the title.** `/merge/` left the results 10-08 (2,515 to 352 impressions, 10-07 to 10-20 against 09-23 to 10-06), but its "page one" was about 40 impressions a day on a 1M-10M family, a sample. Split, Sign and Unlock left in the same weeks, two of them with no title change and no recrawl; Redact and Compress kept their positions. Outside Israel the property lost 38% of impressions and 9% of clicks; Israel tripled and made the total look flat. Restored title recrawled 10-15, still gone 10-20 | read 2026-10-28 against the domain outside Israel; no return expected whatever the title |
+| SEO-42 "No Upload" in Split and Compress titles | in progress | 2026-10-22 | Deployed and requested 10-08. **Confounded:** `/compress/` halved (901 to 451) at a better position while compress queries held and `/compress-image/` went 57 to 350; Split has had no impressions since about 10-17 | 2026-11-06, per query at matched positions, not page totals |
 | SEO-46 Real star ratings | open, later | 2026-10-21 | PDF24 shows `4.9 ★ (15,074) · Free` on its SERP from a per-tool opt-in vote form and a baked-in JSON-LD `aggregateRating`. Honest route: ask once in the done state, keep a durable per-tool aggregate, bake it in at build time, emit only past a minimum of real votes | markup emitted only for a tool with at least 50 real votes, never fabricated; design in the ticket |
 | SEO-18 sign-in-your-language page | open, shipped | 2026-09-12 | `/sign-pdf-in-your-language/` live, hub `sign`; one page, eight-row table guarded by a test against `LANGUAGE_COVERAGE`; divergences named; indexing requested 2026-09-12 | 2026-10-08 crawl state, then the eight-week read 2026-11-07 |
 | SEO-16, 20 to 24, 26, 30 | open | | not started; 20 to 24 wait on the Week 4 gate | per section 4 |
@@ -86,6 +87,11 @@ move today.
 
 Durable lessons, one line each, newest first. The ticket has the evidence.
 
+- **A page-one average on a head term can be a sample, not a ranking.** `merge pdf online` showed position
+  5.0 on about 40 impressions a day against a 1M-10M family; Google was testing `/merge/` in a sliver of
+  searches and stopped on 10-08, and Split, Sign and Unlock went the same way. Check impressions against
+  the term's volume before calling a position won, and split the total by country before calling the
+  domain flat: Israel's tripling hid a 38% drop everywhere else. ([SEO-45](../backlog/tasks/SEO-45.md))
 - **Search Console Insights shows the title Google holds for each page.** Its "Your content" card is the
   cheapest staleness check there is: on 2026-10-08 it showed `/merge/` and `/he/merge/` under titles from
   before their 09-12 and 09-17 edits, while `/redact/` and `/compress/` matched the live page. Check it
