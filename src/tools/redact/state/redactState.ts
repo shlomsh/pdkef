@@ -30,7 +30,6 @@ import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import type { RedactToolType } from '../../../editor/model/editorModel.ts';
 import type { BrushSettings } from '../BrushControls.tsx';
-import type { CheckTerm } from '../check/types.ts';
 import type { FinishPhase } from '../finishState.ts';
 import type { RedactElement } from '../redactElements.ts';
 import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/documentTraces.js';
@@ -110,7 +109,6 @@ export interface RedactState {
   finish: {
     exportedForHandoff: SavedExport | null;
     handoffFailed: boolean;
-    findTerms: CheckTerm[];
     removing: boolean;
     removedNote: string | null;
   };
@@ -162,7 +160,7 @@ export function initialRedactState(init: RedactInitialValues): RedactState {
       drawingState: null,
     },
     selection: { activeBoxId: null, selectedBoxId: null },
-    finish: { exportedForHandoff: null, handoffFailed: false, findTerms: [], removing: false, removedNote: null },
+    finish: { exportedForHandoff: null, handoffFailed: false, removing: false, removedNote: null },
     view: { isFullscreen: false, isPseudoFullscreen: false, announcement: '' },
   };
 }
@@ -239,7 +237,6 @@ export type RedactAction =
   | { type: 'SAVED_EXPORT_DISCARDED' }
   | { type: 'HANDOFF_STARTED' }
   | { type: 'HANDOFF_FAILED' }
-  | { type: 'FIND_TERM_REMEMBERED'; term: CheckTerm }
   | { type: 'REMOVE_STARTED' }
   | { type: 'REMOVAL_NOTED'; note: string }
   | { type: 'REMOVE_FAILED'; announcement: string }
@@ -387,18 +384,14 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           activeBlurStrength: action.activeBlurStrength,
         },
         selection: NO_SELECTION,
-        // The terms Find searched belong to the document just left.
-        finish: { ...afterTool.finish, findTerms: [] },
+        finish: afterTool.finish,
         view: afterTool.view,
       };
     }
     case 'FILE_LOAD_STARTED':
       return withDocument(state, { status: 'loading' });
     case 'DOCUMENT_READY':
-      return withFinish(
-        withDocument(state, { pdfDocument: action.pdfDocument, numPages: action.numPages }),
-        { findTerms: [] },
-      );
+      return withDocument(state, { pdfDocument: action.pdfDocument, numPages: action.numPages });
     case 'FILE_LOADED':
       return withDocument(state, { status: 'editing' });
     case 'FILE_LOAD_FAILED':
@@ -572,10 +565,6 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
       return state.finish.handoffFailed ? withFinish(state, { handoffFailed: false }) : state;
     case 'HANDOFF_FAILED':
       return state.finish.handoffFailed ? state : withFinish(state, { handoffFailed: true });
-    case 'FIND_TERM_REMEMBERED':
-      return withFinish(state, {
-        findTerms: [...state.finish.findTerms.filter((known) => known.label !== action.term.label), action.term],
-      });
     case 'REMOVE_STARTED':
       return withFinish(state, { removing: true });
     case 'REMOVAL_NOTED':

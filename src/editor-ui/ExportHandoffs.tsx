@@ -7,6 +7,8 @@ export interface ExportHandoffItem {
   tool: string;
   label: string;
   Icon: LucideIcon;
+  /** A quiet note after the label, e.g. the current size ("45.2 KB"). */
+  detail?: string;
 }
 
 export interface ExportHandoffsProps {
@@ -24,10 +26,11 @@ export interface ExportHandoffsProps {
 export default function ExportHandoffs({ items, busy, onHandoff }: ExportHandoffsProps) {
   return (
     <div class={styles['handoff-row']}>
-      {items.map(({ tool, label, Icon }) => (
+      {items.map(({ tool, label, Icon, detail }) => (
         <button key={tool} type="button" class={styles['handoff-button']} disabled={busy} onClick={() => onHandoff(tool)}>
           <Icon size={16} aria-hidden="true" />
           {label}
+          {detail && <span class={styles.detail}>{detail}</span>}
         </button>
       ))}
     </div>

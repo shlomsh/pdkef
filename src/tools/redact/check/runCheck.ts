@@ -22,6 +22,7 @@ import { buildPageText } from '../find/pageText.ts';
 import type { TextItemLike } from '../find/types.ts';
 import { checkSavedFile } from './checkSavedFile.ts';
 import { coveredTerms } from './coveredTerms.ts';
+import { uniqueTerms } from './deletedTerms.ts';
 import { readSavedFile } from './readSavedFile.ts';
 import { checkBoxesOnPage } from './renderBoxes.ts';
 import type { CheckBox, CheckTerm, SavedFile, TermResult } from './types.ts';
@@ -64,7 +65,7 @@ export async function runSavedFileCheck({
   savedBytes: Uint8Array;
   originalBytes: Uint8Array;
   boxes: CheckBox[];
-  /** Find searches used on this document. */
+  /** Words the person deleted. */
   extraTerms: CheckTerm[];
   /** Pages the export saved as pictures. */
   picturePages: number[];
@@ -106,7 +107,7 @@ export async function runSavedFileCheck({
     }
 
     const context = { original, boxes, saved, measure };
-    const terms = [...coveredTerms(coveredPages), ...extraTerms];
+    const terms = uniqueTerms([...coveredTerms(coveredPages), ...extraTerms]);
     const readTraces = async (bytes: Uint8Array) =>
       readDocumentTraces(await PDFDocument.load(bytes, { updateMetadata: false, parseSpeed: ParseSpeeds.Fastest }));
     const traces = { original: await readTraces(originalBytes), saved: await readTraces(savedBytes) };

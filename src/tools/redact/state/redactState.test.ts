@@ -18,7 +18,6 @@ import {
 import { captureAddedElement, captureElementSnapshots, createActionEntry, type PlaceHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import type { RedactElement } from '../redactElements.ts';
-import type { CheckTerm } from '../check/types.ts';
 
 const INIT = { activeColor: '#ffffff', activeBlurStrength: 0.3, brush: { mode: 'box', size: 12 } } as const;
 const fresh = (): RedactState => initialRedactState(INIT);
@@ -61,7 +60,6 @@ describe('loading a file', () => {
   it('FILE_INITIALIZED sets the file and the document-owned settings, and starts clean', () => {
     let s = run(fresh(), { type: 'TOOL_ARMED', tool: 'blur', locked: false }, { type: 'BOX_SELECTED', id: 'b' });
     s = run(s, { type: 'EXPORT_SAVED', saved: { blob, name: 'x' } }, { type: 'EXPORT_CANCELLED', announcement: 'c' });
-    s = redactReducer(s, { type: 'FIND_TERM_REMEMBERED', term: { label: 't', source: 'find', finder: (() => []) as never } });
     const el = box('r1');
     s = load(s, {
       restored: true, elements: [el], past: [], carried: { whiteoutColor: '#ff0000' },
@@ -76,7 +74,6 @@ describe('loading a file', () => {
     expect(s.tool).toMatchObject({ carried: { whiteoutColor: '#ff0000' }, brush: { mode: 'brush', size: 30 }, activeColor: '#ff0000', activeBlurStrength: 0.9 });
     expect(s.edits.elements).toEqual([el]);
     expect(s.edits.history).toEqual({ past: [], future: [] });
-    expect(s.finish.findTerms).toEqual([]);
   });
 
   it('FILE_INITIALIZED for a fresh pick shows the welcome tip and not the restored note', () => {
@@ -111,11 +108,9 @@ describe('loading a file', () => {
     expect(redactReducer(fresh(), { type: 'FILE_LOAD_FAILED' }).document.status).toBe('error');
   });
 
-  it('DOCUMENT_READY sets the pdf.js document and page count, and forgets the last document\'s Find terms', () => {
-    const term: CheckTerm = { label: 't', source: 'find', finder: (() => []) as never };
-    const s = run(fresh(), { type: 'FIND_TERM_REMEMBERED', term }, { type: 'DOCUMENT_READY', pdfDocument, numPages: 3 });
+  it('DOCUMENT_READY sets the pdf.js document and page count', () => {
+    const s = run(fresh(), { type: 'DOCUMENT_READY', pdfDocument, numPages: 3 });
     expect(s.document).toMatchObject({ pdfDocument, numPages: 3 });
-    expect(s.finish.findTerms).toEqual([]);
   });
 
   it('PAGE_SIZED records how many canvases know their size, and is a no-op when unchanged', () => {
@@ -437,14 +432,6 @@ describe('the hand-off, Find terms and Remove it', () => {
     expect(redactReducer(failed, { type: 'HANDOFF_STARTED' }).finish.handoffFailed).toBe(false);
     const s = fresh();
     expect(redactReducer(s, { type: 'HANDOFF_STARTED' })).toBe(s);
-  });
-
-  it('FIND_TERM_REMEMBERED appends a term and replaces one with the same label', () => {
-    const first: CheckTerm = { label: 'email', source: 'find', finder: (() => []) as never };
-    const other: CheckTerm = { label: 'phone', source: 'find', finder: (() => []) as never };
-    const again: CheckTerm = { label: 'email', source: 'find', finder: (() => []) as never };
-    const s = run(fresh(), { type: 'FIND_TERM_REMEMBERED', term: first }, { type: 'FIND_TERM_REMEMBERED', term: other }, { type: 'FIND_TERM_REMEMBERED', term: again });
-    expect(s.finish.findTerms).toEqual([other, again]);
   });
 
   it('REMOVE_STARTED / REMOVE_SETTLED bracket a removal', () => {

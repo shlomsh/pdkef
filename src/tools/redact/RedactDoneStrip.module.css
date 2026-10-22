@@ -1,0 +1,52 @@
+/* Hangs below the sticky glass toolbar card (its positioned parent) without moving anything. */
+.strip {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 100;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 3.25rem 0.75rem 0.75rem;
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), 0 4px 20px var(--color-surface-soft);
+}
+
+/* The chips and the rating row run the strip's full width, under the close button's column. */
+.strip > :not(.close) {
+  min-width: 0;
+}
+
+.close {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--color-text);
+  background: var(--color-primary-soft);
+}
+
+@media (max-width: 39.99rem) {
+  .strip {
+    padding-inline-end: 0.75rem;
+    padding-block-start: 2.75rem;
+  }
+}

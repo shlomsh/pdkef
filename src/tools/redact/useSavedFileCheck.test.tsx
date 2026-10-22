@@ -19,7 +19,7 @@ async function run(saved: Blob, heldBytes: ArrayBuffer | null = new ArrayBuffer(
   let latest: SavedFileCheckState = { status: 'idle' };
   function Probe() {
     latest = useSavedFileCheck({
-      pdfDocument, originalBytes: heldBytes, saved, boxes: [], findTerms: [], picturePages: [],
+      pdfDocument, originalBytes: heldBytes, saved, boxes: [], deletedWords: [], picturePages: [],
       detailEdits: {} as never, detailRows: [],
     }).state;
     return null;

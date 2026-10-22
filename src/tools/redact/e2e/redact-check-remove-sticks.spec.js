@@ -61,6 +61,8 @@ test('a place removed from the saved file stays removed on the next Download', a
 
   const check = page.locator('[data-saved-file-check]');
   const removeVia = async (term) => {
+    // The search lives in the check's disclosure, closed when the check is all clear.
+    if (!(await check.locator('[data-check-more]').evaluate((el) => el.open))) await check.locator('[data-check-more] summary').click();
     await check.getByLabel('Look for something else in the saved file').fill(term);
     await check.getByRole('button', { name: 'Search', exact: true }).click();
     const [removed] = await Promise.all([

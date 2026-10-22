@@ -66,6 +66,8 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { FileActions } from '../../shell/ToolShell.tsx';
 import RedactFinish from './RedactFinish.tsx';
+import RedactDoneStrip from './RedactDoneStrip.tsx';
+import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
 import { redactedFileName } from './redactFileName.ts';
@@ -128,7 +130,7 @@ export default function PdfRedactTool() {
 
   const { file, numPages, pdfDocument, sizedPageCount, status, errorDetail, progress, showWelcomeTip } = state.document;
   useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
-  const { exportedForHandoff, handoffFailed, findTerms, removing, removedNote } = state.finish;
+  const { exportedForHandoff, handoffFailed, removing, removedNote } = state.finish;
 
   // A returning person already knows this editor contains saved work. Do not
   // spend the identity row repeating the neutral newcomer tip after that work
@@ -753,14 +755,6 @@ export default function PdfRedactTool() {
   // to the arrow keys; needsPageSizes names everything that needs them.
   const pageSizesPt = usePageSizesPt(pdfDocument, numPages, needsPageSizes(elements, brushKind !== null));
 
-  // RED-17: what Find looked for on this document, so the check of the saved
-  // file looks for it too (a preset finds every email, not just the boxed ones).
-  const rememberFindTerm = () => {
-    const term: CheckTerm | null = find.preset
-      ? { label: PRESET_LABELS[find.preset], source: 'find', finder: PRESET_FINDERS[find.preset] }
-      : (find.term.trim() ? { label: find.term.trim(), source: 'find', finder: termFinder(find.term.trim()) } : null);
-    if (term) dispatch({ type: 'FIND_TERM_REMEMBERED', term });
-  };
   const redactMatches = (matches: FindMatch[]) => {
     if (matches.length === 0) return;
     const type = find.redactStyle;
@@ -808,7 +802,7 @@ export default function PdfRedactTool() {
     detailRows: rows,
     saved: exportedForHandoff?.blob ?? null,
     boxes: checkBoxes,
-    findTerms: [...deletedTerms(elements), ...findTerms],
+    deletedWords: deletedTerms(elements),
     picturePages: [...new Set(checkBoxes.map((box) => box.pageIndex))].sort((a, b) => a - b),
     measure: find.measure,
   });
@@ -1044,11 +1038,40 @@ export default function PdfRedactTool() {
     picturePages: new Set(elements.filter((el) => el.type !== 'delete').map((el) => el.pageIndex)).size,
     boxCount: elements.filter((el) => el.type !== 'delete').length,
     deletionCount: elements.filter((el) => el.type === 'delete').length,
+    fileSize: exportedForHandoff?.blob.size ?? null,
   };
+
+  // RED-66: the toolbar Download finishes where the person is looking. It asks
+  // for the strip under the sticky toolbar; the strip shows once the save lands
+  // and goes with the next edit (which ends the 'saved' phase), a failed save
+  // or the ✕. The toolbar button says "Saved" for a moment each time.
+  const [stripOpen, setStripOpen] = useState(false);
+  const [toolbarSaves, setToolbarSaves] = useState(0);
+  const [downloadConfirmed, setDownloadConfirmed] = useState(false);
+  const showStrip = stripOpen && finishPhase === 'saved';
+  useEffect(() => {
+    if (finishPhase !== 'exporting' && finishPhase !== 'saved') setStripOpen(false);
+  }, [finishPhase]);
+  useEffect(() => {
+    if (!showStrip) return;
+    setDownloadConfirmed(true);
+    const timer = setTimeout(() => setDownloadConfirmed(false), 2000);
+    return () => { clearTimeout(timer); setDownloadConfirmed(false); };
+  }, [showStrip, toolbarSaves]);
+  const handleToolbarDownload = () => {
+    setStripOpen(true);
+    setToolbarSaves((n) => n + 1);
+    handleDownloadPdf();
+  };
+  // SEO-46's ask, mounted once: in the strip while it is open, else last in the
+  // bottom row. Two mounted copies would race for the one device-wide ask.
+  const downloaded = useDownloaded();
+  const rating = <RatingPrompt tool="redact" downloaded={downloaded} />;
 
   return (
     <BasePdfTool
       analyticsTool="redact"
+      ownsRating
       emptyArt={<RedactVerb />}
       hasFiles={!!file}
       onFilesAdded={handleFilesAdded}
@@ -1093,7 +1116,19 @@ export default function PdfRedactTool() {
             setAnnouncement={setAnnouncement}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreenActive}
-            handleDownloadPdf={handleDownloadPdf}
+            handleDownloadPdf={handleToolbarDownload}
+            downloadConfirmed={downloadConfirmed}
+            doneStrip={showStrip && (
+              <RedactDoneStrip
+                facts={finishFacts}
+                handoffBusy={handoffBusy}
+                handoffFailed={handoffFailed}
+                onHandoff={(tool) => { void requestHandoff(tool); }}
+                onClose={() => setStripOpen(false)}
+              >
+                {rating}
+              </RedactDoneStrip>
+            )}
             handlePrepareShare={() => handleSavePdf('share')}
             handleSharePdf={handleSharePdf}
             canSharePdf={canSharePdf}
@@ -1143,8 +1178,8 @@ export default function PdfRedactTool() {
                 onNext={find.next}
                 redactStyle={find.redactStyle}
                 onRedactStyleChange={find.setRedactStyle}
-                onRedactCurrent={() => { if (find.current) { redactMatches([find.current]); rememberFindTerm(); } }}
-                onRedactAll={() => { redactMatches(find.openMatches); rememberFindTerm(); }}
+                onRedactCurrent={() => { if (find.current) redactMatches([find.current]); }}
+                onRedactAll={() => redactMatches(find.openMatches)}
                 onClose={() => find.setOpen(false)}
               />
             )}
@@ -1320,6 +1355,7 @@ export default function PdfRedactTool() {
             onHandoff={(tool) => { void requestHandoff(tool); }}
             handoffBusy={handoffBusy}
             handoffFailed={handoffFailed}
+            rating={showStrip ? null : rating}
           >
             {/* Export error - recoverable, so it renders alongside the still-mounted
                 workspace instead of replacing it (see handleSavePdf's catch). */}

@@ -5,7 +5,7 @@ import RedactFinish from './RedactFinish.tsx';
 import type { FinishFacts } from './finishState.ts';
 
 const facts = (o: Partial<FinishFacts> = {}): FinishFacts => ({
-  phase: 'ready', progress: 0, fileName: 'redacted_x.pdf', pageCount: 2, picturePages: 1, boxCount: 3, deletionCount: 1, ...o,
+  phase: 'ready', progress: 0, fileName: 'redacted_x.pdf', pageCount: 2, picturePages: 1, boxCount: 3, deletionCount: 1, fileSize: null, ...o,
 });
 
 describe('RedactFinish', () => {
@@ -21,7 +21,8 @@ describe('RedactFinish', () => {
     const onHandoff = vi.fn();
     act(() => render(
       <RedactFinish facts={f} canShare={false} shareReady={false} onDownload={() => {}} onPrepareShare={() => {}}
-        onShare={() => {}} onHandoff={onHandoff} handoffBusy={false} handoffFailed={false} {...over}>
+        onShare={() => {}} onHandoff={onHandoff} handoffBusy={false} handoffFailed={false}
+        rating={<span data-rating>rate</span>} {...over}>
         <span data-slot>check</span>
       </RedactFinish>, container));
     return { onHandoff };
@@ -75,7 +76,32 @@ describe('RedactFinish', () => {
     act(() => sign.click());
     expect(onHandoff).toHaveBeenNthCalledWith(1, 'compress');
     expect(onHandoff).toHaveBeenNthCalledWith(2, 'sign');
-    expect(container.firstElementChild?.lastElementChild?.hasAttribute('data-slot')).toBe(true);
+  });
+
+  it('after a save: no caption, one thing per row in order result, actions, hand-offs, check, rating', () => {
+    mount(facts({ phase: 'saved', fileSize: 2048 }));
+    expect(container.querySelector('[data-redact-count]')).toBeNull();
+    expect(container.textContent).not.toContain('Saves with');
+    expect(container.textContent).toContain('Saved redacted_x.pdf · 2 pages · 2.0 KB');
+    expect(buttons().join('|')).toContain('Download again');
+    const q = (sel: string) => container.querySelector(sel)!;
+    const result = q('[data-redact-done-result]');
+    const download = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Download again'))!;
+    const compress = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Compress it'))!;
+    const check = q('[data-slot]');
+    const rating = q('[data-rating]');
+    const follows = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(result, download)).toBe(true);
+    expect(follows(download, compress)).toBe(true);
+    expect(follows(compress, check)).toBe(true);
+    expect(follows(check, rating)).toBe(true);
+    expect(compress.textContent).toContain('2.0 KB');
+  });
+
+  it('keeps the caption and check-then-rating order before a save', () => {
+    mount(facts({ phase: 'ready' }));
+    expect(container.querySelector('[data-redact-count]')).not.toBeNull();
+    expect(container.querySelector('[data-redact-done-result]')).toBeNull();
   });
 
   it('disables hand-offs while busy and reports a failure', () => {

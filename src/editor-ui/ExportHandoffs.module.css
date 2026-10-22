@@ -40,3 +40,13 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* The note after a verb ("45.2 KB"): quieter than the label, and allowed to
+   shrink with an ellipsis so two halves never wrap at 390px. */
+.detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+  color: var(--color-muted);
+}
