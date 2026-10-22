@@ -77,11 +77,13 @@
   padding: 0.2rem 0.55rem;
   border-radius: var(--radius-pill);
 }
+/* Physical sides, like the split itself: logical insets flip on RTL pages
+   while the images do not. */
 .compare-figure-tag-before {
-  inset-inline-start: 0.6rem;
+  left: 0.6rem;
 }
 .compare-figure-tag-after {
-  inset-inline-end: 0.6rem;
+  right: 0.6rem;
 }
 .compare-figure-wipe .compare-figure-after {
   animation: compare-figure-wipe 7s ease-in-out infinite;
