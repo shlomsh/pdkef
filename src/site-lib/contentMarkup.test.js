@@ -134,19 +134,24 @@ describe('renderInline', () => {
 
 // Shlomi, 2026-10-22: the tool pages' "How it works" card and the guides'
 // cards are one design. Its paragraphs ran 68ch, its free note 64ch and its
-// steps the full card width, in two text colors; on /he/split/ that read as a
-// paragraph in a different style. One measure, one ink, one step list, owned here.
+// steps the full card width, in two text colors. A shared 68ch measure fixed
+// the mismatch but not the asymmetry: the text stopped short of the edge the
+// headings, the divider and the guides' tables run to. Every block now fills
+// the card, so both margins are the card's own padding.
 describe('content block classes', () => {
-  const MEASURE = 'max-w-[68ch]';
   const BLOCKS = { CONTENT_PARAGRAPH_CLASS, STEP_LIST_CLASS };
 
-  it('gives every block the same line length', () => {
-    for (const [name, value] of Object.entries(BLOCKS)) expect(value, name).toContain(MEASURE);
+  it('lets every block fill the card, like its headings', () => {
+    for (const [name, value] of Object.entries(BLOCKS)) expect(value, name).not.toMatch(/max-w-/);
   });
 
-  // A ch is measured in the element's own font: a list at the body size ran
-  // its 68ch 22px short of the type-lead paragraphs beside it.
-  it('measures every block in the same font, so 68ch is one width', () => {
+  // The browser's default paragraph margin stacked on space-content-row: 44px
+  // after a paragraph against 29px between steps (Shlomi, same day).
+  it('leaves the gap after a paragraph to the rhythm classes alone', () => {
+    expect(CONTENT_PARAGRAPH_CLASS.split(' ')).toContain('m-0');
+  });
+
+  it('sets every block in the same font', () => {
     for (const [name, value] of Object.entries(BLOCKS)) expect(value.split(' '), name).toContain('type-lead');
   });
 
