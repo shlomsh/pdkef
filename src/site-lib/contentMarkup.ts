@@ -52,9 +52,10 @@ export type InlineTone = keyof typeof STRONG_CLASS;
  * Every block fills the card in the same font and ink, so its paragraphs,
  * steps, headings, divider and tables share both edges and both margins are
  * the card's own padding (Shlomi, 2026-10-22: a 68ch measure left one side
- * empty). Callers add only the trailing gap: `space-content-row` before
- * another block, nothing last.
+ * empty). No block carries a trailing gap: the flow container they sit in
+ * owns one gap between every pair, whatever the block types.
  */
+export const CONTENT_FLOW_CLASS = 'flex flex-col gap-[var(--space-content-row)]';
 export const CONTENT_PARAGRAPH_CLASS = 'type-lead m-0 text-[var(--color-text)]';
 export const STEP_LIST_CLASS = 'type-lead space-layout-gap m-0 flex list-none flex-col p-0';
 export const STEP_ITEM_CLASS = 'flex items-start gap-4';
