@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 9 then, 23 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -106,6 +106,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
+| LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | In progress |
 | SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: The 28-day Search Console read for /compress/ about 2026-11-06 |
 | SEO-44 | P2 | [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference |  |
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
@@ -118,7 +119,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-45 | P1 | [SEO-45](backlog/tasks/SEO-45.md) · /merge/ left Google's results on 2026-10-08, the day its new title was crawled: put the old title and H1 back and read it | Waiting on 2026-10-28. Needs Shlomi: The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on) |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house | Waiting on 2026-11-06 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins | Waiting on LOC-17 and SEO-40 |
-| LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | Waiting on Shlomi's read-through. Needs Shlomi: Israeli portal size limits and a read-through of /he/ |
 | SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages | Waiting on 2026-11-06 |
 | SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for | Waiting on SEO-06 crawl gate and a volume check |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before | Waiting on SEO-05's verdict |

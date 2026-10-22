@@ -9,6 +9,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
+- [LOC-18](backlog/tasks/LOC-18.md) P2 · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through (in progress)
 - [SEO-42](backlog/tasks/SEO-42.md) P2 · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console (in progress)
 - [SEO-44](backlog/tasks/SEO-44.md) P2 · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 - [SEO-46](backlog/tasks/SEO-46.md) P2 · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars (in progress)
@@ -30,7 +31,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-42](backlog/tasks/DEBT-42.md) · pdf.js runs on browsers that lack the built-ins it calls
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-51](backlog/tasks/DEBT-51.md) · Redact and Sign export from the bytes they hold, so a file gone from disk still exports
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
-- Shlomi's read-through: [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through
 - An iPhone check, and a day of production reads with no check_saved_file NotReadableError: [RED-63](backlog/tasks/RED-63.md) · Redact: saved-file check should fall back quietly when the saved file is unreadable on iOS
 - A day of production reads after the fix with no details_read EncryptedPDFError: [RED-64](backlog/tasks/RED-64.md) · Redact details reader waits for the document to open, so a protected PDF never reaches pdf-lib
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
@@ -49,7 +49,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-45](backlog/tasks/SEO-45.md) · The 2026-10-28 Search Console read of /merge/ (Queries, Compare, position on)
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
-- [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The 28-day Search Console read for /compress/ about 2026-11-06
 

@@ -1,12 +1,11 @@
 ---
 id: "LOC-18"
 title: "Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through"
-status: "blocked"
+status: "in_progress"
 priority: "P2"
+horizon: "now"
 epic: "search-and-languages"
 depends_on: ["LOC-16"]
-waiting_on: "Shlomi's read-through"
-needs: "Israeli portal size limits and a read-through of /he/"
 ---
 
 # LOC-18 · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through
@@ -110,3 +109,29 @@ still open with him, not a translation fix.
 Same day, Trends (Israel, 12 months, against `איחוד קבצי pdf` ~55): `כיווץ pdf` ~10 and `הקטנת קובץ
 pdf` ~3, already served by `/he/compress/`; every Hebrew redact phrasing (`השחרת`, `טשטוש`, `מחיקת
 טקסט`, `טיפקס`) is zero all year, so no Hebrew Redact edition.
+
+## 2026-10-22: item 1 unblocked, both guides in progress
+
+Shlomi pointed out the researched public limits are already enough to write both guides; the
+signed-in portals were never a precondition. Confirmed in a real browser on gov.il the same day, so
+both rows above now count as verified: Bituach Leumi's multi-year report, "גודל מקסימאלי לקובץ בודד
+KB500", 10MB total, black and white up to 300 DPI; the courts' general request, one PDF of the request
+and its attachments, up to 30MB, PDF only.
+
+Both guides are being drafted as Hebrew editions (same pageId, so `/he/compress/`'s guide cards turn
+Hebrew) with Israeli content and new measurements at the Israeli targets (500KB for scans, 150KB and
+800KB for photos), not translations of the Indian-portal examples.
+
+Drafted the same day (status `draft`, AI-written, waiting on Shlomi's read before publishing):
+
+- `localized-pages/he/pdf-wont-compress-to-100kb.yaml`: measured at 500KB with Exact size on the COMP-01
+  scan set (5 pages 493,560 bytes crisp; 10 pages 502,851 clear and slightly soft; 20 pages 488,187
+  readable but visibly soft; the tool counts KB as 1,024, so typing 476 lands under 500,000 bytes:
+  474,636 and 472,862). Also covers the courts' one-merged-PDF flow (Merge, then Compress only if
+  over 30MB).
+- `localized-pages/he/photo-and-signature-size-for-forms.yaml`: six measured rows carried over from
+  2026-09-12, plus two new at the Israeli targets on a 1210x680 PNG copy of the guide's CC0 photo
+  (150KB gives 148,483 bytes; 800KB gives 286,865, as quality is capped at 0.92).
+
+Found on the way: `CompareFigure`'s tags used logical insets while its split is physical, so on the
+first RTL page to use it the tags named the wrong images. Fixed with physical sides and a test.

@@ -180,7 +180,9 @@
           "how-to-sign-a-pdf-on-mac": "reviewed",
           "how-to-sign-a-pdf-on-iphone": "reviewed",
           "how-to-sign-a-pdf-on-android": "reviewed",
-          "offline-pdf-form-filler": "draft"
+          "offline-pdf-form-filler": "draft",
+          "pdf-wont-compress-to-100kb": "draft",
+          "photo-and-signature-size-for-forms": "draft"
         },
         "islands": {
           "merge": "published",
