@@ -426,6 +426,7 @@ describe('dropCause (DEBT-57)', () => {
     ['Safari, a chunk that did not load', new TypeError('Importing a module script failed.'), 'module_load'],
     ['Chromium, a chunk that did not load', new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/pdf.js'), 'module_load'],
     ['Firefox, a chunk that did not load', new TypeError('error loading dynamically imported module: https://pdkef.com/_astro/a.js'), 'module_load'],
+    ['Vite, a stylesheet a chunk needs did not load', new Error('Unable to preload CSS for /_astro/PdfRedactTool.qYvsChfB.css'), 'module_load'],
     ['Safari, a request that did not complete', new TypeError('Load failed'), 'network'],
     ['Chromium, a request that did not complete', new TypeError('Failed to fetch'), 'network'],
     ['Firefox, a request that did not complete', new TypeError('NetworkError when attempting to fetch resource.'), 'network'],

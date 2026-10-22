@@ -674,6 +674,24 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('a piece of the export that will not load (a tab left open across a deploy) asks for a reload, not a retry', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockedRedactPdf.mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js'));
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      await act(async () => { downloadButton.click(); });
+      await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
+      expect(container.textContent).toContain('PDkef was updated while this page was open. Reload the page to continue. Your edits are kept.');
+      expect(container.textContent).not.toContain('Try again');
+      expect(lifecycleSpy.mock.calls).toContainEqual(['tool_operation_failed', 'redact']);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
