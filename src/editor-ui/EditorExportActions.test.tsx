@@ -260,6 +260,7 @@ describe('EditorExportActions parity contract', () => {
     const visible = Array.from(button.querySelectorAll('[aria-hidden="true"]')).filter((el) => el.textContent?.trim());
     expect(visible.map((el) => el.textContent?.trim())).toEqual(['Download']);
     expect(button.textContent).toContain('Saved');
+    expect(button.getAttribute('aria-label')).toBe('Download');
     expect(button.classList.contains(styles.download)).toBe(true);
   });
 

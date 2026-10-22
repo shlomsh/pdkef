@@ -162,6 +162,7 @@ export default function EditorExportActions({
       onClick={onDownload}
       disabled={disabled}
       title={downloadTitle}
+      aria-label={isToolbar && confirmed ? (downloadLabel ?? 'Download') : undefined}
       aria-describedby={describedBy}
       dir={isToolbar ? dir : undefined}
       lang={isToolbar ? lang : undefined}

@@ -6,13 +6,13 @@ import styles from './RedactDone.module.css';
 import { finishPagesText, finishStatusText, type FinishFacts } from './finishState.ts';
 
 /** The saved result: what was saved, then the one line about pictures. Shared by the pinned strip and the bottom row. */
-export function DoneResult({ facts }: { facts: FinishFacts }) {
+export function DoneResult({ facts, live = true }: { facts: FinishFacts; live?: boolean }) {
   if (facts.phase !== 'saved') return null;
   const status = finishStatusText(facts);
   const pages = finishPagesText(facts);
   return (
     <div class={styles.result} data-redact-done-result>
-      {status && <p class={styles.line} role="status">{status}</p>}
+      {status && <p class={styles.line} role={live ? 'status' : undefined}>{status}</p>}
       {pages && <p class={styles.line}>{pages}</p>}
     </div>
   );

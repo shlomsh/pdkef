@@ -39,7 +39,6 @@ export default function RedactFinish({
         onDownload={onDownload}
         onPrepareShare={onPrepareShare}
         onShare={onShare}
-        downloadLabel={saved ? 'Download again' : undefined}
         downloadTitle="Download the redacted PDF"
         shareTitle={shareReady ? 'Share the redacted PDF' : 'Prepare the redacted PDF for sharing'}
       />

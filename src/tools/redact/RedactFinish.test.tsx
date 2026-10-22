@@ -83,10 +83,9 @@ describe('RedactFinish', () => {
     expect(container.querySelector('[data-redact-count]')).toBeNull();
     expect(container.textContent).not.toContain('Saves with');
     expect(container.textContent).toContain('Saved redacted_x.pdf · 2 pages · 2.0 KB');
-    expect(buttons().join('|')).toContain('Download again');
     const q = (sel: string) => container.querySelector(sel)!;
     const result = q('[data-redact-done-result]');
-    const download = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Download again'))!;
+    const download = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Download')!;
     const compress = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Compress it'))!;
     const check = q('[data-slot]');
     const rating = q('[data-rating]');

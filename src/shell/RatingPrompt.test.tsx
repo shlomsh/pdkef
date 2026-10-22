@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../lib/errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
 import { sendBeacon } from '../lib/errorReport.ts';
-import RatingPrompt, { useDownloaded } from './RatingPrompt.tsx';
+import RatingPrompt, { resetRatingPromptForTests, useDownloaded } from './RatingPrompt.tsx';
 import { recordAction } from '../lib/actionTrail.ts';
 
 describe('RatingPrompt', () => {
@@ -12,6 +12,7 @@ describe('RatingPrompt', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     localStorage.clear();
+    resetRatingPromptForTests();
     vi.mocked(sendBeacon).mockClear();
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -40,6 +41,37 @@ describe('RatingPrompt', () => {
     expect(container.textContent).toContain('PDkef is free and open source. If it helped, a rating helps other people find it.');
     expect(stars().map((b) => b.getAttribute('aria-label'))).toEqual(['1 star', '2 stars', '3 stars', '4 stars', '5 stars']);
     expect(Number(localStorage.getItem('pdkef:rating-asked-at'))).toBeGreaterThan(0);
+  });
+
+  describe('remount on the same page', () => {
+    it('shows the ask at once, without asking again', () => {
+      mount(false);
+      mount(true);
+      act(() => { vi.advanceTimersByTime(1500); });
+      expect(stars()).toHaveLength(5);
+      const askedAt = localStorage.getItem('pdkef:rating-asked-at');
+      act(() => render(null, container));
+      expect(container.innerHTML).toBe('');
+      mount(true);
+      expect(stars()).toHaveLength(5);
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(localStorage.getItem('pdkef:rating-asked-at')).toBe(askedAt);
+    });
+
+    it('keeps the follow-up after a 5-star rating', () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      act(() => render(null, container));
+      mount(true);
+      expect(container.textContent).toContain('Thank you, that really helps');
+    });
+
+    it('a fresh instance with downloaded=false starts hidden', () => {
+      showAfterDelay();
+      act(() => render(null, container));
+      mount(false);
+      expect(container.innerHTML).toBe('');
+    });
   });
 
   it('clears the timer on unmount', () => {
