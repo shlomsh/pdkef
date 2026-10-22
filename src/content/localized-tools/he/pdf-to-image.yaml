@@ -5,8 +5,8 @@
 toolSlug: 'pdf-to-image'
 locale: 'he'
 status: 'published'
-reviewer: 'Claude Sonnet 5.5'
-reviewedAt: '2026-10-14'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-10-22'
 reviewNotes: >-
   2026-10-14: AI draft published on Shlomi's request, not yet read by him.
   Pending his own read-through, like the Hebrew home page. The vocabulary
@@ -14,6 +14,7 @@ reviewNotes: >-
   measured query volume. The control labels live in src/i18n/toolMessages.ts.
   10-15: hash moved only because h1Name was added; translation unchanged.
   2026-10-17: step 3 and two FAQ answers follow the new UI (no Convert button).
+  2026-10-22: Shlomi's read-through; no changes.
 sourceHash: 'fnv1a64:8c4c29064ae474be'
 seoTitle: 'המרת PDF לתמונה בחינם - JPG או PNG בלי סימן מים | PDkef'
 seoDescription: >-

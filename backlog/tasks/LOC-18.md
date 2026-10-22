@@ -99,3 +99,14 @@ Left for item 2: the rest of the `/he/sign/` read-through, then the same sign-of
 Shlomi: "sign also looks good enough from a brief reading". `hebrewSignMessages`' draft comments now say
 so, and the languages page's Sign island cell is `reviewed`. Item 2 is done; item 1 (the two portal-limit
 guides) waits on the signed-in limits listed above.
+
+## 2026-10-22: Split, Image to PDF and PDF to Image signed off
+
+Shlomi read `/he/split/`, `/he/image-to-pdf/` and `/he/pdf-to-image/` live ("done 1+2"), no changes.
+All three now name him as reviewer, and their tool and island cells on the languages page are `reviewed`.
+His one note, uneven line lengths in the "How it works" card, is a shared-component question that is
+still open with him, not a translation fix.
+
+Same day, Trends (Israel, 12 months, against `איחוד קבצי pdf` ~55): `כיווץ pdf` ~10 and `הקטנת קובץ
+pdf` ~3, already served by `/he/compress/`; every Hebrew redact phrasing (`השחרת`, `טשטוש`, `מחיקת
+טקסט`, `טיפקס`) is zero all year, so no Hebrew Redact edition.
