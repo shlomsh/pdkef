@@ -1,6 +1,7 @@
 import { reportError } from '../errorReport.ts';
 import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 import { markHandoffPending } from '../handoffPending.ts';
+import { RECENT_FILES_META_KEY } from './recentFilesKey.js';
 
 // The catches below also cover opening the database, which fails in private or
 // locked-down windows (InvalidStateError, UnknownError). That is the
@@ -307,8 +308,7 @@ export function readCurrentEntryId(tool) {
 // without opening IndexedDB, which is what makes the home page's launcher
 // cheap to render and makes hasDraftHint/readDraftMeta possible before first
 // paint. The actual PDF bytes and `work` live only in IndexedDB; this index
-// never carries them.
-const RECENT_FILES_META_KEY = 'pdf-toolkit:workspace:recent-files';
+// never carries them. Its key, RECENT_FILES_META_KEY, lives in recentFilesKey.js.
 const RECENT_FILE_PREFIX = 'recent:';
 export const MAX_RECENT_FILES = 6;
 
