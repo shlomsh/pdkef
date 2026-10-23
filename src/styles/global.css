@@ -96,6 +96,9 @@
      header's link chips wear it; nothing else does. */
   --color-paper: #fff0e4;
   --color-paper-edge: #f0d8c4;
+  /* Clay, from the paper family: the third file-tag colour. 3.5:1 on white, so
+     it holds as a 4px band and a 10px square, never as text. */
+  --color-clay: #b97a50;
   /* Keep the surface accent and readable foreground separate. The original
      primary is already AA against white button labels, but misses AA when it
      is drawn as text on the page and tinted surfaces. */
@@ -138,13 +141,14 @@
   /* MERGE-18: per-file tag colour, cycled across up to six files at once
      (Merge's caption rows and rail rows). Three theme colours, then the same
      three at reduced opacity, rather than inventing unrelated hues - a
-     seventh file just repeats --color-tag-1. */
+     seventh file just repeats --color-tag-1. The third is clay, not the berry
+     --color-danger, which read as an error on a page. */
   --color-tag-1: var(--color-primary);
   --color-tag-2: var(--color-success);
-  --color-tag-3: var(--color-danger);
+  --color-tag-3: var(--color-clay);
   --color-tag-4: color-mix(in srgb, var(--color-primary) 55%, transparent);
   --color-tag-5: color-mix(in srgb, var(--color-success) 55%, transparent);
-  --color-tag-6: color-mix(in srgb, var(--color-danger) 55%, transparent);
+  --color-tag-6: color-mix(in srgb, var(--color-clay) 55%, transparent);
 
   --radius-sm: 10px;
   --radius: 16px;

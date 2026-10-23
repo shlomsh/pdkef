@@ -28,7 +28,7 @@ or stylesheet. Current palette ("Mint and paper"): `--color-bg #faf7f1` (a warm 
 the ground of every page read as one colour), `--color-surface #ffffff`, `--color-surface-sunken
 #a5e9dd` (mint, where the work happens); `--color-text #0b4c4c`, `--color-muted #276460`,
 `--color-muted-light #8fdccf` (decorative only, never readable text); `--color-paper #fff0e4` (edge
-`#f0d8c4`), the one warm surface, used by the home page's dropzone tile, the trust chips, the plain dashed `.dropzone` (a tool's empty state is a white `--color-surface` sheet instead), Compress's note boxes and the home scroll story's cloud, nothing else;
+`#f0d8c4`), the one warm surface, used by the home page's dropzone tile, the trust chips, the plain dashed `.dropzone` (a tool's empty state is a white `--color-surface` sheet instead), Compress's note boxes and the home scroll story's cloud, nothing else; `--color-clay #b97a50` (paper family, Merge file tags only);
 `--color-primary #007979` (hover `#006868`, active `#005a5a`, soft `#eef6f3`, tint `#c3f0e6`) for
 buttons, focus rings and borders, with `--color-primary-text #006e6e` as the readable foreground form
 for links and `currentColor` controls (never the surface token as text); `--color-success #5c7a3a`

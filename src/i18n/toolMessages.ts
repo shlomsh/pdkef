@@ -262,7 +262,7 @@ const englishMergeMessages: MergeMessages = {
   alreadyAdded: '"{name}" is already in the list.',
   addAnyway: 'Add anyway',
   pageCountUnknown: 'Reading…',
-  pagesRearranged: 'Pages were rearranged across files, so the files no longer move as a whole.',
+  pagesRearranged: 'Pages moved across files',
   resetOrder: 'Reset order',
   pagesHeading: 'Pages',
   stripHint: 'Drag a page to reorder, or focus a page and press the left or right arrow keys to move it, R to rotate it, Delete to skip it.',
