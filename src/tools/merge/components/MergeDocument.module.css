@@ -435,15 +435,16 @@
    sideways, so it may break between any two characters, and only when a
    word is wider than the line. */
 @media (max-width: 767px) {
+  /* One run of text: the name wraps and ".pdf · 7 pages" follows its last line. */
   .doc-heading {
-    flex-wrap: wrap;
+    display: block;
   }
 
   .doc-heading-progress {
     display: none;
   }
 
-  /* The count wraps to the start of its own line here, where a gap reads as an indent. */
+  /* Inline here, so the ' · ' prefix keeps its own space. */
   .doc-heading-count {
     margin-inline-start: 0;
   }

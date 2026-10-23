@@ -2,7 +2,7 @@
 
 The one target for Merge once files are in, at every width. Every line is measurable; the MERGE-24
 path matrix checks each one on a production build at 1280x900, 1440x900, 1280x700 with 15 files,
-820x1180 and 375x812, in English and on `/he/merge/`. The reasons live in
+820x1180, 650x950, 540x950 and 375x812, in English and on `/he/merge/`. The reasons live in
 [ux-design-guidelines.md](./ux-design-guidelines.md) sections 1 to 4, 8, 15 and 18.
 
 ## Desktop, 1024px and up
@@ -34,11 +34,13 @@ path matrix checks each one on a production build at 1280x900, 1440x900, 1280x70
 
 ## Tablet (768 to 1023px) and phone (below 768px)
 
-1. **The page.** The card is as tall as its content (no first-screen floor), as today.
+1. **The page.** The card is as tall as its content (no first-screen floor, no minimum on the page
+   grid), so the completion row starts within 56px of the last page even with one row of pages.
 2. **A sticky bar** sits under the app bar: the file chips, scrolling sideways inside the bar, and at
    its end a quiet Download (the plain button, never filled).
 3. **In the flow above the pages:** Add files, Clear all, Sort, and the "Pages moved across files" note.
-4. **The heading** wraps on a phone instead of cutting; pages keep today's sizes (104px on a tablet,
+4. **The heading** wraps on a phone instead of cutting, as one run of text: ".pdf · 7 pages" follows
+   the name's last line; pages keep today's sizes (104px on a tablet,
    72px on a phone) and carry the band.
 5. **The completion row** follows the last page: Add page numbers, the filled Download, then the next
    steps.

@@ -104,12 +104,14 @@
    (MERGE-11), and may break between any two characters when a single word is
    wider than the line (MERGE-21). The owner's heading flex-wraps too. */
 @media (max-width: 767px) {
+  /* One run of text (MERGE-24): ".pdf" and the owner's count follow the name's
+     last line instead of each taking a line of their own. */
   .doc-heading-file.wrap-on-phone {
-    flex-wrap: wrap;
+    display: inline;
   }
 
   .name.wrap-on-phone {
-    display: inline-block;
+    display: inline;
     overflow: visible;
     white-space: normal;
     overflow-wrap: anywhere;

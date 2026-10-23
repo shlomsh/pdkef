@@ -548,6 +548,15 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         margin-top: calc(1rem - 1.25rem);
       }
     }
+
+    /* On a phone the stage is at least one screen tall and main grows into it, which
+       left a short merge's airplane line at the screen's foot, 77px under the card at
+       650px (MERGE-24). Loaded Merge keeps main at its content; the mint fills below. */
+    @media (max-width: 767.98px) {
+      .tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > main {
+        flex-grow: 0;
+      }
+    }
   </style>
 
   <div data-tool-followups>
