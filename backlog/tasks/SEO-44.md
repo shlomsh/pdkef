@@ -1,10 +1,11 @@
 ---
 id: "SEO-44"
 title: "/split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference"
-status: "open"
+status: "blocked"
 priority: "P2"
 epic: "search-and-languages"
-horizon: "now"
+waiting_on: "2026-11-07"
+needs: "The 2026-11-07 Search Console export: the /split/ and /he/split/ rows"
 ---
 
 # SEO-44 · Split ranks at 79 for "pdf breaker": measure the term, then decide how to move /split/
@@ -192,3 +193,35 @@ English page's signal, not for Hebrew traffic. Unproven, and LOC rules apply (do
 Hebrew Split tool for Hebrew users), not an SEO lever, and SEO-44 does not count on it. If it is
 published, the read is `/split/` plus `/he/split/` over 28 days either side of the first recrawl, with
 `/merge/` and `/compress/` as controls.
+
+## 2026-10-23 verdict: there is no page-level difference to find
+
+SEO-45's 10-22 export (the whole property, 10-07 to 10-20 against 09-23 to 10-06) takes away the
+comparison this ticket was built on:
+
+- **`/merge/`'s 7.3 was a sample, not a ranking.** About 40 impressions a day at position 5 on a family
+  Keyword Planner puts at 1M-10M a month, and it ended on 10-08 (2,515 to 352 impressions). `/split/`'s
+  sliver ended in mid-October the same way, and `/sign/`'s and `/unlock/`'s in the same weeks, with and
+  without a recrawl.
+- **`/compress/`'s 9.4 is a niche, not the head term.** It ranks on `compress pdf to 100kb`; `compress pdf`
+  has no row.
+
+No tool page of ours holds its head term. The pages that held are the ones that own a specific need
+(`/redact/` on `blur pdf`, `/compress/` on 100KB), and the one Split need we looked at, split by size,
+has no search demand (Trends, above). What is left is authority, which is SEO-03.
+
+What shipped under this ticket, both product work and neither a ranking lever: Split's steps and FAQ name
+the real Download button, per-page rotate and the Compress hand-off (10-08), and `/he/split/`, signed off
+by Shlomi (LOC-18). Google last read `/split/` on 10-08 (`docs/seo-last-crawled.json`).
+
+| Window | `/split/` impressions | Clicks | Position |
+| --- | --- | --- | --- |
+| Before: 28 days to about 10-06 | 157 | 0 | 51.6 |
+| 09-23 to 10-06 (14 days, SEO-45) | 171 | 0 | 47.3 |
+| 10-07 to 10-20 (14 days, SEO-45) | 195 | 2 | 37.1, zero a day from about 10-17 |
+| After: 28 days from the 10-08 crawl | at the 11-07 read | | |
+
+**Waiting on the 11-07 read** for the after row: `/split/` and `/he/split/`, with `/compress/` and
+`/merge/` as controls, read against the domain outside Israel (SEO-45). Then this closes; nothing else
+on `/split/` is planned under SEO-44. A new split mode, if one is wanted, is product work for the
+person using the tool and gets its own ticket.
