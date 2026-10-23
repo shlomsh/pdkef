@@ -44,10 +44,29 @@ export function useLinkedHighlight(root: HTMLElement | null): void {
 
     const blocked = () => document.documentElement.hasAttribute('data-merge-page-dragging');
 
+    let current: HTMLElement | null = null;
+
+    // Keyboard focus only: a tap focuses too, and must not link on a phone.
+    const keyboardFocus = (target: EventTarget | null) => {
+      try {
+        return target instanceof Element ? target.matches(':focus-visible') : false;
+      } catch { // expected: an engine without :focus-visible throws on the selector
+        return true;
+      }
+    };
+
     const enter = (event: Event, isPointer: boolean) => {
-      if (blocked() || (isPointer && matches('(hover: none)'))) return;
+      // A removed source sends no pointerout/focusout, so its link would stick.
+      if (current && !current.isConnected) { clearLinks(root); current = null; }
       const source = sourceOf(root, event.target);
-      if (source) applyLinks(root, source);
+      if (!source) { clearLinks(root); current = null; return; }
+      if (blocked()) return;
+      if (isPointer) {
+        const type = (event as PointerEvent).pointerType;
+        if ((type !== 'mouse' && type !== 'pen') || matches('(hover: none)')) return;
+      } else if (!keyboardFocus(event.target)) return;
+      applyLinks(root, source);
+      current = source;
     };
     const leave = (event: Event) => {
       const source = sourceOf(root, event.target);
@@ -55,6 +74,7 @@ export function useLinkedHighlight(root: HTMLElement | null): void {
       const next = (event as MouseEvent | FocusEvent).relatedTarget;
       if (next instanceof Node && source.contains(next)) return;
       clearLinks(root);
+      current = null;
     };
 
     const onOver = (e: Event) => enter(e, true);
