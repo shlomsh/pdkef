@@ -133,6 +133,10 @@ for (const restoreCase of RESTORE_CASES) {
     } else {
       await page.waitForTimeout(1_200);
     }
+    // "Draft saved" can still be showing from the save before the rotation
+    // (the grid now appears once its fit settles, MERGE-24), so wait for the
+    // rotation itself to reach IndexedDB.
+    await expect.poll(async () => (await readMergeWork(page))?.plan?.[0]?.rotation, { timeout: 15_000 }).toBe(90);
     const beforeRestore = await readMergeWork(page);
     expect(beforeRestore).toMatchObject({ fileCount: 3, pageCount: 27, revision: expect.any(Number), updatedAt: expect.any(Number) });
     expect(beforeRestore.plan[0]).toMatchObject({ rotation: 90 });
