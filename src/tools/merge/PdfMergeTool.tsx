@@ -1337,7 +1337,7 @@ export default function PdfMergeTool({
                 <div class={docStyles['doc-header-right']}>
                   {undoAction ? (
                     <span class={docStyles['undo-chip']} role="status">
-                      {undoAction.message}
+                      <span class={docStyles['undo-text']}>{undoAction.message}</span>
                       <button type="button" onClick={runUndo}>{t.undo}</button>
                     </span>
                   ) : pickedUpHintVisible ? (
