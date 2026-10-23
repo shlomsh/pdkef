@@ -76,9 +76,13 @@ export default function DownloadElement({
   const hasBeenReadyRef = useRef(false);
   const hasFocusedRef = useRef(false);
   const isFirstReady = state === 'ready' && !hasBeenReadyRef.current;
+  // MERGE-24: the saved check draws once on entering 'saved'; leaving it re-arms the draw.
+  const wasSavedRef = useRef(false);
+  const isEnteringSaved = state === 'saved' && !wasSavedRef.current;
 
   useEffect(() => {
     if (state === 'ready') hasBeenReadyRef.current = true;
+    wasSavedRef.current = state === 'saved';
   }, [state]);
 
   // Skip while the output name is mid-rename (see the prop's own
@@ -196,7 +200,21 @@ export default function DownloadElement({
 
       {state === 'saved' && (
         <span class={styles.column}>
-          <span class={styles.label}>{t.savedLabel}</span>
+          <span class={styles.label}>
+            <svg class={styles.check} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" class={styles['check-circle']} />
+              <path
+                d="M7.5 12.5l3 3 6-6.5"
+                class={isEnteringSaved ? styles['check-mark-animated'] : styles['check-mark-static']}
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              />
+            </svg>
+            {t.savedLabel}
+          </span>
           {/* MERGE-11 (2026-09-13, Shlomi): the output name has one home now,
               the document heading - this element states only "N pages · size",
               same as the 'ready' state, never the file name a second time. */}

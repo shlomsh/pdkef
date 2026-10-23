@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature } from 'lucide-preact';
+import { Shrink, FileSignature, File as FileIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -37,6 +37,7 @@ import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement, { type DownloadElementState } from './components/DownloadElement.tsx';
 import FileName from './components/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -279,6 +280,9 @@ export default function PdfMergeTool({
   const chipSortableRef = useRef<Sortable | null>(null);
   const stripRef = useRef<HTMLUListElement | null>(null);
   const documentRef = useRef<HTMLDivElement | null>(null);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+  useLinkedHighlight(layoutRef);
+  const startMergeMoment = useMergeMoment(layoutRef);
   const sortableRef = useRef<Sortable | null>(null);
   const insertIndexRef = useRef(-1);
   /* MERGE-10: a file dropped onto the grid lands at that page position. The
@@ -891,6 +895,7 @@ export default function PdfMergeTool({
     download(prepared.blob, fileName);
     setTap('done');
     setDownloadedOnce(true);
+    startMergeMoment();
     setAnnouncement(t.mergedReady);
   }, [pendingDownload, prepared.status, prepared.generation]);
 
@@ -961,9 +966,10 @@ export default function PdfMergeTool({
   const onDownloadTap = useCallback(() => {
     setTap('merging');
     setDownloadedOnce(true);
+    startMergeMoment();
     setAnnouncement(t.mergedReady);
     recordAction('download');
-  }, [t.mergedReady]);
+  }, [t.mergedReady, startMergeMoment]);
 
   // The tap beat the quiet-time build: show 'preparing', build now, deliver on ready.
   const onPreparingTap = useCallback(() => {
@@ -1182,7 +1188,7 @@ export default function PdfMergeTool({
             <p class={docStyles['touch-drag-hint']}>{t.touchDragHint}</p>
           )}
 
-          <div class={docStyles.main}>
+          <div class={docStyles.main} ref={layoutRef}>
             <div class={docStyles.document} ref={documentRef}>
               <div class={docStyles['doc-header']}>
                 <div class={docStyles['heading-row']}>
@@ -1285,6 +1291,8 @@ export default function PdfMergeTool({
                       key={entry.id}
                       class={railStyles['file-row']}
                       data-id={entry.id}
+                      data-file-id={entry.id}
+                      data-link-row
                       data-error={entry.error || undefined}
                       onClick={() => scrollToCaption(entry.id)}
                     >
@@ -1312,7 +1320,10 @@ export default function PdfMergeTool({
                       )}
                       <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
                       <FileName name={entry.file.name} className={railStyles['file-name']} />
-                      <span class={railStyles['file-pages']}>{entry.pageCount ?? '…'}</span>
+                      <span class={railStyles['file-pages']}>
+                        <FileIcon size={12} aria-hidden="true" />
+                        {entry.pageCount ?? '…'}
+                      </span>
                       <button
                         type="button"
                         class={railStyles['file-remove']}
