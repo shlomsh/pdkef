@@ -170,3 +170,18 @@ The shape of the question, so LOC-07 starts from the evidence and not from scrat
 
 Status: this ticket is done - every measurement it scoped is in, with sources. LOC-04 now depends on
 LOC-07 as well as LOC-03.
+
+## 2026-10-23 blur re-read (Shlomi's Trends screenshots)
+
+India, past 5 years, `blur pdf` as the English anchor on both charts.
+
+| Chart | Terms | Read |
+| --- | --- | --- |
+| Hindi vs English | `pdf blur kaise kare`, `pdf ब्लर`, `पीडीएफ ब्लर`, `pdf धुंधला` | All flat at 0; single-week blips only (late 2022, early 2025) |
+| Scripts vs English | `pdf ब्लर`, `pdf ப்ளர்`, `pdf బ్లర్`, `pdf ব্লার` | All flat at 0; one-week blips for Telugu (2025) and Bengali (2023, 2026) |
+
+English `blur pdf` roughly doubled over the window (about 20 in 2021-22, 45-100 since mid-2025, peak
+mid-2025). The regional spellings are phonetic transliterations of "blur", unverified as how people
+type it, which is itself the LOC-08 finding for Tamil. The verdict stands: India's blur cluster is
+asked in English, and the growth belongs to the English blur page. Rows added to the languages page
+for hi, ta, te and bn.

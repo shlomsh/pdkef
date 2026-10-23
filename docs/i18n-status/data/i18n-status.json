@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updated": "2026-10-22",
+    "updated": "2026-10-23",
     "reCheck": {
       "date": "2026-11-12",
       "ticket": "LOC-12"
@@ -586,6 +586,13 @@
           "gate": "field",
           "verdict": "na",
           "source": "LOC-11 § SERPs"
+        },
+        {
+          "metric": "Trends, IN, 5 years (10-23): pdf ব্লার vs blur pdf",
+          "value": "0, single-week blips (2023, 2026) vs English at 20-100",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "Trends screenshots 2026-10-23; LOC-01 § 2026-10-23 blur re-read"
         }
       ]
     },
@@ -651,6 +658,13 @@
           "gate": "in-language queries in GSC",
           "verdict": "fail",
           "source": "LOC-08 § Verdict"
+        },
+        {
+          "metric": "Trends, IN, 5 years (10-23): pdf బ్లర్ vs blur pdf",
+          "value": "0, one single-week blip (2025) vs English at 20-100",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "Trends screenshots 2026-10-23; LOC-01 § 2026-10-23 blur re-read"
         }
       ]
     },
@@ -687,6 +701,13 @@
           "gate": "criterion 2",
           "verdict": "na",
           "source": "LOC-08 § Incumbent check"
+        },
+        {
+          "metric": "Trends, IN, 5 years (10-23): pdf ப்ளர் vs blur pdf",
+          "value": "0 throughout vs English at 20-100",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "Trends screenshots 2026-10-23; LOC-01 § 2026-10-23 blur re-read"
         }
       ]
     },
@@ -716,6 +737,13 @@
           "gate": "in-language queries",
           "verdict": "fail",
           "source": "LOC-01 § Evidence"
+        },
+        {
+          "metric": "Trends, IN, 5 years (10-23): blur pdf vs pdf blur kaise kare, pdf ब्लर, पीडीएफ ब्लर, pdf धुंधला",
+          "value": "0 vs English at ~20 (2021) rising to 45-100 (2025-26); single-week blips only (2022, 2025)",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "Trends screenshots 2026-10-23; LOC-01 § 2026-10-23 blur re-read"
         }
       ]
     },
