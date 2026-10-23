@@ -93,16 +93,23 @@
 
 .doc-header-right {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: var(--space-3);
   flex-wrap: wrap;
   min-height: 1.5rem;
 }
 
+/* MERGE-24 (2026-10-24): a chip removal names the file, and a long name ran
+   the chip 46px past a 375px screen. The chip keeps to the row's width and
+   the message ends in an ellipsis; Undo never shrinks. */
 .undo-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;
   color: var(--color-text);
@@ -111,7 +118,15 @@
   border-radius: var(--radius-pill);
 }
 
+.undo-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .undo-chip button {
+  flex: none;
   font: inherit;
   font-weight: 700;
   color: var(--color-text);
@@ -422,7 +437,10 @@
   background: var(--tag-color, var(--color-primary));
 }
 
-.chip-name {
+/* Two classes: FileName's own `max-width: 100%` loads later and won over a
+   single class, so a long name made a 600px chip and put its remove button
+   off a phone's screen (MERGE-24, 2026-10-24). */
+.chip-pill > .chip-name {
   max-width: 14ch;
 }
 
