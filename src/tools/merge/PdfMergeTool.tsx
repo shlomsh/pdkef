@@ -280,9 +280,9 @@ export default function PdfMergeTool({
   const chipSortableRef = useRef<Sortable | null>(null);
   const stripRef = useRef<HTMLUListElement | null>(null);
   const documentRef = useRef<HTMLDivElement | null>(null);
-  const layoutRef = useRef<HTMLDivElement | null>(null);
-  useLinkedHighlight(layoutRef);
-  const startMergeMoment = useMergeMoment(layoutRef);
+  const [layoutEl, setLayoutEl] = useState<HTMLDivElement | null>(null);
+  useLinkedHighlight(layoutEl);
+  const startMergeMoment = useMergeMoment(layoutEl);
   const sortableRef = useRef<Sortable | null>(null);
   const insertIndexRef = useRef(-1);
   /* MERGE-10: a file dropped onto the grid lands at that page position. The
@@ -1188,7 +1188,7 @@ export default function PdfMergeTool({
             <p class={docStyles['touch-drag-hint']}>{t.touchDragHint}</p>
           )}
 
-          <div class={docStyles.main} ref={layoutRef}>
+          <div class={docStyles.main} ref={setLayoutEl}>
             <div class={docStyles.document} ref={documentRef}>
               <div class={docStyles['doc-header']}>
                 <div class={docStyles['heading-row']}>
