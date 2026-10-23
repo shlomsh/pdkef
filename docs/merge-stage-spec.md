@@ -39,7 +39,9 @@ path matrix checks each one on a production build at 1280x900, 1440x900, 1280x70
 1. **The page.** The card is as tall as its content (no first-screen floor, no minimum on the page
    grid), so the completion row starts within 56px of the last page even with one row of pages.
 2. **A sticky bar** sits under the app bar: the file chips, scrolling sideways inside the bar, and at
-   its end a quiet Download (the plain button, never filled).
+   its end a quiet Download (the plain button, never filled). Each chip ends in a remove button (a
+   44px target, the pill itself stays 36px), which removes that file with the same undo as the rail's;
+   a long press on the chip still reorders.
 3. **In the flow above the pages:** Add files, Clear all, Sort, and the "Pages moved across files" note.
 4. **The heading** wraps on a phone instead of cutting, as one run of text: ".pdf · 7 pages" follows
    the name's last line; pages keep today's sizes (104px on a tablet,
