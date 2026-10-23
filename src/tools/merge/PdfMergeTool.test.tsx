@@ -913,7 +913,7 @@ describe('PdfMergeTool UI flow', () => {
     ]);
     expect(options.addPageNumbers).toBe(true);
     // Pages were interleaved across files, so the list shows the rearranged note.
-    expect(container.textContent).toContain('Pages were rearranged');
+    expect(container.textContent).toContain('Pages moved across files');
 
     // After its five seconds the sentence gives way to the small chip for
     // the rest of the session.
@@ -1158,7 +1158,7 @@ describe('PdfMergeTool UI flow', () => {
       await flush(10);
     });
 
-    expect(container.textContent).toContain('Pages were rearranged');
+    expect(container.textContent).toContain('Pages moved across files');
     expect(container.querySelectorAll(`.${railStyles.grip}`)).toHaveLength(2);
     expect(railSortable.option('disabled')).toBe(false);
 
@@ -1167,7 +1167,7 @@ describe('PdfMergeTool UI flow', () => {
       await flush(0);
     });
     expect(fileNames()).toEqual(['y.pdf', 'x.pdf']);
-    expect(container.textContent).not.toContain('Pages were rearranged');
+    expect(container.textContent).not.toContain('Pages moved across files');
   });
 
   // MERGE-11 (2026-09-13, Shlomi's WYSIWYG rebuild): the document heading's

@@ -234,12 +234,37 @@
   border: 1px solid var(--color-border);
   border-radius: 3px;
   box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+  transition:
+    box-shadow 0.25s var(--ease-out),
+    border-color 0.18s var(--ease-out),
+    opacity 0.25s var(--ease-out),
+    transform 0.3s var(--ease-spring);
+}
+
+/* The file's colour as a 4px edge on the thumbnail, in grouped and ungrouped
+   modes alike (it replaced the ungrouped-only tag dot, 2026-10-23). The
+   download moment recolours it page by page via `--moment-delay`. */
+.band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  z-index: 1;
+  background: var(--tag-color, var(--color-primary));
+  transition: background-color 0.35s var(--ease-out);
+  pointer-events: none;
+}
+
+:global([data-merge-moment]) .band {
+  background: var(--color-primary);
+  transition-delay: var(--moment-delay, 0ms);
 }
 
 /* Unrendered cells: a dashed placeholder that keeps its number, so the count
-   is stable while thumbnails arrive near the viewport. */
-.thumb-box:empty {
+   is stable while thumbnails arrive near the viewport. (2026-10-23: the tag
+   band lives inside the box now, so `:empty` no longer says "no image yet".) */
+.thumb-box:not(:has(.thumb, .lock-glyph)) {
   border-style: dashed;
   background: var(--color-bg);
 }
@@ -253,6 +278,18 @@
      image sheet while the user is holding the page to reorder it. */
   pointer-events: none;
   -webkit-user-drag: none;
+  /* Arrival (2026-10-23): fade in and rise 6px once decoded. The individual
+     `translate` property, not `transform`, so the rise composes with a
+     rotated page's `rotate()` instead of replacing it, and it only moves the
+     image (clipped by the box), never resizes or crops it. */
+  opacity: 0;
+  translate: 0 6px;
+  transition: opacity 0.32s var(--ease-out), translate 0.32s var(--ease-out);
+}
+
+.thumb[data-ready] {
+  opacity: 1;
+  translate: 0 0;
 }
 
 /* A rotated (90/270) thumbnail's inline width/height (PageStrip.tsx
@@ -285,6 +322,7 @@
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-text);
+  transition: opacity 0.25s var(--ease-out);
 }
 
 .skipped-word {
@@ -298,22 +336,31 @@
   visibility: visible;
 }
 
-/* The per-page tag dot: always in the DOM (a sibling of the number, never
-   painted under the thumbnail), visible only once captions are hidden
-   (the plan is no longer grouped). */
-.tag-dot {
+/* Ungrouped, no cell carries a name, so the reserved strip (and its flex gap)
+   collapses; the band alone says which file a page is from. Grouped keeps it
+   at 16px: a run's first cell holds its name there. */
+.grid:not([data-grouped]) .cell-tag {
   display: none;
-  position: absolute;
-  top: -0.4rem;
-  inset-inline-start: calc(50% - 5px);
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--tag-color, var(--color-primary));
 }
 
-.grid:not([data-grouped]) .tag-dot {
-  display: block;
+/* Linked highlight (2026-10-23): a hook sets `data-linking` on an ancestor and
+   `data-linked` on every page and rail row of the hovered or focused file;
+   the rest recede. Off while a page is being dragged. */
+:global([data-linking='row']) .page:not([data-linked]) .thumb-box,
+:global([data-linking='row']) .page:not([data-linked]) .number {
+  opacity: 0.4;
+}
+
+:global([data-linking='row']) .page[data-linked] .thumb-box {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--tag-color), var(--shadow-md);
+}
+
+/* Doubled classes: this must outrank the `:not([data-linked])` selectors above. */
+:global(html[data-merge-page-dragging]) .page.page .thumb-box.thumb-box,
+:global(html[data-merge-page-dragging]) .page.page .number.number {
+  opacity: 1;
+  transform: none;
 }
 
 /* Rotate, skip and open: a three-button cluster revealed above the cell on
@@ -333,6 +380,11 @@
   padding: 2px;
   visibility: hidden;
   z-index: 2;
+}
+
+/* Ungrouped there is no strip above the thumbnail (see `.cell-tag` above). */
+.grid:not([data-grouped]) .actions {
+  top: 0.55rem;
 }
 
 /* Keyboard focus reveals the cluster through :focus-visible, not
