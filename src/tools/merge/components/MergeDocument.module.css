@@ -220,7 +220,8 @@
      the card's inner edges (12px on a phone, 1.5rem from 768px, see the
      media rules below), so scrolled pages pass cleanly under it. */
   position: sticky;
-  top: 3.5rem;
+  /* The app bar is 3.5rem plus its 0.5px bottom border (QA measured 57px). */
+  top: calc(3.5rem + 0.5px);
   z-index: 10;
   display: flex;
   align-items: center;
@@ -266,6 +267,9 @@
 }
 
 .done-strip-name {
+  /* Its own box, aligned to the strip's start: an LTR name stretched to the
+     full width sat left in a Hebrew strip while the detail line sat right. */
+  align-self: start;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text);
@@ -483,9 +487,11 @@
     display: none;
   }
 
-  /* Inline here, so the ' · ' prefix keeps its own space. */
+  /* Inline here, so the ' · ' prefix keeps its own space; nowrap keeps
+     "· 4 pages" whole (QA saw "· 4" end a line and "pages" start the next). */
   .doc-heading-count {
     margin-inline-start: 0;
+    white-space: nowrap;
   }
 }
 

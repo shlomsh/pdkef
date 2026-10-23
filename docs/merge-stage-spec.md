@@ -8,8 +8,9 @@ path matrix checks each one on a production build at 1280x900, 1440x900, 1280x70
 ## Desktop, 1024px and up
 
 1. **The page.** The app bar (56px) stays at the top. The hero is one line. The card holds the first
-   screen: its min-height is `clamp(600px, 100svh - 56px, 900px) - 88px`, so on a 900px screen its
-   bottom sits at the screen's bottom edge.
+   screen: its min-height is the floor every tool shares (PdfTool.module.css,
+   `clamp(600px, 100svh - 56px, 900px) - 88px`), so on a 900px screen it ends at 885px and the
+   airplane line sits just under the fold.
 2. **Two columns.** The document takes the rest of the width; the rail is 320px, 12px apart.
 3. **The heading.** The output name, cut in the middle so its end stays ("…itc1040 (final) (3)"),
    ".pdf" muted, then " · N pages" with a real space. Editing shows the full name.
@@ -23,7 +24,8 @@ path matrix checks each one on a production build at 1280x900, 1440x900, 1280x70
    bottom: the file list, the sort or "Pages moved across files" row, "Draft saved" at the end, Add
    files and Clear all, Add page numbers, Download, then Compress and Sign (and Share where the
    browser can share files). When the files outgrow the space, only the file list scrolls, inside
-   itself, with at least two rows showing; Download never leaves the screen while the card is on it.
+   itself, with at least two rows showing; Download never leaves the screen while the card is on it, before
+   any scroll too (the rail also caps at the card's first screen).
    Nothing in the rail ever scrolls sideways.
 7. **Linked files.** Pointing at a file row or keyboard focus on it lifts that file's pages and steps
    the others back; pointing at a page lights its row. Nothing on touch, nothing while dragging.
