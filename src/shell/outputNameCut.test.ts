@@ -13,11 +13,40 @@ describe('splitOutputName', () => {
     expect(tail.endsWith('itc1040 (final) (3)')).toBe(true);
     expect(head.startsWith('merged_redacted')).toBe(true);
   });
+
+  it('never splits an emoji across head and tail', () => {
+    const name = 'a'.repeat(19) + '😀' + 'b'.repeat(19);
+    const { head, tail } = splitOutputName(name);
+    expect(head + tail).toBe(name);
+    expect(tail.length).toBeGreaterThanOrEqual(20);
+    expect(head).not.toMatch(/[\uD800-\uDBFF]$/);
+    expect(tail).not.toMatch(/^[\uDC00-\uDFFF]/);
+  });
+
+  it('keeps a Hebrew letter and its niqqud together', () => {
+    const name = 'a'.repeat(18) + '\u05D1\u05B0' + 'b'.repeat(19);
+    const { head, tail } = splitOutputName(name);
+    expect(head + tail).toBe(name);
+    expect(tail).not.toMatch(/^\p{M}/u);
+    expect(head.endsWith('\u05D1')).toBe(false);
+  });
+
+  it('cuts ASCII exactly TAIL_LENGTH from the end', () => {
+    const { tail } = splitOutputName('x'.repeat(40));
+    expect(tail).toHaveLength(20);
+  });
 });
 
 describe('fullNameOffset', () => {
   it('maps an offset in the head to itself and one in the tail past the head', () => {
     expect(fullNameOffset('abcdef', 'head', 2)).toBe(2);
     expect(fullNameOffset('abcdef', 'tail', 2)).toBe(8);
+  });
+
+  it('uses the real head length after a moved cut', () => {
+    const name = 'a'.repeat(19) + '😀' + 'b'.repeat(19);
+    const { head, tail } = splitOutputName(name);
+    const i = 3;
+    expect(name[fullNameOffset(head, 'tail', i)]).toBe(tail[i]);
   });
 });

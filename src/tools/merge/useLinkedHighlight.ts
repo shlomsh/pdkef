@@ -73,6 +73,10 @@ export function useLinkedHighlight(root: HTMLElement | null): void {
       if (!source) return;
       const next = (event as MouseEvent | FocusEvent).relatedTarget;
       if (next instanceof Node && source.contains(next)) return;
+      const focused = document.activeElement;
+      // On focusout the leaving element may still be the active one.
+      const held = event.type !== 'focusout' && focused instanceof Element ? sourceOf(root, focused) : null;
+      if (held && keyboardFocus(focused)) { applyLinks(root, held); current = held; return; }
       clearLinks(root);
       current = null;
     };
