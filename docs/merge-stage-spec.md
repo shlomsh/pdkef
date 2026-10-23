@@ -46,3 +46,7 @@ path matrix checks each one on a production build at 1280x900, 1440x900, 1280x70
    steps.
 6. **Nothing is pinned to the bottom**, and the page never scrolls sideways at 375px.
 7. **Below the card**, the airplane line sits 16px under it.
+8. **After the top Download.** A tap on the quiet Download, once the file is saved, opens the done
+   strip Redact uses (QUAL-27), hanging under the sticky bar without moving the pages: what was
+   saved, Compress it and Sign it, then the rating ask, and a close button. It closes on that button
+   or when the merge changes. The rating shows there instead of at the foot while the strip is open.
