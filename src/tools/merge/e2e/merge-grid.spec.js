@@ -83,11 +83,13 @@ test('the assembled grid: every page, rotate, skip and keyboard reorder land in 
   await expect(cards(page)).toHaveCount(10);
   await expect(page.locator('[class*="doc-heading-count"]', { hasText: '10 pages' })).toBeVisible();
 
-  // Thumbnails render progressively; wait for the first three near the start
-  // of the grid.
-  for (let i = 0; i < 3; i += 1) {
+  // Wait for every thumbnail and the settled fit (MERGE-24): a page shape that
+  // arrives late can still refit the desktop grid and move a card from under
+  // the pointer between the hover and the click.
+  for (let i = 0; i < 10; i += 1) {
     await expect(cards(page).nth(i).locator('img')).toHaveAttribute('src', /^data:/, { timeout: 10_000 });
   }
+  await expect(page.locator('ul[class*="grid"][data-fit-settled]')).toBeVisible();
 
   // Rotate card 2 (index 1: file1's first page).
   const card2 = cards(page).nth(1);
