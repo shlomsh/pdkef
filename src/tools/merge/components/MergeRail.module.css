@@ -1,10 +1,10 @@
 /* Direction A (2026-09-13): the rail. A glance-at column of the input
    files, never the thing you scroll through - the document (PageStrip) is
    the workspace. Sticky for the page's height at desktop widths (1024px and
-   up); below that (tablet and phone alike) the phone chip-row treatment
+   up); below that (tablet and phone alike) the chip-row treatment
    (MergeDocument.module.css) carries the file list, and the rail itself
-   collapses to a sticky bottom sheet - see the shared `max-width: 1023px`
-   block below. Review finding (2026-09-14, tablet): between 768 and 1023px
+   becomes the completion row in the page flow - see the shared
+   `max-width: 1023px` block below. Review finding (2026-09-14, tablet): between 768 and 1023px
    the rail used to fall through to the bare `.rail` rule above (no
    `position`, no sheet), so after scrolling a 9-page grid to its last row at
    820x1180 the Download element measured rect.top 1392px in an 1180px
@@ -50,10 +50,12 @@
     max-height: calc(100svh - 3.5rem - 2 * var(--space-3));
   }
 
+  /* Only the file list scrolls when the rail outgrows the screen. A scrolling
+     `.rail-scroll` (the first try) turned the Draft saved tooltip's 14px of
+     overflow into a sideways scrollbar and cut the rail's start edge. */
   .rail-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
     /* Shlomi (2026-09-13): the focused Sort select lost its left ring. The
        global 2px focus outline is painted outside the border box. Two pixels
        of padding, taken back with the same negative margin so nothing else
@@ -62,64 +64,38 @@
     margin: -2px;
   }
 
+  .rail-scroll > * {
+    flex-shrink: 0;
+  }
+
+  .rail-scroll > .file-list {
+    flex-shrink: 1;
+    min-height: 88px; /* two rows stay visible */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .rail-pinned {
     flex-shrink: 0;
   }
 }
 
-/* Below 1024px the phone chip row (MergeDocument.module.css, gated the same
-   width) carries the file list, Sort, Add files and Clear all instead, so
-   `.rail-scroll` (the part that held them) drops out entirely; what remains
-   of `.rail` - `.rail-pinned` alone - becomes the sticky bottom sheet: the
-   Download element and one row of Share / Compress / Sign, nothing
-   else competing, pinned to the bottom edge the way the editor toolbars
-   already stretch full width on mobile. One mechanism for tablet and phone
-   alike (2026-09-14 tablet fix); only the edge-bleed amount below differs,
-   because the two widths carry different card padding. */
+/* Below 1024px the chip row (MergeDocument.module.css, gated the same width)
+   carries the file list, so `.rail-scroll` drops out. MERGE-24 (2026-10-23,
+   Shlomi): there is no bottom sheet any more, following Sign and Redact
+   (QUAL-27: the completion row under the document is the call to action).
+   What remains of `.rail` - `.rail-pinned`: page numbers, the Download
+   element, the hand-off row - sits in the page flow under the last page, at
+   the card's content width: no sticky, no bleed, no border, no tint. */
 @media (max-width: 1023px) {
   .rail-scroll {
     display: none;
   }
 
   .rail {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    /* Vertical padding is 0.5rem (wave 4, Shlomi's sheet-height
-       measurement): the closed sheet is padding-top 8px + padding-bottom 8px
-       (+ safe-area) + the hand-off row (44px) + the Download element - the
-       Options disclosure this once made room for is gone entirely
-       (2026-09-13, see `.page-numbers-row` above); its mobile copy now
-       lives with the visible file controls above the sheet. */
-    padding-top: 0.5rem;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-    background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
+    padding: 0;
+    background: none;
     border-radius: 0;
-  }
-}
-
-/* Bleed to the phone card's edges: Merge's loaded phone card is 12px
-   (PdfTool.module.css's `[data-hide-identity][data-tool-loaded]` rule,
-   wave 3), not the other tools' 1.5rem. */
-@media (max-width: 767px) {
-  .rail {
-    margin: 0 -12px;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-}
-
-/* Tablet (768 to 1023px, 2026-09-14): the card keeps the default 1.5rem
-   padding here (PdfTool.module.css's phone override is scoped to
-   max-width: 767px only), so the sheet bleeds by that amount instead of the
-   phone's 12px - otherwise a 12px gap would sit between the sheet and the
-   card's real edge. */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .rail {
-    margin: 0 -1.5rem;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
   }
 }
 
@@ -427,15 +403,6 @@
   height: 18px;
   accent-color: var(--color-primary);
   cursor: pointer;
-}
-
-/* The rail-pinned copy is desktop-only. Below 1024px the same row lives in
-   the visible file controls above the sticky sheet, preventing a duplicate
-   at phone and tablet widths alike. */
-@media (max-width: 1023px) {
-  .page-numbers-pinned {
-    display: none;
-  }
 }
 
 .handoff-row {

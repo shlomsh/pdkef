@@ -593,7 +593,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
   });
 
-  it('shows the Add page numbers checkbox directly in the visible mobile file controls (Options removed, 2026-09-13)', async () => {
+  it('keeps Add page numbers in the completion row, once, and out of the compact toolbar (MERGE-24, 2026-10-23)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     expect(container.querySelectorAll('details')).toHaveLength(0);
@@ -601,14 +601,33 @@ describe('PdfMergeTool UI flow', () => {
     expect(buttons).not.toContain('Options');
     const mobileControls = container.querySelector('[data-merge-file-controls]');
     expect(mobileControls).not.toBeNull();
-    // The checkbox row is always in the DOM once there are two files: the
-    // exposed mobile copy and the desktop rail's breakpoint-gated copy.
     const rows = container.querySelectorAll(`.${railStyles['page-numbers-row']}`);
-    expect(rows.length).toBe(2);
-    expect(mobileControls.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
+    expect(rows.length).toBe(1);
+    expect(mobileControls.querySelector(`.${railStyles['page-numbers-row']}`)).toBeNull();
+    expect(rows[0].closest(`.${railStyles['rail-pinned']}`)).not.toBeNull();
   });
 
-  it('exposes mobile file controls in order: Add files, Clear all, Sort, Reset order, Add page numbers', async () => {
+  it('renders no quiet Download in the file row for one file (MERGE-24)', async () => {
+    mount();
+    await loadFiles(['a.pdf']);
+    await settle();
+    expect(container.querySelector('[data-quiet-download]')).toBeNull();
+  });
+
+  it('puts a quiet Download in the sticky file row that matches the main one once ready (MERGE-24)', async () => {
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    await settle();
+    const quiet = container.querySelector('.' + docStyles['chip-bar'] + ' [data-quiet-download]');
+    expect(quiet).not.toBeNull();
+    expect(quiet.textContent).toContain('Download');
+    const main = downloadLink();
+    expect(main).not.toBeNull();
+    expect(quiet.getAttribute('href')).toBe(main.getAttribute('href'));
+    expect(quiet.getAttribute('download')).toBe(main.getAttribute('download'));
+  });
+
+  it('exposes mobile file controls in order: Add files, Clear all, Sort, Reset order', async () => {
     mount();
     await loadFiles(['b.pdf', 'a.pdf']);
     await settle();
@@ -622,7 +641,7 @@ describe('PdfMergeTool UI flow', () => {
     };
     expect(Array.from(controls().children).flatMap((el) => el.matches(`.${railStyles['quiet-row']}`)
       ? Array.from(el.children).map(describe)
-      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'page-numbers']);
+      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort']);
 
     // Force the rearranged state (a plan interleaved across files) the same
     // way the draft-restore test above does, rather than fighting a real
@@ -645,7 +664,7 @@ describe('PdfMergeTool UI flow', () => {
     // rearrangement, same as Reset order (team lead, second follow-up).
     expect(Array.from(controls().children).flatMap((el) => el.matches(`.${railStyles['quiet-row']}`)
       ? Array.from(el.children).map(describe)
-      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'reset-order', 'page-numbers']);
+      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'reset-order']);
   });
 
   it('names an encrypted file, links to Unlock, and merges the rest on the one offered action (MERGE-04)', async () => {
