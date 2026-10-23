@@ -10,7 +10,7 @@ import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../she
 import { reportError } from '../../../lib/errorReport.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
 import { CELL_RATIO, MIN_CELL, useStageFit } from '../useStageFit.ts';
-import { FIT_PATIENCE_MS, fitSettled, rasterWidthFor, type FitItem } from '../stageFit.ts';
+import { FIT_PATIENCE_MS, fitSettled, rasterWidthForItem, type FitItem } from '../stageFit.ts';
 
 export interface StripFile {
   id: number;
@@ -79,10 +79,10 @@ function isPhoneViewport(): boolean {
    screen, because the cell only grows when there are few - a 400-page set
    stays at the 104px floor, where the raster stays at the 150 px budget above
    whatever the screen density (rasterWidthFor). */
-function thumbnailOptions(desktopCell: number | null) {
+function thumbnailOptions(desktopCell: number | null, span: 1 | 2 = 1) {
   if (isPhoneViewport()) return { width: 96, type: 'image/jpeg', quality: 0.7 };
   if (desktopCell == null) return { width: 150, type: 'image/png' };
-  return { width: rasterWidthFor(desktopCell, window.devicePixelRatio || 1), type: 'image/png' };
+  return { width: rasterWidthForItem(desktopCell, span, 12, window.devicePixelRatio || 1), type: 'image/png' };
 }
 
 /* Shlomi's follow-up (2026-09-13), item 1: one continuous CSS grid now
@@ -192,8 +192,12 @@ export default function PageStrip({
   const aspects = useRef(new Map<string, number>());
   // The raster width each cached thumbnail was rendered at, so a page re-renders
   // at a larger step when its cell grows and never at a smaller one.
+  const planRef = useRef(plan);
+  planRef.current = plan;
   const rasterWidths = useRef(new Map<string, number>());
-  const desktopCell = useStageFit(stripRef, fitItems(plan, aspects.current, grouped));
+  const fitList = fitItems(plan, aspects.current, grouped);
+  const desktopCell = useStageFit(stripRef, fitList);
+  const spanSignature = fitList.map((item) => item.span).join('');
   // On desktop, wait for the first fitted cell so a page is never rendered twice.
   const fitPending = desktopCell == null && isDesktopViewport();
   const fitSettledNow = useFitSettled(
@@ -205,16 +209,22 @@ export default function PageStrip({
   fitPendingRef.current = fitPending;
   const optionsRef = useRef(thumbnailOptions(desktopCell));
   optionsRef.current = thumbnailOptions(desktopCell);
+  // Each page's own raster options: a landscape page is two cells wide.
+  const desktopCellRef = useRef(desktopCell);
+  desktopCellRef.current = desktopCell;
+  const optionsFor = useCallback((key: string) => {
+    const entry = planRef.current.find((e) => e.key === key);
+    const span = entry && spansTwo(entry.rotation, aspects.current.get(key)) ? 2 : 1;
+    return thumbnailOptions(desktopCellRef.current, span);
+  }, []);
   // A cached thumbnail counts only if it is at least as sharp as the current cell wants.
   const hasCurrent = useCallback((key: string) => thumbnails.current.has(key)
-    && (rasterWidths.current.get(key) ?? 0) >= optionsRef.current.width, []);
+    && (rasterWidths.current.get(key) ?? 0) >= optionsFor(key).width, [optionsFor]);
   const sources = useRef(new Map<number, { source: Promise<ThumbnailSource>; controller: AbortController }>());
   const queue = useRef<string[]>([]);
   const queued = useRef(new Set<string>());
   const rendering = useRef(false);
   const observer = useRef<IntersectionObserver | null>(null);
-  const planRef = useRef(plan);
-  planRef.current = plan;
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   const focusKey = useRef<string | null>(null);
@@ -290,7 +300,7 @@ export default function PageStrip({
         try {
           const source = await held.source;
           if (held.controller.signal.aborted) continue;
-          const options = optionsRef.current;
+          const options = optionsFor(key);
           const dataUrl = await source.render(pageIndex, { ...options, signal: held.controller.signal });
           if (held.controller.signal.aborted) continue;
           thumbnails.current.set(key, dataUrl);
@@ -308,7 +318,7 @@ export default function PageStrip({
     } finally {
       rendering.current = false;
     }
-  }, [reportRenderedCount, hasCurrent]);
+  }, [reportRenderedCount, hasCurrent, optionsFor]);
 
   const enqueue = useCallback((key: string) => {
     if (fitPendingRef.current || hasCurrent(key) || queued.current.has(key)) return;
@@ -373,7 +383,7 @@ export default function PageStrip({
       document.removeEventListener('visibilitychange', onVisible);
     };
   // A larger raster step (the cell grew) rescans so visible pages sharpen.
-  }, [plan, enqueue, stripRef, optionsRef.current.width, fitPending]);
+  }, [plan, enqueue, stripRef, optionsRef.current.width, spanSignature, fitPending]);
 
   // SortableJS owns the DOM during a drag; the plan is committed once in onEnd.
   useEffect(() => {
