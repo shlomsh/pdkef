@@ -47,7 +47,12 @@
        the space left under the bar caps there and scrolls its file list,
        keeping `.rail-pinned` (Download, hand-off row) in view. */
     top: calc(3.5rem + var(--space-3));
-    max-height: calc(100svh - 3.5rem - 2 * var(--space-3));
+    /* The second cap (QA, 2026-10-24) is the card's first screen before any
+       scroll: the card floor (PdfTool.module.css, --first-screen - 5.5rem)
+       less the rail's 29px start inside the card and the card's 16px bottom
+       padding. Without it 15 files ran the rail to y=978 on a 900px screen,
+       Download below the fold until the page scrolled. */
+    max-height: min(calc(100svh - 3.5rem - 2 * var(--space-3)), calc(var(--first-screen) - 5.5rem - 45px));
   }
 
   /* Only the file list scrolls when the rail outgrows the screen. A scrolling
@@ -70,7 +75,7 @@
 
   .rail-scroll > .file-list {
     flex-shrink: 1;
-    min-height: 88px; /* two rows stay visible */
+    min-height: 116px; /* two 58px rows stay visible */
     overflow-y: auto;
     overscroll-behavior: contain;
   }
