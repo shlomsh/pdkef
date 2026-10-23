@@ -447,4 +447,43 @@ test.describe('Merge on a phone (MERGE-06)', () => {
       expect(bottomSticky).toBe(0);
     });
   }
+
+  /* MERGE-24 (2026-10-23): below 1024px the quiet Download opens the done strip
+     under the sticky bar (hand-offs, rating, close); the desktop rail never does. */
+  test('quiet Download opens the done strip on a phone, and the desktop rail never does', async ({ page }, testInfo) => {
+    await useMobileViewport(page, testInfo);
+    await page.goto('/merge/');
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name),
+    })));
+    await page.locator('input[type="file"]').setInputFiles(files);
+
+    const quiet = page.locator('a[data-quiet-download]');
+    await expect(quiet).toBeVisible({ timeout: 10_000 });
+    const strip = page.locator('[data-merge-done-strip]');
+    await expect(strip).toHaveCount(0);
+    await quiet.click();
+    await expect(strip).toBeVisible();
+    await expect(strip.getByRole('button', { name: /^Compress/ })).toBeVisible();
+    await expect(strip.getByRole('button', { name: /^Sign/ })).toBeVisible();
+    await expect(strip.getByRole('group')).toBeVisible();
+
+    const barBox = await page.locator('[class*="chip-bar"]').boundingBox();
+    const stripBox = await strip.boundingBox();
+    if (!barBox || !stripBox) throw new Error('Bar or strip has no bounding box');
+    const gap = stripBox.y - (barBox.y + barBox.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(12);
+
+    await strip.getByRole('button', { name: 'Close' }).click();
+    await expect(strip).toHaveCount(0);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.locator('[class*="rail-pinned"] a[download]').click();
+    await page.waitForTimeout(300);
+    await expect(strip).toHaveCount(0);
+  });
 });

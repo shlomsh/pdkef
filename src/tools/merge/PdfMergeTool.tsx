@@ -30,6 +30,9 @@ import { useUndoChip } from '../../lib/useUndoChip.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import { isFileDrag } from '../../shell/fileDragDepth.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import DoneStrip from '../../shell/DoneStrip.tsx';
+import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
+import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
 import MergeVerb from './verb/MergeVerb.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -267,6 +270,12 @@ export default function PdfMergeTool({
      what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
   const [tap, setTap] = useState<'idle' | 'merging' | 'done'>('idle');
   const [pendingDownload, setPendingDownload] = useState(false);
+  // MERGE-24 (2026-10-23): the phone done strip under the sticky bar. Only the
+  // quiet Download opens it; a quiet tap that beat the build is remembered in
+  // the ref until the pending download is delivered.
+  const [stripOpen, setStripOpen] = useState(false);
+  const quietPendingRef = useRef(false);
+  const downloaded = useDownloaded();
   // Only the person's Download tap, not usePreparedMerge's speculative build.
   useHoldUpdate(tap === 'merging');
   const [downloadedOnce, setDownloadedOnce] = useState(false);
@@ -892,6 +901,10 @@ export default function PdfMergeTool({
   useEffect(() => {
     if (!pendingDownload || prepared.status !== 'ready' || !prepared.blob) return;
     setPendingDownload(false);
+    if (quietPendingRef.current) {
+      quietPendingRef.current = false;
+      setStripOpen(true);
+    }
     download(prepared.blob, fileName);
     setTap('done');
     setDownloadedOnce(true);
@@ -978,6 +991,17 @@ export default function PdfMergeTool({
     prepared.prepareNow();
   }, [prepared.prepareNow]);
 
+  // The quiet Download's taps, which also open the done strip below 1024px.
+  const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
+  const onQuietDownloadTap = useCallback(() => {
+    onDownloadTap();
+    if (opensStrip()) setStripOpen(true);
+  }, [onDownloadTap]);
+  const onQuietPreparingTap = useCallback(() => {
+    quietPendingRef.current = opensStrip();
+    onPreparingTap();
+  }, [onPreparingTap]);
+
   // A tap on a ready Download: 'merging' renders once so BasePdfTool reports
   // tool_operation_started, then 'done' reports tool_result_ready.
   useEffect(() => {
@@ -1028,6 +1052,11 @@ export default function PdfMergeTool({
         // Quiet means quiet: while the build waits or runs, Download keeps its ready look.
         // 'preparing' is for a tap that beat the build, or files still being read.
         : (prepared.status === 'pending' && !pendingDownload) ? 'ready' : 'preparing';
+  // The strip belongs to the saved merge; any change or clear closes it.
+  const showStrip = stripOpen && downloadState === 'saved';
+  useEffect(() => {
+    if (downloadState !== 'saved') setStripOpen(false);
+  }, [downloadState]);
   // The same condition DownloadElement uses for its link (`isLink`).
   const downloadLinkReady = (downloadState === 'ready' || downloadState === 'saved') && prepared.status === 'ready' && !!prepared.url;
   const downloadDetail = prepared.status === 'ready'
@@ -1068,12 +1097,15 @@ export default function PdfMergeTool({
     { value: 'dateDesc', label: t.sortDateDesc },
   ];
 
+  const rating = <RatingPrompt tool="merge" downloaded={downloaded} messages={sm} />;
+
   return (
     <BasePdfTool
       accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png"
       hasFiles={hasFiles}
       analyticsTool="merge"
       analyticsStatus={analyticsStatus}
+      ownsRating
       onFilesAdded={addFiles}
       onClearAll={reset}
       clearSummary={entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length })}
@@ -1160,7 +1192,7 @@ export default function PdfMergeTool({
                   data-quiet-download
                   href={prepared.url ?? undefined}
                   download={fileName}
-                  onClick={onDownloadTap}
+                  onClick={onQuietDownloadTap}
                 >
                   <DownloadIcon size={16} aria-hidden="true" />
                   {t.downloadShort}
@@ -1171,7 +1203,7 @@ export default function PdfMergeTool({
                   class={docStyles['chip-download']}
                   data-quiet-download
                   aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
-                  onClick={downloadState === 'error' ? undefined : onPreparingTap}
+                  onClick={downloadState === 'error' ? undefined : onQuietPreparingTap}
                   onPointerEnter={prepared.prepareNow}
                   onFocus={prepared.prepareNow}
                 >
@@ -1179,6 +1211,29 @@ export default function PdfMergeTool({
                   {t.downloadShort}
                 </button>
               )
+            )}
+            {showStrip && (
+              <DoneStrip
+                label={t.mergedReady}
+                closeLabel={t.closeStrip}
+                onClose={() => setStripOpen(false)}
+                className={docStyles['done-strip']}
+                data-merge-done-strip
+              >
+                <p class={docStyles['done-strip-line']}>{isolateName(fileName, t.dir)} · {downloadDetail}</p>
+                <ExportHandoffs
+                  items={[
+                    { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
+                    { tool: 'sign', label: t.handoffSign, Icon: FileSignature },
+                  ]}
+                  busy={handoffBusy || prepared.status !== 'ready'}
+                  onHandoff={(tool) => { void requestHandoff(tool as HandoffTool); }}
+                />
+                {handoffFailed && (
+                  <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                )}
+                {rating}
+              </DoneStrip>
             )}
           </div>
           {/* These use the rail's existing control styles and handlers in one
@@ -1504,6 +1559,7 @@ export default function PdfMergeTool({
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
+      {!showStrip && rating}
     </BasePdfTool>
   );
 }

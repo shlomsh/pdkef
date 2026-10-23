@@ -237,6 +237,26 @@
   }
 }
 
+/* MERGE-24 (2026-10-23): the done strip hangs under the bar (DoneStrip's
+   absolute top), inset to the card's content edges the bar bleeds past. */
+.done-strip {
+  inset-inline: 12px;
+}
+
+@media (min-width: 768px) {
+  .done-strip {
+    inset-inline: 1.5rem;
+  }
+}
+
+.done-strip-line {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
 /* The quiet Download at the bar's inline end, outside the scrolling chips:
    the plain secondary button (QUAL-27: export is never filled in a toolbar). */
 .chip-download {
