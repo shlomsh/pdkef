@@ -185,5 +185,31 @@
     "open": true,
     "ticket": "RED-67",
     "note": "the environment, not a defect: the tab asks for chunks the new deploy no longer serves. Since RED-67 the person is asked to reload; the report still travels so MEM-12 can size how often tabs outlive a deploy"
+  },
+  {
+    "id": "RED-68",
+    "title": "Redact: a damaged form stream inside a page was reported",
+    "match": {
+      "area": "redact",
+      "step": "walk_form_stream",
+      "slug": "redact",
+      "module": "pdf-lib"
+    },
+    "fixedIn": "dc907fae",
+    "ticket": "RED-68",
+    "note": "the person's file: the form is skipped like a page stream that will not decode; any other error inside a form still reports"
+  },
+  {
+    "id": "RED-69",
+    "title": "Redact: a tab left open across a deploy cannot load its saved-file check",
+    "match": {
+      "area": "redact",
+      "name": "TypeError",
+      "step": "check_saved_file",
+      "slug": "redact"
+    },
+    "open": true,
+    "ticket": "RED-69",
+    "note": "the environment, not a defect, as RED-67 for export: since RED-69 the check asks for a reload; the report still travels so MEM-12 can size how often tabs outlive a deploy"
   }
 ]
