@@ -1614,4 +1614,82 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await act(async () => { box().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     expect(built()).toBe(1);
   });
+  // MERGE-24 review: the done strip's pending tap and wide screens.
+  function stubMedia(initialMatches) {
+    const listeners = new Set();
+    const state = { matches: initialMatches };
+    const original = window.matchMedia;
+    window.matchMedia = (query) => ({
+      get matches() { return query.includes('max-width: 1023px') ? state.matches : false; },
+      media: query,
+      onchange: null,
+      addListener() {}, removeListener() {},
+      addEventListener: (type, fn) => { if (query.includes('max-width: 1023px')) listeners.add(fn); },
+      removeEventListener: (type, fn) => { listeners.delete(fn); },
+      dispatchEvent() { return false; },
+    });
+    return {
+      set(matches) { state.matches = matches; listeners.forEach((fn) => fn({ matches })); },
+      restore() { window.matchMedia = original; },
+    };
+  }
+  const strip = () => container.querySelector('[data-merge-done-strip]');
+
+  it('opens the strip on delivery after a quiet Download tap that beat the build (tablet)', async () => {
+    const media = stubMedia(true);
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+      await act(async () => pageNumbersBox().click());
+      await advance(200);
+      await act(async () => { container.querySelector('[data-quiet-download]').click(); });
+      await advance(5000);
+      expect(box().getAttribute('data-state')).toBe('saved');
+      expect(strip()).not.toBeNull();
+    } finally {
+      clickSpy.mockRestore();
+      media.restore();
+    }
+  });
+
+  it('a stale quiet-tap flag does not open the strip for the completion row tap after Clear all', async () => {
+    const media = stubMedia(true);
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+      mergeLib.mergePdfs.mockImplementationOnce(() => new Promise(() => {}));
+      await act(async () => pageNumbersBox().click());
+      await advance(200);
+      await act(async () => { container.querySelector('[data-quiet-download]').click(); });
+      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+      await act(async () => clearTrigger.click());
+      const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
+      await act(async () => clearButtons.at(-1).click());
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), ['d.pdf', 'e.pdf'].map((n) => makePdfFile(n)));
+      });
+      await advance(100);
+      await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+      await advance(5000);
+      expect(box().getAttribute('data-state')).toBe('saved');
+      expect(strip()).toBeNull();
+    } finally {
+      clickSpy.mockRestore();
+      media.restore();
+    }
+  });
+
+  it('closes the open strip when the window widens past 1024px and gives the rating its slot back', async () => {
+    const media = stubMedia(true);
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+      await act(async () => { container.querySelector('[data-quiet-download]').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+      await advance(100);
+      expect(strip()).not.toBeNull();
+      media.set(false);
+      await advance(10);
+      expect(strip()).toBeNull();
+    } finally {
+      clickSpy.mockRestore();
+      media.restore();
+    }
+  });
 });

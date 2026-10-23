@@ -77,12 +77,17 @@ export default function DownloadElement({
   const hasFocusedRef = useRef(false);
   const isFirstReady = state === 'ready' && !hasBeenReadyRef.current;
   // MERGE-24: the saved check draws once on entering 'saved'; leaving it re-arms the draw.
-  const wasSavedRef = useRef(false);
-  const isEnteringSaved = state === 'saved' && !wasSavedRef.current;
+  // The entry is latched during render (not in an effect), so a parent re-render mid-draw keeps the class.
+  const prevStateRef = useRef<DownloadElementState | null>(null);
+  const savedAtRef = useRef(0);
+  if (prevStateRef.current !== state) {
+    if (state === 'saved') savedAtRef.current = Date.now();
+    prevStateRef.current = state;
+  }
+  const isEnteringSaved = state === 'saved' && Date.now() - savedAtRef.current < 700;
 
   useEffect(() => {
     if (state === 'ready') hasBeenReadyRef.current = true;
-    wasSavedRef.current = state === 'saved';
   }, [state]);
 
   // Skip while the output name is mid-rename (see the prop's own

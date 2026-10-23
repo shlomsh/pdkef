@@ -637,6 +637,8 @@ export default function PdfMergeTool({
     clearUndo();
     setTap('idle');
     setPendingDownload(false);
+    quietPendingRef.current = false;
+    setStripOpen(false);
     setDownloadedOnce(false);
     setSortMode('added');
     setRenderedCount(0);
@@ -997,6 +999,11 @@ export default function PdfMergeTool({
     onDownloadTap();
     if (opensStrip()) setStripOpen(true);
   }, [onDownloadTap]);
+  // The completion row's own preparing tap never opens the strip, whatever an earlier quiet tap left.
+  const onRowPreparingTap = useCallback(() => {
+    quietPendingRef.current = false;
+    onPreparingTap();
+  }, [onPreparingTap]);
   const onQuietPreparingTap = useCallback(() => {
     quietPendingRef.current = opensStrip();
     onPreparingTap();
@@ -1054,9 +1061,21 @@ export default function PdfMergeTool({
         : (prepared.status === 'pending' && !pendingDownload) ? 'ready' : 'preparing';
   // The strip belongs to the saved merge; any change or clear closes it.
   const showStrip = stripOpen && downloadState === 'saved';
+  // Only leaving 'saved' closes it: a tap that beat the build opens the strip in the very commit
+  // that moves 'ready' to 'saved', and that commit must not close it again.
+  const prevDownloadStateRef = useRef(downloadState);
   useEffect(() => {
-    if (downloadState !== 'saved') setStripOpen(false);
+    if (prevDownloadStateRef.current === 'saved' && downloadState !== 'saved') setStripOpen(false);
+    prevDownloadStateRef.current = downloadState;
   }, [downloadState]);
+  // The sticky bar (and the strip in it) is hidden from 1024px: close the strip when the window widens past it.
+  useEffect(() => {
+    if (!showStrip) return;
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const onChange = () => { if (!mq.matches) setStripOpen(false); };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [showStrip]);
   // The same condition DownloadElement uses for its link (`isLink`).
   const downloadLinkReady = (downloadState === 'ready' || downloadState === 'saved') && prepared.status === 'ready' && !!prepared.url;
   const downloadDetail = prepared.status === 'ready'
@@ -1500,7 +1519,7 @@ export default function PdfMergeTool({
                   messages={t}
                   chooseFilesLabel={sm.chooseFilesMany}
                   onChooseFiles={requestReplace}
-                  onPreparingTap={onPreparingTap}
+                  onPreparingTap={onRowPreparingTap}
                   onWarm={prepared.prepareNow}
                   onDownloadClick={onDownloadTap}
                   isOutputNameBeingRenamed={isRenamingOutputName}
