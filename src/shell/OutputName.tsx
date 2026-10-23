@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { sanitizeOutputName } from '../lib/sanitizeOutputName.ts';
 import { recordAction } from '../lib/actionTrail.ts';
+import { splitOutputName, fullNameOffset } from './outputNameCut.ts';
 import styles from './OutputName.module.css';
 
 // MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
@@ -51,28 +52,42 @@ function setNameContentEditable(el: HTMLElement, editing: boolean) {
 
 // A real click on a not-yet-editable element does not get the browser's own
 // click-to-place-caret behaviour: this span only becomes editable inside our
-// own mousedown handler, one tick too late. So a click places its OWN caret,
+// own mousedown handler, one tick too late. So a click finds its OWN offset,
 // from the same clientX/clientY, via `caretRangeFromPoint` (Chromium/WebKit)
-// or `caretPositionFromPoint` (Firefox). Falls back to the end of the text
-// (never the start, which reads as if nothing happened).
-function placeCaretAtPoint(el: HTMLElement, x: number, y: number) {
+// or `caretPositionFromPoint` (Firefox). At rest a long name is two parts
+// (head, tail) and editing swaps them for the full text, so the offset is read
+// in the cut layout and mapped into the full name. Null falls back to the end
+// of the text (never the start, which reads as if nothing happened).
+function offsetAtPoint(el: HTMLElement, x: number, y: number): number | null {
   const doc = el.ownerDocument as Document & {
     caretRangeFromPoint?: (x: number, y: number) => Range | null;
     caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
   };
-  let range: Range | null = null;
+  let node: Node | null = null;
+  let offset = 0;
   if (typeof doc.caretRangeFromPoint === 'function') {
-    range = doc.caretRangeFromPoint(x, y);
+    const range = doc.caretRangeFromPoint(x, y);
+    node = range?.startContainer ?? null;
+    offset = range?.startOffset ?? 0;
   } else if (typeof doc.caretPositionFromPoint === 'function') {
     const position = doc.caretPositionFromPoint(x, y);
-    if (position) {
-      range = document.createRange();
-      range.setStart(position.offsetNode, position.offset);
-      range.collapse(true);
-    }
+    node = position?.offsetNode ?? null;
+    offset = position?.offset ?? 0;
   }
-  if (!range || !el.contains(range.startContainer)) {
-    range = document.createRange();
+  if (!node || !el.contains(node)) return null;
+  const tail = el.querySelector('[data-name-tail]');
+  const head = el.querySelector('[data-name-head]');
+  if (tail?.contains(node)) return fullNameOffset(head?.textContent ?? '', 'tail', offset);
+  return offset;
+}
+
+function placeCaretAtOffset(el: HTMLElement, offset: number | null) {
+  const range = document.createRange();
+  const text = el.firstChild;
+  if (text && offset !== null) {
+    range.setStart(text, Math.min(offset, text.textContent?.length ?? 0));
+    range.collapse(true);
+  } else {
     range.selectNodeContents(el);
     range.collapse(false);
   }
@@ -105,7 +120,7 @@ export interface OutputNameProps {
  * The output file name as a WYSIWYG heading part: click to edit in place,
  * Enter or blur commits, Escape reverts, paste is plain text. Renders a
  * fragment (the name isolate, the children, a pencil) for its owner's flex
- * heading; one line, the name ellipsises first.
+ * heading; one line, a long name is cut in the middle first.
  */
 export default function OutputName({
   name, extension = '.pdf', label, onRename, prefix, children, onEditingChange, wrapOnPhone = false,
@@ -118,6 +133,8 @@ export default function OutputName({
   // caret just placed) makes Preact mount a fresh span from the current name.
   const remountKey = useRef(0);
   const nameRef = useRef<HTMLSpanElement | null>(null);
+  // What to select once the full name is in the DOM (the render after `begin`).
+  const pendingSelection = useRef<{ all: boolean; offset: number | null } | null>(null);
 
   const setEditing = useCallback((next: boolean) => {
     setEditingState(next);
@@ -127,20 +144,28 @@ export default function OutputName({
   const begin = useCallback((selectAll: boolean, point?: { x: number; y: number }) => {
     const el = nameRef.current;
     if (!el || editing) return;
+    pendingSelection.current = { all: selectAll, offset: point ? offsetAtPoint(el, point.x, point.y) : null };
     setNameContentEditable(el, true);
     setEditing(true);
     el.focus();
-    if (selectAll) {
+  }, [editing, setEditing]);
+
+  useEffect(() => {
+    const el = nameRef.current;
+    const pending = pendingSelection.current;
+    if (!editing || !el || !pending) return;
+    pendingSelection.current = null;
+    if (pending.all) {
       // Keyboard-activated: select the whole name so typing replaces it.
       const range = document.createRange();
       range.selectNodeContents(el);
       const selection = window.getSelection();
       selection?.removeAllRanges();
       selection?.addRange(range);
-    } else if (point) {
-      placeCaretAtPoint(el, point.x, point.y);
+    } else {
+      placeCaretAtOffset(el, pending.offset);
     }
-  }, [editing, setEditing]);
+  }, [editing]);
 
   const commit = useCallback(() => {
     const sanitized = sanitizeOutputName(nameRef.current?.textContent ?? '');
@@ -198,6 +223,9 @@ export default function OutputName({
     insertPlainTextAtSelection(event.dataTransfer?.getData('text/plain') ?? '');
   }, []);
 
+  // At rest a long name is cut in the middle (the tail stays whole); editing
+  // shows the full text as one node so the caret and typing behave natively.
+  const { head, tail } = editing ? { head: name, tail: '' } : splitOutputName(name);
   const wrapClass = wrapOnPhone ? ` ${styles['wrap-on-phone']}` : '';
 
   return (
@@ -212,7 +240,7 @@ export default function OutputName({
         <span
           key={remountKey.current}
           ref={nameRef}
-          class={`${styles.name}${wrapClass}`}
+          class={`${styles.name}${editing ? ` ${styles.editing}` : ''}${wrapClass}`}
           tabIndex={0}
           role={editing ? 'textbox' : undefined}
           aria-label={label}
@@ -223,7 +251,12 @@ export default function OutputName({
           onPaste={onPaste}
           onDrop={onDrop}
         >
-          {name}
+          {tail ? (
+            <>
+              <span class={styles['name-head']} data-name-head>{head}</span>
+              <span class={styles['name-tail']} data-name-tail>{tail}</span>
+            </>
+          ) : head}
         </span>
         <span class={styles['doc-heading-ext']} dir="ltr">{extension}</span>
       </bdi>

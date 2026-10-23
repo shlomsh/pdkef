@@ -1,6 +1,6 @@
 /* The output file name as a heading part (Merge's document heading, Split's
    canvas heading). Its owner is a nowrap flex row with `align-items: baseline`;
-   everything here is one line, the name ellipsising first while the
+   everything here is one line, a long name cut in the middle first while the
    extension and the owner's meta never shrink. Moved from MergeDocument.module.css. */
 
 .prefix {
@@ -21,10 +21,10 @@
    heading text; entering edit flips `contenteditable` only, no border or
    padding appears, so the rect never moves except for the text's own width. */
 .name {
-  display: inline-block;
-  flex: 1 1 auto;
+  display: inline-flex;
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: 60ch;
+  max-width: 100%;
   font: inherit;
   font-weight: inherit;
   color: inherit;
@@ -34,10 +34,32 @@
   padding: 0;
   margin: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* `pre`, not `nowrap`: the head often ends in a space and a flex item drops it. */
+  white-space: pre;
   /* Keeps a Hebrew name and the trailing Latin meta from scrambling into one bidi run. */
   unicode-bidi: plaintext;
+}
+
+/* At rest a long name is a head that takes the ellipsis and a tail kept whole
+   (the file's distinguishing end, as Merge's FileName does); editing swaps them
+   for the full text, which is cut at its end like any one-line input. */
+.name-head {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+}
+
+.name-tail {
+  flex: none;
+  unicode-bidi: plaintext;
+}
+
+.name.editing {
+  display: inline-block;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .name:focus-visible {
@@ -87,11 +109,19 @@
   }
 
   .name.wrap-on-phone {
+    display: inline-block;
     overflow: visible;
     white-space: normal;
     overflow-wrap: anywhere;
     text-overflow: clip;
     min-width: 0;
     max-width: 100%;
+  }
+
+  .wrap-on-phone .name-head,
+  .wrap-on-phone .name-tail {
+    display: inline;
+    overflow: visible;
+    text-overflow: clip;
   }
 }

@@ -79,4 +79,17 @@ describe('OutputName', () => {
     act(() => render(<OutputName prefix="extracted_" name="num-3" label="x" onRename={() => {}} />, container));
     expect(container.querySelector('bdi')?.textContent).toBe('extracted_num-3.pdf');
   });
+
+  // Cut at the end, "...itc10" lost the part that tells two merges apart.
+  it('cuts a long name in the middle at rest and shows the full name while editing', async () => {
+    const long = 'merged_redacted_signed_Service_Pages_Income_tax_annual-report-2024_itc1040 (final) (3)';
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<OutputName name={long} label="x" onRename={() => {}} />, container));
+    expect(nameEl().querySelector(`.${styles['name-tail']}`)?.textContent).toBe(long.slice(-20));
+    expect(nameEl().textContent).toBe(long);
+    await begin();
+    expect(nameEl().querySelector(`.${styles['name-tail']}`)).toBeNull();
+    expect(nameEl().textContent).toBe(long);
+  });
 });
