@@ -246,7 +246,13 @@ test('rail acceptance at 1280x900: item order, no Options/Saves-as text, 16x16 h
   }
 });
 
-test('desktop rail uses page scrolling for a long file list, without a nested scrollbar', async ({ page }) => {
+/* MERGE-24 (2026-10-23, Shlomi): replaces the 2026-09-24 rule "the rail grows
+   with its rows, the page scroll reaches the actions, no nested scrollbar".
+   A sticky rail taller than the window cut off its top and bottom rows (his
+   screenshots), so the rail stays sticky under the app bar, never taller than
+   the screen, and only the file list scrolls inside it (two rows at least),
+   which keeps Download on screen. */
+test('desktop rail stays inside the viewport and only its file list scrolls', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 });
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
@@ -269,16 +275,26 @@ test('desktop rail uses page scrolling for a long file list, without a nested sc
     scrollHeight: element.scrollHeight,
     overflowY: getComputedStyle(element).overflowY,
   }));
-  expect(listMetrics.scrollHeight).toBe(listMetrics.clientHeight);
-  expect(listMetrics.overflowY).toBe('hidden');
+  expect(listMetrics.overflowY).toBe('auto');
+  expect(listMetrics.scrollHeight).toBeGreaterThan(listMetrics.clientHeight);
+  expect(listMetrics.clientHeight).toBeGreaterThanOrEqual(88);
 
-  // The rail grows with its rows. The browser's page scroll, rather than a
-  // second scrollbar inside the rail, reaches the actions at the bottom.
-  await download.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, 400));
   await expect(addFiles).toBeVisible();
   await expect(clearAll).toBeVisible();
   await expect(download).toBeVisible();
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  const railBox = await rail.boundingBox();
+  const downloadBox = await download.boundingBox();
+  if (!railBox || !downloadBox) throw new Error('Rail or Download has no bounding box');
+  expect(railBox.y).toBeGreaterThanOrEqual(56 - 1);
+  expect(railBox.y + railBox.height).toBeLessThanOrEqual(700 + 1);
+  expect(downloadBox.y).toBeGreaterThanOrEqual(0);
+  expect(downloadBox.y + downloadBox.height).toBeLessThanOrEqual(700 + 1);
+
+  const sideways = await rail.evaluate((root) => [root, ...root.querySelectorAll('*')]
+    .filter((el) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowX))
+    .filter((el) => el.scrollWidth > el.clientWidth + 1).length);
+  expect(sideways).toBe(0);
 });
 
 /* Review finding (2026-09-14, tablet): between 768 and 1023px the Download
