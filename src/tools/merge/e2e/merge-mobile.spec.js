@@ -401,15 +401,15 @@ test.describe('Merge on a phone (MERGE-06)', () => {
       await page.goto('/merge/');
       await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
       await page.locator('input[type="file"]').setInputFiles(await Promise.all([
-        ['first.pdf', 8],
-        ['second.pdf', 4],
+        ['first.pdf', 30],
+        ['second.pdf', 14],
       ].map(async ([name, count]) => ({
         name,
         mimeType: 'application/pdf',
         buffer: await makeMultiPagePdfBuffer(name, count),
       }))));
       const cells = page.locator('ul[class*="grid"] > li[data-key]');
-      await expect(cells).toHaveCount(12);
+      await expect(cells).toHaveCount(44);
 
       const quiet = page.locator('[data-quiet-download]');
       const inViewport = async () => {
@@ -420,8 +420,11 @@ test.describe('Merge on a phone (MERGE-06)', () => {
       await expect(quiet).toBeVisible({ timeout: 10_000 });
       expect(await inViewport()).toBe(true);
 
-      await cells.last().scrollIntoViewIfNeeded();
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      // MERGE-24: the rule is "scrolled to the last page". The sticky file bar
+      // leaves with its card, so scroll the last page cell into view, not the
+      // document end.
+      await cells.last().evaluate((el) => el.scrollIntoView({ block: 'end' }));
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
       expect(await inViewport()).toBe(true);
       expect((await quiet.boundingBox()).height).toBeGreaterThanOrEqual(44);
 
