@@ -257,9 +257,12 @@ test('desktop rail stays inside the viewport and only its file list scrolls', as
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
+  // Three pages each, so the card is taller than the window and the rail has
+  // something to stick through; with one page each the card ended above 400px
+  // of scroll and the rail rightly left with it.
   const files = await Promise.all(Array.from({ length: 12 }, async (_, index) => {
     const name = `document-${String(index + 1).padStart(2, '0')}.pdf`;
-    return { name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name) };
+    return { name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name, 3) };
   }));
   await page.locator('input[type="file"]').setInputFiles(files);
   await page.locator('[data-state="ready"]').waitFor({ timeout: 15_000 });
@@ -279,7 +282,12 @@ test('desktop rail stays inside the viewport and only its file list scrolls', as
   expect(listMetrics.scrollHeight).toBeGreaterThan(listMetrics.clientHeight);
   expect(listMetrics.clientHeight).toBeGreaterThanOrEqual(88);
 
-  await page.evaluate(() => window.scrollTo(0, 400));
+  // Scroll until the card's bottom meets the window's: the rail must still be whole.
+  await page.evaluate(() => {
+    const card = document.querySelector('[data-tool-loaded]');
+    window.scrollTo(0, card.getBoundingClientRect().bottom + window.scrollY - window.innerHeight);
+  });
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
   await expect(addFiles).toBeVisible();
   await expect(clearAll).toBeVisible();
   await expect(download).toBeVisible();
