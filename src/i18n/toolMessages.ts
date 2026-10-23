@@ -119,6 +119,8 @@ export interface MergeMessages {
   /* MERGE-12: Download is the only primary control. `preparing` labels the
    * progress ring shown when the tap arrives before the pre-merge finished. */
   downloadLabel: string;
+  /* MERGE-24: the quiet Download in the phone and tablet file bar; one word, as in Sign's toolbar. */
+  downloadShort: string;
   preparing: string;
   startAgain: string;
   /* MERGE-04: the failed file is named, with one action. */
@@ -248,6 +250,7 @@ const englishMergeMessages: MergeMessages = {
   sortDateDesc: 'Newest first',
   fileNameEditableLabel: 'File name, editable',
   downloadLabel: 'Download merged PDF',
+  downloadShort: 'Download',
   preparing: 'Preparing…',
   startAgain: 'Start again',
   errorUnreadable: '"{name}" could not be read. It may be damaged.',
@@ -361,6 +364,7 @@ const hebrewMergeMessages: MergeMessages = {
   sortDateDesc: 'החדש ביותר קודם',
   fileNameEditableLabel: 'שם הקובץ, ניתן לעריכה',
   downloadLabel: 'הורדת ה-PDF המאוחד',
+  downloadShort: 'הורדה',
   preparing: 'מכינים…',
   startAgain: 'להתחיל מחדש',
   errorUnreadable: 'לא הצלחנו לקרוא את "{name}". ייתכן שהקובץ פגום.',

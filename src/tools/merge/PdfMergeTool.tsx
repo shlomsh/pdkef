@@ -1163,7 +1163,7 @@ export default function PdfMergeTool({
                   onClick={onDownloadTap}
                 >
                   <DownloadIcon size={16} aria-hidden="true" />
-                  {t.downloadLabel}
+                  {t.downloadShort}
                 </a>
               ) : (
                 <button
@@ -1176,7 +1176,7 @@ export default function PdfMergeTool({
                   onFocus={prepared.prepareNow}
                 >
                   <DownloadIcon size={16} aria-hidden="true" />
-                  {t.downloadLabel}
+                  {t.downloadShort}
                 </button>
               )
             )}
