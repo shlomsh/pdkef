@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { fitCellWidth } from './stageFit.ts';
+import { fitCellWidth, type FitItem } from './stageFit.ts';
 import styles from './components/PageStrip.module.css';
 
 /* The desktop cell is a 104 x 138 box that may grow; these are its fixed
@@ -45,7 +45,7 @@ function measureCaptionRows(grid: HTMLElement): number {
 /* Reads the stage from the DOM. The floor is the card's MIN-HEIGHT, never its
    content height, so bigger pages can never feed back into the measurement.
    No card or no min-height (jsdom has no layout) keeps today's size. */
-function measureCell(grid: HTMLElement, units: number): number {
+function measureCell(grid: HTMLElement, items: FitItem[]): number {
   const card = grid.closest<HTMLElement>('[data-tool-loaded]');
   if (!card) return MIN_CELL;
   const cardStyle = getComputedStyle(card);
@@ -55,7 +55,7 @@ function measureCell(grid: HTMLElement, units: number): number {
   const floor = card.getBoundingClientRect().top + minHeight;
   const contentTop = grid.getBoundingClientRect().top + px(gridStyle.paddingTop);
   return fitCellWidth({
-    units,
+    items,
     width: grid.clientWidth - px(gridStyle.paddingLeft) - px(gridStyle.paddingRight),
     height: floor - contentTop - px(gridStyle.paddingBottom) - px(cardStyle.paddingBottom) - measureCaptionRows(grid),
     gap: GRID_GAP,
@@ -67,24 +67,26 @@ function measureCell(grid: HTMLElement, units: number): number {
 }
 
 /* The fitted cell width in px on a desktop viewport, null elsewhere (callers
-   keep the tablet and phone sizes). `units` is the grid columns the pages
+   keep the tablet and phone sizes). `items` are the grid items the pages
    occupy. Re-measures on a resize of the grid, the card or the window,
    coalesced to one frame, and sets state only when the width changes. */
-export function useStageFit(gridRef: RefObject<HTMLElement>, units: number): number | null {
+export function useStageFit(gridRef: RefObject<HTMLElement>, items: FitItem[]): number | null {
   const [cell, setCell] = useState<number | null>(null);
-  const unitsRef = useRef(units);
-  unitsRef.current = units;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  // The array is new every render; effects depend on what it says.
+  const signature = items.map((item) => `${item.span}${item.breakBefore ? 'b' : ''}`).join();
   const measureRef = useRef<() => void>(() => {});
 
   /* Before paint: the first frame the grid shows already has its fitted size
      (state set here re-renders before the browser paints), so nothing reflows
-     afterwards. Re-runs when the units change; grouping changes them too. */
+     afterwards. Re-runs when the items change; grouping changes them too. */
   useLayoutEffect(() => {
     const grid = gridRef.current;
     if (!grid || typeof window.matchMedia !== 'function') return;
-    const next = window.matchMedia(DESKTOP).matches ? measureCell(grid, units) : null;
+    const next = window.matchMedia(DESKTOP).matches ? measureCell(grid, items) : null;
     setCell((current) => (current === next ? current : next));
-  }, [gridRef, units]);
+  }, [gridRef, signature]);
 
   useEffect(() => {
     const grid = gridRef.current;
@@ -93,7 +95,7 @@ export function useStageFit(gridRef: RefObject<HTMLElement>, units: number): num
     let frame = 0;
     const measure = () => {
       frame = 0;
-      const next = query.matches ? measureCell(grid, unitsRef.current) : null;
+      const next = query.matches ? measureCell(grid, itemsRef.current) : null;
       setCell((current) => (current === next ? current : next));
     };
     const schedule = () => {
@@ -117,8 +119,8 @@ export function useStageFit(gridRef: RefObject<HTMLElement>, units: number): num
     };
   }, [gridRef]);
 
-  // A page added, removed or rotated changes the units without resizing anything.
-  useEffect(() => { measureRef.current(); }, [units]);
+  // A page added, removed or rotated changes the items without resizing anything.
+  useEffect(() => { measureRef.current(); }, [signature]);
 
   return cell;
 }
