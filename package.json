@@ -95,6 +95,7 @@
     "browserslist": "4.28.7",
     "devalue": "5.9.4",
     "fast-uri": "3.1.8",
+    "follow-redirects": "1.16.1",
     "svgo": "4.1.0",
     "smol-toml": "1.9.0",
     "shell-quote": "^1.11.0",
