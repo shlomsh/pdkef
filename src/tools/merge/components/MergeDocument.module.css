@@ -410,6 +410,11 @@
   .doc-heading-progress {
     display: none;
   }
+
+  /* The count wraps to the start of its own line here, where a gap reads as an indent. */
+  .doc-heading-count {
+    margin-inline-start: 0;
+  }
 }
 
 /* The bottom sheet (MergeRail.module.css, sticky below 1024px) is sticky to
