@@ -527,19 +527,26 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
 
     /* Merge, once a file is loaded: the SEO-10 note stays in the HTML for
        search but is not painted, and the airplane line sits 16px under the
-       card (main's own bottom padding is dropped so that gap is the whole
-       gap). Empty, restore and hand-off states keep the rules above;
+       card (main's own bottom padding is the base of that gap, see below). Empty, restore and hand-off states keep the rules above;
        `data-tool-slug` is the only thing that tells Merge's page apart. */
     :global(body:has(.tool-stage[data-tool-slug='merge'] [data-tool-loaded])) [data-merge-note] {
       display: none;
     }
 
-    .tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > main {
-      padding-bottom: 0 !important;
+    /* main carries Tailwind's `!pb-4 min-[768px]:!pb-5`. Those are important
+       declarations inside the utilities layer, and an important layered
+       declaration beats an unlayered one even when that is `!important` too,
+       so main's bottom padding cannot be zeroed from this sheet. Its padding
+       is therefore the base of the gap (16px, 20px from 768px) and the airplane
+       line's margin makes up the difference: 0 below 768px, -4px from there. */
+    .tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > [data-airplane-note] {
+      margin-top: 0;
     }
 
-    .tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > [data-airplane-note] {
-      margin-top: 1rem;
+    @media (min-width: 768px) {
+      .tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > [data-airplane-note] {
+        margin-top: calc(1rem - 1.25rem);
+      }
     }
   </style>
 
