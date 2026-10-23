@@ -386,6 +386,34 @@
   border-radius: var(--radius-pill);
 }
 
+/* MERGE-24 (2026-10-24): each chip ends in a remove button. Its hit area is
+   44x44 but the pill stays 36px tall: the 4px negative block margins take
+   the extra height from the <li>'s own 44px, and the negative inline-end
+   margin leaves the icon about 0.4rem from the pill's end without the hit
+   area reaching past the 0.5rem chip gap into the next chip. */
+.chip-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  margin-block: -4px;
+  margin-inline: -0.2rem -0.7rem;
+  padding: 0;
+  color: var(--color-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip-remove:hover {
+    color: var(--color-danger);
+  }
+}
+
 .chip-tag {
   flex-shrink: 0;
   width: 8px;

@@ -486,4 +486,31 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await page.waitForTimeout(300);
     await expect(strip).toHaveCount(0);
   });
+
+  /* MERGE-24 (2026-10-24): every chip carries its own remove button. */
+  test('a chip remove button is a 44px target on a 36px pill and removes that file', async ({ page }, testInfo) => {
+    await useMobileViewport(page, testInfo);
+    await page.goto('/merge/');
+    const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name),
+    })));
+    await page.locator('input[type="file"]').setInputFiles(files);
+
+    const chips = page.locator('ul[class*="chip-row"] > li');
+    await expect(chips).toHaveCount(3);
+    const remove = chips.nth(1).getByRole('button', { name: /two\.pdf/ });
+    const box = await remove.boundingBox();
+    const pillBox = await chips.nth(1).locator('[class*="chip-pill"]').boundingBox();
+    if (!box || !pillBox) throw new Error('Remove button or pill has no bounding box');
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(Math.round(pillBox.height)).toBe(36);
+
+    await remove.click();
+    await expect(chips).toHaveCount(2);
+    await expect(page.locator('ul[class*="grid"] > li[data-key]')).toHaveCount(2);
+    await expect(page.locator('[class*="undo-chip"]').first()).toBeVisible();
+  });
 });

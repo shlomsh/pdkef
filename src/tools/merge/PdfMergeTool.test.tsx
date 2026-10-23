@@ -1054,7 +1054,22 @@ describe('PdfMergeTool UI flow', () => {
     expect(chipRow).not.toBeNull();
     expect(controls).not.toBeNull();
     expect(chipRow.contains(controls)).toBe(false);
-    expect(chipRow.querySelector('button, select, input')).toBeNull();
+    expect(chipRow.querySelector('select, input')).toBeNull();
+  });
+
+  it('each chip has a remove button that removes that file (MERGE-24)', async () => {
+    mount();
+    await loadFiles(['one.pdf', 'two.pdf', 'three.pdf']);
+    await settle();
+    const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+    const remove = chipRow.querySelector('button[aria-label*="two.pdf"]');
+    expect(remove).not.toBeNull();
+    expect(remove.classList.contains(docStyles['chip-remove'])).toBe(true);
+    await act(async () => {
+      remove.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(chipRow.querySelectorAll(`.${docStyles.chip}`).length).toBe(2);
+    expect(chipRow.textContent).not.toContain('two.pdf');
   });
 
   // Review P2, item 3: "Picked up where you left off · Start fresh" lived

@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature, File as FileIcon, Download as DownloadIcon } from 'lucide-preact';
+import { Shrink, FileSignature, File as FileIcon, Download as DownloadIcon, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -431,6 +431,10 @@ export default function PdfMergeTool({
       delay: 100,
       delayOnTouchOnly: true,
       touchStartThreshold: 10,
+      // A press on a chip's remove button never starts a drag, and its click
+      // still fires.
+      filter: `.${docStyles['chip-remove']}`,
+      preventOnFilter: false,
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex == null || evt.newIndex == null) return;
         applyFileReorder(evt.oldIndex, evt.newIndex);
@@ -1197,6 +1201,14 @@ export default function PdfMergeTool({
                     <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
                     <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
                     <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
+                    <button
+                      type="button"
+                      class={docStyles['chip-remove']}
+                      aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
+                      onClick={() => removeEntry(entry.id)}
+                    >
+                      <XIcon size={14} aria-hidden="true" />
+                    </button>
                   </span>
                 </li>
               ))}
