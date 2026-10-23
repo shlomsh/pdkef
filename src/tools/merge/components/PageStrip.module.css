@@ -346,6 +346,20 @@
   visibility: visible;
 }
 
+/* MERGE-24: the slot is reserved only once some page is skipped, so an ordinary
+   merge does not carry 18px of white under every row. */
+.grid:not(:has(.skipped-word[data-visible])) .skipped-word {
+  display: none;
+}
+
+/* Below 1024px the card is as tall as its pages (no first-screen floor), so the
+   grid has no minimum either: one row of pages left ~100px of white under it. */
+@media (max-width: 1023px) {
+  .grid {
+    min-height: 0;
+  }
+}
+
 /* Ungrouped, no cell carries a name, so the reserved strip (and its flex gap)
    collapses; the band alone says which file a page is from. Grouped keeps it
    at 16px: a run's first cell holds its name there. */
