@@ -131,6 +131,10 @@ shape as `signed_x.pdf` and `compressed_x.pdf`, chaining when the first file alr
 prefix. No count, no connector, never a "+" in a file name. A prefix in the tool's language followed
 by the name in its own direction needs no bidi isolation and no per-edition template.
 
+A long name cuts in the middle and keeps the tail, the part that tells files apart ("…itc1040 (final)
+(3)"). The extension is muted, and a real space precedes the count ("· 7 pages"). Editing shows the full
+name. (MERGE-24, 2026-10-23)
+
 ## 6. Undo over confirm
 
 Reversible actions get an Undo chip for five seconds ("Moved page 3 · Undo", "Removed X · Undo") and
@@ -157,6 +161,8 @@ and on focus; on touch the word is always there or the control is not an icon.
   document, in the page flow: the setting, the filled primary control, then the next steps. The
   pinned sheet measured 259px of a 402px phone screen in Edit Pages (2026-10-21).
   Secondary commands live in a "…" popover anchored at the inline end, so the Hebrew edition flips it.
+- A quiet toolbar Download uses the one-word label "Download"; "Download merged PDF" made it 197px wide
+  in the sticky bar. The full label belongs to the filled primary control. (MERGE-24, 2026-10-23)
 - On the phone, Share may matter more than Download: it is how a phone saves to Files, AirDrop and
   messages. It leads the next-steps row wherever the browser can share files.
 
@@ -184,6 +190,10 @@ a phone the first screen is blank. Target: twenty trivial pages under two second
 row before the heavy work starts, one open pdf.js document per file for the life of the view. Restore
 must set scroll restoration ahead of the reload and scan the viewport itself, since an
 IntersectionObserver never reports in a hidden document.
+
+When sizing depends on data that arrives late (page aspect ratios), keep the element hidden until the
+size settles (all inputs known, or a 400ms timeout), then show it once at its final size. Hidden
+elements do not count toward CLS; a visible grid that resized 246, 324, then 270px scored 0.052. (MERGE-24, 2026-10-23)
 
 ## 11. Drafts are a quiet feature
 
@@ -236,6 +246,10 @@ and Download stands where Unlock PDF was.
   it does not decide direction. Direction comes from sketches the owner picks between.
 - Verify the phone view on a real phone for anything the emulator cannot do (Web Share, scroll
   restoration, keyboard).
+- Polish starts from a written target design: width by width, every line measurable, then a scripted
+  path matrix on a production build before handover. Fixing screenshots one at a time without a target
+  drifted, and the review said the work was getting lost. [merge-stage-spec.md](./merge-stage-spec.md)
+  is the example. (MERGE-24, 2026-10-23)
 
 ## 15. The stage: canvas and commands stay together
 
@@ -250,6 +264,22 @@ breakpoint, which is the Split failure again. The test: at 1280, 820 and 375, sc
 canvas's last row, a way to download and any mode that reshapes the output are fully inside the
 viewport. Merge is the reference below 1024px (MERGE-24); Split and Edit Pages still pin a sheet and
 move to this shape on their next pass.
+
+Rules for the desktop rail and the stage, from the Merge polish pass (MERGE-24, 2026-10-23):
+
+- Anything sticky clears the app bar: `top` is the app bar height (3.5rem, 56px) plus the gap, and a
+  sticky panel is never taller than the viewport below it (`max-height: calc(100svh - 3.5rem - gaps)`).
+  A rail taller than the window cut off its first and last rows.
+- When a sticky panel's content outgrows it, only the list inside scrolls (at least two rows showing,
+  overscroll contained) and the primary action stays on screen. This replaces the 2026-09-24 "page
+  scroll, no nested scrollbar" rule for desktop rails, by the owner's choice.
+- The scroll container is the list itself, never a wrapper that also holds tooltips or popovers: a
+  tooltip bubble overflowing by 14px gave the rail a horizontal scrollbar. Nothing in a side panel
+  scrolls sideways.
+- Fill the stage. On desktop, size the content to the loaded card's first-screen floor, measured from
+  the card's min-height and never its content height, instead of leaving it in a top strip. Below a
+  floor size it wraps and scrolls as before. Draw thumbnails at stepped sizes of cell width times
+  device pixel ratio (capped at 2) so bigger stays sharp. Phone and tablet keep their sizes.
 
 ## 16. A display-only transform never hides more than the untransformed state did
 
@@ -351,6 +381,22 @@ these rules in a64ea0ab, and they are the pattern every tool's loaded state foll
 The test, with a file loaded: at 1440x900 the before/after preview is fully inside the first
 viewport; at 375x812 the result area and the pinned Download are. No row above the result is a line
 of copy that could sit in the strip's note.
+
+Below a loaded card there is one line: the airplane line, 16px under the card. Supporting SEO lines stay
+in the HTML but hide once files are loaded, like the subhead. (MERGE-24, 2026-10-23)
+
+## 19. Identity, linking and motion on the page grid
+
+*(Merge polish, 2026-10-23)*
+
+- Identity colour lives on the object: a 4px band on each page's top edge, not a floating dot. The
+  danger colour is never a category colour; a clay token replaced it, since red read as an error.
+  (MERGE-24, 2026-10-23)
+- A list and the objects it owns highlight each other. Hover or keyboard focus (`:focus-visible` only)
+  on either side lifts the linked items and steps the rest back. Nothing on touch, nothing during a
+  drag, and links clear when the source is removed. (MERGE-24, 2026-10-23)
+- Objects arrive with a short fade and rise as they render, and a completion moment (the bands sweep to
+  one colour as the saved check draws) marks the export. Both are skipped under reduced motion. (MERGE-24, 2026-10-23)
 
 ## The review questions
 
