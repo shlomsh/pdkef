@@ -10,7 +10,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
 - [LOC-18](backlog/tasks/LOC-18.md) P2 · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through (in progress)
-- [SEO-44](backlog/tasks/SEO-44.md) P2 · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 - [SEO-46](backlog/tasks/SEO-46.md) P2 · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars (in progress)
 
 ### Polish
@@ -24,6 +23,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - 2026-11-06: [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages
 - 2026-11-06: [SEO-42](backlog/tasks/SEO-42.md) · Read 2026-11-06 · Title test: "No Upload" in the Split and Compress titles, read per query in Search Console
 - 2026-11-07: [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads
+- 2026-11-07: [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference
 - 2026-11-08: [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-44](backlog/tasks/DEBT-44.md) · Every counted failure leaves a trace in the error reports
 - An Android phone: [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware
@@ -51,5 +51,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-53](backlog/tasks/DEBT-53.md) · A check on your iPhone
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [SEO-42](backlog/tasks/SEO-42.md) · The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf
+- [SEO-44](backlog/tasks/SEO-44.md) · The 2026-11-07 Search Console export: the /split/ and /he/split/ rows
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
