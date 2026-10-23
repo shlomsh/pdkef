@@ -10,7 +10,7 @@ import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../she
 import { reportError } from '../../../lib/errorReport.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
 import { CELL_RATIO, MIN_CELL, useStageFit } from '../useStageFit.ts';
-import { rasterWidthFor } from '../stageFit.ts';
+import { rasterWidthFor, type FitItem } from '../stageFit.ts';
 
 export interface StripFile {
   id: number;
@@ -77,8 +77,8 @@ function isPhoneViewport(): boolean {
    raster follows the fitted cell width, in steps (stageFit.rasterWidthFor).
    The memory note: a bigger raster only happens when few pages are on
    screen, because the cell only grows when there are few - a 400-page set
-   stays at the 104px cell, so the 150 px (240 on a 2x screen) budget above
-   still holds where the page count is large. */
+   stays at the 104px floor, where the raster stays at the 150 px budget above
+   whatever the screen density (rasterWidthFor). */
 function thumbnailOptions(desktopCell: number | null) {
   if (isPhoneViewport()) return { width: 96, type: 'image/jpeg', quality: 0.7 };
   if (desktopCell == null) return { width: 150, type: 'image/png' };
@@ -109,11 +109,33 @@ function gridMetrics(desktopCell: number | null): { cell: number; gap: number } 
   return { cell: desktopCell ?? MIN_CELL, gap: 12 };
 }
 
+function isDesktopViewport(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(min-width: 1024px)').matches;
+}
+
 /* Whether a page shows landscape once rotated: the grid columns it takes
    (2, else 1) feed useStageFit. Same rule as the cell markup's own. */
 function spansTwo(rotation: number, aspect: number | undefined): boolean {
   const sourceLandscape = aspect != null && aspect >= 1;
   return (rotation === 90 || rotation === 270) ? !sourceLandscape : sourceLandscape;
+}
+
+/* The grid items useStageFit packs into rows: each page's span, and a row
+   break before the first page of a captioned run (grouped, 4 or more pages;
+   the same rule the cell markup uses for the caption row). */
+function fitItems(plan: PageStripProps['plan'], aspects: Map<string, number>, grouped: boolean): FitItem[] {
+  return plan.map((entry, index) => {
+    const startsRun = index === 0 || plan[index - 1].fileId !== entry.fileId;
+    let runLength = 0;
+    if (grouped && startsRun) {
+      for (let i = index; i < plan.length && plan[i].fileId === entry.fileId; i += 1) runLength += 1;
+    }
+    return {
+      span: spansTwo(entry.rotation, aspects.get(entry.key)) ? 2 : 1,
+      breakBefore: runLength >= 4,
+    };
+  });
 }
 
 export default function PageStrip({
@@ -151,8 +173,11 @@ export default function PageStrip({
   // The raster width each cached thumbnail was rendered at, so a page re-renders
   // at a larger step when its cell grows and never at a smaller one.
   const rasterWidths = useRef(new Map<string, number>());
-  const units = plan.reduce((sum, e) => sum + (spansTwo(e.rotation, aspects.current.get(e.key)) ? 2 : 1), 0);
-  const desktopCell = useStageFit(stripRef, units);
+  const desktopCell = useStageFit(stripRef, fitItems(plan, aspects.current, grouped));
+  // On desktop, wait for the first fitted cell so a page is never rendered twice.
+  const fitPending = desktopCell == null && isDesktopViewport();
+  const fitPendingRef = useRef(fitPending);
+  fitPendingRef.current = fitPending;
   const optionsRef = useRef(thumbnailOptions(desktopCell));
   optionsRef.current = thumbnailOptions(desktopCell);
   // A cached thumbnail counts only if it is at least as sharp as the current cell wants.
@@ -261,7 +286,7 @@ export default function PageStrip({
   }, [reportRenderedCount, hasCurrent]);
 
   const enqueue = useCallback((key: string) => {
-    if (hasCurrent(key) || queued.current.has(key)) return;
+    if (fitPendingRef.current || hasCurrent(key) || queued.current.has(key)) return;
     queued.current.add(key);
     queue.current.push(key);
     void processQueue();
@@ -323,7 +348,7 @@ export default function PageStrip({
       document.removeEventListener('visibilitychange', onVisible);
     };
   // A larger raster step (the cell grew) rescans so visible pages sharpen.
-  }, [plan, enqueue, stripRef, optionsRef.current.width]);
+  }, [plan, enqueue, stripRef, optionsRef.current.width, fitPending]);
 
   // SortableJS owns the DOM during a drag; the plan is committed once in onEnd.
   useEffect(() => {
