@@ -151,8 +151,12 @@ and on focus; on touch the word is always there or the control is not an icon.
   cannot live on a 72px page cell; they overlapped the neighbours and hid each other). On the phone,
   tap an item to reveal that item's controls, or select it and act from one bar; either way the grid
   never reflows when a mode changes.
-- The primary control is a sticky bottom sheet, in flow, with the safe-area inset. Secondary commands
-  live in a "…" popover anchored at the inline end, so the Hebrew edition flips it.
+- No sticky bottom sheet (owner, 2026-10-20 for Sign and Redact as QUAL-27, extended to Merge in
+  MERGE-24 on 2026-10-23). The bar sits at the top, sticky under the app bar, and carries a quiet
+  Download (the plain button, never filled); the call to action is the completion row under the
+  document, in the page flow: the setting, the filled primary control, then the next steps. The
+  pinned sheet measured 259px of a 402px phone screen in Edit Pages (2026-10-21).
+  Secondary commands live in a "…" popover anchored at the inline end, so the Hebrew edition flips it.
 - On the phone, Share may matter more than Download: it is how a phone saves to Files, AirDrop and
   messages. It leads the next-steps row wherever the browser can share files.
 
@@ -236,14 +240,16 @@ and Download stands where Unlock PDF was.
 ## 15. The stage: canvas and commands stay together
 
 The loaded state is one stage, the canvas and its commands, and a command that changes the output is
-never out of view while the canvas is. On desktop the rail is sticky beside the canvas; below that
-the commands on the selection become a sticky chip bar above the canvas and the setting plus the
-primary control become a sticky bottom sheet. A width where the rail stacks under the canvas is a
-bug, not a breakpoint: scroll to the last row and the mode is gone, which is the Split failure
-again. The test: at 1280, 820 and 375, scrolled to the canvas's last row, the control that changes
-the output is fully inside the viewport. Split's stage is the reference
-([split-stage-spec.md](./split-stage-spec.md)); Merge's own tablet width still stacks and should
-move to the sheet.
+never out of view while the canvas is. On desktop the rail is sticky beside the canvas, below the
+app bar, and scrolls inside itself when its file list outgrows the screen, with Download pinned at its
+foot. Below 1024px there is no bottom sheet (§8): the bar above the canvas is sticky under the app
+bar and holds the commands on the selection, a mode that changes the shape of the output (Split's),
+and a quiet Download; the completion row under the canvas holds the setting, the filled primary
+control and the next steps. A width where the mode scrolls away with the canvas is a bug, not a
+breakpoint, which is the Split failure again. The test: at 1280, 820 and 375, scrolled to the
+canvas's last row, a way to download and any mode that reshapes the output are fully inside the
+viewport. Merge is the reference below 1024px (MERGE-24); Split and Edit Pages still pin a sheet and
+move to this shape on their next pass.
 
 ## 16. A display-only transform never hides more than the untransformed state did
 

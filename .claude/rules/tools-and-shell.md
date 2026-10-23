@@ -115,7 +115,7 @@ settled on the Merge rebuild and the questions to ask of the next tool. One line
 5. Name the output, and let people rename it in place: the heading is the file name, editable inline.
 6. Undo over confirm: reversible actions get an Undo chip, never a dialog.
 7. Labels, not hints: identify by a visible tag or word, not by an icon alone.
-8. Touch is not hover with bigger targets: 44px targets, no hover-only affordance, sticky primary control.
+8. Touch is not hover with bigger targets: 44px targets, no hover-only affordance, no bottom sheet: a sticky top bar with a quiet Download, the call to action in the completion row.
 9. Bidi is part of the design, not a fix: direction, isolation and start/end alignment from the start.
 10. Speed is part of the experience: the first visible row before the heavy work starts.
 11. Drafts are a quiet feature: a status line, never a banner or a modal.
