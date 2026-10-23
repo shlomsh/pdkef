@@ -138,11 +138,12 @@ function fitItems(plan: PageStripProps['plan'], aspects: Map<string, number>, gr
   });
 }
 
-/* MERGE-24 (2026-10-23): true once the desktop grid may show (data-fit-settled).
-   Settled for good: later changes come from the person's own actions. Off
-   desktop nothing is hidden, so it is settled from the start. */
+/* MERGE-24 (2026-10-24): true once the grid may show (data-fit-settled), at
+   every width: a landscape page lays out in one column until its aspect
+   arrives, then spans two, which shifted pages 3 and 4 on phone and tablet.
+   Settled for good: later changes come from the person's own actions. */
 function useFitSettled(known: number, total: number, measured: boolean): boolean {
-  const [settled, setSettled] = useState(() => !isDesktopViewport());
+  const [settled, setSettled] = useState(false);
   const startedAt = useRef<number | null>(null);
   useEffect(() => {
     if (settled || total <= 0) return undefined;
@@ -203,7 +204,8 @@ export default function PageStrip({
   const fitSettledNow = useFitSettled(
     plan.reduce((count, entry) => count + (aspects.current.has(entry.key) ? 1 : 0), 0),
     plan.length,
-    desktopCell != null,
+    // Phone and tablet cells are fixed, so only desktop has a cell to measure.
+    desktopCell != null || !isDesktopViewport(),
   );
   const fitPendingRef = useRef(fitPending);
   fitPendingRef.current = fitPending;

@@ -79,7 +79,7 @@ export function rasterWidthForItem(cell: number, span: 1 | 2, gap: number, devic
 
 export const FIT_PATIENCE_MS = 400;
 
-/* MERGE-24 (2026-10-23): whether the desktop page grid may show. Page aspects
+/* MERGE-24 (2026-10-23, every width 2026-10-24): whether the page grid may show. Page aspects
    arrive after the PDFs are inspected, and each one can change a span and so the
    fitted cell, so a grid shown earlier shifts twice. It shows once every page's
    aspect is known and the cell is measured for them, or after the patience runs
