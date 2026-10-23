@@ -40,10 +40,20 @@
     width: 320px;
     flex: 0 0 320px;
     position: sticky;
-    top: var(--space-3);
+    /* MERGE-24 (2026-10-23): the app bar (AppBar.astro, sticky top-0, h-14 =
+       3.5rem) stays over the page, so the rail sticks below it; at top:
+       var(--space-3) the first file rows slid under the bar once scrolled.
+       No app bar height token exists, hence the literal. A rail taller than
+       the space left under the bar caps there and scrolls its file list,
+       keeping `.rail-pinned` (Download, hand-off row) in view. */
+    top: calc(3.5rem + var(--space-3));
+    max-height: calc(100svh - 3.5rem - 2 * var(--space-3));
   }
 
   .rail-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
     /* Shlomi (2026-09-13): the focused Sort select lost its left ring. The
        global 2px focus outline is painted outside the border box. Two pixels
        of padding, taken back with the same negative margin so nothing else
