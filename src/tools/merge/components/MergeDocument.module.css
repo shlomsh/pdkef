@@ -249,12 +249,31 @@
   }
 }
 
-.done-strip-line {
+/* Solid, not Redact's glass: over the page grid and the completion row the
+   blurred cards and text behind it read as stray shapes. */
+.chip-bar > .done-strip {
+  background: var(--color-surface);
+}
+
+/* What was saved: the name on one line, cut in the middle like the rail's,
+   then its pages and size, quieter. */
+.done-strip-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
   margin: 0;
+}
+
+.done-strip-name {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text);
-  overflow-wrap: anywhere;
+}
+
+.done-strip-detail {
+  font-size: 0.85rem;
+  color: var(--color-muted);
 }
 
 /* The quiet Download at the bar's inline end, outside the scrolling chips:

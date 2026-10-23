@@ -1220,7 +1220,10 @@ export default function PdfMergeTool({
                 className={docStyles['done-strip']}
                 data-merge-done-strip
               >
-                <p class={docStyles['done-strip-line']}>{isolateName(fileName, t.dir)} · {downloadDetail}</p>
+                <p class={docStyles['done-strip-result']}>
+                  <FileName name={fileName} className={docStyles['done-strip-name']} />
+                  <span class={docStyles['done-strip-detail']}>{downloadDetail}</span>
+                </p>
                 <ExportHandoffs
                   items={[
                     { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
