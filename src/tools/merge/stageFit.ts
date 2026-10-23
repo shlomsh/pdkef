@@ -69,3 +69,16 @@ export function rasterWidthFor(cellWidth: number, devicePixelRatio: number, floo
   const target = cellWidth * Math.min(devicePixelRatio, 2);
   return RASTER_STEPS.find((step) => step >= target) ?? RASTER_STEPS[RASTER_STEPS.length - 1];
 }
+
+export const FIT_PATIENCE_MS = 400;
+
+/* MERGE-24 (2026-10-23): whether the desktop page grid may show. Page aspects
+   arrive after the PDFs are inspected, and each one can change a span and so the
+   fitted cell, so a grid shown earlier shifts twice. It shows once every page's
+   aspect is known and the cell is measured for them, or after the patience runs
+   out (a long plan never learns the aspects of pages that stay off screen). */
+export function fitSettled(input: { known: number; total: number; elapsed: number; measured: boolean }): boolean {
+  if (input.total <= 0) return false;
+  if (input.elapsed >= FIT_PATIENCE_MS) return true;
+  return input.measured && input.known >= input.total;
+}
