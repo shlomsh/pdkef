@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitCellWidth, fitSettled, rasterWidthFor, rowsFor, type FitItem, type StageFitInput } from './stageFit.ts';
+import { fitCellWidth, fitSettled, rasterWidthFor, rasterWidthForItem, rowsFor, type FitItem, type StageFitInput } from './stageFit.ts';
 
 const singles = (n: number): FitItem[] => Array.from({ length: n }, () => ({ span: 1, breakBefore: false }));
 
@@ -21,6 +21,27 @@ describe('fitCellWidth', () => {
   it('falls back to the minimum with no measured space', () => {
     expect(fitCellWidth({ ...base, width: 0 })).toBe(104);
     expect(fitCellWidth({ ...base, height: 0 })).toBe(104);
+  });
+});
+
+describe('fitCellWidth with landscape pages and run breaks', () => {
+  const span2: FitItem = { span: 2, breakBefore: false };
+  const one: FitItem = { span: 1, breakBefore: false };
+
+  it('packs a landscape page into the row it shares with portraits', () => {
+    // 4 portraits + 1 landscape = 6 units: 3 columns hold them in 2 rows
+    // ([1,1,1] [1,2]) at 238; a naive 5-item count would pick a smaller cell.
+    const items = [one, one, one, one, span2];
+    const wide = { ...base, items, width: 740, height: 2 * (240 / (104 / 138) + 22) + 12 };
+    expect(rowsFor(items, 3)).toBe(2);
+    expect(fitCellWidth(wide)).toBe(238);
+  });
+
+  it('a run break forces an extra row and so a smaller cell', () => {
+    const items: FitItem[] = [one, one, one, one].map((item, i) => ({ ...item, breakBefore: i === 0 }));
+    const plain = fitCellWidth({ ...base, items: [one, one, one, one], width: 500, height: 330 });
+    const broken = fitCellWidth({ ...base, items: [...items, { ...one, breakBefore: true }], width: 500, height: 330 });
+    expect(broken).toBeLessThan(plain);
   });
 });
 
@@ -56,6 +77,20 @@ describe('rasterWidthFor', () => {
     [200, 1, 240],
   ])('a %ipx cell at %ix is rasterised at %ipx', (cell, dpr, expected) => {
     expect(rasterWidthFor(cell, dpr)).toBe(expected);
+  });
+});
+
+describe('rasterWidthForItem', () => {
+  it.each([
+    [104, 1, 12, 2, 150],
+    [104, 2, 12, 2, 480],
+    [104, 2, 12, 1, 240],
+    [200, 1, 12, 2, 400],
+    [200, 2, 12, 2, 480],
+    [150, 2, 12, 1, 320],
+    [150, 2, 12, 3, 480],
+  ])('cell %i span %i gap %i at %ix is rasterised at %ipx', (cell, span, gap, dpr, expected) => {
+    expect(rasterWidthForItem(cell, span as 1 | 2, gap, dpr)).toBe(expected);
   });
 });
 

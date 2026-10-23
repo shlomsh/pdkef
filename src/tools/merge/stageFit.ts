@@ -70,6 +70,13 @@ export function rasterWidthFor(cellWidth: number, devicePixelRatio: number, floo
   return RASTER_STEPS.find((step) => step >= target) ?? RASTER_STEPS[RASTER_STEPS.length - 1];
 }
 
+/* The raster width for one page: a span-2 page is a box of two cells and the
+   gap between them, so it needs the step for that width. At the floor cell a
+   portrait page stays at the first step, as rasterWidthFor says. */
+export function rasterWidthForItem(cell: number, span: 1 | 2, gap: number, devicePixelRatio: number): number {
+  return rasterWidthFor(span === 2 ? 2 * cell + gap : cell, devicePixelRatio);
+}
+
 export const FIT_PATIENCE_MS = 400;
 
 /* MERGE-24 (2026-10-23): whether the desktop page grid may show. Page aspects

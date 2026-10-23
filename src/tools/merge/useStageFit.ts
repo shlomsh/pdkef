@@ -106,6 +106,13 @@ export function useStageFit(gridRef: RefObject<HTMLElement>, items: FitItem[]): 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
     observer?.observe(grid);
     if (card) observer?.observe(card);
+    /* Anything above the grid that changes height moves the grid down without
+       resizing grid or card: watch every earlier sibling on the way up to the card. */
+    const above: Element[] = [];
+    for (let node: Element | null = grid; node && node !== card; node = node.parentElement) {
+      for (let sibling = node.previousElementSibling; sibling; sibling = sibling.previousElementSibling) above.push(sibling);
+    }
+    for (const element of above) observer?.observe(element);
     window.addEventListener('resize', schedule);
     // Grouping changes the name strip and caption rows without resizing the grid.
     const mutations = typeof MutationObserver === 'undefined' ? null : new MutationObserver(schedule);
@@ -117,7 +124,7 @@ export function useStageFit(gridRef: RefObject<HTMLElement>, items: FitItem[]): 
       mutations?.disconnect();
       window.removeEventListener('resize', schedule);
     };
-  }, [gridRef]);
+  }, [gridRef, signature]);
 
   // A page added, removed or rotated changes the items without resizing anything.
   useEffect(() => { measureRef.current(); }, [signature]);
