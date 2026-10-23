@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reportError = vi.fn();
-vi.mock('../../lib/errorReport.ts', () => ({ reportError: (...args: unknown[]) => reportError(...args) }));
+vi.mock('../../lib/errorReport.ts', async (importActual) => ({ ...(await importActual<object>()), reportError: (...args: unknown[]) => reportError(...args) }));
 const runSavedFileCheck = vi.fn();
 vi.mock('./check/runCheck.ts', () => ({ runSavedFileCheck: (...args: unknown[]) => runSavedFileCheck(...args) }));
 
@@ -59,6 +59,15 @@ describe('useSavedFileCheck read errors', () => {
     const state = await run(saved);
     expect(reportError).toHaveBeenCalledWith('redact', expect.anything(), 'check_saved_file');
     expect(state.status).toBe('failed');
+  });
+
+  // RED-69: a tab left open across a deploy cannot load the check's chunk; a reload fixes it.
+  it('asks for a reload, and still reports, when the check code cannot load', async () => {
+    runSavedFileCheck.mockRejectedValue(new TypeError('Importing a module script failed.'));
+    const saved = Object.assign(new Blob(['x']), { arrayBuffer: bytes });
+    const state = await run(saved);
+    expect(reportError).toHaveBeenCalledWith('redact', expect.any(TypeError), 'check_saved_file');
+    expect(state.status).toBe('updated');
   });
 
   // DEBT-51: the File may have moved on disk; the bytes read at load are what the check compares.

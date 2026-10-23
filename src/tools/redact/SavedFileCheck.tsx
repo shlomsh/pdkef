@@ -8,6 +8,7 @@ import {
   canRemove,
   CHECK_FAILED,
   CHECK_LEAD,
+  CHECK_UPDATED,
   CHECKING,
   COVER_IT,
   COVER_IT_NOTE,
@@ -84,6 +85,10 @@ export default function SavedFileCheck({
   }
   if (state.status === 'failed') {
     return <p className={pdfToolStyles['hint-message']} role="status">{CHECK_FAILED}</p>;
+  }
+
+  if (state.status === 'updated') {
+    return <p className={pdfToolStyles['hint-message']} role="status">{CHECK_UPDATED}</p>;
   }
 
   const { outcome, typed } = state;

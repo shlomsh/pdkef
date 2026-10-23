@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PDFDocument, PDFName, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFRawStream, StandardFonts } from '@cantoo/pdf-lib';
+import { reportError } from '../../../lib/errorReport.ts';
 import { extractPageObjects } from './pdfObjects.js';
 import { listDeletableObjects } from './deleteObjects.js';
 import { buildFormXObjectPdf } from './formXObjectFixture.test-helper.js';
 import { withPreviews } from './objectPreviews.test-helper.js';
+
+vi.mock('../../../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -202,5 +205,27 @@ describe('listDeletableObjects with Form XObjects', () => {
   it('offers the 9 objects of a 3-page Form fixture, 12 when each also nests a Form', async () => {
     expect(await listDeletableObjects(await buildFormXObjectPdf({ pages: 3 }))).toHaveLength(9);
     expect(await listDeletableObjects(await buildFormXObjectPdf({ pages: 3, nested: true }))).toHaveLength(12);
+  });
+});
+
+describe('a Form XObject whose stream will not decode (RED-68)', () => {
+  /** One page drawing a Form with the given resources and raw (junk) bytes behind /FlateDecode. */
+  async function pageWithBrokenForm() {
+    const doc = await PDFDocument.create();
+    const { context } = doc;
+    const dict = context.obj({ Type: 'XObject', Subtype: 'Form', BBox: [0, 0, 612, 792], Filter: 'FlateDecode' });
+    const form = context.register(PDFRawStream.of(dict, Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8])));
+    const page = doc.addPage([612, 792]);
+    page.node.set(PDFName.of('Resources'), context.obj({ XObject: { Xf1: form } }));
+    page.node.set(PDFName.of('Contents'), context.register(context.stream('q /Xf1 Do Q')));
+    return PDFDocument.load(await doc.save({ useObjectStreams: false }));
+  }
+
+  it('skips the form quietly, like a page stream that will not decode', async () => {
+    vi.mocked(reportError).mockClear();
+    const doc = await pageWithBrokenForm();
+    const { objects } = extractPageObjects(doc.getPages()[0], 0);
+    expect(objects).toEqual([]);
+    expect(reportError).not.toHaveBeenCalled();
   });
 });

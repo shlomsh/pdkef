@@ -5,7 +5,7 @@ import SavedFileCheck from './SavedFileCheck.tsx';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 import type { Finding } from './check/types.ts';
 import type { DocumentTraces } from '../../editor/adapters/pdf/documentTraces.js';
-import { ALL_CLEAR, picturePagesNote, DETAILS_CHANGED, DETAILS_REVIEW, DETAILS_SURVIVED } from './check/checkCopy.ts';
+import { ALL_CLEAR, CHECK_UPDATED, picturePagesNote, DETAILS_CHANGED, DETAILS_REVIEW, DETAILS_SURVIVED } from './check/checkCopy.ts';
 
 const EMPTY: DocumentTraces = {
   title: null, author: null, subject: null, keywords: null, creator: null, producer: null,
@@ -141,5 +141,14 @@ describe('SavedFileCheck disclosure (RED-66)', () => {
     const typed = [{ term: { label: 'Zed', source: 'typed', finder: () => [] }, findings: [] }];
     show(stateOf([], [], 2, typed));
     expect(container.querySelector('[data-check-term="Zed"]')).not.toBeNull();
+  });
+});
+
+describe('SavedFileCheck updated state', () => {
+  it('asks for a reload when PDkef was updated under the check', () => {
+    const container = document.createElement('div');
+    act(() => render(<SavedFileCheck state={{ status: 'updated' }} onSearch={() => {}} onCover={() => {}} />, container));
+    expect(CHECK_UPDATED).toBe('PDkef was updated while this page was open. Reload the page to check the saved file. Your edits are kept.');
+    expect(container.textContent).toBe(CHECK_UPDATED);
   });
 });

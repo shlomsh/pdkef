@@ -1312,15 +1312,23 @@ export function extractPageObjects(page, pageIndex = 0) {
     const before = objects.length;
     try {
       const ownResources = lookupDict(context, stream.dict.get(PDFName.of('Resources')));
+      let bytes;
+      try {
+        bytes = decodePDFRawStream(stream).decode();
+      } catch (decodeErr) {
+        throw new ContentStreamDecodeError(decodeErr);
+      }
       walkStream(
-        decodePDFRawStream(stream).decode(),
+        bytes,
         ownResources ?? parentResources,
         multiplyMatrix(formMatrix(context, stream), ctmAtDo),
         [...parentPath, ref.tag],
       );
     } catch (err) {
-      reportError('redact', err, 'walk_form_stream');
       objects.length = before;
+      // expected: the form's own stream is damaged in the person's file, like a page stream that will not decode
+      if (err instanceof ContentStreamDecodeError) return;
+      reportError('redact', err, 'walk_form_stream');
       console.error(`Could not read Form XObject ${ref.tag} on page ${pageIndex + 1}`, err);
     }
   }

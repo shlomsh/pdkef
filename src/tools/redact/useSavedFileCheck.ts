@@ -5,7 +5,7 @@ import type { CheckOutcome } from './check/runCheck.ts';
 import type { CheckBox, CheckTerm, TermResult } from './check/types.ts';
 import { termFinder } from './find/finders.ts';
 import type { MeasureText } from './find/matchBoxes.ts';
-import { reportError } from '../../lib/errorReport.ts';
+import { dropCause, reportError } from '../../lib/errorReport.ts';
 import { changesSummary, survivedAlways, survivedDetails, survivorLabel } from './details/describeDetails.ts';
 import type { DetailRow } from './details/describeDetails.ts';
 import type { DetailEdits } from '../../editor/adapters/pdf/detailEdits.js';
@@ -21,6 +21,7 @@ export type SavedFileCheckState =
   | { status: 'idle' }
   | { status: 'checking' }
   | { status: 'failed' }
+  | { status: 'updated' }
   | { status: 'done'; outcome: CheckOutcome; typed: TermResult[] };
 
 /**
@@ -111,7 +112,8 @@ export default function useSavedFileCheck({
       } catch (error) {
         reportError('redact', error, 'check_saved_file');
         console.error('Redact could not check the saved file', error);
-        if (current) setState({ status: 'failed' });
+        // A tab left open across a deploy asks for chunks the new deploy no longer serves; a reload fixes it.
+        if (current) setState({ status: dropCause(error) === 'module_load' ? 'updated' : 'failed' });
       }
     })();
     return () => {

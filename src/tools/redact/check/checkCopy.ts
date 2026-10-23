@@ -13,6 +13,8 @@ export const CHECK_LEAD =
 export const CHECKING = 'Checking the saved file...';
 
 export const CHECK_FAILED = "I couldn't read the saved file to check it. Your download is fine; look it over yourself before you share it.";
+/** RED-69: the check's code could not load because the tab outlived a deploy. */
+export const CHECK_UPDATED = 'PDkef was updated while this page was open. Reload the page to check the saved file. Your edits are kept.';
 
 export const NO_MATCH = 'No match in the text I could read.';
 
