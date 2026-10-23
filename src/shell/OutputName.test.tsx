@@ -92,4 +92,19 @@ describe('OutputName', () => {
     expect(nameEl().querySelector(`.${styles['name-tail']}`)).toBeNull();
     expect(nameEl().textContent).toBe(long);
   });
+
+  // Playwright selects all right after the click: the full name and the
+  // selection must be in place by the next event, not in a passive effect.
+  it('has the full name selected before passive effects run', async () => {
+    const long = 'merged_redacted_signed_Service_Pages_Income_tax_annual-report-2024_itc1040 (final) (3)';
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<OutputName name={long} label="x" onRename={() => {}} />, container));
+    nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(nameEl().childNodes.length).toBe(1);
+    expect(nameEl().firstChild?.textContent).toBe(long);
+    expect(window.getSelection()?.toString()).toBe(long);
+  });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { sanitizeOutputName } from '../lib/sanitizeOutputName.ts';
 import { recordAction } from '../lib/actionTrail.ts';
@@ -150,7 +150,10 @@ export default function OutputName({
     el.focus();
   }, [editing, setEditing]);
 
-  useEffect(() => {
+  // A layout effect, so the selection lands in the same task as the swap to
+  // the full name: a passive effect ran after the person's next keystroke
+  // (select-all) and moved the caret over it.
+  useLayoutEffect(() => {
     const el = nameRef.current;
     const pending = pendingSelection.current;
     if (!editing || !el || !pending) return;
