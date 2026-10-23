@@ -179,6 +179,8 @@ export interface MergeMessages {
   shareLabel: string;
   handoffSign: string;
   handoffFailed: string;
+  /** MERGE-24: the close button on the phone done strip. */
+  closeStrip: string;
   installLine: string;
   installWithPrompt: string;
   installLink: string;
@@ -297,6 +299,7 @@ const englishMergeMessages: MergeMessages = {
   // - MEM-02 dropped its last consumer in PdfMergeTool.tsx alongside the
   // same one-memory-space change this file's Replace-dialog copy reflects.
   handoffFailed: 'Could not hand the file over. Download it instead.',
+  closeStrip: 'Close',
   installLine: 'This page is saved in your browser now, so merging works even without a connection.',
   installWithPrompt: 'You can also {install} it like an app.',
   installLink: 'install',
@@ -408,6 +411,7 @@ const hebrewMergeMessages: MergeMessages = {
   shareLabel: 'שיתוף',
   handoffSign: 'חתימה',
   handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
+  closeStrip: 'סגירה',
   installLine: 'הדף הזה שמור עכשיו בדפדפן, אז האיחוד עובד גם בלי חיבור לאינטרנט.',
   installWithPrompt: 'אפשר גם {install} אותו כמו אפליקציה.',
   installLink: 'להתקין',
