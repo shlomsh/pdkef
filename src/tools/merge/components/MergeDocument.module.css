@@ -205,24 +205,68 @@
 
 /* --- Phone (and, since 2026-09-14, tablet) chip row: files as a
    horizontally scrolling row, replacing the add bar and standing in for the
-   rail's file list / Sort / Add files / Clear all below 1024px, where the
-   rail collapses to the sticky bottom sheet (MergeRail.module.css). Hidden
+   rail's file list below 1024px, where the rail becomes the completion row
+   under the pages (MergeRail.module.css). Hidden
    at 1024px and up, where the sticky, tinted desktop rail owns all of this
    instead. Review finding (2026-09-14, tablet): this used to hide at 768px,
-   leaving 768-1023 with neither the chip row nor a sheet - the bare, static
-   rail from MergeRail.module.css's un-mediaed `.rail` rule.
+   leaving 768-1023 with neither the chip row nor the rail's file list.
 
    Only file chips live in this horizontally scrolling list. The controls
    which accompany it remain a separate, compact horizontal toolbar below. --- */
 .chip-bar {
-  position: relative;
+  /* MERGE-24 (2026-10-23): sticky under the site's app bar (AppBar.astro,
+     sticky top-0 z-20, h-14 = 3.5rem), on the card's white surface, so the
+     files and the quiet Download stay in reach on a long merge. It bleeds to
+     the card's inner edges (12px on a phone, 1.5rem from 768px, see the
+     media rules below), so scrolled pages pass cleanly under it. */
+  position: sticky;
+  top: 3.5rem;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  /* No bottom or inline padding: the pills start on the card's content edge,
-     like Download, and the pill's own 4px slack plus the layout's 12px make
-     the 16px band gap described at .mobile-file-controls. */
-  padding: 0.25rem 0 0;
+  margin-inline: -12px;
+  padding: 0.25rem 12px;
+  background: var(--color-surface);
+}
+
+@media (min-width: 768px) {
+  .chip-bar {
+    margin-inline: -1.5rem;
+    padding-inline: 1.5rem;
+  }
+}
+
+/* The quiet Download at the bar's inline end, outside the scrolling chips:
+   the plain secondary button (QUAL-27: export is never filled in a toolbar). */
+.chip-download {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.chip-download:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.chip-download[aria-disabled='true'] {
+  color: var(--color-muted);
+  border-color: var(--color-border);
+  cursor: default;
 }
 
 @media (min-width: 1024px) {
@@ -350,18 +394,6 @@
   flex-basis: 100%;
 }
 
-/* The page-numbers row keeps a 42px tap target but occupies only its 18px
-   checkbox in the flow, so the 16px gap above it is ink to ink; 12px of
-   target above plus the buttons' 4px below meet without overlapping. */
-.mobile-file-controls > label {
-  min-height: 42px;
-  margin-block: -12px;
-}
-
-.mobile-file-controls input[type='checkbox'] {
-  margin: 0;
-}
-
 @media (min-width: 1024px) {
   .mobile-file-controls {
     display: none;
@@ -414,23 +446,6 @@
   /* The count wraps to the start of its own line here, where a gap reads as an indent. */
   .doc-heading-count {
     margin-inline-start: 0;
-  }
-}
-
-/* The bottom sheet (MergeRail.module.css, sticky below 1024px) is sticky to
-   the viewport's bottom edge, and a sticky element may be pulled up over the
-   siblings before it. With two one-page files the document ends 30px above
-   where the sheet parks, so its last label was painted under Options.
-   Reserve the room: the document column is never shorter than the first
-   screen minus the app bar and the sheet, so a short merge leaves empty
-   space for the sheet to cover, never its own pages. Widened from
-   `max-width: 767px` to 1023px (2026-09-14 tablet fix) - the sheet's own
-   content and height are the same at both widths, only its edge bleed
-   differs. */
-@media (max-width: 1023px) {
-  .main {
-    min-height: calc(100svh - 3.5rem - 230px);
-    padding-bottom: 12px;
   }
 }
 

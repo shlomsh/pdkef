@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature, File as FileIcon } from 'lucide-preact';
+import { Shrink, FileSignature, File as FileIcon, Download as DownloadIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -1028,6 +1028,8 @@ export default function PdfMergeTool({
         // Quiet means quiet: while the build waits or runs, Download keeps its ready look.
         // 'preparing' is for a tap that beat the build, or files still being read.
         : (prepared.status === 'pending' && !pendingDownload) ? 'ready' : 'preparing';
+  // The same condition DownloadElement uses for its link (`isLink`).
+  const downloadLinkReady = (downloadState === 'ready' || downloadState === 'saved') && prepared.status === 'ready' && !!prepared.url;
   const downloadDetail = prepared.status === 'ready'
     ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}`
     : pagesLabel(outputPageCount(plan));
@@ -1148,6 +1150,36 @@ export default function PdfMergeTool({
                 </li>
               ))}
             </ul>
+            {/* MERGE-24 (2026-10-23): the quiet Download at the sticky bar's
+                inline end, doing exactly what the completion row's Download
+                element does in each state (same link, same handlers). */}
+            {downloadState !== 'one-file' && (
+              downloadLinkReady ? (
+                <a
+                  class={docStyles['chip-download']}
+                  data-quiet-download
+                  href={prepared.url ?? undefined}
+                  download={fileName}
+                  onClick={onDownloadTap}
+                >
+                  <DownloadIcon size={16} aria-hidden="true" />
+                  {t.downloadLabel}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  class={docStyles['chip-download']}
+                  data-quiet-download
+                  aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
+                  onClick={downloadState === 'error' ? undefined : onPreparingTap}
+                  onPointerEnter={prepared.prepareNow}
+                  onFocus={prepared.prepareNow}
+                >
+                  <DownloadIcon size={16} aria-hidden="true" />
+                  {t.downloadLabel}
+                </button>
+              )
+            )}
           </div>
           {/* These use the rail's existing control styles and handlers in one
               row that wraps to two lines on a phone. Sort stays visible after a
@@ -1168,12 +1200,6 @@ export default function PdfMergeTool({
                   {t.resetOrder}
                 </button>
               </div>
-            )}
-            {entries.length >= 2 && (
-              <label class={railStyles['page-numbers-row']}>
-                <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                <span>{t.addPageNumbers}</span>
-              </label>
             )}
           </div>
 
@@ -1394,11 +1420,10 @@ export default function PdfMergeTool({
                     until there are two files. Shlomi (2026-09-13): the Options
                     disclosure is gone entirely - a plain checkbox row directly
                     above Download, no summary, no chevron, nothing to open.
-                    Hidden below 768px, where the same row lives in the "⋯"
-                    popover instead (there is no room for it in the sticky
-                    sheet at that width). */}
+                    MERGE-24 (2026-10-23): shown at every width, since below
+                    1024px this rail is the completion row under the pages. */}
                 {entries.length >= 2 && (
-                  <label class={`${railStyles['page-numbers-row']} ${railStyles['page-numbers-pinned']}`}>
+                  <label class={railStyles['page-numbers-row']}>
                     <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
                     <span>{t.addPageNumbers}</span>
                   </label>

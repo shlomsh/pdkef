@@ -6,8 +6,9 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    scrolling chip row (`ul[class*="chip-row"]`) replacing the add bar and
    the rail's file list, sticky per-file captions, a tap on a page cell that
    reveals that cell's own 44px controls (there is no Edit pages mode any
-   more), and the rail collapsing to a sticky bottom sheet (Download, then
-   Share/Compress/Sign/Options).
+   more). MERGE-24 (2026-10-23): below 1024px there is no bottom sheet any
+   more - a quiet Download in the sticky file row, and the completion row
+   (page numbers, Download, Share/Compress/Sign) under the last page.
    This spec runs under the `webkit` project (added to its testMatch in
    playwright.config.js) at iPhone 15, which is already this size; it also
    runs on `chromium` (the project every other Merge spec uses), where we
@@ -71,12 +72,11 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     );
     expect(overflows).toBe(false);
 
-    // The file-order select and the page-numbers label both sit fully inside
-    // the viewport, with no sideways scrolling needed to reach them.
+    // The file-order select sits fully inside the viewport, with no
+    // sideways scrolling needed to reach it.
     const viewportWidth = page.viewportSize()?.width ?? 0;
     for (const control of [
       page.locator('[data-merge-file-controls] button[aria-haspopup="listbox"]'),
-      page.locator('[data-merge-file-controls]').getByText('Add page numbers'),
     ]) {
       const controlBox = await control.boundingBox();
       if (!controlBox) throw new Error('File control has no bounding box');
@@ -84,18 +84,19 @@ test.describe('Merge on a phone (MERGE-06)', () => {
       expect(controlBox.x + controlBox.width).toBeLessThanOrEqual(viewportWidth);
     }
 
-    const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
-    await expect(downloadLink).toBeVisible({ timeout: 10_000 });
+    // MERGE-24: the quiet Download in the sticky file row is in the viewport
+    // with no scrolling; the main Download sits in the completion row under
+    // the pages.
+    const quiet = page.locator('[data-quiet-download]');
+    await expect(quiet).toBeVisible({ timeout: 10_000 });
     const viewportSize = page.viewportSize();
     if (!viewportSize) throw new Error('No viewport size');
-    const downloadBox = await downloadLink.boundingBox();
-    if (!downloadBox) throw new Error('Download element has no bounding box');
-    // Fully inside the viewport, with no scrolling required: it lives in the
-    // sticky bottom sheet.
-    expect(downloadBox.x).toBeGreaterThanOrEqual(0);
-    expect(downloadBox.y).toBeGreaterThanOrEqual(0);
-    expect(downloadBox.x + downloadBox.width).toBeLessThanOrEqual(viewportSize.width + 1);
-    expect(downloadBox.y + downloadBox.height).toBeLessThanOrEqual(viewportSize.height + 1);
+    const quietBox = await quiet.boundingBox();
+    if (!quietBox) throw new Error('Quiet Download has no bounding box');
+    expect(quietBox.x).toBeGreaterThanOrEqual(0);
+    expect(quietBox.y).toBeGreaterThanOrEqual(0);
+    expect(quietBox.x + quietBox.width).toBeLessThanOrEqual(viewportSize.width + 1);
+    expect(quietBox.y + quietBox.height).toBeLessThanOrEqual(viewportSize.height + 1);
   });
 
   test('touch reorder has an explicit gesture hint and suppresses native long-press targets', async ({ page, browser }, testInfo) => {
@@ -252,15 +253,15 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(body.getByRole('button', { name: 'Add files', exact: true })).toBeVisible();
     await expect(body.getByRole('button', { name: 'Clear all', exact: true })).toBeVisible();
     await expect(body.locator('button[aria-haspopup="listbox"]')).toBeVisible();
-    await expect(body.getByRole('checkbox', { name: 'Add page numbers' })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Add page numbers' })).toBeVisible();
     await expect(page.locator('summary', { hasText: '⋯' })).toHaveCount(0);
     const cards = page.locator('ul[class*="grid"] > li[data-key]');
     await expect(cards).toHaveCount(3);
     await body.locator('button[aria-haspopup="listbox"]').click();
     await page.getByRole('option', { name: 'Reversed' }).click();
     await expect(cards.first()).toHaveAttribute('aria-label', /three\.pdf/);
-    await body.getByRole('checkbox').check();
-    await expect(body.getByRole('checkbox')).toBeChecked();
+    await page.getByRole('checkbox', { name: 'Add page numbers' }).check();
+    await expect(page.getByRole('checkbox', { name: 'Add page numbers' })).toBeChecked();
   });
 
   for (const route of ['/merge/', '/he/merge/']) {
@@ -295,8 +296,8 @@ test.describe('Merge on a phone (MERGE-06)', () => {
         await controls.locator('button[aria-haspopup="listbox"]').click();
         await page.locator('[role="option"][data-value="reversed"]').click();
         await expect(page.locator('ul[class*="grid"] > li[data-key]').first()).toHaveAttribute('aria-label', /two\.pdf/);
-        await controls.getByRole('checkbox').check();
-        await expect(controls.getByRole('checkbox')).toBeChecked();
+        await page.getByRole('checkbox', { name: /Add page numbers|מספרי עמודים/ }).check();
+        await expect(page.getByRole('checkbox', { name: /Add page numbers|מספרי עמודים/ })).toBeChecked();
         await controls.locator('button[aria-haspopup="listbox"]').click();
         await page.locator('[role="option"][data-value="added"]').click();
       }
@@ -335,7 +336,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(caption).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('li[data-key]').first()).toBeVisible();
 
-    // Mid-screen, clear of the rail's sticky bottom sheet whatever sits above the list.
+    // Mid-screen, clear of the app bar and the sticky file row whatever sits above the list.
     await page.locator('li[data-key]').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
     const hit = await page.evaluate(() => {
       const firstCell = document.querySelector('li[data-key]');
@@ -389,4 +390,58 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     expect.soft(layout.overflowLeft).toBeLessThanOrEqual(0);
     expect.soft(layout.pageOverflow).toBeLessThanOrEqual(0);
   });
+
+  /* MERGE-24 (2026-10-23, Shlomi): below 1024px there is no bottom sheet. The
+     quiet Download in the sticky file row is always in reach; the completion
+     row sits in the flow under the last page, and nothing in the workspace is
+     sticky to a bottom edge. */
+  for (const size of [{ width: 375, height: 812 }, { width: 820, height: 1180 }]) {
+    test(`no bottom sheet at ${size.width}x${size.height}: quiet Download stays in reach, the completion row follows the pages`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await page.goto('/merge/');
+      await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+      await page.locator('input[type="file"]').setInputFiles(await Promise.all([
+        ['first.pdf', 8],
+        ['second.pdf', 4],
+      ].map(async ([name, count]) => ({
+        name,
+        mimeType: 'application/pdf',
+        buffer: await makeMultiPagePdfBuffer(name, count),
+      }))));
+      const cells = page.locator('ul[class*="grid"] > li[data-key]');
+      await expect(cells).toHaveCount(12);
+
+      const quiet = page.locator('[data-quiet-download]');
+      const inViewport = async () => {
+        const box = await quiet.boundingBox();
+        if (!box) throw new Error('Quiet Download has no bounding box');
+        return box.y >= 0 && box.y + box.height <= size.height + 1 && box.x >= 0 && box.x + box.width <= size.width + 1;
+      };
+      await expect(quiet).toBeVisible({ timeout: 10_000 });
+      expect(await inViewport()).toBe(true);
+
+      await cells.last().scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      expect(await inViewport()).toBe(true);
+      expect((await quiet.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+      // The completion row starts below the last page's bottom.
+      const lastBottom = (await cells.last().boundingBox()).y + (await cells.last().boundingBox()).height;
+      const pinned = page.locator('[class*="rail-pinned"]');
+      const pinnedBox = await pinned.boundingBox();
+      if (!pinnedBox) throw new Error('Completion row has no bounding box');
+      expect(pinnedBox.y).toBeGreaterThanOrEqual(lastBottom - 1);
+      const order = await pinned.evaluate((el) => [...el.children].map((c) => c.className));
+      const kinds = order.map((c) => (/page-numbers-row/.test(c) ? 'page-numbers' : /handoff-row/.test(c) ? 'handoff' : /box/.test(c) ? 'download' : 'other'));
+      expect(kinds.filter((k) => k !== 'other')).toEqual(['page-numbers', 'download', 'handoff']);
+
+      // Nothing in the workspace anchors itself to a bottom edge.
+      const bottomSticky = await page.evaluate(() => [...document.querySelectorAll('[data-merge-workspace-ready] *')]
+        .filter((el) => {
+          const cs = getComputedStyle(el);
+          return cs.position === 'sticky' && cs.bottom !== 'auto';
+        }).length);
+      expect(bottomSticky).toBe(0);
+    });
+  }
 });

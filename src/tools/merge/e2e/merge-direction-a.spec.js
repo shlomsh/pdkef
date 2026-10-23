@@ -45,9 +45,8 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   const grid = page.locator('ul[class*="grid"]');
   const firstCard = grid.locator('> li[data-key]').first();
   if (testInfo.project.name === 'webkit') {
-    // The phone's sticky bottom sheet covers the lower third of a 659px
-    // iPhone viewport and the sticky app bar the top; a tap under either
-    // lands on it. Centre the cell first, as a thumb would by scrolling.
+    // The sticky app bar and the sticky file row cover the top of a 659px
+    // iPhone viewport; a tap under either lands on them. Centre the cell first, as a thumb would by scrolling.
     await firstCard.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(300);
     await firstCard.tap();
@@ -94,7 +93,7 @@ test('a caption is visible, not painted under the thumbnail (critique P0)', asyn
   // four pages or more (shorter runs carry a small tag in their first cell),
   // so the fixture is three files of six pages: 18 pages, the design doc's
   // own figure, and the document clears one phone screen, which keeps the
-  // rail's sticky bottom sheet off the part being measured.
+  // the completion row off the part being measured.
   const files = await Promise.all(
     ['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
       name,
@@ -107,7 +106,7 @@ test('a caption is visible, not painted under the thumbnail (critique P0)', asyn
   const caption = page.locator('li[class*="caption"]').first();
   await expect(caption).toBeVisible();
   // Bring it to mid-screen: what sits above it on the page (the airplane-mode
-  // line, SEO-37) decides whether the rail's sticky bottom sheet covers it at rest.
+  // line, SEO-37) decides whether the sticky file row covers it at rest.
   await caption.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = await caption.boundingBox();
   if (!box) throw new Error('Caption has no bounding box');

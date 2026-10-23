@@ -281,13 +281,13 @@ test('desktop rail uses page scrolling for a long file list, without a nested sc
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });
 
-/* Review finding (2026-09-14, tablet): between 768 and 1023px the rail used
-   to fall through to the un-mediaed `.rail` rule (no `position`, no sheet),
-   so scrolling a 9-page grid to its last row at 820x1180 put the Download
-   element's rect.top at 1392px in an 1180px viewport - off-screen. The rail
-   now collapses to the same sticky bottom sheet the phone already had, from
-   768px up to (but not including) the 1024px desktop rail. */
-test('tablet (820x1180): after scrolling to the grid end, Download stays in the viewport', async ({ page }) => {
+/* Review finding (2026-09-14, tablet): between 768 and 1023px the Download
+   element once fell off-screen at the grid's end (rect.top 1392px in an
+   1180px viewport). MERGE-24 (2026-10-23) replaced the bottom sheet with a
+   completion row in the flow under the pages; the guard now is that it sits
+   below the last page and can be scrolled to. The quiet Download in the
+   sticky file row is covered in merge-mobile.spec.js. */
+test('tablet (820x1180): the completion row sits under the last page and scrolls into view', async ({ page }) => {
   await page.setViewportSize({ width: 820, height: 1180 });
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
@@ -305,16 +305,14 @@ test('tablet (820x1180): after scrolling to the grid end, Download stays in the 
   await page.locator('input[type="file"]').setInputFiles(files);
   await expect(page.locator('li[data-key]')).toHaveCount(9);
 
-  await page.evaluate(() => {
-    document.querySelector('ul[class*="grid"]')?.scrollIntoView({ block: 'end' });
-  });
-
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
   await expect(downloadLink).toBeVisible({ timeout: 10_000 });
+  await downloadLink.scrollIntoViewIfNeeded();
   const viewport = page.viewportSize();
   const downloadBox = await downloadLink.boundingBox();
-  if (!downloadBox || !viewport) throw new Error('Download element or viewport unavailable');
-  expect(downloadBox.y).toBeGreaterThanOrEqual(0);
+  const lastCell = await page.locator('li[data-key]').last().boundingBox();
+  if (!downloadBox || !lastCell || !viewport) throw new Error('Download element or viewport unavailable');
+  expect(downloadBox.y).toBeGreaterThanOrEqual(lastCell.y + lastCell.height - 1);
   expect(downloadBox.y + downloadBox.height).toBeLessThanOrEqual(viewport.height + 1);
 });
 
