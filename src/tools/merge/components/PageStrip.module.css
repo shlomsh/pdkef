@@ -107,14 +107,12 @@
   white-space: nowrap;
 }
 
-/* MERGE-24 (2026-10-23): on desktop the grid stays invisible (its space and
+/* MERGE-24 (2026-10-24, every width): the grid stays invisible (its space and
    its thumbnails' rendering untouched) until PageStrip's fit has settled, so a
    restore shows once at its final size instead of shifting as the page aspects
    arrive. visibility, not display: nothing reflows when it shows. */
-@media (min-width: 1024px) {
-  .grid:not([data-fit-settled]) {
-    visibility: hidden;
-  }
+.grid:not([data-fit-settled]) {
+  visibility: hidden;
 }
 
 /* --- Page cell: a grid item, one column wide (portrait) or two (a

@@ -31,6 +31,14 @@ describe('splitOutputName', () => {
     expect(head.endsWith('\u05D1')).toBe(false);
   });
 
+  it('starts the tail on a word, not on the space before it', () => {
+    const name = 'a'.repeat(20) + ' ' + 'b'.repeat(19);
+    const { head, tail } = splitOutputName(name);
+    expect(head + tail).toBe(name);
+    expect(tail).not.toMatch(/^\s/);
+    expect(tail.endsWith('b'.repeat(19))).toBe(true);
+  });
+
   it('cuts ASCII exactly TAIL_LENGTH from the end', () => {
     const { tail } = splitOutputName('x'.repeat(40));
     expect(tail).toHaveLength(20);

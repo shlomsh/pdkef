@@ -13,6 +13,9 @@ export function splitOutputName(name: string): { head: string; tail: string } {
   // low surrogate, not on a combining mark.
   let cut = name.length - TAIL_LENGTH;
   while (cut > 0 && (isLowSurrogate(name.charCodeAt(cut)) || startsWithMark(name, cut))) cut--;
+  // Then past whitespace, so the tail starts on a word; the space ends the
+  // head, where the ellipsis hides it.
+  while (cut < name.length - 1 && /\s/.test(name[cut])) cut++;
   return { head: name.slice(0, cut), tail: name.slice(cut) };
 }
 
