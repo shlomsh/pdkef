@@ -1,11 +1,11 @@
 ---
 id: "SEO-42"
-title: "Title test: put \"No Upload\" in the Split and Compress titles and read the result in Search Console"
-status: "in_progress"
+title: "Read 2026-11-06 · Title test: \"No Upload\" in the Split and Compress titles, read per query in Search Console"
+status: "blocked"
 priority: "P2"
 epic: "search-and-languages"
-horizon: "now"
-needs: "The 28-day Search Console read for /compress/ about 2026-11-06"
+waiting_on: "2026-11-06"
+needs: "The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf"
 ---
 
 # SEO-42 · Title test: "No Upload" in the Split and Compress titles
