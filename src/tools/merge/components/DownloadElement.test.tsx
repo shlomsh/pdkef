@@ -98,6 +98,25 @@ describe('DownloadElement', () => {
     expect(box().querySelector(`.${styles['check-mark-static']}`)).not.toBeNull();
   });
 
+  it('keeps drawing the saved check through a re-render, then settles to static after 700ms', () => {
+    let now = 1000;
+    const spy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      const { rerender } = mount({ state: 'ready', href: 'blob:x', fileName: 'merged.pdf', detail: '2 pages' });
+      rerender({ state: 'saved' });
+      expect(box().querySelector(`.${styles['check-mark-animated']}`)).not.toBeNull();
+      now += 100;
+      rerender({ detail: '2 pages · 1 MB' });
+      expect(box().querySelector(`.${styles['check-mark-animated']}`)).not.toBeNull();
+      now += 700;
+      rerender({ detail: '2 pages · 2 MB' });
+      expect(box().querySelector(`.${styles['check-mark-animated']}`)).toBeNull();
+      expect(box().querySelector(`.${styles['check-mark-static']}`)).not.toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('saved: success tint, the page/size detail (never the file name a second time), and "download again" as the live link', () => {
     // MERGE-11: the output name has one home, the document heading - this
     // element's own 'saved' detail line matches 'ready' (page count and
