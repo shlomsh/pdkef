@@ -77,6 +77,8 @@
   font-weight: 400;
   color: var(--color-muted);
   font-size: 0.85rem;
+  /* The ' · ' prefix's leading space collapses in the flex row. */
+  margin-inline-start: 0.35em;
 }
 
 /* The render-progress figure is quieter still than the page count beside
