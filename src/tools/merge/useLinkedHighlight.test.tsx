@@ -1,6 +1,6 @@
 // @ts-nocheck - test-only, mirrors the other merge tests' untyped style
 import { render } from 'preact';
-import { useRef } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLinkedHighlight, useMergeMoment, linkKind } from './useLinkedHighlight.ts';
@@ -9,11 +9,11 @@ let host;
 let moment;
 
 function Harness() {
-  const rootRef = useRef(null);
-  useLinkedHighlight(rootRef);
-  moment = useMergeMoment(rootRef);
+  const [rootEl, setRootEl] = useState(null);
+  useLinkedHighlight(rootEl);
+  moment = useMergeMoment(rootEl);
   return (
-    <div ref={rootRef} data-testid="root">
+    <div ref={setRootEl} data-testid="root">
       <li id="row-a" data-file-id="a" data-link-row><button id="row-btn">a</button></li>
       <li id="row-b" data-file-id="b" data-link-row />
       <div id="page-a1" data-file-id="a"><span id="page-a1-inner" /></div>
@@ -126,5 +126,32 @@ describe('useMergeMoment', () => {
     mockMedia(['(prefers-reduced-motion: reduce)']);
     act(() => moment());
     expect(root().hasAttribute('data-merge-moment')).toBe(false);
+  });
+});
+
+describe('useLinkedHighlight when the root appears later', () => {
+  it('attaches once the workspace element mounts', () => {
+    let reveal;
+    function Late() {
+      const [rootEl, setRootEl] = useState(null);
+      const [shown, setShown] = useState(false);
+      reveal = () => setShown(true);
+      useLinkedHighlight(rootEl);
+      return shown ? (
+        <div ref={setRootEl} id="late-root">
+          <li id="late-row" data-file-id="a" data-link-row />
+          <div id="late-page" data-file-id="a" />
+        </div>
+      ) : null;
+    }
+    const lateHost = document.createElement('div');
+    document.body.appendChild(lateHost);
+    act(() => render(<Late />, lateHost));
+    act(() => reveal());
+    act(() => { document.getElementById('late-row').dispatchEvent(new MouseEvent('pointerover', { bubbles: true })); });
+    expect(document.getElementById('late-root').dataset.linking).toBe('row');
+    expect(document.getElementById('late-page').hasAttribute('data-linked')).toBe(true);
+    act(() => render(null, lateHost));
+    lateHost.remove();
   });
 });

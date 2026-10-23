@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'preact/hooks';
-import type { RefObject } from 'preact';
 
 /* MERGE-24: a rail row and the pages of the same file light up together.
    Pure attribute toggling on the layout root, driven by delegated hover and
@@ -37,9 +36,10 @@ function applyLinks(root: HTMLElement, source: HTMLElement): void {
   root.querySelectorAll(`[data-file-id="${CSS.escape(id)}"]`).forEach((el) => el.setAttribute('data-linked', ''));
 }
 
-export function useLinkedHighlight(rootRef: RefObject<HTMLElement>): void {
+/** `root` is the layout element held in state (a callback ref), so the
+ *  listeners attach whenever the workspace appears and detach when it goes. */
+export function useLinkedHighlight(root: HTMLElement | null): void {
   useEffect(() => {
-    const root = rootRef.current;
     if (!root) return;
 
     const blocked = () => document.documentElement.hasAttribute('data-merge-page-dragging');
@@ -70,22 +70,21 @@ export function useLinkedHighlight(rootRef: RefObject<HTMLElement>): void {
       root.removeEventListener('focusout', leave);
       clearLinks(root);
     };
-  }, [rootRef]);
+  }, [root]);
 }
 
 const MOMENT_MS = 2000;
 
 /** The download moment: `data-merge-moment` on the root for 2s. Returns the trigger. */
-export function useMergeMoment(rootRef: RefObject<HTMLElement>): () => void {
+export function useMergeMoment(root: HTMLElement | null): () => void {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    rootRef.current?.removeAttribute('data-merge-moment');
-  }, [rootRef]);
+    root?.removeAttribute('data-merge-moment');
+  }, [root]);
 
   return useCallback(() => {
-    const root = rootRef.current;
     if (!root || matches('(prefers-reduced-motion: reduce)')) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     root.setAttribute('data-merge-moment', '');
@@ -93,5 +92,5 @@ export function useMergeMoment(rootRef: RefObject<HTMLElement>): () => void {
       root.removeAttribute('data-merge-moment');
       timerRef.current = null;
     }, MOMENT_MS);
-  }, [rootRef]);
+  }, [root]);
 }
