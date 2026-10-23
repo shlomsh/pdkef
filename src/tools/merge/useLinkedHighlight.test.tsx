@@ -25,9 +25,21 @@ function Harness() {
 }
 
 const q = (id) => document.getElementById(id);
-const fire = (id, type, init = {}) => act(() => {
-  q(id).dispatchEvent(new MouseEvent(type, { bubbles: true, ...init }));
+// jsdom has no PointerEvent, so the pointer type rides on a MouseEvent.
+const fire = (id, type, { pointerType = 'mouse', ...init } = {}) => act(() => {
+  const event = new MouseEvent(type, { bubbles: true, ...init });
+  Object.defineProperty(event, 'pointerType', { value: pointerType });
+  q(id).dispatchEvent(event);
 });
+const focusIn = (id) => act(() => { q(id).dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
+
+// Keyboard focus matches :focus-visible; jsdom cannot decide it, so stub it.
+function stubFocusVisible(visible) {
+  const original = Element.prototype.matches;
+  vi.spyOn(Element.prototype, 'matches').mockImplementation(function (selector) {
+    return selector === ':focus-visible' ? visible : original.call(this, selector);
+  });
+}
 const linked = () => [...document.querySelectorAll('[data-linked]')].map((el) => el.id).sort();
 const root = () => host.firstElementChild;
 
@@ -47,6 +59,7 @@ afterEach(() => {
   host.remove();
   document.documentElement.removeAttribute('data-merge-page-dragging');
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('linkKind', () => {
@@ -90,7 +103,8 @@ describe('useLinkedHighlight', () => {
 
   it('focus links and blur clears, even where hover is unavailable', () => {
     mockMedia(['(hover: none)']);
-    act(() => { q('row-btn').dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
+    stubFocusVisible(true);
+    focusIn('row-btn');
     expect(root().dataset.linking).toBe('row');
     act(() => { q('row-btn').dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: q('outside') })); });
     expect(linked()).toEqual([]);
@@ -99,6 +113,39 @@ describe('useLinkedHighlight', () => {
   it('ignores pointer events where hover is unavailable', () => {
     mockMedia(['(hover: none)']);
     fire('row-a', 'pointerover');
+    expect(linked()).toEqual([]);
+  });
+
+  it('ignores touch pointers even where hover is reported', () => {
+    fire('row-a', 'pointerover', { pointerType: 'touch' });
+    expect(linked()).toEqual([]);
+  });
+
+  it('links for a pen pointer', () => {
+    fire('row-a', 'pointerover', { pointerType: 'pen' });
+    expect(root().dataset.linking).toBe('row');
+  });
+
+  it('ignores a focus that is not focus-visible (a tap)', () => {
+    stubFocusVisible(false);
+    focusIn('row-btn');
+    expect(linked()).toEqual([]);
+  });
+
+  it('clears when the linked row is removed and the pointer lands on a non-source', () => {
+    fire('row-a', 'pointerover');
+    act(() => { q('row-a').remove(); });
+    fire('outside', 'pointerover');
+    expect(root().dataset.linking).toBeUndefined();
+    expect(linked()).toEqual([]);
+  });
+
+  it('clears on a non-source focusin after the focused row is removed', () => {
+    stubFocusVisible(true);
+    focusIn('row-btn');
+    act(() => { q('row-a').remove(); });
+    focusIn('outside');
+    expect(root().dataset.linking).toBeUndefined();
     expect(linked()).toEqual([]);
   });
 
@@ -148,7 +195,11 @@ describe('useLinkedHighlight when the root appears later', () => {
     document.body.appendChild(lateHost);
     act(() => render(<Late />, lateHost));
     act(() => reveal());
-    act(() => { document.getElementById('late-row').dispatchEvent(new MouseEvent('pointerover', { bubbles: true })); });
+    act(() => {
+      const event = new MouseEvent('pointerover', { bubbles: true });
+      Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+      document.getElementById('late-row').dispatchEvent(event);
+    });
     expect(document.getElementById('late-root').dataset.linking).toBe('row');
     expect(document.getElementById('late-page').hasAttribute('data-linked')).toBe(true);
     act(() => render(null, lateHost));
