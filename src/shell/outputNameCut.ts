@@ -4,9 +4,16 @@
 const CUT_ABOVE = 28;
 const TAIL_LENGTH = 20;
 
+const isLowSurrogate = (unit: number) => unit >= 0xdc00 && unit <= 0xdfff;
+const startsWithMark = (name: string, at: number) => /^\p{M}/u.test(name.slice(at, at + 2));
+
 export function splitOutputName(name: string): { head: string; tail: string } {
   if (name.length <= CUT_ABOVE) return { head: name, tail: '' };
-  return { head: name.slice(0, -TAIL_LENGTH), tail: name.slice(-TAIL_LENGTH) };
+  // Move the cut earlier until the tail starts on a whole grapheme: not on a
+  // low surrogate, not on a combining mark.
+  let cut = name.length - TAIL_LENGTH;
+  while (cut > 0 && (isLowSurrogate(name.charCodeAt(cut)) || startsWithMark(name, cut))) cut--;
+  return { head: name.slice(0, cut), tail: name.slice(cut) };
 }
 
 /** An offset inside one cut part, as an offset in the full name. */

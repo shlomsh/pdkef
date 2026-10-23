@@ -126,6 +126,15 @@ describe('useLinkedHighlight', () => {
     expect(root().dataset.linking).toBe('row');
   });
 
+  it('keeps the focus highlight when the pointer leaves another source', () => {
+    stubFocusVisible(true);
+    act(() => { q('row-btn').focus(); });
+    fire('row-b', 'pointerover');
+    expect(linked()).toEqual(['page-b1', 'row-b']);
+    fire('row-b', 'pointerout', { relatedTarget: q('outside') });
+    expect(linked()).toEqual(['page-a1', 'page-a2', 'row-a']);
+  });
+
   it('ignores a focus that is not focus-visible (a tap)', () => {
     stubFocusVisible(false);
     focusIn('row-btn');

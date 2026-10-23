@@ -165,9 +165,15 @@
   background: var(--color-primary-soft);
 }
 
-.file-row[data-linked] .tag-square,
-.file-row:hover .tag-square {
+.file-row[data-linked] .tag-square {
   transform: scale(1.4);
+}
+
+/* Only a real hover pointer: a tap would leave the square scaled (sticky :hover). */
+@media (hover: hover) and (pointer: fine) {
+  .file-row:hover .tag-square {
+    transform: scale(1.4);
+  }
 }
 
 .file-row:focus-visible {
