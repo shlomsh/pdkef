@@ -41,6 +41,8 @@ Added on the dev server the same day, from Shlomi's review:
 11. **The rail clears the app bar**: it sticks below it, and with many files its list scrolls inside
     while Download stays pinned at its foot.
 
+The target, width by width, is [docs/merge-stage-spec.md](../../docs/merge-stage-spec.md).
+
 ## Contract between the pieces
 
 - Page cells (`PageStrip.tsx` `<li>`) carry `data-file-id`, `--tag-color` and `--moment-delay`; rail rows
