@@ -280,6 +280,10 @@ Rules for the desktop rail and the stage, from the Merge polish pass (MERGE-24, 
   the card's min-height and never its content height, instead of leaving it in a top strip. Below a
   floor size it wraps and scrolls as before. Draw thumbnails at stepped sizes of cell width times
   device pixel ratio (capped at 2) so bigger stays sharp. Phone and tablet keep their sizes.
+- Below 1024px the card ends at its content: no minimum height on the grid, no slot reserved under
+  every item for a state that is rarely shown, and main does not stretch to the screen's foot. Each of
+  those left white under a short merge (100px and 77px measured at 650px). The heading's name,
+  extension and count wrap as one run of text.
 
 ## 16. A display-only transform never hides more than the untransformed state did
 
