@@ -200,7 +200,7 @@ test('dropping a file onto the grid inserts its pages there and flags the rearra
   // list, which surfaces the note in place of the sort control. The note
   // exists twice in the DOM (the desktop rail and the phone popover, one of
   // them CSS-hidden), so this asks for the visible one.
-  await expect(page.getByText('Pages were rearranged', { exact: false }).locator('visible=true')).toBeVisible();
+  await expect(page.getByText('Pages moved across files', { exact: false }).locator('visible=true')).toBeVisible();
 });
 
 // A landscape-oriented source page (width > height) rotated 90deg is a final
@@ -278,3 +278,33 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 1280, height: 800 
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }
+
+// MERGE-24: on desktop a handful of pages grow past the 104px cell and the
+// whole grid still ends above the card's first-screen floor (its min-height).
+test('desktop cells grow to fill the stage and the last page ends above the first-screen floor (MERGE-24)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+  const document_ = await PDFDocument.create();
+  for (let i = 0; i < 5; i += 1) document_.addPage([612, 792]);
+  document_.setTitle('five-pages');
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'five-pages.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from(await document_.save()),
+  });
+  await expect(cards(page)).toHaveCount(5, { timeout: 15_000 });
+
+  await expect.poll(async () => (await cards(page).first().locator('[class*="thumb-box"]').boundingBox())?.width ?? 0)
+    .toBeGreaterThan(104);
+  const { lastBottom, floor } = await page.evaluate(() => {
+    const items = document.querySelectorAll('ul[class*="grid"] > li[data-key]');
+    const card = items[0].closest('[data-tool-loaded]');
+    return {
+      lastBottom: items[items.length - 1].getBoundingClientRect().bottom,
+      floor: card.getBoundingClientRect().top + parseFloat(getComputedStyle(card).minHeight),
+    };
+  });
+  expect(lastBottom).toBeLessThanOrEqual(floor);
+});

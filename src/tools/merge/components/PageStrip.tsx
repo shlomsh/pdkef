@@ -9,6 +9,8 @@ import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
 import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../shell/PagePreviewDialog.tsx';
 import { reportError } from '../../../lib/errorReport.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
+import { CELL_RATIO, MIN_CELL, useStageFit } from '../useStageFit.ts';
+import { rasterWidthFor } from '../stageFit.ts';
 
 export interface StripFile {
   id: number;
@@ -71,9 +73,16 @@ function isPhoneViewport(): boolean {
     && window.matchMedia('(max-width: 767px)').matches;
 }
 
-function thumbnailOptions() {
-  const phone = isPhoneViewport();
-  return phone ? { width: 96, type: 'image/jpeg', quality: 0.7 } : { width: 150, type: 'image/png' };
+/* Phone: 96 px JPEG. Tablet: the fixed 150 px PNG. Desktop (MERGE-24): the
+   raster follows the fitted cell width, in steps (stageFit.rasterWidthFor).
+   The memory note: a bigger raster only happens when few pages are on
+   screen, because the cell only grows when there are few - a 400-page set
+   stays at the 104px cell, so the 150 px (240 on a 2x screen) budget above
+   still holds where the page count is large. */
+function thumbnailOptions(desktopCell: number | null) {
+  if (isPhoneViewport()) return { width: 96, type: 'image/jpeg', quality: 0.7 };
+  if (desktopCell == null) return { width: 150, type: 'image/png' };
+  return { width: rasterWidthFor(desktopCell, window.devicePixelRatio || 1), type: 'image/png' };
 }
 
 /* Shlomi's follow-up (2026-09-13), item 1: one continuous CSS grid now
@@ -83,16 +92,28 @@ function thumbnailOptions() {
    cell shrinks from 96px to 72px (same 3:4 box: 72 x 96) so four columns fit
    the 319px card content width with 8px gaps (4*72 + 3*8 = 312). The
    thumbnail itself still rasterises at 96px on a phone (thumbnailOptions
-   above) and simply downscales into the smaller box. */
-function baseCellSize(): { w: number; h: number } {
-  return isPhoneViewport() ? { w: 72, h: 96 } : { w: 104, h: 138 };
+   above) and simply downscales into the smaller box. MERGE-24: on a desktop
+   viewport the cell instead takes the width useStageFit fits to the stage
+   (same 104:138 box, scaled); tablet keeps 104 x 138. */
+function baseCellSize(desktopCell: number | null): { w: number; h: number } {
+  if (isPhoneViewport()) return { w: 72, h: 96 };
+  if (desktopCell == null) return { w: MIN_CELL, h: 138 };
+  return { w: desktopCell, h: Math.round(desktopCell / CELL_RATIO) };
 }
 
 /* The grid's own column track width and gap - one pair of values for the
    whole grid, read once per render from the same viewport check every
    per-item cell size already uses. */
-function gridMetrics(): { cell: number; gap: number } {
-  return isPhoneViewport() ? { cell: 72, gap: 8 } : { cell: 104, gap: 12 };
+function gridMetrics(desktopCell: number | null): { cell: number; gap: number } {
+  if (isPhoneViewport()) return { cell: 72, gap: 8 };
+  return { cell: desktopCell ?? MIN_CELL, gap: 12 };
+}
+
+/* Whether a page shows landscape once rotated: the grid columns it takes
+   (2, else 1) feed useStageFit. Same rule as the cell markup's own. */
+function spansTwo(rotation: number, aspect: number | undefined): boolean {
+  const sourceLandscape = aspect != null && aspect >= 1;
+  return (rotation === 90 || rotation === 270) ? !sourceLandscape : sourceLandscape;
 }
 
 export default function PageStrip({
@@ -127,6 +148,16 @@ export default function PageStrip({
   const [, bump] = useState(0);
   const thumbnails = useRef(new Map<string, string>());
   const aspects = useRef(new Map<string, number>());
+  // The raster width each cached thumbnail was rendered at, so a page re-renders
+  // at a larger step when its cell grows and never at a smaller one.
+  const rasterWidths = useRef(new Map<string, number>());
+  const units = plan.reduce((sum, e) => sum + (spansTwo(e.rotation, aspects.current.get(e.key)) ? 2 : 1), 0);
+  const desktopCell = useStageFit(stripRef, units);
+  const optionsRef = useRef(thumbnailOptions(desktopCell));
+  optionsRef.current = thumbnailOptions(desktopCell);
+  // A cached thumbnail counts only if it is at least as sharp as the current cell wants.
+  const hasCurrent = useCallback((key: string) => thumbnails.current.has(key)
+    && (rasterWidths.current.get(key) ?? 0) >= optionsRef.current.width, []);
   const sources = useRef(new Map<number, { source: Promise<ThumbnailSource>; controller: AbortController }>());
   const queue = useRef<string[]>([]);
   const queued = useRef(new Set<string>());
@@ -171,7 +202,7 @@ export default function PageStrip({
       sources.current.delete(fileId);
     }
     for (const key of Array.from(thumbnails.current.keys())) {
-      if (key.startsWith(`${fileId}:`)) thumbnails.current.delete(key);
+      if (key.startsWith(`${fileId}:`)) { thumbnails.current.delete(key); rasterWidths.current.delete(key); }
     }
     queue.current = queue.current.filter((key) => !key.startsWith(`${fileId}:`));
     for (const key of Array.from(queued.current)) if (key.startsWith(`${fileId}:`)) queued.current.delete(key);
@@ -194,7 +225,7 @@ export default function PageStrip({
       while (queue.current.length > 0) {
         const key = queue.current.shift() as string;
         queued.current.delete(key);
-        if (thumbnails.current.has(key)) continue;
+        if (hasCurrent(key)) continue;
         const [fileIdText, pageIndexText] = key.split(':');
         const fileId = Number(fileIdText);
         const pageIndex = Number(pageIndexText);
@@ -209,9 +240,11 @@ export default function PageStrip({
         try {
           const source = await held.source;
           if (held.controller.signal.aborted) continue;
-          const dataUrl = await source.render(pageIndex, { ...thumbnailOptions(), signal: held.controller.signal });
+          const options = optionsRef.current;
+          const dataUrl = await source.render(pageIndex, { ...options, signal: held.controller.signal });
           if (held.controller.signal.aborted) continue;
           thumbnails.current.set(key, dataUrl);
+          rasterWidths.current.set(key, options.width);
           bump((n) => n + 1);
           reportRenderedCount();
         } catch (err) {
@@ -225,21 +258,21 @@ export default function PageStrip({
     } finally {
       rendering.current = false;
     }
-  }, [reportRenderedCount]);
+  }, [reportRenderedCount, hasCurrent]);
 
   const enqueue = useCallback((key: string) => {
-    if (thumbnails.current.has(key) || queued.current.has(key)) return;
+    if (hasCurrent(key) || queued.current.has(key)) return;
     queued.current.add(key);
     queue.current.push(key);
     void processQueue();
-  }, [processQueue]);
+  }, [processQueue, hasCurrent]);
 
   // Release thumbnails and cancel pending renders for files that left the list.
   useEffect(() => {
     const present = new Set(entries.map((e) => e.id));
     for (const fileId of Array.from(sources.current.keys())) if (!present.has(fileId)) releaseFile(fileId);
     for (const key of Array.from(thumbnails.current.keys())) {
-      if (!present.has(Number(key.split(':')[0]))) thumbnails.current.delete(key);
+      if (!present.has(Number(key.split(':')[0]))) { thumbnails.current.delete(key); rasterWidths.current.delete(key); }
     }
     reportRenderedCount();
   }, [entries, releaseFile, reportRenderedCount]);
@@ -289,7 +322,8 @@ export default function PageStrip({
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [plan, enqueue, stripRef]);
+  // A larger raster step (the cell grew) rescans so visible pages sharpen.
+  }, [plan, enqueue, stripRef, optionsRef.current.width]);
 
   // SortableJS owns the DOM during a drag; the plan is committed once in onEnd.
   useEffect(() => {
@@ -448,8 +482,8 @@ export default function PageStrip({
   })();
 
   const filePosition = new Map(entries.map((e, i) => [e.id, i + 1]));
-  const gridBase = baseCellSize();
-  const { cell: gridCell, gap: gridGap } = gridMetrics();
+  const gridBase = baseCellSize(desktopCell);
+  const { cell: gridCell, gap: gridGap } = gridMetrics(desktopCell);
   let outputCounter = 0;
   const items: JSX.Element[] = [];
   plan.forEach((entry, index) => {
@@ -528,7 +562,12 @@ export default function PageStrip({
       ? { width: 'var(--cell-h)', height: 'var(--cell-w)', transform: `rotate(${entry.rotation}deg)` }
       : entry.rotation === 180 ? { transform: 'rotate(180deg)' } : undefined;
     const tagIndex = ((filePosition.get(entry.fileId) ?? 1) - 1) % 6;
-    const dotStyle = { '--tag-color': `var(--color-tag-${tagIndex + 1})` } as any;
+    // The file's colour and this page's stagger step: CSS reads both (the band,
+    // the linked highlight, the download moment), the markup only supplies them.
+    const pageVars = {
+      '--tag-color': `var(--color-tag-${tagIndex + 1})`,
+      '--moment-delay': `${Math.min(index, 15) * 40}ms`,
+    } as any;
     const label = formatMessage(t.pageItemLabel, {
       number: position,
       total: outputTotal,
@@ -540,10 +579,11 @@ export default function PageStrip({
         key={entry.key}
         class={styles.page}
         data-key={entry.key}
+        data-file-id={entry.fileId}
         data-rotation={entry.rotation || undefined}
         data-skipped={entry.skipped || undefined}
         data-selected={selectedKey === entry.key || undefined}
-        style={cellStyle}
+        style={{ ...cellStyle, ...pageVars }}
         tabIndex={0}
         aria-label={label}
         onClick={(event) => {
@@ -558,7 +598,6 @@ export default function PageStrip({
           if (keyboardActiveRef.current) onFirstKeyboardFocus?.();
         }}
       >
-        <span class={styles['tag-dot']} style={dotStyle} aria-hidden="true" />
         {/* Reserved strip: every cell carries this, at the same height,
             whether or not it is a run's first cell - that is what keeps
             every thumbnail below it aligned to one row, tag or no tag. */}
@@ -571,6 +610,7 @@ export default function PageStrip({
           )}
         </span>
         <span class={styles['thumb-box']}>
+          <span class={styles.band} aria-hidden="true" />
           {thumbnail ? (
             <img
               class={styles.thumb}
@@ -579,8 +619,13 @@ export default function PageStrip({
               draggable={false}
               loading="lazy"
               style={thumbStyle}
+              ref={(img: HTMLImageElement | null) => {
+                // Already decoded at mount (cache hit): arrive without waiting for onLoad.
+                if (img?.complete && img.naturalWidth) img.dataset.ready = '';
+              }}
               onLoad={(event) => {
                 const img = event.currentTarget as HTMLImageElement;
+                img.dataset.ready = '';
                 if (img.naturalWidth && img.naturalHeight) {
                   aspects.current.set(entry.key, img.naturalWidth / img.naturalHeight);
                   bump((n) => n + 1);
