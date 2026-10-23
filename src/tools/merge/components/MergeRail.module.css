@@ -147,6 +147,8 @@
   color: var(--color-text);
   text-align: start;
   cursor: pointer;
+  /* MERGE-24 (2026-10-23): the linked-file tint eases in and out. */
+  transition: background 0.2s var(--ease-out);
 }
 
 /* MERGE-04: a file that cannot take part (password-protected, unreadable)
@@ -169,6 +171,17 @@
 
 .file-row:hover {
   background: var(--color-primary-soft);
+}
+
+/* MERGE-24 (2026-10-23): hovering a page of this file (useLinkedHighlight
+   sets data-linked) tints its row like a hover and swells the tag square. */
+.file-row[data-linked] {
+  background: var(--color-primary-soft);
+}
+
+.file-row[data-linked] .tag-square,
+.file-row:hover .tag-square {
+  transform: scale(1.4);
 }
 
 .file-row:focus-visible {
@@ -214,6 +227,7 @@
   height: 10px;
   border-radius: 2px;
   background: var(--tag-color, var(--color-primary));
+  transition: transform 0.2s var(--ease-spring);
 }
 
 .file-name {
@@ -221,10 +235,20 @@
   min-width: 0;
 }
 
+/* MERGE-24 (2026-10-23): a small page mark before the count. */
 .file-pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   flex-shrink: 0;
   color: var(--color-muted);
   font-size: 0.8rem;
+}
+
+.file-pages svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .file-remove {
