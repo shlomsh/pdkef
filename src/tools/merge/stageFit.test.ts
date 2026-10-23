@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitCellWidth, rasterWidthFor, rowsFor, type FitItem, type StageFitInput } from './stageFit.ts';
+import { fitCellWidth, fitSettled, rasterWidthFor, rowsFor, type FitItem, type StageFitInput } from './stageFit.ts';
 
 const singles = (n: number): FitItem[] => Array.from({ length: n }, () => ({ span: 1, breakBefore: false }));
 
@@ -56,5 +56,29 @@ describe('rasterWidthFor', () => {
     [200, 1, 240],
   ])('a %ipx cell at %ix is rasterised at %ipx', (cell, dpr, expected) => {
     expect(rasterWidthFor(cell, dpr)).toBe(expected);
+  });
+});
+
+/* MERGE-24 (2026-10-23): a restore painted at the largest size, then twice more
+   as the aspects arrived. The grid stays hidden until this says the fit holds. */
+describe('fitSettled', () => {
+  const ready = { known: 2, total: 2, elapsed: 50, measured: true };
+
+  it('settles once every aspect is known and the cell is measured', () => {
+    expect(fitSettled(ready)).toBe(true);
+  });
+
+  it('waits while an aspect is unknown or the cell is unmeasured', () => {
+    expect(fitSettled({ ...ready, known: 1 })).toBe(false);
+    expect(fitSettled({ ...ready, measured: false })).toBe(false);
+  });
+
+  it('settles after the 400ms patience whatever is still unknown', () => {
+    expect(fitSettled({ known: 0, total: 30, elapsed: 399, measured: true })).toBe(false);
+    expect(fitSettled({ known: 0, total: 30, elapsed: 400, measured: false })).toBe(true);
+  });
+
+  it('has nothing to settle with no pages', () => {
+    expect(fitSettled({ known: 0, total: 0, elapsed: 900, measured: true })).toBe(false);
   });
 });

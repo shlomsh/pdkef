@@ -10,7 +10,7 @@ import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../she
 import { reportError } from '../../../lib/errorReport.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
 import { CELL_RATIO, MIN_CELL, useStageFit } from '../useStageFit.ts';
-import { rasterWidthFor, type FitItem } from '../stageFit.ts';
+import { FIT_PATIENCE_MS, fitSettled, rasterWidthFor, type FitItem } from '../stageFit.ts';
 
 export interface StripFile {
   id: number;
@@ -138,6 +138,26 @@ function fitItems(plan: PageStripProps['plan'], aspects: Map<string, number>, gr
   });
 }
 
+/* MERGE-24 (2026-10-23): true once the desktop grid may show (data-fit-settled).
+   Settled for good: later changes come from the person's own actions. Off
+   desktop nothing is hidden, so it is settled from the start. */
+function useFitSettled(known: number, total: number, measured: boolean): boolean {
+  const [settled, setSettled] = useState(() => !isDesktopViewport());
+  const startedAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (settled || total <= 0) return undefined;
+    if (startedAt.current == null) startedAt.current = Date.now();
+    const elapsed = Date.now() - startedAt.current;
+    if (fitSettled({ known, total, elapsed, measured })) {
+      setSettled(true);
+      return undefined;
+    }
+    const timer = setTimeout(() => setSettled(true), Math.max(0, FIT_PATIENCE_MS - elapsed));
+    return () => clearTimeout(timer);
+  }, [settled, known, total, measured]);
+  return settled;
+}
+
 export default function PageStrip({
   entries,
   plan,
@@ -176,6 +196,11 @@ export default function PageStrip({
   const desktopCell = useStageFit(stripRef, fitItems(plan, aspects.current, grouped));
   // On desktop, wait for the first fitted cell so a page is never rendered twice.
   const fitPending = desktopCell == null && isDesktopViewport();
+  const fitSettledNow = useFitSettled(
+    plan.reduce((count, entry) => count + (aspects.current.has(entry.key) ? 1 : 0), 0),
+    plan.length,
+    desktopCell != null,
+  );
   const fitPendingRef = useRef(fitPending);
   fitPendingRef.current = fitPending;
   const optionsRef = useRef(thumbnailOptions(desktopCell));
@@ -752,6 +777,7 @@ export default function PageStrip({
         ref={stripRef}
         aria-describedby="merge-strip-hint"
         data-grouped={grouped || undefined}
+        data-fit-settled={fitSettledNow || undefined}
         style={{ '--grid-cell': `${gridCell}px`, '--grid-gap': `${gridGap}px` } as any}
       >
         {items}
