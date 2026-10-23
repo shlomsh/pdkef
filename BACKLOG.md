@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 9 then, 23 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 9 then, 24 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -107,7 +107,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
 | LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through | In progress |
-| SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Title test: put "No Upload" in the Split and Compress titles and read the result in Search Console | In progress. Needs Shlomi: The 28-day Search Console read for /compress/ about 2026-11-06 |
 | SEO-44 | P2 | [SEO-44](backlog/tasks/SEO-44.md) · /split/ ranks 51.6 for a head term that Compress, on the same domain, ranks 9.4 for: find the page-level difference |  |
 | SEO-46 | P2 | [SEO-46](backlog/tasks/SEO-46.md) · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars | In progress |
 
@@ -124,6 +123,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before | Waiting on SEO-05's verdict |
 | SEO-38 | P2 | [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the "Scanned with CamScanner" footer from a PDF | Waiting on About four weeks after indexing |
 | SEO-40 | P2 | [SEO-40](backlog/tasks/SEO-40.md) · The November eight-week reads | Waiting on 2026-11-07. Needs Shlomi: The Search Console exports |
+| SEO-42 | P2 | [SEO-42](backlog/tasks/SEO-42.md) · Read 2026-11-06 · Title test: "No Upload" in the Split and Compress titles, read per query in Search Console | Waiting on 2026-11-06. Needs Shlomi: The /compress/ query export (28 days before and after 2026-10-08) and /compress-image/ filtered to queries containing pdf |
 | SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency | Waiting on SEO-06 crawl gate and a volume check |
 | SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated | Waiting on SEO-06 crawl gate and a volume check |
 | SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned | Waiting on SEO-06 crawl gate and a volume check |
