@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import { fitCellWidth } from './stageFit.ts';
 import styles from './components/PageStrip.module.css';
@@ -11,6 +11,8 @@ const MAX_CELL = 240;
 export const CELL_RATIO = 104 / 138;
 const GRID_GAP = 12;
 const LABEL_HEIGHT = 22;
+/* Grouped mode adds the 16px name strip and its 0.3rem flex gap. */
+const GROUPED_LABEL_HEIGHT = LABEL_HEIGHT + 16 + 5;
 const CAPTION = '[data-caption-for]';
 const DESKTOP = '(min-width: 1024px)';
 
@@ -18,7 +20,7 @@ const px = (value: string) => parseFloat(value) || 0;
 
 /* The label chrome under (and above) a thumbnail, measured: a page cell's
    height minus its thumb box. Grouped mode adds the name strip, so the fixed
-   22px only holds as the fallback before anything renders. It does not depend
+   constants only hold as the fallback before any cell renders. It does not depend
    on the cell width, so it cannot feed back. */
 function measureLabelHeight(grid: HTMLElement): number {
   for (const cell of Array.from(grid.querySelectorAll<HTMLElement>('li[data-key]'))) {
@@ -27,7 +29,7 @@ function measureLabelHeight(grid: HTMLElement): number {
     const extra = cell.getBoundingClientRect().height - thumb.getBoundingClientRect().height;
     if (extra > 0) return extra;
   }
-  return LABEL_HEIGHT;
+  return grid.hasAttribute('data-grouped') ? GROUPED_LABEL_HEIGHT : LABEL_HEIGHT;
 }
 
 /* Full-width caption rows are grid items too: their height plus the row gap. */
@@ -73,6 +75,16 @@ export function useStageFit(gridRef: RefObject<HTMLElement>, units: number): num
   const unitsRef = useRef(units);
   unitsRef.current = units;
   const measureRef = useRef<() => void>(() => {});
+
+  /* Before paint: the first frame the grid shows already has its fitted size
+     (state set here re-renders before the browser paints), so nothing reflows
+     afterwards. Re-runs when the units change; grouping changes them too. */
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || typeof window.matchMedia !== 'function') return;
+    const next = window.matchMedia(DESKTOP).matches ? measureCell(grid, units) : null;
+    setCell((current) => (current === next ? current : next));
+  }, [gridRef, units]);
 
   useEffect(() => {
     const grid = gridRef.current;
