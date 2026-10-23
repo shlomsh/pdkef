@@ -173,3 +173,18 @@ SEO-06's Week 4 gate failed (none of the nine crawled, all fifteen Discovered UR
 work stops and this ticket is the work that can move the constraint. Horizon set to now. The same read
 saw the domain re-weighed without any change of ours: `/merge/` went from position 36 to 7.3 and
 `/compress/` held page-one boundary on four times the impressions (SEO-39).
+
+## 2026-10-23: outreach read
+
+- The Astro Showcase comment worked: `pdkef.com.yml` landed in withastro/astro.build on 2026-09-15, the
+  first external link. Web search never surfaced it; `gh search code "pdkef.com"` did, so the
+  referring-domain method now runs both.
+- pluja #1103, abhi18av #68 and OneOffTech #81: open, no replies. OneOffTech had a duplicate, #80, from
+  the parallel session; closed with a pointer to #81.
+- PWA directories: the two named here are dead (Gulliver 404, appsco.pe 503). findPWA and pwa.directory
+  are live, free and met; both forms need screenshots and a short description, so they are Shlomi's to
+  send.
+- Lissy93/awesome-privacy requires a human-written entry and PR body, so it is Shlomi's to write.
+- 9 stars: openalternative.co reopens at 10.
+
+Table and counts: [findings doc section 8](../../docs/seo-competitive-findings.md#8-reference-seo-03-venue-list-and-outreach-log).
