@@ -33,6 +33,14 @@ changes, all approved together on the sketch:
 9. **Below the card, one line**: the airplane line sits close under a loaded card, and the SEO-10 line
    ("Combine as many files…") stays in the HTML but hides once files are loaded, like the subhead.
 
+Added on the dev server the same day, from Shlomi's review:
+
+10. **No bottom sheet below 1024px** (the Sign and Redact rule, QUAL-27): the file row is a sticky bar
+    under the app bar with a quiet Download; page numbers, the filled Download and the next steps are a
+    completion row under the last page. UX guideline sections 8 and 15 now say this.
+11. **The rail clears the app bar**: it sticks below it, and with many files its list scrolls inside
+    while Download stays pinned at its foot.
+
 ## Contract between the pieces
 
 - Page cells (`PageStrip.tsx` `<li>`) carry `data-file-id`, `--tag-color` and `--moment-delay`; rail rows
@@ -49,6 +57,9 @@ changes, all approved together on the sketch:
       the card's first screen; at 30 pages they are 104px as today.
 - [ ] Unit tests cover `fitCellWidth` and `rasterWidthFor`, seen failing first.
 - [ ] Hover and focus link rows and pages both ways; touch and drag show nothing.
-- [ ] 820 and 375 look as they do today apart from the band, the copy and the rail mark.
+- [ ] At 820 and 375 nothing is pinned to the bottom; scrolled to the last page, the quiet Download is
+      in view and the completion row follows the last page.
+- [ ] With 15 files at 1280x900, scrolled, the rail's first row is below the app bar and Download is
+      inside the viewport.
 - [ ] `/he/merge/` keeps its name order and middle cut with a Hebrew file name.
 - [ ] `check:push` green.
