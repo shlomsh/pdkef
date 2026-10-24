@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 61 live: 8 up next, 11 then, 25 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 57 live: 4 up next, 11 then, 25 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -144,10 +144,6 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| GRID-01 | P1 | [GRID-01](backlog/tasks/GRID-01.md) · Merge's page grid moves to src/shell as the shared page grid, nothing visible changes | In progress |
-| GRID-02 | P1 | [GRID-02](backlog/tasks/GRID-02.md) · Merge's document and rail layout moves to src/shell as the page workspace, nothing visible changes |  |
-| GRID-03 | P1 | [GRID-03](backlog/tasks/GRID-03.md) · Merge gets the Undo/Redo stack Edit Pages has, in place of the undo chip |  |
-| GRID-04 | P1 | [GRID-04](backlog/tasks/GRID-04.md) · Edit Pages shows its pages through the shared grid, layout and undo, identical to Merge |  |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 
 ### Then, in order
@@ -175,7 +171,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 56 done, 4 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 10 done, 1 retired
+- Polish: 14 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
