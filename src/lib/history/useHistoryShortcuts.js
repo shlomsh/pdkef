@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'preact/hooks';
 // Global undo/redo shortcuts over the shared action-history model
 // (src/editor/model/actionHistory.ts, src/editor/model/historyStack.ts):
 // Cmd/Ctrl+Z undoes, Shift+Cmd/Ctrl+Z and Ctrl+Y (not Cmd+Y) redo. Ignored while typing
-// in an input/textarea so native text-field undo isn't hijacked - Sign's
+// in an input/textarea/contenteditable so native text-field undo isn't hijacked - Sign's
 // text elements are real <textarea>s and their own undo must stay untouched.
 // Shared by Sign, Redact and Edit-Pages, so this lives in src/lib/ rather
 // than src/editor-ui/ (documented as Sign/Redact-only): Edit-Pages is not an
@@ -34,8 +34,11 @@ export function useHistoryShortcuts(onUndo, onRedo) {
       // chord matches, claiming it would silently swallow those.
       const isRedoKey = (key === 'z' && e.shiftKey) || (key === 'y' && e.ctrlKey && !e.metaKey);
       if (!isUndoKey && !isRedoKey) return;
-      const tag = document.activeElement?.tagName;
+      const active = document.activeElement;
+      const tag = active?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      // The output name is a contenteditable span: its typing undo is the browser's.
+      if (active?.isContentEditable || e.target?.isContentEditable) return;
       // Only once we know we are going to act on it. A redo chord with no
       // handler wired should fall through to the browser rather than become a
       // key that does nothing anywhere.

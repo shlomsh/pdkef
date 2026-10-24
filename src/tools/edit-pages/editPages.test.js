@@ -90,6 +90,19 @@ describe('editPages library integration with real fixtures', () => {
     expect(details.pageTexts[4]).toContain('15');
     expect(details.pageTexts[4]).toContain('5');
   });
+
+  it('stops with an AbortError when the signal is already aborted', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const controller = new AbortController();
+    controller.abort();
+    await expect(editPages(file, {}, undefined, controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('stops between pages when the signal aborts mid-run, without saving', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const controller = new AbortController();
+    await expect(editPages(file, {}, () => controller.abort(), controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });
 
 describe('editPages on a protected file', () => {

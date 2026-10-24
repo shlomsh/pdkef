@@ -105,7 +105,19 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
     preparer.change(key);
   }, [key]);
 
-  const prepareNow = useCallback(() => preparerRef.current?.now(), []);
+  // After a failed build the preparer has nothing pending, so a tap rebuilds
+  // the current key (the way the old Apply button could always be pressed again).
+  const failed = state.status === 'error';
+  const prepareNow = useCallback(() => {
+    const preparer = preparerRef.current;
+    if (!preparer) return;
+    if (failed && keyRef.current !== null) {
+      setState((current) => ({ status: 'pending', blob: null, pageCount: 0, error: null, generation: current.generation }));
+      setProgress(0);
+      preparer.change(keyRef.current);
+    }
+    preparer.now();
+  }, [failed]);
 
   return {
     status: state.status,

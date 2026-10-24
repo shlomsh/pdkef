@@ -92,4 +92,19 @@ describe('usePreparedOutput', () => {
     expect(onBuildError).toHaveBeenCalledWith(failure);
     spy.mockRestore();
   });
+
+  it('prepareNow rebuilds the current key after a failed build', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const build = vi.fn()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue(built());
+    await mount({ key: 'a', build });
+    await settle();
+    expect(api.current.status).toBe('error');
+    await act(async () => api.current.prepareNow());
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    expect(api.current.status).toBe('ready');
+    spy.mockRestore();
+  });
 });

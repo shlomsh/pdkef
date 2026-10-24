@@ -150,6 +150,20 @@ describe('useHistoryShortcuts', () => {
     expect(onRedo).not.toHaveBeenCalled();
   });
 
+  it('bails out while focus is in a contenteditable element (the output name)', () => {
+    const span = document.createElement('span');
+    span.tabIndex = -1;
+    // jsdom does not implement isContentEditable; a browser derives it from the attribute.
+    Object.defineProperty(span, 'isContentEditable', { value: true });
+    container.appendChild(span);
+    span.focus();
+    act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
+    act(() => dispatchKeyDown({ key: 'z', metaKey: true }));
+    act(() => dispatchKeyDown({ key: 'z', metaKey: true, shiftKey: true }));
+    expect(onUndo).not.toHaveBeenCalled();
+    expect(onRedo).not.toHaveBeenCalled();
+  });
+
   it('removes its listener on unmount', () => {
     act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
     act(() => render(null, container));
