@@ -1,0 +1,15 @@
+---
+import LocalizedToolLayout from '../../layouts/LocalizedToolLayout.astro';
+import { localizedToolPaths, loadLocalizedToolPage } from '../../i18n/localizedToolPage';
+import PdfCompressTool from '../../tools/compress/PdfCompressTool.tsx';
+
+export function getStaticPaths() {
+  return localizedToolPaths('compress');
+}
+
+const page = await loadLocalizedToolPage('compress', Astro.props.localeId, Astro.params.locale ?? '');
+---
+
+<LocalizedToolLayout page={page}>
+  <PdfCompressTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+</LocalizedToolLayout>

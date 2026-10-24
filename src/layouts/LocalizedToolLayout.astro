@@ -1,0 +1,31 @@
+---
+// ARCH-33: the shared shell of every src/pages/[locale]/<tool>.astro route.
+// The route owns its island import (so only that tool's CSS is inlined); this
+// layout owns the ToolPageLayout props, computed by loadLocalizedToolPage.
+import ToolPageLayout from './ToolPageLayout.astro';
+import type { LocalizedToolPage } from '../i18n/localizedToolPage';
+
+interface Props {
+  page: LocalizedToolPage;
+}
+
+const { page } = Astro.props;
+const { context, tool, messages, stale, islandLocalized } = page;
+---
+
+<ToolPageLayout
+  tool={tool}
+  lang={context.lang}
+  dir={context.dir}
+  canonical={context.path}
+  alternates={context.preview ? [] : context.alternates}
+  noindex={context.preview}
+  locale={context.effectiveLocale}
+  variants={context.variants}
+  preview={context.preview}
+  messages={messages}
+  previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
+  toolControlsEnglish={context.effectiveLocale !== 'en' && !islandLocalized}
+>
+  <slot />
+</ToolPageLayout>

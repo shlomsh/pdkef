@@ -1,0 +1,15 @@
+---
+import LocalizedToolLayout from '../../layouts/LocalizedToolLayout.astro';
+import { localizedToolPaths, loadLocalizedToolPage } from '../../i18n/localizedToolPage';
+import PdfToImageTool from '../../tools/to-image/PdfToImageTool.tsx';
+
+export function getStaticPaths() {
+  return localizedToolPaths('pdf-to-image');
+}
+
+const page = await loadLocalizedToolPage('pdf-to-image', Astro.props.localeId, Astro.params.locale ?? '');
+---
+
+<LocalizedToolLayout page={page}>
+  <PdfToImageTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+</LocalizedToolLayout>
