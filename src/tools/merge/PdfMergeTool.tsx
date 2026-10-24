@@ -41,7 +41,8 @@ import railStyles from './components/MergeRail.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
-import DownloadElement, { type DownloadElementState } from './components/DownloadElement.tsx';
+import DownloadElement, { type DownloadElementState } from '../../shell/DownloadElement.tsx';
+import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import FileName from '../../shell/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -1191,162 +1192,164 @@ export default function PdfMergeTool({
       {hasFiles && (
         <ToolShellBridge>
           {({ requestReplace, requestClear }) => (
-            <div
-              class={docStyles.layout}
-              data-merge-workspace-ready={workspaceReady ? '' : undefined}
-              data-merge-restored-workspace={isRestoredWorkspace || undefined}
-            >
-          <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
+            <PageWorkspace
+              rootAttrs={{
+                'data-merge-workspace-ready': workspaceReady ? '' : undefined,
+                'data-merge-restored-workspace': isRestoredWorkspace || undefined,
+              }}
+              layoutRef={setLayoutEl}
+              documentRef={documentRef}
+              phoneBar={(
+                <>
+                  <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
 
-          {/* Phone and tablet chip row: replaces the rail's file list below
-              1024px. The controls that used to sit behind "⋯" remain
-              visible in the compact toolbar below. */}
-          <div class={docStyles['chip-bar']}>
-            <ul class={docStyles['chip-row']} ref={chipListRef}>
-              {entries.map((entry, index) => (
-                <li
-                  key={entry.id}
-                  class={docStyles.chip}
-                  data-id={entry.id}
-                >
-                  <span class={docStyles['chip-pill']}>
-                    <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
-                    <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
-                    <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
-                    <button
-                      type="button"
-                      class={docStyles['chip-remove']}
-                      aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
-                      onClick={() => removeEntry(entry.id)}
-                    >
-                      <XIcon size={14} aria-hidden="true" />
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {/* MERGE-24 (2026-10-23): the quiet Download at the sticky bar's
-                inline end, doing exactly what the completion row's Download
-                element does in each state (same link, same handlers). */}
-            {downloadState !== 'one-file' && (
-              downloadLinkReady ? (
-                <a
-                  class={docStyles['chip-download']}
-                  data-quiet-download
-                  href={prepared.url ?? undefined}
-                  download={fileName}
-                  onClick={onQuietDownloadTap}
-                >
-                  <DownloadIcon size={16} aria-hidden="true" />
-                  {t.downloadShort}
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  class={docStyles['chip-download']}
-                  data-quiet-download
-                  aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
-                  onClick={downloadState === 'error' ? undefined : onQuietPreparingTap}
-                  onPointerEnter={prepared.prepareNow}
-                  onFocus={prepared.prepareNow}
-                >
-                  <DownloadIcon size={16} aria-hidden="true" />
-                  {t.downloadShort}
-                </button>
-              )
-            )}
-            {showStrip && (
-              <DoneStrip
-                label={t.mergedReady}
-                closeLabel={t.closeStrip}
-                onClose={() => setStripOpen(false)}
-                className={docStyles['done-strip']}
-                data-merge-done-strip
-              >
-                <p class={docStyles['done-strip-result']}>
-                  <FileName name={fileName} className={docStyles['done-strip-name']} />
-                  <span class={docStyles['done-strip-detail']}>{downloadDetail}</span>
-                </p>
-                <ExportHandoffs
-                  items={[
-                    { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
-                    { tool: 'sign', label: t.handoffSign, Icon: FileSignature },
-                  ]}
-                  busy={handoffBusy || prepared.status !== 'ready'}
-                  onHandoff={(tool) => { void requestHandoff(tool as HandoffTool); }}
-                />
-                {handoffFailed && (
-                  <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-                )}
-                {rating}
-              </DoneStrip>
-            )}
-          </div>
-          {/* These use the rail's existing control styles and handlers in one
-              row that wraps to two lines on a phone. Sort stays visible after a
-              page-level rearrangement: sorting files regroups the plan,
-              while Reset order explicitly restores it. */}
-          <div class={docStyles['mobile-file-controls']} data-merge-file-controls>
-            <div class={railStyles['quiet-row']}>
-              <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-              <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
-            </div>
-            {entries.length >= 2 && (
-              <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} hideLabel />
-            )}
-            {entries.length >= 2 && rearranged && (
-              <div class={railStyles['rearranged-note']} role="status">
-                <span>{t.pagesRearranged}</span>
-                <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
-                  {t.resetOrder}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Coarse pointer only (CSS-gated, MergeDocument.module.css): the
-              chip row and the page grid below both drag on press-and-hold
-              (SortableJS's delayOnTouchOnly), with no grip icon standing in
-              for the gesture the way the desktop rail's handle does, so
-              nothing tells a phone that dragging works at all. Gated on
-              having something worth reordering, same threshold as the
-              desktop rail's own Sort control. */}
-          {(entries.length > 1 || outputCount > 1) && (
-            <p class={docStyles['touch-drag-hint']}>{t.touchDragHint}</p>
-          )}
-
-          <div class={docStyles.main} ref={setLayoutEl}>
-            <div class={docStyles.document} ref={documentRef}>
-              <div class={docStyles['doc-header']}>
-                <div class={docStyles['heading-row']}>
-                  <h2 class={docStyles['doc-heading']} id="merge-pages-heading">
-                    {/* MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the
-                        visible name IS the editable output file name - one
-                        span, at rest identical to the old plain heading text,
-                        that becomes contenteditable in place on click. This
-                        sr-only lead-in keeps the region announcing what it is
-                        for anyone not reading the name itself. */}
-                    <span class="sr-only">{t.documentHeading}</span>
-                    <OutputName
-                      name={title}
-                      label={t.fileNameEditableLabel}
-                      onRename={renameOutput}
-                      onEditingChange={setIsRenamingOutputName}
-                      wrapOnPhone
-                    >
-                      <span class={docStyles['doc-heading-count']}>
-                        {' · '}{pagesLabel(outputCount)}
-                        {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
-                      </span>
-                      {stillRendering && (
-                        <span class={docStyles['doc-heading-progress']}>
-                          {' · '}{formatMessage(t.renderedCount, { count: renderedCount })}
-                        </span>
-                      )}
-                    </OutputName>
-                  </h2>
+                  {/* Phone and tablet chip row: replaces the rail's file list below
+                      1024px. The controls that used to sit behind "⋯" remain
+                      visible in the compact toolbar below. */}
+                  <div class={workspaceStyles['chip-bar']}>
+                    <ul class={docStyles['chip-row']} ref={chipListRef}>
+                      {entries.map((entry, index) => (
+                        <li
+                          key={entry.id}
+                          class={docStyles.chip}
+                          data-id={entry.id}
+                        >
+                          <span class={docStyles['chip-pill']}>
+                            <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
+                            <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
+                            <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
+                            <button
+                              type="button"
+                              class={docStyles['chip-remove']}
+                              aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
+                              onClick={() => removeEntry(entry.id)}
+                            >
+                              <XIcon size={14} aria-hidden="true" />
+                            </button>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {/* MERGE-24 (2026-10-23): the quiet Download at the sticky bar's
+                        inline end, doing exactly what the completion row's Download
+                        element does in each state (same link, same handlers). */}
+                    {downloadState !== 'one-file' && (
+                      downloadLinkReady ? (
+                        <a
+                          class={workspaceStyles['chip-download']}
+                          data-quiet-download
+                          href={prepared.url ?? undefined}
+                          download={fileName}
+                          onClick={onQuietDownloadTap}
+                        >
+                          <DownloadIcon size={16} aria-hidden="true" />
+                          {t.downloadShort}
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          class={workspaceStyles['chip-download']}
+                          data-quiet-download
+                          aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
+                          onClick={downloadState === 'error' ? undefined : onQuietPreparingTap}
+                          onPointerEnter={prepared.prepareNow}
+                          onFocus={prepared.prepareNow}
+                        >
+                          <DownloadIcon size={16} aria-hidden="true" />
+                          {t.downloadShort}
+                        </button>
+                      )
+                    )}
+                    {showStrip && (
+                      <DoneStrip
+                        label={t.mergedReady}
+                        closeLabel={t.closeStrip}
+                        onClose={() => setStripOpen(false)}
+                        className={workspaceStyles['done-strip']}
+                        data-merge-done-strip
+                      >
+                        <p class={workspaceStyles['done-strip-result']}>
+                          <FileName name={fileName} className={workspaceStyles['done-strip-name']} />
+                          <span class={workspaceStyles['done-strip-detail']}>{downloadDetail}</span>
+                        </p>
+                        <ExportHandoffs
+                          items={[
+                            { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
+                            { tool: 'sign', label: t.handoffSign, Icon: FileSignature },
+                          ]}
+                          busy={handoffBusy || prepared.status !== 'ready'}
+                          onHandoff={(tool) => { void requestHandoff(tool as HandoffTool); }}
+                        />
+                        {handoffFailed && (
+                          <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                        )}
+                        {rating}
+                      </DoneStrip>
+                    )}
+                  </div>
+                </>
+              )}
+              /* These use the rail's existing control styles and handlers in one
+                 row that wraps to two lines on a phone. Sort stays visible after a
+                 page-level rearrangement: sorting files regroups the plan,
+                 while Reset order explicitly restores it. */
+              phoneControls={(
+                <div class={workspaceStyles['mobile-file-controls']} data-merge-file-controls>
+                  <div class={workspaceStyles['quiet-row']}>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                  </div>
+                  {entries.length >= 2 && (
+                    <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} hideLabel />
+                  )}
+                  {entries.length >= 2 && rearranged && (
+                    <div class={railStyles['rearranged-note']} role="status">
+                      <span>{t.pagesRearranged}</span>
+                      <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
+                        {t.resetOrder}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div class={docStyles['doc-header-right']}>
+              )}
+              /* Coarse pointer only (CSS-gated, PageWorkspace.module.css): the
+                 chip row and the page grid below both drag on press-and-hold
+                 (SortableJS's delayOnTouchOnly), with no grip icon standing in
+                 for the gesture the way the desktop rail's handle does, so
+                 nothing tells a phone that dragging works at all. Gated on
+                 having something worth reordering, same threshold as the
+                 desktop rail's own Sort control. */
+              touchHint={(entries.length > 1 || outputCount > 1) && t.touchDragHint}
+              heading={(
+                <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
+                  {/* MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the
+                      visible name IS the editable output file name - one
+                      span, at rest identical to the old plain heading text,
+                      that becomes contenteditable in place on click. This
+                      sr-only lead-in keeps the region announcing what it is
+                      for anyone not reading the name itself. */}
+                  <span class="sr-only">{t.documentHeading}</span>
+                  <OutputName
+                    name={title}
+                    label={t.fileNameEditableLabel}
+                    onRename={renameOutput}
+                    onEditingChange={setIsRenamingOutputName}
+                    wrapOnPhone
+                  >
+                    <span class={workspaceStyles['doc-heading-count']}>
+                      {' · '}{pagesLabel(outputCount)}
+                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
+                    </span>
+                    {stillRendering && (
+                      <span class={docStyles['doc-heading-progress']}>
+                        {' · '}{formatMessage(t.renderedCount, { count: renderedCount })}
+                      </span>
+                    )}
+                  </OutputName>
+                </h2>
+              )}
+              headerStatus={(
+                <>
                   <HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />
                   {pickedUpHintVisible ? (
                     /* Review P2, item 3: the rail's own "Picked up..." sentence
@@ -1369,9 +1372,196 @@ export default function PdfMergeTool({
                        would lift the grid. Keep one silent child in the slot. */
                     <span class={docStyles['header-draft-chip']} aria-hidden="true" />
                   ) : null}
-                </div>
-              </div>
+                </>
+              )}
+              railContent={(
+                <>
+                    <ul class={railStyles['file-list']} ref={listRef} aria-describedby="reorder-hint">
+                      {entries.map((entry, index) => (
+                        <li
+                          key={entry.id}
+                          class={railStyles['file-row']}
+                          data-id={entry.id}
+                          data-file-id={entry.id}
+                          data-link-row
+                          data-error={entry.error || undefined}
+                          onClick={() => scrollToCaption(entry.id)}
+                        >
+                          {/* A whole-file move is also the quickest way back from
+                              an interleaved page plan: it regroups that file's
+                              pages in the newly selected file order. */}
+                          {canReorderFiles && (
+                            <span
+                              class={railStyles.grip}
+                              tabIndex={0}
+                              role="button"
+                              aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
+                              onKeyDown={(e) => { e.stopPropagation(); onRowKeyDown(e, entry.id); }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <circle cx="5" cy="3" r="1.4" fill="currentColor" />
+                                <circle cx="11" cy="3" r="1.4" fill="currentColor" />
+                                <circle cx="5" cy="8" r="1.4" fill="currentColor" />
+                                <circle cx="11" cy="8" r="1.4" fill="currentColor" />
+                                <circle cx="5" cy="13" r="1.4" fill="currentColor" />
+                                <circle cx="11" cy="13" r="1.4" fill="currentColor" />
+                              </svg>
+                            </span>
+                          )}
+                          <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
+                          <FileName name={entry.file.name} className={railStyles['file-name']} />
+                          <span class={railStyles['file-pages']}>
+                            <FileIcon size={12} aria-hidden="true" />
+                            {entry.pageCount ?? '…'}
+                          </span>
+                          <button
+                            type="button"
+                            class={railStyles['file-remove']}
+                            aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
+                            onClick={(e) => { e.stopPropagation(); removeEntry(entry.id); }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            </svg>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
 
+                    {rearranged ? (
+                      <div class={railStyles['rearranged-note']} role="status">
+                        <span>{t.pagesRearranged}</span>
+                        <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
+                          {t.resetOrder}
+                        </button>
+                      </div>
+                    ) : showSortControls && (
+                      <div class={railStyles['list-controls']}>
+                        <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} />
+                      </div>
+                    )}
+
+                    {/* Shlomi (2026-09-13): "Draft saved" (or the restore
+                        sentence) on its own line, end-aligned, so its width never
+                        moves Add files / Clear all below it and the Hebrew
+                        edition mirrors it for free (text-align: end is a logical
+                        property). */}
+                    {/* QUAL-10: a restored workspace keeps this row after the
+                        sentence's five seconds are up (blank, then "Draft saved"
+                        on the first real edit), so its going never pulls the rows
+                        below it up. A fresh pick has no row until its first save. */}
+                    {(showPickedUpSentence || draftStatusLabel || isRestoredWorkspace) && (
+                      <div class={railStyles['draft-status-row']}>
+                        {showPickedUpSentence ? (
+                          <>
+                            {t.pickedUp} <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
+                          </>
+                        ) : draftStatusLabel ? (
+                          <>
+                            <span>{draftStatusLabel}</span>
+                            {draftState.draftSaveState !== 'error' && draftState.draftSaveState !== 'conflict' && (
+                              <DraftRetentionHint label={sm.draftRetentionInfo} />
+                            )}
+                          </>
+                        ) : '\u00a0'}
+                      </div>
+                    )}
+
+                    <div class={workspaceStyles['quiet-row']}>
+                      {/* Shlomi (2026-09-13): the two actions are bordered
+                          buttons now, so the "·" that used to separate them as
+                          text links is gone; the row's gap does the separating. */}
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                    </div>
+                </>
+              )}
+              railPinned={(
+                <>
+                  {/* Direction A follow-up (review P1): the page-numbers row and
+                      the hand-off row only make sense once a merge is possible -
+                      with one file the Download element's own text-plus-
+                      button state is the whole story, so both are held back
+                      until there are two files. Shlomi (2026-09-13): the Options
+                      disclosure is gone entirely - a plain checkbox row directly
+                      above Download, no summary, no chevron, nothing to open.
+                      MERGE-24 (2026-10-23): shown at every width, since below
+                      1024px this rail is the completion row under the pages. */}
+                  {entries.length >= 2 && (
+                    <label class={workspaceStyles['page-numbers-row']}>
+                      <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                      <span>{t.addPageNumbers}</span>
+                    </label>
+                  )}
+
+                  <DownloadElement
+                    state={downloadState}
+                    href={prepared.status === 'ready' ? prepared.url : null}
+                    fileName={fileName}
+                    detail={downloadDetail}
+                    renderedCount={renderedCount}
+                    totalCount={renderTotal}
+                    pagesToMerge={outputCount}
+                    progress={prepared.progress}
+                    errorMessage={failedEntry ? undefined : t.fixFileToMerge}
+                    messages={t}
+                    chooseFilesLabel={sm.chooseFilesMany}
+                    onChooseFiles={requestReplace}
+                    onPreparingTap={onRowPreparingTap}
+                    onWarm={prepared.prepareNow}
+                    onDownloadClick={onDownloadTap}
+                    isOutputNameBeingRenamed={isRenamingOutputName}
+                  />
+
+                  {entries.length >= 2 && (
+                    <div class={workspaceStyles['handoff-row']} onPointerOver={prepared.prepareNow} onFocusIn={prepared.prepareNow} onPointerDown={prepared.prepareNow}>
+                      {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={workspaceStyles['handoff-button']} />}
+                      {(['compress', 'sign'] as HandoffTool[]).map((tool) => {
+                        const Icon = tool === 'compress' ? Shrink : FileSignature;
+                        return (
+                          <button
+                            key={tool}
+                            type="button"
+                            class={workspaceStyles['handoff-button']}
+                            disabled={handoffBusy || prepared.status !== 'ready'}
+                            onClick={() => { void requestHandoff(tool); }}
+                          >
+                            <Icon size={16} aria-hidden="true" />
+                            {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {downloadedOnce && (
+                    <button type="button" class={workspaceStyles['start-again']} onClick={reset}>
+                      {t.startAgain}
+                    </button>
+                  )}
+
+                  {handoffFailed && (
+                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                  )}
+
+                  {downloadState === 'saved' && showInstallLine && (
+                    <p class={workspaceStyles['install-line']} data-install-line>
+                      {t.installLine}{' '}
+                      {installPrompt ? (
+                        t.installWithPrompt.split('{install}').map((part, index) =>
+                          index === 0 ? part : (
+                            <>
+                              <button type="button" class={pdfToolStyles['quiet-link']} onClick={requestInstall}>{t.installLink}</button>
+                              {part}
+                            </>
+                          ))
+                      ) : onIos ? t.installIos : t.installOther}
+                    </p>
+                  )}
+                </>
+              )}
+            >
               {failedEntry && failedReason && (
                 <ErrorMessage>
                   {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
@@ -1397,6 +1587,7 @@ export default function PdfMergeTool({
                   onPlanChange={onPlanChange}
                   announce={setAnnouncement}
                   messages={t}
+                  labelledBy="page-grid-heading"
                   grouped={grouped}
                   labelSources
                   gridRef={stripRef}
@@ -1404,196 +1595,7 @@ export default function PdfMergeTool({
                   onFirstKeyboardFocus={onFirstKeyboardFocus}
                 />
               )}
-            </div>
-
-            <div class={railStyles.rail}>
-              <div class={railStyles['rail-scroll']}>
-                <ul class={railStyles['file-list']} ref={listRef} aria-describedby="reorder-hint">
-                  {entries.map((entry, index) => (
-                    <li
-                      key={entry.id}
-                      class={railStyles['file-row']}
-                      data-id={entry.id}
-                      data-file-id={entry.id}
-                      data-link-row
-                      data-error={entry.error || undefined}
-                      onClick={() => scrollToCaption(entry.id)}
-                    >
-                      {/* A whole-file move is also the quickest way back from
-                          an interleaved page plan: it regroups that file's
-                          pages in the newly selected file order. */}
-                      {canReorderFiles && (
-                        <span
-                          class={railStyles.grip}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
-                          onKeyDown={(e) => { e.stopPropagation(); onRowKeyDown(e, entry.id); }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                            <circle cx="5" cy="3" r="1.4" fill="currentColor" />
-                            <circle cx="11" cy="3" r="1.4" fill="currentColor" />
-                            <circle cx="5" cy="8" r="1.4" fill="currentColor" />
-                            <circle cx="11" cy="8" r="1.4" fill="currentColor" />
-                            <circle cx="5" cy="13" r="1.4" fill="currentColor" />
-                            <circle cx="11" cy="13" r="1.4" fill="currentColor" />
-                          </svg>
-                        </span>
-                      )}
-                      <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
-                      <FileName name={entry.file.name} className={railStyles['file-name']} />
-                      <span class={railStyles['file-pages']}>
-                        <FileIcon size={12} aria-hidden="true" />
-                        {entry.pageCount ?? '…'}
-                      </span>
-                      <button
-                        type="button"
-                        class={railStyles['file-remove']}
-                        aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
-                        onClick={(e) => { e.stopPropagation(); removeEntry(entry.id); }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                        </svg>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                {rearranged ? (
-                  <div class={railStyles['rearranged-note']} role="status">
-                    <span>{t.pagesRearranged}</span>
-                    <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
-                      {t.resetOrder}
-                    </button>
-                  </div>
-                ) : showSortControls && (
-                  <div class={railStyles['list-controls']}>
-                    <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} />
-                  </div>
-                )}
-
-                {/* Shlomi (2026-09-13): "Draft saved" (or the restore
-                    sentence) on its own line, end-aligned, so its width never
-                    moves Add files / Clear all below it and the Hebrew
-                    edition mirrors it for free (text-align: end is a logical
-                    property). */}
-                {/* QUAL-10: a restored workspace keeps this row after the
-                    sentence's five seconds are up (blank, then "Draft saved"
-                    on the first real edit), so its going never pulls the rows
-                    below it up. A fresh pick has no row until its first save. */}
-                {(showPickedUpSentence || draftStatusLabel || isRestoredWorkspace) && (
-                  <div class={railStyles['draft-status-row']}>
-                    {showPickedUpSentence ? (
-                      <>
-                        {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
-                      </>
-                    ) : draftStatusLabel ? (
-                      <>
-                        <span>{draftStatusLabel}</span>
-                        {draftState.draftSaveState !== 'error' && draftState.draftSaveState !== 'conflict' && (
-                          <DraftRetentionHint label={sm.draftRetentionInfo} />
-                        )}
-                      </>
-                    ) : '\u00a0'}
-                  </div>
-                )}
-
-                <div class={railStyles['quiet-row']}>
-                  {/* Shlomi (2026-09-13): the two actions are bordered
-                      buttons now, so the "·" that used to separate them as
-                      text links is gone; the row's gap does the separating. */}
-                  <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                  <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
-                </div>
-              </div>
-
-              <div class={railStyles['rail-pinned']}>
-                {/* Direction A follow-up (review P1): the page-numbers row and
-                    the hand-off row only make sense once a merge is possible -
-                    with one file the Download element's own text-plus-
-                    button state is the whole story, so both are held back
-                    until there are two files. Shlomi (2026-09-13): the Options
-                    disclosure is gone entirely - a plain checkbox row directly
-                    above Download, no summary, no chevron, nothing to open.
-                    MERGE-24 (2026-10-23): shown at every width, since below
-                    1024px this rail is the completion row under the pages. */}
-                {entries.length >= 2 && (
-                  <label class={railStyles['page-numbers-row']}>
-                    <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                    <span>{t.addPageNumbers}</span>
-                  </label>
-                )}
-
-                <DownloadElement
-                  state={downloadState}
-                  href={prepared.status === 'ready' ? prepared.url : null}
-                  fileName={fileName}
-                  detail={downloadDetail}
-                  renderedCount={renderedCount}
-                  totalCount={renderTotal}
-                  pagesToMerge={outputCount}
-                  progress={prepared.progress}
-                  errorMessage={failedEntry ? undefined : t.fixFileToMerge}
-                  messages={t}
-                  chooseFilesLabel={sm.chooseFilesMany}
-                  onChooseFiles={requestReplace}
-                  onPreparingTap={onRowPreparingTap}
-                  onWarm={prepared.prepareNow}
-                  onDownloadClick={onDownloadTap}
-                  isOutputNameBeingRenamed={isRenamingOutputName}
-                />
-
-                {entries.length >= 2 && (
-                  <div class={railStyles['handoff-row']} onPointerOver={prepared.prepareNow} onFocusIn={prepared.prepareNow} onPointerDown={prepared.prepareNow}>
-                    {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={railStyles['handoff-button']} />}
-                    {(['compress', 'sign'] as HandoffTool[]).map((tool) => {
-                      const Icon = tool === 'compress' ? Shrink : FileSignature;
-                      return (
-                        <button
-                          key={tool}
-                          type="button"
-                          class={railStyles['handoff-button']}
-                          disabled={handoffBusy || prepared.status !== 'ready'}
-                          onClick={() => { void requestHandoff(tool); }}
-                        >
-                          <Icon size={16} aria-hidden="true" />
-                          {tool === 'compress' ? t.handoffCompress : t.handoffSign}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {downloadedOnce && (
-                  <button type="button" class={railStyles['start-again']} onClick={reset}>
-                    {t.startAgain}
-                  </button>
-                )}
-
-                {handoffFailed && (
-                  <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-                )}
-
-                {downloadState === 'saved' && showInstallLine && (
-                  <p class={railStyles['install-line']} data-install-line>
-                    {t.installLine}{' '}
-                    {installPrompt ? (
-                      t.installWithPrompt.split('{install}').map((part, index) =>
-                        index === 0 ? part : (
-                          <>
-                            <button type="button" class={pdfToolStyles['quiet-link']} onClick={requestInstall}>{t.installLink}</button>
-                            {part}
-                          </>
-                        ))
-                    ) : onIos ? t.installIos : t.installOther}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-            </div>
+            </PageWorkspace>
           )}
         </ToolShellBridge>
       )}

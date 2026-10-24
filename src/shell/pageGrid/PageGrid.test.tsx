@@ -113,6 +113,7 @@ describe('PageGrid', () => {
       onPlanChange,
       announce,
       messages: englishMergeMessages,
+      labelledBy: 'page-grid-heading',
       grouped: overrides.grouped ?? isGrouped(plan),
       labelSources: true,
       gridRef,

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
    (`.tool-card`, unchanged) still fills the width before any file is
    loaded, which is what the empty-state boxes below prove; once files land
    the old identity card / sort toolbar / Merge button are gone, replaced by
-   the white "document" (the page grid, heading `#merge-pages-heading`) and
+   the white "document" (the page grid, heading `#page-grid-heading`) and
    a 320px rail. There is no Merge button - the pre-merge runs in the
    background and the Download element (one <a data-state>) reports on the
    result directly, so this spec checks that it arrives ready with an href,
@@ -131,8 +131,8 @@ test('the heading name is WYSIWYG: no chrome at rest, and the heading rect never
   })));
   await page.locator('input[type="file"]').setInputFiles(files);
 
-  const heading = page.locator('#merge-pages-heading');
-  const name = page.locator('#merge-pages-heading span[contenteditable]').first();
+  const heading = page.locator('#page-grid-heading');
+  const name = page.locator('#page-grid-heading span[contenteditable]').first();
   await expect(name).toBeVisible({ timeout: 10_000 });
   await expect(name).toHaveText('merged_Invoice 2024');
   await expect(name).toHaveAttribute('contenteditable', 'false');
@@ -181,7 +181,7 @@ test('a click places the caret where clicked, never select-all, never the start'
   })));
   await page.locator('input[type="file"]').setInputFiles(files);
 
-  const name = page.locator('#merge-pages-heading span[contenteditable]').first();
+  const name = page.locator('#page-grid-heading span[contenteditable]').first();
   await expect(name).toHaveText('merged_Invoice 2024', { timeout: 10_000 });
 
   await name.click();
@@ -353,7 +353,7 @@ test('a Hebrew first file keeps the merged_ prefix untranslated, in the heading 
   })));
   await page.locator('input[type="file"]').setInputFiles(files);
 
-  const name = page.locator('#merge-pages-heading span[contenteditable]').first();
+  const name = page.locator('#page-grid-heading span[contenteditable]').first();
   await expect(name).toHaveText('merged_אישור שנתי', { timeout: 10_000 });
   await expect(page.locator('[class*="doc-heading-ext"]').first()).toHaveText('.pdf');
 

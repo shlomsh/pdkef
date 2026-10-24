@@ -53,7 +53,7 @@ test('a file set and a page rotation survive closing and reopening the tab', asy
   // compares that directly rather than slicing the whole heading's innerText
   // on "·" - the heading is a flex row of several elements now, and
   // innerText inserts a line break between flex items.
-  const nameBefore = await page.locator('#merge-pages-heading [class*="name"]').first().innerText();
+  const nameBefore = await page.locator('#page-grid-heading [class*="name"]').first().innerText();
 
   await page.close();
   const restored = await context.newPage();
@@ -67,7 +67,7 @@ test('a file set and a page rotation survive closing and reopening the tab', asy
   // "merged_one" - the same automatic output name, not the rotation-
   // carrying card count, so this only proves the restore re-mounted the same
   // shape of document, not that the rotation is unique to it.
-  await expect(restored.locator('#merge-pages-heading [class*="name"]').first()).toHaveText(nameBefore);
+  await expect(restored.locator('#page-grid-heading [class*="name"]').first()).toHaveText(nameBefore);
 });
 
 /* MERGE-11: below 768px the name wraps onto a second line rather than
@@ -85,7 +85,7 @@ test('a long output name wraps at 375px instead of truncating', async ({ page })
   })));
   await page.locator('input[type="file"]').setInputFiles(files);
 
-  const name = page.locator('#merge-pages-heading [class*="name"]').first();
+  const name = page.locator('#page-grid-heading [class*="name"]').first();
   await expect(name).toBeVisible({ timeout: 10_000 });
   const lineCount = await name.evaluate((el) => {
     const range = document.createRange();

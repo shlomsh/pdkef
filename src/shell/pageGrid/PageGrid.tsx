@@ -29,6 +29,8 @@ export interface PageGridProps {
   onPlanChange: (update: (current: PlanEntry[]) => PlanEntry[]) => void;
   announce: (message: string) => void;
   messages: PageGridMessages;
+  /** The id of the heading that names the document the pages belong to. */
+  labelledBy: string;
   /** Whether every file's pages still sit in one contiguous run
    * (mergePlan.isGrouped) - captions render only while this holds; once a
    * page crosses a file boundary the per-page tag dot takes over. */
@@ -165,6 +167,7 @@ export default function PageGrid({
   onPlanChange,
   announce,
   messages: t,
+  labelledBy,
   grouped,
   labelSources,
   gridRef,
@@ -776,7 +779,7 @@ export default function PageGrid({
   });
 
   return (
-    <section class={styles.section} aria-labelledby="merge-pages-heading">
+    <section class={styles.section} aria-labelledby={labelledBy}>
       <p class="sr-only" id="merge-strip-hint">{t.stripHint}</p>
       <ul
         class={styles.grid}
