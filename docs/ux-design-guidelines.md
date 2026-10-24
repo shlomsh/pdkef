@@ -402,6 +402,20 @@ in the HTML but hide once files are loaded, like the subhead. (MERGE-24, 2026-10
 - Objects arrive with a short fade and rise as they render, and a completion moment (the bands sweep to
   one colour as the saved check draws) marks the export. Both are skipped under reduced motion. (MERGE-24, 2026-10-23)
 
+## 20. One page grid, identical in every tool
+
+*(GRID epic, 2026-10-24)*
+
+- A tool that shows a document's pages shows them through the shared page grid and workspace
+  (`src/shell/pageGrid/`, `src/shell/pageWorkspace/`): the same cell size, the same rotate, skip and
+  preview cluster in the same place, the same drag from anywhere on the page, the same keys, the same
+  Undo/Redo stack and the same background-prepared Download. A tool composes them; it never grows its
+  own grid. `e2e/cross-tool/page-grid-parity.spec.js` holds the tools to it. Design record:
+  [docs/shared-page-grid.md](./shared-page-grid.md). (GRID-01 to GRID-04, 2026-10-24)
+- The number under a page is where it lands in the output; the preview and the cell's label name the
+  source page. (GRID-04)
+- A tap on a page selects it; nothing destructive hangs off a tap on the page body. (GRID-04)
+
 ## The review questions
 
 Every tool review answers these.
