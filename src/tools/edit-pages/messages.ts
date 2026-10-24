@@ -92,7 +92,7 @@ export const englishEditPagesMessages: EditPagesMessages = {
   undoneAnnouncement: 'Undid last change.',
   redoneAnnouncement: 'Redid last change.',
   allIncluded: 'All pages included.',
-  allSkipped: 'All pages skipped.',
+  allSkipped: 'Every page is skipped',
   inverted: 'Included and skipped pages swapped.',
   loadingStructure: 'Loading PDF file structure…',
   loaded: 'Loaded PDF file "{name}" with {count} pages.',

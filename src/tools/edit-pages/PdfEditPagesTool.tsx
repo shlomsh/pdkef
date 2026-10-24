@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren, ComponentType } from 'preact';
-import { Download as DownloadIcon, FileSignature, Shrink } from 'lucide-preact';
+import { FileSignature, Shrink } from 'lucide-preact';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { editPages } from './editPages.js';
 import { editOptionsFromPlan, includeAll, invert, skipAll } from './editPlan.ts';
@@ -24,8 +24,9 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import FileName from '../../shell/FileName.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
-import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
+import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import QuietDownload from '../../shell/pageWorkspace/QuietDownload.tsx';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
@@ -184,6 +185,7 @@ export default function PdfEditPagesTool() {
     fileName,
     hrefs: HANDOFF_HREFS,
     blocked: prepared.status === 'error' ? 'error' : null,
+    nothing: plan.length > 0 && outputCount === 0,
     announce: setAnnouncement,
     messages: { ready: t.editedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
   });
@@ -283,33 +285,18 @@ export default function PdfEditPagesTool() {
             <PageWorkspace
               phoneBar={(
                 <div class={workspaceStyles['chip-bar']}>
-                  {/* The quiet Download at the sticky bar's inline end, doing exactly
-                      what the Download element does in each state. */}
-                  {downloadLinkReady ? (
-                    <a
-                      class={workspaceStyles['chip-download']}
-                      data-quiet-download
-                      href={prepared.url ?? undefined}
-                      download={fileName}
-                      onClick={onQuietDownloadTap}
-                    >
-                      <DownloadIcon size={16} aria-hidden="true" />
-                      {t.downloadShort}
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      class={workspaceStyles['chip-download']}
-                      data-quiet-download
-                      aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
-                      onClick={downloadState === 'error' ? undefined : onQuietPreparingTap}
-                      onPointerEnter={prepared.prepareNow}
-                      onFocus={prepared.prepareNow}
-                    >
-                      <DownloadIcon size={16} aria-hidden="true" />
-                      {t.downloadShort}
-                    </button>
-                  )}
+                  {/* Replace file at the bar's start, the quiet Download at its end, like Merge's chip row. */}
+                  <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.replaceLabel}</button>
+                  <QuietDownload
+                    state={downloadState}
+                    linkReady={downloadLinkReady}
+                    href={prepared.url}
+                    fileName={fileName}
+                    label={t.downloadShort}
+                    onDownloadTap={onQuietDownloadTap}
+                    onPreparingTap={onQuietPreparingTap}
+                    onWarm={prepared.prepareNow}
+                  />
                   {showStrip && (
                     <DoneStrip
                       label={t.editedReady}
@@ -336,7 +323,6 @@ export default function PdfEditPagesTool() {
               phoneControls={(
                 <div class={workspaceStyles['mobile-file-controls']}>
                   {bulkRow}
-                  {replaceRow(requestReplace)}
                 </div>
               )}
               touchHint={plan.length > 1 && t.touchDragHint}
@@ -388,21 +374,15 @@ export default function PdfEditPagesTool() {
                     isOutputNameBeingRenamed={isRenamingOutputName}
                   />
 
-                  <div class={workspaceStyles['handoff-row']} onPointerOver={prepared.prepareNow} onFocusIn={prepared.prepareNow} onPointerDown={prepared.prepareNow}>
-                    {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={workspaceStyles['handoff-button']} />}
-                    {handoffs.map(({ tool, label, Icon }) => (
-                      <button
-                        key={tool}
-                        type="button"
-                        class={workspaceStyles['handoff-button']}
-                        disabled={handoffBusy || prepared.status !== 'ready'}
-                        onClick={() => { void requestHandoff(tool); }}
-                      >
-                        <Icon size={16} aria-hidden="true" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <FinishRow
+                    ready={prepared.status === 'ready'}
+                    shareReady={shareReady}
+                    onShare={handleShare}
+                    busy={handoffBusy}
+                    onHandoff={(tool) => { void requestHandoff(tool); }}
+                    onWarm={prepared.prepareNow}
+                    labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign }}
+                  />
 
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>

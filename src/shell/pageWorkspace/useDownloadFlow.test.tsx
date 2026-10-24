@@ -27,6 +27,11 @@ describe('decideDownloadState', () => {
     expect(decideDownloadState(null, 'ready', false, false)).toBe('ready');
     expect(decideDownloadState(null, 'ready', true, false)).toBe('saved');
   });
+  it('says nothing to download when every page is skipped, unless the tool is blocked', () => {
+    expect(decideDownloadState(null, 'idle', false, false, true)).toBe('nothing');
+    expect(decideDownloadState(null, 'ready', true, true, true)).toBe('nothing');
+    expect(decideDownloadState('error', 'idle', false, false, true)).toBe('error');
+  });
 });
 
 describe('useDownloadFlow', () => {

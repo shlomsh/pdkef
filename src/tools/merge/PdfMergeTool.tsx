@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature, File as FileIcon, Download as DownloadIcon, X as XIcon } from 'lucide-preact';
+import { Shrink, FileSignature, File as FileIcon, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -35,11 +35,12 @@ import { useToolShell } from '../../shell/ToolShell.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
-import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
+import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import QuietDownload from '../../shell/pageWorkspace/QuietDownload.tsx';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import FileName from '../../shell/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -365,6 +366,8 @@ export default function PdfMergeTool({
     fileName,
     hrefs,
     blocked: entries.length < 2 ? 'one-file' : (failedEntry || otherError) ? 'error' : null,
+    // Page counts still arriving leave the plan empty; that is not "every page skipped".
+    nothing: plan.length > 0 && outputPageCount(plan) === 0,
     announce: setAnnouncement,
     messages: { ready: t.mergedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
     onDelivered: startMergeMoment,
@@ -1081,33 +1084,16 @@ export default function PdfMergeTool({
                     {/* MERGE-24 (2026-10-23): the quiet Download at the sticky bar's
                         inline end, doing exactly what the completion row's Download
                         element does in each state (same link, same handlers). */}
-                    {downloadState !== 'one-file' && (
-                      downloadLinkReady ? (
-                        <a
-                          class={workspaceStyles['chip-download']}
-                          data-quiet-download
-                          href={prepared.url ?? undefined}
-                          download={fileName}
-                          onClick={onQuietDownloadTap}
-                        >
-                          <DownloadIcon size={16} aria-hidden="true" />
-                          {t.downloadShort}
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          class={workspaceStyles['chip-download']}
-                          data-quiet-download
-                          aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
-                          onClick={downloadState === 'error' ? undefined : onQuietPreparingTap}
-                          onPointerEnter={prepared.prepareNow}
-                          onFocus={prepared.prepareNow}
-                        >
-                          <DownloadIcon size={16} aria-hidden="true" />
-                          {t.downloadShort}
-                        </button>
-                      )
-                    )}
+                    <QuietDownload
+                      state={downloadState}
+                      linkReady={downloadLinkReady}
+                      href={prepared.url}
+                      fileName={fileName}
+                      label={t.downloadShort}
+                      onDownloadTap={onQuietDownloadTap}
+                      onPreparingTap={onQuietPreparingTap}
+                      onWarm={prepared.prepareNow}
+                    />
                     {showStrip && (
                       <DoneStrip
                         label={t.mergedReady}
@@ -1363,24 +1349,15 @@ export default function PdfMergeTool({
                   />
 
                   {entries.length >= 2 && (
-                    <div class={workspaceStyles['handoff-row']} onPointerOver={prepared.prepareNow} onFocusIn={prepared.prepareNow} onPointerDown={prepared.prepareNow}>
-                      {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={workspaceStyles['handoff-button']} />}
-                      {(['compress', 'sign'] as HandoffTool[]).map((tool) => {
-                        const Icon = tool === 'compress' ? Shrink : FileSignature;
-                        return (
-                          <button
-                            key={tool}
-                            type="button"
-                            class={workspaceStyles['handoff-button']}
-                            disabled={handoffBusy || prepared.status !== 'ready'}
-                            onClick={() => { void requestHandoff(tool); }}
-                          >
-                            <Icon size={16} aria-hidden="true" />
-                            {tool === 'compress' ? t.handoffCompress : t.handoffSign}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <FinishRow
+                      ready={prepared.status === 'ready'}
+                      shareReady={shareReady}
+                      onShare={handleShare}
+                      busy={handoffBusy}
+                      onHandoff={(tool) => { void requestHandoff(tool); }}
+                      onWarm={prepared.prepareNow}
+                      labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign }}
+                    />
                   )}
 
                   {downloadedOnce && (

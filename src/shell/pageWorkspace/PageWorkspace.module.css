@@ -274,6 +274,8 @@
    the plain secondary button (QUAL-27: export is never filled in a toolbar). */
 .chip-download {
   flex: none;
+  /* At the bar's end even when the start holds a single button. */
+  margin-inline-start: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
