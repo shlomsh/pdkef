@@ -78,7 +78,7 @@ type Status = 'idle' | 'loading' | 'preparing' | 'ready' | 'error';
 const PER_CELL_CAPTION_LIMIT = 24;
 
 export interface PdfSplitToolProps {
-  /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
+  /** Server-rendered by its src/pages/[locale]/<tool>.astro route for a localized
    * edition; every key not overridden keeps the English default. */
   messages?: Partial<SplitMessages>;
   shellMessages?: Partial<ShellMessages>;
