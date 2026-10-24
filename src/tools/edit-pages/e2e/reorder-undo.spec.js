@@ -1,32 +1,30 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
+import { readFile } from 'node:fs/promises';
 
 /**
  * Real drag-to-reorder, then undo/redo, in a real browser.
  *
- * PdfEditPagesTool.undo.test.tsx already proves the reducer/history-stack
- * bookkeeping under jsdom, but it spies on `Sortable.create` and calls
- * `options.onEnd({ oldIndex, newIndex })` directly - no DOM node ever
- * actually moves. In a real browser, SortableJS (`forceFallback: true`)
- * moves the dragged card's own DOM node on drop, and only afterwards does
- * `onEnd` update the `pages` state array that Preact then re-renders from
- * (keyed by `page.pageNumber`, not array index - see PdfEditPagesTool.tsx).
- * Undo restores a different order through state alone, with no matching
- * DOM-level move. The open question this spec answers: once SortableJS has
- * already physically rearranged the grid's children, does Preact's keyed
- * reconciliation still land the DOM in the order the restored state says it
- * should be, for both the post-drag order and the order undo restores?
+ * Edit Pages runs on the shared page grid (docs/shared-page-grid.md), where a
+ * page is dragged by its thumbnail. The unit tests prove the history-stack
+ * bookkeeping under jsdom, but only a real mouse drag shows that, after the
+ * drag controller has physically moved the cell, the keyed re-render still
+ * lands the DOM in the order state says, both for the post-drag order and for
+ * the order Undo and Redo restore.
  *
- * Page identity in the DOM is `[data-page]` on each `.page-card`
- * (PdfEditPagesTool.tsx), which is the PDF's original page number and never
- * changes - it is exactly the render key, so reading it back off the DOM in
- * document order is reading the tool's own idea of "visible page order."
+ * Page identity in the DOM is `data-key` on each `ul[data-page-grid] > li`,
+ * the render key, so reading it back in document order is reading the tool's
+ * own idea of the visible page order.
  */
 
 async function makePdfBuffer(pageCount) {
   const document = await PDFDocument.create();
   for (let i = 0; i < pageCount; i += 1) document.addPage([300, 400]);
   return Buffer.from(await document.save());
+}
+
+function cells(page) {
+  return page.locator('ul[data-page-grid] > li[data-key]');
 }
 
 async function openEditPagesTool(page, pageCount) {
@@ -37,64 +35,46 @@ async function openEditPagesTool(page, pageCount) {
     mimeType: 'application/pdf',
     buffer: await makePdfBuffer(pageCount),
   });
-  await expect(page.locator('[data-page]')).toHaveCount(pageCount);
+  await expect(cells(page)).toHaveCount(pageCount);
+  // Wait for the settled fit: a late thumbnail can refit the grid and move a cell from under the pointer.
+  for (let i = 0; i < pageCount; i += 1) {
+    await expect(cells(page).nth(i).locator('img')).toHaveAttribute('src', /^(data|blob):/, { timeout: 10_000 });
+  }
+  await expect(page.locator('ul[data-page-grid][data-fit-settled]')).toBeVisible();
 }
 
 /** The full visible page order, read straight off the DOM - never from
  * `pages` state, which is exactly what a reconciliation bug would disagree
  * with. */
 async function visibleOrder(page) {
-  return page.$$eval('[data-page]', (nodes) => nodes.map((node) => node.getAttribute('data-page')));
+  return page.$$eval('ul[data-page-grid] > li[data-key]', (nodes) => nodes.map((node) => node.getAttribute('data-key')));
 }
 
-/**
- * Drags one page card onto another using real `page.mouse` events, the way
- * `forceFallback: true` expects: SortableJS's fallback path listens for
- * plain mousedown/mousemove/mouseup on the document, not native HTML5 DnD
- * events, so this is what a real pointer drag looks like to it. Several
- * intermediate `mousemove` steps are used (not one jump) because SortableJS
- * recomputes the swap target on each move event.
- */
-async function dragPageOnto(page, fromPageNumber, toPageNumber) {
-  const handle = page.locator(`[data-page="${fromPageNumber}"] [title="Drag to reorder"]`);
-  const handleBox = await handle.boundingBox();
-  const targetBox = await page.locator(`[data-page="${toPageNumber}"]`).boundingBox();
-  if (!handleBox || !targetBox) throw new Error('Drag handle or drop target has no bounding box');
-
-  const start = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 };
-  // Land in the far half of the target card (in the direction of travel) so
-  // the drop reads as "after" the target, not "before" it.
-  const towardEnd = targetBox.x > handleBox.x ? 0.85 : 0.15;
-  const end = { x: targetBox.x + targetBox.width * towardEnd, y: targetBox.y + targetBox.height / 2 };
-
-  await page.mouse.move(start.x, start.y);
+/** Drags one page onto another by its thumbnail with real `page.mouse` events,
+ * in several steps because the drop target is recomputed on each move. */
+async function dragPageOnto(page, fromIndex, toIndex) {
+  const from = await cells(page).nth(fromIndex).locator('[data-thumb-box]').boundingBox();
+  const to = await cells(page).nth(toIndex).locator('[data-thumb-box]').boundingBox();
+  if (!from || !to) throw new Error('Drag source or drop target has no bounding box');
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
-  // A small first move past SortableJS's fallback tolerance to register the
-  // drag start before heading toward the target.
-  await page.mouse.move(start.x + 8, start.y + 4, { steps: 5 });
-
-  const steps = 12;
-  for (let i = 1; i <= steps; i += 1) {
-    await page.mouse.move(
-      start.x + (end.x - start.x) * (i / steps),
-      start.y + (end.y - start.y) * (i / steps),
-      { steps: 3 },
-    );
-  }
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
   await page.mouse.up();
 }
+
+test.use({ viewport: { width: 1280, height: 900 } });
 
 test.describe('Edit Pages drag-to-reorder undo/redo', () => {
   test('a real drag reorders the visible pages, and undo/redo restore each order exactly', async ({ page }) => {
     await openEditPagesTool(page, 5);
 
     const originalOrder = await visibleOrder(page);
-    expect(originalOrder).toEqual(['1', '2', '3', '4', '5']);
+    expect(originalOrder).toHaveLength(5);
 
-    // Drag page 1 onto page 4 - a real, multi-position move, not an adjacent
+    // Drag the first page onto the fourth - a real, multi-position move, not an adjacent
     // swap, so a bug that merely swaps neighbours instead of truly
     // reordering would still be caught.
-    await dragPageOnto(page, 1, 4);
+    await dragPageOnto(page, 0, 3);
 
     const draggedOrder = await visibleOrder(page);
     expect(draggedOrder, `Drag did not reorder the grid; order is still ${draggedOrder.join(',')}`)
@@ -118,4 +98,23 @@ test.describe('Edit Pages drag-to-reorder undo/redo', () => {
     expect(afterRedo, `Redo should restore ${draggedOrder.join(',')} but the DOM shows ${afterRedo.join(',')}`)
       .toEqual(draggedOrder);
   });
+});
+
+test('the downloaded file after "skip page 2, rotate page 1" has one page fewer and page 1 rotated 90', async ({ page }) => {
+  await openEditPagesTool(page, 4);
+  await cells(page).nth(1).click();
+  await page.keyboard.press('Delete');
+  await expect(cells(page).nth(1)).toHaveAttribute('data-skipped', 'true');
+  await cells(page).first().click();
+  await page.keyboard.press('r');
+  await expect(cells(page).first()).toHaveAttribute('data-rotation', '90');
+
+  const link = page.getByRole('link', { name: /Download/ }).first();
+  await expect(link).toHaveAttribute('href', /^blob:/, { timeout: 15_000 });
+  const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+  const savedPath = await download.path();
+  if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
+  const out = await PDFDocument.load(await readFile(savedPath));
+  expect(out.getPageCount()).toBe(3);
+  expect(out.getPage(0).getRotation().angle).toBe(90);
 });
