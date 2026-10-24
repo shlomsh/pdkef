@@ -1,10 +1,9 @@
 ---
 id: "MERGE-24"
 title: "Merge polish: pages fill the stage, linked files, a download moment"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 order: 1
 depends_on: []
 ---
@@ -41,6 +40,15 @@ Added on the dev server the same day, from Shlomi's review:
 11. **The rail clears the app bar**: it sticks below it, and with many files its list scrolls inside
     while Download stays pinned at its foot.
 
+Added on 2026-10-24, from Shlomi's review, a code review and a QA pass:
+
+12. **The top Download opens the done strip** below 1024px, Redact's strip (now `src/shell/DoneStrip`,
+    shared): what was saved, Compress and Sign, then the rating ask.
+13. **Each file chip has a remove button** below 1024px, with the rail's undo.
+14. **Below 1024px the card ends at its pages** (no grid minimum, no reserved skipped slot, main does
+    not stretch), and the phone heading is one run of text.
+15. **The grid shows once its fit settles** at every width, so a restore does not shift.
+
 The target, width by width, is [docs/merge-stage-spec.md](../../docs/merge-stage-spec.md).
 
 ## Contract between the pieces
@@ -50,18 +58,27 @@ The target, width by width, is [docs/merge-stage-spec.md](../../docs/merge-stage
 - `useLinkedHighlight` sets `data-linking="row" | "page"` on the layout root and `data-linked` on every
   element sharing the hovered or focused `data-file-id`. CSS reads only those attributes.
 - The moment is `data-merge-moment` on the layout root for its duration; the bands' CSS reads it.
-- Sizing is the pure `fitCellWidth` / `rasterWidthFor` in `src/tools/merge/lib/stageFit.ts`; the hook
+- Sizing is the pure `fitCellWidth` / `rasterWidthFor` / `rasterWidthForItem` / `fitSettled` in `src/tools/merge/stageFit.ts`; the hook
   only measures.
 
 ## Acceptance
 
-- [ ] At 1280x900 with three files (7 pages) the pages are wider than 104px and the last row ends inside
+- [x] At 1280x900 with three files (7 pages) the pages are wider than 104px and the last row ends inside
       the card's first screen; at 30 pages they are 104px as today.
-- [ ] Unit tests cover `fitCellWidth` and `rasterWidthFor`, seen failing first.
-- [ ] Hover and focus link rows and pages both ways; touch and drag show nothing.
-- [ ] At 820 and 375 nothing is pinned to the bottom; scrolled to the last page, the quiet Download is
+- [x] Unit tests cover `fitCellWidth` and `rasterWidthFor`, seen failing first.
+- [x] Hover and focus link rows and pages both ways; touch and drag show nothing.
+- [x] At 820 and 375 nothing is pinned to the bottom; scrolled to the last page, the quiet Download is
       in view and the completion row follows the last page.
-- [ ] With 15 files at 1280x900, scrolled, the rail's first row is below the app bar and Download is
+- [x] With 15 files at 1280x900, scrolled, the rail's first row is below the app bar and Download is
       inside the viewport.
-- [ ] `/he/merge/` keeps its name order and middle cut with a Hebrew file name.
-- [ ] `check:push` green.
+- [x] `/he/merge/` keeps its name order and middle cut with a Hebrew file name.
+- [x] `check:push` green.
+
+## Closed 2026-10-24
+
+Verified on a production build: the MERGE-24 path matrix passes all 93 lines of
+[docs/merge-stage-spec.md](../../docs/merge-stage-spec.md) (desktop, tablet, phone, Hebrew), a fresh code
+review's eight findings and a QA pass's findings are fixed with tests seen failing first, and restore
+layout shift is 0.0002 (was 0.052 on desktop, 0.064 on a phone). The lessons are in
+[docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md) sections 5, 8, 10, 14, 15, 18 and 19.
+Left as decided before this ticket: phone thumbnails rasterise at 96px, and short-run tags cut at the end.
