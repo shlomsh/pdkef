@@ -21,9 +21,6 @@ import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
-import { usePdfShare } from '../../lib/usePdfShare.js';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { useEditHistory } from '../../lib/history/useEditHistory.js';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { isIOSDevice } from '../../lib/platform.ts';
@@ -40,8 +37,9 @@ import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
-import DownloadElement, { type DownloadElementState } from '../../shell/DownloadElement.tsx';
+import DownloadElement from '../../shell/DownloadElement.tsx';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import FileName from '../../shell/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -156,7 +154,6 @@ function markFirstResultSeen() {
 /* MERGE-14: Compress and Sign only. Split was in the first cut and came out
    on Shlomi's read: after page-level reorder and skip in the grid, splitting
    the result is not the next step anyone takes. */
-type HandoffTool = 'compress' | 'sign';
 
 /* MERGE-13: the same synchronous hint ToolPageLayout.astro's pre-paint script
    and useDraftPersistence read, so the empty state can be held back on the
@@ -268,20 +265,7 @@ export default function PdfMergeTool({
   const [showShortcutsHint, setShowShortcutsHint] = useState(false);
   const shortcutsShownRef = useRef(false);
   const shortcutsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /* MERGE-12 analytics: the person's intent is the Download tap, which is
-     what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
-  const [tap, setTap] = useState<'idle' | 'merging' | 'done'>('idle');
-  const [pendingDownload, setPendingDownload] = useState(false);
-  // MERGE-24 (2026-10-23): the phone done strip under the sticky bar. Only the
-  // quiet Download opens it; a quiet tap that beat the build is remembered in
-  // the ref until the pending download is delivered.
-  const [stripOpen, setStripOpen] = useState(false);
-  const quietPendingRef = useRef(false);
   const downloaded = useDownloaded();
-  // Only the person's Download tap, not usePreparedMerge's speculative build.
-  useHoldUpdate(tap === 'merging');
-  const [downloadedOnce, setDownloadedOnce] = useState(false);
-  const { shareReady, prepare, clearPrepared, sharePrepared, download } = usePdfShare();
   const listRef = useRef<HTMLUListElement | null>(null);
   /* Phone chip row (Shlomi's reduction, wave 2): a second, independent
    * SortableJS list over the same `entries`, since the desktop rail's list
@@ -321,9 +305,6 @@ export default function PdfMergeTool({
   // to collapse after a user gesture.
   const [isRestoredWorkspace, setIsRestoredWorkspace] = useState(false);
   const draftOptions = useMemo(() => ({ addPageNumbers }), [addPageNumbers]);
-  /* MERGE-14: hand the result to Compress or Sign without re-picking. */
-  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
   /* MERGE-17 */
   const [showInstallLine, setShowInstallLine] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -366,13 +347,29 @@ export default function PdfMergeTool({
     quietPolicy,
   });
 
-  // Once the plan is ready, any subsequent edit takes the Download element
-  // back through preparing -> ready, without replaying its first-ready
-  // animation (DownloadElement tracks that itself in a ref); this only has
-  // to stop pretending a stale "saved" still applies to the new blob.
-  useEffect(() => {
-    if (prepared.status !== 'ready') setDownloadedOnce(false);
-  }, [prepared.status]);
+  // MERGE-04: which file failed, and why. Inspection catches most cases
+  // before a merge is attempted; mergePdfs's MergeFileError is the second line.
+  const failedEntry = entries.find((e) => e.error)
+    ?? (prepared.error instanceof MergeFileError ? entries[prepared.error.fileIndex] ?? null : null);
+  const failedReason: 'encrypted' | 'unreadable' | null = failedEntry
+    ? (failedEntry.error ?? (prepared.error instanceof MergeFileError ? prepared.error.reason : 'unreadable'))
+    : null;
+  const otherError = !failedEntry && prepared.status === 'error';
+
+  const {
+    tap, downloadState, downloadedOnce, downloadLinkReady, showStrip, shareReady, handoffBusy, handoffFailed,
+    requestHandoff, onDownloadTap, onQuietDownloadTap, onQuietPreparingTap, onRowPreparingTap, handleShare,
+    closeStrip, reset: resetDownloadFlow,
+  } = useDownloadFlow({
+    prepared,
+    fileName,
+    hrefs,
+    blocked: entries.length < 2 ? 'one-file' : (failedEntry || otherError) ? 'error' : null,
+    announce: setAnnouncement,
+    messages: { ready: t.mergedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
+    onDelivered: startMergeMoment,
+    navigate,
+  });
 
   // Drag-to-reorder in the rail: SortableJS owns the DOM order during a drag;
   // on drop we read its final order back into Preact state, which becomes
@@ -644,14 +641,9 @@ export default function PdfMergeTool({
   // saved draft: Clear all deletes that itself, a hand-off must not.
   const clearWorkspace = useCallback(() => {
     resetModel({ entries: [], plan: [], sortMode: 'added' });
-    clearPrepared();
+    resetDownloadFlow();
     setRejectedFiles([]);
     setDuplicates([]);
-    setTap('idle');
-    setPendingDownload(false);
-    quietPendingRef.current = false;
-    setStripOpen(false);
-    setDownloadedOnce(false);
     setRenderedCount(0);
     setShowPickedUpSentence(false);
     setIsRestoredWorkspace(false);
@@ -664,7 +656,7 @@ export default function PdfMergeTool({
     // not the previous set's.
     setCustomOutputName(null);
     setIsRenamingOutputName(false);
-  }, [clearPrepared, resetModel]);
+  }, [resetDownloadFlow, resetModel]);
 
   // SITE-42: several files picked on the home page arrive as a brand-new set,
   // through addFiles like a manual pick. Whatever a restore already put on
@@ -908,29 +900,6 @@ export default function PdfMergeTool({
     };
   }, [entries.length > 0]);
 
-  // A fresh blob is what Share hands out; an invalidated one is cleared so
-  // the sheet never offers a stale order.
-  useEffect(() => {
-    if (prepared.status === 'ready' && prepared.blob) prepare(prepared.blob, fileName);
-    else clearPrepared();
-  }, [prepared.status, prepared.generation, fileName]);
-
-  // The tap arrived while the pre-merge was still running: deliver the blob
-  // the moment it exists, through the same download path Share uses.
-  useEffect(() => {
-    if (!pendingDownload || prepared.status !== 'ready' || !prepared.blob) return;
-    setPendingDownload(false);
-    if (quietPendingRef.current) {
-      quietPendingRef.current = false;
-      setStripOpen(true);
-    }
-    download(prepared.blob, fileName);
-    setTap('done');
-    setDownloadedOnce(true);
-    startMergeMoment();
-    setAnnouncement(t.mergedReady);
-  }, [pendingDownload, prepared.status, prepared.generation]);
-
   // MERGE-17: the browser's own install prompt, if it offers one. Read the
   // platform in an effect, never in render (see platform.ts).
   useEffect(() => {
@@ -956,99 +925,6 @@ export default function PdfMergeTool({
     prompt?.prompt().catch(() => {});
   }, [installPrompt]);
 
-  // MERGE-14: park the merged bytes for the target tool and navigate. The
-  // merge draft stays (MERGE-13), so Back returns to the same set.
-  //
-  // MEM-01/02: this used to ask first and, on confirmation, delete Sign's
-  // existing draft before handing off - a holdover from the old one-slot-per-tool
-  // model, where opening a second file in Sign meant overwriting the only
-  // draft it could hold. Under the entry model every source PDF (content hash)
-  // keeps its own `work` map, so claiming this hand-off in Sign
-  // (useEditorDraftPersistence's beforeRestore -> cacheRecentFile) just moves
-  // Sign's pointer to the merged output's own entry; whatever Sign was
-  // previously pointed at, and its work, is untouched. Nothing here needs to
-  // discard anything, so there is nothing left to confirm.
-  const performHandoff = useCallback(async (tool: HandoffTool) => {
-    if (!prepared.blob) return;
-    setHandoffBusy(true);
-    setHandoffFailed(false);
-    try {
-      // The store is only needed once a result is being handed off, so it
-      // stays out of the eager graph like the grid and the draft hook.
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, {
-        fileName,
-        fileType: 'application/pdf',
-        fileBytes: await prepared.blob.arrayBuffer(),
-      });
-      if (!saved) throw new Error('handoff');
-      navigate(hrefs[tool]);
-    } catch {
-      // expected: saveHandoff reports its own failure, this shows the handoffFailed state
-      setHandoffFailed(true);
-      setHandoffBusy(false);
-    }
-  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign]);
-
-  const requestHandoff = useCallback(async (tool: HandoffTool) => {
-    if (handoffBusy || !prepared.blob) return;
-    await performHandoff(tool);
-  }, [handoffBusy, prepared.blob, performHandoff]);
-
-  const onDownloadTap = useCallback(() => {
-    setTap('merging');
-    setDownloadedOnce(true);
-    startMergeMoment();
-    setAnnouncement(t.mergedReady);
-    recordAction('download');
-  }, [t.mergedReady, startMergeMoment]);
-
-  // The tap beat the quiet-time build: show 'preparing', build now, deliver on ready.
-  const onPreparingTap = useCallback(() => {
-    setTap('merging');
-    setPendingDownload(true);
-    prepared.prepareNow();
-  }, [prepared.prepareNow]);
-
-  // The quiet Download's taps, which also open the done strip below 1024px.
-  const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
-  const onQuietDownloadTap = useCallback(() => {
-    onDownloadTap();
-    if (opensStrip()) setStripOpen(true);
-  }, [onDownloadTap]);
-  // The completion row's own preparing tap never opens the strip, whatever an earlier quiet tap left.
-  const onRowPreparingTap = useCallback(() => {
-    quietPendingRef.current = false;
-    onPreparingTap();
-  }, [onPreparingTap]);
-  const onQuietPreparingTap = useCallback(() => {
-    quietPendingRef.current = opensStrip();
-    onPreparingTap();
-  }, [onPreparingTap]);
-
-  // A tap on a ready Download: 'merging' renders once so BasePdfTool reports
-  // tool_operation_started, then 'done' reports tool_result_ready.
-  useEffect(() => {
-    if (tap === 'merging' && !pendingDownload && prepared.status === 'ready') setTap('done');
-  }, [tap, pendingDownload, prepared.status]);
-
-  const handleShare = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setAnnouncement(t.sharedSuccessfully);
-    else if (result.status === 'canceled') setAnnouncement(t.sharingCanceled);
-    else if (result.status === 'error') setAnnouncement(t.shareError);
-  };
-
-  // MERGE-04: which file failed, and why. Inspection catches most cases
-  // before a merge is attempted; mergePdfs's MergeFileError is the second line.
-  const failedEntry = entries.find((e) => e.error)
-    ?? (prepared.error instanceof MergeFileError ? entries[prepared.error.fileIndex] ?? null : null);
-  const failedReason: 'encrypted' | 'unreadable' | null = failedEntry
-    ? (failedEntry.error ?? (prepared.error instanceof MergeFileError ? prepared.error.reason : 'unreadable'))
-    : null;
-  const otherError = !failedEntry && prepared.status === 'error';
-
   const hasFiles = entries.length > 0;
   // A reload with files loaded (the draft brings them back) would put the
   // page back at its old offset, measured against a layout the restore then
@@ -1067,34 +943,6 @@ export default function PdfMergeTool({
   const rearranged = hasFiles && (!grouped || !listOrdered);
   const showSortControls = entries.length >= 2 && !rearranged;
 
-  const downloadState: DownloadElementState = entries.length < 2
-    ? 'one-file'
-    : (failedEntry || otherError)
-      ? 'error'
-      : prepared.status === 'ready'
-        ? (downloadedOnce ? 'saved' : 'ready')
-        // Quiet means quiet: while the build waits or runs, Download keeps its ready look.
-        // 'preparing' is for a tap that beat the build, or files still being read.
-        : (prepared.status === 'pending' && !pendingDownload) ? 'ready' : 'preparing';
-  // The strip belongs to the saved merge; any change or clear closes it.
-  const showStrip = stripOpen && downloadState === 'saved';
-  // Only leaving 'saved' closes it: a tap that beat the build opens the strip in the very commit
-  // that moves 'ready' to 'saved', and that commit must not close it again.
-  const prevDownloadStateRef = useRef(downloadState);
-  useEffect(() => {
-    if (prevDownloadStateRef.current === 'saved' && downloadState !== 'saved') setStripOpen(false);
-    prevDownloadStateRef.current = downloadState;
-  }, [downloadState]);
-  // The sticky bar (and the strip in it) is hidden from 1024px: close the strip when the window widens past it.
-  useEffect(() => {
-    if (!showStrip) return;
-    const mq = window.matchMedia('(max-width: 1023px)');
-    const onChange = () => { if (!mq.matches) setStripOpen(false); };
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, [showStrip]);
-  // The same condition DownloadElement uses for its link (`isLink`).
-  const downloadLinkReady = (downloadState === 'ready' || downloadState === 'saved') && prepared.status === 'ready' && !!prepared.url;
   const downloadDetail = prepared.status === 'ready'
     ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}`
     : pagesLabel(outputPageCount(plan));
@@ -1264,7 +1112,7 @@ export default function PdfMergeTool({
                       <DoneStrip
                         label={t.mergedReady}
                         closeLabel={t.closeStrip}
-                        onClose={() => setStripOpen(false)}
+                        onClose={closeStrip}
                         className={workspaceStyles['done-strip']}
                         data-merge-done-strip
                       >
