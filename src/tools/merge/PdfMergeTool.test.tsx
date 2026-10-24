@@ -13,7 +13,8 @@ import railStyles from './components/MergeRail.module.css';
 import sortMenuStyles from '../../shell/SortMenu.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import outputNameStyles from '../../shell/OutputName.module.css';
-import downloadStyles from './components/DownloadElement.module.css';
+import downloadStyles from '../../shell/DownloadElement.module.css';
+import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { hebrewMergeMessages, hebrewShellMessages } from '../../i18n/toolMessages';
@@ -221,7 +222,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(buttons).not.toContain('Sign');
     expect(buttons).not.toContain('Options');
     expect(container.querySelector(`details.${railStyles.options}`)).toBeNull();
-    expect(container.querySelector(`.${railStyles['handoff-row']}`)).toBeNull();
+    expect(container.querySelector(`.${workspaceStyles['handoff-row']}`)).toBeNull();
 
     const chooseButton = Array.from(box.querySelectorAll('button')).find((b) => b.textContent === 'Choose files');
     expect(chooseButton).not.toBeUndefined();
@@ -234,14 +235,14 @@ describe('PdfMergeTool UI flow', () => {
   it('brings back the hand-off row and the page-numbers row once a second file arrives', async () => {
     mount();
     await loadFiles(['one.pdf']);
-    expect(container.querySelector(`.${railStyles['handoff-row']}`)).toBeNull();
-    expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).toBeNull();
+    expect(container.querySelector(`.${workspaceStyles['handoff-row']}`)).toBeNull();
+    expect(container.querySelector(`.${workspaceStyles['page-numbers-row']}`)).toBeNull();
 
     await loadFiles(['two.pdf']);
-    expect(container.querySelector(`.${railStyles['handoff-row']}`)).not.toBeNull();
+    expect(container.querySelector(`.${workspaceStyles['handoff-row']}`)).not.toBeNull();
     // Shlomi (2026-09-13): the Options disclosure is gone - a plain checkbox
     // row directly above Download, no summary to open.
-    expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
+    expect(container.querySelector(`.${workspaceStyles['page-numbers-row']}`)).not.toBeNull();
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
     expect(buttons).toContain('Compress');
     expect(buttons).toContain('Sign');
@@ -296,7 +297,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelectorAll(`.${downloadStyles.box}`)).toHaveLength(1);
 
     // The document heading carries the total page count once every file is read.
-    expect(container.querySelector(`.${docStyles['doc-heading']}`).textContent).toContain('4 pages');
+    expect(container.querySelector(`.${workspaceStyles['doc-heading']}`).textContent).toContain('4 pages');
 
     // Direction A: Share sits in the rail's hand-off row with the row's own
     // button class, so it is found by its accessible name, not the dialog look.
@@ -338,7 +339,7 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => { await flush(20); });
     // Four pages total (two files, two pages each); rendering has not
     // started yet, so the heading names the total and says none are done.
-    const heading = () => container.querySelector(`.${docStyles['doc-heading']}`);
+    const heading = () => container.querySelector(`.${workspaceStyles['doc-heading']}`);
     expect(heading().textContent).toContain('4 pages');
     expect(heading().textContent).toContain('0 rendered');
 
@@ -605,7 +606,7 @@ describe('PdfMergeTool UI flow', () => {
     it('Cmd+Z is left to the field while typing in an input', async () => {
       await mountWithPages();
       await act(async () => pageButton('Rotate page 1').click());
-      const input = container.querySelector(`.${railStyles['page-numbers-row']} input`);
+      const input = container.querySelector(`.${workspaceStyles['page-numbers-row']} input`);
       input.focus();
       await press({ key: 'z', metaKey: true });
       expect(planOf()[0]).toBe('a:0:90:-');
@@ -692,7 +693,7 @@ describe('PdfMergeTool UI flow', () => {
   it('remembers Add page numbers on device and applies it on a fresh mount (MERGE-11)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    const checkbox = container.querySelector(`.${railStyles['page-numbers-row']} input`);
+    const checkbox = container.querySelector(`.${workspaceStyles['page-numbers-row']} input`);
     expect(checkbox.checked).toBe(false);
     expect(localStorage.getItem('pdf-toolkit:merge:options')).toBeNull();
 
@@ -707,7 +708,7 @@ describe('PdfMergeTool UI flow', () => {
     act(() => render(null, container));
     mount();
     await loadFiles(['c.pdf', 'd.pdf']);
-    expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
+    expect(container.querySelector(`.${workspaceStyles['page-numbers-row']} input`).checked).toBe(true);
   });
 
   it('keeps Add page numbers in the completion row, once, and out of the compact toolbar (MERGE-24, 2026-10-23)', async () => {
@@ -718,10 +719,10 @@ describe('PdfMergeTool UI flow', () => {
     expect(buttons).not.toContain('Options');
     const mobileControls = container.querySelector('[data-merge-file-controls]');
     expect(mobileControls).not.toBeNull();
-    const rows = container.querySelectorAll(`.${railStyles['page-numbers-row']}`);
+    const rows = container.querySelectorAll(`.${workspaceStyles['page-numbers-row']}`);
     expect(rows.length).toBe(1);
-    expect(mobileControls.querySelector(`.${railStyles['page-numbers-row']}`)).toBeNull();
-    expect(rows[0].closest(`.${railStyles['rail-pinned']}`)).not.toBeNull();
+    expect(mobileControls.querySelector(`.${workspaceStyles['page-numbers-row']}`)).toBeNull();
+    expect(rows[0].closest(`.${workspaceStyles['rail-pinned']}`)).not.toBeNull();
   });
 
   it('renders no quiet Download in the file row for one file (MERGE-24)', async () => {
@@ -735,7 +736,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
-    const quiet = container.querySelector('.' + docStyles['chip-bar'] + ' [data-quiet-download]');
+    const quiet = container.querySelector('.' + workspaceStyles['chip-bar'] + ' [data-quiet-download]');
     expect(quiet).not.toBeNull();
     expect(quiet.textContent).toContain('Download');
     const main = downloadLink();
@@ -752,11 +753,11 @@ describe('PdfMergeTool UI flow', () => {
     const describe = (el) => {
       if (el.matches(`.${sortMenuStyles['sort-select-wrap']}`)) return 'sort';
       if (el.matches(`.${railStyles['rearranged-note']}`)) return 'reset-order';
-      if (el.matches(`.${railStyles['page-numbers-row']}`)) return 'page-numbers';
+      if (el.matches(`.${workspaceStyles['page-numbers-row']}`)) return 'page-numbers';
       if (el.tagName === 'BUTTON') return el.textContent.trim();
       return el.textContent.trim();
     };
-    expect(Array.from(controls().children).flatMap((el) => el.matches(`.${railStyles['quiet-row']}`)
+    expect(Array.from(controls().children).flatMap((el) => el.matches(`.${workspaceStyles['quiet-row']}`)
       ? Array.from(el.children).map(describe)
       : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort']);
 
@@ -779,7 +780,7 @@ describe('PdfMergeTool UI flow', () => {
     // Unlike the desktop rail, Sort stays in the mobile controls even once
     // rearranged - it regroups the plan and would itself resolve the
     // rearrangement, same as Reset order (team lead, second follow-up).
-    expect(Array.from(controls().children).flatMap((el) => el.matches(`.${railStyles['quiet-row']}`)
+    expect(Array.from(controls().children).flatMap((el) => el.matches(`.${workspaceStyles['quiet-row']}`)
       ? Array.from(el.children).map(describe)
       : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'reset-order']);
   });
@@ -1032,7 +1033,7 @@ describe('PdfMergeTool UI flow', () => {
     // The pre-paint hint attribute is gone once the check settled, so a later
     // Clear all shows the dropzone instead of a blank card.
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
-    expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
+    expect(container.querySelector(`.${workspaceStyles['page-numbers-row']} input`).checked).toBe(true);
     // The restored-draft sentence shows first, for its five seconds; only
     // after that does the small "Draft saved" chip take its place.
     expect(container.textContent).toContain('Picked up where you left off');
@@ -1212,7 +1213,7 @@ describe('PdfMergeTool UI flow', () => {
       await flush(10);
     });
 
-    const headerChip = container.querySelector(`.${docStyles['doc-header-right']} .${docStyles['header-draft-chip']}`);
+    const headerChip = container.querySelector(`.${workspaceStyles['doc-header-right']} .${docStyles['header-draft-chip']}`);
     expect(headerChip).not.toBeNull();
     expect(headerChip.textContent).toContain('Picked up where you left off');
     const startFresh = Array.from(headerChip.querySelectorAll('button')).find((b) => b.textContent === 'Start fresh');
@@ -1530,7 +1531,7 @@ describe('PdfMergeTool UI flow', () => {
     ])('wraps the name and the .pdf in one auto-direction isolate in %s', async (_label, props) => {
       const { name, ext, unit } = await headingUnit(props);
       expect(ext.parentElement).toBe(unit);
-      expect(unit.parentElement.id).toBe('merge-pages-heading');
+      expect(unit.parentElement.id).toBe('page-grid-heading');
       expect(unit.tagName === 'BDI' || unit.getAttribute('dir') === 'auto').toBe(true);
       // The unit takes its direction from the name's own text, so the name carries no dir of
       // its own (an element with a dir attribute is skipped when `dir=auto` looks for a
@@ -1647,7 +1648,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
   let container;
   const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   const box = () => container.querySelector(`.${downloadStyles.box}`);
-  const pageNumbersBox = () => container.querySelector(`.${railStyles['page-numbers-row']} input`);
+  const pageNumbersBox = () => container.querySelector(`.${workspaceStyles['page-numbers-row']} input`);
   const built = () => mergeLib.mergePdfs.mock.calls.length;
 
   beforeEach(async () => {

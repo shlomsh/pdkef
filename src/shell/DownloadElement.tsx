@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import styles from './DownloadElement.module.css';
-import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
+import { formatMessage, type DownloadMessages } from '../i18n/toolMessages';
 
 export type DownloadElementState = 'one-file' | 'preparing' | 'ready' | 'saved' | 'error';
 
@@ -20,7 +20,7 @@ export interface DownloadElementProps {
   pagesToMerge?: number;
   progress?: number;
   errorMessage?: string;
-  messages: MergeMessages;
+  messages: DownloadMessages;
   /** BasePdfTool's shared "Choose files" picker label (ShellMessages'
    * `chooseFilesMany`, the same word every tool's own Add/Choose files
    * control uses) - the one-file state's real nested button, never the

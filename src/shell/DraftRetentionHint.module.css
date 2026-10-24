@@ -2,7 +2,7 @@
    Based on PdfToImageTool.module.css's quality-preset info tooltip, with two
    deliberate differences: the bubble opens downward (this trigger sits in a
    sticky top bar/identity row with no room above it), and the trigger keeps
-   a 44px hit area via a ::before pseudo-element (MergeRail.module.css's
+   a 44px hit area via a ::before pseudo-element (PageWorkspace.module.css's
    .quiet-button::before pattern) since it sits in a dense identity row on
    mobile while the visible icon stays small, matching the other status
    icons in ToolShell.tsx. */

@@ -1,85 +1,9 @@
-/* Direction A (2026-09-13), reduced wave 2 (Shlomi): the document header and
-   the phone chip row that replaces the add bar and the rail's file list
-   below 768px. Grid (page-cell) rules live in PageGrid.module.css; the
-   rail's own rules live in MergeRail.module.css. Two surfaces, no card
-   inside a card - and above the first thumbnail there is no UI text except
-   the heading and its page count. */
-
-.layout {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  flex: 1;
-  min-height: 0;
-}
-
-@media (min-width: 1024px) {
-  .main {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
-
-.document {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-  background: var(--color-surface);
-  border-radius: var(--radius);
-}
-
-.doc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-}
-
-/* Shlomi (2026-09-13): the Edit pages toggle is gone - the heading row now
-   holds only the heading itself. Kept as its own wrapper since PageGrid's
-   arming/selection controls live elsewhere. */
-.heading-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 0;
-}
-
-/* MERGE-11 (2026-09-13): the heading is now "<name>.pdf · N pages", the name
-   itself editable in place. `display: flex` so the name (a shrinkable flex
-   child) can ellipsis on its own while ".pdf" and the page count never do -
-   `.name` carries `flex: 1 1 auto; min-width: 0`, the `.doc-heading-*`
-   siblings carry `flex: none`. */
-.doc-heading {
-  margin: 0;
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: nowrap;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.doc-heading-count {
-  flex: none;
-  font-weight: 400;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-  /* The ' · ' prefix's leading space collapses in the flex row. */
-  margin-inline-start: 0.35em;
-}
+/* Direction A (2026-09-13), reduced wave 2 (Shlomi): the phone chip row that
+   replaces the add bar and the rail's file list below 768px, and the parts
+   of the document header that are about Merge. The frame itself (layout,
+   header, rail regions, phone bar, file controls) is
+   src/shell/pageWorkspace/PageWorkspace.module.css; grid (page-cell) rules
+   live in PageGrid.module.css and the file list's own in MergeRail.module.css. */
 
 /* The render-progress figure is quieter still than the page count beside
    it, and only exists while rendering < total - once every cell has a
@@ -91,14 +15,10 @@
   font-size: 0.8rem;
 }
 
-.doc-header-right {
-  display: flex;
-  min-width: 0;
-  max-width: 100%;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  min-height: 1.5rem;
+@media (max-width: 767px) {
+  .doc-heading-progress {
+    display: none;
+  }
 }
 
 /* The shortcuts line: shown once, briefly, on the first keyboard focus of a
@@ -183,121 +103,6 @@
 .start-fresh:focus-visible {
   outline-offset: 0;
   border-color: var(--color-primary);
-}
-
-/* --- Phone (and, since 2026-09-14, tablet) chip row: files as a
-   horizontally scrolling row, replacing the add bar and standing in for the
-   rail's file list below 1024px, where the rail becomes the completion row
-   under the pages (MergeRail.module.css). Hidden
-   at 1024px and up, where the sticky, tinted desktop rail owns all of this
-   instead. Review finding (2026-09-14, tablet): this used to hide at 768px,
-   leaving 768-1023 with neither the chip row nor the rail's file list.
-
-   Only file chips live in this horizontally scrolling list. The controls
-   which accompany it remain a separate, compact horizontal toolbar below. --- */
-.chip-bar {
-  /* MERGE-24 (2026-10-23): sticky under the site's app bar (AppBar.astro,
-     sticky top-0 z-20, h-14 = 3.5rem), on the card's white surface, so the
-     files and the quiet Download stay in reach on a long merge. It bleeds to
-     the card's inner edges (12px on a phone, 1.5rem from 768px, see the
-     media rules below), so scrolled pages pass cleanly under it. */
-  position: sticky;
-  /* The app bar is 3.5rem plus its 0.5px bottom border (QA measured 57px). */
-  top: calc(3.5rem + 0.5px);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-inline: -12px;
-  padding: 0.25rem 12px;
-  background: var(--color-surface);
-}
-
-@media (min-width: 768px) {
-  .chip-bar {
-    margin-inline: -1.5rem;
-    padding-inline: 1.5rem;
-  }
-}
-
-/* MERGE-24 (2026-10-23): the done strip hangs under the bar (DoneStrip's
-   absolute top), inset to the card's content edges the bar bleeds past. */
-.done-strip {
-  inset-inline: 12px;
-}
-
-@media (min-width: 768px) {
-  .done-strip {
-    inset-inline: 1.5rem;
-  }
-}
-
-/* Solid, not Redact's glass: over the page grid and the completion row the
-   blurred cards and text behind it read as stray shapes. */
-.chip-bar > .done-strip {
-  background: var(--color-surface);
-}
-
-/* What was saved: the name on one line, cut in the middle like the rail's,
-   then its pages and size, quieter. */
-.done-strip-result {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-  margin: 0;
-}
-
-.done-strip-name {
-  /* Its own box, aligned to the strip's start: an LTR name stretched to the
-     full width sat left in a Hebrew strip while the detail line sat right. */
-  align-self: start;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.done-strip-detail {
-  font-size: 0.85rem;
-  color: var(--color-muted);
-}
-
-/* The quiet Download at the bar's inline end, outside the scrolling chips:
-   the plain secondary button (QUAL-27: export is never filled in a toolbar). */
-.chip-download {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  min-height: 44px;
-  padding: 0 0.75rem;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.chip-download:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-.chip-download[aria-disabled='true'] {
-  color: var(--color-muted);
-  border-color: var(--color-border);
-  cursor: default;
-}
-
-@media (min-width: 1024px) {
-  .chip-bar {
-    display: none;
-  }
 }
 
 .chip-row {
@@ -414,115 +219,6 @@
 .chip-pages {
   color: var(--color-muted);
   font-size: 12px;
-}
-
-.mobile-file-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem 0.5rem;
-  padding: 0;
-}
-
-/* Phone and tablet, measured on ink rather than boxes: the pills, the
-   Add files / Clear all / sort row, the page-numbers checkbox, the drag
-   hint and the sheet's top border sit 16px apart, edge to edge, all from
-   the card's content edge. Row one runs the full width (the sort control
-   takes the end); the page-numbers row and the rearranged note each take a
-   line of their own. A control that cannot fit beside the others at 320px
-   drops to the next line and stays inside the card. */
-.mobile-file-controls > * {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  white-space: nowrap;
-}
-
-.mobile-file-controls > :first-child {
-  flex-wrap: nowrap;
-}
-
-.mobile-file-controls > :nth-child(2) {
-  margin-inline-start: auto;
-}
-
-.mobile-file-controls > :nth-child(n + 3) {
-  flex-basis: 100%;
-}
-
-@media (min-width: 1024px) {
-  .mobile-file-controls {
-    display: none;
-  }
-}
-
-/* Coarse-pointer-only hint, same width cutoff as `.chip-bar` above it: the
-   chip row and the page grid both reorder on press-and-hold with no grip
-   icon of their own (unlike the desktop rail's handle) to say so. Gated to
-   below 1024px too, not just `hover: none`, because the text names "files"
-   specifically - once `.chip-bar` gives way to the desktop rail at 1024px
-   the rail's own visible grip already answers this, and a touch monitor at
-   that width would otherwise see a hint about a file row that is not there. */
-.touch-drag-hint {
-  display: none;
-  /* 3px on each side of the layout's 12px gap, plus the line's own leading:
-     16px ink to ink, as above. */
-  margin: 3px 0;
-  padding: 0;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  color: var(--color-muted);
-}
-
-@media (hover: none) and (max-width: 1023px) {
-  .touch-drag-hint {
-    display: block;
-  }
-}
-
-/* On a phone "<name>.pdf · 18 pages" only just fits at 375px; while
-   thumbnails arrive the " · 14 rendered" figure pushed it into an ellipsis.
-   The dashed placeholders already show what is still rendering there, so the
-   figure is desktop-only. MERGE-11: the name itself wraps to two lines here
-   rather than truncate - `.doc-heading` wraps onto a second line and `.name`
-   stops ellipsising and clipping to one line. MERGE-21: a name with no
-   break opportunity at all ("merged_Statement_20260730163241_123456789_...",
-   an underscore is not one) ran past the card and scrolled the page
-   sideways, so it may break between any two characters, and only when a
-   word is wider than the line. */
-@media (max-width: 767px) {
-  /* One run of text: the name wraps and ".pdf · 7 pages" follows its last line. */
-  .doc-heading {
-    display: block;
-  }
-
-  .doc-heading-progress {
-    display: none;
-  }
-
-  /* Inline here, so the ' · ' prefix keeps its own space; nowrap keeps
-     "· 4 pages" whole (QA saw "· 4" end a line and "pages" start the next). */
-  .doc-heading-count {
-    margin-inline-start: 0;
-    white-space: nowrap;
-  }
-}
-
-/* On a phone the Undo chip (and the shortcuts hint) take a row of their own
-   under the heading; sharing the heading's row with the Edit pages toggle
-   squeezed "Your merged PDF · 18 pages" into a one-word-per-line column. */
-@media (max-width: 767px) {
-  .heading-row {
-    flex-basis: 100%;
-  }
-
-  .doc-header-right {
-    flex-basis: 100%;
-  }
-
-  .doc-header-right:empty {
-    display: none;
-  }
 }
 
 /* MERGE-24: the page around a loaded Merge, outside the island. These lived in

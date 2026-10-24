@@ -153,7 +153,7 @@ export interface MergeMessages {
    * both the phone chip row and the page grid drag on press-and-hold with no
    * grip icon of their own to show it, so mobile has nothing telling anyone
    * dragging works at all. Shown only under a coarse pointer (see
-   * `.touch-drag-hint` in MergeDocument.module.css). */
+   * `.touch-drag-hint` in PageWorkspace.module.css). */
   touchDragHint: string;
   fileTag: string;
   pageItemLabel: string;
@@ -476,6 +476,17 @@ export type PageGridMessages = Pick<MergeMessages,
   | 'tipOpen'
   | 'tipRotate'
   | 'tipSkip'>;
+
+/** What the shared Download element (src/shell/DownloadElement.tsx) reads from a
+ * tool's messages. */
+export type DownloadMessages = Pick<MergeMessages,
+  | 'addOneMore'
+  | 'downloadAgain'
+  | 'downloadLabel'
+  | 'fixFileToMerge'
+  | 'preparingPages'
+  | 'renderProgress'
+  | 'savedLabel'>;
 
 export interface CompressMessages {
   /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */

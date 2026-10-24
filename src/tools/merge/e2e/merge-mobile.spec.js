@@ -371,7 +371,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     })));
     await page.locator('input[type="file"]').setInputFiles(files);
 
-    const name = page.locator('#merge-pages-heading span[contenteditable]').first();
+    const name = page.locator('#page-grid-heading span[contenteditable]').first();
     await expect(name).toHaveText('merged_Statement_20260730163241_123456789_AccountSummary', { timeout: 10_000 });
 
     const layout = await name.evaluate((el) => {

@@ -154,7 +154,7 @@ for (const restoreCase of RESTORE_CASES) {
     await expect(restored.locator('ul[class*="file-list"] > li[class*="file-row"]')).toHaveCount(3, { timeout: 15_000 });
     const restoredFirstCard = restored.locator('ul[class*="grid"] > li[data-key]').first();
     await expect(restoredFirstCard).toHaveAttribute('data-rotation', '90', { timeout: 15_000 });
-    await expect(restored.locator('#merge-pages-heading')).toContainText('27 pages');
+    await expect(restored.locator('#page-grid-heading')).toContainText('27 pages');
     // The saved revision is authoritative. Neither closing an already-saved
     // tab nor the reopened restore/derived page-count/thumbnail work may
     // create another revision.

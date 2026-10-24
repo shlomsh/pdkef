@@ -25,13 +25,13 @@ async function loadFiles(page, route, names) {
     buffer: await makePdfBuffer(name),
   })));
   await page.locator('input[type="file"]').setInputFiles(files);
-  await expect(page.locator('#merge-pages-heading span[contenteditable]').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#page-grid-heading span[contenteditable]').first()).toBeVisible({ timeout: 10_000 });
 }
 
 /** The file name's characters in visual order, left to right, each tagged with where it came from. */
 function readVisualOrder(page) {
   return page.evaluate(() => {
-    const heading = document.getElementById('merge-pages-heading');
+    const heading = document.getElementById('page-grid-heading');
     const name = heading.querySelector('span[contenteditable]');
     const ext = name.nextElementSibling ?? heading.querySelector('[class*="doc-heading-ext"]');
     const chars = [];
@@ -65,7 +65,7 @@ for (const [route, dir] of [['/he/merge/', 'rtl'], ['/merge/', 'ltr']]) {
 test('/he/merge/: a renamed Hebrew name keeps the extension at its end, as ".pdf" on the left', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 820 });
   await loadFiles(page, '/he/merge/', ['three-page-header.pdf', 'second.pdf']);
-  const name = page.locator('#merge-pages-heading span[contenteditable]').first();
+  const name = page.locator('#page-grid-heading span[contenteditable]').first();
   await name.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('טופס 1301');

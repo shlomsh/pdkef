@@ -73,7 +73,7 @@
 
 /* Shlomi (2026-09-13): one height for the rail's bordered secondary controls
    - 36px visual, a 44px hit area via ::before, the same mechanism
-   MergeRail.module.css's `.quiet-button` uses. This was the one-file state's
+   PageWorkspace.module.css's `.quiet-button` uses. This was the one-file state's
    own 44px outlier. */
 .choose-button {
   position: relative;
@@ -81,7 +81,7 @@
   align-items: center;
   justify-content: center;
   min-height: 36px;
-  /* Same vertical padding as `.quiet-button` in MergeRail.module.css, so the
+  /* Same vertical padding as `.quiet-button` in PageWorkspace.module.css, so the
      two actually render at the same 36px, not just share a floor. */
   padding: 0.35rem 1.1rem;
   font: inherit;

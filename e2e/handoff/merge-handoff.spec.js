@@ -9,7 +9,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    exist), so this is the real guard rather than a test.skip placeholder.
 
    Direction A (2026-09-13): the row lives in the rail's pinned footer
-   (MergeRail.module.css's `.handoff-row`, `.handoff-button`), under the
+   (PageWorkspace.module.css's `.handoff-row`, `.handoff-button`), under the
    Download element, alongside Share (when available) - "Compress" and
    "Sign" are BUTTONS (role button), not links; they navigate via
    `navigate()` (window.location.href) after saving the hand-off, just

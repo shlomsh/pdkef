@@ -1,106 +1,18 @@
-/* Direction A (2026-09-13): the rail. A glance-at column of the input
-   files, never the thing you scroll through - the document (PageGrid) is
-   the workspace. Sticky for the page's height at desktop widths (1024px and
-   up); below that (tablet and phone alike) the chip-row treatment
-   (MergeDocument.module.css) carries the file list, and the rail itself
-   becomes the completion row in the page flow - see the shared
-   `max-width: 1023px` block below. Review finding (2026-09-14, tablet): between 768 and 1023px
-   the rail used to fall through to the bare `.rail` rule above (no
-   `position`, no sheet), so after scrolling a 9-page grid to its last row at
-   820x1180 the Download element measured rect.top 1392px in an 1180px
-   viewport - off-screen. The sheet now starts at 1024px, matching the
-   guideline's own call that this width "still stacks and should move to the
-   sheet". */
-
-.rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  /* Keep the rail in the theme's mint family, but soften the large field so
-     white controls and status colours retain a clear hierarchy. */
-  background: color-mix(in srgb, var(--color-primary-tint) 78%, var(--color-surface));
-  border-radius: var(--radius);
-  padding: var(--space-3);
-}
-
-/* One vertical rhythm for the whole rail: --space-3 between every block
-   (file list, the draft status line, the quiet row, the page-numbers row,
-   Download, the hand-off row) and the same as the rail's own padding.
-   Measured before this: 0px between the list and Sort, 0px between Download
-   and the hand-off row, 12px elsewhere. */
-.rail-scroll,
-.rail-pinned {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
+/* The file list of Merge's rail: a glance-at column of the input files, never
+   the thing you scroll through. The rail itself (its tint, sticky sheet and
+   scrolling and pinned regions) and the controls a one-file tool shows too
+   (quiet buttons, page numbers, hand-off row) are
+   src/shell/pageWorkspace/PageWorkspace.module.css. */
 
 @media (min-width: 1024px) {
-  .rail {
-    width: 320px;
-    flex: 0 0 320px;
-    position: sticky;
-    /* MERGE-24 (2026-10-23): the app bar (AppBar.astro, sticky top-0, h-14 =
-       3.5rem) stays over the page, so the rail sticks below it; at top:
-       var(--space-3) the first file rows slid under the bar once scrolled.
-       No app bar height token exists, hence the literal. A rail taller than
-       the space left under the bar caps there and scrolls its file list,
-       keeping `.rail-pinned` (Download, hand-off row) in view. */
-    top: calc(3.5rem + var(--space-3));
-    /* The second cap (QA, 2026-10-24) is the card's first screen before any
-       scroll: the card floor (PdfTool.module.css, --first-screen - 5.5rem)
-       less the rail's 29px start inside the card and the card's 16px bottom
-       padding. Without it 15 files ran the rail to y=978 on a 900px screen,
-       Download below the fold until the page scrolled. */
-    max-height: min(calc(100svh - 3.5rem - 2 * var(--space-3)), calc(var(--first-screen) - 5.5rem - 45px));
-  }
-
-  /* Only the file list scrolls when the rail outgrows the screen. A scrolling
-     `.rail-scroll` (the first try) turned the Draft saved tooltip's 14px of
-     overflow into a sideways scrollbar and cut the rail's start edge. */
-  .rail-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    /* Shlomi (2026-09-13): the focused Sort select lost its left ring. The
-       global 2px focus outline is painted outside the border box. Two pixels
-       of padding, taken back with the same negative margin so nothing else
-       moves, give every ring room on all four sides. */
-    padding: 2px;
-    margin: -2px;
-  }
-
-  .rail-scroll > * {
-    flex-shrink: 0;
-  }
-
-  .rail-scroll > .file-list {
+  /* The rail's regions are PageWorkspace.module.css's; this is the Merge file
+     list inside `.rail-scroll`. The element in the selector outranks the
+     shell's `.rail-scroll > *` (flex-shrink: 0). */
+  ul.file-list {
     flex-shrink: 1;
     min-height: 116px; /* two 58px rows stay visible */
     overflow-y: auto;
     overscroll-behavior: contain;
-  }
-
-  .rail-pinned {
-    flex-shrink: 0;
-  }
-}
-
-/* Below 1024px the chip row (MergeDocument.module.css, gated the same width)
-   carries the file list, so `.rail-scroll` drops out. MERGE-24 (2026-10-23,
-   Shlomi): there is no bottom sheet any more, following Sign and Redact
-   (QUAL-27: the completion row under the document is the call to action).
-   What remains of `.rail` - `.rail-pinned`: page numbers, the Download
-   element, the hand-off row - sits in the page flow under the last page, at
-   the card's content width: no sticky, no bleed, no border, no tint. */
-@media (max-width: 1023px) {
-  .rail-scroll {
-    display: none;
-  }
-
-  .rail {
-    padding: 0;
-    background: none;
-    border-radius: 0;
   }
 }
 
@@ -322,14 +234,6 @@
   }
 }
 
-.quiet-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: 0.85rem;
-}
-
 /* Shlomi (2026-09-13): "Draft saved" (or "Picked up..." for its first five
    seconds) is its own line now, end-aligned - so its own width, which
    changes as the message changes, never moves Add files / Clear all below
@@ -350,180 +254,6 @@
   min-height: 36px;
 }
 
-.quiet-button {
-  /* Shlomi (2026-09-13): Add files, Clear all, Reset order and Start fresh
-     are buttons and look like buttons: one quiet secondary style, no fill,
-     a 1px strong border, 36px tall with a 44px hit area (the ::before), text
-     colour. Underline is for links that navigate. Share, Compress and
-     Sign keep their own row style; "Draft saved" stays plain text. */
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0.35rem 0.7rem;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.quiet-button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 44px;
-  transform: translateY(-50%);
-}
-
-.quiet-button:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-.quiet-button:focus-visible {
-  outline-offset: 0;
-  border-color: var(--color-primary);
-}
-
 .reset-order {
-  composes: quiet-button;
-}
-
-/* Shlomi (2026-09-13): the Options disclosure is gone entirely - a plain
-   checkbox row, no summary, no chevron, nothing to open. */
-.page-numbers-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  font-size: 0.85rem;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.page-numbers-row input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-
-.handoff-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-/* Every child of the row is a hand-off button, the Share button included
-   (it keeps PdfShareButton's own classes, so the rule is on the row). The
-   three of them (Share, Compress, Sign) stay on one line at every width, at
-   the row's own size: no wrapping, no label wrapping. Each starts from its
-   own label's width and they share what is left: equal widths gave
-   "Compress" 3px of clearance in the 320px desktop rail while "Sign" had
-   22px, and pushed it past its border on a 320px phone. */
-.handoff-row > * {
-  flex: 1 1 auto;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-/* Review P3: Share, Compress and Sign read
-   as peers of Download - same solid surface, same weight. Quieter now: a
-   transparent fill and a primary-text label say "secondary", the way a
-   filled Download and a bordered-only hand-off row read as one primary
-   action with lesser next-steps beside it. */
-.handoff-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  min-height: 44px;
-  /* The side padding is only a floor. The row shares its spare width
-     evenly (see .handoff-row > *), so wherever it fits every label gets
-     the same clearance, however wide the platform's system font draws it;
-     padding in the flex basis only brings forward the width where the row
-     runs out and starts squeezing the widest label first. */
-  padding: 0.5rem 0.25rem;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-primary-text);
-  background: var(--color-surface);
-  /* MERGE-19: `--color-border` measured 1.09:1 against the rail's tint, so
-     the row's outline all but vanished there; the strong token is the one
-     every other secondary control on this rail (`.quiet-button`) draws. */
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: center;
-}
-
-.handoff-button:hover {
-  background: var(--color-primary-soft);
-}
-
-/* Unavailable follow-up actions should recede from the status above them,
-   without becoming low-contrast grey shapes on the mint rail. */
-.handoff-button:disabled {
-  color: var(--color-muted);
-  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-primary-tint));
-  border-color: var(--color-border);
-  cursor: not-allowed;
-}
-
-.handoff-button:disabled:hover {
-  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-primary-tint));
-}
-
-/* Shlomi's iPhone 15 screenshot: the Compress icon rendered as a tiny dot
-   beside its label. Every icon here (Share's own inline svg, Compress's and
-   Sign's lucide-preact `Icon` components) already carries width="16"
-   height="16" as HTML attributes, which is enough in Chromium but not
-   guaranteed in every WebKit build once the icon sits in a flex row next to
-   text: a replaced element with only attribute-based sizing and no explicit
-   CSS size can be squeezed by `flex-shrink`'s default (1) instead of being
-   treated as content that must not shrink below its intrinsic size. Setting
-   the size and `flex-shrink: 0` in CSS removes the ambiguity for every
-   engine, not just the ones that already got it right. */
-.handoff-button svg {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-}
-
-.start-again {
-  align-self: center;
-  font: inherit;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-  background: none;
-  border: 0;
-  padding: 0.3rem;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
-.install-line {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--color-muted);
-}
-
-/* Shlomi's screenshot (2026-09-13): the Sort select's focus ring read as
-   two rings, the site-wide 2px outline sitting 2px outside the control's
-   own light border, with the rail's tint showing between. For the rail's
-   bordered controls the ring hugs the box and the border takes the same
-   colour, so keyboard focus is one ring, not a target. */
-.handoff-button:focus-visible {
-  outline-offset: 0;
-  border-color: var(--color-primary);
+  composes: quiet-button from '../../../shell/pageWorkspace/PageWorkspace.module.css';
 }
