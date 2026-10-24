@@ -557,3 +557,37 @@
     display: none;
   }
 }
+
+/* MERGE-24: the page around a loaded Merge, outside the island. These lived in
+   ToolPageLayout.astro, whose styles ship on every tool's page; here they ship
+   only with Merge (the CSS family ratchet, 2026-10-24). `data-tool-slug` on
+   `.tool-stage` is the only thing that tells Merge's page apart.
+
+   The SEO-10 note stays in the HTML for search but is not painted once a file
+   is loaded, and the airplane line sits 16px under the card. main carries
+   Tailwind's `!pb-4 min-[768px]:!pb-5`, important declarations in the
+   utilities layer that no unlayered rule can zero, so main's bottom padding is
+   the base of that gap (16px, 20px from 768px) and the line's margin makes up
+   the difference: 0 below 768px, -4px from there. */
+:global(body:has(.tool-stage[data-tool-slug='merge'] [data-tool-loaded])) :global([data-merge-note]) {
+  display: none;
+}
+
+:global(.tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > [data-airplane-note]) {
+  margin-top: 0;
+}
+
+@media (min-width: 768px) {
+  :global(.tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > [data-airplane-note]) {
+    margin-top: calc(1rem - 1.25rem);
+  }
+}
+
+/* On a phone the stage is at least one screen tall and main grows into it,
+   which left a short merge's airplane line 77px under the card at 650px.
+   Loaded Merge keeps main at its content; the mint fills below. */
+@media (max-width: 767.98px) {
+  :global(.tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > main) {
+    flex-grow: 0;
+  }
+}
