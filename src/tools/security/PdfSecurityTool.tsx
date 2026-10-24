@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { Download, Eraser, FileSignature, Shrink } from 'lucide-preact';
+import { Download, Eraser, FileEdit, FileSignature, Shrink } from 'lucide-preact';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
@@ -28,6 +28,7 @@ const RETURN_TO = {
   redact: { name: 'Redact', Icon: Eraser },
   sign: { name: 'Sign', Icon: FileSignature },
   compress: { name: 'Compress', Icon: Shrink },
+  'edit-pdf': { name: 'Edit PDF', Icon: FileEdit },
 } as const;
 type ReturnTool = keyof typeof RETURN_TO;
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);

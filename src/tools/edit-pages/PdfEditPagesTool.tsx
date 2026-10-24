@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren, ComponentType } from 'preact';
 import { FileSignature, Shrink } from 'lucide-preact';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { editPages } from './editPages.js';
 import { editOptionsFromPlan, includeAll, invert, skipAll } from './editPlan.ts';
@@ -20,6 +21,7 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
 import DoneStrip from '../../shell/DoneStrip.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import FileName from '../../shell/FileName.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
@@ -62,6 +64,9 @@ export default function PdfEditPagesTool() {
   // The file picked last. A load that finishes after a newer pick is stale and
   // must not touch the page list or the working file.
   const pickedFileRef = useRef<File | null>(null);
+  // A protected PDF is a precondition, not a failure: set, the workspace gives way to NeedsUnlock
+  // (src/shell/NeedsUnlock.tsx). Every new pick clears it before the check runs again.
+  const [needsUnlock, setNeedsUnlock] = useState<{ kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
   const [loadStatus, setLoadStatus] = useState<'idle' | 'loading-file' | 'error'>('idle');
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   // null means "still the automatic name"; a string is the person's own.
@@ -99,6 +104,7 @@ export default function PdfEditPagesTool() {
     setWorkingFile(selectedFile);
     pickedFileRef.current = selectedFile;
     setLoadStatus('loading-file');
+    setNeedsUnlock(null);
     setPageCount(0);
     setRenderedCount(0);
     setAddPageNumbers(false);
@@ -112,7 +118,23 @@ export default function PdfEditPagesTool() {
       // first moment the page needs it, so /edit-pdf/ ships without it until a
       // file is picked (the loader imports it lazily). The catch below already
       // covers a failure.
-      const loaded = await loadPdfWithPages(await selectedFile.arrayBuffer());
+      const bytes = await selectedFile.arrayBuffer();
+      // pdf-lib cannot read either kind of protection (an owner-only file loads as blank pages), so both go to Unlock.
+      let protection = 'open';
+      try {
+        protection = await probeEncryption(bytes);
+      } catch (err) {
+        // The probe itself failing says nothing about the file; load as today.
+        reportError('pdf_tool_run', err, 'check_encryption');
+      }
+      if (pickedFileRef.current !== selectedFile) return;
+      if (protection === 'needs-password' || protection === 'owner-restricted') {
+        setNeedsUnlock({ kind: protection, bytes });
+        setLoadStatus('idle');
+        setAnnouncement(protection === 'needs-password' ? t.announceNeedsPassword : t.announceRestricted);
+        return;
+      }
+      const loaded = await loadPdfWithPages(bytes);
       if (pickedFileRef.current !== selectedFile) return;
       // The grid (pdf.js) and the export need the repaired bytes: pdf.js
       // rejects the unrepaired file. Handing them the same working file means
@@ -279,7 +301,18 @@ export default function PdfEditPagesTool() {
 
       {file && loadStatus === 'error' && failure}
 
-      {file && loadStatus === 'idle' && (
+      {file && needsUnlock && (
+        <NeedsUnlock
+          kind={needsUnlock.kind}
+          file={file}
+          bytes={needsUnlock.bytes}
+          from="edit-pdf"
+          toolName="Edit PDF"
+          verb="edit"
+        />
+      )}
+
+      {file && loadStatus === 'idle' && !needsUnlock && (
         <ToolShellBridge>
           {({ requestReplace }) => (
             <PageWorkspace

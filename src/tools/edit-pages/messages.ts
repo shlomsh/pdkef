@@ -29,6 +29,8 @@ export interface EditPagesMessages extends PageGridMessages, DownloadMessages, H
   loadingStructure: string;
   loaded: string;
   loadFailed: string;
+  announceNeedsPassword: string;
+  announceRestricted: string;
   closeStrip: string;
   handoffCompress: string;
   handoffSign: string;
@@ -97,6 +99,8 @@ export const englishEditPagesMessages: EditPagesMessages = {
   loadingStructure: 'Loading PDF file structure…',
   loaded: 'Loaded PDF file "{name}" with {count} pages.',
   loadFailed: 'Failed to load PDF file.',
+  announceNeedsPassword: 'This PDF has a password',
+  announceRestricted: 'This PDF is protected',
   closeStrip: 'Close',
   handoffCompress: 'Compress',
   handoffSign: 'Sign',
