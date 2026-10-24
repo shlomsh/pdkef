@@ -102,7 +102,6 @@ describe('PageGrid', () => {
     // mounted with so the tests can read the resulting plan.
     const onPlanChange = vi.fn((update) => update(plan));
     const announce = vi.fn();
-    const onRegisterUndo = vi.fn();
     const onRenderedCountChange = vi.fn();
     const onRemoveFile = vi.fn();
     const gridRef = createRef();
@@ -117,7 +116,6 @@ describe('PageGrid', () => {
       grouped: overrides.grouped ?? isGrouped(plan),
       labelSources: true,
       gridRef,
-      onRegisterUndo,
       onRenderedCountChange,
       onRemoveFile,
       ...overrides.props,
@@ -126,7 +124,7 @@ describe('PageGrid', () => {
       render(<PageGrid {...props} />, container);
     });
     const rerender = (next) => act(() => { render(<PageGrid {...props} {...next} />, container); });
-    return { entries, plan, onPlanChange, announce, onRegisterUndo, onRemoveFile, gridRef, rerender };
+    return { entries, plan, onPlanChange, announce, onRemoveFile, gridRef, rerender };
   }
 
   const cards = () => Array.from(container.querySelectorAll(`.${styles.page}`));
@@ -280,32 +278,18 @@ describe('PageGrid', () => {
     expect(skipButtonAfter.getAttribute('aria-label')).toBe('Show page 1 in the merged PDF');
   });
 
-  it('rotate and skip commit a new plan once per tap, announce it, and register one undo (MERGE-09)', async () => {
-    const { onPlanChange, announce, onRegisterUndo } = mount();
+  it('rotate and skip commit a new plan once per tap and announce it (MERGE-09)', async () => {
+    const { onPlanChange, announce } = mount();
     const first = cards()[0];
     await act(async () => first.querySelectorAll(`.${styles.action}`)[0].click());
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
     expect(announce).toHaveBeenCalledWith('Page 1 rotated to 90 degrees.');
-    expect(onRegisterUndo).toHaveBeenCalledWith('Rotated page 1', expect.any(Function));
 
     await act(async () => first.querySelectorAll(`.${styles.action}`)[1].click());
     expect(onPlanChange).toHaveBeenCalledTimes(2);
     expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', skipped: true });
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 1 skipped'));
-    expect(onRegisterUndo).toHaveBeenLastCalledWith('Skipped page 1', expect.any(Function));
-  });
-
-  it('a page-action undo restores the plan from before the change', async () => {
-    const { onPlanChange, onRegisterUndo } = mount();
-    const first = cards()[0];
-    await act(async () => first.querySelectorAll(`.${styles.action}`)[0].click());
-    const [, perform] = onRegisterUndo.mock.calls[0];
-    await act(async () => perform());
-    // The second onPlanChange call (the undo) restores the original,
-    // unrotated plan.
-    expect(onPlanChange).toHaveBeenCalledTimes(2);
-    expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', rotation: 0 });
   });
 
   it('shows a skipped page dimmed with its number struck and the word "skipped", and one tap brings it back', async () => {
@@ -412,9 +396,9 @@ describe('PageGrid', () => {
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 3 included again'));
   });
 
-  it('commits the drop once through SortableJS onEnd and registers one undo', () => {
+  it('commits the drop once through SortableJS onEnd', () => {
     const createSpy = vi.spyOn(Sortable, 'create');
-    const { onPlanChange, onRegisterUndo, gridRef } = mount();
+    const { onPlanChange, gridRef } = mount();
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy.mock.calls[0][0]).toBe(gridRef.current);
     const options = createSpy.mock.calls[0][1];
@@ -426,7 +410,6 @@ describe('PageGrid', () => {
     expect(document.documentElement.hasAttribute('data-page-dragging')).toBe(false);
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value.map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
-    expect(onRegisterUndo).toHaveBeenCalledTimes(1);
     options.onEnd({ oldIndex: 2, newIndex: 2 });
     expect(onPlanChange).toHaveBeenCalledTimes(1);
   });

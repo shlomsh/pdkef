@@ -44,10 +44,6 @@ export interface PageGridProps {
    * heading ("18 pages, 16 rendered") and the Download element's preparing
    * detail. Fired whenever the count changes, not on every render. */
   onRenderedCountChange?: (count: number) => void;
-  /** A page action (skip, rotate, move) registers one undo with the parent's
-   * single Undo-chip slot, snapshotting the plan from just before the
-   * change. */
-  onRegisterUndo?: (message: string, perform: () => void) => void;
   /** Direction A wave 2 (Shlomi): fired the first time a page cell receives
    * keyboard focus (Tab, not a pointer click), so the parent can show the
    * shortcuts line once, briefly, instead of it sitting in the header
@@ -173,7 +169,6 @@ export default function PageGrid({
   labelSources,
   gridRef,
   onRenderedCountChange,
-  onRegisterUndo,
   onFirstKeyboardFocus,
 }: PageGridProps) {
   // A plain keyboard/pointer heuristic (not :focus-visible, which some jsdom
@@ -426,11 +421,9 @@ export default function PageGrid({
         clearDraggingCursor();
         if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return;
         const { oldIndex, newIndex } = evt;
-        const snapshot = planRef.current;
         onPlanChange((current) => moveEntry(current, oldIndex, newIndex));
         recordAction('reorder');
         announce(formatMessage(t.pageMoved, { position: newIndex + 1, total: planRef.current.length }));
-        onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: newIndex + 1 }), () => onPlanChange(() => snapshot));
       },
     });
     return () => {
@@ -450,39 +443,31 @@ export default function PageGrid({
   }, [plan, gridRef]);
 
   const rotate = useCallback((key: string, position: number) => {
-    const snapshot = planRef.current;
     onPlanChange((current) => rotateEntry(current, key, 90));
     recordAction('rotate');
     const before = planRef.current.find((p) => p.key === key)?.rotation ?? 0;
     announce(formatMessage(t.pageRotated, { number: position, degrees: (before + 90) % 360 }));
-    onRegisterUndo?.(formatMessage(t.pageRotatedUndo, { number: position }), () => onPlanChange(() => snapshot));
-  }, [onPlanChange, announce, t.pageRotated, t.pageRotatedUndo, onRegisterUndo]);
+  }, [onPlanChange, announce, t.pageRotated]);
 
   const toggleSkip = useCallback((key: string, position: number) => {
     const entry = planRef.current.find((p) => p.key === key);
     if (!entry) return;
-    const snapshot = planRef.current;
     onPlanChange((current) => {
       const live = current.find((p) => p.key === key);
       return live ? updateEntry(current, key, { skipped: !live.skipped }) : current;
     });
     recordAction('hide_page');
     announce(formatMessage(entry.skipped ? t.pageIncluded : t.pageSkipped, { number: position }));
-    if (!entry.skipped) {
-      onRegisterUndo?.(formatMessage(t.pageSkippedUndo, { number: position }), () => onPlanChange(() => snapshot));
-    }
-  }, [onPlanChange, announce, t.pageIncluded, t.pageSkipped, t.pageSkippedUndo, onRegisterUndo]);
+  }, [onPlanChange, announce, t.pageIncluded, t.pageSkipped]);
 
   const move = useCallback((index: number, delta: number) => {
     const target = index + delta;
     if (target < 0 || target >= planRef.current.length) return;
-    const snapshot = planRef.current;
     focusKey.current = planRef.current[index].key;
     onPlanChange((current) => moveEntry(current, index, target));
     recordAction('reorder');
     announce(formatMessage(t.pageMoved, { position: target + 1, total: planRef.current.length }));
-    onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: target + 1 }), () => onPlanChange(() => snapshot));
-  }, [onPlanChange, announce, t.pageMoved, t.pageMovedUndo, onRegisterUndo]);
+  }, [onPlanChange, announce, t.pageMoved]);
 
   const openPreview = useCallback((index: number) => {
     setPreviewIndex(index);
