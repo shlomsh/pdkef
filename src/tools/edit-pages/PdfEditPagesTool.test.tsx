@@ -107,6 +107,15 @@ describe('PdfEditPagesTool UI flow', () => {
     await flush();
   };
 
+  it('skipping every page says so on the Download element, not that it is preparing', async () => {
+    await load();
+    await click(button('Skip all'));
+    await flush();
+    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
+    expect(downloadElement().textContent).toContain('Every page is skipped');
+    expect(downloadElement().textContent).not.toContain('Preparing 0');
+  });
+
   it('renders the initial file dropper zone', () => {
     container = document.createElement('div');
     document.body.appendChild(container);

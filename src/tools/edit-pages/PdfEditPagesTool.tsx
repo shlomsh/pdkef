@@ -1,38 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { ComponentChildren, ComponentType } from 'preact';
+import type { ComponentType } from 'preact';
 import { FileSignature, Shrink } from 'lucide-preact';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { reportEdit } from '../../lib/productAnalytics.ts';
 import { editPages } from './editPages.js';
 import { editOptionsFromPlan, includeAll, invert, skipAll } from './editPlan.ts';
 import { englishEditPagesMessages as t } from './messages.ts';
 import { loadPdfWithPages } from './loadPdfPages.ts';
-import { outputPageCount, planForFile, type PlanEntry } from '../../lib/pagePlan.ts';
-import { useEditHistory } from '../../lib/history/useEditHistory.js';
-import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
+import { outputPageCount, planForFile, planKey, type PlanEntry } from '../../lib/pagePlan.ts';
+import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { formatFileSize, isolateLtr } from '../../lib/format.js';
 import { englishShellMessages as sm, formatMessage } from '../../i18n/toolMessages';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { useToolShell } from '../../shell/ToolShell.tsx';
-import DoneStrip from '../../shell/DoneStrip.tsx';
+import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import FileName from '../../shell/FileName.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
-import QuietDownload from '../../shell/pageWorkspace/QuietDownload.tsx';
+import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
+import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
+import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
-import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
 
 const HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
@@ -45,14 +41,6 @@ interface EditDocument {
 }
 
 const EMPTY_DOCUMENT: EditDocument = { plan: [] };
-
-/** BasePdfTool's replace confirmation is reached through ToolShellContext,
- * which only reaches components rendered inside <BasePdfTool>'s children; this
- * is that one descendant (the same bridge Merge uses). */
-function ToolShellBridge({ children }: { children: (shell: { requestReplace: () => void }) => ComponentChildren }) {
-  const { requestReplace } = useToolShell();
-  return <>{children({ requestReplace })}</>;
-}
 
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -87,17 +75,11 @@ export default function PdfEditPagesTool() {
 
   // One Undo/Redo stack over the plan. A deliberate change is a `commit`
   // (rotate, skip, move, a bulk action); opening a file is a `reset`.
-  const { present, canUndo, canRedo, commit, undo, redo, reset } = useEditHistory(EMPTY_DOCUMENT);
-  const { plan } = present as EditDocument;
-
-  const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
-    // Every call is one undo step; an update that changes nothing is none.
-    commit((current: EditDocument) => {
-      const next = update(current.plan);
-      return next === current.plan ? current : { plan: next };
-    });
-    reportEdit('edit-pdf');
-  }, [commit]);
+  const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<EditDocument>(
+    EMPTY_DOCUMENT,
+    { tool: 'edit-pdf', announce: setAnnouncement, messages: { undone: t.undoneAnnouncement, redone: t.redoneAnnouncement } },
+  );
+  const { plan } = present;
 
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
     const pdfs = Array.from(fileList).filter((f) => f.type === 'application/pdf');
@@ -189,9 +171,8 @@ export default function PdfEditPagesTool() {
   const title = customOutputName ?? (file ? `${file.name.replace(/\.pdf$/i, '')}_modified` : '');
   const fileName = title ? `${title}.pdf` : 'edited.pdf';
 
-  const planKey = plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
   const key = file && workingFile && loadStatus === 'idle' && outputCount > 0
-    ? `${loadId}|${planKey}|${addPageNumbers ? 1 : 0}`
+    ? `${loadId}|${planKey(plan)}|${addPageNumbers ? 1 : 0}`
     : null;
   /** What the next build reads; always the inputs of the current key. */
   const inputsRef = useRef({ workingFile, plan, addPageNumbers });
@@ -206,11 +187,7 @@ export default function PdfEditPagesTool() {
     onBuildError: (err) => reportError('pdf_tool_run', err, 'apply_page_edits'),
   });
 
-  const {
-    tap, downloadState, downloadLinkReady, showStrip, shareReady, handoffBusy, handoffFailed,
-    requestHandoff, onDownloadTap, onQuietDownloadTap, onQuietPreparingTap, onRowPreparingTap, handleShare, closeStrip,
-    reset: resetDownloadFlow,
-  } = useDownloadFlow({
+  const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
     hrefs: HANDOFF_HREFS,
@@ -219,26 +196,12 @@ export default function PdfEditPagesTool() {
     announce: setAnnouncement,
     messages: { ready: t.editedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
   });
+  const {
+    tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff,
+    onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow,
+  } = downloadFlow;
 
   resetDownloadFlowRef.current = resetDownloadFlow;
-
-  const handleUndo = useCallback(() => {
-    if (!canUndo) return;
-    undo();
-    recordAction('undo');
-    setAnnouncement(t.undoneAnnouncement);
-  }, [undo, canUndo]);
-
-  const handleRedo = useCallback(() => {
-    if (!canRedo) return;
-    redo();
-    recordAction('redo');
-    setAnnouncement(t.redoneAnnouncement);
-  }, [redo, canRedo]);
-
-  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z; the hook stands down while focus is in an
-  // input (the page-numbers checkbox, the rename field).
-  useHistoryShortcuts(handleUndo, handleRedo);
 
   // A bulk action is one step, and none at all when it changes nothing.
   const bulk = (update: (current: PlanEntry[]) => PlanEntry[], message: string) => () => {
@@ -261,10 +224,7 @@ export default function PdfEditPagesTool() {
     setCustomOutputName(next.length > 0 ? next : null);
   }, []);
 
-  const pagesLabel = (count: number) => (count === 1 ? sm.pageCountOne : formatMessage(sm.pageCountOther, { count }));
-  const downloadDetail = prepared.status === 'ready'
-    ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), 'ltr')}`
-    : pagesLabel(outputCount);
+  const detail = downloadDetail(prepared, outputCount, sm, 'ltr');
   const analyticsStatus = loadStatus === 'error' || prepared.status === 'error' ? 'error' : tap;
   const handoffs = [
     { tool: 'compress' as HandoffTool, label: t.handoffCompress, Icon: Shrink },
@@ -330,37 +290,14 @@ export default function PdfEditPagesTool() {
                 <div class={workspaceStyles['chip-bar']}>
                   {/* Replace file at the bar's start, the quiet Download at its end, like Merge's chip row. */}
                   <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.replaceLabel}</button>
-                  <QuietDownload
-                    state={downloadState}
-                    linkReady={downloadLinkReady}
-                    href={prepared.url}
+                  <PhoneFinish
+                    flow={downloadFlow}
+                    prepared={prepared}
                     fileName={fileName}
-                    label={t.downloadShort}
-                    onDownloadTap={onQuietDownloadTap}
-                    onPreparingTap={onQuietPreparingTap}
-                    onWarm={prepared.prepareNow}
+                    detail={detail}
+                    handoffs={handoffs}
+                    labels={{ download: t.downloadShort, ready: t.editedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
                   />
-                  {showStrip && (
-                    <DoneStrip
-                      label={t.editedReady}
-                      closeLabel={t.closeStrip}
-                      onClose={closeStrip}
-                      className={workspaceStyles['done-strip']}
-                    >
-                      <p class={workspaceStyles['done-strip-result']}>
-                        <FileName name={fileName} className={workspaceStyles['done-strip-name']} />
-                        <span class={workspaceStyles['done-strip-detail']}>{downloadDetail}</span>
-                      </p>
-                      <ExportHandoffs
-                        items={handoffs}
-                        busy={handoffBusy || prepared.status !== 'ready'}
-                        onHandoff={(tool) => { void requestHandoff(tool as HandoffTool); }}
-                      />
-                      {handoffFailed && (
-                        <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-                      )}
-                    </DoneStrip>
-                  )}
                 </div>
               )}
               phoneControls={(
@@ -380,8 +317,8 @@ export default function PdfEditPagesTool() {
                     wrapOnPhone
                   >
                     <span class={workspaceStyles['doc-heading-count']}>
-                      {' · '}{pagesLabel(outputCount)}
-                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
+                      {' · '}{pagesLabel(outputCount, sm)}
+                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount, sm)} ${t.skippedBadge.toLowerCase()}` : ''}
                     </span>
                   </OutputName>
                 </h2>
@@ -395,16 +332,13 @@ export default function PdfEditPagesTool() {
               )}
               railPinned={(
                 <>
-                  <label class={workspaceStyles['page-numbers-row']}>
-                    <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                    <span>{t.addPageNumbers}</span>
-                  </label>
+                  <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
 
                   <DownloadElement
                     state={downloadState}
                     href={prepared.status === 'ready' ? prepared.url : null}
                     fileName={fileName}
-                    detail={downloadDetail}
+                    detail={detail}
                     renderedCount={renderedCount}
                     totalCount={plan.length}
                     pageCount={outputCount}

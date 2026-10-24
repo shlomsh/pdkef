@@ -509,6 +509,17 @@ describe('PdfMergeTool UI flow', () => {
       expect(planOf()[0]).toBe('a:0:0:s');
     });
 
+    it('skipping every page says so on the Download element, not that it is preparing', async () => {
+      await mountWithPages();
+      for (let hide = container.querySelector('button[aria-label^="Hide page"]'); hide; hide = container.querySelector('button[aria-label^="Hide page"]')) {
+        await act(async () => hide.click());
+      }
+      await settle();
+      expect(downloadBox().getAttribute('data-state')).toBe('nothing');
+      expect(downloadBox().textContent).toContain('Every page is skipped');
+      expect(downloadBox().textContent).not.toContain('Preparing 0');
+    });
+
     it('rotates a page, then Undo and Redo move it back and forth', async () => {
       await mountWithPages();
       await act(async () => pageButton('Rotate page 2').click());
