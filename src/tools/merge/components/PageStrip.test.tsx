@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 import PageStrip from './PageStrip.tsx';
 import styles from './PageStrip.module.css';
-import { isGrouped, planForFile } from '../mergePlan.ts';
+import { isGrouped } from '../mergePlan.ts';
+import { planForFile } from '../../../lib/pagePlan.ts';
 import { englishMergeMessages } from '../../../i18n/toolMessages';
 import * as thumbnailsLib from '../../../lib/thumbnails.js';
 

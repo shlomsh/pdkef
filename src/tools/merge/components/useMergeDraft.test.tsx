@@ -31,7 +31,7 @@ import {
   setCurrentEntry, readCurrentEntryId,
 } from '../../../lib/drafts/draftStore.js';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../../lib/fileArrival.ts';
-import { planForFile } from '../mergePlan.ts';
+import { planForFile } from '../../../lib/pagePlan.ts';
 import { flushBeforeUpdateReload, isUpdateHeld } from '../../../lib/appUpdate/updateHolds.ts';
 
 function Harness({ apiRef, options }) {

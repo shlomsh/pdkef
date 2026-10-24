@@ -104,6 +104,10 @@ preview. It is the reason "identical" stays true after either tool changes.
 
 ## Tickets
 
+GRID-01 to GRID-04 land on main in one push: rule 9 of `docs/module-boundaries.md` (a common-layer
+module needs two consumers, no exceptions) only holds once Edit Pages is the second consumer.
+
+
 GRID-01 shared grid (Merge on it, nothing visible changes) · GRID-02 shared workspace layout (same) ·
 GRID-03 Undo/Redo stack in Merge · GRID-04 Edit Pages on the grid, the layout and the stack, with the
 parity guard · GRID-05 Split on the grid · GRID-06 PDF to Image on the grid.

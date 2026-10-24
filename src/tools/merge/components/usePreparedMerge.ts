@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { mergePdfs, MergeFileError } from '../merge.js';
 import { reportableCause } from '../reportableCause.ts';
-import { outputPageCount, toMergeMap, type PlanEntry } from '../mergePlan.ts';
+import { toMergeMap } from '../mergePlan.ts';
+import { outputPageCount, type PlanEntry } from '../../../lib/pagePlan.ts';
 import { useObjectUrls } from '../../../lib/useObjectUrls.js';
 import { reportError } from '../../../lib/errorReport.ts';
 import { createQuietPreparer, type QuietPolicy } from '../../../lib/quietPrepare.ts';

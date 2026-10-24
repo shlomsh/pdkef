@@ -8,7 +8,7 @@ import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
 import { consumeRecentOpen } from '../../../lib/fileArrival.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 import { mimeTypeOf } from '../../../lib/fileKind.js';
-import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
+import { outputPageCount, type PlanEntry } from '../../../lib/pagePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
 // Sign and Redact already use (draftStore.js's 'merge' record shape - see its
