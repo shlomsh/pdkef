@@ -51,6 +51,21 @@ describe('DownloadElement', () => {
     expect(onChooseFiles).toHaveBeenCalledTimes(1);
   });
 
+  it('nothing: a disabled element with the label kept and the all-skipped detail; a tap does nothing', () => {
+    const onPreparingTap = vi.fn();
+    const onDownloadClick = vi.fn();
+    mount({ state: 'nothing', href: 'blob:x', onPreparingTap, onDownloadClick });
+    const el = box();
+    expect(el.getAttribute('data-state')).toBe('nothing');
+    expect(el.textContent).toContain('Download');
+    expect(el.textContent).toContain('Every page is skipped');
+    expect(el.getAttribute('aria-disabled')).toBe('true');
+    expect(el.getAttribute('href')).toBeNull();
+    el.click();
+    expect(onPreparingTap).not.toHaveBeenCalled();
+    expect(onDownloadClick).not.toHaveBeenCalled();
+  });
+
   it('preparing: aria-busy, honest label and render progress; a tap queues the download', () => {
     const onPreparingTap = vi.fn();
     mount({ state: 'preparing', totalCount: 18, renderedCount: 12, pagesToMerge: 18, onPreparingTap });

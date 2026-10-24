@@ -14,6 +14,8 @@ export interface DownloadFlowInput {
   hrefs: Record<HandoffTool, string>;
   /** Why Download cannot run at all: too few files, or a file/build error. */
   blocked: 'one-file' | 'error' | null;
+  /** The plan leaves no page to export (every page skipped). */
+  nothing?: boolean;
   announce: (message: string) => void;
   messages: { ready: string; shared: string; canceled: string; shareError: string };
   /** Called when a tap delivers the result (the tool's "done" moment). */
@@ -22,7 +24,8 @@ export interface DownloadFlowInput {
   navigate?: (href: string) => void;
 }
 
-/* Pure: the state the Download element shows. A blocked tool wins; a ready
+/* Pure: the state the Download element shows. A blocked tool wins, then an
+   empty output ('nothing'); a ready
    output is 'saved' once delivered; otherwise a tap that beat the build is
    'preparing' and everything else keeps the ready look (quiet means quiet). */
 export function decideDownloadState(
@@ -30,8 +33,10 @@ export function decideDownloadState(
   status: PreparedOutput['status'],
   downloadedOnce: boolean,
   pendingDownload: boolean,
+  nothing = false,
 ): DownloadElementState {
   if (blocked) return blocked;
+  if (nothing) return 'nothing';
   if (status === 'ready') return downloadedOnce ? 'saved' : 'ready';
   // Quiet means quiet: while the build waits or runs, Download keeps its ready look.
   // 'preparing' is for a tap that beat the build, or files still being read.
@@ -43,7 +48,7 @@ const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
 /** The finish flow both page tools share: Download (prepared in the
  * background), the phone's done strip, hand-offs to Compress/Sign, Share. */
 export function useDownloadFlow(input: DownloadFlowInput) {
-  const { prepared, fileName, hrefs, blocked, announce, messages, onDelivered } = input;
+  const { prepared, fileName, hrefs, blocked, nothing, announce, messages, onDelivered } = input;
   const navigate = input.navigate ?? ((href: string) => { window.location.href = href; });
   /* MERGE-12 analytics: the person's intent is the Download tap, which is
      what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
@@ -175,7 +180,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     else if (result.status === 'error') announce(messages.shareError);
   };
 
-  const downloadState = decideDownloadState(blocked, prepared.status, downloadedOnce, pendingDownload);
+  const downloadState = decideDownloadState(blocked, prepared.status, downloadedOnce, pendingDownload, nothing);
   // The strip belongs to the saved output; any change or clear closes it.
   const showStrip = stripOpen && downloadState === 'saved';
   // Only leaving 'saved' closes it: a tap that beat the build opens the strip in the very commit

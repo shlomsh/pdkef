@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import styles from './DownloadElement.module.css';
 import { formatMessage, type DownloadMessages } from '../i18n/toolMessages';
 
-export type DownloadElementState = 'one-file' | 'preparing' | 'ready' | 'saved' | 'error';
+export type DownloadElementState = 'one-file' | 'preparing' | 'ready' | 'saved' | 'error' | 'nothing';
 
 export interface DownloadElementProps {
   state: DownloadElementState;
@@ -116,7 +116,7 @@ export default function DownloadElement({
     } else if (state === 'preparing' || (state === 'ready' && !isLink)) {
       event.preventDefault();
       onPreparingTap?.();
-    } else if (state === 'error') {
+    } else if (state === 'error' || state === 'nothing') {
       event.preventDefault();
     } else {
       // ready / saved: the browser's own anchor download happens through
@@ -143,6 +143,7 @@ export default function DownloadElement({
       role={isLink || isPlainSurface ? undefined : 'button'}
       tabIndex={isLink || isPlainSurface ? undefined : 0}
       aria-busy={state === 'preparing' || undefined}
+      aria-disabled={state === 'nothing' || undefined}
       onClick={onClick}
       onPointerEnter={onWarm}
       onFocus={onWarm}
@@ -226,6 +227,14 @@ export default function DownloadElement({
           <span class={styles.detail}>
             {detail} · <span class={styles['inline-link']}>{t.downloadAgain}</span>
           </span>
+        </span>
+      )}
+
+      {/* Every page skipped: the label stays, the detail says why it cannot run. */}
+      {state === 'nothing' && (
+        <span class={styles.column}>
+          <span class={styles.label}>{t.downloadLabel}</span>
+          <span class={styles.detail}>{t.allSkipped}</span>
         </span>
       )}
 

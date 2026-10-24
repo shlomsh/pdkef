@@ -204,6 +204,18 @@
   color: var(--color-muted);
 }
 
+/* --- nothing: every page skipped. A quiet, disabled surface, not an error. --- */
+.box[data-state='nothing'] {
+  background: var(--color-primary-tint);
+  border-color: var(--color-border);
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.box[data-state='nothing'] .detail {
+  color: var(--color-muted);
+}
+
 /* --- error: a status, not a disabled primary button. The palette's berry
    treatment separates the problem from the surrounding mint and directs
    attention back to the marked file row above. --- */
