@@ -204,9 +204,6 @@ export interface MergeMessages {
   savedLabel: string;
   downloadAgain: string;
   fixFileToMerge: string;
-  pageSkippedUndo: string;
-  pageRotatedUndo: string;
-  pageMovedUndo: string;
   /* Direction A wave 2 (Shlomi's reduction, 2026-09-13): the drag-anywhere
    * overlay once the add bar is gone, and the phone chip row's "more" menu. */
   dropAnywhereNote: string;
@@ -325,9 +322,6 @@ const englishMergeMessages: MergeMessages = {
   savedLabel: 'Saved',
   downloadAgain: 'download again',
   fixFileToMerge: 'Fix the file above to merge',
-  pageSkippedUndo: 'Skipped page {number}',
-  pageRotatedUndo: 'Rotated page {number}',
-  pageMovedUndo: 'Moved page {number}',
   dropAnywhereNote: 'Drop anywhere, or paste',
   moreOptions: 'More options',
   emptyHeading: 'Drop PDFs or photos here, or paste',
@@ -443,9 +437,6 @@ const hebrewMergeMessages: MergeMessages = {
   savedLabel: 'נשמר',
   downloadAgain: 'הורדה שוב',
   fixFileToMerge: 'תקנו את הקובץ למעלה כדי לאחד',
-  pageSkippedUndo: 'דולג עמוד {number}',
-  pageRotatedUndo: 'סובב עמוד {number}',
-  pageMovedUndo: 'הוזז עמוד {number}',
   dropAnywhereNote: 'שחררו בכל מקום, או הדביקו',
   moreOptions: 'עוד אפשרויות',
   emptyHeading: 'שחררו כאן קבצי PDF או תמונות, או הדביקו',
@@ -466,11 +457,8 @@ export type PageGridMessages = Pick<MergeMessages,
   | 'pageIncluded'
   | 'pageItemLabel'
   | 'pageMoved'
-  | 'pageMovedUndo'
   | 'pageRotated'
-  | 'pageRotatedUndo'
   | 'pageSkipped'
-  | 'pageSkippedUndo'
   | 'previewClose'
   | 'previewIncludeAgain'
   | 'previewLoading'
