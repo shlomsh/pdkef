@@ -511,6 +511,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await remove.click();
     await expect(chips).toHaveCount(2);
     await expect(page.locator('ul[class*="grid"] > li[data-key]')).toHaveCount(2);
-    await expect(page.locator('[class*="undo-chip"]').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Undo last change' }).click();
+    await expect(chips).toHaveCount(3);
   });
 });

@@ -130,6 +130,10 @@
     /* QUAL-10: as tall as the Start fresh button it carries, so the silent
        placeholder that follows the sentence keeps the header row's height. */
     min-height: 28px;
+    /* Its own line under Undo and Redo: the sentence wraps there anyway, and
+       the empty placeholder would otherwise fit beside the buttons and lift
+       the grid by a row when the sentence times out. */
+    flex-basis: 100%;
   }
 }
 
