@@ -567,26 +567,6 @@
   height: 16px;
 }
 
-.start-again {
-  align-self: center;
-  font: inherit;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-  background: none;
-  border: 0;
-  padding: 0.3rem;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
-.install-line {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--color-muted);
-}
-
 /* Shlomi's screenshot (2026-09-13): the Sort select's focus ring read as
    two rings, the site-wide 2px outline sitting 2px outside the control's
    own light border, with the rail's tint showing between. For the rail's

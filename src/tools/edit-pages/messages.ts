@@ -65,11 +65,10 @@ export const englishEditPagesMessages: EditPagesMessages = {
   tipOpen: 'Open',
   tipRotate: 'Rotate',
   tipSkip: 'Skip',
-  // The Download element. It is never in its one-file state here.
-  addOneMore: 'Choose a PDF to edit',
+  // The Download element. It is never in its one-file state here, so no addOneMore.
   downloadAgain: 'download again',
   downloadLabel: 'Download edited PDF',
-  fixFileToMerge: 'Could not edit this PDF',
+  buildFailed: 'Could not edit this PDF',
   preparingPages: 'Preparing {count} pages…',
   renderProgress: '{done} of {total} rendered',
   savedLabel: 'Saved',

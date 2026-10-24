@@ -204,7 +204,7 @@ export default function BasePdfTool({
     if (analyticsStatus === previousAnalyticsStatusRef.current) return;
     previousAnalyticsStatusRef.current = analyticsStatus;
 
-    if (['processing', 'merging', 'converting'].includes(analyticsStatus)) {
+    if (['processing', 'converting'].includes(analyticsStatus)) {
       reportToolLifecycleEvent('tool_operation_started', analyticsTool);
     } else if (analyticsStatus === 'done') {
       reportToolLifecycleEvent('tool_result_ready', analyticsTool);
