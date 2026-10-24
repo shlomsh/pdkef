@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 4 up next, 9 then, 25 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 61 live: 8 up next, 11 then, 25 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -144,6 +144,10 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| GRID-01 | P1 | [GRID-01](backlog/tasks/GRID-01.md) · Merge's page grid moves to src/shell as the shared page grid, nothing visible changes | In progress |
+| GRID-02 | P1 | [GRID-02](backlog/tasks/GRID-02.md) · Merge's document and rail layout moves to src/shell as the page workspace, nothing visible changes |  |
+| GRID-03 | P1 | [GRID-03](backlog/tasks/GRID-03.md) · Merge gets the Undo/Redo stack Edit Pages has, in place of the undo chip |  |
+| GRID-04 | P1 | [GRID-04](backlog/tasks/GRID-04.md) · Edit Pages shows its pages through the shared grid, layout and undo, identical to Merge |  |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 
 ### Then, in order
@@ -152,6 +156,8 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
+| GRID-05 | P2 | [GRID-05](backlog/tasks/GRID-05.md) · Split shows its pages through the shared page grid |  |
+| GRID-06 | P2 | [GRID-06](backlog/tasks/GRID-06.md) · PDF to Image shows its pages through the shared page grid |  |
 
 ### Parked
 
