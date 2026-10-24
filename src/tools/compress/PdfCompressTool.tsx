@@ -63,7 +63,7 @@ function deriveDownloadName(originalName: string, outputType: string) {
 }
 
 interface PdfCompressToolProps {
-  /** LOC-02: server-rendered by src/pages/[locale]/[tool].astro for a
+  /** LOC-02: server-rendered by its src/pages/[locale]/<tool>.astro route for a
    * localized edition; every key not overridden keeps the English default. */
   messages?: Partial<CompressMessages>;
   shellMessages?: Partial<ShellMessages>;
