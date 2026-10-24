@@ -1,139 +1,92 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren, ComponentType } from 'preact';
+import { Download as DownloadIcon, FileSignature, Shrink } from 'lucide-preact';
 import { reportEdit } from '../../lib/productAnalytics.ts';
-import Sortable from 'sortablejs';
 import { editPages } from './editPages.js';
+import { editOptionsFromPlan, includeAll, invert, skipAll } from './editPlan.ts';
+import { englishEditPagesMessages as t } from './messages.ts';
 import { loadPdfWithPages } from './loadPdfPages.ts';
+import { outputPageCount, planForFile, type PlanEntry } from '../../lib/pagePlan.ts';
 import { useEditHistory } from '../../lib/history/useEditHistory.js';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
-import { renderPdfThumbnails } from '../../lib/thumbnails.js';
-import { useObjectUrls } from '../../lib/useObjectUrls.js';
-import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import EditPagesVerb from './verb/EditPagesVerb.tsx';
-import styles from '../../shell/PageGrid.module.css';
-import touchStyles from './PdfEditPagesTool.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import PdfShareButton from '../../shell/PdfShareButton.tsx';
-import ProgressRing from '../../shell/ProgressRing.tsx';
-import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
-import { Download, FileSignature, Shrink } from 'lucide-preact';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { usePdfShare } from '../../lib/usePdfShare.js';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { describeFile, formatFileSize } from '../../lib/format.js';
-import { reportError } from '../../lib/errorReport.ts';
+import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
+import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
+import { formatFileSize, isolateLtr } from '../../lib/format.js';
+import { englishShellMessages as sm, formatMessage } from '../../i18n/toolMessages';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { useToolShell } from '../../shell/ToolShell.tsx';
+import DoneStrip from '../../shell/DoneStrip.tsx';
+import DownloadElement from '../../shell/DownloadElement.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import FileName from '../../shell/FileName.tsx';
+import HistoryButtons from '../../shell/HistoryButtons.tsx';
+import OutputName from '../../shell/OutputName.tsx';
+import PdfShareButton from '../../shell/PdfShareButton.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
+import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
+import EditPagesVerb from './verb/EditPagesVerb.tsx';
 
-interface EditPage {
-  pageNumber: number;
-  thumbnail: string | null;
+const HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
+
+// The one file has one source in the shared plan.
+const FILE_ID = 0;
+
+interface EditDocument {
+  plan: PlanEntry[];
 }
 
-interface EditState {
-  pages: EditPage[];
-  removedPageNums: Set<number>;
-  rotations: Record<number, number>;
+const EMPTY_DOCUMENT: EditDocument = { plan: [] };
+
+/** BasePdfTool's replace confirmation is reached through ToolShellContext,
+ * which only reaches components rendered inside <BasePdfTool>'s children; this
+ * is that one descendant (the same bridge Merge uses). */
+function ToolShellBridge({ children }: { children: (shell: { requestReplace: () => void }) => ComponentChildren }) {
+  const { requestReplace } = useToolShell();
+  return <>{children({ requestReplace })}</>;
 }
-
-const EMPTY_EDIT_STATE: EditState = { pages: [], removedPageNums: new Set(), rotations: {} };
-
-// The finish Download link takes focus when it appears, as the shell's
-// DownloadButton does; a stable ref keeps re-renders from stealing it back.
-const focusOnMount = (el: HTMLAnchorElement | null) => el?.focus({ preventScroll: true });
 
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
   // The bytes everything after opening reads: the person's file, or its
   // repaired copy when the page list had to be rebuilt (DEBT-54). `file` stays
   // the original, so the name, memory and hand-off never change identity.
-  const workingFileRef = useRef<File | null>(null);
+  const [workingFile, setWorkingFile] = useState<File | null>(null);
+  const [pageCount, setPageCount] = useState(0);
   // The file picked last. A load that finishes after a newer pick is stale and
   // must not touch the page list or the working file.
   const pickedFileRef = useRef<File | null>(null);
+  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading-file' | 'error'>('idle');
   const [addPageNumbers, setAddPageNumbers] = useState(false);
-  const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
-  useHoldUpdate(status === 'processing');
-  useHoldUpdate(file !== null, 'open');
-  const [progress, setProgress] = useState(0);
-  const [outputSize, setOutputSize] = useState<number | null>(null);
-  // The result's bytes, kept beside its object URL so a hand-off can park them.
-  const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
-  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
-  const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
+  // null means "still the automatic name"; a string is the person's own.
+  const [customOutputName, setCustomOutputName] = useState<string | null>(null);
+  const [isRenamingOutputName, setIsRenamingOutputName] = useState(false);
+  const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
-  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  const sortableRef = useRef<Sortable | null>(null);
+  const gridRef = useRef<HTMLUListElement | null>(null);
+  // Loaded through a dynamic import() so the grid, its preview dialog and
+  // Sortable stay off the eager graph check-page-weight.js measures.
+  const [PageGrid, setPageGrid] = useState<ComponentType<PageGridProps> | null>(null);
+  useHoldUpdate(file !== null, 'open');
 
-  // Undo/redo: the hook owns the whole document (pages order, removedPageNums,
-  // rotations) as `present`, plus the past/future stacks, behind one
-  // useState. Every mutation site below reads `present` for rendering and
-  // routes its change through `commit`, whose updater always receives the
-  // live present - never a ref or a snapshot taken earlier that could have
-  // gone stale. See useEditHistory.js for why that matters.
-  const { present, canUndo, canRedo, commit: commitEdit, undo, redo, amend, reset } = useEditHistory(EMPTY_EDIT_STATE);
-  // DEBT-58: every deliberate change to the pages (rotate, remove, move) passes through this one
-  // commit; loading, restoring and thumbnails use reset/amend instead, so they never count.
-  const commit = useCallback((updater: (current: EditState) => EditState) => {
-    commitEdit(updater);
-    reportEdit('edit-pdf');
-  }, [commitEdit]);
-  const { pages, removedPageNums, rotations } = present as EditState;
+  // One Undo/Redo stack over the plan. A deliberate change is a `commit`
+  // (rotate, skip, move, a bulk action); opening a file is a `reset`.
+  const { present, canUndo, canRedo, commit, undo, redo, reset } = useEditHistory(EMPTY_DOCUMENT);
+  const { plan } = present as EditDocument;
 
-  // Wire up SortableJS on the grid whenever pages are loaded
-  useEffect(() => {
-    if (!gridRef.current || pages.length === 0) return;
-    sortableRef.current = Sortable.create(gridRef.current, {
-      animation: 200,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      ghostClass: styles['is-ghost'],
-      chosenClass: styles['is-chosen'],
-      dragClass: styles['is-dragging'],
-      // Use the drag handle so rotate/remove clicks don't start drags
-      handle: `.${styles['page-drag-handle']}`,
-      // Always use SortableJS's own clone/ghost pipeline instead of native HTML5
-      // drag-and-drop. Native DnD only leaves the dragClass on the source element
-      // for a single tick before swapping to ghostClass, so on a real mouse drag
-      // the styled "lifted card" look never renders - only the browser's own
-      // unstyled translucent drag image does. forceFallback makes desktop and
-      // touch dragging go through the same styled path.
-      forceFallback: true,
-      onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        commit((current: EditState) => {
-          const next = [...current.pages];
-          const [moved] = next.splice(evt.oldIndex as number, 1);
-          next.splice(evt.newIndex as number, 0, moved);
-          return { ...current, pages: next };
-        });
-        resetOutput();
-        recordAction('reorder');
-        setAnnouncement(`Page moved from position ${(evt.oldIndex as number) + 1} to ${(evt.newIndex as number) + 1}.`);
-      },
+  const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
+    // Every call is one undo step; an update that changes nothing is none.
+    commit((current: EditDocument) => {
+      const next = update(current.plan);
+      return next === current.plan ? current : { plan: next };
     });
-    return () => {
-      const instance = sortableRef.current;
-      sortableRef.current = null;
-      try {
-        instance?.destroy();
-      } catch {
-        // expected: the grid element is already gone by the time this cleanup runs
-        // (replacing the file unmounts it first) and sortablejs's destroy() throws
-        // when it writes to the removed element. Nothing is left to tear down.
-      }
-    };
-  }, [pages.length > 0, commit]);
-
-  const resetOutput = () => {
-    clearPrepared();
-    setStatus('idle');
-    setProgress(0);
-    setOutputBlob(null);
-    setHandoffFailed(false);
-    clearDownload();
-  };
+    reportEdit('edit-pdf');
+  }, [commit]);
 
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
     const pdfs = Array.from(fileList).filter((f) => f.type === 'application/pdf');
@@ -142,18 +95,16 @@ export default function PdfEditPagesTool() {
     recordAction(file ? 'replace_file' : 'add_files');
 
     setFile(selectedFile);
-    workingFileRef.current = selectedFile;
+    setWorkingFile(selectedFile);
     pickedFileRef.current = selectedFile;
-    setStatus('loading-file');
-    setProgress(0);
+    setLoadStatus('loading-file');
+    setPageCount(0);
+    setRenderedCount(0);
     setAddPageNumbers(false);
-    clearDownload();
-    setOutputBlob(null);
-    setHandoffFailed(false);
-    clearPrepared();
+    setCustomOutputName(null);
     // A new file starts a fresh document: reset (not commit) so the previous
     // file's undo/redo stacks don't leak across files.
-    reset(EMPTY_EDIT_STATE);
+    reset(EMPTY_DOCUMENT);
 
     try {
       // Loaded here, not at module scope: pdf-lib is 628 KiB and this is the
@@ -162,443 +113,322 @@ export default function PdfEditPagesTool() {
       // covers a failure.
       const loaded = await loadPdfWithPages(await selectedFile.arrayBuffer());
       if (pickedFileRef.current !== selectedFile) return;
-      const pageCount = loaded.pageCount;
-      // The thumbnails (pdf.js) and the export need the repaired bytes: pdf.js
+      // The grid (pdf.js) and the export need the repaired bytes: pdf.js
       // rejects the unrepaired file. Handing them the same working file means
       // the repair runs, and is counted, once.
-      const workingFile = loaded.repaired
+      setWorkingFile(loaded.repaired
         ? new File([loaded.bytes as BlobPart], selectedFile.name, {
-            type: 'application/pdf',
-            lastModified: selectedFile.lastModified,
-          })
-        : selectedFile;
-      workingFileRef.current = workingFile;
-
-      const initialPages = Array.from({ length: pageCount }, (_, i) => ({
-        pageNumber: i + 1,
-        thumbnail: null,
-      }));
-      reset({ pages: initialPages, removedPageNums: new Set(), rotations: {} });
-      setStatus('idle');
-      setAnnouncement(`Loaded PDF file "${selectedFile.name}" with ${pageCount} pages.`);
-
-      // Render thumbnails sequentially in the background. This is not a user
-      // edit, so it goes through `amend`, not `commit`: it updates the live
-      // document *and* every past/future snapshot's pages, so a thumbnail
-      // that finishes rendering after the user has already committed a
-      // change (e.g. rotated a page) survives an undo past that commit
-      // instead of reverting to the placeholder the snapshot was taken with.
-      renderPdfThumbnails(workingFile, (pageIndex: number, dataUrl: string) => {
-        amend((current: EditState) => ({
-          ...current,
-          pages: current.pages.map((p) =>
-            p.pageNumber === pageIndex ? { ...p, thumbnail: dataUrl } : p
-          ),
-        }));
-      }).catch((err) => {
-        reportError('pdf_render', err, 'render_thumbnail');
-        console.error('Thumbnail generation failed:', err);
-      });
+          type: 'application/pdf',
+          lastModified: selectedFile.lastModified,
+        })
+        : selectedFile);
+      setPageCount(loaded.pageCount);
+      reset({ plan: planForFile(FILE_ID, loaded.pageCount) });
+      setLoadStatus('idle');
+      setAnnouncement(formatMessage(t.loaded, { name: selectedFile.name, count: loaded.pageCount }));
     } catch (err) {
       reportError('pdf_tool_run', err, 'load_document');
       console.error(err);
       if (pickedFileRef.current !== selectedFile) return;
-      setStatus('error');
-      setAnnouncement('Failed to load PDF file.');
+      setLoadStatus('error');
+      setAnnouncement(t.loadFailed);
     }
-  }, [reset, amend, file]);
+  }, [reset, file]);
 
   // SITE-42: files picked on the home page arrive as a hand-off, collected on
   // mount and sent down the same path a manual pick takes. This tool restores
   // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
   useHandoffIntake('edit-pdf', (f) => handleFilesAdded([f]));
 
-  const togglePage = useCallback((pageNum: number) => {
-    commit((current: EditState) => {
-      const next = new Set(current.removedPageNums);
-      if (next.has(pageNum)) {
-        next.delete(pageNum);
-      } else {
-        next.add(pageNum);
-      }
-      const willRemove = next.has(pageNum);
-      setAnnouncement(`Page ${pageNum} marked to be ${willRemove ? 'removed' : 'kept'}.`);
-      if (willRemove) recordAction('delete_page');
-      return { ...current, removedPageNums: next };
-    });
-    resetOutput();
-  }, [commit]);
+  useEffect(() => {
+    if (!file || PageGrid) return undefined;
+    let cancelled = false;
+    import('../../shell/pageGrid/PageGrid.tsx')
+      .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
+      .catch((err) => reportError('pdf_render', err, 'load_page_grid'));
+    return () => { cancelled = true; };
+  }, [file !== null, PageGrid]);
 
-  const keepAll = useCallback(() => {
-    if (removedPageNums.size === 0) return;
-    commit((current: EditState) => (
-      current.removedPageNums.size === 0 ? current : { ...current, removedPageNums: new Set() }
-    ));
-    resetOutput();
-    recordAction('select_pages');
-    setAnnouncement('Marked all pages to be kept.');
-  }, [commit, removedPageNums]);
+  const sources = useMemo(
+    () => (workingFile ? [{ id: FILE_ID, file: workingFile, pageCount, error: null }] : []),
+    [workingFile, pageCount],
+  );
 
-  const removeAll = useCallback(() => {
-    if (removedPageNums.size === pages.length) return;
-    commit((current: EditState) => {
-      const all = new Set(current.pages.map((p) => p.pageNumber));
-      return current.removedPageNums.size === all.size ? current : { ...current, removedPageNums: all };
-    });
-    resetOutput();
-    recordAction('select_pages');
-    setAnnouncement('Marked all pages to be removed.');
-  }, [commit, pages.length, removedPageNums]);
+  const outputCount = outputPageCount(plan);
+  const skippedCount = plan.length - outputCount;
+  const title = customOutputName ?? (file ? `${file.name.replace(/\.pdf$/i, '')}_modified` : '');
+  const fileName = title ? `${title}.pdf` : 'edited.pdf';
 
-  const rotatePage = useCallback((pageNum: number, direction: string) => {
-    commit((current: EditState) => {
-      const currentRot = current.rotations[pageNum] || 0;
-      const nextRot = direction === 'left' ? currentRot - 90 : currentRot + 90;
-      return { ...current, rotations: { ...current.rotations, [pageNum]: nextRot } };
-    });
-    resetOutput();
-    recordAction('rotate');
-    setAnnouncement(`Page ${pageNum} rotated ${direction}.`);
-  }, [commit]);
+  const planKey = plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
+  const key = file && workingFile && loadStatus === 'idle' && outputCount > 0
+    ? `${file.name}:${file.size}:${file.lastModified}|${planKey}|${addPageNumbers ? 1 : 0}|${title}`
+    : null;
+  /** What the next build reads; always the inputs of the current key. */
+  const inputsRef = useRef({ workingFile, plan, addPageNumbers });
+  inputsRef.current = { workingFile, plan, addPageNumbers };
+  const prepared = usePreparedOutput({
+    key,
+    build: async (_signal, onProgress) => {
+      const { workingFile: source, plan: current, addPageNumbers: numbers } = inputsRef.current;
+      const blob = await editPages(source as File, { ...editOptionsFromPlan(current), addPageNumbers: numbers }, onProgress);
+      return { blob, pageCount: outputPageCount(current) };
+    },
+    onBuildError: (err) => reportError('pdf_tool_run', err, 'apply_page_edits'),
+  });
 
-  const invertSelection = useCallback(() => {
-    commit((current: EditState) => {
-      const next: Set<number> = new Set();
-      current.pages.forEach((p) => {
-        if (!current.removedPageNums.has(p.pageNumber)) {
-          next.add(p.pageNumber);
-        }
-      });
-      return { ...current, removedPageNums: next };
-    });
-    resetOutput();
-    recordAction('select_pages');
-    setAnnouncement('Inverted page selections.');
-  }, [commit]);
+  const {
+    tap, downloadState, downloadLinkReady, showStrip, shareReady, handoffBusy, handoffFailed,
+    requestHandoff, onDownloadTap, onQuietDownloadTap, onQuietPreparingTap, onRowPreparingTap, handleShare, closeStrip,
+  } = useDownloadFlow({
+    prepared,
+    fileName,
+    hrefs: HANDOFF_HREFS,
+    blocked: prepared.status === 'error' ? 'error' : null,
+    announce: setAnnouncement,
+    messages: { ready: t.editedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
+  });
 
   const handleUndo = useCallback(() => {
     if (!canUndo) return;
     undo();
-    resetOutput();
     recordAction('undo');
-    setAnnouncement('Undid last change.');
+    setAnnouncement(t.undoneAnnouncement);
   }, [undo, canUndo]);
 
   const handleRedo = useCallback(() => {
     if (!canRedo) return;
     redo();
-    resetOutput();
     recordAction('redo');
-    setAnnouncement('Redid last change.');
+    setAnnouncement(t.redoneAnnouncement);
   }, [redo, canRedo]);
 
-  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z, through the same hook Sign and Redact
-  // use. The `canUndo`/`canRedo` guards here are only a courtesy (skip the
-  // announcement when the button is disabled); correctness under repeated
-  // same-task keydowns - ordinary key auto-repeat, which this hook does not
-  // suppress - comes from `undo`/`redo` themselves, which read the live
-  // past/future through a functional update and no-op safely with no extra
-  // history entry once there is truly nothing left to undo/redo (see
-  // useEditHistory.js). The hook stands down while focus is in an input,
-  // which here means the page-numbers checkbox.
+  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z; the hook stands down while focus is in an
+  // input (the page-numbers checkbox, the rename field).
   useHistoryShortcuts(handleUndo, handleRedo);
 
-  const handleApplyChanges = async () => {
-    if (!file || removedPageNums.size === pages.length) return;
-    recordAction('export');
-    setStatus('processing');
-    setProgress(0);
-    try {
-      // Pass the final ordered page list and per-pageNumber state
-      const options = {
-        pageOrder: pages.map((p) => p.pageNumber), // final desired order (1-indexed)
-        removedPageNums,
-        rotations,
-        addPageNumbers,
-      };
-      const blob = await editPages(workingFileRef.current ?? file, options, setProgress);
-      setDownloadBlob(blob);
-      setOutputSize(blob.size);
-      setOutputBlob(blob);
-      prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);
-      setStatus('done');
-      setAnnouncement('Your modified PDF is ready.');
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'apply_page_edits');
-      console.error(err);
-      setStatus('error');
-      setAnnouncement('Failed to edit PDF.');
-    }
+  // A bulk action is one step, and none at all when it changes nothing.
+  const bulk = (update: (current: PlanEntry[]) => PlanEntry[], message: string) => () => {
+    if (update(plan) === plan) return;
+    onPlanChange(update);
+    recordAction('select_pages');
+    setAnnouncement(message);
   };
+  const onIncludeAll = bulk(includeAll, t.allIncluded);
+  const onSkipAll = bulk(skipAll, t.allSkipped);
+  const onInvert = bulk(invert, t.inverted);
 
-  const handleShare = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setAnnouncement('Modified PDF shared successfully.');
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your modified PDF is still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
-  };
+  const onPageNumbersChange = useCallback((event: Event) => {
+    setAddPageNumbers((event.target as HTMLInputElement).checked);
+    recordAction('change_setting');
+  }, []);
 
-  const outputName = file ? `${file.name.replace(/\.pdf$/i, '')}_modified.pdf` : '';
+  // '' means the person emptied the name, which goes back to the automatic one.
+  const renameOutput = useCallback((next: string) => {
+    setCustomOutputName(next.length > 0 ? next : null);
+  }, []);
 
-  // Hands the result to Compress or Sign without re-picking: the same one-shot
-  // baton Merge and Redact use (draftStore.js saveHandoff, taken on the other end).
-  const requestHandoff = async (tool: string) => {
-    if (handoffBusy || !outputBlob) return;
-    setHandoffBusy(true);
-    setHandoffFailed(false);
-    try {
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, { fileName: outputName, fileType: 'application/pdf', fileBytes: await outputBlob.arrayBuffer() });
-      if (!saved) throw new Error('handoff');
-      window.location.href = `/${tool}/`;
-    } catch (err) {
-      // expected: saveHandoff reports its own failure, this shows the quiet failure line
-      console.error(err);
-      setHandoffFailed(true);
-      setHandoffBusy(false);
-    }
-  };
+  const pagesLabel = (count: number) => (count === 1 ? sm.pageCountOne : formatMessage(sm.pageCountOther, { count }));
+  const downloadDetail = prepared.status === 'ready'
+    ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), 'ltr')}`
+    : pagesLabel(outputCount);
+  const analyticsStatus = loadStatus === 'error' || prepared.status === 'error' ? 'error' : tap;
+  const handoffs = [
+    { tool: 'compress' as HandoffTool, label: t.handoffCompress, Icon: Shrink },
+    { tool: 'sign' as HandoffTool, label: t.handoffSign, Icon: FileSignature },
+  ];
 
-  const hasFiles = !!file;
-  const isAllRemoved = removedPageNums.size === pages.length && pages.length > 0;
-  const pageOrderChanged = pages.some((p, i) => p.pageNumber !== i + 1);
-  const hasEdits = removedPageNums.size > 0 || Object.keys(rotations).length > 0 || addPageNumbers || pageOrderChanged;
-  const actionButtonDisabled = isAllRemoved || !hasEdits || status === 'processing';
+  const bulkRow = (
+    <div class={workspaceStyles['quiet-row']}>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onIncludeAll}>{t.includeAll}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onSkipAll}>{t.skipAll}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onInvert}>{t.invert}</button>
+    </div>
+  );
 
-  const isDone = status === 'done' && !!downloadUrl;
+  const replaceRow = (requestReplace: () => void) => (
+    <div class={workspaceStyles['quiet-row']}>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.replaceLabel}</button>
+    </div>
+  );
 
-  const keptCount = pages.length - removedPageNums.size;
-  let actionButtonText = `Apply Changes · ${keptCount} ${keptCount === 1 ? 'page' : 'pages'}`;
-  if (status === 'processing') {
-    actionButtonText = 'Processing…';
-  } else if (isAllRemoved) {
-    actionButtonText = 'Cannot remove all pages';
-  } else if (!hasEdits) {
-    actionButtonText = 'Make edits to apply';
-  }
+  const failure = (
+    <ErrorMessage>
+      A protected PDF opens in <a href="/unlock/">Unlock</a> first. Otherwise the file may be damaged - try another PDF.
+    </ErrorMessage>
+  );
 
   return (
     <BasePdfTool
-      hasFiles={hasFiles}
+      hasFiles={file !== null}
       emptyArt={<EditPagesVerb />}
       analyticsTool="edit-pdf"
-      analyticsStatus={status}
+      analyticsStatus={analyticsStatus}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       file={file}
       fileLabel={file?.name}
-      fileMeta={describeFile(file, pages.length)}
+      hideIdentity
     >
-      {hasFiles && (
-        <div class="tool-workspace">
-          {status === 'loading-file' ? (
-            <div class={pdfToolStyles['status-block']}>
-              <p class={pdfToolStyles['status-text-muted']}>Loading PDF file structure…</p>
-            </div>
-          ) : (
-            <>
-              {/* Three groups, one kind of thing each: what to keep, history,
-                  the page-numbers setting. On a phone each group gets its own
-                  line (PdfEditPagesTool.module.css); on desktop they share one. */}
-              <div class={`${styles['grid-actions']} ${touchStyles['actions-row']}`} role="toolbar" aria-label="Selection toolbar">
-                <div class={touchStyles['selection-group']}>
-                  <button type="button" onClick={keepAll}>
-                    Keep all
-                  </button>
-                  <button type="button" onClick={removeAll}>
-                    Remove all
-                  </button>
-                  <button type="button" onClick={invertSelection}>
-                    Invert
-                  </button>
-                </div>
-                <div class={touchStyles['history-group']}>
-                  <button type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo last change">
-                    Undo
-                  </button>
-                  <button type="button" onClick={handleRedo} disabled={!canRedo} aria-label="Redo last undone change">
-                    Redo
-                  </button>
-                </div>
-                <label class={`${pdfToolStyles['page-numbers-toggle']} ${touchStyles['toggle-touch']}`}>
-                  <input
-                    type="checkbox"
-                    checked={addPageNumbers}
-                    onChange={(e) => {
-                      setAddPageNumbers((e.target as HTMLInputElement).checked);
-                      resetOutput();
-                      recordAction('change_setting');
-                    }}
-                  />
-                  <span>Add page numbers</span>
-                </label>
-                <span class={styles['grid-actions-hint']} aria-hidden="true">Drag to reorder</span>
-              </div>
-
-              <div class={styles['pages-grid']} role="group" aria-label="PDF Pages Grid" ref={gridRef}>
-                {pages.map((page) => {
-                  const isRemoved = removedPageNums.has(page.pageNumber);
-                  const rotation = rotations[page.pageNumber] || 0;
-                  return (
-                    <div
-                      key={page.pageNumber}
-                      class={`${styles['page-card']}${isRemoved ? ` ${styles['is-removed']}` : ` ${styles['is-selected']}`}`}
-                      data-page={page.pageNumber}
-                      onClick={() => togglePage(page.pageNumber)}
-                    >
-                      {/* Drag handle - full-width top bar */}
-                      <span
-                        class={styles['page-drag-handle']}
-                        title="Drag to reorder"
-                        aria-hidden="true"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <circle cx="5" cy="3" r="1.4" fill="currentColor" />
-                          <circle cx="11" cy="3" r="1.4" fill="currentColor" />
-                          <circle cx="5" cy="8" r="1.4" fill="currentColor" />
-                          <circle cx="11" cy="8" r="1.4" fill="currentColor" />
-                          <circle cx="5" cy="13" r="1.4" fill="currentColor" />
-                          <circle cx="11" cy="13" r="1.4" fill="currentColor" />
-                        </svg>
-                      </span>
-
-                      {/* Toggle remove / keep by clicking the checkbox badge */}
-                      <button
-                        type="button"
-                        class={`${styles['page-card-checkbox']} ${touchStyles['check-touch']}`}
-                        onClick={(e) => { e.stopPropagation(); togglePage(page.pageNumber); }}
-                        aria-label={`Page ${page.pageNumber}${isRemoved ? ', marked for removal' : ', kept'}. Click to toggle.`}
-                        aria-pressed={isRemoved}
-                      >
-                        {!isRemoved ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        ) : (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
-                        )}
-                      </button>
-
-                      <div class={styles['page-card-thumb-container']}>
-                        {page.thumbnail ? (
-                          <img
-                            class={styles['page-card-thumb']}
-                            src={page.thumbnail}
-                            alt=""
-                            style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s ease' }}
-                          />
-                        ) : (
-                          <span class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
-                        )}
-                      </div>
-
-                      <span class={styles['page-card-number']}>Page {page.pageNumber}</span>
-
-                      <div class={`${styles['page-card-actions']} ${touchStyles['actions-touch']}`} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          class={`${styles['rotate-btn']} ${touchStyles['rotate-touch']}`}
-                          onClick={(e) => { e.stopPropagation(); rotatePage(page.pageNumber, 'left'); }}
-                          aria-label={`Rotate page ${page.pageNumber} left`}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                        </button>
-                        <button
-                          type="button"
-                          class={`${styles['rotate-btn']} ${touchStyles['rotate-touch']}`}
-                          onClick={(e) => { e.stopPropagation(); rotatePage(page.pageNumber, 'right'); }}
-                          aria-label={`Rotate page ${page.pageNumber} right`}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {isAllRemoved && (
-                <p
-                  class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.centered} ${pdfToolStyles.danger}`}
-                  role="status"
-                >
-                  A PDF must contain at least one page. Please keep at least one page.
-                </p>
-              )}
-
-
-              {!hasEdits && (
-                <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.centered}`} role="status">
-                  Remove pages, rotate, reorder, or add page numbers before applying changes.
-                </p>
-              )}
-
-              <div class={touchStyles['edit-sheet']} data-edit-sheet>
-              {!isDone && (
-                <button
-                  type="button"
-                  class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
-                  disabled={actionButtonDisabled}
-                  onClick={handleApplyChanges}
-                >
-                  {status === 'processing' ? (
-                    <ProgressRing progress={progress} label="Processing…" />
-                  ) : (
-                    actionButtonText
-                  )}
-                </button>
-              )}
-
-              {status === 'error' && (
-                <ErrorMessage>
-                  A protected PDF opens in <a href="/unlock/">Unlock</a> first. Otherwise the file may be damaged - try another PDF.
-                </ErrorMessage>
-              )}
-
-              {isDone && (
-                <>
-                  <div class={touchStyles['finish-pair']}>
-                    <a
-                      ref={focusOnMount}
-                      class={touchStyles['finish-download']}
-                      href={downloadUrl}
-                      download={outputName}
-                      onClick={() => recordAction('download')}
-                    >
-                      <Download size={16} aria-hidden="true" />
-                      Download PDF
-                    </a>
-                    <PdfShareButton visible={shareReady} onShare={handleShare} className={touchStyles['finish-share']} />
-                  </div>
-                  <p class={touchStyles['finish-caption']}>
-                    {outputName}{outputSize != null ? ` · ${formatFileSize(outputSize)}` : ''}
-                  </p>
-                </>
-              )}
-              </div>
-
-              {isDone && (
-                <>
-                  <ExportHandoffs
-                    items={[{ tool: 'compress', label: 'Compress it', Icon: Shrink }, { tool: 'sign', label: 'Sign it', Icon: FileSignature }]}
-                    busy={handoffBusy}
-                    onHandoff={requestHandoff}
-                  />
-                  {handoffFailed && (
-                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-                      Could not hand this off. Download it instead and open it there.
-                    </p>
-                  )}
-                </>
-              )}
-            </>
-          )}
+      {file && loadStatus === 'loading-file' && (
+        <div class={pdfToolStyles['status-block']}>
+          <p class={pdfToolStyles['status-text-muted']}>{t.loadingStructure}</p>
         </div>
+      )}
+
+      {file && loadStatus === 'error' && failure}
+
+      {file && loadStatus === 'idle' && (
+        <ToolShellBridge>
+          {({ requestReplace }) => (
+            <PageWorkspace
+              phoneBar={(
+                <div class={workspaceStyles['chip-bar']}>
+                  {/* The quiet Download at the sticky bar's inline end, doing exactly
+                      what the Download element does in each state. */}
+                  {downloadLinkReady ? (
+                    <a
+                      class={workspaceStyles['chip-download']}
+                      data-quiet-download
+                      href={prepared.url ?? undefined}
+                      download={fileName}
+                      onClick={onQuietDownloadTap}
+                    >
+                      <DownloadIcon size={16} aria-hidden="true" />
+                      {t.downloadShort}
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      class={workspaceStyles['chip-download']}
+                      data-quiet-download
+                      aria-disabled={downloadState === 'error' || downloadState === 'preparing' || undefined}
+                      onClick={downloadState === 'error' ? undefined : onQuietPreparingTap}
+                      onPointerEnter={prepared.prepareNow}
+                      onFocus={prepared.prepareNow}
+                    >
+                      <DownloadIcon size={16} aria-hidden="true" />
+                      {t.downloadShort}
+                    </button>
+                  )}
+                  {showStrip && (
+                    <DoneStrip
+                      label={t.editedReady}
+                      closeLabel={t.closeStrip}
+                      onClose={closeStrip}
+                      className={workspaceStyles['done-strip']}
+                    >
+                      <p class={workspaceStyles['done-strip-result']}>
+                        <FileName name={fileName} className={workspaceStyles['done-strip-name']} />
+                        <span class={workspaceStyles['done-strip-detail']}>{downloadDetail}</span>
+                      </p>
+                      <ExportHandoffs
+                        items={handoffs}
+                        busy={handoffBusy || prepared.status !== 'ready'}
+                        onHandoff={(tool) => { void requestHandoff(tool as HandoffTool); }}
+                      />
+                      {handoffFailed && (
+                        <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                      )}
+                    </DoneStrip>
+                  )}
+                </div>
+              )}
+              phoneControls={(
+                <div class={workspaceStyles['mobile-file-controls']}>
+                  {bulkRow}
+                  {replaceRow(requestReplace)}
+                </div>
+              )}
+              touchHint={plan.length > 1 && t.touchDragHint}
+              heading={(
+                <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
+                  <span class="sr-only">{t.documentHeading}</span>
+                  <OutputName
+                    name={title}
+                    label={t.fileNameEditableLabel}
+                    onRename={renameOutput}
+                    onEditingChange={setIsRenamingOutputName}
+                    wrapOnPhone
+                  >
+                    <span class={workspaceStyles['doc-heading-count']}>
+                      {' · '}{pagesLabel(outputCount)}
+                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
+                    </span>
+                  </OutputName>
+                </h2>
+              )}
+              headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
+              railContent={(
+                <>
+                  {bulkRow}
+                  {replaceRow(requestReplace)}
+                </>
+              )}
+              railPinned={(
+                <>
+                  <label class={workspaceStyles['page-numbers-row']}>
+                    <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                    <span>{t.addPageNumbers}</span>
+                  </label>
+
+                  <DownloadElement
+                    state={downloadState}
+                    href={prepared.status === 'ready' ? prepared.url : null}
+                    fileName={fileName}
+                    detail={downloadDetail}
+                    renderedCount={renderedCount}
+                    totalCount={plan.length}
+                    pagesToMerge={outputCount}
+                    progress={prepared.progress}
+                    errorMessage={t.fixFileToMerge}
+                    messages={t}
+                    onPreparingTap={onRowPreparingTap}
+                    onWarm={prepared.prepareNow}
+                    onDownloadClick={onDownloadTap}
+                    isOutputNameBeingRenamed={isRenamingOutputName}
+                  />
+
+                  <div class={workspaceStyles['handoff-row']} onPointerOver={prepared.prepareNow} onFocusIn={prepared.prepareNow} onPointerDown={prepared.prepareNow}>
+                    {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={workspaceStyles['handoff-button']} />}
+                    {handoffs.map(({ tool, label, Icon }) => (
+                      <button
+                        key={tool}
+                        type="button"
+                        class={workspaceStyles['handoff-button']}
+                        disabled={handoffBusy || prepared.status !== 'ready'}
+                        onClick={() => { void requestHandoff(tool); }}
+                      >
+                        <Icon size={16} aria-hidden="true" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {handoffFailed && (
+                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                  )}
+                </>
+              )}
+            >
+              {prepared.status === 'error' && failure}
+
+              {PageGrid && plan.length > 0 && (
+                <PageGrid
+                  sources={sources}
+                  plan={plan}
+                  onPlanChange={onPlanChange}
+                  announce={setAnnouncement}
+                  messages={t}
+                  labelledBy="page-grid-heading"
+                  grouped
+                  labelSources={false}
+                  gridRef={gridRef}
+                  onRenderedCountChange={setRenderedCount}
+                />
+              )}
+            </PageWorkspace>
+          )}
+        </ToolShellBridge>
       )}
 
       <p class="sr-only" role="status" aria-live="polite">

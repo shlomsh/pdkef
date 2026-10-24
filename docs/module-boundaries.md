@@ -247,8 +247,6 @@ single tool owns them; they are consumed by the generic tool chrome or by more t
   `FileList.module.css` by Merge, Compress, ImageToPdf, ToImage, Split). Neither is Sign/Redact-only,
   so `editor-ui` is the wrong home; neither belongs to one tool, so no `tools/<t>/` is right either.
   `shell` is where multi-tool, non-editor chrome lives.
-- `PageGrid.module.css` - documented as split/edit-pages only, but the real import graph also reaches
-  it from Compress and from Merge's `PageGrid.module.css`. Same reasoning as above: shell.
 - `CompareSlider.{tsx,test.tsx,module.css}` - a drag-based before/after image slider. At the time of
   this record it was imported by one `.astro` site component (`CompareFigure.astro`, for blog-style
   content) and by one tool (`PdfCompressTool.tsx`, the compress preview the `compare-preview.spec.js`

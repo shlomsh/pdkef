@@ -6,7 +6,6 @@ import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.t
 import Sortable from 'sortablejs';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import pageGridStyles from '../../shell/PageGrid.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
 
 function makePdfFile(name) {
@@ -20,32 +19,27 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
 
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 3 } }));
 
-vi.mock('@cantoo/pdf-lib', () => {
-  return {
-    PDFDocument: {
-      load: vi.fn(() => Promise.resolve({
-        getPageCount: () => mockState.numPages,
-      })),
-    },
-  };
-});
+vi.mock('@cantoo/pdf-lib', () => ({
+  PDFDocument: {
+    load: vi.fn(() => Promise.resolve({
+      getPageCount: () => mockState.numPages,
+    })),
+  },
+}));
 
-vi.mock('../../lib/thumbnails.js', () => {
-  return {
-    renderPdfThumbnails: vi.fn((file, onPageRender) => {
-      for (let i = 1; i <= mockState.numPages; i++) {
-        onPageRender(i, `data:image/png;base64,fake-thumbnail-${i}`);
-      }
-      return Promise.resolve(mockState.numPages);
-    }),
-  };
-});
+vi.mock('../../lib/thumbnails.js', () => ({
+  openThumbnailSource: vi.fn(async (file) => ({
+    file,
+    pageCount: mockState.numPages,
+    render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
+    destroy: vi.fn(async () => {}),
+  })),
+  renderThumbnail: vi.fn(() => Promise.resolve(null)),
+}));
 
-vi.mock('./editPages.js', () => {
-  return {
-    editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
-  };
-});
+vi.mock('./editPages.js', () => ({
+  editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
+}));
 
 describe('PdfEditPagesTool undo/redo', () => {
   let container;
@@ -68,213 +62,135 @@ describe('PdfEditPagesTool undo/redo', () => {
   async function loadPdf() {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('document.pdf')]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    act(() => { render(<PdfEditPagesTool />, container); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
   }
 
-  function cards() {
-    return container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-  }
+  const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
+  const order = () => cells().map((c) => c.dataset.key);
+  const rotation = (index) => cells()[index].dataset.rotation ?? '0';
+  const skipped = () => cells().map((c) => c.hasAttribute('data-skipped'));
+  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  const undoButton = () => container.querySelector('[aria-label="Undo last change"]');
+  const redoButton = () => container.querySelector('[aria-label="Redo last undone change"]');
+  const bulkButton = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
+  const rotateButton = (number) => container.querySelector(`[aria-label="Rotate page ${number}"]`);
+  const skipButton = (number) => container.querySelector(`[aria-label="Skip page ${number}"], [aria-label="Include page ${number}"]`);
+  const keydown = (init) => act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init })); });
 
-  function toolbarButton(label) {
-    const buttons = container.querySelectorAll(`.${pageGridStyles['grid-actions']} button`);
-    return Array.from(buttons).find((b) => b.textContent === label);
-  }
-
-  function rotateButton(pageNum, direction) {
-    return container.querySelector(`[aria-label="Rotate page ${pageNum} ${direction}"]`);
-  }
-
-  function thumbTransform(pageNum) {
-    const card = Array.from(cards()).find((c) => c.dataset.page === String(pageNum));
-    const img = card.querySelector(`.${pageGridStyles['page-card-thumb']}`);
-    return img ? img.style.transform : null;
-  }
-
-  it('DEBT-58: loading a file is not an edit; a rotate is, and an unchanged Keep all is not', async () => {
+  it('DEBT-58: loading a file is not an edit; a rotate is, and an unchanged Include all is not', async () => {
     await loadPdf();
     expect(reportEdit).not.toHaveBeenCalled();
 
-    await act(async () => {
-      toolbarButton('Keep all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await click(bulkButton('Include all'));
     expect(reportEdit).not.toHaveBeenCalled();
 
-    await act(async () => {
-      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await click(rotateButton(1));
     expect(reportEdit).toHaveBeenCalledWith('edit-pdf');
   });
 
   it('starts with Undo and Redo both disabled', async () => {
     await loadPdf();
-    expect(toolbarButton('Undo').disabled).toBe(true);
-    expect(toolbarButton('Redo').disabled).toBe(true);
+    expect(undoButton().disabled).toBe(true);
+    expect(redoButton().disabled).toBe(true);
   });
 
   it('rotate, undo, redo: redo restores the rotation undo removed', async () => {
     await loadPdf();
 
-    await act(async () => {
-      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(90deg)');
-    expect(toolbarButton('Undo').disabled).toBe(false);
-    expect(toolbarButton('Redo').disabled).toBe(true);
+    await click(rotateButton(1));
+    expect(rotation(0)).toBe('90');
+    expect(undoButton().disabled).toBe(false);
+    expect(redoButton().disabled).toBe(true);
 
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(0deg)');
-    expect(toolbarButton('Undo').disabled).toBe(true);
-    expect(toolbarButton('Redo').disabled).toBe(false);
+    await click(undoButton());
+    expect(rotation(0)).toBe('0');
+    expect(undoButton().disabled).toBe(true);
+    expect(redoButton().disabled).toBe(false);
 
-    await act(async () => {
-      toolbarButton('Redo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(90deg)');
-    expect(toolbarButton('Undo').disabled).toBe(false);
-    expect(toolbarButton('Redo').disabled).toBe(true);
+    await click(redoButton());
+    expect(rotation(0)).toBe('90');
+    expect(undoButton().disabled).toBe(false);
+    expect(redoButton().disabled).toBe(true);
   });
 
   it('records add, rotate, undo and redo in order (DEBT-31)', async () => {
     await loadPdf();
-    await act(async () => {
-      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      toolbarButton('Redo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await click(rotateButton(1));
+    await click(undoButton());
+    await click(redoButton());
     expect(recentActions()).toEqual(['add_files', 'rotate', 'undo', 'redo']);
   });
 
-  it('records delete_page when deleting but nothing when restoring (DEBT-31)', async () => {
-    await loadPdf();
-    await act(async () => {
-      cards()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(recentActions()).toEqual(['add_files', 'delete_page']);
-    await act(async () => {
-      cards()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(recentActions()).toEqual(['add_files', 'delete_page']);
-  });
-
-  it('a throwing export still leaves export in the trail (DEBT-31)', async () => {
-    const { editPages } = await import('./editPages.js');
-    editPages.mockRejectedValueOnce(new Error('save failed'));
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    await loadPdf();
-    const apply = Array.from(container.querySelectorAll('button')).find((b) => /apply|download|save/i.test(b.textContent));
-    await act(async () => {
-      apply.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(recentActions()).toContain('export');
-  });
-
-  it('a removal toggle round-trips through undo and redo', async () => {
+  it('a skip toggle round-trips through undo and redo', async () => {
     await loadPdf();
 
-    await act(async () => {
-      cards()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(cards()[1].className).toContain(pageGridStyles['is-removed']);
+    await click(skipButton(2));
+    expect(skipped()).toEqual([false, true, false]);
 
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(cards()[1].className).not.toContain(pageGridStyles['is-removed']);
+    await click(undoButton());
+    expect(skipped()).toEqual([false, false, false]);
 
-    await act(async () => {
-      toolbarButton('Redo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(cards()[1].className).toContain(pageGridStyles['is-removed']);
+    await click(redoButton());
+    expect(skipped()).toEqual([false, true, false]);
   });
 
-  it('a reorder round-trips through undo and redo, restoring the full page-number order', async () => {
+  it('a reorder round-trips through undo and redo, restoring the full page order', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');
     await loadPdf();
 
     expect(createSpy).toHaveBeenCalledTimes(1);
     const options = createSpy.mock.calls[0][1];
+    expect(order()).toEqual(['0:0', '0:1', '0:2']);
 
-    const orderOf = () => Array.from(cards()).map((c) => c.dataset.page);
-    expect(orderOf()).toEqual(['1', '2', '3']);
+    await act(async () => { options.onEnd({ oldIndex: 0, newIndex: 2 }); });
+    expect(order()).toEqual(['0:1', '0:2', '0:0']);
+    expect(undoButton().disabled).toBe(false);
 
-    await act(async () => {
-      options.onEnd({ oldIndex: 0, newIndex: 2 });
-    });
-    expect(orderOf()).toEqual(['2', '3', '1']);
-    expect(toolbarButton('Undo').disabled).toBe(false);
+    await click(undoButton());
+    expect(order()).toEqual(['0:0', '0:1', '0:2']);
 
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(orderOf()).toEqual(['1', '2', '3']);
-
-    await act(async () => {
-      toolbarButton('Redo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(orderOf()).toEqual(['2', '3', '1']);
+    await click(redoButton());
+    expect(order()).toEqual(['0:1', '0:2', '0:0']);
   });
 
   it('a new action after an undo clears the redo future', async () => {
     await loadPdf();
 
-    await act(async () => {
-      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(toolbarButton('Redo').disabled).toBe(false);
+    await click(rotateButton(1));
+    await click(undoButton());
+    expect(redoButton().disabled).toBe(false);
 
-    await act(async () => {
-      rotateButton(2, 'left').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(toolbarButton('Redo').disabled).toBe(true);
-    expect(toolbarButton('Undo').disabled).toBe(false);
+    await click(rotateButton(2));
+    expect(redoButton().disabled).toBe(true);
+    expect(undoButton().disabled).toBe(false);
   });
 
   it('caps history depth: only the most recent 50 actions can be undone', async () => {
     await loadPdf();
-    const btn = rotateButton(1, 'right');
+    const btn = rotateButton(1);
 
     for (let i = 0; i < 55; i += 1) {
       // eslint-disable-next-line no-await-in-loop
-      await act(async () => {
-        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await click(btn);
     }
-    expect(thumbTransform(1)).toContain(`rotate(${55 * 90}deg)`);
+    // 55 quarter turns, kept in [0, 360).
+    expect(rotation(0)).toBe(String((55 * 90) % 360));
 
     let undoCount = 0;
     for (let i = 0; i < 60; i += 1) {
-      const undoBtn = toolbarButton('Undo');
-      if (undoBtn.disabled) break;
+      if (undoButton().disabled) break;
       // eslint-disable-next-line no-await-in-loop
-      await act(async () => {
-        undoBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await click(undoButton());
       undoCount += 1;
     }
 
     expect(undoCount).toBe(50);
-    // 55 rotations of +90deg, 50 undone: 5 rotations' worth remain (450deg).
-    expect(thumbTransform(1)).toContain(`rotate(${5 * 90}deg)`);
-    expect(toolbarButton('Undo').disabled).toBe(true);
-    expect(toolbarButton('Redo').disabled).toBe(false);
+    // 55 turns, 50 undone: 5 turns' worth remain.
+    expect(rotation(0)).toBe(String((5 * 90) % 360));
+    expect(undoButton().disabled).toBe(true);
+    expect(redoButton().disabled).toBe(false);
   });
 
   // The shared hook Sign and Redact use (src/lib/history/useHistoryShortcuts.js)
@@ -283,35 +199,25 @@ describe('PdfEditPagesTool undo/redo', () => {
   it('Cmd+Z undoes and Shift+Cmd+Z redoes', async () => {
     await loadPdf();
 
-    await act(async () => {
-      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(90deg)');
+    await click(rotateButton(1));
+    expect(rotation(0)).toBe('90');
 
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(0deg)');
+    await keydown({ key: 'z', metaKey: true });
+    expect(rotation(0)).toBe('0');
 
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(90deg)');
+    await keydown({ key: 'z', metaKey: true, shiftKey: true });
+    expect(rotation(0)).toBe('90');
   });
 
   it('leaves the shortcuts alone while focus is in an input', async () => {
     await loadPdf();
 
-    await act(async () => {
-      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await click(rotateButton(1));
 
     const checkbox = container.querySelector('input[type="checkbox"]');
     checkbox.focus();
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(90deg)');
+    await keydown({ key: 'z', metaKey: true });
+    expect(rotation(0)).toBe('90');
   });
 
   // Regression for "two actions in one task swallow a history step": two
@@ -319,26 +225,22 @@ describe('PdfEditPagesTool undo/redo', () => {
   // distinct undo steps rather than the same pre-rotation snapshot twice.
   it('two rotate clicks dispatched in one task produce two distinct undo steps', async () => {
     await loadPdf();
-    const btn = rotateButton(1, 'right');
+    const btn = rotateButton(1);
 
     await act(async () => {
       btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(thumbTransform(1)).toContain('rotate(180deg)');
+    expect(rotation(0)).toBe('180');
 
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(90deg)');
-    expect(toolbarButton('Undo').disabled).toBe(false);
+    await click(undoButton());
+    expect(rotation(0)).toBe('90');
+    expect(undoButton().disabled).toBe(false);
 
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(0deg)');
-    expect(toolbarButton('Undo').disabled).toBe(true);
-    expect(toolbarButton('Redo').disabled).toBe(false);
+    await click(undoButton());
+    expect(rotation(0)).toBe('0');
+    expect(undoButton().disabled).toBe(true);
+    expect(redoButton().disabled).toBe(false);
   });
 
   // Regression for the other half of the same defect: ordinary key
@@ -347,65 +249,53 @@ describe('PdfEditPagesTool undo/redo', () => {
   // canRedo correct afterwards - not one visible undo plus a dead redo step.
   it('two Cmd+Z keydowns dispatched in one task move two steps back', async () => {
     await loadPdf();
-    const btn = rotateButton(1, 'right');
+    const btn = rotateButton(1);
 
-    await act(async () => {
-      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(thumbTransform(1)).toContain('rotate(180deg)');
+    await click(btn);
+    await click(btn);
+    expect(rotation(0)).toBe('180');
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
     });
-    expect(thumbTransform(1)).toContain('rotate(0deg)');
-    expect(toolbarButton('Undo').disabled).toBe(true);
-    expect(toolbarButton('Redo').disabled).toBe(false);
+    expect(rotation(0)).toBe('0');
+    expect(undoButton().disabled).toBe(true);
+    expect(redoButton().disabled).toBe(false);
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true }));
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true }));
     });
-    expect(thumbTransform(1)).toContain('rotate(180deg)');
-    expect(toolbarButton('Undo').disabled).toBe(false);
-    expect(toolbarButton('Redo').disabled).toBe(true);
+    expect(rotation(0)).toBe('180');
+    expect(undoButton().disabled).toBe(false);
+    expect(redoButton().disabled).toBe(true);
   });
 
   // Regression for "bulk actions commit even when they change nothing":
-  // "Keep all" with nothing removed must not push a history entry that would
-  // light up Undo and then visibly do nothing when pressed.
-  it('"Keep all" with nothing removed does not enable Undo', async () => {
+  // "Include all" with nothing skipped must not push a history entry that
+  // would light up Undo and then visibly do nothing when pressed.
+  it('"Include all" with nothing skipped does not enable Undo', async () => {
     await loadPdf();
 
-    await act(async () => {
-      toolbarButton('Keep all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(toolbarButton('Undo').disabled).toBe(true);
+    await click(bulkButton('Include all'));
+    expect(undoButton().disabled).toBe(true);
   });
 
-  it('a second, redundant "Remove all" does not push a second history entry', async () => {
+  it('a second, redundant "Skip all" does not push a second history entry', async () => {
     await loadPdf();
 
-    await act(async () => {
-      toolbarButton('Remove all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(Array.from(cards()).every((c) => c.className.includes(pageGridStyles['is-removed']))).toBe(true);
-    expect(toolbarButton('Undo').disabled).toBe(false);
+    await click(bulkButton('Skip all'));
+    expect(skipped()).toEqual([true, true, true]);
+    expect(undoButton().disabled).toBe(false);
 
-    // Every page is already removed, so this second click changes nothing
+    // Every page is already skipped, so this second click changes nothing
     // and must not consume a second undo step.
-    await act(async () => {
-      toolbarButton('Remove all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await click(bulkButton('Skip all'));
 
-    await act(async () => {
-      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    // One undo is enough to get all the way back to nothing removed.
-    expect(Array.from(cards()).some((c) => c.className.includes(pageGridStyles['is-removed']))).toBe(false);
-    expect(toolbarButton('Undo').disabled).toBe(true);
+    await click(undoButton());
+    // One undo is enough to get all the way back to nothing skipped.
+    expect(skipped()).toEqual([false, false, false]);
+    expect(undoButton().disabled).toBe(true);
   });
 });

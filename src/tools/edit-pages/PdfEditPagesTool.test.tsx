@@ -1,17 +1,15 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { editPages } from './editPages.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
-import pageGridStyles from '../../shell/PageGrid.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import touchStyles from './PdfEditPagesTool.module.css';
-import handoffStyles from '../../editor-ui/ExportHandoffs.module.css';
+import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { reportError } from '../../lib/errorReport.ts';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -19,36 +17,36 @@ function makePdfFile(name) {
 
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 3 } }));
 
-// Mock pdf-lib
-vi.mock('@cantoo/pdf-lib', () => {
-  return {
-    PDFDocument: {
-      load: vi.fn(() => Promise.resolve({
-        getPageCount: () => mockState.numPages,
-      })),
-    },
-  };
-});
+vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportError: vi.fn(),
+}));
 
-// Mock thumbnails loader
-vi.mock('../../lib/thumbnails.js', () => {
-  return {
-    renderPdfThumbnails: vi.fn((file, onPageRender) => {
-      for (let i = 1; i <= mockState.numPages; i++) {
-        onPageRender(i, `data:image/png;base64,fake-thumbnail-${i}`);
-      }
-      return Promise.resolve(mockState.numPages);
-    }),
-  };
-});
+// Mock pdf-lib
+vi.mock('@cantoo/pdf-lib', () => ({
+  PDFDocument: {
+    load: vi.fn(() => Promise.resolve({
+      getPageCount: () => mockState.numPages,
+    })),
+  },
+}));
+
+// The shared grid reads pdf.js through this source; no real rendering here.
+vi.mock('../../lib/thumbnails.js', () => ({
+  openThumbnailSource: vi.fn(async (file) => ({
+    file,
+    pageCount: mockState.numPages,
+    render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
+    destroy: vi.fn(async () => {}),
+  })),
+  renderThumbnail: vi.fn(() => Promise.resolve(null)),
+  renderPdfThumbnails: vi.fn(async () => 0),
+}));
 
 // Mock core page editing logic
-vi.mock('./editPages.js', () => {
-  return {
-    editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
-  };
-});
-
+vi.mock('./editPages.js', () => ({
+  editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
+}));
 
 const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({
   takeHandoffMock: vi.fn(() => Promise.resolve(null)),
@@ -62,8 +60,19 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   saveHandoff: saveHandoffMock,
 }));
 
+const flush = (ms = 50) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
 describe('PdfEditPagesTool UI flow', () => {
   let container;
+
+  beforeEach(() => {
+    editPages.mockClear();
+    reportError.mockClear();
+    saveHandoffMock.mockClear();
+    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    window.URL.revokeObjectURL = vi.fn();
+  });
 
   afterEach(() => {
     if (container) {
@@ -72,334 +81,173 @@ describe('PdfEditPagesTool UI flow', () => {
       container = null;
     }
     mockState.numPages = 3;
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
+
+  async function load(name = 'document.pdf') {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    // jsdom cannot follow a download link.
+    container.addEventListener('click', (e) => e.preventDefault());
+    act(() => { render(<PdfEditPagesTool />, container); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile(name)]); });
+    await flush();
+  }
+
+  const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
+  const button = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
+  const heading = () => container.querySelector('#page-grid-heading');
+  const skipButton = (number) => container.querySelector(`[aria-label="Skip page ${number}"], [aria-label="Include page ${number}"]`);
+  // The rail's Download element, the one with a state; the phone bar's quiet button has none.
+  const downloadElement = () => container.querySelector('a[data-state]');
+  // A pointer on the Download element asks for the build now instead of after the quiet wait.
+  const prepareNow = async () => {
+    await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    await flush();
+  };
 
   it('renders the initial file dropper zone', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
+    act(() => { render(<PdfEditPagesTool />, container); });
 
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
 
-  it('loads the PDF and displays the page thumbnails in a grid', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
+  it('loads the PDF into the shared grid under a heading that names the output and its pages', async () => {
+    await load();
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('document.pdf');
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    // Wait for the async loads to resolve
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Check that the file bar shows the file name and page count
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar).not.toBeNull();
-    expect(fileBar.textContent).toContain('document.pdf');
-    expect(fileBar.textContent).toContain('3 pages');
-
-    // Check that we have 3 page cards
-    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-    expect(cards.length).toBe(3);
-    expect(cards[0].textContent).toContain('Page 1');
-    expect(cards[1].textContent).toContain('Page 2');
-    expect(cards[2].textContent).toContain('Page 3');
+    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2']);
+    expect(heading().textContent).toContain('document_modified.pdf');
+    expect(heading().textContent).toContain('3 pages');
+    // The heading names the file, so the shell's own identity row is not shown.
+    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    // There is no Apply button: the Download element is the whole finish.
+    expect(downloadElement().textContent).toContain('3 pages');
+    expect(container.textContent).not.toContain('Apply Changes');
   });
 
-  it('toggles page removal state when page cards are clicked', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('document.pdf');
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-    const actionButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-
-    // Default: no pages selected for removal, button says "Make edits to apply"
-    expect(actionButton.textContent).toContain('Make edits to apply');
-    expect(actionButton.disabled).toBe(true);
-
-    // Click Page 2 to mark it for removal
-    await act(async () => {
-      cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    // Page 2 should have is-removed class and button should be active
-    expect(cards[1].className).toContain(pageGridStyles['is-removed']);
-    expect(actionButton.disabled).toBe(false);
-    expect(actionButton.textContent).toBe('Apply Changes · 2 pages');
-
-    // Click Page 2 again to keep it
-    await act(async () => {
-      cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(cards[1].className).not.toContain(pageGridStyles['is-removed']);
-    expect(actionButton.disabled).toBe(true);
-  });
-
-  it('handles toolbar selection controls correctly', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('document.pdf');
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const buttons = container.querySelectorAll(`.${pageGridStyles['grid-actions']} button`);
-    const keepAllBtn = Array.from(buttons).find(b => b.textContent === 'Keep all');
-    const removeAllBtn = Array.from(buttons).find(b => b.textContent === 'Remove all');
-    const invertBtn = Array.from(buttons).find(b => b.textContent === 'Invert');
-
-    // Click Remove all
-    await act(async () => {
-      removeAllBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-    expect(Array.from(cards).every(c => c.classList.contains(pageGridStyles['is-removed']))).toBe(true);
-
-    const actionButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(actionButton.textContent).toContain('Cannot remove all pages');
-    expect(actionButton.disabled).toBe(true);
-
-    // Click Keep all
-    await act(async () => {
-      keepAllBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(Array.from(cards).some(c => c.classList.contains(pageGridStyles['is-removed']))).toBe(false);
-    expect(actionButton.textContent).toContain('Make edits to apply');
-
-    // Click Page 1, then Invert
-    await act(async () => {
-      cards[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(cards[0].className).toContain(pageGridStyles['is-removed']);
-
-    await act(async () => {
-      invertBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(cards[0].className).not.toContain(pageGridStyles['is-removed']);
-    expect(cards[1].className).toContain(pageGridStyles['is-removed']);
-    expect(cards[2].className).toContain(pageGridStyles['is-removed']);
-    expect(actionButton.textContent).toContain('Apply Changes');
-  });
-
-  async function loadFive() {
-    mockState.numPages = 5;
+  it('shows the loading line while the structure loads', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
-    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('d.pdf')]); });
-    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-    return container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-  }
-  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-
-  it('the label counts the pages the output keeps, singular for one', async () => {
-    const cards = await loadFive();
-    const btn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    await click(cards[0]);
-    await click(cards[1]);
-    expect(btn.textContent).toBe('Apply Changes · 3 pages');
-    await click(cards[2]);
-    await click(cards[3]);
-    expect(btn.textContent).toBe('Apply Changes · 1 page');
-    mockState.numPages = 3;
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]); });
+    expect(container.textContent).toContain('Loading PDF file structure');
+    await flush();
+    expect(container.textContent).not.toContain('Loading PDF file structure');
   });
 
-  it('the primary lives inside the pinned sheet, the hint stays outside', async () => {
-    await loadFive();
-    const sheet = container.querySelector('[data-edit-sheet]');
-    expect(sheet).not.toBeNull();
-    expect(sheet.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).not.toBeNull();
-    const hint = Array.from(container.querySelectorAll('p')).find((p) => p.textContent.includes('before applying changes'));
-    expect(hint).toBeTruthy();
-    expect(sheet.contains(hint)).toBe(false);
-    mockState.numPages = 3;
+  it('skipping a page dims it and counts the skipped page in the heading and the Download element', async () => {
+    await load();
+
+    await click(skipButton(2));
+    expect(cells()[1].hasAttribute('data-skipped')).toBe(true);
+    expect(heading().textContent).toContain('2 pages');
+    expect(heading().textContent).toContain('1 page skipped');
+    expect(downloadElement().textContent).toContain('2 pages');
+
+    await click(skipButton(2));
+    expect(cells()[1].hasAttribute('data-skipped')).toBe(false);
+    expect(heading().textContent).not.toContain('skipped');
   });
 
-  it('a failed export points to Unlock, where a protected PDF can be opened', async () => {
+  it('Include all, Skip all and Invert each change the pages in one step', async () => {
+    await load();
+    const skipped = () => cells().map((c) => c.hasAttribute('data-skipped'));
+
+    await click(button('Skip all'));
+    expect(skipped()).toEqual([true, true, true]);
+    await click(button('Include all'));
+    expect(skipped()).toEqual([false, false, false]);
+
+    await click(skipButton(1));
+    await click(button('Invert'));
+    expect(skipped()).toEqual([false, true, true]);
+  });
+
+  it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
     editPages.mockRejectedValueOnce(new Error('This PDF is password protected.'));
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    await act(async () => {
-      container.querySelectorAll(`.${pageGridStyles['page-card']}`)[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
-      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await load();
+    await click(skipButton(2));
+    await prepareNow();
+
     const alert = container.querySelector('[role="alert"]');
     expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
+    expect(downloadElement().dataset.state).toBe('error');
+    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'apply_page_edits');
   });
 
-  it('runs page removal and produces download URL', async () => {
+  it('builds the edited PDF from the plan and offers it as a download under the output name', async () => {
+    await load();
+    await click(skipButton(2));
+    await prepareNow();
+
+    expect(editPages).toHaveBeenCalledTimes(1);
+    const [, options] = editPages.mock.calls[0];
+    expect(options).toEqual({
+      pageOrder: [1, 2, 3],
+      removedPageNums: new Set([2]),
+      rotations: {},
+      addPageNumbers: false,
+    });
+    const link = downloadElement();
+    expect(link.dataset.state).toBe('ready');
+    expect(link.getAttribute('href')).toBe('blob:testurl');
+    expect(link.getAttribute('download')).toBe('document_modified.pdf');
+    expect(link.textContent).toContain('Download edited PDF');
+  });
+
+  it('Add page numbers is part of the build', async () => {
+    await load();
+    await click(container.querySelector('input[type="checkbox"]'));
+    await prepareNow();
+    expect(editPages.mock.calls.at(-1)[1].addPageNumbers).toBe(true);
+  });
+
+  it('a tap on a ready Download opens the done strip with Share and the hand-offs', async () => {
     const nativeShare = mockNativeFileShare();
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
+    await load();
+    await prepareNow();
+    expect(downloadElement().dataset.state).toBe('ready');
 
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
+    await click(container.querySelector('[data-quiet-download]'));
+    expect(downloadElement().dataset.state).toBe('saved');
+    const strip = container.querySelector('section[aria-label="Your edited PDF is ready."]');
+    expect(strip).not.toBeNull();
+    expect(strip.textContent).toContain('document_modified.pdf');
+    expect(strip.textContent).toContain('Compress');
+    expect(strip.textContent).toContain('Sign');
 
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('document.pdf');
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-    await act(async () => {
-      cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    const actionButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-    expect(actionButton.textContent).toContain('Apply Changes');
-
-    await act(async () => {
-      actionButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Check download button is present
-    const downloadBtn = container.querySelector(`.${touchStyles['finish-download']}`);
-    expect(downloadBtn).not.toBeNull();
-    expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
-    expect(downloadBtn.getAttribute('download')).toBe('document_modified.pdf');
-
-    const shareButton = container.querySelector(`.${touchStyles['finish-share']}`);
-    expect(shareButton).not.toBeNull();
-    await act(async () => shareButton.click());
+    const share = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent.includes('Share'));
+    expect(share).toBeTruthy();
+    await act(async () => share.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('document_modified.pdf');
-
-    // There is no Start over button under the result any more, and none in the
-    // header above it either: both meant "give me a different file", so the one
-    // Replace control in the shell says it. Picking a replacement on top of page
-    // changes has to ask first - this tool used to discard them silently.
-    expect(container.querySelector(`.${toolShellStyles.action}`).textContent).toContain('Replace');
-
-    const replacement = new File([new Uint8Array([1, 2, 3])], 'other.pdf', { type: 'application/pdf' });
-    const replaceInput = container.querySelector('input[type="file"]');
-    await act(async () => {
-      Object.defineProperty(replaceInput, 'files', { value: [replacement], configurable: true });
-      replaceInput.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
-    const confirmation = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
-    expect(confirmation.open).toBe(true);
-    expect(confirmation.textContent).toContain('stays in your recent files');
-
-    window.URL.createObjectURL = originalCreateObjectURL;
-    window.URL.revokeObjectURL = originalRevokeObjectURL;
     nativeShare.restore();
   });
 
-  describe('finish state', () => {
-    async function applyOneEdit() {
-      window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-      window.URL.revokeObjectURL = vi.fn();
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => { render(<PdfEditPagesTool />, container); });
-      await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]); });
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
-      const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-      await act(async () => { cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-      const apply = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
-      await act(async () => { apply.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
-    }
+  it('the rail hands the result to Compress and parks its bytes', async () => {
+    await load();
+    await prepareNow();
+    const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
+    vi.stubGlobal('location', { href: '/edit-pdf/' });
+    await act(async () => { compress.click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(saveHandoffMock).toHaveBeenCalledWith('compress', expect.objectContaining({
+      fileName: 'document_modified.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),
+    }));
+    expect(window.location.href).toBe('/compress/');
+  });
 
-    it('drops the Apply button once the result is ready', async () => {
-      await applyOneEdit();
-      expect(container.querySelector('[data-edit-sheet]').querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
-    });
-
-    it('puts Download and Share in one finish pair', async () => {
-      const nativeShare = mockNativeFileShare();
-      await applyOneEdit();
-      const pair = container.querySelector(`.${touchStyles['finish-pair']}`);
-      expect(pair).not.toBeNull();
-      expect(pair.querySelector(`.${touchStyles['finish-download']}`)).not.toBeNull();
-      expect(pair.querySelector(`.${touchStyles['finish-share']}`)).not.toBeNull();
-      expect(container.querySelector(`.${touchStyles['finish-caption']}`).textContent).toContain('document_modified.pdf');
-      nativeShare.restore();
-    });
-
-    it('renders the next-tool chips outside the sheet and parks the bytes on a click', async () => {
-      await applyOneEdit();
-      const chips = container.querySelectorAll(`.${handoffStyles['handoff-button']}`);
-      expect(chips.length).toBe(2);
-      expect(container.querySelector('[data-edit-sheet]').querySelector(`.${handoffStyles['handoff-button']}`)).toBeNull();
-      vi.stubGlobal('location', { href: '/edit-pages/' });
-      try {
-        await act(async () => { chips[0].click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
-        expect(saveHandoffMock).toHaveBeenCalledWith('compress', expect.objectContaining({
-          fileName: 'document_modified.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),
-        }));
-        expect(window.location.href).toBe('/compress/');
-      } finally {
-        vi.unstubAllGlobals();
-      }
-    });
+  it('Replace file asks first and names what stays in recents', async () => {
+    await load();
+    await click(button('Replace file'));
+    const confirmation = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    expect(confirmation.open).toBe(true);
+    expect(confirmation.textContent).toContain('stays in your recent files');
+    expect(confirmation.textContent).toContain('document.pdf');
   });
 
   it('loads a PDF handed off from the home page as if picked', async () => {
@@ -410,15 +258,11 @@ describe('PdfEditPagesTool UI flow', () => {
     });
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => {
-      render(<PdfEditPagesTool />, container);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    act(() => { render(<PdfEditPagesTool />, container); });
+    await flush();
+    await flush();
     expect(takeHandoffMock).toHaveBeenCalledWith('edit-pdf');
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar.textContent).toContain('handed.pdf');
-    expect(container.querySelectorAll(`.${pageGridStyles['page-card']}`).length).toBe(3);
+    expect(heading().textContent).toContain('handed_modified.pdf');
+    expect(cells().length).toBe(3);
   });
 });

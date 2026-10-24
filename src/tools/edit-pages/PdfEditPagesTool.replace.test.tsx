@@ -15,12 +15,13 @@ vi.mock('@cantoo/pdf-lib', () => ({
 }));
 
 vi.mock('../../lib/thumbnails.js', () => ({
-  // The shell's file preview (FilePreview.tsx) renders page 1 now that this tool passes `file`.
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn((file, onPageRender) => {
-    for (let i = 1; i <= mockState.numPages; i++) onPageRender(i, `data:image/png;base64,t${i}`);
-    return Promise.resolve(mockState.numPages);
-  }),
+  openThumbnailSource: vi.fn(async (file) => ({
+    file,
+    pageCount: mockState.numPages,
+    render: vi.fn(async (pageIndex) => `data:image/png;base64,t${pageIndex}`),
+    destroy: vi.fn(async () => {}),
+  })),
 }));
 
 vi.mock('./editPages.js', () => ({ editPages: vi.fn() }));
@@ -39,6 +40,8 @@ describe('PdfEditPagesTool replace file', () => {
     }
     vi.restoreAllMocks();
   });
+
+  const cells = () => container.querySelectorAll('ul[data-page-grid] > li[data-key]');
 
   // Production crash: sortablejs destroy() does `el[expando] = null` and throws
   // once the grid element is gone. Emulate that and replace the file.
@@ -66,7 +69,7 @@ describe('PdfEditPagesTool replace file', () => {
     act(() => render(<PdfEditPagesTool />, container));
     await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('a.pdf')]));
     await settle();
-    expect(container.querySelectorAll('[data-page]').length).toBe(3);
+    expect(cells().length).toBe(3);
 
     await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('b.pdf')]));
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
@@ -77,6 +80,29 @@ describe('PdfEditPagesTool replace file', () => {
     window.removeEventListener('error', onError);
     options.__e = prevCatch;
     expect(errors).toEqual([]);
-    expect(container.querySelectorAll('[data-page]').length).toBe(3);
+    expect(cells().length).toBe(3);
+    expect(container.querySelector('#page-grid-heading').textContent).toContain('b_modified.pdf');
+  });
+
+  it('a new file starts fresh: its own name, its own pages, and nothing to undo', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfEditPagesTool />, container));
+    await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('a.pdf')]));
+    await settle();
+    await act(async () => container.querySelector('[aria-label="Skip page 1"]').click());
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
+
+    mockState.numPages = 2;
+    await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('b.pdf')]));
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
+    await settle();
+    await settle();
+
+    expect(cells().length).toBe(2);
+    expect(Array.from(cells()).some((c) => c.hasAttribute('data-skipped'))).toBe(false);
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+    mockState.numPages = 3;
   });
 });
