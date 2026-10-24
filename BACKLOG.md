@@ -167,7 +167,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 55 done, 4 retired
+- Robustness and debt: 56 done, 4 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 10 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
