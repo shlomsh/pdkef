@@ -131,9 +131,14 @@ export interface MergeMessages {
   errorTooLarge: string;
   rowUnreadable: string;
   rowEncrypted: string;
-  /* MERGE-07: undo on remove, duplicate nudge. */
-  removedUndo: string;
+  /* GRID-03: the Undo / Redo pair in the document header. */
   undo: string;
+  redo: string;
+  undoLabel: string;
+  redoLabel: string;
+  undoneAnnouncement: string;
+  redoneAnnouncement: string;
+  /* MERGE-07: duplicate nudge. */
   alreadyAdded: string;
   addAnyway: string;
   pageCountUnknown: string;
@@ -262,8 +267,12 @@ const englishMergeMessages: MergeMessages = {
   errorTooLarge: 'This set is too large for this device to merge in the browser. Try fewer files at a time.',
   rowUnreadable: 'Could not read',
   rowEncrypted: 'Password-protected',
-  removedUndo: 'Removed {name}',
   undo: 'Undo',
+  redo: 'Redo',
+  undoLabel: 'Undo last change',
+  redoLabel: 'Redo last undone change',
+  undoneAnnouncement: 'Undid last change.',
+  redoneAnnouncement: 'Redid last change.',
   alreadyAdded: '"{name}" is already in the list.',
   addAnyway: 'Add anyway',
   pageCountUnknown: 'Reading…',
@@ -377,8 +386,12 @@ const hebrewMergeMessages: MergeMessages = {
   errorTooLarge: 'הסט הזה גדול מדי לאיחוד בדפדפן על המכשיר הזה. נסו פחות קבצים בכל פעם.',
   rowUnreadable: 'לא ניתן לקרוא',
   rowEncrypted: 'מוגן בסיסמה',
-  removedUndo: '{name} הוסר',
   undo: 'ביטול',
+  redo: 'ביצוע מחדש',
+  undoLabel: 'ביטול השינוי האחרון',
+  redoLabel: 'ביצוע מחדש של השינוי שבוטל',
+  undoneAnnouncement: 'השינוי האחרון בוטל',
+  redoneAnnouncement: 'השינוי בוצע מחדש',
   alreadyAdded: '"{name}" כבר ברשימה.',
   addAnyway: 'להוסיף בכל זאת',
   pageCountUnknown: 'קוראים…',

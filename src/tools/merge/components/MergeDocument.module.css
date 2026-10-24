@@ -101,46 +101,9 @@
   min-height: 1.5rem;
 }
 
-/* MERGE-24 (2026-10-24): a chip removal names the file, and a long name ran
-   the chip 46px past a 375px screen. The chip keeps to the row's width and
-   the message ends in an ellipsis; Undo never shrinks. */
-.undo-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 0.25rem 0.7rem;
-  font-size: 0.8rem;
-  color: var(--color-text);
-  background: var(--color-success-soft);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-pill);
-}
-
-.undo-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.undo-chip button {
-  flex: none;
-  font: inherit;
-  font-weight: 700;
-  color: var(--color-text);
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
 /* The shortcuts line: shown once, briefly, on the first keyboard focus of a
    page cell (see PdfMergeTool's onFirstKeyboardFocus) - the header's right
-   slot, same as the undo chip, which wins when both are pending. */
+   slot. */
 .shortcuts-hint {
   font-size: 0.78rem;
   color: var(--color-muted);

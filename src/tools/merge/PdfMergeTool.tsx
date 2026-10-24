@@ -24,11 +24,13 @@ import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { useUndoChip } from '../../lib/useUndoChip.ts';
+import { useEditHistory } from '../../lib/history/useEditHistory.js';
+import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { isIOSDevice } from '../../lib/platform.ts';
 import { isFileDrag } from '../../shell/fileDragDepth.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import DoneStrip from '../../shell/DoneStrip.tsx';
+import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
 import MergeVerb from './verb/MergeVerb.tsx';
@@ -80,6 +82,9 @@ interface Model {
    * as PlanEntry { key, fileId, pageIndex, rotation, skipped }. Grouped by
    * file until a page crosses a file boundary in the grid. */
   plan: PlanEntry[];
+  /** The file sort the menu shows. Part of the document so undoing a sort
+   * brings the menu's choice back with the order it produced. */
+  sortMode: SortMode;
 }
 
 /* Direction A wave 2 (Shlomi): Reverse folded into the Sort select as its
@@ -125,10 +130,6 @@ function planInsertionIndex(plan: PlanEntry[], entries: FileEntry[], fileId: num
   const index = plan.findIndex((entry) => laterIds.has(entry.fileId));
   return index === -1 ? plan.length : index;
 }
-
-/* Direction A: one Undo chip, one slot - file removal and page actions
-   (skip, rotate, move) all register through the same `registerUndo`, so a
-   second action's undo silently replaces the first's rather than stacking. */
 
 /* MERGE-17: the one quiet line after the first result in this browser. The
    flag is set the moment the line is shown, so it never returns. */
@@ -222,13 +223,16 @@ export default function PdfMergeTool({
   const hrefs: Record<HandoffTool, string> = { ...DEFAULT_HANDOFF_HREFS, ...handoffHrefs };
   const t: MergeMessages = { ...englishMergeMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
-  const [model, setModel] = useState<Model>({ entries: [], plan: [] });
-  const { entries, plan } = model;
+  /* GRID-03: one Undo/Redo stack over the whole document. A user edit is a
+   * `commit`; a late arrival (files being added, a page count or thumbnail
+   * resolving) is an `amend`, so undo can never take it away; a restore or
+   * Clear all is a `reset`. */
+  const { present, canUndo, canRedo, commit: commitModel, undo, redo, amend: amendModel, reset: resetModel } = useEditHistory({ entries: [], plan: [], sortMode: 'added' });
+  const { entries, plan, sortMode }: Model = present;
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [duplicates, setDuplicates] = useState<File[]>([]);
   const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(() => readRememberedOptions().addPageNumbers);
-  const [sortMode, setSortMode] = useState<SortMode>('added');
   /* MERGE-11 (2026-09-13, Shlomi): the output name, once a person edits it in
    * the document heading, is theirs - null means "still the automatic name",
    * a string means "renamed", and it survives every later add/remove/reorder
@@ -259,8 +263,7 @@ export default function PdfMergeTool({
   const pickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /* The shortcuts line shows once, for about six seconds, on the first
    * keyboard (not pointer) focus of a page cell, then never again this
-   * mount; the undo chip takes the same header slot and wins if both are
-   * pending at once. */
+   * mount. */
   const [showShortcutsHint, setShowShortcutsHint] = useState(false);
   const shortcutsShownRef = useRef(false);
   const shortcutsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -370,24 +373,21 @@ export default function PdfMergeTool({
     if (prepared.status !== 'ready') setDownloadedOnce(false);
   }, [prepared.status]);
 
-  const { action: undoAction, register: registerUndo, clear: clearUndo, run: runUndo } = useUndoChip();
-
   // Drag-to-reorder in the rail: SortableJS owns the DOM order during a drag;
   // on drop we read its final order back into Preact state, which becomes
   // the source of truth again for every subsequent render. Reordering a file
   // regroups the plan around the new file order (MERGE-09).
   const applyFileReorder = useCallback((oldIndex: number, newIndex: number) => {
     if (oldIndex === newIndex) return;
-    setModel((current) => {
+    commitModel((current: Model) => {
       const next = [...current.entries];
       const [moved] = next.splice(oldIndex, 1);
       next.splice(newIndex, 0, moved);
-      return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) };
+      return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)), sortMode: 'added' };
     });
-    setSortMode('added');
     recordAction('reorder');
     reportEdit('merge');
-  }, []);
+  }, [commitModel]);
 
   useEffect(() => {
     if (!listRef.current) return undefined;
@@ -495,7 +495,7 @@ export default function PdfMergeTool({
     const restoredEntries = restored.files.map((file) => toEntry(file));
     const idByIndex = restoredEntries.map((e) => e.id);
     const plan = restored.plan.map((p) => ({ ...p, fileId: idByIndex[p.fileId], key: `${idByIndex[p.fileId]}:${p.pageIndex}` }));
-    setModel({ entries: restoredEntries, plan });
+    resetModel({ entries: restoredEntries, plan, sortMode: 'added' });
     setAddPageNumbers(restored.options.addPageNumbers);
     setCustomOutputName(restored.outputName);
     setRestoreHydrationComplete(false);
@@ -505,7 +505,7 @@ export default function PdfMergeTool({
     pickedUpTimerRef.current = setTimeout(() => setShowPickedUpSentence(false), 5000);
     void Promise.allSettled(restoredEntries.map((entry) => inspectEntry(entry)))
       .then(() => setRestoreHydrationComplete(true));
-  }, []);
+  }, [resetModel]);
 
   useEffect(() => {
     if (entries.length === 0 || PageStrip) return;
@@ -524,63 +524,73 @@ export default function PdfMergeTool({
     chipSortableRef.current?.option('disabled', !canReorderFiles);
   }, [canReorderFiles]);
 
+  // Everything inspectEntry writes is a late arrival, not a user edit: it is
+  // amended into the present and every undo/redo snapshot, so a count or a
+  // thumbnail that lands after an edit survives undoing past that edit (and a
+  // file removed before its count arrived still gets its pages on Undo).
   const inspectEntry = useCallback((entry: FileEntry) => {
     const inspection = inspectPdf(entry.file)
       .then(({ pageCount, encrypted, creationDate }) => {
-        setModel((current) => {
-          if (!current.entries.some((e) => e.id === entry.id)) return current;
-          const nextEntries = current.entries.map((e) =>
+        // Read once: the mapper below runs on every snapshot, and the bookkeeping
+        // for files dropped together must happen exactly once.
+        const recorded = pendingPlanIndexRef.current.get(entry.id);
+        amendModel((snapshot: Model) => {
+          if (!snapshot.entries.some((e) => e.id === entry.id)) return snapshot;
+          const nextEntries = snapshot.entries.map((e) =>
             e.id === entry.id
               ? { ...e, pageCount, pdfCreationDate: creationDate ?? null, error: encrypted ? ('encrypted' as const) : null }
               : e,
           );
-          if (encrypted || current.plan.some((p) => p.fileId === entry.id)) return { entries: nextEntries, plan: current.plan };
-          const recorded = pendingPlanIndexRef.current.get(entry.id);
+          if (encrypted || snapshot.plan.some((p) => p.fileId === entry.id)) return { ...snapshot, entries: nextEntries };
+          const at = recorded == null ? planInsertionIndex(snapshot.plan, nextEntries, entry.id) : Math.min(recorded, snapshot.plan.length);
+          return { ...snapshot, entries: nextEntries, plan: insertPages(snapshot.plan, planForFile(entry.id, pageCount), at) };
+        });
+        if (recorded != null) {
           pendingPlanIndexRef.current.delete(entry.id);
-          const at = recorded == null ? planInsertionIndex(current.plan, nextEntries, entry.id) : Math.min(recorded, current.plan.length);
-          if (recorded != null) {
+          if (!encrypted) {
             // Files dropped together share one recorded index; the ones still
             // waiting for a count move past the pages just placed.
             for (const [id, index] of pendingPlanIndexRef.current) {
-              if (index >= at) pendingPlanIndexRef.current.set(id, index + pageCount);
+              if (index >= recorded) pendingPlanIndexRef.current.set(id, index + pageCount);
             }
           }
-          return { entries: nextEntries, plan: insertPages(current.plan, planForFile(entry.id, pageCount), at) };
-        });
+        }
       })
       .catch((err) => {
         // Every failure is reported, whoever's file it turns out to be: a valid PDF the library
         // cannot parse is ours, and only the report can tell it from a broken one.
         const cause = reportableCause(err);
         if (cause) reportError('pdf_tool_run', cause, 'inspect_pdf');
-        setModel((current) => ({
-          ...current,
-          entries: current.entries.map((e) => (e.id === entry.id ? { ...e, error: 'unreadable' as const } : e)),
+        amendModel((snapshot: Model) => ({
+          ...snapshot,
+          entries: snapshot.entries.map((e) => (e.id === entry.id ? { ...e, error: 'unreadable' as const } : e)),
         }));
       });
     // Thumbnails are nice-to-have, not blocking: render as they resolve
     // instead of waiting before the file appears.
     const thumbnail = renderThumbnail(entry.file)
       .then((thumbnail) => {
-        setModel((current) => ({
-          ...current,
-          entries: current.entries.map((e) => (e.id === entry.id ? { ...e, thumbnail } : e)),
+        amendModel((snapshot: Model) => ({
+          ...snapshot,
+          entries: snapshot.entries.map((e) => (e.id === entry.id ? { ...e, thumbnail } : e)),
         }));
       })
       // expected: the thumbnail is decoration, encrypted or malformed user PDFs fail pdf.js by design
       .catch(() => {});
     return Promise.all([inspection, thumbnail]).then(() => undefined);
-  }, []);
+  }, [amendModel]);
 
+  // Adding files is not an undo step (amend): Undo takes back edits, never a
+  // file the person just brought in.
   const insertEntries = useCallback((newEntries: FileEntry[], atIndex: number) => {
-    setModel((current) => {
-      const next = [...current.entries];
+    amendModel((snapshot: Model) => {
+      const next = [...snapshot.entries];
       const index = atIndex < 0 || atIndex > next.length ? next.length : atIndex;
       next.splice(index, 0, ...newEntries);
-      return { entries: next, plan: current.plan };
+      return { ...snapshot, entries: next };
     });
     for (const entry of newEntries) inspectEntry(entry);
-  }, [inspectEntry]);
+  }, [amendModel, inspectEntry]);
 
   const addFiles = useCallback((fileList: FileList | File[], options: { force?: boolean; fresh?: boolean } = {}) => {
     const incoming = Array.from(fileList);
@@ -632,17 +642,15 @@ export default function PdfMergeTool({
   // and a home-page hand-off so the two cannot drift. It never touches the
   // saved draft: Clear all deletes that itself, a hand-off must not.
   const clearWorkspace = useCallback(() => {
-    setModel({ entries: [], plan: [] });
+    resetModel({ entries: [], plan: [], sortMode: 'added' });
     clearPrepared();
     setRejectedFiles([]);
     setDuplicates([]);
-    clearUndo();
     setTap('idle');
     setPendingDownload(false);
     quietPendingRef.current = false;
     setStripOpen(false);
     setDownloadedOnce(false);
-    setSortMode('added');
     setRenderedCount(0);
     setShowPickedUpSentence(false);
     setIsRestoredWorkspace(false);
@@ -655,7 +663,7 @@ export default function PdfMergeTool({
     // not the previous set's.
     setCustomOutputName(null);
     setIsRenamingOutputName(false);
-  }, [clearPrepared, clearUndo]);
+  }, [clearPrepared, resetModel]);
 
   // SITE-42: several files picked on the home page arrive as a brand-new set,
   // through addFiles like a manual pick. Whatever a restore already put on
@@ -671,34 +679,18 @@ export default function PdfMergeTool({
     addFiles(files, { force: true, fresh: true });
   });
 
+  // One undo step: the snapshot restores the file and its pages where they
+  // were, so a page order rearranged across files survives remove-and-undo.
   const removeEntry = useCallback((id: number) => {
-    setModel((current) => {
-      const index = current.entries.findIndex((e) => e.id === id);
-      if (index === -1) return current;
-      const entry = current.entries[index];
-      const planEntries = current.plan
-        .map((p, i) => ({ entry: p, index: i }))
-        .filter(({ entry: p }) => p.fileId === id);
-      // Undo puts the file and its pages back where they were (MERGE-07). The
-      // plan entries return to their old indices, so a page order that has
-      // been rearranged across files survives a remove-and-undo.
-      registerUndo(formatMessage(t.removedUndo, { name: isolateName(entry.file.name, t.dir) }), () => {
-        setModel((cur) => {
-          const nextEntries = [...cur.entries];
-          nextEntries.splice(Math.min(index, nextEntries.length), 0, entry);
-          const nextPlan = [...cur.plan];
-          for (const { entry: p, index: i } of planEntries) nextPlan.splice(Math.min(i, nextPlan.length), 0, p);
-          return { entries: nextEntries, plan: nextPlan };
-        });
-        if (entry.pageCount == null) inspectEntry(entry);
-        setAnnouncement(formatMessage(t.filesAddedOne, {}));
-      });
+    commitModel((current: Model) => {
+      const entry = current.entries.find((e) => e.id === id);
+      if (!entry) return current;
       setAnnouncement(formatMessage(t.fileRemoved, { name: entry.file.name }));
-      return { entries: current.entries.filter((e) => e.id !== id), plan: removeFile(current.plan, id) };
+      return { ...current, entries: current.entries.filter((e) => e.id !== id), plan: removeFile(current.plan, id) };
     });
     recordAction('remove_file');
     reportEdit('merge');
-  }, [t.fileRemoved, t.removedUndo, t.filesAddedOne, registerUndo, inspectEntry]);
+  }, [commitModel, t.fileRemoved]);
 
   useEffect(() => () => {
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
@@ -719,14 +711,14 @@ export default function PdfMergeTool({
     recordAction('clear_all');
   }, [clearWorkspace, t.cleared]);
 
-  const reorderEntries = useCallback((next: FileEntry[], message: string) => {
-    setModel((current) => ({ entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) }));
+  const reorderEntries = useCallback((next: FileEntry[], mode: SortMode, message: string) => {
+    commitModel((current: Model) => ({ entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)), sortMode: mode }));
     setAnnouncement(message);
     reportEdit('merge');
-  }, []);
+  }, [commitModel]);
 
   const moveFileEntry = useCallback((id: number, delta: number) => {
-    setModel((current) => {
+    commitModel((current: Model) => {
       const index = current.entries.findIndex((e) => e.id === id);
       const newIndex = index + delta;
       if (index === -1 || newIndex < 0 || newIndex >= current.entries.length) return current;
@@ -734,12 +726,11 @@ export default function PdfMergeTool({
       const [moved] = next.splice(index, 1);
       next.splice(newIndex, 0, moved);
       setAnnouncement(formatMessage(t.fileMovedTo, { name: moved.file.name, position: newIndex + 1, total: next.length }));
-      return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) };
+      return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)), sortMode: 'added' };
     });
-    setSortMode('added');
     recordAction('reorder');
     reportEdit('merge');
-  }, [t.fileMovedTo]);
+  }, [commitModel, t.fileMovedTo]);
 
   const onRowKeyDown = useCallback(
     (event: KeyboardEvent, id: number) => {
@@ -757,7 +748,6 @@ export default function PdfMergeTool({
 
   const onSortChange = useCallback((value: string) => {
     const mode = value as SortMode;
-    setSortMode(mode);
     const sorted = mode === 'nameAsc'
       ? sortByName(entries, 'asc')
       : mode === 'nameDesc'
@@ -769,21 +759,45 @@ export default function PdfMergeTool({
             : mode === 'reversed'
               ? [...entries].reverse()
               : [...entries].sort((a, b) => a.id - b.id);
-    reorderEntries(sorted, t.filesReordered);
+    reorderEntries(sorted, mode, t.filesReordered);
     recordAction('sort');
   }, [entries, reorderEntries, t.filesReordered]);
 
   const resetPageOrder = useCallback(() => {
-    setModel((current) => ({ entries: current.entries, plan: regroupPlan(current.plan, current.entries.map((e) => e.id)) }));
+    commitModel((current: Model) => ({ ...current, plan: regroupPlan(current.plan, current.entries.map((e) => e.id)) }));
     setAnnouncement(t.filesReordered);
     recordAction('sort');
     reportEdit('merge');
-  }, [t.filesReordered]);
+  }, [commitModel, t.filesReordered]);
 
   const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
-    setModel((current) => ({ entries: current.entries, plan: update(current.plan) }));
+    // Every call is one undo step; an update that changes nothing is none.
+    commitModel((current: Model) => {
+      const next = update(current.plan);
+      return next === current.plan ? current : { ...current, plan: next };
+    });
     reportEdit('merge');
-  }, []);
+  }, [commitModel]);
+
+  const handleUndo = useCallback(() => {
+    if (!canUndo) return;
+    undo();
+    recordAction('undo');
+    setAnnouncement(t.undoneAnnouncement);
+  }, [undo, canUndo, t.undoneAnnouncement]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo) return;
+    redo();
+    recordAction('redo');
+    setAnnouncement(t.redoneAnnouncement);
+  }, [redo, canRedo, t.redoneAnnouncement]);
+
+  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z; the hook stands down while focus is in an
+  // input (the page-numbers checkbox, the rename field). The prepared output
+  // follows the plan on its own (usePreparedMerge keys on it), so nothing is
+  // cleared here.
+  useHistoryShortcuts(handleUndo, handleRedo);
 
   const onPageNumbersChange = useCallback((event: Event) => {
     const next = (event.target as HTMLInputElement).checked;
@@ -1104,11 +1118,11 @@ export default function PdfMergeTool({
   const skippedCount = plan.length - outputCount;
   const renderTotal = plan.length;
   const stillRendering = renderTotal > 0 && renderedCount < renderTotal;
-  // Only one thing lives in the header's right-hand slot at a time: the
-  // undo chip wins over the restore sentence (its phone placement - review
-  // P2, item 3), which in turn wins over the once-only shortcuts hint.
-  const pickedUpHintVisible = !undoAction && showPickedUpSentence;
-  const shortcutsHintVisible = !undoAction && !pickedUpHintVisible && showShortcutsHint;
+  // Beside the history buttons, only one line lives in the header slot at a time: the
+  // restore sentence (its phone placement - review P2, item 3) wins over the
+  // once-only shortcuts hint.
+  const pickedUpHintVisible = showPickedUpSentence;
+  const shortcutsHintVisible = !pickedUpHintVisible && showShortcutsHint;
   const sortOptions = [
     { value: 'added', label: t.sortAsAdded },
     { value: 'reversed', label: t.sortReversed },
@@ -1333,12 +1347,8 @@ export default function PdfMergeTool({
                   </h2>
                 </div>
                 <div class={docStyles['doc-header-right']}>
-                  {undoAction ? (
-                    <span class={docStyles['undo-chip']} role="status">
-                      <span class={docStyles['undo-text']}>{undoAction.message}</span>
-                      <button type="button" onClick={runUndo}>{t.undo}</button>
-                    </span>
-                  ) : pickedUpHintVisible ? (
+                  <HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />
+                  {pickedUpHintVisible ? (
                     /* Review P2, item 3: the rail's own "Picked up..." sentence
                        lives in `.rail-scroll`, which is CSS-hidden on phones,
                        so it never showed there. This is the phone placement -
@@ -1390,7 +1400,6 @@ export default function PdfMergeTool({
                   grouped={grouped}
                   stripRef={stripRef}
                   onRenderedCountChange={setRenderedCount}
-                  onRegisterUndo={registerUndo}
                   onFirstKeyboardFocus={onFirstKeyboardFocus}
                 />
               )}

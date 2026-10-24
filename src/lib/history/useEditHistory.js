@@ -1,9 +1,7 @@
 import { useCallback, useState } from 'preact/hooks';
 
-// Edit Pages has exactly one consumer for this hook today, so it lives beside
-// the tool rather than in src/lib/ or src/editor/ (docs/module-boundaries.md:
-// single-consumer modules stay in the tool's own folder; it gets promoted the
-// day a second tool wants it).
+// The document-snapshot history behind Edit Pages' and Merge's Undo/Redo
+// buttons. It lives in src/lib/ because both tools consume it.
 //
 // The hook owns the whole document, not just the two undo/redo stacks: one
 // `{ past, present, future }` value behind a single useState, where every
