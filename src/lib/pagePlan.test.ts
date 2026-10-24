@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveEntry, outputPageCount, planForFile, rotateEntry, updateEntry, type PlanEntry } from './pagePlan.ts';
+import { moveEntry, outputPageCount, planForFile, planKey, rotateEntry, updateEntry, type PlanEntry } from './pagePlan.ts';
 
 describe('planForFile', () => {
   it('builds one entry per page, in order, unrotated and unskipped', () => {
@@ -101,5 +101,22 @@ describe('outputPageCount', () => {
 
   it('is 0 for an empty plan', () => {
     expect(outputPageCount([])).toBe(0);
+  });
+});
+
+describe('planKey', () => {
+  it('is empty for an empty plan', () => {
+    expect(planKey([])).toBe('');
+  });
+
+  it('reads file, page, rotation and skipped in order', () => {
+    const plan = rotateEntry(updateEntry(planForFile(3, 2), '3:1', { skipped: true }), '3:0', 90);
+    expect(planKey(plan)).toBe('3.0.90.0,3.1.0.1');
+  });
+
+  it('changes when pages are reordered, and not when the plan is the same', () => {
+    const plan = planForFile(1, 3);
+    expect(planKey(moveEntry(plan, 0, 2))).not.toBe(planKey(plan));
+    expect(planKey([...plan])).toBe(planKey(plan));
   });
 });

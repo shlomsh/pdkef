@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
-import type { ComponentChildren, ComponentType } from 'preact';
+import type { ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { Shrink, FileSignature, File as FileIcon, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
@@ -19,19 +19,16 @@ import { outputPageCount, planForFile, type PlanEntry } from '../../lib/pagePlan
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
-import { formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
+import { formatFileSize, isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
-import { useEditHistory } from '../../lib/history/useEditHistory.js';
-import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
+import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import { isFileDrag } from '../../shell/fileDragDepth.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import DoneStrip from '../../shell/DoneStrip.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
-import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
 import MergeVerb from './verb/MergeVerb.tsx';
-import { useToolShell } from '../../shell/ToolShell.tsx';
+import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
@@ -40,7 +37,9 @@ import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/use
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
-import QuietDownload from '../../shell/pageWorkspace/QuietDownload.tsx';
+import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
+import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
+import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import FileName from '../../shell/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -197,20 +196,6 @@ interface PdfMergeToolProps {
 
 const DEFAULT_HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
 
-/** BasePdfTool's file input, replace confirmation and clear confirmation are
- * all reached through ToolShellContext, which only reaches components
- * actually rendered inside <BasePdfTool>'s children - not PdfMergeTool's own
- * function body, which is BasePdfTool's parent. This tiny bridge is that one
- * descendant, so "Choose files" (add bar, Download's one-file state, the
- * rail's "Add files") and "Start fresh" / "Clear all" (the rail) all go
- * through the exact same picker and confirmation every other tool uses. */
-function ToolShellBridge({ children }: {
-  children: (shell: { requestReplace: () => void; requestClear: () => void }) => ComponentChildren;
-}) {
-  const { requestReplace, requestClear } = useToolShell();
-  return <>{children({ requestReplace, requestClear })}</>;
-}
-
 export default function PdfMergeTool({
   messages: messagesProp,
   shellMessages,
@@ -226,11 +211,17 @@ export default function PdfMergeTool({
    * `commit`; a late arrival (files being added, a page count or thumbnail
    * resolving) is an `amend`, so undo can never take it away; a restore or
    * Clear all is a `reset`. */
-  const { present, canUndo, canRedo, commit: commitModel, undo, redo, amend: amendModel, reset: resetModel } = useEditHistory({ entries: [], plan: [], sortMode: 'added' });
+  const [announcement, setAnnouncement] = useState('');
+  const {
+    present, canUndo, canRedo, commit: commitModel, amend: amendModel, reset: resetModel, onPlanChange, handleUndo, handleRedo,
+  } = useDocumentHistory<Model>({ entries: [], plan: [], sortMode: 'added' }, {
+    tool: 'merge',
+    announce: setAnnouncement,
+    messages: { undone: t.undoneAnnouncement, redone: t.redoneAnnouncement },
+  });
   const { entries, plan, sortMode }: Model = present;
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [duplicates, setDuplicates] = useState<File[]>([]);
-  const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(() => readRememberedOptions().addPageNumbers);
   /* MERGE-11 (2026-09-13, Shlomi): the output name, once a person edits it in
    * the document heading, is theirs - null means "still the automatic name",
@@ -357,11 +348,7 @@ export default function PdfMergeTool({
     : null;
   const otherError = !failedEntry && prepared.status === 'error';
 
-  const {
-    tap, downloadState, downloadedOnce, downloadLinkReady, showStrip, shareReady, handoffBusy, handoffFailed,
-    requestHandoff, onDownloadTap, onQuietDownloadTap, onQuietPreparingTap, onRowPreparingTap, handleShare,
-    closeStrip, reset: resetDownloadFlow,
-  } = useDownloadFlow({
+  const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
     hrefs,
@@ -373,6 +360,10 @@ export default function PdfMergeTool({
     onDelivered: startMergeMoment,
     navigate,
   });
+  const {
+    tap, downloadState, downloadedOnce, showStrip, shareReady, handoffBusy, handoffFailed,
+    requestHandoff, onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow,
+  } = downloadFlow;
 
   // Drag-to-reorder in the rail: SortableJS owns the DOM order during a drag;
   // on drop we read its final order back into Preact state, which becomes
@@ -766,34 +757,9 @@ export default function PdfMergeTool({
     reportEdit('merge');
   }, [commitModel, t.filesReordered]);
 
-  const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
-    // Every call is one undo step; an update that changes nothing is none.
-    commitModel((current: Model) => {
-      const next = update(current.plan);
-      return next === current.plan ? current : { ...current, plan: next };
-    });
-    reportEdit('merge');
-  }, [commitModel]);
-
-  const handleUndo = useCallback(() => {
-    if (!canUndo) return;
-    undo();
-    recordAction('undo');
-    setAnnouncement(t.undoneAnnouncement);
-  }, [undo, canUndo, t.undoneAnnouncement]);
-
-  const handleRedo = useCallback(() => {
-    if (!canRedo) return;
-    redo();
-    recordAction('redo');
-    setAnnouncement(t.redoneAnnouncement);
-  }, [redo, canRedo, t.redoneAnnouncement]);
-
-  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z; the hook stands down while focus is in an
-  // input (the page-numbers checkbox, the rename field). The prepared output
-  // follows the plan on its own (usePreparedMerge keys on it), so nothing is
-  // cleared here.
-  useHistoryShortcuts(handleUndo, handleRedo);
+  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z are bound by useDocumentHistory, which stands down while
+  // focus is in an input (the page-numbers checkbox, the rename field). The prepared output
+  // follows the plan on its own (usePreparedMerge keys on it), so nothing is cleared here.
 
   const onPageNumbersChange = useCallback((event: Event) => {
     const next = (event.target as HTMLInputElement).checked;
@@ -942,13 +908,10 @@ export default function PdfMergeTool({
     history.scrollRestoration = hasFiles ? 'manual' : 'auto';
   }, [hasFiles]);
 
-  const pagesLabel = (count: number) => (count === 1 ? sm.pageCountOne : formatMessage(sm.pageCountOther, { count }));
   const rearranged = hasFiles && (!grouped || !listOrdered);
   const showSortControls = entries.length >= 2 && !rearranged;
 
-  const downloadDetail = prepared.status === 'ready'
-    ? `${pagesLabel(prepared.pageCount)} · ${isolateLtr(formatFileSize(prepared.size), t.dir)}`
-    : pagesLabel(outputPageCount(plan));
+  const detail = downloadDetail(prepared, outputPageCount(plan), sm, t.dir);
   // A file flagged by inspection (encrypted, unreadable) is the person's file,
   // not a failed operation; a failure of the merge run itself, which
   // usePreparedMerge reports, still counts.
@@ -1084,42 +1047,20 @@ export default function PdfMergeTool({
                     {/* MERGE-24 (2026-10-23): the quiet Download at the sticky bar's
                         inline end, doing exactly what the completion row's Download
                         element does in each state (same link, same handlers). */}
-                    <QuietDownload
-                      state={downloadState}
-                      linkReady={downloadLinkReady}
-                      href={prepared.url}
+                    <PhoneFinish
+                      flow={downloadFlow}
+                      prepared={prepared}
                       fileName={fileName}
-                      label={t.downloadShort}
-                      onDownloadTap={onQuietDownloadTap}
-                      onPreparingTap={onQuietPreparingTap}
-                      onWarm={prepared.prepareNow}
-                    />
-                    {showStrip && (
-                      <DoneStrip
-                        label={t.mergedReady}
-                        closeLabel={t.closeStrip}
-                        onClose={closeStrip}
-                        className={workspaceStyles['done-strip']}
-                        data-merge-done-strip
-                      >
-                        <p class={workspaceStyles['done-strip-result']}>
-                          <FileName name={fileName} className={workspaceStyles['done-strip-name']} />
-                          <span class={workspaceStyles['done-strip-detail']}>{downloadDetail}</span>
-                        </p>
-                        <ExportHandoffs
-                          items={[
-                            { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
-                            { tool: 'sign', label: t.handoffSign, Icon: FileSignature },
-                          ]}
-                          busy={handoffBusy || prepared.status !== 'ready'}
-                          onHandoff={(tool) => { void requestHandoff(tool as HandoffTool); }}
-                        />
-                        {handoffFailed && (
-                          <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-                        )}
-                        {rating}
-                      </DoneStrip>
-                    )}
+                      detail={detail}
+                      handoffs={[
+                        { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
+                        { tool: 'sign', label: t.handoffSign, Icon: FileSignature },
+                      ]}
+                      labels={{ download: t.downloadShort, ready: t.mergedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
+                      stripAttrs={{ 'data-merge-done-strip': true }}
+                    >
+                      {rating}
+                    </PhoneFinish>
                   </div>
                 </>
               )}
@@ -1171,8 +1112,8 @@ export default function PdfMergeTool({
                     wrapOnPhone
                   >
                     <span class={workspaceStyles['doc-heading-count']}>
-                      {' · '}{pagesLabel(outputCount)}
-                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
+                      {' · '}{pagesLabel(outputCount, sm)}
+                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount, sm)} ${t.skippedBadge.toLowerCase()}` : ''}
                     </span>
                     {stillRendering && (
                       <span class={docStyles['doc-heading-progress']}>
@@ -1323,17 +1264,14 @@ export default function PdfMergeTool({
                       MERGE-24 (2026-10-23): shown at every width, since below
                       1024px this rail is the completion row under the pages. */}
                   {entries.length >= 2 && (
-                    <label class={workspaceStyles['page-numbers-row']}>
-                      <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                      <span>{t.addPageNumbers}</span>
-                    </label>
+                    <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
                   )}
 
                   <DownloadElement
                     state={downloadState}
                     href={prepared.status === 'ready' ? prepared.url : null}
                     fileName={fileName}
-                    detail={downloadDetail}
+                    detail={detail}
                     renderedCount={renderedCount}
                     totalCount={renderTotal}
                     pageCount={outputCount}

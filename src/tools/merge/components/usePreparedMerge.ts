@@ -2,7 +2,7 @@ import { useRef } from 'preact/hooks';
 import { mergePdfs, MergeFileError } from '../merge.js';
 import { reportableCause } from '../reportableCause.ts';
 import { toMergeMap } from '../mergePlan.ts';
-import { outputPageCount, type PlanEntry } from '../../../lib/pagePlan.ts';
+import { outputPageCount, planKey, type PlanEntry } from '../../../lib/pagePlan.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 import { type QuietPolicy } from '../../../lib/quietPrepare.ts';
 import { usePreparedOutput, type PreparedOutput, type PreparedStatus } from '../../../lib/usePreparedOutput.ts';
@@ -43,9 +43,8 @@ export function usePreparedMerge(input: PreparedMergeInput): PreparedMerge {
   // `fileIds` and `files` are rebuilt by the caller only when the set really
   // changes (see PdfMergeTool's useMemo), so they are stable across renders
   // that change nothing.
-  const planKey = plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
   const key = isMergeable({ files, plan })
-    ? `${fileIds.join(',')}|${planKey}|${addPageNumbers ? 1 : 0}|${title}`
+    ? `${fileIds.join(',')}|${planKey(plan)}|${addPageNumbers ? 1 : 0}|${title}`
     : null;
 
   return usePreparedOutput({

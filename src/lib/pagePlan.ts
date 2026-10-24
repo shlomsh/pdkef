@@ -6,7 +6,7 @@ export interface PlanEntry {
   skipped: boolean;
 }
 
-function planKey(fileId: number, pageIndex: number): string {
+function entryKey(fileId: number, pageIndex: number): string {
   return `${fileId}:${pageIndex}`;
 }
 
@@ -15,7 +15,7 @@ function planKey(fileId: number, pageIndex: number): string {
 export function planForFile(fileId: number, pageCount: number): PlanEntry[] {
   const entries: PlanEntry[] = [];
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-    entries.push({ key: planKey(fileId, pageIndex), fileId, pageIndex, rotation: 0, skipped: false });
+    entries.push({ key: entryKey(fileId, pageIndex), fileId, pageIndex, rotation: 0, skipped: false });
   }
   return entries;
 }
@@ -62,4 +62,10 @@ export function rotateEntry(plan: PlanEntry[], key: string, delta: 90 | -90): Pl
 // skipped.
 export function outputPageCount(plan: PlanEntry[]): number {
   return plan.reduce((count, entry) => (entry.skipped ? count : count + 1), 0);
+}
+
+// What a prepared output is keyed on: every field of every entry that changes
+// the exported file, in order.
+export function planKey(plan: PlanEntry[]): string {
+  return plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
 }

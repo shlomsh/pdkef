@@ -128,6 +128,26 @@ for (const viewport of VIEWPORTS) {
       expect(merge.length).toBeGreaterThan(0);
       expect(edit).toEqual(merge);
     });
+
+    // Edit Pages once showed the source number; the number is the output position. Skip
+    // page 2 and bring page 5 to the front by keyboard, then both tools must still agree.
+    test('page numbers read the same after skipping page 2 and moving page 5 to the front', async ({ browser }) => {
+      const [merge, edit] = await both(browser, options, async (page) => {
+        await cells(page).nth(1).focus();
+        await page.keyboard.press('Delete');
+        await expect(cells(page).nth(1)).toHaveAttribute('data-skipped', /.*/);
+        const moved = (await keys(page))[4];
+        await cells(page).nth(4).focus();
+        for (let step = 1; step <= 4; step += 1) {
+          await page.keyboard.press('ArrowLeft');
+          await expect.poll(async () => (await keys(page)).indexOf(moved)).toBe(4 - step);
+        }
+        return { order: await keys(page), numbers: await page.locator('[data-page-number]').allTextContents() };
+      });
+      expect(merge.numbers.length).toBeGreaterThan(0);
+      expect(edit.numbers).toEqual(merge.numbers);
+      expect(edit.order.map((key) => key.split(':')[1])).toEqual(merge.order.map((key) => key.split(':')[1]));
+    });
   });
 }
 
