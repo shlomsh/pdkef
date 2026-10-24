@@ -220,6 +220,20 @@ describe('PdfEditPagesTool undo/redo', () => {
     expect(rotation(0)).toBe('90');
   });
 
+  it('leaves the shortcuts alone while the output name is being renamed', async () => {
+    await loadPdf();
+
+    await click(rotateButton(1));
+
+    const name = container.querySelector('[contenteditable]');
+    name.tabIndex = -1;
+    // jsdom does not implement isContentEditable
+    Object.defineProperty(name, 'isContentEditable', { value: true });
+    name.focus();
+    await keydown({ key: 'z', metaKey: true });
+    expect(rotation(0)).toBe('90');
+  });
+
   // Regression for "two actions in one task swallow a history step": two
   // rotate clicks dispatched synchronously, in the same task, must push two
   // distinct undo steps rather than the same pre-rotation snapshot twice.

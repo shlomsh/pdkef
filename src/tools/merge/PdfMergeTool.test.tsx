@@ -611,6 +611,18 @@ describe('PdfMergeTool UI flow', () => {
       await press({ key: 'z', metaKey: true });
       expect(planOf()[0]).toBe('a:0:90:-');
     });
+
+    it('Cmd+Z is left to the output name while renaming it', async () => {
+      await mountWithPages();
+      await act(async () => pageButton('Rotate page 1').click());
+      const name = container.querySelector(`.${outputNameStyles.name}`);
+      name.tabIndex = -1;
+      // jsdom does not implement isContentEditable
+      Object.defineProperty(name, 'isContentEditable', { value: true });
+      name.focus();
+      await press({ key: 'z', metaKey: true });
+      expect(planOf()[0]).toBe('a:0:90:-');
+    });
   });
 
   it('DEBT-58: the first files arriving are not an edit; a remove and a later add are', async () => {

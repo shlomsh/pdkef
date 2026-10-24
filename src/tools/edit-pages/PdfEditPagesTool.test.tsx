@@ -265,4 +265,63 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(heading().textContent).toContain('handed_modified.pdf');
     expect(cells().length).toBe(3);
   });
+
+  // Picking another file through the Replace dialog, as a person does.
+  const replaceWith = async (file) => {
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
+    await flush();
+    await flush();
+  };
+
+  it('replacing the file drops a Download tapped before the build landed', async () => {
+    let finishFirst;
+    editPages.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }));
+    await load('a.pdf');
+    await prepareNow();
+    await click(downloadElement());
+    expect(downloadElement().dataset.state).toBe('preparing');
+
+    await replaceWith(makePdfFile('b.pdf'));
+    await prepareNow();
+    expect(downloadElement().dataset.state).toBe('ready');
+    finishFirst?.(new Blob(['late']));
+  });
+
+  it('renaming the output keeps the built PDF: no rebuild, still ready', async () => {
+    await load();
+    await prepareNow();
+    expect(editPages).toHaveBeenCalledTimes(1);
+    const name = container.querySelector('[contenteditable]');
+    await act(async () => { name.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+    await act(async () => { name.textContent = 'my edit'; });
+    await act(async () => { name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
+    await flush();
+    expect(downloadElement().getAttribute('download')).toBe('my edit.pdf');
+    expect(downloadElement().getAttribute('href')).toBe('blob:testurl');
+    expect(editPages).toHaveBeenCalledTimes(1);
+  });
+
+  it('a different file with the same name, size and date is built, not served from the cache', async () => {
+    const same = () => new File(['%PDF-1.4'], 'same.pdf', { type: 'application/pdf', lastModified: 1000 });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    container.addEventListener('click', (e) => e.preventDefault());
+    act(() => { render(<PdfEditPagesTool />, container); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [same()]); });
+    await flush();
+    await prepareNow();
+    expect(editPages).toHaveBeenCalledTimes(1);
+
+    await replaceWith(same());
+    await prepareNow();
+    expect(editPages).toHaveBeenCalledTimes(2);
+  });
+
+  it('the signal of a superseded build is aborted and handed to editPages', async () => {
+    await load();
+    await prepareNow();
+    expect(editPages.mock.calls[0][3]).toBeInstanceOf(AbortSignal);
+  });
 });

@@ -64,6 +64,11 @@ export default function PdfEditPagesTool() {
   // The file picked last. A load that finishes after a newer pick is stale and
   // must not touch the page list or the working file.
   const pickedFileRef = useRef<File | null>(null);
+  // Bumped on every pick: the prepared key's file identity, since two different
+  // PDFs can share a name, size and date while the result cache outlives a replacement.
+  const [loadId, setLoadId] = useState(0);
+  // The download flow is made after this callback, so it reaches its reset through a ref.
+  const resetDownloadFlowRef = useRef<() => void>(() => {});
   // A protected PDF is a precondition, not a failure: set, the workspace gives way to NeedsUnlock
   // (src/shell/NeedsUnlock.tsx). Every new pick clears it before the check runs again.
   const [needsUnlock, setNeedsUnlock] = useState<{ kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
@@ -103,6 +108,8 @@ export default function PdfEditPagesTool() {
     setFile(selectedFile);
     setWorkingFile(selectedFile);
     pickedFileRef.current = selectedFile;
+    setLoadId((n) => n + 1);
+    resetDownloadFlowRef.current();
     setLoadStatus('loading-file');
     setNeedsUnlock(null);
     setPageCount(0);
@@ -184,16 +191,16 @@ export default function PdfEditPagesTool() {
 
   const planKey = plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
   const key = file && workingFile && loadStatus === 'idle' && outputCount > 0
-    ? `${file.name}:${file.size}:${file.lastModified}|${planKey}|${addPageNumbers ? 1 : 0}|${title}`
+    ? `${loadId}|${planKey}|${addPageNumbers ? 1 : 0}`
     : null;
   /** What the next build reads; always the inputs of the current key. */
   const inputsRef = useRef({ workingFile, plan, addPageNumbers });
   inputsRef.current = { workingFile, plan, addPageNumbers };
   const prepared = usePreparedOutput({
     key,
-    build: async (_signal, onProgress) => {
+    build: async (signal, onProgress) => {
       const { workingFile: source, plan: current, addPageNumbers: numbers } = inputsRef.current;
-      const blob = await editPages(source as File, { ...editOptionsFromPlan(current), addPageNumbers: numbers }, onProgress);
+      const blob = await editPages(source as File, { ...editOptionsFromPlan(current), addPageNumbers: numbers }, onProgress, signal);
       return { blob, pageCount: outputPageCount(current) };
     },
     onBuildError: (err) => reportError('pdf_tool_run', err, 'apply_page_edits'),
@@ -202,6 +209,7 @@ export default function PdfEditPagesTool() {
   const {
     tap, downloadState, downloadLinkReady, showStrip, shareReady, handoffBusy, handoffFailed,
     requestHandoff, onDownloadTap, onQuietDownloadTap, onQuietPreparingTap, onRowPreparingTap, handleShare, closeStrip,
+    reset: resetDownloadFlow,
   } = useDownloadFlow({
     prepared,
     fileName,
@@ -211,6 +219,8 @@ export default function PdfEditPagesTool() {
     announce: setAnnouncement,
     messages: { ready: t.editedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
   });
+
+  resetDownloadFlowRef.current = resetDownloadFlow;
 
   const handleUndo = useCallback(() => {
     if (!canUndo) return;

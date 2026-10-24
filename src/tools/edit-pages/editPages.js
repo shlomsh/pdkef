@@ -2,6 +2,10 @@ import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/p
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { loadPdfWithPages } from './loadPdfPages.ts';
 
+function checkAborted(signal) {
+  if (signal?.aborted) throw new DOMException('Edit aborted', 'AbortError');
+}
+
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.
  *
@@ -14,13 +18,16 @@ import { loadPdfWithPages } from './loadPdfPages.ts';
  * @param {Object} options.rotations Map of { [1-indexed pageNumber]: degrees } to add to each page's rotation.
  * @param {boolean} options.addPageNumbers Whether to stamp sequential page numbers at the bottom centre.
  * @param {function} [onProgress] Progress callback (0–1).
+ * @param {AbortSignal} [signal] Stops the run with an AbortError between pages and before saving.
  * @returns {Promise<Blob>} The modified PDF as a Blob.
  */
 export async function editPages(
   file,
   { pageOrder = null, removedPageNums = new Set(), rotations = {}, addPageNumbers = false },
   onProgress,
+  signal,
 ) {
+  checkAborted(signal);
   const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
   const srcDoc = (await loadPdfWithPages(bytes)).doc;
@@ -50,6 +57,7 @@ export async function editPages(
   }
 
   for (let i = 0; i < copiedPages.length; i++) {
+    checkAborted(signal);
     const page = outDoc.addPage(copiedPages[i]);
     const originalPageNum = orderedPageNums[i];
 
@@ -65,6 +73,7 @@ export async function editPages(
     onProgress?.(opsDone / totalOps);
   }
 
+  checkAborted(signal);
   const modifiedBytes = await outDoc.save();
   return new Blob([modifiedBytes], { type: 'application/pdf' });
 }
