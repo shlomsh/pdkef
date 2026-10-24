@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { recordAction } from './actionTrail.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 
 export interface UndoChipAction {
   message: string;
