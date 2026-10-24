@@ -25,4 +25,6 @@ Design: [docs/shared-page-grid.md](../../docs/shared-page-grid.md) (the contract
 ## Acceptance
 
 - Merge's unit tests and every `src/tools/merge/e2e/` spec pass unchanged in what they assert.
-- `test:module-boundaries` passes; nothing in `src/shell/` or `src/lib/` imports a tool.
+- `test:module-boundaries` reports nothing but rule 9 for the moved modules, and nothing in `src/shell/`
+  or `src/lib/` imports a tool. Rule 9 (a common-layer module needs two consumers, no exceptions) only
+  holds once Edit Pages consumes them, so GRID-01 to GRID-04 land on main in one push.

@@ -12,12 +12,10 @@ import {
   isGrouped,
   isInListOrder,
   mergedTitle,
-  outputPageCount,
-  planForFile,
   regroupPlan,
   removeFile,
-  type PlanEntry,
 } from './mergePlan.ts';
+import { outputPageCount, planForFile, type PlanEntry } from '../../lib/pagePlan.ts';
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';

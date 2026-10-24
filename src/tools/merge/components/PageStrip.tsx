@@ -3,7 +3,7 @@ import type { ComponentType, JSX, RefObject } from 'preact';
 import Sortable from 'sortablejs';
 import styles from './PageStrip.module.css';
 import FileName from './FileName.tsx';
-import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../mergePlan.ts';
+import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../../lib/pagePlan.ts';
 import { openThumbnailSource } from '../../../lib/thumbnails.js';
 import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
 import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../shell/PagePreviewDialog.tsx';
