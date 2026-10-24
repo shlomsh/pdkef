@@ -547,13 +547,3 @@
   font: inherit;
   cursor: pointer;
 }
-
-/* MERGE-17: one quiet sentence under Download after the first result in this
-   browser, in the OfflineProof register. Never a modal, never a counter. */
-.install-line {
-  margin: var(--space-3) 0 0;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--color-muted);
-  text-align: center;
-}

@@ -397,9 +397,9 @@ export default function PdfEditPagesTool() {
                     detail={downloadDetail}
                     renderedCount={renderedCount}
                     totalCount={plan.length}
-                    pagesToMerge={outputCount}
+                    pageCount={outputCount}
                     progress={prepared.progress}
-                    errorMessage={t.fixFileToMerge}
+                    errorMessage={t.buildFailed}
                     messages={t}
                     onPreparingTap={onRowPreparingTap}
                     onWarm={prepared.prepareNow}

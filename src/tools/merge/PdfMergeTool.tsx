@@ -1336,9 +1336,9 @@ export default function PdfMergeTool({
                     detail={downloadDetail}
                     renderedCount={renderedCount}
                     totalCount={renderTotal}
-                    pagesToMerge={outputCount}
+                    pageCount={outputCount}
                     progress={prepared.progress}
-                    errorMessage={failedEntry ? undefined : t.fixFileToMerge}
+                    errorMessage={failedEntry ? undefined : t.buildFailed}
                     messages={t}
                     chooseFilesLabel={sm.chooseFilesMany}
                     onChooseFiles={requestReplace}
@@ -1361,7 +1361,7 @@ export default function PdfMergeTool({
                   )}
 
                   {downloadedOnce && (
-                    <button type="button" class={workspaceStyles['start-again']} onClick={reset}>
+                    <button type="button" class={railStyles['start-again']} onClick={reset}>
                       {t.startAgain}
                     </button>
                   )}
@@ -1371,7 +1371,7 @@ export default function PdfMergeTool({
                   )}
 
                   {downloadState === 'saved' && showInstallLine && (
-                    <p class={workspaceStyles['install-line']} data-install-line>
+                    <p class={railStyles['install-line']} data-install-line>
                       {t.installLine}{' '}
                       {installPrompt ? (
                         t.installWithPrompt.split('{install}').map((part, index) =>
