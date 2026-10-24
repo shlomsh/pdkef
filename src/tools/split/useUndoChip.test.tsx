@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { recentActions, resetActionTrailForTests } from './actionTrail.ts';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { useUndoChip } from './useUndoChip.ts';
 
 let chip;

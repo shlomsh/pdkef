@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import Sortable from 'sortablejs';
 import { editPages } from './editPages.js';
 import { loadPdfWithPages } from './loadPdfPages.ts';
-import { useEditHistory } from './useEditHistory.js';
+import { useEditHistory } from '../../lib/history/useEditHistory.js';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
