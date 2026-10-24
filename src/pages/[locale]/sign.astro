@@ -1,0 +1,21 @@
+---
+import LocalizedToolLayout from '../../layouts/LocalizedToolLayout.astro';
+import { localizedToolPaths, loadLocalizedToolPage } from '../../i18n/localizedToolPage';
+import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
+// LOC-03: only /sign/ renders text in the bundled font catalogue (typed
+// signatures, text elements, the font picker) - see ../sign.astro's identical
+// import and editorFonts.css's header comment. /he/sign/ needs it too, since
+// the editor itself stays English (LOC-02's pilot decision) but still has to
+// draw the Hebrew text a visitor types into it.
+import '../../styles/editorFonts.css';
+
+export function getStaticPaths() {
+  return localizedToolPaths('sign');
+}
+
+const page = await loadLocalizedToolPage('sign', Astro.props.localeId, Astro.params.locale ?? '');
+---
+
+<LocalizedToolLayout page={page}>
+  <PdfSignTool client:load shellMessages={page.shellMessages} messages={page.toolMessages as any} />
+</LocalizedToolLayout>

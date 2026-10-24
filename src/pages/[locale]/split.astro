@@ -1,0 +1,15 @@
+---
+import LocalizedToolLayout from '../../layouts/LocalizedToolLayout.astro';
+import { localizedToolPaths, loadLocalizedToolPage } from '../../i18n/localizedToolPage';
+import PdfSplitTool from '../../tools/split/PdfSplitTool.tsx';
+
+export function getStaticPaths() {
+  return localizedToolPaths('split');
+}
+
+const page = await loadLocalizedToolPage('split', Astro.props.localeId, Astro.params.locale ?? '');
+---
+
+<LocalizedToolLayout page={page}>
+  <PdfSplitTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+</LocalizedToolLayout>
