@@ -62,7 +62,7 @@ function AddImagesTile({ label }: { label: string }) {
 
 export interface PdfImageToPdfToolProps {
   quietPolicy?: QuietPolicy;
-  /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
+  /** Server-rendered by its src/pages/[locale]/<tool>.astro route for a localized
    * edition; every key not overridden keeps the English default. */
   messages?: Partial<ImageToPdfMessages>;
   shellMessages?: Partial<ShellMessages>;

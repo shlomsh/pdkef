@@ -74,7 +74,7 @@ function revokeAll(images: OutputImage[]) {
 }
 
 export interface PdfToImageToolProps {
-  /** Server-rendered by src/pages/[locale]/[tool].astro for a localized
+  /** Server-rendered by its src/pages/[locale]/<tool>.astro route for a localized
    * edition; every key not overridden keeps the English default. */
   messages?: Partial<ToImageMessages>;
   shellMessages?: Partial<ShellMessages>;

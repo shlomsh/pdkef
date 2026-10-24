@@ -179,7 +179,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 interface PdfMergeToolProps {
-  /** LOC-02: server-rendered by src/pages/[locale]/[tool].astro for a
+  /** LOC-02: server-rendered by its src/pages/[locale]/<tool>.astro route for a
    * localized edition; every key not overridden keeps the English default,
    * so a partial catalogue degrades to English rather than to `undefined`. */
   messages?: Partial<MergeMessages>;
