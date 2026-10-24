@@ -14,6 +14,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
+- [GRID-01](backlog/tasks/GRID-01.md) P1 · Merge's page grid moves to src/shell as the shared page grid, nothing visible changes (in progress)
+- [GRID-02](backlog/tasks/GRID-02.md) P1 · Merge's document and rail layout moves to src/shell as the page workspace, nothing visible changes
+- [GRID-03](backlog/tasks/GRID-03.md) P1 · Merge gets the Undo/Redo stack Edit Pages has, in place of the undo chip
+- [GRID-04](backlog/tasks/GRID-04.md) P1 · Edit Pages shows its pages through the shared grid, layout and undo, identical to Merge
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 
 ## Waiting, by date
