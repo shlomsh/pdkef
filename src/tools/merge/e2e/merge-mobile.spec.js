@@ -179,13 +179,13 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(rotateButton).toBeVisible();
     // Only the tapped cell's cluster is displayed - the untapped neighbour's
     // stays hidden, even though the selected cluster may visually overhang
-    // it (PageStrip.module.css, the phone media query).
+    // it (PageGrid.module.css, the phone media query).
     const secondActions = secondCard.locator('[class*="actions"]');
     await expect(secondActions).toBeHidden();
 
     // Review (2026-09-13): on a coarse pointer the button's own border box
     // IS the 44x44 hit area, with the 32px visual chrome on an inner glyph
-    // span (PageStrip.module.css `@media (pointer: coarse)`), so a plain
+    // span (PageGrid.module.css `@media (pointer: coarse)`), so a plain
     // rect measurement proves it - no pseudo-element to tap around. A tap
     // 5px inside the button's top edge (outside the 32px glyph) still
     // rotates the page.
@@ -310,7 +310,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   }
 
   /* Review finding (2026-09-14): the caption's own negative bottom margin
-     (visual tightening, PageStrip.module.css) pulls the first row of its
+     (visual tightening, PageGrid.module.css) pulls the first row of its
      run up underneath it; combined with `position: sticky` and its
      z-index that overlap was a real hit-test region, not only a paint one
      - measured, caption bottom 404.53px vs. first-row cell top 398.14px, a
@@ -324,7 +324,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await page.goto('/merge/');
     await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
-    // A run of 4 or more pages gets a full-width caption (PageStrip.tsx).
+    // A run of 4 or more pages gets a full-width caption (PageGrid.tsx).
     const buffer = await makeMultiPagePdfBuffer('four-pages', 4);
     await page.locator('input[type="file"]').setInputFiles({
       name: 'four-pages.pdf',

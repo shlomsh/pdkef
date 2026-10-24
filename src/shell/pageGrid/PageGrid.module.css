@@ -15,7 +15,7 @@
 }
 
 /* On a phone a tap on a page reveals that page's own cluster
-   (`[data-selected]`, set by PageStrip.tsx); there is no Edit pages mode
+   (`[data-selected]`, set by PageGrid.tsx); there is no Edit pages mode
    any more (Shlomi, 2026-09-13). */
 
 /* The document is white; only the rail is tinted (Shlomi's reduction, wave
@@ -25,10 +25,10 @@
 
    One continuous grid (item 1): `repeat(auto-fill, <cell>px)` gives every
    page, across every file, the same column width - `--grid-cell`/
-   `--grid-gap` are set once, per render, by PageStrip.tsx (104px/12px on
+   `--grid-gap` are set once, per render, by PageGrid.tsx (104px/12px on
    desktop, 72px/8px on a phone; the same values `gridMetrics()` and
    `baseCellSize()` compute the per-item cell box from). A caption row
-   (`.caption`, 4+ page runs only - see PageStrip.tsx) spans every column and
+   (`.caption`, 4+ page runs only - see PageGrid.tsx) spans every column and
    so forces a fresh row on its own; every other cell just flows left to
    right, wrapping in the grid's own auto-fill, with no row-break hack
    needed. SortableJS still works on a grid's children unmodified. */
@@ -77,7 +77,7 @@
      is unaffected) or the reserved strip (still needed so a row that mixes
      a captioned run's tail with a short run's own tagged cell keeps every
      thumbnail in that row level). `--grid-gap` is 12px at 1280px and 8px at
-     375px (PageStrip.tsx `gridMetrics`); this cancels it plus the 16px
+     375px (PageGrid.tsx `gridMetrics`); this cancels it plus the 16px
      strip down to three times the 0.3rem intra-cell gap, landing the same
      ~14.8px at both widths - one rhythm, not a per-breakpoint override. */
   margin-bottom: calc(0.6rem - 16px - var(--grid-gap, 12px));
@@ -108,7 +108,7 @@
 }
 
 /* MERGE-24 (2026-10-24, every width): the grid stays invisible (its space and
-   its thumbnails' rendering untouched) until PageStrip's fit has settled, so a
+   its thumbnails' rendering untouched) until PageGrid's fit has settled, so a
    restore shows once at its final size instead of shifting as the page aspects
    arrive. visibility, not display: nothing reflows when it shows. */
 .grid:not([data-fit-settled]) {
@@ -116,7 +116,7 @@
 }
 
 /* --- Page cell: a grid item, one column wide (portrait) or two (a
-   landscape/rotated page - PageStrip.tsx sets `grid-column: span 2` so it
+   landscape/rotated page - PageGrid.tsx sets `grid-column: span 2` so it
    keeps a real, un-scaled footprint rather than being squeezed into one
    column). --- */
 .page {
@@ -206,8 +206,8 @@
    document to the active drag cursor until onEnd clears this short-lived
    marker. Native HTML drag cannot honor this consistently, which is why the
    page Sortable uses forceFallback. */
-:global(html[data-merge-page-dragging]),
-:global(html[data-merge-page-dragging]) * {
+:global(html[data-page-dragging]),
+:global(html[data-page-dragging]) * {
   cursor: grabbing !important;
 }
 
@@ -264,11 +264,6 @@
   pointer-events: none;
 }
 
-:global([data-merge-moment]) .band {
-  background: var(--color-primary);
-  transition-delay: var(--moment-delay, 0ms);
-}
-
 /* Unrendered cells: a dashed placeholder that keeps its number, so the count
    is stable while thumbnails arrive near the viewport. (2026-10-23: the tag
    band lives inside the box now, so `:empty` no longer says "no image yet".) */
@@ -300,7 +295,7 @@
   translate: 0 0;
 }
 
-/* A rotated (90/270) thumbnail's inline width/height (PageStrip.tsx
+/* A rotated (90/270) thumbnail's inline width/height (PageGrid.tsx
    `thumbStyle`) are the pre-rotation box, deliberately swapped against
    `.thumb-box`'s own w/h so the `rotate()` transform lands back on the
    container's footprint exactly. `max-width`/`max-height` above resolve
@@ -365,26 +360,6 @@
   display: none;
 }
 
-/* Linked highlight (2026-10-23): a hook sets `data-linking` on an ancestor and
-   `data-linked` on every page and rail row of the hovered or focused file;
-   the rest recede. Off while a page is being dragged. */
-:global([data-linking='row']) .page:not([data-linked]) .thumb-box,
-:global([data-linking='row']) .page:not([data-linked]) .number {
-  opacity: 0.4;
-}
-
-:global([data-linking='row']) .page[data-linked] .thumb-box {
-  transform: translateY(-4px);
-  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--tag-color), var(--shadow-md);
-}
-
-/* Doubled classes: this must outrank the `:not([data-linked])` selectors above. */
-:global(html[data-merge-page-dragging]) .page.page .thumb-box.thumb-box,
-:global(html[data-merge-page-dragging]) .page.page .number.number {
-  opacity: 1;
-  transform: none;
-}
-
 /* Rotate, skip and open: a three-button cluster revealed above the cell on
    hover or focus (pointer devices), or on the one tapped page (a phone). */
 .actions {
@@ -415,7 +390,7 @@
    the pointer moved on to hover another page (Shlomi, 2026-09-13).
    `[data-selected]` is deliberately not listed here: it only reveals inside
    the phone media query below, so a click at desktop width (where the
-   attribute is still set - PageStrip.tsx does not gate it by viewport)
+   attribute is still set - PageGrid.tsx does not gate it by viewport)
    never pins a cluster open there; hover and :focus-visible are the only
    desktop reveal. */
 .page:hover .actions,
@@ -550,42 +525,16 @@
   visibility: visible;
 }
 
-/* Thin insertion line while dragging (MERGE-10): a DOM attribute written
-   during the native drag, lifted with z-index. */
-.page[data-insert-before] {
-  z-index: 3;
-}
-
-.page[data-insert-before]::before,
-.grid[data-insert-end]::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--color-primary);
-}
-
-.page[data-insert-before]::before {
-  inset-inline-start: -0.45rem;
-}
-
-.grid[data-insert-end]::after {
-  inset-inline-end: 0.25rem;
-  z-index: 3;
-}
-
 @media (max-width: 767px) {
   /* The card already pads 12px on a phone (PdfTool.module.css); no padding
      of the grid's own, so four 72px cells and three 8px gaps (312px, the
-     --grid-gap PageStrip.tsx sets on a phone) fit the 317px the card leaves
+     --grid-gap PageGrid.tsx sets on a phone) fit the 317px the card leaves
      at 375px: five one-page files land as a row of four and one. */
   .grid {
     padding: 0;
   }
 
-  /* Only the tapped page shows its cluster (PageStrip.tsx `selectedKey`):
+  /* Only the tapped page shows its cluster (PageGrid.tsx `selectedKey`):
      three 44px buttons are 142px wide over a 72px cell, so two neighbours
      showing theirs at once put one's Open under the other's Rotate
      (Shlomi's phone screenshot, 2026-09-13). The one cluster may overhang

@@ -1,6 +1,6 @@
 /* Direction A (2026-09-13), reduced wave 2 (Shlomi): the document header and
    the phone chip row that replaces the add bar and the rail's file list
-   below 768px. Grid (page-cell) rules live in PageStrip.module.css; the
+   below 768px. Grid (page-cell) rules live in PageGrid.module.css; the
    rail's own rules live in MergeRail.module.css. Two surfaces, no card
    inside a card - and above the first thumbnail there is no UI text except
    the heading and its page count. */
@@ -46,7 +46,7 @@
 }
 
 /* Shlomi (2026-09-13): the Edit pages toggle is gone - the heading row now
-   holds only the heading itself. Kept as its own wrapper since PageStrip's
+   holds only the heading itself. Kept as its own wrapper since PageGrid's
    arming/selection controls live elsewhere. */
 .heading-row {
   display: flex;
@@ -590,4 +590,61 @@
   :global(.tool-stage[data-tool-slug='merge']:has([data-tool-loaded]) > main) {
     flex-grow: 0;
   }
+}
+
+/* Merge's own rules over the shared page grid (src/shell/pageGrid/), reached
+   through the grid's stable hooks (`data-page-grid`, `li[data-key]`,
+   `data-thumb-box`, `data-page-number`, `data-band`) rather than its class
+   names. */
+
+:global([data-merge-moment]) [data-page-grid] [data-band] {
+  background: var(--color-primary);
+  transition-delay: var(--moment-delay, 0ms);
+}
+
+/* Linked highlight (2026-10-23): a hook sets `data-linking` on an ancestor and
+   `data-linked` on every page and rail row of the hovered or focused file;
+   the rest recede. Off while a page is being dragged. */
+:global([data-linking='row']) [data-page-grid] li[data-key]:not([data-linked]) [data-thumb-box],
+:global([data-linking='row']) [data-page-grid] li[data-key]:not([data-linked]) [data-page-number] {
+  opacity: 0.4;
+}
+
+:global([data-linking='row']) [data-page-grid] li[data-key][data-linked] [data-thumb-box] {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--tag-color), var(--shadow-md);
+}
+
+/* Doubled attributes: this must outrank the `:not([data-linked])` selectors
+   above (six attribute selectors and two elements against four and two). */
+:global(html[data-page-dragging]) [data-page-grid] li[data-key][data-key] [data-thumb-box][data-thumb-box],
+:global(html[data-page-dragging]) [data-page-grid] li[data-key][data-key] [data-page-number][data-page-number] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Thin insertion line while dragging (MERGE-10): a DOM attribute written
+   during the native drag, lifted with z-index. */
+[data-page-grid] li[data-key][data-insert-before] {
+  z-index: 3;
+}
+
+[data-page-grid] li[data-key][data-insert-before]::before,
+[data-page-grid][data-insert-end]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--color-primary);
+}
+
+[data-page-grid] li[data-key][data-insert-before]::before {
+  inset-inline-start: -0.45rem;
+}
+
+[data-page-grid][data-insert-end]::after {
+  inset-inline-end: 0.25rem;
+  z-index: 3;
 }

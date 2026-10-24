@@ -1,5 +1,5 @@
 /* Direction A (2026-09-13): the rail. A glance-at column of the input
-   files, never the thing you scroll through - the document (PageStrip) is
+   files, never the thing you scroll through - the document (PageGrid) is
    the workspace. Sticky for the page's height at desktop widths (1024px and
    up); below that (tablet and phone alike) the chip-row treatment
    (MergeDocument.module.css) carries the file list, and the rail itself

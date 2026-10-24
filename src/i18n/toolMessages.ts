@@ -444,6 +444,38 @@ const hebrewMergeMessages: MergeMessages = {
   tipOpen: 'פתיחה',
 };
 
+/** What the shared page grid (src/shell/pageGrid/PageGrid.tsx) reads from a
+ * tool's messages. */
+export type PageGridMessages = Pick<MergeMessages,
+  | 'captionPages'
+  | 'includePage'
+  | 'openPreview'
+  | 'pageIncluded'
+  | 'pageItemLabel'
+  | 'pageMoved'
+  | 'pageMovedUndo'
+  | 'pageRotated'
+  | 'pageRotatedUndo'
+  | 'pageSkipped'
+  | 'pageSkippedUndo'
+  | 'previewClose'
+  | 'previewIncludeAgain'
+  | 'previewLoading'
+  | 'previewNext'
+  | 'previewPrev'
+  | 'previewSkippedBanner'
+  | 'previewSkippedNote'
+  | 'previewTitle'
+  | 'rotatePage'
+  | 'skipPage'
+  | 'skippedBadge'
+  | 'skippedState'
+  | 'stripHint'
+  | 'tipBringBack'
+  | 'tipOpen'
+  | 'tipRotate'
+  | 'tipSkip'>;
+
 export interface CompressMessages {
   /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */
   dir: 'ltr' | 'rtl';

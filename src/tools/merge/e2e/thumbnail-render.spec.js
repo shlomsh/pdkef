@@ -15,7 +15,7 @@
 // `.file-row`) no longer carry a per-file thumbnail - a colour tag dot
 // stands in for it (see PdfMergeTool.tsx's `.tag-square`), and the rendered
 // page-1 thumbnail lives only in the document grid's first page cell
-// (PageStrip.tsx's `<img class="thumb">`, inside `li[data-key]`). The guard
+// (PageGrid.tsx's `<img class="thumb">`, inside `li[data-key]`). The guard
 // moves there; the fixture set and the pixel assertion are unchanged.
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
@@ -51,7 +51,7 @@ async function uploadAndCountNonWhitePixels(page, fixtureName) {
   await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, fixtureName));
 
   // The grid only renders an <img> once the page's own thumbnail resolves
-  // (PageStrip.tsx); before that the cell's `.thumb-box` is empty, so waiting
+  // (PageGrid.tsx); before that the cell's `.thumb-box` is empty, so waiting
   // for this locator to attach already proves the render finished, not just
   // that the file loaded. Page 1 of the uploaded file is always the grid's
   // first cell.

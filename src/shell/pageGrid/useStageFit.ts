@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import { fitCellWidth, type FitItem } from './stageFit.ts';
-import styles from './components/PageStrip.module.css';
+import styles from './PageGrid.module.css';
 
 /* The desktop cell is a 104 x 138 box that may grow; these are its fixed
-   parts (PageStrip.module.css: the 12px grid gap, the cell's flex gap plus
+   parts (PageGrid.module.css: the 12px grid gap, the cell's flex gap plus
    the page number line under the thumbnail). */
 export const MIN_CELL = 104;
 const MAX_CELL = 240;
