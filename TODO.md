@@ -14,7 +14,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [MERGE-24](backlog/tasks/MERGE-24.md) P2 · Merge polish: pages fill the stage, linked files, a download moment (in progress)
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 
 ## Waiting, by date
