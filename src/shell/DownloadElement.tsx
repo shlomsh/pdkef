@@ -17,7 +17,7 @@ export interface DownloadElementProps {
   /** PART 2 (browser check): the "Preparing N pages…" label counts the
    * merge OUTPUT (skipped pages excluded), same as the document heading -
    * never `totalCount`, which is the render-progress total. */
-  pagesToMerge?: number;
+  pageCount?: number;
   progress?: number;
   errorMessage?: string;
   messages: DownloadMessages;
@@ -61,7 +61,7 @@ export default function DownloadElement({
   detail,
   renderedCount = 0,
   totalCount = 0,
-  pagesToMerge = 0,
+  pageCount = 0,
   progress = 0,
   errorMessage,
   messages: t,
@@ -177,7 +177,7 @@ export default function DownloadElement({
                 stroke-dashoffset={2 * Math.PI * 16 - progress * 2 * Math.PI * 16}
               />
             </svg>
-            <span class={styles.label}>{formatMessage(t.preparingPages, { count: pagesToMerge })}</span>
+            <span class={styles.label}>{formatMessage(t.preparingPages, { count: pageCount })}</span>
           </span>
           <span class={styles.detail}>{formatMessage(t.renderProgress, { done: renderedCount, total: totalCount })}</span>
         </>
@@ -239,7 +239,7 @@ export default function DownloadElement({
       )}
 
       {state === 'error' && (
-        <span class={styles.label}>{errorMessage || t.fixFileToMerge}</span>
+        <span class={styles.label}>{errorMessage || t.buildFailed}</span>
       )}
     </a>
   );

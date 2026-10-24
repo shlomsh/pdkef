@@ -780,11 +780,11 @@ export default function PageGrid({
 
   return (
     <section class={styles.section} aria-labelledby={labelledBy}>
-      <p class="sr-only" id="merge-strip-hint">{t.stripHint}</p>
+      <p class="sr-only" id="page-grid-hint">{t.stripHint}</p>
       <ul
         class={styles.grid}
         ref={gridRef}
-        aria-describedby="merge-strip-hint"
+        aria-describedby="page-grid-hint"
         data-page-grid
         data-grouped={labelled || undefined}
         data-fit-settled={fitSettledNow || undefined}

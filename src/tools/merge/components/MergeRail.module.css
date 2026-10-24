@@ -257,3 +257,23 @@
 .reset-order {
   composes: quiet-button from '../../../shell/pageWorkspace/PageWorkspace.module.css';
 }
+
+.start-again {
+  align-self: center;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  padding: 0.3rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.install-line {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}

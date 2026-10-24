@@ -68,7 +68,7 @@ describe('DownloadElement', () => {
 
   it('preparing: aria-busy, honest label and render progress; a tap queues the download', () => {
     const onPreparingTap = vi.fn();
-    mount({ state: 'preparing', totalCount: 18, renderedCount: 12, pagesToMerge: 18, onPreparingTap });
+    mount({ state: 'preparing', totalCount: 18, renderedCount: 12, pageCount: 18, onPreparingTap });
     const el = box();
     expect(el.getAttribute('aria-busy')).toBe('true');
     expect(el.textContent).toContain('Preparing 18 pages');
@@ -80,7 +80,7 @@ describe('DownloadElement', () => {
   it('preparing: the label counts the merge output, not the render total (PART 2, browser check)', () => {
     // 18 cells still need rendering (one is skipped and still occupies a
     // cell), but the output the button is honestly promising is 17 pages.
-    mount({ state: 'preparing', totalCount: 18, renderedCount: 12, pagesToMerge: 17 });
+    mount({ state: 'preparing', totalCount: 18, renderedCount: 12, pageCount: 17 });
     const el = box();
     expect(el.textContent).toContain('Preparing 17 pages');
     expect(el.textContent).toContain('12 of 18 rendered');

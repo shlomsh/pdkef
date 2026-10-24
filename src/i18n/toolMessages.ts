@@ -74,7 +74,57 @@ export function signUpdateDescription(t: SignMessages, kind: ElementUpdateKind, 
   }
 }
 
-export interface MergeMessages {
+/** What the shared page grid (src/shell/pageGrid/PageGrid.tsx) reads from a
+ * tool's messages. */
+export interface PageGridMessages {
+  captionPages: string;
+  includePage: string;
+  openPreview: string;
+  pageIncluded: string;
+  pageItemLabel: string;
+  pageMoved: string;
+  pageRotated: string;
+  pageSkipped: string;
+  previewClose: string;
+  previewIncludeAgain: string;
+  previewLoading: string;
+  previewNext: string;
+  previewPrev: string;
+  previewSkippedBanner: string;
+  previewSkippedNote: string;
+  previewTitle: string;
+  rotatePage: string;
+  skipPage: string;
+  skippedBadge: string;
+  skippedState: string;
+  /** Visible to assistive tech only (sr-only), like the file list's reorderHint. */
+  stripHint: string;
+  /** A small always-in-the-DOM tooltip word inside each page action button
+   * (rotate/skip/open), shown on hover/focus - the button's `aria-label`
+   * stays the real accessible name. */
+  tipBringBack: string;
+  tipOpen: string;
+  tipRotate: string;
+  tipSkip: string;
+}
+
+/** What the shared Download element (src/shell/DownloadElement.tsx) reads from a
+ * tool's messages. */
+export interface DownloadMessages {
+  /** The 'one-file' state's label; only a tool that can block on one file needs it. */
+  addOneMore?: string;
+  /** The Download element's detail when no page is left to export. */
+  allSkipped: string;
+  downloadAgain: string;
+  downloadLabel: string;
+  /** The error state's label when the caller passes no `errorMessage`. */
+  buildFailed: string;
+  preparingPages: string;
+  renderProgress: string;
+  savedLabel: string;
+}
+
+export interface MergeMessages extends PageGridMessages, DownloadMessages {
   /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */
   dir: 'ltr' | 'rtl';
   skippedOne: string;
@@ -83,6 +133,7 @@ export interface MergeMessages {
   reorderHint: string;
   dragHandleLabel: string;
   removeLabel: string;
+  /** Merge's 'one-file' Download state needs it; DownloadMessages leaves it optional. */
   addOneMore: string;
   mergedReady: string;
   filesAddedOne: string;
@@ -118,7 +169,6 @@ export interface MergeMessages {
   fileNameEditableLabel: string;
   /* MERGE-12: Download is the only primary control. `preparing` labels the
    * progress ring shown when the tap arrives before the pre-merge finished. */
-  downloadLabel: string;
   /* MERGE-24: the quiet Download in the phone and tablet file bar; one word, as in Sign's toolbar. */
   downloadShort: string;
   preparing: string;
@@ -148,7 +198,6 @@ export interface MergeMessages {
   resetOrder: string;
   /* MERGE-08 / MERGE-09: the page strip and its per-page controls. */
   pagesHeading: string;
-  stripHint: string;
   /** Visible (not sr-only, unlike reorderHint/stripHint above) touch hint:
    * both the phone chip row and the page grid drag on press-and-hold with no
    * grip icon of their own to show it, so mobile has nothing telling anyone
@@ -156,25 +205,6 @@ export interface MergeMessages {
    * `.touch-drag-hint` in PageWorkspace.module.css). */
   touchDragHint: string;
   fileTag: string;
-  pageItemLabel: string;
-  skippedState: string;
-  skippedBadge: string;
-  rotatePage: string;
-  skipPage: string;
-  includePage: string;
-  openPreview: string;
-  pageSkipped: string;
-  pageIncluded: string;
-  pageRotated: string;
-  pageMoved: string;
-  previewTitle: string;
-  previewClose: string;
-  previewPrev: string;
-  previewNext: string;
-  previewLoading: string;
-  previewSkippedBanner: string;
-  previewSkippedNote: string;
-  previewIncludeAgain: string;
   /* MERGE-14: two quiet verbs under Download (Split was dropped on review:
    * after page-level shuffle and skip it is not the next step); MERGE-17: one
    * quiet line after the first result in this browser. */
@@ -198,14 +228,6 @@ export interface MergeMessages {
   documentHeading: string;
   renderedCount: string;
   shortcutsLine: string;
-  captionPages: string;
-  preparingPages: string;
-  renderProgress: string;
-  savedLabel: string;
-  downloadAgain: string;
-  fixFileToMerge: string;
-  /** The Download element's detail when no page is left to export. */
-  allSkipped: string;
   /* Direction A wave 2 (Shlomi's reduction, 2026-09-13): the drag-anywhere
    * overlay once the add bar is gone, and the phone chip row's "more" menu. */
   dropAnywhereNote: string;
@@ -216,13 +238,6 @@ export interface MergeMessages {
   /** The empty state's own headline, the one a phone shows (MERGE-22: photos too). */
   dropHere: string;
   emptyBody: string;
-  /** Same follow-up, item 6: a small always-in-the-DOM tooltip word inside
-   * each page action button (rotate/skip/open), shown on hover/focus - the
-   * button's `aria-label` stays the real accessible name. */
-  tipRotate: string;
-  tipSkip: string;
-  tipBringBack: string;
-  tipOpen: string;
 }
 
 const englishMergeMessages: MergeMessages = {
@@ -323,7 +338,7 @@ const englishMergeMessages: MergeMessages = {
   renderProgress: '{done} of {total} rendered',
   savedLabel: 'Saved',
   downloadAgain: 'download again',
-  fixFileToMerge: 'Fix the file above to merge',
+  buildFailed: 'Fix the file above to merge',
   allSkipped: 'Every page is skipped',
   dropAnywhereNote: 'Drop anywhere, or paste',
   moreOptions: 'More options',
@@ -439,7 +454,7 @@ const hebrewMergeMessages: MergeMessages = {
   renderProgress: '{done} מתוך {total} עומדו',
   savedLabel: 'נשמר',
   downloadAgain: 'הורדה שוב',
-  fixFileToMerge: 'תקנו את הקובץ למעלה כדי לאחד',
+  buildFailed: 'תקנו את הקובץ למעלה כדי לאחד',
   allSkipped: 'כל העמודים מדולגים',
   dropAnywhereNote: 'שחררו בכל מקום, או הדביקו',
   moreOptions: 'עוד אפשרויות',
@@ -451,47 +466,6 @@ const hebrewMergeMessages: MergeMessages = {
   tipBringBack: 'הצגה',
   tipOpen: 'פתיחה',
 };
-
-/** What the shared page grid (src/shell/pageGrid/PageGrid.tsx) reads from a
- * tool's messages. */
-export type PageGridMessages = Pick<MergeMessages,
-  | 'captionPages'
-  | 'includePage'
-  | 'openPreview'
-  | 'pageIncluded'
-  | 'pageItemLabel'
-  | 'pageMoved'
-  | 'pageRotated'
-  | 'pageSkipped'
-  | 'previewClose'
-  | 'previewIncludeAgain'
-  | 'previewLoading'
-  | 'previewNext'
-  | 'previewPrev'
-  | 'previewSkippedBanner'
-  | 'previewSkippedNote'
-  | 'previewTitle'
-  | 'rotatePage'
-  | 'skipPage'
-  | 'skippedBadge'
-  | 'skippedState'
-  | 'stripHint'
-  | 'tipBringBack'
-  | 'tipOpen'
-  | 'tipRotate'
-  | 'tipSkip'>;
-
-/** What the shared Download element (src/shell/DownloadElement.tsx) reads from a
- * tool's messages. */
-export type DownloadMessages = Pick<MergeMessages,
-  | 'addOneMore'
-  | 'allSkipped'
-  | 'downloadAgain'
-  | 'downloadLabel'
-  | 'fixFileToMerge'
-  | 'preparingPages'
-  | 'renderProgress'
-  | 'savedLabel'>;
 
 export interface CompressMessages {
   /** Text direction; a size inside a sentence is bidi-isolated when 'rtl'. */

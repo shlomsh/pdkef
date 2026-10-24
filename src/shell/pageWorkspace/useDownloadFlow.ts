@@ -50,9 +50,9 @@ const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
 export function useDownloadFlow(input: DownloadFlowInput) {
   const { prepared, fileName, hrefs, blocked, nothing, announce, messages, onDelivered } = input;
   const navigate = input.navigate ?? ((href: string) => { window.location.href = href; });
-  /* MERGE-12 analytics: the person's intent is the Download tap, which is
-     what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
-  const [tap, setTap] = useState<'idle' | 'merging' | 'done'>('idle');
+  /* MERGE-12 analytics: the person's intent is the Download tap; the
+     speculative background build is not counted. See ANALYTICS.md. */
+  const [tap, setTap] = useState<'idle' | 'processing' | 'done'>('idle');
   const [pendingDownload, setPendingDownload] = useState(false);
   // MERGE-24 (2026-10-23): the phone done strip under the sticky bar. Only the
   // quiet Download opens it; a quiet tap that beat the build is remembered in
@@ -60,7 +60,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   const [stripOpen, setStripOpen] = useState(false);
   const quietPendingRef = useRef(false);
   // Only the person's Download tap, not the speculative background build.
-  useHoldUpdate(tap === 'merging');
+  useHoldUpdate(tap === 'processing');
   const [downloadedOnce, setDownloadedOnce] = useState(false);
   const { shareReady, prepare, clearPrepared, sharePrepared, download } = usePdfShare();
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
@@ -81,7 +81,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     else clearPrepared();
   }, [prepared.status, prepared.generation, fileName]);
 
-  // The tap arrived while the pre-merge was still running: deliver the blob
+  // The tap arrived while the background build was still running: deliver the blob
   // the moment it exists, through the same download path Share uses.
   useEffect(() => {
     if (!pendingDownload || prepared.status !== 'ready' || !prepared.blob) return;
@@ -137,7 +137,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   }, [handoffBusy, prepared.blob, performHandoff]);
 
   const onDownloadTap = useCallback(() => {
-    setTap('merging');
+    setTap('processing');
     setDownloadedOnce(true);
     onDelivered?.();
     announce(messages.ready);
@@ -146,7 +146,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
 
   // The tap beat the quiet-time build: show 'preparing', build now, deliver on ready.
   const onPreparingTap = useCallback(() => {
-    setTap('merging');
+    setTap('processing');
     setPendingDownload(true);
     prepared.prepareNow();
   }, [prepared.prepareNow]);
@@ -166,10 +166,10 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     onPreparingTap();
   }, [onPreparingTap]);
 
-  // A tap on a ready Download: 'merging' renders once so BasePdfTool reports
+  // A tap on a ready Download: 'processing' renders once so BasePdfTool reports
   // tool_operation_started, then 'done' reports tool_result_ready.
   useEffect(() => {
-    if (tap === 'merging' && !pendingDownload && prepared.status === 'ready') setTap('done');
+    if (tap === 'processing' && !pendingDownload && prepared.status === 'ready') setTap('done');
   }, [tap, pendingDownload, prepared.status]);
 
   const handleShare = async () => {
