@@ -1,0 +1,48 @@
+/* The Undo / Redo pair a tool puts in its document header. Looks like Merge's
+   quiet buttons: no fill, a strong 1px border, 36px tall with a 44px hit area. */
+.group {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.button:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

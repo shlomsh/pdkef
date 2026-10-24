@@ -171,6 +171,8 @@ describe('PdfMergeTool UI flow', () => {
   }
 
   const fileNames = () => Array.from(container.querySelectorAll(`.${railStyles['file-name']}`)).map((el) => el.textContent);
+  const undoButton = () => container.querySelector('button[aria-label="Undo last change"]');
+  const redoButton = () => container.querySelector('button[aria-label="Redo last undone change"]');
   const downloadBox = () => container.querySelector(`.${downloadStyles.box}`);
   // A real download only exists once the Download element carries an href
   // (state 'ready' or 'saved'); every other state is a plain trigger.
@@ -454,27 +456,160 @@ describe('PdfMergeTool UI flow', () => {
     expect(accept).toContain('image/png');
   });
 
-  it('removes a file and offers Undo, which puts it back at its old position (MERGE-07)', async () => {
+  it('removes a file and Undo puts it back at its old position, Redo removes it again (MERGE-07)', async () => {
     mount();
     await loadFiles(['one.pdf', 'two.pdf', 'three.pdf']);
     await settle();
+    expect(undoButton().disabled).toBe(true);
 
     const removeBtns = container.querySelectorAll(`.${railStyles['file-remove']}`);
     await act(async () => {
       removeBtns[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(fileNames()).toEqual(['one.pdf', 'three.pdf']);
-    const status = container.querySelector(`.${docStyles['undo-chip']}`);
-    expect(status.textContent).toContain('Removed two.pdf');
 
-    const undo = status.querySelector('button');
-    await act(async () => undo.click());
+    await act(async () => undoButton().click());
     expect(fileNames()).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
-    expect(container.querySelector(`.${docStyles['undo-chip']}`)).toBeNull();
     await settle();
     const lastCall = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(lastCall[0].map((f) => f.name)).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
     expect(lastCall[1].plan.map((p) => p.fileIndex)).toEqual([0, 0, 1, 1, 2, 2]);
+
+    await act(async () => redoButton().click());
+    expect(fileNames()).toEqual(['one.pdf', 'three.pdf']);
+    expect(redoButton().disabled).toBe(true);
+  });
+
+  // GRID-03: one Undo/Redo stack over { entries, plan }.
+  describe('undo and redo', () => {
+    const pageButton = (label) => container.querySelector(`button[aria-label="${label}"]`);
+    const planOf = () => draftProbe.props.plan.map((p) => {
+      const name = draftProbe.props.entries.find((e) => e.id === p.fileId).file.name.replace('.pdf', '');
+      return `${name}:${p.pageIndex}:${p.rotation}:${p.skipped ? 's' : '-'}`;
+    });
+    const press = (init) => act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+    });
+
+    async function mountWithPages() {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+      await act(async () => { await flush(20); });
+    }
+
+    it('skips a page, then Undo includes it and Redo skips it again', async () => {
+      await mountWithPages();
+      await act(async () => pageButton('Hide page 1 from the merged PDF').click());
+      expect(planOf()[0]).toBe('a:0:0:s');
+      await act(async () => undoButton().click());
+      expect(planOf()[0]).toBe('a:0:0:-');
+      await act(async () => redoButton().click());
+      expect(planOf()[0]).toBe('a:0:0:s');
+    });
+
+    it('rotates a page, then Undo and Redo move it back and forth', async () => {
+      await mountWithPages();
+      await act(async () => pageButton('Rotate page 2').click());
+      expect(planOf()[1]).toBe('a:1:90:-');
+      await act(async () => undoButton().click());
+      expect(planOf()[1]).toBe('a:1:0:-');
+      await act(async () => redoButton().click());
+      expect(planOf()[1]).toBe('a:1:90:-');
+    });
+
+    it('moves a page, then Undo and Redo restore the order', async () => {
+      await mountWithPages();
+      const cell = container.querySelector('[data-key]');
+      await act(async () => { cell.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
+      expect(planOf().slice(0, 2)).toEqual(['a:1:0:-', 'a:0:0:-']);
+      await act(async () => undoButton().click());
+      expect(planOf().slice(0, 2)).toEqual(['a:0:0:-', 'a:1:0:-']);
+      await act(async () => redoButton().click());
+      expect(planOf().slice(0, 2)).toEqual(['a:1:0:-', 'a:0:0:-']);
+    });
+
+    it('reorders files, then Undo and Redo restore the list and the pages', async () => {
+      await mountWithPages();
+      const grip = container.querySelector(`.${railStyles.grip}`);
+      await act(async () => { grip.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })); });
+      expect(fileNames()).toEqual(['b.pdf', 'a.pdf']);
+      expect(planOf()[0]).toBe('b:0:0:-');
+      await act(async () => undoButton().click());
+      expect(fileNames()).toEqual(['a.pdf', 'b.pdf']);
+      expect(planOf()[0]).toBe('a:0:0:-');
+      await act(async () => redoButton().click());
+      expect(fileNames()).toEqual(['b.pdf', 'a.pdf']);
+    });
+
+    it.each([['after', true], ['before', false]])('a file removed before its inspection finished still gets its pages when it finishes %s Undo', async (_, afterUndo) => {
+      mount();
+      let finish;
+      mergeLib.inspectPdf.mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve({ pageCount: 3, encrypted: false, creationDate: null }); }));
+      await loadFiles(['slow.pdf', 'b.pdf']);
+      expect(planOf()).toEqual(['b:0:0:-', 'b:1:0:-']);
+      await act(async () => {
+        container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(fileNames()).toEqual(['b.pdf']);
+      if (!afterUndo) await act(async () => { finish(); await flush(10); });
+      await act(async () => undoButton().click());
+      expect(fileNames()).toEqual(['slow.pdf', 'b.pdf']);
+      if (afterUndo) await act(async () => { finish(); await flush(10); });
+      expect(planOf().filter((p) => p.startsWith('slow:'))).toHaveLength(3);
+    });
+
+    it('adding files is not a step', async () => {
+      await mountWithPages();
+      await loadFiles(['c.pdf']);
+      expect(fileNames()).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
+      expect(undoButton().disabled).toBe(true);
+      await act(async () => pageButton('Rotate page 1').click());
+      await loadFiles(['d.pdf']);
+      await act(async () => undoButton().click());
+      expect(fileNames()).toEqual(['a.pdf', 'b.pdf', 'c.pdf', 'd.pdf']);
+      expect(planOf()[0]).toBe('a:0:0:-');
+      expect(planOf()).toHaveLength(8);
+    });
+
+    it('a restored draft is not a step', async () => {
+      mount();
+      await act(async () => { await flush(10); });
+      await act(async () => {
+        draftProbe.props.onRestore({
+          files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
+          plan: [
+            { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
+            { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+          ],
+          options: { addPageNumbers: false },
+          outputName: null,
+        });
+        await flush(10);
+      });
+      expect(fileNames()).toEqual(['x.pdf', 'y.pdf']);
+      expect(undoButton().disabled).toBe(true);
+    });
+
+    it('Cmd+Z undoes and Shift+Cmd+Z redoes, and both record the action', async () => {
+      await mountWithPages();
+      await act(async () => pageButton('Rotate page 1').click());
+      await press({ key: 'z', metaKey: true });
+      expect(planOf()[0]).toBe('a:0:0:-');
+      expect(recentActions()).toContain('undo');
+      await press({ key: 'z', metaKey: true, shiftKey: true });
+      expect(planOf()[0]).toBe('a:0:90:-');
+      expect(recentActions()).toContain('redo');
+    });
+
+    it('Cmd+Z is left to the field while typing in an input', async () => {
+      await mountWithPages();
+      await act(async () => pageButton('Rotate page 1').click());
+      const input = container.querySelector(`.${railStyles['page-numbers-row']} input`);
+      input.focus();
+      await press({ key: 'z', metaKey: true });
+      expect(planOf()[0]).toBe('a:0:90:-');
+    });
   });
 
   it('DEBT-58: the first files arriving are not an edit; a remove and a later add are', async () => {
@@ -493,43 +628,6 @@ describe('PdfMergeTool UI flow', () => {
     reportEdit.mockClear();
     await loadFiles(['three.pdf']);
     expect(reportEdit).toHaveBeenCalledWith('merge');
-  });
-
-  it('a second undoable action 3s later restarts the 5s window, keeping the chip visible at 6s (wave 3)', async () => {
-    mount();
-    await loadFiles(['one.pdf', 'two.pdf', 'three.pdf']);
-    await settle();
-
-    const removeBtns = () => container.querySelectorAll(`.${railStyles['file-remove']}`);
-    const chip = () => container.querySelector(`.${docStyles['undo-chip']}`);
-
-    // The undo window is UNDO_WINDOW_MS (5s) of real product time. Fake
-    // timers (enabled only from here, after the setup above has settled on
-    // real timers) let the two 3s waits below advance virtual time instead
-    // of actually sleeping; the component's own undo-dismiss setTimeout is
-    // created by the dispatches below, so it is scheduled under the fake
-    // clock and genuinely exercises the restart logic.
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-
-    await act(async () => removeBtns()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(chip().textContent).toContain('Removed two.pdf');
-
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
-    expect(chip()).not.toBeNull();
-
-    // A second action 3s after the first restarts the window rather than
-    // stacking - the chip now names the second removal.
-    await act(async () => removeBtns()[0].dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(chip().textContent).toContain('Removed one.pdf');
-
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
-    // 6s since the first action, only 3s since the second: were the timer
-    // not restarted, the first action's 5s window would already have closed
-    // the chip by now.
-    expect(chip()).not.toBeNull();
-    expect(chip().textContent).toContain('Removed one.pdf');
-
-    vi.useRealTimers();
   });
 
   it('nudges on a duplicate (same name and size) and lets it be added anyway (MERGE-07)', async () => {
@@ -570,6 +668,25 @@ describe('PdfMergeTool UI flow', () => {
     const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(files.map((f) => f.name)).toEqual(['c.pdf', 'b.pdf', 'a.pdf']);
     expect(options.plan.map((p) => p.fileIndex)).toEqual([0, 0, 1, 1, 2, 2]);
+  });
+
+  it('undoing a sort brings back the file order and the sort choice together', async () => {
+    mount();
+    await loadFiles(['b.pdf', 'a.pdf', 'c.pdf']);
+    const trigger = () => container.querySelector(`button.${sortMenuStyles['sort-trigger']}`);
+    await act(async () => { trigger().click(); });
+    const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === 'Name A to Z');
+    await act(async () => { option.click(); });
+    expect(fileNames()).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
+    expect(trigger().textContent).toContain('Name A to Z');
+
+    await act(async () => undoButton().click());
+    expect(fileNames()).toEqual(['b.pdf', 'a.pdf', 'c.pdf']);
+    expect(trigger().textContent).not.toContain('Name A to Z');
+
+    await act(async () => redoButton().click());
+    expect(fileNames()).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
+    expect(trigger().textContent).toContain('Name A to Z');
   });
 
   it('remembers Add page numbers on device and applies it on a fresh mount (MERGE-11)', async () => {
@@ -1020,7 +1137,7 @@ describe('PdfMergeTool UI flow', () => {
       expect(draftStore.deleteDraft).not.toHaveBeenCalled();
     });
 
-    it('clears everything else the replaced set left behind: sort mode and undo', async () => {
+    it('clears everything else the replaced set left behind: sort mode and history', async () => {
       let release;
       draftStore.takeHandoff.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
       mount();
@@ -1037,12 +1154,12 @@ describe('PdfMergeTool UI flow', () => {
         container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
       expect(trigger().textContent).toContain('Name A to Z');
-      expect(container.querySelector(`.${docStyles['undo-chip']}`)).not.toBeNull();
+      expect(undoButton().disabled).toBe(false);
 
       await act(async () => { release(handoffRecord('z.pdf', 'y.pdf')); await flush(20); });
       expect(fileNames()).toEqual(['z.pdf', 'y.pdf']);
       expect(trigger().textContent).not.toContain('Name A to Z');
-      expect(container.querySelector(`.${docStyles['undo-chip']}`)).toBeNull();
+      expect(undoButton().disabled).toBe(true);
     });
   });
 
@@ -1436,14 +1553,6 @@ describe('PdfMergeTool UI flow', () => {
     const hebrew = { messages: hebrewMergeMessages, shellMessages: hebrewShellMessages };
     const isolated = (name) => `\u2068${name}\u2069`;
 
-    it('in the undo chip after a removal', async () => {
-      mount(hebrew);
-      await loadFiles(['2025-one.pdf', 'two.pdf']);
-      await settle();
-      await act(async () => container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true })));
-      expect(container.querySelector(`.${docStyles['undo-chip']}`).textContent).toContain(isolated('2025-one.pdf'));
-    });
-
     it('in the duplicate notice', async () => {
       mount(hebrew);
       await loadFiles(['2025-dup.pdf', 'other.pdf']);
@@ -1598,7 +1707,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     const removeButtons = container.querySelectorAll(`.${railStyles['file-remove']}`);
     await act(async () => removeButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await advance(300);
-    const undo = container.querySelector(`.${docStyles['undo-chip']} button`);
+    const undo = container.querySelector('button[aria-label="Undo last change"]');
     await act(async () => undo.click());
     expect(box().getAttribute('data-state')).toBe('ready');
     expect(box().getAttribute('href')).toBeTruthy();
