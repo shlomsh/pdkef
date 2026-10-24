@@ -309,7 +309,7 @@ describe('PdfMergeTool UI flow', () => {
   it('the heading shows "N rendered" only while rendering, and drops it once every cell has a thumbnail', async () => {
     // A controllable IntersectionObserver: setup.js's global stub never
     // fires, which is right for tests that don't care, but this one has to
-    // drive PageStrip's render queue to completion to prove the quieter
+    // drive PageGrid's render queue to completion to prove the quieter
     // "rendered" span goes away once it does.
     const originalIO = globalThis.IntersectionObserver;
     const instances = [];
@@ -330,7 +330,7 @@ describe('PdfMergeTool UI flow', () => {
 
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    // The grid (PageStrip) itself arrives through a dynamic import(); give
+    // The grid (PageGrid) itself arrives through a dynamic import(); give
     // it a beat to mount and start observing before the IntersectionObserver
     // instance it creates is read below.
     await act(async () => { await flush(20); });

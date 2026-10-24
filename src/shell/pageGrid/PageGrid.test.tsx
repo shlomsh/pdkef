@@ -4,16 +4,15 @@ import { createRef } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
-import PageStrip from './PageStrip.tsx';
-import styles from './PageStrip.module.css';
-import { isGrouped } from '../mergePlan.ts';
-import { planForFile } from '../../../lib/pagePlan.ts';
-import { englishMergeMessages } from '../../../i18n/toolMessages';
-import * as thumbnailsLib from '../../../lib/thumbnails.js';
+import PageGrid from './PageGrid.tsx';
+import styles from './PageGrid.module.css';
+import { planForFile } from '../../lib/pagePlan.ts';
+import { englishMergeMessages } from '../../i18n/toolMessages';
+import * as thumbnailsLib from '../../lib/thumbnails.js';
 
 const sources = [];
 
-vi.mock('../../../lib/thumbnails.js', () => ({
+vi.mock('../../lib/thumbnails.js', () => ({
   openThumbnailSource: vi.fn(async (file) => {
     const source = {
       file,
@@ -67,7 +66,12 @@ async function waitFor(predicate, timeoutMs = 2000) {
   }
 }
 
-describe('PageStrip', () => {
+// Whether every file's pages sit in one contiguous run (Merge's isGrouped,
+// restated here so the shell test does not reach into a tool).
+const isGrouped = (plan) => plan.every((entry, i) => plan.findIndex((p) => p.fileId === entry.fileId) === i
+  || plan[i - 1].fileId === entry.fileId);
+
+describe('PageGrid', () => {
   let container;
   let originalIO;
 
@@ -101,27 +105,28 @@ describe('PageStrip', () => {
     const onRegisterUndo = vi.fn();
     const onRenderedCountChange = vi.fn();
     const onRemoveFile = vi.fn();
-    const stripRef = createRef();
+    const gridRef = createRef();
     container = document.createElement('div');
     document.body.appendChild(container);
     const props = {
-      entries,
+      sources: entries,
       plan,
       onPlanChange,
       announce,
       messages: englishMergeMessages,
       grouped: overrides.grouped ?? isGrouped(plan),
-      stripRef,
+      labelSources: true,
+      gridRef,
       onRegisterUndo,
       onRenderedCountChange,
       onRemoveFile,
       ...overrides.props,
     };
     act(() => {
-      render(<PageStrip {...props} />, container);
+      render(<PageGrid {...props} />, container);
     });
-    const rerender = (next) => act(() => { render(<PageStrip {...props} {...next} />, container); });
-    return { entries, plan, onPlanChange, announce, onRegisterUndo, onRemoveFile, stripRef, rerender };
+    const rerender = (next) => act(() => { render(<PageGrid {...props} {...next} />, container); });
+    return { entries, plan, onPlanChange, announce, onRegisterUndo, onRemoveFile, gridRef, rerender };
   }
 
   const cards = () => Array.from(container.querySelectorAll(`.${styles.page}`));
@@ -186,6 +191,24 @@ describe('PageStrip', () => {
   // Shlomi's reduction (wave 2): captions are labels now, no actions -
   // "rotate all" is gone and "remove" lives only in the rail row, so the
   // caption itself carries no buttons at all.
+  it('without labelSources there is no caption, tag, band or grouping, even for a long run', () => {
+    const entries = [{ id: 1, file: makeFile('a.pdf'), pageCount: 6, error: null }];
+    mount({ entries, plan: planForFile(1, 6), props: { labelSources: false } });
+    expect(container.querySelector('[data-caption-for]')).toBeNull();
+    expect(container.querySelector(`.${styles.band}, [data-band]`)).toBeNull();
+    expect(container.querySelector(`.${styles['cell-tag-name']}, .${styles['cell-tag-square']}`)).toBeNull();
+    expect(container.querySelector('[data-page-grid]').hasAttribute('data-grouped')).toBe(false);
+    expect(cards()).toHaveLength(6);
+  });
+
+  it('exposes the stable hooks Merge styles through', () => {
+    mount();
+    expect(container.querySelector('ul[data-page-grid]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-thumb-box]')).toHaveLength(4);
+    expect(container.querySelectorAll('[data-page-number]')).toHaveLength(4);
+    expect(container.querySelectorAll('[data-band]')).toHaveLength(4);
+  });
+
   it('a caption carries no interactive controls, only the label', () => {
     const entries = [{ id: 1, file: makeFile('a.pdf'), pageCount: 4, error: null }];
     mount({ entries, plan: planForFile(1, 4) });
@@ -204,7 +227,7 @@ describe('PageStrip', () => {
     expect(Array.from(container.querySelectorAll(`.${styles.thumb}`)).every((img) => img.draggable === false)).toBe(true);
 
     // Removing file 1 cancels its renders and destroys its document.
-    rerender({ entries: [entries[1]], plan: planForFile(2, 2) });
+    rerender({ sources: [entries[1]], plan: planForFile(2, 2) });
     const sourceA = sources.find((s) => s.file.name === 'a.pdf');
     await waitFor(() => sourceA.destroy.mock.calls.length > 0);
     expect(sourceA.destroy).toHaveBeenCalled();
@@ -391,16 +414,16 @@ describe('PageStrip', () => {
 
   it('commits the drop once through SortableJS onEnd and registers one undo', () => {
     const createSpy = vi.spyOn(Sortable, 'create');
-    const { onPlanChange, onRegisterUndo, stripRef } = mount();
+    const { onPlanChange, onRegisterUndo, gridRef } = mount();
     expect(createSpy).toHaveBeenCalledTimes(1);
-    expect(createSpy.mock.calls[0][0]).toBe(stripRef.current);
+    expect(createSpy.mock.calls[0][0]).toBe(gridRef.current);
     const options = createSpy.mock.calls[0][1];
     expect(options.forceFallback).toBe(true);
     expect(options.fallbackTolerance).toBe(4);
     options.onStart();
-    expect(document.documentElement.hasAttribute('data-merge-page-dragging')).toBe(true);
+    expect(document.documentElement.hasAttribute('data-page-dragging')).toBe(true);
     options.onEnd({ oldIndex: 0, newIndex: 3 });
-    expect(document.documentElement.hasAttribute('data-merge-page-dragging')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-page-dragging')).toBe(false);
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value.map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
     expect(onRegisterUndo).toHaveBeenCalledTimes(1);

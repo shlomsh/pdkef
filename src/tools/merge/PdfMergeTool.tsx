@@ -40,13 +40,13 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement, { type DownloadElementState } from './components/DownloadElement.tsx';
-import FileName from './components/FileName.tsx';
+import FileName from '../../shell/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
 import SortMenu from '../../shell/SortMenu.tsx';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { usePreparedMerge } from './components/usePreparedMerge.ts';
-import type { PageStripProps } from './components/PageStrip.tsx';
+import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import type { MergeDraftPersistenceProps } from './components/MergeDraftPersistence.tsx';
 import type { MergeDraftRestore, MergeDraftSaveState } from './components/useMergeDraft.ts';
 import {
@@ -300,7 +300,7 @@ export default function PdfMergeTool({
   /* MERGE-08: the grid, the preview dialog and (MERGE-13) the draft hook all
      arrive through dynamic import(), so the eager graph check-page-weight.js
      measures for /merge/ does not grow with them. */
-  const [PageStrip, setPageStrip] = useState<ComponentType<PageStripProps> | null>(null);
+  const [PageGrid, setPageGrid] = useState<ComponentType<PageGridProps> | null>(null);
   /* MERGE-13: crash-safe draft. The hook lives in MergeDraftPersistence,
      loaded through a dynamic import() on mount; until it reports, the hint
      alone decides whether the empty state is held back. */
@@ -328,7 +328,7 @@ export default function PdfMergeTool({
   // The one readiness condition: the restore marker is released and the
   // layout wrapper below carries `data-merge-workspace-ready` on the same
   // commit, so the page is never revealed before the grid is in the DOM.
-  const workspaceReady = Boolean(PageStrip) && plan.length > 0;
+  const workspaceReady = Boolean(PageGrid) && plan.length > 0;
 
   const grouped = useMemo(() => isGrouped(plan), [plan]);
   const canReorderFiles = entries.length >= 2;
@@ -455,7 +455,7 @@ export default function PdfMergeTool({
     if (draftState.isRestoring) return;
     document.documentElement.removeAttribute('data-draft-hint');
     // A Merge restore holds the temporary shell and static content below it
-    // invisible until PageStrip has mounted the real grid. Do not clear its
+    // invisible until PageGrid has mounted the real grid. Do not clear its
     // pre-paint marker as soon as IndexedDB returns: the restored files still
     // need to make it through inspection and this dynamically-loaded surface.
     // A missing/stale draft has no files, so it is released immediately.
@@ -508,13 +508,13 @@ export default function PdfMergeTool({
   }, []);
 
   useEffect(() => {
-    if (entries.length === 0 || PageStrip) return;
+    if (entries.length === 0 || PageGrid) return;
     let cancelled = false;
-    import('./components/PageStrip.tsx')
-      .then((module) => { if (!cancelled) setPageStrip(() => module.default); })
+    import('../../shell/pageGrid/PageGrid.tsx')
+      .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
       .catch((err) => { reportError('chunk_load', err, 'import_page_strip'); });
     return () => { cancelled = true; };
-  }, [entries.length > 0, PageStrip]);
+  }, [entries.length > 0, PageGrid]);
 
   // Whole-file reorder remains available after individual pages have crossed
   // file boundaries. Dropping a file deliberately regroups its pages (the
@@ -1380,15 +1380,16 @@ export default function PdfMergeTool({
 
               {otherError && <ErrorMessage>{t.errorTooLarge}</ErrorMessage>}
 
-              {PageStrip && plan.length > 0 && (
-                <PageStrip
-                  entries={entries}
+              {PageGrid && plan.length > 0 && (
+                <PageGrid
+                  sources={entries}
                   plan={plan}
                   onPlanChange={onPlanChange}
                   announce={setAnnouncement}
                   messages={t}
                   grouped={grouped}
-                  stripRef={stripRef}
+                  labelSources
+                  gridRef={stripRef}
                   onRenderedCountChange={setRenderedCount}
                   onRegisterUndo={registerUndo}
                   onFirstKeyboardFocus={onFirstKeyboardFocus}

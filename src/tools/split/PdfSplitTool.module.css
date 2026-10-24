@@ -159,7 +159,7 @@
 }
 
 /* 44px hit area via a transparent pseudo-element, same technique as Merge's
-   per-cell action cluster (PageStrip.module.css), without inflating the
+   per-cell action cluster (PageGrid.module.css), without inflating the
    small visual glyph a page thumbnail has room for. */
 .rotate-btn::before {
   content: '';

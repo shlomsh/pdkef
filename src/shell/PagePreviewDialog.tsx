@@ -50,7 +50,7 @@ interface PagePreviewDialogProps {
    `<dialog open>` is invisible under real fullscreen). Loaded through a
    dynamic import() from the strip, so the eager graph does not carry it. */
 // Shlomi's follow-up (2026-09-13): the dialog now grows with the viewport
-// (up to about 92vw by 92vh - PageStrip.module.css `.preview-dialog`), so a
+// (up to about 92vw by 92vh - PageGrid.module.css `.preview-dialog`), so a
 // flat 900px raster upscaled visibly on a wide screen. PREVIEW_WIDTH is a
 // ceiling, not the request itself: the real request below is the STAGE's
 // own measured width times devicePixelRatio, so a small viewport still asks

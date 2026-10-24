@@ -81,7 +81,7 @@ test('a draft restored at 375px wide renders its visible row within 2.5s of relo
   await page.reload();
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
-  // Four columns at 375px wide (PageStrip.tsx's phone `gridMetrics`: a 72px
+  // Four columns at 375px wide (PageGrid.tsx's phone `gridMetrics`: a 72px
   // cell plus an 8px gap fits 4 into the 319px card content width) - the
   // first visible row, which must render well before the rest of the grid
   // (the full 17-cell grid can take longer once scrolled out of view).

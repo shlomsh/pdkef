@@ -42,7 +42,7 @@ export function useLinkedHighlight(root: HTMLElement | null): void {
   useEffect(() => {
     if (!root) return;
 
-    const blocked = () => document.documentElement.hasAttribute('data-merge-page-dragging');
+    const blocked = () => document.documentElement.hasAttribute('data-page-dragging');
 
     let current: HTMLElement | null = null;
 

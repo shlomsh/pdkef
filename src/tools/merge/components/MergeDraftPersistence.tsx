@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'preact/hooks';
 import { useMergeDraft, type UseMergeDraftOptions, type UseMergeDraftResult } from './useMergeDraft.ts';
 
 // MERGE-13: the island loads this through a dynamic import() (same reason
-// PageStrip and the preview dialog do, per PdfMergeTool's own comment on
-// PageStrip - the eager graph check-page-weight.js measures for /merge/ must
+// PageGrid and the preview dialog do, per PdfMergeTool's own comment on
+// PageGrid - the eager graph check-page-weight.js measures for /merge/ must
 // not grow with a feature only a returning visitor's autosave needs), so it
 // has to be a component rather than a bare hook: `import()` resolves to a
 // module, and a module's default export is what a caller can render from a

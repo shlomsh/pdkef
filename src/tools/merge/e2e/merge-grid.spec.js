@@ -4,11 +4,11 @@ import { readFile } from 'node:fs/promises';
 
 /* Direction A (2026-09-13, renamed from merge-strip.spec.js): the document's
    page grid. It wraps (no horizontal strip) and is a `<ul class*="grid">`
-   (PageStrip.module.css) of `<li class="page" data-key data-rotation
+   (PageGrid.module.css) of `<li class="page" data-key data-rotation
    data-skipped>` cells plus `<li class="caption" data-caption-for>` label
    rows. Its per-page controls (rotate, skip) are CSS `visibility: hidden`
    until the cell is hovered or focused (or, on touch, until that cell is
-   tapped - there is no Edit pages mode) - see PageStrip.module.css's
+   tapped - there is no Edit pages mode) - see PageGrid.module.css's
    `.page:hover .actions, .page:focus-visible .actions,
    .page[data-selected] .actions`. On a pointer-driven project we hover the
    cell before clicking a button inside it. */
@@ -52,14 +52,14 @@ test('desktop page drag keeps the grabbing cursor for the whole gesture', async 
   await page.mouse.down();
   await page.mouse.move(x + 12, y + 12, { steps: 3 });
 
-  await expect.poll(() => page.locator('html').getAttribute('data-merge-page-dragging')).toBe('');
+  await expect.poll(() => page.locator('html').getAttribute('data-page-dragging')).toBe('');
   expect(await page.evaluate(({ x: px, y: py }) => {
     const beneathPointer = document.elementFromPoint(px, py);
     return beneathPointer ? getComputedStyle(beneathPointer).cursor : null;
   }, { x: x + 12, y: y + 12 })).toBe('grabbing');
 
   await page.mouse.up();
-  await expect(page.locator('html')).not.toHaveAttribute('data-merge-page-dragging', '');
+  await expect(page.locator('html')).not.toHaveAttribute('data-page-dragging', '');
 });
 
 test('the assembled grid: every page, rotate, skip and keyboard reorder land in the export (MERGE-08/09)', async ({ page }) => {
@@ -206,10 +206,10 @@ test('dropping a file onto the grid inserts its pages there and flags the rearra
 });
 
 // A landscape-oriented source page (width > height) rotated 90deg is a final
-// PORTRAIT page: PageStrip.tsx sets the <img>'s inline width/height to
+// PORTRAIT page: PageGrid.tsx sets the <img>'s inline width/height to
 // `var(--cell-h)`/`var(--cell-w)` (swapped ahead of the CSS rotate()), which
 // on this axis is LARGER than its own `.thumb-box` container's un-rotated
-// width. `.thumb` (PageStrip.module.css) is a flex item with `max-width:
+// width. `.thumb` (PageGrid.module.css) is a flex item with `max-width:
 // 100%` and no flex-shrink override, so both the flex-shrink algorithm and
 // the percentage max-width clamped that swapped width down to the
 // container's own (smaller) width before the rotate ever ran - the image

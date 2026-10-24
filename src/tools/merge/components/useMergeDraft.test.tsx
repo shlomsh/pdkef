@@ -1,4 +1,4 @@
-// @ts-nocheck - test-only, mirrors PageStrip.test.tsx's untyped style
+// @ts-nocheck - test-only, mirrors PageGrid.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { useState } from 'preact/hooks';

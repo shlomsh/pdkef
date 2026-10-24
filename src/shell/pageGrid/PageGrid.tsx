@@ -1,26 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentType, JSX, RefObject } from 'preact';
 import Sortable from 'sortablejs';
-import styles from './PageStrip.module.css';
-import FileName from './FileName.tsx';
-import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../../lib/pagePlan.ts';
-import { openThumbnailSource } from '../../../lib/thumbnails.js';
-import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
-import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../../shell/PagePreviewDialog.tsx';
-import { reportError } from '../../../lib/errorReport.ts';
-import { recordAction } from '../../../lib/actionTrail.ts';
-import { CELL_RATIO, MIN_CELL, useStageFit } from '../useStageFit.ts';
-import { FIT_PATIENCE_MS, fitSettled, rasterWidthForItem, type FitItem } from '../stageFit.ts';
+import styles from './PageGrid.module.css';
+import FileName from '../FileName.tsx';
+import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../lib/pagePlan.ts';
+import { openThumbnailSource } from '../../lib/thumbnails.js';
+import { formatMessage, type PageGridMessages } from '../../i18n/toolMessages';
+import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../PagePreviewDialog.tsx';
+import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
+import { CELL_RATIO, MIN_CELL, useStageFit } from './useStageFit.ts';
+import { FIT_PATIENCE_MS, fitSettled, rasterWidthForItem, type FitItem } from './stageFit.ts';
 
-export interface StripFile {
+export interface GridSource {
   id: number;
   file: File;
   pageCount: number | null;
   error: 'encrypted' | 'unreadable' | null;
 }
 
-export interface PageStripProps {
-  entries: StripFile[];
+export interface PageGridProps {
+  sources: GridSource[];
   plan: PlanEntry[];
   /** Commits a plan update, exactly once per gesture (drop, key press, tap).
    * An updater over the current plan, not a value, so two commits in one
@@ -28,14 +28,18 @@ export interface PageStripProps {
    * overwriting the first. */
   onPlanChange: (update: (current: PlanEntry[]) => PlanEntry[]) => void;
   announce: (message: string) => void;
-  messages: MergeMessages;
+  messages: PageGridMessages;
   /** Whether every file's pages still sit in one contiguous run
    * (mergePlan.isGrouped) - captions render only while this holds; once a
    * page crosses a file boundary the per-page tag dot takes over. */
   grouped: boolean;
+  /** Whether the grid names each page's file: captions, cell tags, the colour
+   * band and the tag dot. Merge passes true. When false none render, and
+   * `grouped` is ignored. */
+  labelSources: boolean;
   /** The parent's drag-over listener paints the MERGE-10 insertion line on
    * this element, so it owns the ref. */
-  stripRef: RefObject<HTMLUListElement>;
+  gridRef: RefObject<HTMLUListElement>;
   /** Direction A: how many thumbnails have rendered, for the document
    * heading ("18 pages, 16 rendered") and the Download element's preparing
    * detail. Fired whenever the count changes, not on every render. */
@@ -124,7 +128,7 @@ function spansTwo(rotation: number, aspect: number | undefined): boolean {
 /* The grid items useStageFit packs into rows: each page's span, and a row
    break before the first page of a captioned run (grouped, 4 or more pages;
    the same rule the cell markup uses for the caption row). */
-function fitItems(plan: PageStripProps['plan'], aspects: Map<string, number>, grouped: boolean): FitItem[] {
+function fitItems(plan: PageGridProps['plan'], aspects: Map<string, number>, grouped: boolean): FitItem[] {
   return plan.map((entry, index) => {
     const startsRun = index === 0 || plan[index - 1].fileId !== entry.fileId;
     let runLength = 0;
@@ -159,18 +163,19 @@ function useFitSettled(known: number, total: number, measured: boolean): boolean
   return settled;
 }
 
-export default function PageStrip({
-  entries,
+export default function PageGrid({
+  sources: entries,
   plan,
   onPlanChange,
   announce,
   messages: t,
   grouped,
-  stripRef,
+  labelSources,
+  gridRef,
   onRenderedCountChange,
   onRegisterUndo,
   onFirstKeyboardFocus,
-}: PageStripProps) {
+}: PageGridProps) {
   // A plain keyboard/pointer heuristic (not :focus-visible, which some jsdom
   // versions don't implement): a keydown anywhere sets "keyboard modality"
   // until the next pointer interaction clears it, mirroring how most
@@ -196,8 +201,10 @@ export default function PageStrip({
   const planRef = useRef(plan);
   planRef.current = plan;
   const rasterWidths = useRef(new Map<string, number>());
-  const fitList = fitItems(plan, aspects.current, grouped);
-  const desktopCell = useStageFit(stripRef, fitList);
+  // Without source labels there are no runs to caption or tag.
+  const labelled = labelSources && grouped;
+  const fitList = fitItems(plan, aspects.current, labelled);
+  const desktopCell = useStageFit(gridRef, fitList);
   const spanSignature = fitList.map((item) => item.span).join('');
   // On desktop, wait for the first fitted cell so a page is never rendered twice.
   const fitPending = desktopCell == null && isDesktopViewport();
@@ -240,13 +247,13 @@ export default function PageStrip({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   useEffect(() => {
     if (!selectedKey) return undefined;
-    const grid = stripRef.current;
+    const grid = gridRef.current;
     const onPointerDown = (event: PointerEvent) => {
       if (grid && !grid.contains(event.target as Node)) setSelectedKey(null);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [selectedKey, stripRef]);
+  }, [selectedKey, gridRef]);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [PreviewDialog, setPreviewDialog] = useState<ComponentType<{
     target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void;
@@ -348,7 +355,7 @@ export default function PageStrip({
   // scrolls itself (it wraps in the page's own flow), so the observer root
   // is the viewport, not the grid element.
   useEffect(() => {
-    const grid = stripRef.current;
+    const grid = gridRef.current;
     if (!grid) return undefined;
     observer.current?.disconnect();
     if (typeof IntersectionObserver === 'undefined') return undefined;
@@ -385,13 +392,13 @@ export default function PageStrip({
       document.removeEventListener('visibilitychange', onVisible);
     };
   // A larger raster step (the cell grew) rescans so visible pages sharpen.
-  }, [plan, enqueue, stripRef, optionsRef.current.width, spanSignature, fitPending]);
+  }, [plan, enqueue, gridRef, optionsRef.current.width, spanSignature, fitPending]);
 
   // SortableJS owns the DOM during a drag; the plan is committed once in onEnd.
   useEffect(() => {
-    const grid = stripRef.current;
+    const grid = gridRef.current;
     if (!grid) return undefined;
-    const clearDraggingCursor = () => document.documentElement.removeAttribute('data-merge-page-dragging');
+    const clearDraggingCursor = () => document.documentElement.removeAttribute('data-page-dragging');
     const sortable = Sortable.create(grid, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -413,7 +420,7 @@ export default function PageStrip({
       chosenClass: styles['is-chosen'],
       dragClass: styles['is-dragging'],
       onStart() {
-        document.documentElement.setAttribute('data-merge-page-dragging', '');
+        document.documentElement.setAttribute('data-page-dragging', '');
       },
       onEnd(evt: Sortable.SortableEvent) {
         clearDraggingCursor();
@@ -430,17 +437,17 @@ export default function PageStrip({
       clearDraggingCursor();
       sortable.destroy();
     };
-  }, [stripRef, onPlanChange]);
+  }, [gridRef, onPlanChange]);
 
   // Keep focus on the page that was just moved by keyboard, even though its
   // node changed position in the DOM.
   useEffect(() => {
     const key = focusKey.current;
-    if (!key || !stripRef.current) return;
+    if (!key || !gridRef.current) return;
     // Keys are `${fileId}:${pageIndex}`, digits and a colon, safe inside quotes.
-    const card = stripRef.current.querySelector<HTMLElement>(`[data-key="${key}"]`);
+    const card = gridRef.current.querySelector<HTMLElement>(`[data-key="${key}"]`);
     if (card && document.activeElement !== card) card.focus({ preventScroll: false });
-  }, [plan, stripRef]);
+  }, [plan, gridRef]);
 
   const rotate = useCallback((key: string, position: number) => {
     const snapshot = planRef.current;
@@ -480,7 +487,7 @@ export default function PageStrip({
   const openPreview = useCallback((index: number) => {
     setPreviewIndex(index);
     if (!PreviewDialog) {
-      import('../../../shell/PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
+      import('../PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
     }
   }, [PreviewDialog]);
 
@@ -565,7 +572,7 @@ export default function PageStrip({
     // plan is grouped - ungrouped, both give way to the per-page tag dot
     // (always in the DOM, see below).
     let tagForThisCell: { name: string; style: Record<string, string> } | null = null;
-    if (grouped && (index === 0 || plan[index - 1].fileId !== entry.fileId)) {
+    if (labelled && (index === 0 || plan[index - 1].fileId !== entry.fileId)) {
       const runStart = position;
       // Walk the file's own contiguous slice to find its last output
       // position and how many pages (slots, skipped included) the run has.
@@ -663,16 +670,18 @@ export default function PageStrip({
         {/* Reserved strip: every cell carries this, at the same height,
             whether or not it is a run's first cell - that is what keeps
             every thumbnail below it aligned to one row, tag or no tag. */}
-        <span class={styles['cell-tag']}>
-          {tagForThisCell && (
-            <>
-              <span class={styles['cell-tag-square']} style={tagForThisCell.style} aria-hidden="true" />
-              <FileName name={tagForThisCell.name} className={styles['cell-tag-name']} extension={false} />
-            </>
-          )}
-        </span>
-        <span class={styles['thumb-box']}>
-          <span class={styles.band} aria-hidden="true" />
+        {labelSources && (
+          <span class={styles['cell-tag']}>
+            {tagForThisCell && (
+              <>
+                <span class={styles['cell-tag-square']} style={tagForThisCell.style} aria-hidden="true" />
+                <FileName name={tagForThisCell.name} className={styles['cell-tag-name']} extension={false} />
+              </>
+            )}
+          </span>
+        )}
+        <span class={styles['thumb-box']} data-thumb-box>
+          {labelSources && <span class={styles.band} data-band aria-hidden="true" />}
           {thumbnail ? (
             <img
               class={styles.thumb}
@@ -698,7 +707,7 @@ export default function PageStrip({
             <span class={styles['lock-glyph']} aria-hidden="true">L</span>
           ) : null}
         </span>
-        <span class={styles.number}>{position}</span>
+        <span class={styles.number} data-page-number>{position}</span>
         {/* Every card reserves the same state line. Previously only a skipped
             card rendered this flex child, making that card taller; because
             cards are bottom-aligned, its thumbnail jumped upward. */}
@@ -786,9 +795,10 @@ export default function PageStrip({
       <p class="sr-only" id="merge-strip-hint">{t.stripHint}</p>
       <ul
         class={styles.grid}
-        ref={stripRef}
+        ref={gridRef}
         aria-describedby="merge-strip-hint"
-        data-grouped={grouped || undefined}
+        data-page-grid
+        data-grouped={labelled || undefined}
         data-fit-settled={fitSettledNow || undefined}
         style={{ '--grid-cell': `${gridCell}px`, '--grid-gap': `${gridGap}px` } as any}
       >

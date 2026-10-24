@@ -248,7 +248,7 @@ single tool owns them; they are consumed by the generic tool chrome or by more t
   so `editor-ui` is the wrong home; neither belongs to one tool, so no `tools/<t>/` is right either.
   `shell` is where multi-tool, non-editor chrome lives.
 - `PageGrid.module.css` - documented as split/edit-pages only, but the real import graph also reaches
-  it from Compress and from Merge's `PageStrip.module.css`. Same reasoning as above: shell.
+  it from Compress and from Merge's `PageGrid.module.css`. Same reasoning as above: shell.
 - `CompareSlider.{tsx,test.tsx,module.css}` - a drag-based before/after image slider. At the time of
   this record it was imported by one `.astro` site component (`CompareFigure.astro`, for blog-style
   content) and by one tool (`PdfCompressTool.tsx`, the compress preview the `compare-preview.spec.js`
@@ -360,7 +360,7 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | `drafts/` (`draftStore.js`, `draftPolicy.js`, `useDraftPersistence.js`; DEBT-04 move A, out of `src/editor/workspace/`) | `PdfMergeTool`, `MergeTool/useMergeDraft` (two dynamic imports plus one direct), `PdfRedactTool`, `PdfSignTool`, `FileDropzone` (shell), `useHandoffIntake.ts` (lib) - and `editor/workspace/useEditorDraftPersistence.ts`, the one editor-side consumer, since it stays in the editor for its registry dependency (`editor/registry/draftValidation.ts`, which `drafts/` imports back the other way) |
 | `format.js` | all nine `Pdf*Tool.tsx` |
 | `usePdfShare.js` | all nine `Pdf*Tool.tsx` |
-| `thumbnails.js` | `FilePreview` (shell), `MergeTool/{PagePreviewDialog,PageStrip}`, `PdfCompressTool`, `PdfEditPagesTool`, `PdfMergeTool`, `SignTool/useDraftPersistence` |
+| `thumbnails.js` | `FilePreview` (shell), `MergeTool/{PagePreviewDialog,PageGrid}`, `PdfCompressTool`, `PdfEditPagesTool`, `PdfMergeTool`, `SignTool/useDraftPersistence` |
 | `useObjectUrls.js` | `MergeTool/usePreparedMerge`, `PdfCompressTool`, `PdfEditPagesTool`, `PdfImageToPdfTool`, `PdfSecurityTool` |
 | `fileKind.js` | `FilePreview` (shell), `PdfCompressTool`, `PdfMergeTool` |
 | `productAnalytics.ts` | `BasePdfTool` (shell), `PdfCompressTool`, `PdfSignTool` |
@@ -403,7 +403,7 @@ own text layer, not a site-only helper, even though neither is imported by a bro
 
 | Module | Sole consumer(s) | Moves with |
 | --- | --- | --- |
-| `mergePlan.ts` | `MergeTool/{PageStrip,useMergeDraft,usePreparedMerge}`, `lib/merge.js` | `merge` |
+| `mergePlan.ts` | `MergeTool/{PageGrid,useMergeDraft,usePreparedMerge}`, `lib/merge.js` | `merge` |
 | `merge.js` | `MergeTool/usePreparedMerge`, `PdfMergeTool` | `merge` |
 | `outline.js` | `lib/merge.js` only (transitive) | `merge` |
 | `useFormFieldRegions.ts` | `PdfSignTool`, `SignTool/PdfWorkspace`, `lib/useWorkspaceGestures.ts` | `sign` |

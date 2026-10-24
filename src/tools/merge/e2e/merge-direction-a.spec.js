@@ -41,7 +41,7 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   // cluster only reveals on hover on a mouse-driven project; the webkit
   // project is a real touch device (iPhone 15), where hover never fires, so
   // it taps the cell instead (there is no Edit pages mode any more -
-  // PageStrip.module.css's `[data-selected]` pattern).
+  // PageGrid.module.css's `[data-selected]` pattern).
   const grid = page.locator('ul[class*="grid"]');
   const firstCard = grid.locator('> li[data-key]').first();
   if (testInfo.project.name === 'webkit') {
@@ -155,7 +155,7 @@ test('a clicked cell lets go of its action buttons when the pointer moves on', a
 test('a phone-width window with a mouse: a click on a page reveals its controls', async ({ page }) => {
   // Shlomi (2026-09-13): there is no Edit pages toggle any more. Below
   // 768px the cluster is display:none until `[data-selected]`
-  // (PageStrip.module.css), and the selection is set by a plain click
+  // (PageGrid.module.css), and the selection is set by a plain click
   // handler with no pointer-type gate, so a mouse at phone width (a
   // narrowed window, device mode without touch) reveals a page's controls
   // exactly the same way a tap does. The shared `page` fixture is

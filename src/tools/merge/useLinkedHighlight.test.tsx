@@ -57,7 +57,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => render(null, host));
   host.remove();
-  document.documentElement.removeAttribute('data-merge-page-dragging');
+  document.documentElement.removeAttribute('data-page-dragging');
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -159,7 +159,7 @@ describe('useLinkedHighlight', () => {
   });
 
   it('ignores everything while a page is being dragged', () => {
-    document.documentElement.setAttribute('data-merge-page-dragging', '');
+    document.documentElement.setAttribute('data-page-dragging', '');
     fire('row-a', 'pointerover');
     expect(linked()).toEqual([]);
   });
