@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentType, JSX, RefObject } from 'preact';
 import Sortable from 'sortablejs';
+import { Download } from 'lucide-preact';
 import styles from './PageGrid.module.css';
 import FileName from '../FileName.tsx';
 import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../lib/pagePlan.ts';
@@ -17,6 +18,17 @@ export interface GridSource {
   file: File;
   pageCount: number | null;
   error: 'encrypted' | 'unreadable' | null;
+}
+
+/** A fourth control in a cell's cluster: a link that saves something for that one page. */
+export interface CellAction {
+  href: string;
+  download: string;
+  label: string;
+  /** The short word in the visible tooltip. */
+  tip: string;
+  /** Called on click, after the cell is kept out of it; the browser still downloads. */
+  onActivate?: () => void;
 }
 
 export interface PageGridProps {
@@ -56,6 +68,8 @@ export interface PageGridProps {
    * to Image keep source order and pass false: no Sortable, no move keys.
    * Rotate, skip, preview and the tap-to-select behave as before. */
   reorderable?: boolean;
+  /** An action for one cell, or null for none (PDF to Image: save this page's image). */
+  cellAction?: (entry: PlanEntry) => CellAction | null;
 }
 
 interface ThumbnailSource {
@@ -178,6 +192,7 @@ export default function PageGrid({
   onRenderedCountChange,
   onFirstKeyboardFocus,
   reorderable = true,
+  cellAction,
 }: PageGridProps) {
   // A plain keyboard/pointer heuristic (not :focus-visible, which some jsdom
   // versions don't implement): a keydown anywhere sets "keyboard modality"
@@ -632,6 +647,7 @@ export default function PageGrid({
       '--tag-color': `var(--color-tag-${tagIndex + 1})`,
       '--moment-delay': `${Math.min(index, 15) * 40}ms`,
     } as any;
+    const action = cellAction?.(entry) ?? null;
     const label = formatMessage(t.pageItemLabel, {
       number: position,
       total: outputTotal,
@@ -653,7 +669,7 @@ export default function PageGrid({
         onClick={(event) => {
           // A click on one of the cluster's own buttons is that button's,
           // not a tap on the page.
-          if ((event.target as HTMLElement).closest('button')) return;
+          if ((event.target as HTMLElement).closest('button, a')) return;
           setSelectedKey((current) => (current === entry.key ? null : entry.key));
         }}
         onKeyDown={(event) => onCardKeyDown(event, index, entry.key)}
@@ -779,6 +795,18 @@ export default function PageGrid({
             </span>
             <span class={styles.tip} aria-hidden="true">{t.tipOpen}</span>
           </button>
+          {action && (
+            <a
+              class={styles.action}
+              href={action.href}
+              download={action.download}
+              aria-label={action.label}
+              onClick={(event) => { event.stopPropagation(); action.onActivate?.(); }}
+            >
+              <span class={styles['action-glyph']} aria-hidden="true"><Download size={16} strokeWidth={1.8} /></span>
+              <span class={styles.tip} aria-hidden="true">{action.tip}</span>
+            </a>
+          )}
         </span>
       </li>,
     );

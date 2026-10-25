@@ -105,7 +105,8 @@ export function createQuietPreparer<T>(opts: {
   }
 
   return {
-    change(key: string): void {
+    /** `quiet: false` registers the key (a cache hit still lands) but arms no timer: only now() builds. */
+    change(key: string, quiet = true): void {
       cancel();
       const t = clock.now();
       changeTimes = [...changeTimes.slice(-16), t];
@@ -116,6 +117,7 @@ export function createQuietPreparer<T>(opts: {
         return;
       }
       latest = key;
+      if (!quiet) return;
       const gen = generation;
       timer = clock.setTimeout(() => {
         if (gen === generation) start();

@@ -173,6 +173,13 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     recordAction('download');
   }, [messages.ready, onDelivered, announce]);
 
+  // One page's image saved from its own cell: counted like a Download tap, but
+  // the Download element stays as it was (it did not save the whole output).
+  const onPartSaved = useCallback(() => {
+    setTap('processing');
+    recordAction('download');
+  }, []);
+
   // The tap beat the quiet-time build: show 'preparing', build now, deliver on ready.
   const onPreparingTap = useCallback(() => {
     setTap('processing');
@@ -255,6 +262,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     handoffFailed,
     requestHandoff,
     onDownloadTap,
+    onPartSaved,
     onQuietDownloadTap,
     onQuietPreparingTap,
     onRowPreparingTap,

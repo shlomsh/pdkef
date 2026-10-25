@@ -5,23 +5,32 @@ export interface Option<T extends string | number> {
   value: T;
   label: string;
   /** The one-line description shown under the row while this option is selected. */
-  hint: string;
+  hint?: string;
 }
 
 interface OptionRowProps<T extends string | number> {
-  /** Prefix for the label and description ids. */
+  /** Prefix for the label and note ids. */
   id: string;
+  /** The group's accessible name; also shown above the control unless `showLabel` is false. */
   label: string;
+  showLabel?: boolean;
   options: Option<T>[];
   value: T;
   onChange: (next: T) => void;
   dir: 'ltr' | 'rtl';
+  /** The line under the control; defaults to the selected option's hint. */
+  note?: string;
+  /** The phone bar's version: shares the line with Download, labels may wrap. */
+  compact?: boolean;
 }
 
-/** A labelled radiogroup shown as one segmented row, like Compress's LevelPicker. */
-export default function OptionRow<T extends string | number>({ id, label, options, value, onChange, dir }: OptionRowProps<T>) {
+/** A labelled radiogroup shown as one segmented row, 44px tall. Arrows, Home and End move the choice. */
+export default function OptionRow<T extends string | number>({
+  id, label, showLabel = true, options, value, onChange, dir, note, compact = false,
+}: OptionRowProps<T>) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const selected = options.find((o) => o.value === value) ?? options[0];
+  const noteText = note ?? selected.hint;
 
   const onKeyDown = (e: KeyboardEvent) => {
     const rtl = dir === 'rtl';
@@ -36,19 +45,18 @@ export default function OptionRow<T extends string | number>({ id, label, option
     if (next === null) return;
     e.preventDefault();
     const target = (next + options.length) % options.length;
-    onChange(options[target].value);
+    if (options[target].value !== value) onChange(options[target].value);
     refs.current[target]?.focus();
   };
 
   return (
-    <div class={styles.row}>
-      <p id={`${id}-label`} class={styles.label}>{label}</p>
+    <div class={styles.row} data-compact={compact || undefined}>
+      {showLabel && <p id={`${id}-label`} class={styles.label}>{label}</p>}
       <div
         role="radiogroup"
-        aria-labelledby={`${id}-label`}
-        aria-describedby={`${id}-desc`}
+        {...(showLabel ? { 'aria-labelledby': `${id}-label` } : { 'aria-label': label })}
+        aria-describedby={noteText ? `${id}-note` : undefined}
         class={styles.seg}
-        data-count={options.length}
         onKeyDown={onKeyDown}
       >
         {options.map((option, index) => (
@@ -66,7 +74,7 @@ export default function OptionRow<T extends string | number>({ id, label, option
           </button>
         ))}
       </div>
-      <p id={`${id}-desc`} class={styles.desc}>{selected.hint}</p>
+      {noteText && <p id={`${id}-note`} class={styles.note} data-option-note>{noteText}</p>}
     </div>
   );
 }

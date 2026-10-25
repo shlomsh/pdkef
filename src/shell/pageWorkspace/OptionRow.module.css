@@ -1,65 +1,80 @@
-.setting {
+/* One option row: an optional visible label, a segmented control, and a
+   one-line note (the selected option's hint, or the caller's). Serves Split's
+   mode and PDF to Image's format, quality and output rows (ux guidelines §18). */
+.row {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   min-width: 0;
 }
 
+.label {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  font-weight: 500;
+  margin: 0;
+}
+
 .note {
   margin: 0;
   font-size: 0.85rem;
+  line-height: 1.45;
   color: var(--color-muted);
 }
 
-/* The two-way segmented control: both options side by side, 44px. A track
+/* The segmented control: every option side by side, at least 44px. A track
    with an inset pill: the segments have their own radius inside a 3px gutter,
    so the active ring never meets the track's rounded corner. */
-.segmented {
+.seg {
   display: flex;
   gap: 3px;
-  height: 44px;
+  min-height: 44px;
   padding: 3px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
 }
 
-.segment {
+.option {
   flex: 1 1 0;
   min-width: 0;
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.15;
   color: var(--color-text);
   background: transparent;
   border: none;
   cursor: pointer;
   padding: 0 0.35rem;
-  white-space: nowrap;
   border-radius: calc(var(--radius-sm) - 3px);
 }
 
-.segment:focus-visible {
+.option:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -3px;
 }
 
 /* Tinted, not filled: Download is the only dark block. */
-.segment.is-active {
+.option[aria-checked='true'] {
   background: var(--color-primary-soft);
   color: var(--color-primary-text);
   box-shadow: inset 0 0 0 1.5px var(--color-primary);
 }
 
 /* In the phone bar the control takes what Download leaves; a long label wraps
-   inside its 44px segment instead of pushing Download off the bar. */
-.compact {
+   inside its segment instead of pushing Download off the bar. */
+.row[data-compact] {
   flex: 1 1 0;
 }
 
-.compact .segment {
-  white-space: normal;
+.row[data-compact] .option {
   font-size: 0.8rem;
-  line-height: 1.1;
   text-align: center;
+}
+
+@media (max-width: 400px) {
+  .option {
+    font-size: 0.8rem;
+  }
 }

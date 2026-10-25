@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
 const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn(), sharePrepared: vi.fn() }));
@@ -17,7 +18,7 @@ const pending = (): Prepared => ({ status: 'pending', blob: null, url: null, par
 
 const partBlobs = [new Blob(['a']), new Blob(['b']), new Blob(['c'])];
 const parts = partBlobs.map((partBlob, i) => ({ blob: partBlob, filename: `out-page-${i + 1}.pdf` }));
-const readyParts = (generation = 1): Prepared => ({ status: 'ready', blob: null, url: null, parts, generation, prepareNow: vi.fn() });
+const readyParts = (generation = 1): Prepared => ({ status: 'ready', blob: null, url: null, parts: parts.map((p, i) => ({ ...p, url: `blob:part-${i}` })), generation, prepareNow: vi.fn() });
 
 describe('deliverParts', () => {
   afterEach(() => vi.useRealTimers());
@@ -103,6 +104,18 @@ describe('useDownloadFlow', () => {
     expect(flow.tap).toBe('done');
     expect(onDelivered).toHaveBeenCalledTimes(1);
     expect(announce).toHaveBeenCalledWith('Ready');
+  });
+
+  it('saving one part counts a download and settles the tap, but leaves Download as it was', () => {
+    resetActionTrailForTests();
+    mount(base(readyParts()));
+    act(() => flow.onPartSaved());
+    expect(flow.tap).toBe('done');
+    expect(flow.downloadState).toBe('ready');
+    expect(flow.downloadedOnce).toBe(false);
+    expect(onDelivered).not.toHaveBeenCalled();
+    expect(announce).not.toHaveBeenCalled();
+    expect(recentActions()).toContain('download');
   });
 
   it('a tap that beats the build prepares, then delivers when the blob is ready', () => {
