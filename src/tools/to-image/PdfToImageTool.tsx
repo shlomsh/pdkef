@@ -108,9 +108,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
     setNeedsUnlock(null);
     setPageCount(0);
     setRenderedCount(0);
-    setFormat('image/png');
-    setScale(2);
-    setLayout('separate');
+    // Format, quality and output are the person's choices and outlast a replaced file.
     // A new file starts a fresh document: reset (not commit) so the previous
     // file's undo/redo stacks don't leak across files.
     reset(EMPTY_DOCUMENT);
@@ -179,6 +177,8 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const formatLabel = formatName(format);
   const singleImage = imageCount <= 1;
   const fileName = imageFileName(baseName, extension);
+  // What the output is called to the person: the pattern when it is several images.
+  const outputName = singleImage ? fileName : imageFileName(baseName, extension, 'N');
   const singlePage = pageCount === 1;
 
   const key = file && loadStatus === 'idle' && !needsUnlock && includedCount > 0
@@ -378,7 +378,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
                   <PhoneFinish
                     flow={downloadFlow}
                     prepared={prepared}
-                    fileName={fileName}
+                    fileName={outputName}
                     detail={detail}
                     handoffs={[]}
                     labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: '' }}
@@ -401,7 +401,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
               heading={(
                 <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
                   <span class="sr-only">{t.documentHeading}</span>
-                  <bdi dir="ltr">{singleImage ? fileName : imageFileName(baseName, extension, 'N')}</bdi>
+                  <bdi dir="ltr">{outputName}</bdi>
                   <span class={workspaceStyles['doc-heading-count']}>
                     {' · '}{imagesLabel(imageCount)}
                     {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}

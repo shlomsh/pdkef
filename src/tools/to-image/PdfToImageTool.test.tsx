@@ -430,16 +430,35 @@ describe('PdfToImageTool', () => {
     nativeShare.restore();
   });
 
-  it('a new file starts over: PNG, High, one per page, a fresh history', async () => {
+  it('a replaced file keeps the format, quality and output, and starts a fresh plan and history', async () => {
     await open();
     await click(radio('JPG'));
     await click(radio('One tall image'));
     await click(skipButton(1));
     await replaceWith(makePdfFile('next.pdf'));
-    expect(radio('PNG').getAttribute('aria-checked')).toBe('true');
-    expect(radio('One image per page').getAttribute('aria-checked')).toBe('true');
+    expect(radio('JPG').getAttribute('aria-checked')).toBe('true');
+    expect(radio('One tall image').getAttribute('aria-checked')).toBe('true');
     expect(field().value).toBe('1-5');
     expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+  });
+
+  it('the done strip names the pattern for several images and the real name for one', async () => {
+    const stripName = () => container.querySelector('section[aria-label] p')?.textContent ?? '';
+    const original = window.matchMedia;
+    window.matchMedia = (query) => ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    await open(3);
+    const quiet = () => container.querySelector('[data-quiet-download]');
+    await click(quiet());
+    await wait(700);
+    expect(stripName()).toContain('report-page-N.png');
+    await click(radio('One tall image'));
+    await wait(100);
+    await click(quiet());
+    await wait(700);
+    expect(stripName()).toContain('report.png');
+    expect(stripName()).not.toContain('page-N');
+    window.matchMedia = original;
   });
 
   it('drops a conversion whose file was replaced while it ran', async () => {
