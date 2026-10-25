@@ -31,6 +31,18 @@ export interface CellAction {
   onActivate?: () => void;
 }
 
+type Box = { left: number; right: number; width: number };
+
+/** Which grid edge a cell's cluster should stay inside: a cell with no room for
+ * another beside it on that side is in the first or last column of its row,
+ * whatever the column count. Logical, so a right-to-left grid mirrors it. */
+export function cellEdge(cell: Box, grid: Box, rtl = false): 'start' | 'end' | null {
+  const room = cell.width / 2;
+  if (cell.left - grid.left < room) return rtl ? 'end' : 'start';
+  if (grid.right - cell.right < room) return rtl ? 'start' : 'end';
+  return null;
+}
+
 export interface PageGridProps {
   sources: GridSource[];
   plan: PlanEntry[];
@@ -501,10 +513,36 @@ export default function PageGrid({
     }
   }, [PreviewDialog]);
 
+  // Each cell's cluster stays inside the grid at the row's ends. Read from the
+  // rendered layout after every render and on every resize, written straight to the
+  // DOM (no state), so it never costs a render.
+  const markEdges = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const gridBox = grid.getBoundingClientRect();
+    const rtl = getComputedStyle(grid).direction === 'rtl';
+    const cells = Array.from(grid.querySelectorAll<HTMLElement>('[data-key]'));
+    const edges = cells.map((cell) => cellEdge(cell.getBoundingClientRect(), gridBox, rtl));
+    cells.forEach((cell, i) => {
+      if (edges[i]) cell.dataset.edge = edges[i] as string;
+      else delete cell.dataset.edge;
+    });
+  }, [gridRef]);
+  useEffect(markEdges);
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(markEdges);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [gridRef, markEdges]);
+
   const onCardKeyDown = (event: KeyboardEvent, index: number, key: string) => {
     const rtl = typeof getComputedStyle === 'function' && getComputedStyle(event.currentTarget as HTMLElement).direction === 'rtl';
     const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
     const backward = rtl ? 'ArrowRight' : 'ArrowLeft';
+    // Only the card's own keys: on a control inside its cluster a key is that control's.
+    if (event.target !== event.currentTarget) return;
     if (reorderable && event.key === forward) {
       event.preventDefault();
       move(index, 1);

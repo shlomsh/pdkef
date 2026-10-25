@@ -38,8 +38,8 @@ export function usePdfShare() {
     return true;
   }, []);
 
-  const prepare = useCallback((blob, filename) =>
-    prepareFiles([{ blob, filename, type: 'application/pdf' }]), [prepareFiles]);
+  const prepare = useCallback((blob, filename, type = 'application/pdf') =>
+    prepareFiles([{ blob, filename, type }]), [prepareFiles]);
 
   const clearPrepared = useCallback(() => setPreparedFiles([]), []);
 

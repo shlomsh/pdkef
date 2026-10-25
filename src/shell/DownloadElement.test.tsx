@@ -183,11 +183,24 @@ describe('DownloadElement', () => {
     // Still renaming: the download link must not have taken focus.
     expect(document.activeElement).toBe(input);
 
+    input.blur(); // the rename input is gone once the rename ends
     rerender({ isOutputNameBeingRenamed: false });
     // The rename just ended and the state is still 'ready': the deferred
     // first-ready focus claims it now.
     expect(document.activeElement).toBe(box());
 
+    input.remove();
+  });
+
+  // PDF to Image's first output is parts (no href), so the first link can arrive long
+  // after load, while the person is typing a page range.
+  it('the first-ready autofocus never takes focus from a field that has it', () => {
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    const { rerender } = mount({ state: 'preparing', totalCount: 2, renderedCount: 0 });
+    rerender({ state: 'ready', href: 'blob:x', fileName: 'merged.pdf', detail: '2 pages' });
+    expect(document.activeElement).toBe(input);
     input.remove();
   });
 });

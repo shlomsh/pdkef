@@ -1,4 +1,5 @@
 // @ts-nocheck - matches the other .tsx island tests
+import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -140,5 +141,14 @@ describe('PageRangeField', () => {
     act(() => render(<PageRangeField plan={planForFile(0, 4)} pageCount={4} onSelect={vi.fn()} messages={hebrewSplitMessages} />, host));
     type('9');
     expect(host.querySelector('[role="alert"]').textContent).toContain('9');
+  });
+
+  // jsdom cannot evaluate :dir(), so this pins the rule itself: the input is dir=ltr for
+  // the range text, and in a right-to-left page its text and placeholder sit at the right.
+  it('aligns the range text right in a right-to-left page, and stays ltr text', () => {
+    mount(planForFile(0, 6));
+    expect(input().getAttribute('dir')).toBe('ltr');
+    const css = readFileSync('src/shell/PdfTool.module.css', 'utf8');
+    expect(css).toMatch(/\.page-selector-field:dir\(rtl\) \.page-selector-input\s*\{[^}]*text-align:\s*right/);
   });
 });

@@ -132,6 +132,11 @@
   transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
 }
 
+/* The input is dir=ltr for the range text; in a right-to-left page it still starts at the right. */
+.page-selector-field:dir(rtl) .page-selector-input {
+  text-align: right;
+}
+
 .page-selector-input:focus {
   outline: none;
   border-color: var(--color-primary);
