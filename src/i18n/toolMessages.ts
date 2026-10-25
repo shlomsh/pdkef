@@ -1071,9 +1071,7 @@ const splitMessages: Partial<Record<DocumentationLocaleId, SplitMessages>> = {
 export interface ToImageMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
   lang: string;
   dir: 'ltr' | 'rtl';
-  formatGroupLabel: string;
   formatLabel: string;
-  qualityGroupLabel: string;
   qualityLabel: string;
   qualityStandard: string;
   qualityStandardHint: string;
@@ -1081,7 +1079,6 @@ export interface ToImageMessages extends PageGridMessages, DownloadMessages, His
   qualityHighHint: string;
   qualityMaximum: string;
   qualityMaximumHint: string;
-  layoutGroupLabel: string;
   layoutLabel: string;
   layoutSeparate: string;
   layoutCombined: string;
@@ -1094,15 +1091,6 @@ export interface ToImageMessages extends PageGridMessages, DownloadMessages, His
   layoutSeparateHint: string;
   layoutCombinedHint: string;
   loadingPages: string;
-  pickAtLeastOne: string;
-  hintAllIn: string;
-  hintSomeOut: string;
-  /** A tile's caption and accessible name. */
-  pageRow: string;
-  tileLeftOut: string;
-  /** '{count}' is the number of pages in the one tall image. */
-  tallCaptionOne: string;
-  tallCaptionMany: string;
   downloadPageAria: string;
   /* The shared page-preview dialog, as Split's. */
   openPreview: string;
@@ -1111,29 +1099,14 @@ export interface ToImageMessages extends PageGridMessages, DownloadMessages, His
   previewPrev: string;
   previewNext: string;
   previewLoading: string;
-  previewLeftOut: string;
-  previewLeaveOut: string;
-  previewBringBack: string;
-  converting: string;
   convertFailed: string;
   buildFailed: string;
   /** Detail line under the Download above the auto-build page limit, before anything is built. */
   madeOnTap: string;
-  cannotConvert: string;
   /** '{format}' is PNG or JPG. */
   downloadOne: string;
   /** '{count}' images, '{format}' is PNG or JPG. */
   downloadMany: string;
-  /** '{label}' is the line above, '{size}' the total size. */
-  downloadDetail: string;
-  shareOne: string;
-  shareMany: string;
-  /* Screen-reader announcements. */
-  announceReady: string;
-  announcePreparingTap: string;
-  announceShared: string;
-  announceShareCanceled: string;
-  announceShareError: string;
   /* parsePageSelector's errors, rebuilt from its code and params. */
   outOfRange: string;
   rangeOutOfRange: string;
@@ -1156,19 +1129,28 @@ export interface ToImageMessages extends PageGridMessages, DownloadMessages, His
   loaded: string;
   loadFailed: string;
   announceNeedsPassword: string;
-  announceRestricted: string;
   closeStrip: string;
   shareLabel: string;
   /** The visible tooltip word of the per-page save action; its aria-label is downloadPageAria. */
   tipSave: string;
+  /* The protected-file state (src/shell/NeedsUnlock.tsx): only a password stops this tool. */
+  protectedNeedsPasswordTitle: string;
+  protectedNeedsPasswordBody: string;
+  protectedUnlockIt: string;
+  protectedHandoffFailed: string;
+  /** The heading's count: '1 image' / '{count} images'. */
+  imageCountOne: string;
+  imageCountOther: string;
+  /** '{count}' images, '{format}' PNG or JPG: the noun phrase inside savedMany. */
+  imagesMany: string;
+  /** '{files}' is imagesMany. */
+  savedMany: string;
 }
 
 const englishToImageMessages: ToImageMessages = {
   lang: 'en',
   dir: 'ltr',
-  formatGroupLabel: 'Image format',
   formatLabel: 'Format',
-  qualityGroupLabel: 'Image quality',
   qualityLabel: 'Quality',
   qualityStandard: 'Standard',
   qualityStandardHint: '~72 DPI - smallest file size, fine for screen viewing.',
@@ -1176,7 +1158,6 @@ const englishToImageMessages: ToImageMessages = {
   qualityHighHint: '~144 DPI - sharp on most screens, good default for printing.',
   qualityMaximum: 'Maximum',
   qualityMaximumHint: '~216 DPI - largest file size, best for zooming in or large prints.',
-  layoutGroupLabel: 'Output layout',
   layoutLabel: 'Output',
   layoutSeparate: 'One image per page',
   layoutCombined: 'One tall image',
@@ -1187,13 +1168,6 @@ const englishToImageMessages: ToImageMessages = {
   layoutSeparateHint: 'Each page is saved as its own image.',
   layoutCombinedHint: 'The pages are stacked into one long image.',
   loadingPages: 'Loading document pages...',
-  pickAtLeastOne: 'Pick at least one page',
-  hintAllIn: 'Every page is in. Select a page to leave it out.',
-  hintSomeOut: 'Dimmed pages are left out. Select one to bring it back.',
-  pageRow: 'Page {number}',
-  tileLeftOut: 'left out',
-  tallCaptionOne: 'One image, 1 page',
-  tallCaptionMany: 'One image, {count} pages',
   downloadPageAria: 'Download page {number}',
   openPreview: 'Open page {number} larger',
   previewTitle: 'Page {number} of {total}',
@@ -1201,24 +1175,11 @@ const englishToImageMessages: ToImageMessages = {
   previewPrev: 'Previous page',
   previewNext: 'Next page',
   previewLoading: 'Rendering the page…',
-  previewLeftOut: 'Left out of the download',
-  previewLeaveOut: 'Leave out',
-  previewBringBack: 'Bring back',
-  converting: 'Converting…',
-  convertFailed: 'The file may be damaged or password-protected - try another PDF.',
+  convertFailed: 'The file may be damaged. Try another PDF.',
   buildFailed: 'Could not make the images. Tap to try again.',
   madeOnTap: 'Made when you tap',
-  cannotConvert: 'Could not make the images',
   downloadOne: 'Download {format}',
   downloadMany: 'Download {count} {format}s',
-  downloadDetail: '{label} · {size}',
-  shareOne: 'Share {format}',
-  shareMany: 'Share {count} images',
-  announceReady: 'Your images are ready.',
-  announcePreparingTap: 'Converting. The download starts as soon as it is ready.',
-  announceShared: 'Images shared successfully.',
-  announceShareCanceled: 'Sharing canceled. Your images are still ready.',
-  announceShareError: 'Could not open the share sheet. Please try again.',
   outOfRange: 'Page number {number} out of range (1-{max})',
   rangeOutOfRange: 'Range {start}-{end} contains out of range page numbers (1-{max})',
   invalidPart: 'Invalid page range or number: "{part}"',
@@ -1245,6 +1206,14 @@ const englishToImageMessages: ToImageMessages = {
   tipRotate: 'Rotate',
   tipSkip: 'Skip',
   tipSave: 'Save',
+  protectedNeedsPasswordTitle: 'This PDF has a password',
+  protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can turn it into images.',
+  protectedUnlockIt: 'Unlock it',
+  protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
+  imageCountOne: '1 image',
+  imageCountOther: '{count} images',
+  imagesMany: '{count} {format}s',
+  savedMany: 'Saved {files}',
   allSkipped: 'Every page is skipped',
   downloadLabel: 'Download 1 image',
   downloadAgain: 'download again',
@@ -1271,7 +1240,6 @@ const englishToImageMessages: ToImageMessages = {
   loaded: 'Loaded PDF file "{name}" with {count} pages.',
   loadFailed: 'Failed to load PDF file.',
   announceNeedsPassword: 'This PDF has a password',
-  announceRestricted: 'This PDF is protected',
   closeStrip: 'Close',
   shareLabel: 'Share',
 };
@@ -1282,9 +1250,7 @@ const englishToImageMessages: ToImageMessages = {
 const hebrewToImageMessages: ToImageMessages = {
   lang: 'he',
   dir: 'rtl',
-  formatGroupLabel: 'פורמט התמונה',
   formatLabel: 'פורמט',
-  qualityGroupLabel: 'איכות התמונה',
   qualityLabel: 'איכות',
   qualityStandard: 'רגילה',
   qualityStandardHint: 'כ-72 DPI - הקובץ הקטן ביותר, מספיק לצפייה במסך.',
@@ -1292,7 +1258,6 @@ const hebrewToImageMessages: ToImageMessages = {
   qualityHighHint: 'כ-144 DPI - חדה ברוב המסכים, ברירת מחדל טובה להדפסה.',
   qualityMaximum: 'מקסימלית',
   qualityMaximumHint: 'כ-216 DPI - הקובץ הגדול ביותר, הכי טובה להגדלה או להדפסה גדולה.',
-  layoutGroupLabel: 'סידור הפלט',
   layoutLabel: 'פלט',
   layoutSeparate: 'תמונה לכל עמוד',
   layoutCombined: 'תמונה אחת ארוכה',
@@ -1305,13 +1270,6 @@ const hebrewToImageMessages: ToImageMessages = {
   layoutSeparateHint: 'כל עמוד נשמר כתמונה משלו.',
   layoutCombinedHint: 'העמודים מונחים זה על זה בתמונה ארוכה אחת.',
   loadingPages: 'טוענים את עמודי המסמך...',
-  pickAtLeastOne: 'בחרו לפחות עמוד אחד',
-  hintAllIn: 'כל העמודים כלולים. בחרו עמוד כדי להשאיר אותו בחוץ.',
-  hintSomeOut: 'עמודים עמומים נשארים בחוץ. בחרו עמוד כדי להחזיר אותו.',
-  pageRow: 'עמוד {number}',
-  tileLeftOut: 'בחוץ',
-  tallCaptionOne: 'תמונה אחת, עמוד אחד',
-  tallCaptionMany: 'תמונה אחת, {count} עמודים',
   downloadPageAria: 'הורדת עמוד {number}',
   openPreview: 'הגדלת עמוד {number}',
   previewTitle: 'עמוד {number} מתוך {total}',
@@ -1319,24 +1277,11 @@ const hebrewToImageMessages: ToImageMessages = {
   previewPrev: 'העמוד הקודם',
   previewNext: 'העמוד הבא',
   previewLoading: 'מציירים את העמוד…',
-  previewLeftOut: 'לא ייכלל בהורדה',
-  previewLeaveOut: 'להשאיר בחוץ',
-  previewBringBack: 'להחזיר',
-  converting: 'ממירים…',
-  convertFailed: 'ייתכן שהקובץ פגום או מוגן בסיסמה. נסו קובץ PDF אחר.',
+  convertFailed: 'ייתכן שהקובץ פגום. נסו קובץ PDF אחר.',
   buildFailed: 'לא הצלחנו ליצור את התמונות. הקישו כדי לנסות שוב.',
   madeOnTap: 'נוצרות כשמקישים',
-  cannotConvert: 'לא הצלחנו להכין את התמונות',
   downloadOne: 'הורדת {format}',
   downloadMany: 'הורדת {count} קובצי {format}',
-  downloadDetail: '{label} · {size}',
-  shareOne: 'שיתוף {format}',
-  shareMany: 'שיתוף {count} תמונות',
-  announceReady: 'התמונות מוכנות.',
-  announcePreparingTap: 'ממירים. ההורדה תתחיל ברגע שהכול מוכן.',
-  announceShared: 'התמונות שותפו.',
-  announceShareCanceled: 'השיתוף בוטל. התמונות עדיין מוכנות.',
-  announceShareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
   outOfRange: 'עמוד {number} מחוץ לטווח (1-{max})',
   rangeOutOfRange: 'הטווח {start}-{end} כולל עמודים מחוץ לטווח (1-{max})',
   invalidPart: 'טווח או מספר עמוד לא תקין: "{part}"',
@@ -1363,6 +1308,14 @@ const hebrewToImageMessages: ToImageMessages = {
   tipRotate: 'סיבוב',
   tipSkip: 'דילוג',
   tipSave: 'שמירה',
+  protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
+  protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר להפוך אותו לתמונות.',
+  protectedUnlockIt: 'הסרת נעילה',
+  protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
+  imageCountOne: 'תמונה אחת',
+  imageCountOther: '{count} תמונות',
+  imagesMany: '{count} קובצי {format}',
+  savedMany: 'נשמרו {files}',
   allSkipped: 'כל העמודים מדולגים',
   downloadLabel: 'הורדת תמונה אחת',
   downloadAgain: 'הורדה שוב',
@@ -1389,7 +1342,6 @@ const hebrewToImageMessages: ToImageMessages = {
   loaded: 'הקובץ "{name}" נטען, {count} עמודים.',
   loadFailed: 'טעינת קובץ ה-PDF נכשלה.',
   announceNeedsPassword: 'ל-PDF הזה יש סיסמה',
-  announceRestricted: 'ה-PDF הזה מוגן',
   closeStrip: 'סגירה',
   shareLabel: 'שיתוף',
 };

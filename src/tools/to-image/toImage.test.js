@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { PDFDocument, degrees } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { convertPdfToImages } from './toImage.js';
 
@@ -146,5 +147,57 @@ describe('convertPdfToImages library integration with real fixtures', () => {
       onProgress: (value) => { if (value >= 2 / 5) controller.abort(); },
     });
     await expect(run).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  // GRID-06: a page turned in the grid is exported turned, on top of any turn the file already has.
+  describe('rotation', () => {
+    async function pagedFile(rotate, count = 1) {
+      const doc = await PDFDocument.create();
+      for (let i = 0; i < count; i += 1) {
+        const page = doc.addPage([100, 200]);
+        if (rotate) page.setRotation(degrees(rotate));
+      }
+      return new File([await doc.save()], 'turned.pdf', { type: 'application/pdf' });
+    }
+
+    // The size of each canvas at the moment it is encoded.
+    async function sizesOf(file, options) {
+      const sizes = [];
+      const original = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+        sizes.push([this.width, this.height]);
+        return original.call(this, callback, type);
+      };
+      try {
+        await convertPdfToImages(file, { scale: 1, ...options });
+      } finally {
+        HTMLCanvasElement.prototype.toBlob = original;
+      }
+      return sizes;
+    }
+
+    it('leaves a page as it is without a rotation', async () => {
+      expect(await sizesOf(await pagedFile(0), {})).toEqual([[100, 200]]);
+    });
+
+    it('swaps the width and height of a page turned 90 degrees', async () => {
+      expect(await sizesOf(await pagedFile(0), { rotations: { 1: 90 } })).toEqual([[200, 100]]);
+    });
+
+    it('adds the turn to the one the file already has, and wraps at 360', async () => {
+      const turned = await pagedFile(90);
+      expect(await sizesOf(turned, {})).toEqual([[200, 100]]);
+      expect(await sizesOf(turned, { rotations: { 1: 90 } })).toEqual([[100, 200]]);
+      expect(await sizesOf(await pagedFile(270), { rotations: { 1: 270 } })).toEqual([[100, 200]]);
+    });
+
+    it('turns only the pages named', async () => {
+      expect(await sizesOf(await pagedFile(0, 2), { rotations: { 2: 90 } })).toEqual([[100, 200], [200, 100]]);
+    });
+
+    it('stacks the turned sizes into the one tall image', async () => {
+      const file = await pagedFile(0, 2);
+      expect(await sizesOf(file, { layout: 'concatenated', rotations: { 2: 90 } })).toEqual([[200, 300]]);
+    });
   });
 });

@@ -177,6 +177,12 @@ describe('useDownloadFlow', () => {
     expect(share.prepare).toHaveBeenCalledWith(blob, 'out.pdf');
   });
 
+  it('parts: Share hands each part over with its own type (PDF to Image shares PNGs)', () => {
+    const png = new Blob(['x'], { type: 'image/png' });
+    mount(base({ ...readyParts(), parts: [{ blob: png, filename: 'a-page-1.png', url: 'blob:p' }] }));
+    expect(share.prepareFiles).toHaveBeenCalledWith([{ blob: png, filename: 'a-page-1.png', type: 'image/png' }]);
+  });
+
   it('parts: a tap on an already-ready output delivers every part once, ready to saved without preparing', async () => {
     vi.useFakeTimers();
     try {

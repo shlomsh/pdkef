@@ -15,6 +15,16 @@ async function getPdfjs() {
 
 const EXTENSION_BY_FORMAT = { 'image/png': 'png', 'image/jpeg': 'jpg' };
 
+export const imageExtension = (format) => EXTENSION_BY_FORMAT[format] ?? 'png';
+
+/** The PDF's name without ".pdf"; what every image file is named after. */
+export const imageBaseName = (fileName) => fileName.replace(/\.pdf$/i, '') || 'page';
+
+/** "<base>.<ext>" for a lone image, "<base>-page-<page>.<ext>" when `page` is given (a number, or the heading's literal "N"). */
+/** @param {string} baseName @param {string} extension @param {number | string | null} [page] */
+export const imageFileName = (baseName, extension, page = null) =>
+  (page === null ? `${baseName}.${extension}` : `${baseName}-page-${page}.${extension}`);
+
 function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -33,8 +43,11 @@ function fillWhiteIfJpeg(context, width, height, format) {
   context.fillRect(0, 0, width, height);
 }
 
-async function renderPageToCanvas(page, scale, format) {
-  const viewport = page.getViewport({ scale });
+// The page's own /Rotate plus the turn the person gave it, kept in [0, 360).
+const turnedBy = (page, turn = 0) => (((page.rotate + turn) % 360) + 360) % 360;
+
+async function renderPageToCanvas(page, scale, format, turn) {
+  const viewport = page.getViewport({ scale, rotation: turnedBy(page, turn) });
   const canvas = document.createElement('canvas');
   canvas.width = viewport.width;
   canvas.height = viewport.height;
@@ -76,8 +89,16 @@ function throwIfAborted(signal) {
 // scale: render multiplier (1 = ~72dpi, 2 = ~144dpi, 3 = ~216dpi).
 // layout: 'separate' (one image per page, default) | 'concatenated' (all
 // pages stacked into a single tall image).
+// rotations: extra quarter turns by 1-based page number ({ 2: 90 }), added to
+// each page's own rotation; the tall image stacks the turned sizes.
 // signal: an AbortSignal checked between pages; an abort throws an AbortError
 // DOMException (the quiet-time prepare cancels a superseded build this way).
+/**
+ * @param {File} file
+ * @param {{ format?: string, scale?: number, quality?: number, layout?: string, pages?: string,
+ *   rotations?: Record<number, number>, onProgress?: (fraction: number) => void, signal?: AbortSignal }} [options]
+ * @returns {Promise<{ pageNumber: number, blob: Blob, filename: string }[]>}
+ */
 export async function convertPdfToImages(
   file,
   {
@@ -86,6 +107,7 @@ export async function convertPdfToImages(
     quality = 0.92,
     layout = 'separate',
     pages = '',
+    rotations = {},
     onProgress,
     signal,
   } = {},
@@ -95,8 +117,8 @@ export async function convertPdfToImages(
   const bytes = await file.arrayBuffer();
   const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdf = await loadingTask.promise;
-  const baseName = file.name.replace(/\.pdf$/i, '') || 'page';
-  const extension = EXTENSION_BY_FORMAT[format] ?? 'png';
+  const baseName = imageBaseName(file.name);
+  const extension = imageExtension(format);
   const pageNumbers = parsePageSelector(pages, pdf.numPages);
 
   try {
@@ -106,7 +128,7 @@ export async function convertPdfToImages(
     for (let i = 0; i < pageNumbers.length; i += 1) {
       throwIfAborted(signal);
       const page = await pdf.getPage(pageNumbers[i]);
-      const canvas = await renderPageToCanvas(page, scale, format);
+      const canvas = await renderPageToCanvas(page, scale, format, rotations[pageNumbers[i]]);
       if (stacked) {
         canvases.push(canvas);
       } else {
@@ -120,10 +142,7 @@ export async function convertPdfToImages(
           canvas.width = 0;
           canvas.height = 0;
         }
-        const filename =
-          pageNumbers.length === 1
-            ? `${baseName}.${extension}`
-            : `${baseName}-page-${pageNumbers[i]}.${extension}`;
+        const filename = imageFileName(baseName, extension, pageNumbers.length === 1 ? null : pageNumbers[i]);
         images.push({ pageNumber: pageNumbers[i], blob, filename });
       }
       onProgress?.((i + 1) / pageNumbers.length);
@@ -133,7 +152,7 @@ export async function convertPdfToImages(
     if (stacked) {
       const combined = stackCanvases(canvases, format);
       const blob = await canvasToBlob(combined, format, quality);
-      return [{ pageNumber: pageNumbers[0], blob, filename: `${baseName}.${extension}` }];
+      return [{ pageNumber: pageNumbers[0], blob, filename: imageFileName(baseName, extension) }];
     }
     return images;
   } finally {

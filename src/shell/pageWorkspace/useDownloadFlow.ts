@@ -99,7 +99,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // the sheet never offers a stale order.
   useEffect(() => {
     if (prepared.status === 'ready' && prepared.parts) {
-      prepareFiles(prepared.parts.map((part) => ({ blob: part.blob, filename: part.filename, type: 'application/pdf' })));
+      prepareFiles(prepared.parts.map((part) => ({ blob: part.blob, filename: part.filename, type: part.blob.type || 'application/pdf' })));
     } else if (prepared.status === 'ready' && prepared.blob) prepare(prepared.blob, fileName);
     else clearPrepared();
   }, [prepared.status, prepared.generation, fileName]);

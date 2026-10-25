@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { includeAll, includedPageNumbers, invert, moveEntry, outputPageCount, skipAll, withIncludedPages, planForFile, planKey, rotateEntry, updateEntry, type PlanEntry } from './pagePlan.ts';
+import { includeAll, includedPageNumbers, invert, moveEntry, outputPageCount, skipAll, withIncludedPages, planForFile, planKey, rotateEntry, rotationsOf, updateEntry, type PlanEntry } from './pagePlan.ts';
 
 describe('planForFile', () => {
   it('builds one entry per page, in order, unrotated and unskipped', () => {
@@ -172,5 +172,19 @@ describe('includedPageNumbers and withIncludedPages', () => {
     expect(next[0]).toBe(mixed[0]);
     expect(next[1]).not.toBe(mixed[1]);
     expect(next[1].skipped).toBe(false);
+  });
+});
+
+describe('rotationsOf', () => {
+  it('maps the kept pages with a rotation to their 1-based number', () => {
+    let plan = planForFile(0, 4);
+    plan = rotateEntry(plan, '0:1', 90);
+    plan = rotateEntry(plan, '0:3', -90);
+    plan = withIncludedPages(plan, [2, 3]);
+    expect(rotationsOf(plan)).toEqual({ 2: 90 });
+  });
+
+  it('is empty when nothing is rotated', () => {
+    expect(rotationsOf(planForFile(0, 3))).toEqual({});
   });
 });
