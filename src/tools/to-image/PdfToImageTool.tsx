@@ -6,7 +6,7 @@ import { createQuietPreparer, type QuietPolicy } from '../../lib/quietPrepare.ts
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
-import OptionRow from './OptionRow.tsx';
+import OptionRow from '../../shell/pageWorkspace/OptionRow.tsx';
 import styles from './PdfToImageTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PageToggleTile from './PageToggleTile.tsx';

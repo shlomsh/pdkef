@@ -152,4 +152,91 @@ describe('usePreparedOutput', () => {
     expect(api.current.status).toBe('ready');
     spy.mockRestore();
   });
+
+  describe('part urls', () => {
+    let made;
+    beforeEach(() => {
+      made = [];
+      URL.createObjectURL = vi.fn(() => { const u = `blob:part-${made.length}`; made.push(u); return u; });
+    });
+    const partsOf = () => ({
+      parts: [
+        { blob: new Blob(['aa']), filename: 'a-1.png', pageNumber: 1 },
+        { blob: new Blob(['bb']), filename: 'a-2.png', pageNumber: 2 },
+      ],
+      pageCount: 2,
+    });
+    const revoked = () => URL.revokeObjectURL.mock.calls.map((c) => c[0]);
+
+    it('gives each part an object url and carries its page number', async () => {
+      await mount({ key: 'a', build: vi.fn(async () => partsOf()) });
+      await settle();
+      expect(api.current.parts.map((p) => p.url)).toEqual(made);
+      expect(api.current.parts.map((p) => p.pageNumber)).toEqual([1, 2]);
+      expect(revoked()).toEqual([]);
+    });
+
+    it('revokes them when the key changes, the key goes null, and on unmount', async () => {
+      const build = vi.fn(async () => partsOf());
+      await mount({ key: 'a', build });
+      await settle();
+      const first = [...made];
+      await mount({ key: 'b', build });
+      expect(revoked()).toEqual(expect.arrayContaining(first));
+      await settle();
+      const second = made.slice(first.length);
+      await mount({ key: null, build });
+      expect(revoked()).toEqual(expect.arrayContaining(second));
+      await mount({ key: 'c', build });
+      await settle();
+      const third = made.slice(first.length + second.length);
+      await act(() => render(null, root));
+      expect(revoked()).toEqual(expect.arrayContaining(third));
+    });
+
+    it('makes fresh urls when a cached parts state comes back', async () => {
+      const build = vi.fn(async () => partsOf());
+      await mount({ key: 'a', build });
+      await settle();
+      await mount({ key: 'b', build });
+      await settle();
+      await mount({ key: 'a', build });
+      expect(api.current.status).toBe('ready');
+      expect(api.current.parts.every((p) => made.includes(p.url) && !revoked().includes(p.url))).toBe(true);
+      expect(build).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('autoBuild false', () => {
+    it('withdraws on a key change but builds nothing until prepareNow', async () => {
+      const build = vi.fn(async () => built());
+      await mount({ key: 'a', build, autoBuild: false });
+      await settle();
+      expect(api.current.status).toBe('pending');
+      expect(build).not.toHaveBeenCalled();
+      await act(async () => api.current.prepareNow());
+      await settle();
+      expect(api.current.status).toBe('ready');
+      await mount({ key: 'b', build, autoBuild: false });
+      expect(api.current.status).toBe('pending');
+      expect(api.current.url).toBeNull();
+      await settle();
+      expect(build).toHaveBeenCalledTimes(1);
+      await act(async () => api.current.prepareNow());
+      await settle();
+      expect(build).toHaveBeenCalledTimes(2);
+      expect(api.current.status).toBe('ready');
+    });
+
+    it('starts the quiet wait for the current key when autoBuild turns on', async () => {
+      const build = vi.fn(async () => built());
+      await mount({ key: 'a', build, autoBuild: false });
+      await settle();
+      expect(build).not.toHaveBeenCalled();
+      await mount({ key: 'a', build, autoBuild: true });
+      await settle();
+      expect(build).toHaveBeenCalledTimes(1);
+      expect(api.current.status).toBe('ready');
+    });
+  });
 });

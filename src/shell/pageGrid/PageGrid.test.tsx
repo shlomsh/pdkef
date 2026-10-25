@@ -532,4 +532,41 @@ describe('PageGrid', () => {
     await act(async () => document.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true })));
     expect(first.hasAttribute('data-selected')).toBe(false);
   });
+
+  describe('cellAction', () => {
+    const action = (entry) => ((entry.fileId === 1 && entry.pageIndex === 0) ? { href: 'blob:one', download: 'a-1.png', label: 'Save page 1 as an image', tip: 'Save' } : null);
+    const saveLinks = (card) => card.querySelectorAll('a[download]');
+
+    it('adds a download link as the fourth control for a cell the callback answers, and nothing for null', () => {
+      mount({ props: { cellAction: action } });
+      const [first, second] = cards();
+      expect(first.querySelectorAll('button')).toHaveLength(3);
+      const link = saveLinks(first)[0];
+      expect(link.getAttribute('href')).toBe('blob:one');
+      expect(link.getAttribute('download')).toBe('a-1.png');
+      expect(link.getAttribute('aria-label')).toBe('Save page 1 as an image');
+      expect(link.classList.contains(styles.action)).toBe(true);
+      expect(link.querySelector(`.${styles.tip}`).textContent).toBe('Save');
+      expect(link.previousElementSibling.tagName).toBe('BUTTON');
+      expect(saveLinks(second)).toHaveLength(0);
+      expect(second.querySelectorAll('button')).toHaveLength(3);
+    });
+
+    it('renders exactly three controls without the prop', () => {
+      mount();
+      expect(container.querySelectorAll('a[download]')).toHaveLength(0);
+      expect(cards()[0].querySelectorAll(`.${styles.actions} > *`)).toHaveLength(3);
+    });
+
+    it('a click on it calls onActivate, keeps the browser download, and does not select the cell', async () => {
+      const onActivate = vi.fn();
+      mount({ props: { cellAction: (entry) => ((entry.fileId === 1 && entry.pageIndex === 0) ? { href: 'blob:one', download: 'a-1.png', label: 'Save', tip: 'Save', onActivate } : null) } });
+      const [first] = cards();
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      await act(async () => saveLinks(first)[0].dispatchEvent(click));
+      expect(onActivate).toHaveBeenCalledTimes(1);
+      expect(click.defaultPrevented).toBe(false);
+      expect(first.hasAttribute('data-selected')).toBe(false);
+    });
+  });
 });

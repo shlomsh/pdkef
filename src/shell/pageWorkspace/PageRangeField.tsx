@@ -2,11 +2,18 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pageSelector.js';
 import { includedPageNumbers, type PlanEntry } from '../../lib/pagePlan.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { formatMessage, type SplitMessages } from '../../i18n/toolMessages';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
+import { formatMessage } from '../../i18n/toolMessages';
+import pdfToolStyles from '../PdfTool.module.css';
 
-type FieldMessages = Pick<SplitMessages,
-  'pagesLabel' | 'pageSelectorPlaceholder' | 'outOfRange' | 'rangeOutOfRange' | 'invalidPart' | 'noValidPages'>;
+/** The strings the field reads; Split's and PDF to Image's catalogues both carry them. */
+export interface PageRangeMessages {
+  pagesLabel: string;
+  pageSelectorPlaceholder: string;
+  outOfRange: string;
+  rangeOutOfRange: string;
+  invalidPart: string;
+  noValidPages: string;
+}
 
 interface PageRangeFieldProps {
   plan: PlanEntry[];
@@ -14,13 +21,13 @@ interface PageRangeFieldProps {
   /** The pages the typed range keeps; called only when that differs from the plan.
    * `merge` is true for every commit after the first while the field keeps focus. */
   onSelect: (pageNumbers: number[], options: { merge: boolean }) => void;
-  messages: FieldMessages;
+  messages: PageRangeMessages;
   /** The rail and the phone controls each carry a field; ids stay unique. */
   id?: string;
 }
 
 /** parsePageSelector's errors carry a code and params so the catalogue can phrase them; anything else keeps its own message. */
-function errorText(err: any, messages: FieldMessages): string {
+function errorText(err: any, messages: PageRangeMessages): string {
   const template = err?.code ? (messages as any)[err.code] : undefined;
   return template ? formatMessage(template, err.params ?? {}) : err.message;
 }

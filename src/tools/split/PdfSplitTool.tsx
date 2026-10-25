@@ -35,8 +35,8 @@ import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWo
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import SplitVerb from './verb/SplitVerb.tsx';
-import ModeControl from './ModeControl.tsx';
-import PageRangeField from './PageRangeField.tsx';
+import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
+import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import { buildSplit, type SplitMode } from './splitOutput.ts';
 import { outputBaseName, extractedFileName } from './split.js';
 
@@ -246,6 +246,7 @@ export default function PdfSplitTool({
     onPlanChange((current) => withIncludedPages(current, numbers), options);
   }, [onPlanChange]);
 
+  const modeOptions: Option<SplitMode>[] = [{ value: 'combined', label: t.modeCombined }, { value: 'separate', label: t.modeSeparate }];
   const chooseMode = (next: SplitMode) => {
     if (next === mode) return;
     setMode(next);
@@ -365,7 +366,7 @@ export default function PdfSplitTool({
               phoneBar={(
                 <div class={workspaceStyles['chip-bar']}>
                   {/* The mode stays in view at every scroll position; the quiet Download sits at the bar's end. */}
-                  <ModeControl mode={mode} onChange={chooseMode} messages={t} compact />
+                  <OptionRow id="split-mode-bar" label={t.modeGroupLabel} showLabel={false} options={modeOptions} value={mode} onChange={chooseMode} dir={t.dir} compact />
                   <PhoneFinish
                     flow={downloadFlow}
                     prepared={prepared}
@@ -417,7 +418,7 @@ export default function PdfSplitTool({
               railContent={(
                 <>
                   {/* In order of consequence (UX guideline 20): what the output is, then which pages. */}
-                  <ModeControl mode={mode} onChange={chooseMode} messages={t} note={combined ? t.modeNoteCombined : t.modeNoteSeparate} />
+                  <OptionRow id="split-mode" label={t.modeGroupLabel} showLabel={false} options={modeOptions} value={mode} onChange={chooseMode} dir={t.dir} note={combined ? t.modeNoteCombined : t.modeNoteSeparate} />
                   {rangeField()}
                   {bulkRow}
                 </>
