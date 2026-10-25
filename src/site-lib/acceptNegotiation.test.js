@@ -164,5 +164,6 @@ describe('middleware.ts matcher', () => {
   it.each([
     '/sitemap.xml', '/sw.js', '/robots.txt', '/llms.txt', '/manifest.webmanifest', '/sign.md',
     '/404.md', '/favicon.ico', '/_astro/a.js', '/images/x.png', '/fonts/f.woff2', '/icons/i.svg',
+    '/api/report',
   ])('skips %s', (path) => expect(regexp.test(path)).toBe(false));
 });
