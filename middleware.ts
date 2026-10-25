@@ -28,11 +28,12 @@ import vercelConfig from './vercel.json';
 
 export const config = {
   // Paths with a file extension (sitemap.xml, sw.js, robots.txt, the .md
-  // twins, favicon.ico) and the pure asset directories are excluded here, so
-  // they never invoke the function at all. The HAS_EXTENSION check below
-  // stays as a backstop. Kept as a literal because Vercel reads this config
-  // statically; a test compiles it and checks real paths.
-  matcher: ['/((?!_astro/|images/|icons/|fonts/|.*\\..*).*)'],
+  // twins, favicon.ico), the pure asset directories and api/ (the report
+  // function, never a page) are excluded here, so they never invoke the
+  // middleware at all. The HAS_EXTENSION check below stays as a backstop.
+  // Kept as a literal because Vercel reads this config statically; a test
+  // compiles it and checks real paths.
+  matcher: ['/((?!_astro/|images/|icons/|fonts/|api/|.*\\..*).*)'],
 };
 
 const VARY_VALUE = 'Accept, Accept-Encoding';
