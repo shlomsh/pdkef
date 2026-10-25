@@ -277,7 +277,9 @@ Rules for the desktop rail and the stage, from the Merge polish pass (MERGE-24, 
   tooltip bubble overflowing by 14px gave the rail a horizontal scrollbar. Nothing in a side panel
   scrolls sideways.
 - Fill the stage. On desktop, size the content to the loaded card's first-screen floor, measured from
-  the card's min-height and never its content height, instead of leaving it in a top strip. Below a
+  the card's min-height and never its content height, instead of leaving it in a top strip. A
+  page-grid card's floor is the viewport's foot at any window height and in either view density
+  (`PdfTool.module.css`, guarded by `e2e/cross-tool/page-grid-parity.spec.js`). Below a
   floor size it wraps and scrolls as before. Draw thumbnails at stepped sizes of cell width times
   device pixel ratio (capped at 2) so bigger stays sharp. Phone and tablet keep their sizes.
 - Below 1024px the card ends at its content: no minimum height on the grid, no slot reserved under
