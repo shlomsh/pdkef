@@ -9,8 +9,8 @@ describe('skippedLabel', () => {
   });
 
   it('agrees in number in Hebrew', () => {
-    expect(skippedLabel(1, hebrewMergeMessages)).toBe('עמוד אחד מדולג');
-    expect(skippedLabel(3, hebrewMergeMessages)).toBe('3 עמודים מדולגים');
+    expect(skippedLabel(1, hebrewMergeMessages)).toBe('עמוד אחד נסתר');
+    expect(skippedLabel(3, hebrewMergeMessages)).toBe('3 עמודים נסתרים');
   });
 });
 
