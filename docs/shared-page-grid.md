@@ -129,7 +129,9 @@ Split's file card, framed "one document" box, always-on tile icons and undo chip
    own control, kept in step with the plan both ways.
 8. **The number under a page is its output position in both modes.** One PDF per page keeps its file
    names (`<name>-page-<source page>.pdf`), so with pages skipped a file's name and the number under its
-   page can differ; the heading names the pattern.
+   page can differ; the heading names the pattern. Shlomi confirmed on
+   2026-10-25: the number is a running index in the new file, in every grid tool.
+
 9. **Several files are one prepared output.** One PDF per page builds `parts`; Download saves each part,
    Share offers all of them, and there is no hand-off (Compress and Sign take one PDF).
 10. **One PDF gains Sign** beside Compress, like Edit PDF and Merge. A protected file shows `NeedsUnlock`,

@@ -28,6 +28,6 @@ findings were fixed: images shared as PDFs, Enter on a cluster control opening t
 taking focus mid-typing, a pending tap stalling over 30 pages, and FAQ and how-to copy (with the Hebrew
 twins) still describing click-to-leave-out and Apply Changes.
 
-Not changed, and put to Shlomi on 2026-10-25: in tall-image output the grid looks the same as
-one-per-page (only the heading changes), and in Split and PDF to Image the number under a page is its
-output position while the file saved from it is named by its source page.
+Not changed: in tall-image output the grid looks the same as one-per-page (only the heading
+changes). The number under a page stays its output position, a running index in the new file (Shlomi,
+2026-10-25), while a per-page file keeps its source page number in its name.

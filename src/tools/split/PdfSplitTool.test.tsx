@@ -479,10 +479,10 @@ describe('PdfSplitTool UI flow', () => {
     await open({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
     const skipHe = (n) => click(cells()[n - 1].querySelector('[aria-label^="דילוג על עמוד"]'));
     await skipHe(1);
-    expect(heading().textContent).toContain('עמוד אחד מדולג');
+    expect(heading().textContent).toContain('עמוד אחד נסתר');
     await skipHe(2);
     await skipHe(3);
-    expect(heading().textContent).toContain('3 עמודים מדולגים');
+    expect(heading().textContent).toContain('3 עמודים נסתרים');
   });
 
   it('counts a document that fails to load as a failed operation', async () => {
