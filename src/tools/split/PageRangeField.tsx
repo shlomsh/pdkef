@@ -11,8 +11,9 @@ type FieldMessages = Pick<SplitMessages,
 interface PageRangeFieldProps {
   plan: PlanEntry[];
   pageCount: number;
-  /** The pages the typed range keeps; called only when that differs from the plan. */
-  onSelect: (pageNumbers: number[]) => void;
+  /** The pages the typed range keeps; called only when that differs from the plan.
+   * `merge` is true for every commit after the first while the field keeps focus. */
+  onSelect: (pageNumbers: number[], options: { merge: boolean }) => void;
   messages: FieldMessages;
   /** The rail and the phone controls each carry a field; ids stay unique. */
   id?: string;
@@ -39,6 +40,9 @@ export default function PageRangeField({ plan, pageCount, onSelect, messages, id
   const [error, setError] = useState('');
   // The selection the text currently stands for.
   const shownRef = useRef(included);
+  // Whether the field has committed since it took focus: a range typed in one
+  // go passes through "1" and "1-" (an open range) and is still one Undo step.
+  const committedRef = useRef(false);
 
   useEffect(() => {
     if (included === shownRef.current) return;
@@ -56,7 +60,8 @@ export default function PageRangeField({ plan, pageCount, onSelect, messages, id
       const next = canonical(numbers);
       shownRef.current = next;
       if (next === included) return;
-      onSelect(numbers);
+      onSelect(numbers, { merge: committedRef.current });
+      committedRef.current = true;
       recordAction('select_pages');
     } catch (err: any) {
       // expected: the person's own range did not parse; the selection stays and the message shows under the field.
@@ -75,6 +80,8 @@ export default function PageRangeField({ plan, pageCount, onSelect, messages, id
           class={`${pdfToolStyles['page-selector-input']}${error ? ` ${pdfToolStyles['has-error']}` : ''}`}
           value={text}
           onInput={onInput}
+          onFocus={() => { committedRef.current = false; }}
+          onBlur={() => { committedRef.current = false; }}
           dir="ltr"
           placeholder={messages.pageSelectorPlaceholder}
           aria-describedby={error ? `${id}-hint` : undefined}

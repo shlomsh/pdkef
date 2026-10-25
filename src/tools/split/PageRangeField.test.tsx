@@ -39,10 +39,26 @@ describe('PageRangeField', () => {
     expect(input().value).toBe('1-6');
   });
 
+  // Typing "1-3" passes through "1" and "1-" (an open range): one Undo step, not three.
+  it('a range typed in one go is one step: later commits while focused merge into the first', () => {
+    const { onSelect, draw } = mount(planForFile(0, 6));
+    act(() => { input().dispatchEvent(new FocusEvent('focus')); });
+    type('1');
+    expect(onSelect).toHaveBeenLastCalledWith([1], { merge: false });
+    draw(withIncludedPages(planForFile(0, 6), [1]));
+    type('1-3');
+    expect(onSelect).toHaveBeenLastCalledWith([1, 2, 3], { merge: true });
+    act(() => { input().dispatchEvent(new FocusEvent('blur')); });
+    act(() => { input().dispatchEvent(new FocusEvent('focus')); });
+    draw(withIncludedPages(planForFile(0, 6), [1, 2, 3]));
+    type('4');
+    expect(onSelect).toHaveBeenLastCalledWith([4], { merge: false });
+  });
+
   it('commits a valid range that changes the selection and records it', () => {
     const { onSelect } = mount(planForFile(0, 6));
     type('2-3, 5');
-    expect(onSelect).toHaveBeenCalledWith([2, 3, 5]);
+    expect(onSelect).toHaveBeenCalledWith([2, 3, 5], { merge: false });
     expect(recentActions().map((a) => a.action ?? a)).toContain('select_pages');
   });
 
@@ -56,7 +72,7 @@ describe('PageRangeField', () => {
     const plan = withIncludedPages(planForFile(0, 4), [2]);
     const { onSelect } = mount(plan);
     type('');
-    expect(onSelect).toHaveBeenCalledWith([1, 2, 3, 4]);
+    expect(onSelect).toHaveBeenCalledWith([1, 2, 3, 4], { merge: false });
   });
 
   it('keeps the selection and shows the error for an invalid range', () => {

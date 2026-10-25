@@ -104,6 +104,24 @@ describe('useEditHistory', () => {
     expect(apiRef.current.canRedo).toBe(false);
   });
 
+  it('a merged commit replaces the present without a new step, so one undo goes back past both', () => {
+    mount(present(0));
+    act(() => apiRef.current.commit(present(1)));
+    act(() => apiRef.current.commit(present(2), { merge: true }));
+    expect(apiRef.current.present).toEqual(present(2));
+    act(() => apiRef.current.undo());
+    expect(apiRef.current.present).toEqual(present(0));
+    expect(apiRef.current.canUndo).toBe(false);
+  });
+
+  it('a merged commit with no step before it is an ordinary step', () => {
+    mount(present(0));
+    act(() => apiRef.current.commit(present(1), { merge: true }));
+    expect(apiRef.current.canUndo).toBe(true);
+    act(() => apiRef.current.undo());
+    expect(apiRef.current.present).toEqual(present(0));
+  });
+
   it('reset replaces the present and clears both stacks', () => {
     mount(present(0));
     act(() => apiRef.current.commit(present(1)));

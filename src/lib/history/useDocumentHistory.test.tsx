@@ -45,6 +45,15 @@ describe('useDocumentHistory', () => {
     expect(reportEdit).toHaveBeenCalledWith('merge');
   });
 
+  it('folds a merged plan change into the step before it', () => {
+    const { api } = mount(vi.fn());
+    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 1)); });
+    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 2), { merge: true }); });
+    act(() => { api().handleUndo(); });
+    expect(api().present.plan.map((e) => e.pageIndex)).toEqual([0, 1, 2]);
+    expect(api().canUndo).toBe(false);
+  });
+
   it('takes no step when the plan comes back unchanged', () => {
     const { api } = mount(vi.fn());
     act(() => { api().onPlanChange((plan) => plan); });
