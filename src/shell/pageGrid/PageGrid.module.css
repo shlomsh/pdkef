@@ -129,10 +129,14 @@
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
-  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* The grab hand only where a tile can be dragged. */
+[data-reorderable] .page {
+  cursor: grab;
 }
 
 /* The reserved strip (item 1): every cell carries this, at the same fixed

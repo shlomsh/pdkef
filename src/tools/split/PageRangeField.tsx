@@ -47,6 +47,8 @@ export default function PageRangeField({ plan, pageCount, onSelect, messages, id
   useEffect(() => {
     if (included === shownRef.current) return;
     shownRef.current = included;
+    // Another edit landed between two typed ones: they are no longer one Undo step.
+    committedRef.current = false;
     setText(included);
     setError('');
   }, [included]);

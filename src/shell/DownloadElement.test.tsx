@@ -145,6 +145,15 @@ describe('DownloadElement', () => {
     expect(el.textContent).toContain('download again');
   });
 
+  it('saved without a link (a multi-file output): a tap goes to onPreparingTap to deliver the parts again', () => {
+    const onPreparingTap = vi.fn();
+    const onDownloadClick = vi.fn();
+    mount({ state: 'saved', onPreparingTap, onDownloadClick });
+    act(() => box().click());
+    expect(onPreparingTap).toHaveBeenCalledTimes(1);
+    expect(onDownloadClick).not.toHaveBeenCalled();
+  });
+
   it('error: a muted "fix the file" state, not disabled', () => {
     mount({ state: 'error' });
     const el = box();

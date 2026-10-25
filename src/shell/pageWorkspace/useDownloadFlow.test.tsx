@@ -185,6 +185,37 @@ describe('useDownloadFlow', () => {
     }
   });
 
+  it('parts: tapped again in saved, every part is delivered again', async () => {
+    vi.useFakeTimers();
+    try {
+      mount(base(readyParts()));
+      act(() => flow.onRowPreparingTap());
+      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+      expect(share.download).toHaveBeenCalledTimes(3);
+      expect(flow.downloadState).toBe('saved');
+      act(() => flow.onRowPreparingTap());
+      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+      expect(share.download.mock.calls.map((c) => c[1])).toEqual([
+        'out-page-1.pdf', 'out-page-2.pdf', 'out-page-3.pdf', 'out-page-1.pdf', 'out-page-2.pdf', 'out-page-3.pdf',
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a failed hand-off message is cleared by reset() and by the output going stale', async () => {
+    store.saveHandoff.mockResolvedValue(false);
+    mount(base(ready()));
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(flow.handoffFailed).toBe(true);
+    act(() => flow.reset());
+    expect(flow.handoffFailed).toBe(false);
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(flow.handoffFailed).toBe(true);
+    mount(base(pending()));
+    expect(flow.handoffFailed).toBe(false);
+  });
+
   it('parts: requestHandoff does nothing', async () => {
     mount(base(readyParts()));
     await act(async () => { await flow.requestHandoff('compress'); });
