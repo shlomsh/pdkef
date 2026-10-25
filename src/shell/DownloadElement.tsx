@@ -99,7 +99,9 @@ export default function DownloadElement({
     // Only once there is a link: focusing a still-silent 'ready' would fire onWarm and end the quiet wait.
     if (state === 'ready' && href && !hasFocusedRef.current && !isOutputNameBeingRenamed) {
       hasFocusedRef.current = true;
-      ref.current?.focus({ preventScroll: true });
+      // Only when nothing else has focus: a link that arrives late must not pull it out of a field mid-typing.
+      const active = document.activeElement;
+      if (!active || active === document.body) ref.current?.focus({ preventScroll: true });
     }
   }, [state, href, isOutputNameBeingRenamed]);
 

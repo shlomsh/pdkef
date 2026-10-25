@@ -4,7 +4,7 @@ import { createRef } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
-import PageGrid from './PageGrid.tsx';
+import PageGrid, { cellEdge } from './PageGrid.tsx';
 import styles from './PageGrid.module.css';
 import { planForFile } from '../../lib/pagePlan.ts';
 import { englishMergeMessages } from '../../i18n/toolMessages';
@@ -335,6 +335,25 @@ describe('PageGrid', () => {
     expect(dialog.textContent).toContain('Page 2 of 4');
   });
 
+  it('the card\'s shortcuts apply to the card only: Enter on Rotate rotates once and a key on a cluster control is not the card\'s', async () => {
+    const { onPlanChange } = mount();
+    const card = cards()[0];
+    const rotate = card.querySelectorAll(`.${styles.action}`)[0];
+    rotate.focus();
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    await act(async () => rotate.dispatchEvent(enter));
+    expect(enter.defaultPrevented).toBe(false);
+    for (const key of ['r', 'Delete', 'ArrowRight']) {
+      await act(async () => rotate.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })));
+    }
+    expect(onPlanChange).not.toHaveBeenCalled();
+    await act(async () => rotate.click());
+    expect(onPlanChange).toHaveBeenCalledTimes(1);
+    expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
+    await act(async () => { await flush(30); });
+    expect(container.querySelector('dialog')).toBeNull();
+  });
+
   // Review P2: the dialog used to count the raw plan (previewIndex + 1 of
   // plan.length), disagreeing with the heading's "N pages · 1 skipped" and
   // every cell's own aria-label, both of which count OUTPUT pages. The
@@ -558,6 +577,17 @@ describe('PageGrid', () => {
       expect(cards()[0].querySelectorAll(`.${styles.actions} > *`)).toHaveLength(3);
     });
 
+    it('Enter on the focused link is the link\'s own: no preview, not prevented', async () => {
+      mount({ props: { cellAction: action } });
+      const link = saveLinks(cards()[0])[0];
+      link.focus();
+      const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+      await act(async () => link.dispatchEvent(enter));
+      expect(enter.defaultPrevented).toBe(false);
+      await act(async () => { await flush(30); });
+      expect(container.querySelector('dialog')).toBeNull();
+    });
+
     it('a click on it calls onActivate, keeps the browser download, and does not select the cell', async () => {
       const onActivate = vi.fn();
       mount({ props: { cellAction: (entry) => ((entry.fileId === 1 && entry.pageIndex === 0) ? { href: 'blob:one', download: 'a-1.png', label: 'Save', tip: 'Save', onActivate } : null) } });
@@ -567,6 +597,36 @@ describe('PageGrid', () => {
       expect(onActivate).toHaveBeenCalledTimes(1);
       expect(click.defaultPrevented).toBe(false);
       expect(first.hasAttribute('data-selected')).toBe(false);
+    });
+  });
+
+  describe('cluster edge', () => {
+    const rect = (left, width) => ({ left, right: left + width, width, top: 0, bottom: 100, height: 100 });
+    const grid = rect(0, 300);
+
+    it('cellEdge: the first and last cell of a row align to that edge, cells between stay centred', () => {
+      expect(cellEdge(rect(0, 72), grid)).toBe('start');
+      expect(cellEdge(rect(75, 72), grid)).toBeNull();
+      expect(cellEdge(rect(150, 72), grid)).toBeNull();
+      expect(cellEdge(rect(228, 72), grid)).toBe('end');
+      // A row that does not fill the grid: its last cell is not at the edge.
+      expect(cellEdge(rect(75, 72), grid)).toBeNull();
+    });
+
+    it('cellEdge mirrors in a right-to-left grid, and a lone full-width cell takes start', () => {
+      expect(cellEdge(rect(0, 72), grid, true)).toBe('end');
+      expect(cellEdge(rect(228, 72), grid, true)).toBe('start');
+      expect(cellEdge(rect(0, 300), grid)).toBe('start');
+    });
+
+    it('marks each rendered cell from its place in the grid', () => {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+        if (this.hasAttribute('data-page-grid')) return grid;
+        const index = Array.from(this.parentElement.children).indexOf(this);
+        return rect(index * 76, 72);
+      });
+      mount();
+      expect(cards().map((card) => card.getAttribute('data-edge'))).toEqual(['start', null, null, 'end']);
     });
   });
 });

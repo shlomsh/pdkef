@@ -174,7 +174,29 @@ describe('useDownloadFlow', () => {
     expect(share.prepareFiles).toHaveBeenCalledWith(parts.map((p) => ({ blob: p.blob, filename: p.filename, type: 'application/pdf' })));
     expect(share.prepare).not.toHaveBeenCalled();
     mount(base(ready(2)));
-    expect(share.prepare).toHaveBeenCalledWith(blob, 'out.pdf');
+    expect(share.prepare).toHaveBeenCalledWith(blob, 'out.pdf', 'application/pdf');
+  });
+
+  it('a single blob is shared with its own type (PDF to Image shares a PNG, not a PDF)', () => {
+    const png = new Blob(['x'], { type: 'image/png' });
+    mount(base({ ...ready(), blob: png }));
+    expect(share.prepare).toHaveBeenCalledWith(png, 'out.pdf', 'image/png');
+  });
+
+  it('a tap that goes stale while the plan changes mid-build asks the new build to run now', () => {
+    const first = pending();
+    mount(base(first));
+    act(() => flow.onRowPreparingTap());
+    expect(first.prepareNow).toHaveBeenCalled();
+    // The edit aborted the build and nothing re-armed: the next render is still 'pending'.
+    const second = pending();
+    mount(base(second));
+    expect(second.prepareNow).toHaveBeenCalled();
+    mount(base(ready()));
+    expect(share.download).toHaveBeenCalledTimes(1);
+    const third = pending();
+    mount(base(third));
+    expect(third.prepareNow).not.toHaveBeenCalled();
   });
 
   it('parts: Share hands each part over with its own type (PDF to Image shares PNGs)', () => {

@@ -383,6 +383,20 @@
   z-index: 2;
 }
 
+/* A cell in the first or last column of its row keeps its cluster inside the
+   grid (PageGrid.tsx `cellEdge`); logical, so a right-to-left page mirrors it. */
+.page[data-edge='start'] .actions {
+  left: auto;
+  inset-inline-start: 0;
+  transform: none;
+}
+
+.page[data-edge='end'] .actions {
+  left: auto;
+  inset-inline-end: 0;
+  transform: none;
+}
+
 /* Ungrouped there is no strip above the thumbnail (see `.cell-tag` above). */
 .grid:not([data-grouped]) .actions {
   top: 0.55rem;

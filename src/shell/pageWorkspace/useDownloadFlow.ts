@@ -100,7 +100,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   useEffect(() => {
     if (prepared.status === 'ready' && prepared.parts) {
       prepareFiles(prepared.parts.map((part) => ({ blob: part.blob, filename: part.filename, type: part.blob.type || 'application/pdf' })));
-    } else if (prepared.status === 'ready' && prepared.blob) prepare(prepared.blob, fileName);
+    } else if (prepared.status === 'ready' && prepared.blob) prepare(prepared.blob, fileName, prepared.blob.type || 'application/pdf');
     else clearPrepared();
   }, [prepared.status, prepared.generation, fileName]);
 
@@ -120,6 +120,14 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     onDelivered?.();
     announce(messages.ready);
   }, [pendingDownload, prepared.status, prepared.generation]);
+
+  // A tap goes stale when the plan changes mid-build: the build is aborted and, with
+  // autoBuild off, nothing re-arms. While a tap waits on a 'pending' output, ask for
+  // the build every render (prepareNow is a no-op while one runs), so it is delivered
+  // with the current plan.
+  useEffect(() => {
+    if (pendingDownload && prepared.status === 'pending') prepared.prepareNow();
+  });
 
   // MERGE-14: park the output bytes for the target tool and navigate. The
   // draft stays (MERGE-13), so Back returns to the same set.
