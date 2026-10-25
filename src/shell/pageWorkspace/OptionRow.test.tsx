@@ -75,6 +75,12 @@ describe('OptionRow', () => {
     expect(host.textContent).toContain('Smaller files.');
   });
 
+  // The phone bar keeps one line: the note belongs to the full row in the controls.
+  it('has no note in its compact form, even when the selected option has a hint', () => {
+    mount({ compact: true, note: 'Selected pages become a single PDF.' });
+    expect(host.querySelector('[data-option-note]')).toBeNull();
+  });
+
   it('has no note line when there is nothing to say', () => {
     mount();
     expect(host.querySelector('[data-option-note]')).toBeNull();
