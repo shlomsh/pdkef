@@ -193,11 +193,15 @@ describe('PdfSplitTool UI flow', () => {
     expect(splitCalls.calls.at(-1).options.pageNumbers).toEqual([1, 2, 3, 4, 5]);
   });
 
-  it('starts the rail with Replace file, then the range, the bulk row and the mode', async () => {
+  // UX guideline 20: the output choice, then which pages, then Download and hand-offs, Replace file last.
+  it('runs the rail in order of consequence, with Replace file last', async () => {
     await open();
-    const rail = container.querySelector(`.${workspaceStyles['rail-scroll']}`);
-    const order = Array.from(rail.querySelectorAll('button, input, [role="radiogroup"]')).map((el) => el.getAttribute('role') || el.id || el.textContent);
-    expect(order.slice(0, 6)).toEqual(['Replace file', 'page-selector-input', 'Include all', 'Skip all', 'Invert', 'radiogroup']);
+    const rail = container.querySelector(`.${workspaceStyles.rail}`);
+    const order = Array.from(rail.querySelectorAll('[role="radiogroup"], input, button, a[data-state]'))
+      .filter((el) => !el.closest('[role="radiogroup"]') || el.getAttribute('role') === 'radiogroup')
+      .map((el) => el.getAttribute('role') || el.id || (el.hasAttribute('data-state') ? 'download' : el.textContent.trim()));
+    expect(order.slice(0, 6)).toEqual(['radiogroup', 'page-selector-input', 'Include all', 'Skip all', 'Invert', 'download']);
+    expect(order[order.length - 1]).toBe('Replace file');
   });
 
   it('a skipped tile stays in place, the range follows, and the heading counts it', async () => {

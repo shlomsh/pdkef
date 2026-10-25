@@ -416,10 +416,10 @@ export default function PdfSplitTool({
               headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
               railContent={(
                 <>
-                  {replaceRow(requestReplace)}
+                  {/* In order of consequence (UX guideline 20): what the output is, then which pages. */}
+                  <ModeControl mode={mode} onChange={chooseMode} messages={t} note={combined ? t.modeNoteCombined : t.modeNoteSeparate} />
                   {rangeField()}
                   {bulkRow}
-                  <ModeControl mode={mode} onChange={chooseMode} messages={t} note={combined ? t.modeNoteCombined : t.modeNoteSeparate} />
                 </>
               )}
               railPinned={(
@@ -455,6 +455,9 @@ export default function PdfSplitTool({
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
                   )}
+
+                  {/* Starting over with another file ends the rail. */}
+                  {replaceRow(requestReplace)}
                 </>
               )}
             >
