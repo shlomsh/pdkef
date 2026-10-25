@@ -373,7 +373,7 @@ export default function PdfSplitTool({
                     fileName={fileName}
                     detail={detail}
                     handoffs={handoffs}
-                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
+                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
                   />
                 </div>
               )}

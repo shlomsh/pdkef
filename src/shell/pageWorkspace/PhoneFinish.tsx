@@ -15,7 +15,7 @@ interface PhoneFinishProps {
   /** The result line under the name: "N pages · size". */
   detail: string;
   handoffs: ExportHandoffItem[];
-  labels: { download: string; ready: string; closeStrip: string; handoffFailed: string };
+  labels: { download: string; ready: string; closeStrip: string; handoffFailed: string; /** Why Download cannot run when every page is skipped; absent, no note. */ nothing?: string };
   /** Attributes for the done strip (a tool's test and e2e hook). */
   stripAttrs?: Record<string, string | boolean>;
   /** Under the hand-offs, inside the strip (Merge's rating prompt). */
@@ -27,7 +27,10 @@ interface PhoneFinishProps {
  * and once it has delivered the done strip with the result, the hand-offs to
  * the next tool and the hand-off failure line. A tool's chips stay its own.
  */
+const NOTE_ID = 'quiet-download-note';
+
 export default function PhoneFinish({ flow, prepared, fileName, detail, handoffs, labels, stripAttrs, children }: PhoneFinishProps) {
+  const note = flow.downloadState === 'nothing' ? labels.nothing : undefined;
   return (
     <>
       <QuietDownload
@@ -39,7 +42,9 @@ export default function PhoneFinish({ flow, prepared, fileName, detail, handoffs
         onDownloadTap={flow.onQuietDownloadTap}
         onPreparingTap={flow.onQuietPreparingTap}
         onWarm={prepared.prepareNow}
+        describedBy={note ? NOTE_ID : undefined}
       />
+      {note && <p id={NOTE_ID} class={styles['chip-note']} data-quiet-note>{note}</p>}
       {flow.showStrip && (
         <DoneStrip
           {...stripAttrs}

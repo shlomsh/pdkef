@@ -1056,7 +1056,7 @@ export default function PdfMergeTool({
                         { tool: 'compress', label: t.handoffCompress, Icon: Shrink, ...(prepared.blob ? { detail: formatFileSize(prepared.blob.size) } : {}) },
                         { tool: 'sign', label: t.handoffSign, Icon: FileSignature },
                       ]}
-                      labels={{ download: t.downloadShort, ready: t.mergedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
+                      labels={{ download: t.downloadShort, ready: t.mergedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
                       stripAttrs={{ 'data-merge-done-strip': true }}
                     >
                       {rating}

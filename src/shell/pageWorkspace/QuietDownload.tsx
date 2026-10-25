@@ -14,6 +14,8 @@ interface QuietDownloadProps {
   onPreparingTap: () => void;
   /** Hover or focus: build now. */
   onWarm: () => void;
+  /** Id of the note saying why this cannot run. */
+  describedBy?: string;
 }
 
 /**
@@ -23,7 +25,7 @@ interface QuietDownloadProps {
  * Absent while the tool is waiting for more files.
  */
 export default function QuietDownload({
-  state, linkReady, href, fileName, label, onDownloadTap, onPreparingTap, onWarm,
+  state, linkReady, href, fileName, label, onDownloadTap, onPreparingTap, onWarm, describedBy,
 }: QuietDownloadProps) {
   if (state === 'one-file') return null;
   if (linkReady) {
@@ -40,6 +42,7 @@ export default function QuietDownload({
       type="button"
       class={styles['chip-download']}
       data-quiet-download
+      aria-describedby={describedBy}
       aria-disabled={inert || state === 'preparing' || undefined}
       onClick={inert ? undefined : onPreparingTap}
       onPointerEnter={onWarm}
