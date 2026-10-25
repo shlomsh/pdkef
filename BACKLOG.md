@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 60 live: 5 up next, 12 then, 26 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 60 live: 6 up next, 11 then, 26 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -146,6 +146,7 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | GRID-05 | P2 | [GRID-05](backlog/tasks/GRID-05.md) · Split shows its pages through the shared page grid | In progress |
+| GRID-06 | P2 | [GRID-06](backlog/tasks/GRID-06.md) · PDF to Image shows its pages through the shared page grid | In progress |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
 
 ### Then, in order
@@ -154,7 +155,6 @@ Small, independent, good for a spare hour.
 | --- | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
-| GRID-06 | P2 | [GRID-06](backlog/tasks/GRID-06.md) · PDF to Image shows its pages through the shared page grid |  |
 | GRID-07 | P2 | [GRID-07](backlog/tasks/GRID-07.md) · Page grid rows without gaps, and one rail rhythm across the grid tools |  |
 | GRID-08 | P2 | [GRID-08](backlog/tasks/GRID-08.md) · Compress and Unlock follow the one-file rail rule |  |
 
