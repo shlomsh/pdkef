@@ -44,6 +44,10 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   // PageGrid.module.css's `[data-selected]` pattern).
   const grid = page.locator('ul[class*="grid"]');
   const firstCard = grid.locator('> li[data-key]').first();
+  // The grid stays hidden and re-sizes its cells until the fit settles
+  // (MERGE-24); a hover before then is left off the cell once it moves, and
+  // the Rotate button hides again under the click (CI run 40205538128).
+  await page.locator('ul[data-page-grid][data-fit-settled]').waitFor();
   if (testInfo.project.name === 'webkit') {
     // The sticky app bar and the sticky file row cover the top of a 659px
     // iPhone viewport; a tap under either lands on them. Centre the cell first, as a thumb would by scrolling.
@@ -74,7 +78,11 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   await page.waitForTimeout(200);
   expect(await handle.evaluate((el) => el.__states.join('>'))).toBe('ready');
   const download = page.waitForEvent('download');
-  await downloadLocator.click();
+  // A dispatched click, not a pointer one: pointer-enter and pointer-down warm
+  // the build (DownloadElement's onWarm), and a two-page build can finish
+  // before the click lands, which reads ready>saved under load. Without the
+  // warm-up the tap always beats the 1.5s quiet build, the path this guards.
+  await downloadLocator.dispatchEvent('click');
   await download;
   await expect.poll(() => handle.evaluate((el) => el.__states.join('>'))).toMatch(/^ready>preparing>(ready|saved)/);
 
