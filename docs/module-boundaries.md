@@ -415,7 +415,7 @@ own text layer, not a site-only helper, even though neither is imported by a bro
 | `editPages.js` | `PdfEditPagesTool` | `edit-pages` |
 | `security.js` | `PdfSecurityTool` | `security` |
 | `split.js` | `PdfSplitTool` | `split` |
-| `toImage.js` | `PdfToImageTool` | `to-image` |
+| `toImage.js` | `PdfToImageTool`, `toImageOutput.ts` | `to-image` |
 | `imageToPdf.js` | `PdfImageToPdfTool` | `image-to-pdf` |
 | `useDeletableObjects.js` | `PdfRedactTool` | `redact` |
 | `useViewDensity.js` | `ViewControl.tsx` | `editor-ui`, not a tool - see the `editor-ui` section above |

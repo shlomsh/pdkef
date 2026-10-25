@@ -2,38 +2,71 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import * as pdfjsMock from 'pdfjs-dist';
 import PdfToImageTool from './PdfToImageTool.tsx';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import styles from './PdfToImageTool.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
+import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { hebrewShellMessages, hebrewToImageMessages } from '../../i18n/toolMessages';
 
-function makePdfFile(name) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
-}
+const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: lifecycleSpy,
+  reportEdit: editSpy,
+}));
 
-const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 1 } }));
+const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  takeHandoff: takeHandoffMock,
+}));
 
-// Counts every conversion and lets a test swap in a slow or failing one. The
-// default builds one fake blob per selected page (or one for a tall image),
-// sized by scale so a different setting is a different result.
+const { probeMock, reportErrorMock } = vi.hoisted(() => ({ probeMock: vi.fn(), reportErrorMock: vi.fn() }));
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
+vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportError: reportErrorMock,
+}));
+
+// The page count and the grid's thumbnails come through this source; no real pdf.js here.
+const { mockState, openMock, sourceState } = vi.hoisted(() => ({
+  mockState: { numPages: 5 },
+  openMock: { fail: false },
+  sourceState: { destroyed: 0, opened: 0 },
+}));
+vi.mock('../../lib/thumbnails.js', () => ({
+  openThumbnailSource: vi.fn(async (file) => {
+    sourceState.opened += 1;
+    if (openMock.fail) throw new Error('bad pdf');
+    return {
+      file,
+      pageCount: mockState.numPages,
+      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
+      destroy: vi.fn(async () => { sourceState.destroyed += 1; }),
+    };
+  }),
+  renderThumbnail: vi.fn(() => Promise.resolve(null)),
+  renderPdfThumbnails: vi.fn(async () => 0),
+}));
+
+// Counts every conversion and lets a test swap in a slow or failing one. The default makes one fake
+// blob per included page (or one for a tall image), sized by scale so a different setting is a different result.
 const { convertCalls, convertOverride } = vi.hoisted(() => ({
   convertCalls: { n: 0, last: null as any },
   convertOverride: { fn: null as any },
 }));
-vi.mock('./toImage.js', () => ({
+vi.mock('./toImage.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   convertPdfToImages: (...args: any[]) => {
     convertCalls.n += 1;
     convertCalls.last = args[1];
     return (convertOverride.fn ?? defaultConvert)(...args);
   },
 }));
-
 
 async function defaultConvert(file: File, opts: any) {
   const numbers = parsePageSelector(opts.pages, mockState.numPages);
@@ -49,85 +82,43 @@ async function defaultConvert(file: File, opts: any) {
   }));
 }
 
-// Mock pdfjs-dist so we never spin up a real worker or canvas renderer in jsdom.
-vi.mock('pdfjs-dist', () => {
-  return {
-    GlobalWorkerOptions: { workerSrc: '' },
-    // thumbnails.js shares one worker when the library has the class; the mock has none.
-    PDFWorker: undefined,
-    getDocument: vi.fn(() => ({
-      promise: Promise.resolve({
-        get numPages() {
-          return mockState.numPages;
-        },
-        getPage: vi.fn(() =>
-          Promise.resolve({
-            getViewport: () => ({ width: 612, height: 792 }),
-            render: () => ({ promise: Promise.resolve() }),
-          }),
-        ),
-      }),
-      destroy: vi.fn(() => Promise.resolve()),
-    })),
-  };
-});
-
-
-const { lifecycle } = vi.hoisted(() => ({ lifecycle: vi.fn() }));
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportToolLifecycleEvent: lifecycle,
-}));
-
-const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
-
-// SITE-42: the home page hands picked files over through the draft store's hand-off slot.
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: takeHandoffMock,
-}));
+// Tests that are not about timing build after 5ms instead of the real 1500ms.
+const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
+const SLOW_QUIET = { baseMs: 400, stepMs: 0, maxMs: 400, burstWindowMs: 1 };
+const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+const makePdfFile = (name = 'report.pdf') => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 
 describe('PdfToImageTool', () => {
   let container;
-  const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
-  const tiles = () => Array.from(container.querySelectorAll(`.${styles.tile}`));
-  const toggleOf = (tile) => tile.querySelector('button[aria-pressed]');
-  const pressed = (tile) => toggleOf(tile).getAttribute('aria-pressed');
-  const primary = () => container.querySelector(`.${styles.primary}`);
-  const field = () => container.querySelector('#page-selector-input');
-  const radio = (label) =>
-    Array.from(container.querySelectorAll('[role="radio"]')).find((b) => b.textContent.trim() === label);
-  const type = (value) =>
-    act(async () => {
-      field().value = value;
-      field().dispatchEvent(new Event('input', { bubbles: true }));
-    });
-
-  async function open(pages = 5, props = {}) {
-    mockState.numPages = pages;
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfToImageTool {...props} />, container));
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('report.pdf')]);
-    });
-    await advance(100);
-  }
 
   beforeEach(() => {
-    vi.useFakeTimers();
     resetActionTrailForTests();
+    probeMock.mockReset();
+    probeMock.mockResolvedValue('open');
+    reportErrorMock.mockClear();
+    lifecycleSpy.mockClear();
+    editSpy.mockClear();
+    takeHandoffMock.mockClear();
     convertCalls.n = 0;
-    lifecycle.mockClear();
     convertOverride.fn = null;
-    // jsdom has no canvas backend: thumbnails.js needs a context and a data URL.
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function () {
-      return { fillStyle: '', fillRect: vi.fn(), canvas: this } as any;
-    });
-    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,AA==');
+    openMock.fail = false;
+    sourceState.destroyed = 0;
+    sourceState.opened = 0;
+    mockState.numPages = 5;
     let n = 0;
     URL.createObjectURL = vi.fn(() => `blob:img-${++n}`);
     URL.revokeObjectURL = vi.fn();
+    // jsdom's Blob has no arrayBuffer().
+    if (!Blob.prototype.arrayBuffer) {
+      Blob.prototype.arrayBuffer = function arrayBuffer() {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
   });
 
   afterEach(() => {
@@ -136,368 +127,387 @@ describe('PdfToImageTool', () => {
       container.remove();
       container = null;
     }
-    mockState.numPages = 1;
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it('renders the initial file dropper zone', () => {
+  function mount(props = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfToImageTool />, container));
+    // jsdom cannot follow a download link.
+    container.addEventListener('click', (e) => { if (e.target.closest?.('a[download]')) e.preventDefault(); });
+    act(() => render(<PdfToImageTool quietPolicy={FAST_QUIET} {...props} />, container));
+  }
+  const pick = async (file) => {
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
+    await wait(50);
+  };
+  const replaceWith = async (file) => {
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
+    await wait(150);
+  };
+  // Mounts, picks a file and waits for the quiet build.
+  async function open(pages = 5, props = {}) {
+    mockState.numPages = pages;
+    mount(props);
+    await pick(makePdfFile());
+    await wait(150);
+  }
+
+  const rail = () => container.querySelector(`.${workspaceStyles.rail}`);
+  const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
+  const button = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
+  const heading = () => container.querySelector('#page-grid-heading');
+  const field = () => container.querySelector('#page-selector-input');
+  const downloadElement = () => container.querySelector('a[data-state]');
+  const saveLinks = () => Array.from(container.querySelectorAll('ul[data-page-grid] a[download]'));
+  const skipButton = (n) => cells()[n - 1].querySelector('[aria-label^="Skip page"], [aria-label^="Include page"]');
+  const isSkipped = (n) => skipButton(n).getAttribute('aria-label').startsWith('Include');
+  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  const radio = (label) => Array.from(rail().querySelectorAll('[role="radio"]')).find((r) => r.textContent === label);
+  const type = (value) => act(async () => {
+    field().value = value;
+    field().dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const undo = () => click(container.querySelector('[aria-label="Undo last change"]'));
+  const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
+
+  it('renders the initial file dropper zone', () => {
+    mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
 
-  it('shows a tile per page and no Convert button', async () => {
-    await open(5);
-    expect(tiles().length).toBe(5);
-    expect(tiles()[1].textContent).toContain('Page 2');
-    expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.includes('Convert'))).toBe(false);
-    expect(primary().textContent).toContain('Download 5 PNGs');
+  it('loads the file into the shared grid under a heading that names the images, and lets go of the document', async () => {
+    await open();
+    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
+    expect(heading().textContent).toContain('report-page-N.png');
+    expect(heading().textContent).toContain('5 images');
+    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
     expect(field().value).toBe('1-5');
-  });
-
-  it('does not convert before 1500ms of quiet, then converts once', async () => {
-    await open(5);
-    await advance(1400);
-    expect(convertCalls.n).toBe(0);
-    expect(primary().getAttribute('aria-busy')).toBeNull();
-    await advance(200);
-    expect(convertCalls.n).toBe(1);
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    expect(downloadElement().textContent).toContain('Download 5 PNGs');
     expect(convertCalls.last.pages).toBe('1-5');
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    await advance(5000);
+    expect(sourceState.destroyed).toBe(sourceState.opened);
+    expect(button('Convert')).toBeUndefined();
+  });
+
+  // UX guideline 20: what the images are, then which pages, then Download, Replace file last.
+  it('runs the rail in order of consequence, with Replace file last and no hand-offs', async () => {
+    await open();
+    const order = Array.from(rail().querySelectorAll('[role="radiogroup"], input, button, a[data-state]'))
+      .filter((el) => !el.closest('[role="radiogroup"]') || el.getAttribute('role') === 'radiogroup')
+      .map((el) => (el.hasAttribute('data-state') ? 'download' : el.getAttribute('role') || el.id || el.textContent.trim()));
+    expect(order).toEqual(['radiogroup', 'radiogroup', 'radiogroup', 'page-selector-input', 'Include all', 'Skip all', 'Invert', 'download', 'Replace file']);
+    expect(button('Compress')).toBeUndefined();
+    expect(button('Sign')).toBeUndefined();
+  });
+
+  it('does not convert before the quiet wait, then converts once', async () => {
+    await open(5, { quietPolicy: SLOW_QUIET });
+    await wait(150);
+    expect(convertCalls.n).toBe(0);
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    expect(downloadElement().getAttribute('aria-busy')).toBeNull();
+    await wait(500);
+    expect(convertCalls.n).toBe(1);
+    await wait(600);
     expect(convertCalls.n).toBe(1);
   });
 
-  it('keeps the ready look with the counts it knows, and the size joins when the build lands', async () => {
-    await open(5);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    expect(primary().textContent).not.toMatch(/KB|MB|bytes/);
-    await advance(1700);
-    expect(primary().textContent).toContain('Download 5 PNGs');
-    expect(primary().textContent).toMatch(/\d(\.\d)? KB/);
-  });
-
-  it('leaves a tile out on click, and the Pages field reads "1, 3-5"', async () => {
-    await open(5);
-    await act(async () => toggleOf(tiles()[1]).click());
-    expect(pressed(tiles()[1])).toBe('false');
-    expect(tiles()[1].getAttribute('data-out')).toBe('true');
-    expect(field().value).toBe('1, 3-5');
-    expect(primary().textContent).toContain('Download 4 PNGs');
-    await act(async () => toggleOf(tiles()[1]).click());
-    expect(field().value).toBe('1-5');
-  });
-
-  it('dims the other tiles when "2-3" is typed in Pages', async () => {
-    await open(5);
-    await type('2-3');
-    expect(tiles().map(pressed)).toEqual(['false', 'true', 'true', 'false', 'false']);
-    expect(tiles()[0].getAttribute('data-out')).toBe('true');
-    expect(tiles()[1].getAttribute('data-out')).toBeNull();
-    await advance(2100);
-    expect(convertCalls.last.pages).toBe('2-3');
-  });
-
-  it('reruns after quiet on a format change, and a built format comes back from the cache instantly', async () => {
-    await open(5);
-    await advance(4000);
-    expect(convertCalls.n).toBe(1);
-    await act(async () => radio('JPG').click());
-    expect(primary().textContent).toContain('Download 5 JPGs');
-    await advance(1400);
-    expect(convertCalls.n).toBe(1);
-    await advance(200);
-    expect(convertCalls.n).toBe(2);
-    expect(convertCalls.last.format).toBe('image/jpeg');
-    await advance(4000);
-    await act(async () => radio('PNG').click());
-    expect(primary().textContent).toContain('Download 5 PNGs');
-    expect(primary().textContent).toMatch(/\d(\.\d)? KB/);
-    await advance(6000);
-    expect(convertCalls.n).toBe(2);
+  it('keeps the ready look with no size, and the size joins when the build lands', async () => {
+    await open(5, { quietPolicy: SLOW_QUIET });
+    expect(downloadElement().textContent).not.toMatch(/KB|MB|bytes/);
+    await wait(900);
+    expect(downloadElement().textContent).toMatch(/\d(\.\d)? KB/);
   });
 
   it('gives each option row radiogroup semantics and describes only the selected option', async () => {
     await open(2);
-    const groups = container.querySelectorAll('[role="radiogroup"]');
-    expect(groups.length).toBe(3);
+    expect(rail().querySelectorAll('[role="radiogroup"]').length).toBe(3);
     expect(radio('PNG').getAttribute('aria-checked')).toBe('true');
     expect(radio('High').getAttribute('aria-checked')).toBe('true');
-    expect(container.textContent).toContain('~144 DPI');
-    expect(container.textContent).not.toContain('~72 DPI');
-    await act(async () => radio('Standard').click());
-    expect(container.textContent).toContain('~72 DPI');
-    expect(container.textContent).not.toContain('~144 DPI');
-    expect(container.querySelector(`.${styles['info-icon']}`)).toBeNull();
+    expect(rail().textContent).toContain('~144 DPI');
+    expect(rail().textContent).not.toContain('~72 DPI');
+    await click(radio('Standard'));
+    expect(rail().textContent).toContain('~72 DPI');
+    expect(rail().textContent).not.toContain('~144 DPI');
   });
 
-  it('never auto-builds above 30 pages, and pointerdown on Download builds', async () => {
+  it('a skipped tile stays in place, the range follows, and the heading counts it', async () => {
+    await open();
+    await click(skipButton(2));
+    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
+    expect(isSkipped(2)).toBe(true);
+    expect(field().value).toBe('1, 3-5');
+    expect(heading().textContent).toContain('4 images');
+    expect(heading().textContent).toContain('1 page skipped');
+    await wait(100);
+    expect(downloadElement().textContent).toContain('Download 4 PNGs');
+    await click(skipButton(2));
+    expect(field().value).toBe('1-5');
+  });
+
+  it('typing a range skips the other pages, as one Undo step, and builds those pages', async () => {
+    await open();
+    await type('2-3');
+    expect([1, 2, 3, 4, 5].map(isSkipped)).toEqual([true, false, false, true, true]);
+    await wait(100);
+    expect(convertCalls.last.pages).toBe('2-3');
+    await undo();
+    expect(field().value).toBe('1-5');
+    expect(recentActions()).toEqual(['add_files', 'select_pages', 'undo']);
+  });
+
+  it('keeps the selection and shows the error for an out-of-range page', async () => {
+    await open();
+    await click(skipButton(1));
+    await type('99');
+    expect(container.querySelector('[role="alert"]').textContent).toContain('99');
+    expect(isSkipped(1)).toBe(true);
+    expect(isSkipped(2)).toBe(false);
+  });
+
+  it('Include all, Skip all and Invert are one step each, and none when nothing changes', async () => {
+    await open();
+    await click(button('Include all'));
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+    await click(button('Skip all'));
+    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
+    await click(button('Invert'));
+    expect(field().value).toBe('1-5');
+    await undo();
+    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
+  });
+
+  it('rotating a page is a step and reaches the build as a rotation of that page number', async () => {
+    await open();
+    await click(container.querySelector('[aria-label="Rotate page 2"]'));
+    await wait(100);
+    expect(convertCalls.last.rotations).toEqual({ 2: 90 });
+    expect(recentActions()).toEqual(['add_files', 'rotate']);
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
+  });
+
+  it('rebuilds on a format change, and a built format comes back from the cache', async () => {
+    await open();
+    expect(convertCalls.n).toBe(1);
+    await click(radio('JPG'));
+    expect(downloadElement().textContent).toContain('Download 5 JPGs');
+    await wait(100);
+    expect(convertCalls.n).toBe(2);
+    expect(convertCalls.last.format).toBe('image/jpeg');
+    await click(radio('PNG'));
+    expect(downloadElement().textContent).toContain('Download 5 PNGs');
+    expect(downloadElement().textContent).toMatch(/\d(\.\d)? KB/);
+    await wait(150);
+    expect(convertCalls.n).toBe(2);
+    expect(editSpy).toHaveBeenCalledWith('pdf-to-image');
+  });
+
+  it('never auto-builds above 30 pages, says it is made on tap, and builds when Download is approached', async () => {
     await open(31);
-    expect(tiles().length).toBe(31);
-    await advance(10000);
+    await wait(200);
     expect(convertCalls.n).toBe(0);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    await act(async () => { primary().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    expect(downloadElement().textContent).toContain('Made when you tap');
+    await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    await wait(100);
     expect(convertCalls.n).toBe(1);
-    await advance(50);
-    expect(primary().textContent).toMatch(/KB|MB/);
+    expect(downloadElement().textContent).toMatch(/KB|MB/);
+    expect(downloadElement().textContent).not.toContain('Made when you tap');
   });
 
-  it('above 30 pages says the images are made when you tap, until the build lands', async () => {
-    await open(31);
-    expect(primary().textContent).toContain('Made when you tap');
-    await act(async () => { primary().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    await advance(50);
-    expect(primary().textContent).toMatch(/KB|MB/);
-    expect(primary().textContent).not.toContain('Made when you tap');
-  });
-
-  it('at 30 pages the Download does not say it is made when you tap', async () => {
+  it('builds on its own at exactly 30 pages', async () => {
     await open(30);
-    expect(primary().textContent).not.toContain('Made when you tap');
-  });
-
-  it('still auto-builds at exactly 30 pages', async () => {
-    await open(30);
-    await advance(1700);
     expect(convertCalls.n).toBe(1);
+    expect(downloadElement().textContent).not.toContain('Made when you tap');
   });
 
-  it('shows converting after a tap before the build is done, and delivers when it lands', async () => {
+  it('a tap that beats the build shows preparing and delivers when it lands', async () => {
     let finish;
     convertOverride.fn = (file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); });
     await open(1);
-    await advance(1700);
-    expect(convertCalls.n).toBe(1);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    await act(async () => primary().click());
-    expect(primary().getAttribute('data-state')).toBe('preparing');
-    expect(primary().textContent).toContain('Converting');
-    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
-    expect(primary().getAttribute('data-state')).toBe('saved');
-    expect(recentActions()).toContain('download');
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    await click(downloadElement());
+    expect(downloadElement().getAttribute('data-state')).toBe('preparing');
+    expect(events('tool_operation_started')).toBe(1);
+    await act(async () => { finish(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(downloadElement().getAttribute('data-state')).toBe('saved');
+    expect(events('tool_result_ready')).toBe(1);
   });
 
-  it('opens "Page 2 of 5" in the preview without changing inclusion, and its toggle leaves the page out', async () => {
-    await open(5);
-    // The dialog is a lazy chunk: its import needs real time, not fake timers.
-    vi.useRealTimers();
-    await act(async () => tiles()[1].querySelector(`.${styles['preview-btn']}`).click());
-    const find = () => container.querySelector('dialog:has(#page-preview-title)');
-    for (let i = 0; i < 20 && !find(); i += 1) {
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
-    }
-    const dialog = find();
-    expect(dialog).not.toBeNull();
-    expect(dialog.textContent).toContain('Page 2 of 5');
-    expect(pressed(tiles()[1])).toBe('true');
-    const leaveOut = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Leave out');
-    await act(async () => leaveOut.click());
-    expect(pressed(tiles()[1])).toBe('false');
-    expect(Array.from(dialog.querySelectorAll('button')).some((b) => b.textContent === 'Bring back')).toBe(true);
+  it('reports no start for the background build, only for the Download tap', async () => {
+    await open();
+    expect(events('tool_operation_started')).toBe(0);
+    await click(downloadElement());
+    await wait(50);
+    expect(events('tool_operation_started')).toBe(1);
+    expect(events('tool_result_ready')).toBe(1);
   });
 
-  it('puts a download icon on each tile only once built, and one Download PNG link for a single page', async () => {
-    await open(3);
-    expect(container.querySelectorAll(`.${styles['tile-download']}`).length).toBe(0);
-    await advance(1700);
-    const icons = Array.from(container.querySelectorAll(`.${styles['tile-download']}`));
-    expect(icons.map((a) => a.getAttribute('aria-label'))).toEqual(['Download page 1', 'Download page 2', 'Download page 3']);
-    expect(icons[1].getAttribute('download')).toBe('report-page-2.png');
-    expect(icons[1].getAttribute('href')).toMatch(/^blob:/);
-    expect(container.querySelector('ul')).toBeNull();
+  describe('saving one page', () => {
+    it('appears on each included page only once the images are built, and is not there for a skipped page', async () => {
+      mockState.numPages = 3;
+      mount({ quietPolicy: SLOW_QUIET });
+      await pick(makePdfFile());
+      expect(saveLinks()).toHaveLength(0);
+      await wait(700);
+      expect(saveLinks().map((a) => a.getAttribute('aria-label'))).toEqual(['Download page 1', 'Download page 2', 'Download page 3']);
+      expect(saveLinks().map((a) => a.getAttribute('download'))).toEqual(['report-page-1.png', 'report-page-2.png', 'report-page-3.png']);
+      expect(saveLinks()[1].getAttribute('href')).toMatch(/^blob:/);
+      await click(skipButton(2));
+      expect(saveLinks()).toHaveLength(0);
+      await wait(700);
+      expect(saveLinks().map((a) => a.getAttribute('download'))).toEqual(['report-page-1.png', 'report-page-3.png']);
+      expect(saveLinks().map((a) => a.getAttribute('aria-label'))).toEqual(['Download page 1', 'Download page 2']);
+    });
 
-    act(() => render(null, container));
-    container.remove();
-    container = null;
+    it('counts as a Download tap without turning the Download element to Saved', async () => {
+      await open(3);
+      await click(saveLinks()[0]);
+      expect(recentActions()).toContain('download');
+      expect(events('tool_operation_started')).toBe(1);
+      expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    });
+
+    it('is not offered for the tall image or for a single image', async () => {
+      await open(3);
+      await click(radio('One tall image'));
+      await wait(100);
+      expect(saveLinks()).toHaveLength(0);
+      act(() => render(null, container));
+      container.remove();
+      container = null;
+      await open(1);
+      expect(saveLinks()).toHaveLength(0);
+    });
+  });
+
+  it('a one-page PDF has one Download link and neither the range field nor the bulk row', async () => {
     await open(1);
-    await advance(1700);
-    const link = primary();
-    expect(link.tagName).toBe('A');
+    expect(field()).toBeNull();
+    expect(button('Include all')).toBeUndefined();
+    const link = downloadElement();
     expect(link.getAttribute('download')).toBe('report.png');
     expect(link.getAttribute('href')).toMatch(/^blob:/);
-    expect(link.textContent).toMatch(/^Download PNG/);
+    expect(link.textContent).toContain('Download PNG');
+    expect(heading().textContent).toContain('report.png');
+    expect(heading().textContent).toContain('1 image');
   });
 
-  it('shows the tall layout as one column with one caption', async () => {
+  it('One tall image names one file, builds the stacked layout, and counts one image', async () => {
     await open(3);
-    await act(async () => radio('One tall image').click());
-    expect(container.textContent).toContain('One image, 3 pages');
-    expect(container.querySelector(`.${styles['tall-column']}`)).not.toBeNull();
-    await advance(2100);
+    await click(radio('One tall image'));
+    await wait(100);
     expect(convertCalls.last.layout).toBe('concatenated');
-    expect(primary().textContent).toContain('Download PNG');
-    expect(primary().getAttribute('download')).toBe('report.png');
+    expect(heading().textContent).toContain('report.png');
+    expect(heading().textContent).toContain('1 image');
+    expect(downloadElement().textContent).toContain('Download PNG');
+    expect(downloadElement().getAttribute('download')).toBe('report.png');
   });
 
-  it('shows a validation error for an out-of-range page selector, and keeps the selection', async () => {
-    await open(5);
-    await type('99');
-    expect(container.querySelector(`.${pdfToolStyles['page-selector-error']}`).textContent).toContain('99');
-    expect(tiles().every((t) => pressed(t) === 'true')).toBe(true);
+  it('Download in one-per-page output saves every image, once each', async () => {
+    await open(3);
+    const saved = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function save() { if (this.download) saved.push(this.download); });
+    await click(downloadElement());
+    await wait(700);
+    expect(saved).toEqual(['report-page-1.png', 'report-page-2.png', 'report-page-3.png']);
+    expect(downloadElement().getAttribute('data-state')).toBe('saved');
+    expect(downloadElement().textContent).toContain('Saved 3 PNGs');
+  });
+
+  it('shares every image as a native file once built', async () => {
+    const nativeShare = mockNativeFileShare();
+    await open(3);
+    await click(button('Share'));
+    const files = nativeShare.share.mock.calls[0][0].files;
+    expect(files.map((f) => f.name)).toEqual(['report-page-1.png', 'report-page-2.png', 'report-page-3.png']);
+    expect(files.every((f) => f.type === 'image/png')).toBe(true);
+    nativeShare.restore();
+  });
+
+  it('a new file starts over: PNG, High, one per page, a fresh history', async () => {
+    await open();
+    await click(radio('JPG'));
+    await click(radio('One tall image'));
+    await click(skipButton(1));
+    await replaceWith(makePdfFile('next.pdf'));
+    expect(radio('PNG').getAttribute('aria-checked')).toBe('true');
+    expect(radio('One image per page').getAttribute('aria-checked')).toBe('true');
+    expect(field().value).toBe('1-5');
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
   });
 
   it('drops a conversion whose file was replaced while it ran', async () => {
     let finish;
     convertOverride.fn = (file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); });
     await open(2);
-    await advance(1700);
-    expect(convertCalls.n).toBe(1);
     const first = finish;
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('second.pdf')]);
-    });
-    // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
-    const confirmReplace = Array.from(container.querySelectorAll('dialog button'))
-      .find((b) => b.textContent.trim() === 'Replace file');
-    await act(async () => confirmReplace.click());
-    await advance(100);
-    await act(async () => { first(); await vi.advanceTimersByTimeAsync(50); });
-    expect(container.textContent).toContain('second.pdf');
-    expect(container.querySelector(`.${styles['tile-download']}`)).toBeNull();
-    expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
+    convertOverride.fn = null;
+    await replaceWith(makePdfFile('second.pdf'));
+    await act(async () => { first(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(heading().textContent).toContain('second-page-N.png');
+    expect(saveLinks().every((a) => a.getAttribute('download').startsWith('report-page'))).toBe(true);
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
   });
 
-  it('counts the operation on the Download tap, not on the build', async () => {
-    await open(1);
-    await act(async () => radio('JPG').click());
-    await advance(1700);
-    expect(recentActions()).toEqual(['add_files', 'change_setting']);
-    await act(async () => primary().click());
-    expect(recentActions()).toEqual(['add_files', 'change_setting', 'download']);
-  });
-
-  it('offers Share once built', async () => {
-    const nativeShare = mockNativeFileShare();
-    await open(1);
-    await advance(1700);
-    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
-    expect(shareButton).not.toBeNull();
-    await act(async () => shareButton.click());
-    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('report.png');
-    nativeShare.restore();
-  });
-
-  it('revokes every image URL on unmount', async () => {
-    await open(2);
-    await advance(1700);
-    const created = URL.createObjectURL.mock.results.map((r) => r.value);
-    expect(created.length).toBeGreaterThanOrEqual(2);
-    URL.revokeObjectURL.mockClear();
-    act(() => render(null, container));
-    const revoked = URL.revokeObjectURL.mock.calls.map((c) => c[0]);
-    for (const url of created) expect(revoked).toContain(url);
-  });
-
-  it('reports a failed conversion and offers no download', async () => {
-    convertOverride.fn = async () => { throw new Error('boom'); };
+  it('a build that fails says so on the Download element, counts as a failed operation, and a tap tries again', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    await open(2);
-    await advance(1700);
-    expect(container.textContent).toContain('Could not make the images. Tap to try again.');
-    expect(container.textContent).not.toContain('damaged or password-protected');
-    expect(primary().getAttribute('data-state')).toBe('error');
-  });
-
-  it('retries a failed build on a tap on the primary, showing preparing and then the result', async () => {
     let fail = true;
     convertOverride.fn = async (file, opts) => {
       if (fail) throw new Error('boom');
       return defaultConvert(file, opts);
     };
-    vi.spyOn(console, 'error').mockImplementation(() => {});
     await open(2);
-    await advance(1700);
-    expect(primary().getAttribute('data-state')).toBe('error');
+    expect(downloadElement().getAttribute('data-state')).toBe('error');
+    expect(downloadElement().textContent).toContain('Could not make the images. Tap to try again.');
+    expect(reportErrorMock).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'convert');
+    expect(events('tool_operation_failed')).toBe(1);
     fail = false;
-    let finish;
-    convertOverride.fn = (file, opts) => new Promise((resolve) => { finish = async () => resolve(await defaultConvert(file, opts)); });
-    await act(async () => primary().click());
-    expect(primary().getAttribute('data-state')).toBe('preparing');
-    expect(container.textContent).not.toContain('Tap to try again');
-    expect(convertCalls.n).toBe(2);
-    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
-    expect(primary().getAttribute('data-state')).toBe('saved');
+    await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    await wait(100);
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    expect(downloadElement().textContent).toMatch(/KB/);
   });
 
-  it('shows the load error when the PDF cannot be read', async () => {
+  it('a document that cannot be read says so, still offers Replace file, and counts as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const original = pdfjsMock.getDocument.getMockImplementation();
-    pdfjsMock.getDocument.mockImplementation(() => ({
-      promise: Promise.reject(new Error('bad pdf')),
-      destroy: vi.fn(() => Promise.resolve()),
-    }));
-    try {
-      await open(3);
-      await advance(100);
-    } finally {
-      pdfjsMock.getDocument.mockImplementation(original);
-    }
-    expect(container.textContent).toContain('damaged or password-protected');
-    expect(primary().getAttribute('data-state')).toBe('error');
+    openMock.fail = true;
+    mount();
+    await pick(makePdfFile());
+    await wait(100);
+    expect(container.textContent).toContain('The file may be damaged. Try another PDF.');
+    expect(cells()).toHaveLength(0);
+    await click(button('Replace file'));
+    expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]').open).toBe(true);
+    expect(events('tool_operation_failed')).toBe(1);
   });
 
-  it('a Download tap after a no-op selector edit still lands the images', async () => {
-    await open(5);
-    await advance(1700);
-    expect(primary().textContent).toMatch(/KB/);
-    await type('1-5,');
-    await type('1-5');
-    await act(async () => primary().click());
-    await advance(100);
-    expect(primary().getAttribute('data-state')).toBe('saved');
-    expect(primary().textContent).toMatch(/KB/);
+  it('a password-locked PDF shows NeedsUnlock, never opens in pdf.js or builds, and is not a failed operation', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    mount();
+    await pick(makePdfFile('locked.pdf'));
+    await wait(100);
+    expect(container.textContent).toContain('This PDF has a password');
+    expect(container.textContent).toContain('then you can turn it into images');
+    expect(button('Unlock it')).toBeDefined();
+    expect(sourceState.opened).toBe(0);
+    expect(convertCalls.n).toBe(0);
+    expect(downloadElement()).toBeNull();
+    expect(reportErrorMock).not.toHaveBeenCalled();
+    expect(events('tool_operation_failed')).toBe(0);
   });
 
-  it('keeps the built images when the typed selection parses to the same pages', async () => {
-    await open(5);
-    await advance(1700);
-    URL.revokeObjectURL.mockClear();
-    await type('1,2,3,4,5');
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
-    expect(primary().textContent).toMatch(/KB/);
-  });
-
-  it('does not reset the build progress when the primary is tapped mid-build', async () => {
-    let report;
-    convertOverride.fn = (file, opts) => new Promise((resolve) => {
-      report = opts.onProgress;
-      void resolve;
-    });
-    await open(3);
-    await advance(1700);
-    await act(async () => { report(0.6); });
-    await act(async () => primary().click());
-    expect(primary().textContent).toContain('60%');
-  });
-
-  it('counts a per-tile download like a Download tap', async () => {
-    await open(3);
-    await advance(1700);
-    const link = container.querySelector(`.${styles['tile-download']}`);
-    link.addEventListener('click', (e) => e.preventDefault());
-    await act(async () => link.click());
-    expect(recentActions()).toContain('download');
-    const events = lifecycle.mock.calls.map((c) => c[0]);
-    expect(events).toContain('tool_operation_started');
-    expect(events).toContain('tool_result_ready');
-  });
-
-  it('hides the Pages field and the leave-out hint for a single-page PDF', async () => {
-    await open(1);
-    expect(field()).toBeNull();
-    expect(container.querySelector(`.${styles['result-hint']}`)).toBeNull();
-    expect(container.querySelector(`.${styles.grid}`).getAttribute('data-single')).toBe('true');
-  });
-
-  it('words the hint for taps and clicks alike', async () => {
-    await open(3);
-    expect(container.textContent).toContain('Select a page to leave it out.');
-    expect(container.textContent).not.toContain('Click a page');
+  it('an owner-restricted PDF still renders and converts as it is', async () => {
+    probeMock.mockResolvedValue('owner-restricted');
+    await open(2);
+    expect(container.textContent).not.toContain('This PDF is protected');
+    expect(cells()).toHaveLength(2);
+    expect(convertCalls.n).toBe(1);
   });
 
   it('loads a PDF handed off from the home page as if picked', async () => {
@@ -506,33 +516,60 @@ describe('PdfToImageTool', () => {
       fileType: 'application/pdf',
       fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
     });
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfToImageTool />, container));
-    await advance(50);
+    mount();
+    await wait(100);
     expect(takeHandoffMock).toHaveBeenCalledWith('pdf-to-image');
-    expect(container.textContent).toContain('handed.pdf');
+    expect(heading().textContent).toContain('handed-page-N.png');
   });
 
-  // LOC: /he/pdf-to-image/ passes the Hebrew catalogue; nothing the island
-  // renders stays English, and the page-range field keeps digits readable.
-  it('renders Hebrew controls, results and page-range errors from the messages prop', async () => {
-    await open(2, { messages: hebrewToImageMessages, shellMessages: hebrewShellMessages });
-    await advance(1700);
-    const text = container.textContent;
-    for (const word of ['פורמט', 'איכות', 'רגילה', 'גבוהה', 'מקסימלית', 'תמונה לכל עמוד', 'עמודים']) {
-      expect(text).toContain(word);
-    }
-    for (const english of ['Format', 'Quality', 'Standard', 'Maximum', 'One image per page', 'Pages', 'Download']) {
-      expect(text).not.toContain(english);
-    }
-    const selector = field();
-    expect(selector.getAttribute('dir')).toBe('ltr');
-    expect(selector.classList.contains(styles['page-selector-rtl'])).toBe(true);
-    expect(selector.getAttribute('placeholder')).toBe(hebrewToImageMessages.pageSelectorPlaceholder);
-    // The size must not flip to "KB 8" in an RTL page: isolated as one LTR run.
-    expect(primary().textContent).toMatch(/⁦[^⁩]*B⁩/);
-    await type('9');
-    expect(container.querySelector(`.${pdfToolStyles['page-selector-error']}`).textContent).toBe('עמוד 9 מחוץ לטווח (1-2)');
+  it('revokes every image URL on unmount', async () => {
+    await open(2);
+    const created = URL.createObjectURL.mock.results.map((r) => r.value);
+    expect(created.length).toBeGreaterThanOrEqual(2);
+    URL.revokeObjectURL.mockClear();
+    act(() => render(null, container));
+    const revoked = URL.revokeObjectURL.mock.calls.map((c) => c[0]);
+    for (const url of created) expect(revoked).toContain(url);
+  });
+
+  // LOC: /he/pdf-to-image/ passes the Hebrew catalogue; nothing the island renders stays English.
+  describe('Hebrew', () => {
+    const hebrew = { messages: hebrewToImageMessages, shellMessages: hebrewShellMessages };
+
+    it('renders every control from the messages prop, and keeps the digits and the size readable', async () => {
+      await open(2, hebrew);
+      const text = container.textContent;
+      for (const word of ['פורמט', 'איכות', 'רגילה', 'גבוהה', 'מקסימלית', 'תמונה לכל עמוד', 'עמודים']) {
+        expect(text).toContain(word);
+      }
+      for (const english of ['Format', 'Quality', 'Standard', 'Maximum', 'One image per page', 'Pages', 'Download', 'Include all']) {
+        expect(text).not.toContain(english);
+      }
+      expect(field().getAttribute('dir')).toBe('ltr');
+      expect(field().getAttribute('placeholder')).toBe(hebrewToImageMessages.pageSelectorPlaceholder);
+      expect(downloadElement().textContent).toMatch(/⁦[^⁩]*B⁩/);
+      expect(Array.from(heading().querySelectorAll('bdi[dir="ltr"]')).some((b) => b.textContent === 'report-page-N.png')).toBe(true);
+      expect(heading().textContent).toContain('2 תמונות');
+      await type('9');
+      expect(container.querySelector('[role="alert"]').textContent).toBe('עמוד 9 מחוץ לטווח (1-2)');
+    });
+
+    it('counts the images and the saved files with the catalogue\'s own words', async () => {
+      await open(3, hebrew);
+      expect(downloadElement().textContent).toContain('הורדת 3 קובצי PNG');
+      await click(downloadElement());
+      await wait(700);
+      expect(downloadElement().textContent).toContain('נשמרו 3 קובצי PNG');
+    });
+
+    it('shows the Hebrew protected-file copy', async () => {
+      probeMock.mockResolvedValue('needs-password');
+      mount(hebrew);
+      await pick(makePdfFile('locked.pdf'));
+      await wait(100);
+      expect(container.textContent).toContain(hebrewToImageMessages.protectedNeedsPasswordTitle);
+      expect(container.textContent).toContain(hebrewToImageMessages.protectedUnlockIt);
+      expect(container.textContent).not.toContain('This PDF');
+    });
   });
 });

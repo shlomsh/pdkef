@@ -2,16 +2,16 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 /* GRID epic (docs/shared-page-grid.md): one page grid, identical in every
-   tool. Merge, Edit Pages and Split all render the shared PageGrid
+   tool. Merge, Edit Pages, Split and PDF to Image all render the shared PageGrid
    (src/shell/pageGrid/), so this guard defines "identical": the same
    thumbnail boxes, column count, action cluster position and numbers at
    desktop and phone width, and the same keyboard / tap / undo behaviour.
-   Drag is Merge's and Edit Pages' only; Split keeps source order. It loads the same 10-page PDF (page 4 landscape) into each
+   Drag is Merge's and Edit Pages' only; Split and PDF to Image keep source order. It loads the same 10-page PDF (page 4 landscape) into each
    route and compares what the grid renders; headings and rails differ by
    design and are not compared. */
 
-const ROUTES = ['/merge/', '/edit-pdf/', '/split/'];
-// Split keeps source order (docs/shared-page-grid.md, decision 6): no drag, no move keys.
+const ROUTES = ['/merge/', '/edit-pdf/', '/split/', '/pdf-to-image/'];
+// Split and PDF to Image keep source order (docs/shared-page-grid.md, decision 6): no drag, no move keys.
 const REORDERABLE = ['/merge/', '/edit-pdf/'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 900 },

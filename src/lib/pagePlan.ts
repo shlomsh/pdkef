@@ -97,3 +97,10 @@ export function withIncludedPages(plan: PlanEntry[], pageNumbers: number[]): Pla
   const wanted = new Set(pageNumbers);
   return setSkipped(plan, (entry) => !wanted.has(entry.pageIndex + 1));
 }
+
+// The rotation of each kept page that has one, by 1-based source page number: what an export adds to the page's own.
+export function rotationsOf(plan: PlanEntry[]): Record<number, number> {
+  const rotations: Record<number, number> = {};
+  for (const entry of plan) if (!entry.skipped && entry.rotation) rotations[entry.pageIndex + 1] = entry.rotation;
+  return rotations;
+}

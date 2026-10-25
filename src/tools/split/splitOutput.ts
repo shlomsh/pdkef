@@ -1,16 +1,9 @@
 import type { PlanEntry } from '../../lib/pagePlan.ts';
-import { includedPageNumbers } from '../../lib/pagePlan.ts';
+import { includedPageNumbers, rotationsOf } from '../../lib/pagePlan.ts';
 import type { Built } from '../../lib/usePreparedOutput.ts';
 import { splitPdf } from './split.js';
 
 export type SplitMode = 'combined' | 'separate';
-
-/** The rotation of each kept page that has one, by 1-based source page number: what splitPdf adds to the page's own. */
-export function rotationsOf(plan: PlanEntry[]): Record<number, number> {
-  const rotations: Record<number, number> = {};
-  for (const entry of plan) if (!entry.skipped && entry.rotation) rotations[entry.pageIndex + 1] = entry.rotation;
-  return rotations;
-}
 
 /** What the prepared output holds for a plan: one blob (combined) or a part per page (separate). */
 export async function buildSplit(
