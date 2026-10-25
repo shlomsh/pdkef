@@ -19,3 +19,6 @@ Outcome: the two modules move to `src/lib/` (rule 9 of the module boundaries wan
 `pdf_page_tree` event gains a `tool` property so the read tells the tools apart. Start from the
 `pdf_page_tree` counts: if the event never fires as `repaired` in production, say so here before
 spending the work.
+
+Progress (2026-10-25, GRID-05): `loadPdfWithPages` and `pdfPageTree` now live in `src/lib/`; Edit PDF and
+Split load through them. Merge, Compress, Sign and the rest still have their own pdf-lib loads.
