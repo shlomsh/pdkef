@@ -285,9 +285,10 @@ export default function PdfSplitTool({
     </div>
   );
 
-  const replaceRow = (requestReplace: () => void) => (
+  // The phone row shares its line with the bulk buttons, so it takes the shell's short label.
+  const replaceRow = (requestReplace: () => void, label = sm.replaceLabel) => (
     <div class={workspaceStyles['quiet-row']}>
-      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.replaceLabel}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace} title={sm.replaceLabel}>{label}</button>
     </div>
   );
 
@@ -362,8 +363,10 @@ export default function PdfSplitTool({
               )}
               phoneControls={(
                 <div class={workspaceStyles['mobile-file-controls']}>
-                  {replaceRow(requestReplace)}
+                  {/* The bulk row starts the line and Replace file takes its end, as Merge's file
+                      controls do; the range field gets the next line to itself. */}
                   {bulkRow}
+                  {replaceRow(requestReplace, sm.replaceShort)}
                   {rangeField('page-selector-input-phone')}
                 </div>
               )}
