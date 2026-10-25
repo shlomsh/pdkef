@@ -116,7 +116,8 @@ parity guard · GRID-05 Split on the grid · GRID-06 PDF to Image on the grid.
 
 The target is the sketch Shlomi approved on 2026-10-25: all four tools share the heading (output name,
 count, Undo/Redo), the cell (thumbnail, output number under it, rotate / skip / preview on hover or tap,
-a skipped page dimmed) and the rail order (Replace file, the tool's own choices, Download, hand-offs).
+a skipped page dimmed) and the rail order (revised the same day: the output choice, which pages, Download,
+hand-offs, then Replace file last; Merge keeps its own; docs/ux-design-guidelines.md section 20).
 Split's file card, framed "one document" box, always-on tile icons and undo chip go.
 
 ### Decisions
