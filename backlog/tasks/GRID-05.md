@@ -1,7 +1,7 @@
 ---
 id: "GRID-05"
 title: "Split shows its pages through the shared page grid"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "polish"
 horizon: "next"
