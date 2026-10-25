@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { englishShellMessages as sm } from '../../i18n/toolMessages';
-import { downloadDetail, pagesLabel } from './pageCounts.ts';
+import { englishShellMessages as sm, englishMergeMessages, hebrewMergeMessages } from '../../i18n/toolMessages';
+import { downloadDetail, pagesLabel, skippedLabel } from './pageCounts.ts';
+
+describe('skippedLabel', () => {
+  it('reads as a whole phrase in English', () => {
+    expect(skippedLabel(1, englishMergeMessages)).toBe('1 page skipped');
+    expect(skippedLabel(3, englishMergeMessages)).toBe('3 pages skipped');
+  });
+
+  it('agrees in number in Hebrew', () => {
+    expect(skippedLabel(1, hebrewMergeMessages)).toBe('עמוד אחד מדולג');
+    expect(skippedLabel(3, hebrewMergeMessages)).toBe('3 עמודים מדולגים');
+  });
+});
 
 describe('pagesLabel', () => {
   it('uses the singular for one page and the plural otherwise', () => {

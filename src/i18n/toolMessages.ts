@@ -97,6 +97,9 @@ export interface PageGridMessages {
   rotatePage: string;
   skipPage: string;
   skippedBadge: string;
+  /** The heading's whole phrase, so a language with number agreement can inflect it. */
+  skippedCountOne: string;
+  skippedCountOther: string;
   skippedState: string;
   /** Visible to assistive tech only (sr-only), like the file list's reorderHint. */
   stripHint: string;
@@ -300,6 +303,8 @@ const englishMergeMessages: MergeMessages = {
   pageItemLabel: 'Page {number} of {total}, from {file}{state}',
   skippedState: ', skipped',
   skippedBadge: 'Skipped',
+  skippedCountOne: '1 page skipped',
+  skippedCountOther: '{count} pages skipped',
   rotatePage: 'Rotate page {number}',
   skipPage: 'Hide page {number} from the merged PDF',
   includePage: 'Show page {number} in the merged PDF',
@@ -417,6 +422,8 @@ const hebrewMergeMessages: MergeMessages = {
   pageItemLabel: 'עמוד {number} מתוך {total}, מתוך {file}{state}',
   skippedState: ', מדולג',
   skippedBadge: 'מדולג',
+  skippedCountOne: 'עמוד אחד מדולג',
+  skippedCountOther: '{count} עמודים מדולגים',
   rotatePage: 'סיבוב עמוד {number}',
   skipPage: 'הסתרת עמוד {number} מה-PDF המאוחד',
   includePage: 'הצגת עמוד {number} ב-PDF המאוחד',
@@ -795,6 +802,12 @@ export interface SplitMessages extends PageGridMessages, DownloadMessages, Histo
   skippedMany: string;
   loadingPages: string;
   splitFailedBody: string;
+  protectedNeedsPasswordTitle: string;
+  protectedNeedsPasswordBody: string;
+  protectedOwnerOnlyTitle: string;
+  protectedOwnerOnlyBody: string;
+  protectedUnlockIt: string;
+  protectedHandoffFailed: string;
   unlockLink: string;
   pdfOne: string;
   pdfOther: string;
@@ -858,6 +871,12 @@ const englishSplitMessages: SplitMessages = {
   skippedMany: 'Skipped {count} files - not PDFs.',
   loadingPages: 'Loading document pages...',
   splitFailedBody: 'The split failed. A protected PDF opens in {unlock} first. Otherwise the file may be damaged.',
+  protectedNeedsPasswordTitle: 'This PDF has a password',
+  protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can split it.',
+  protectedOwnerOnlyTitle: 'This PDF is protected',
+  protectedOwnerOnlyBody: "It opens without a password, but Split PDF can't change it as it is. Unlock takes the protection off on your device, then you can split it.",
+  protectedUnlockIt: 'Unlock it',
+  protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
   unlockLink: 'Unlock',
   pdfOne: '1 PDF',
   pdfOther: '{count} PDFs',
@@ -900,6 +919,8 @@ const englishSplitMessages: SplitMessages = {
   rotatePage: 'Rotate page {number}',
   skipPage: 'Skip page {number}',
   skippedBadge: 'Skipped',
+  skippedCountOne: '1 page skipped',
+  skippedCountOther: '{count} pages skipped',
   skippedState: ', skipped',
   stripHint: 'Focus a page and press R to rotate it, Delete to skip it, or Enter to open it larger.',
   tipBringBack: 'Show',
@@ -948,6 +969,12 @@ const hebrewSplitMessages: SplitMessages = {
   skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF.',
   loadingPages: 'טוענים את עמודי המסמך...',
   splitFailedBody: 'הפיצול נכשל. קובץ PDF מוגן נפתח קודם ב{unlock}. אם הוא לא מוגן, ייתכן שהקובץ פגום.',
+  protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
+  protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לפצל אותו.',
+  protectedOwnerOnlyTitle: 'קובץ ה-PDF הזה מוגן',
+  protectedOwnerOnlyBody: 'הוא נפתח בלי סיסמה, אבל אי אפשר לפצל אותו כמו שהוא. הסרת הנעילה מורידה את ההגנה במכשיר שלכם, ואז אפשר לפצל אותו.',
+  protectedUnlockIt: 'הסרת נעילה',
+  protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
   unlockLink: 'הסרת נעילה',
   pdfOne: 'קובץ PDF אחד',
   pdfOther: '{count} קבצי PDF',
@@ -990,6 +1017,8 @@ const hebrewSplitMessages: SplitMessages = {
   rotatePage: 'סיבוב עמוד {number}',
   skipPage: 'דילוג על עמוד {number}',
   skippedBadge: 'מדולג',
+  skippedCountOne: 'עמוד אחד מדולג',
+  skippedCountOther: '{count} עמודים מדולגים',
   skippedState: ', מדולג',
   stripHint: 'התמקדו בעמוד ולחצו R כדי לסובב אותו, Delete כדי לדלג עליו, או Enter כדי לפתוח אותו בגדול.',
   tipBringBack: 'הצגה',
@@ -1207,6 +1236,8 @@ const englishToImageMessages: ToImageMessages = {
   rotatePage: 'Rotate page {number}',
   skipPage: 'Skip page {number}',
   skippedBadge: 'Skipped',
+  skippedCountOne: '1 page skipped',
+  skippedCountOther: '{count} pages skipped',
   skippedState: ', skipped',
   stripHint: 'Focus a page and press R to rotate it, Delete to skip it, or Enter to open it larger.',
   tipBringBack: 'Show',
@@ -1323,6 +1354,8 @@ const hebrewToImageMessages: ToImageMessages = {
   rotatePage: 'סיבוב עמוד {number}',
   skipPage: 'דילוג על עמוד {number}',
   skippedBadge: 'מדולג',
+  skippedCountOne: 'עמוד אחד מדולג',
+  skippedCountOther: '{count} עמודים מדולגים',
   skippedState: ', מדולג',
   stripHint: 'התמקדו בעמוד ולחצו R כדי לסובב אותו, Delete כדי לדלג עליו, או Enter כדי לפתוח אותו בגדול.',
   tipBringBack: 'הצגה',

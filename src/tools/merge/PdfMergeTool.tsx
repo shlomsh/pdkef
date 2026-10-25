@@ -39,7 +39,7 @@ import DownloadElement from '../../shell/DownloadElement.tsx';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
-import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
+import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import FileName from '../../shell/FileName.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -1113,7 +1113,7 @@ export default function PdfMergeTool({
                   >
                     <span class={workspaceStyles['doc-heading-count']}>
                       {' · '}{pagesLabel(outputCount, sm)}
-                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount, sm)} ${t.skippedBadge.toLowerCase()}` : ''}
+                      {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
                     </span>
                     {stillRendering && (
                       <span class={docStyles['doc-heading-progress']}>

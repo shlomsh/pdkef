@@ -447,6 +447,40 @@ describe('PdfSplitTool UI flow', () => {
     expect(events('tool_operation_failed')).toBe(1);
   });
 
+  it('a load failure still offers Replace file, which asks first', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    loadMock.fn = () => Promise.reject(new Error('boom'));
+    mount();
+    await pick(fixtureFile());
+    await wait(150);
+    expect(button('Replace file')).toBeDefined();
+    await click(button('Replace file'));
+    expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]').open).toBe(true);
+  });
+
+  it.each([
+    ['needs-password', 'protectedNeedsPasswordTitle'],
+    ['owner-restricted', 'protectedOwnerOnlyTitle'],
+  ])('shows the Hebrew protected-file copy for a %s PDF', async (protection, titleKey) => {
+    probeMock.mockResolvedValue(protection);
+    mount({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
+    await pick(fixtureFile('locked.pdf'));
+    await wait(150);
+    expect(container.textContent).toContain(hebrewSplitMessages[titleKey]);
+    expect(container.textContent).toContain(hebrewSplitMessages.protectedUnlockIt);
+    expect(container.textContent).not.toContain('This PDF');
+  });
+
+  it('counts skipped pages with the catalogue\'s own plural, in Hebrew too', async () => {
+    await open({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
+    const skipHe = (n) => click(cells()[n - 1].querySelector('[aria-label^="דילוג על עמוד"]'));
+    await skipHe(1);
+    expect(heading().textContent).toContain('עמוד אחד מדולג');
+    await skipHe(2);
+    await skipHe(3);
+    expect(heading().textContent).toContain('3 עמודים מדולגים');
+  });
+
   it('counts a document that fails to load as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     loadMock.fn = () => Promise.reject(new Error('boom'));

@@ -25,7 +25,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
-import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
+import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
@@ -269,7 +269,16 @@ export default function PdfEditPagesTool() {
         </div>
       )}
 
-      {file && loadStatus === 'error' && failure}
+      {file && loadStatus === 'error' && (
+        <ToolShellBridge>
+          {({ requestReplace }) => (
+            <>
+              {failure}
+              {replaceRow(requestReplace)}
+            </>
+          )}
+        </ToolShellBridge>
+      )}
 
       {file && needsUnlock && (
         <NeedsUnlock
@@ -318,7 +327,7 @@ export default function PdfEditPagesTool() {
                   >
                     <span class={workspaceStyles['doc-heading-count']}>
                       {' · '}{pagesLabel(outputCount, sm)}
-                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount, sm)} ${t.skippedBadge.toLowerCase()}` : ''}
+                      {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
                     </span>
                   </OutputName>
                 </h2>

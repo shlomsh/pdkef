@@ -59,6 +59,8 @@ export const englishEditPagesMessages: EditPagesMessages = {
   rotatePage: 'Rotate page {number}',
   skipPage: 'Skip page {number}',
   skippedBadge: 'Skipped',
+  skippedCountOne: '1 page skipped',
+  skippedCountOther: '{count} pages skipped',
   skippedState: ', skipped',
   stripHint: 'Drag a page to reorder, or focus a page and press the left or right arrow keys to move it, R to rotate it, Delete to skip it.',
   tipBringBack: 'Show',
