@@ -15,6 +15,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Polish
 
 - [GRID-05](backlog/tasks/GRID-05.md) P2 · Split shows its pages through the shared page grid (in progress)
+- [GRID-06](backlog/tasks/GRID-06.md) P2 · PDF to Image shows its pages through the shared page grid (in progress)
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
 
 ## Waiting, by date
