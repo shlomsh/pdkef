@@ -2,15 +2,17 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 /* GRID epic (docs/shared-page-grid.md): one page grid, identical in every
-   tool. Merge and Edit Pages both render the shared PageGrid
+   tool. Merge, Edit Pages and Split all render the shared PageGrid
    (src/shell/pageGrid/), so this guard defines "identical": the same
    thumbnail boxes, column count, action cluster position and numbers at
-   desktop and phone width, and the same drag / keyboard / tap / undo
-   behaviour. It loads the same 10-page PDF (page 4 landscape) into each
+   desktop and phone width, and the same keyboard / tap / undo behaviour.
+   Drag is Merge's and Edit Pages' only; Split keeps source order. It loads the same 10-page PDF (page 4 landscape) into each
    route and compares what the grid renders; headings and rails differ by
    design and are not compared. */
 
-const ROUTES = ['/merge/', '/edit-pdf/'];
+const ROUTES = ['/merge/', '/edit-pdf/', '/split/'];
+// Split keeps source order (docs/shared-page-grid.md, decision 6): no drag, no move keys.
+const REORDERABLE = ['/merge/', '/edit-pdf/'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 900 },
   { name: 'phone', width: 390, height: 844 },
@@ -83,9 +85,10 @@ for (const viewport of VIEWPORTS) {
   test.describe(`page grid parity, ${viewport.name}`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height }, hasTouch: viewport.name === 'phone' });
 
-    async function both(browser, contextOptions, measure) {
+    // One measure per route, Merge first: every other tool is compared to it.
+    async function each(browser, contextOptions, measure, routes = ROUTES) {
       const out = [];
-      for (const route of ROUTES) {
+      for (const route of routes) {
         const context = await browser.newContext(contextOptions);
         const page = await context.newPage();
         await openTool(page, route);
@@ -101,38 +104,54 @@ for (const viewport of VIEWPORTS) {
     };
 
     test('thumbnail boxes and column count match Merge', async ({ browser }) => {
-      const [merge, edit] = await both(browser, options, async (page) => ({
+      const [merge, ...others] = await each(browser, options, async (page) => ({
         sizes: await boxSizes(page),
         columns: await columnCount(page),
       }));
       expect(merge.sizes).toHaveLength(10);
-      expect(edit.sizes).toHaveLength(10);
-      edit.sizes.forEach((size, i) => {
-        expect(Math.abs(size.w - merge.sizes[i].w), `page ${i + 1} width`).toBeLessThanOrEqual(1);
-        expect(Math.abs(size.h - merge.sizes[i].h), `page ${i + 1} height`).toBeLessThanOrEqual(1);
+      others.forEach((other, t) => {
+        const route = ROUTES[t + 1];
+        expect(other.sizes, route).toHaveLength(10);
+        other.sizes.forEach((size, i) => {
+          expect(Math.abs(size.w - merge.sizes[i].w), `${route} page ${i + 1} width`).toBeLessThanOrEqual(1);
+          expect(Math.abs(size.h - merge.sizes[i].h), `${route} page ${i + 1} height`).toBeLessThanOrEqual(1);
+        });
+        expect(other.columns, route).toBe(merge.columns);
       });
-      expect(edit.columns).toBe(merge.columns);
     });
 
     test('action cluster sits at the same offsets from the thumbnail', async ({ browser }) => {
-      const [merge, edit] = await both(browser, options, (page) => clusterOffsets(page, viewport));
-      expect(edit).toHaveLength(3);
-      edit.forEach((offset, i) => {
-        expect(Math.abs(offset.x - merge[i].x), `button ${i} x`).toBeLessThanOrEqual(1);
-        expect(Math.abs(offset.y - merge[i].y), `button ${i} y`).toBeLessThanOrEqual(1);
+      const [merge, ...others] = await each(browser, options, (page) => clusterOffsets(page, viewport));
+      others.forEach((other, t) => {
+        const route = ROUTES[t + 1];
+        expect(other, route).toHaveLength(3);
+        other.forEach((offset, i) => {
+          expect(Math.abs(offset.x - merge[i].x), `${route} button ${i} x`).toBeLessThanOrEqual(1);
+          expect(Math.abs(offset.y - merge[i].y), `${route} button ${i} y`).toBeLessThanOrEqual(1);
+        });
       });
     });
 
     test('page numbers read the same', async ({ browser }) => {
-      const [merge, edit] = await both(browser, options, (page) => page.locator('[data-page-number]').allTextContents());
+      const [merge, ...others] = await each(browser, options, (page) => page.locator('[data-page-number]').allTextContents());
       expect(merge.length).toBeGreaterThan(0);
-      expect(edit).toEqual(merge);
+      others.forEach((other, t) => expect(other, ROUTES[t + 1]).toEqual(merge));
+    });
+
+    test('page numbers read the same after skipping page 2', async ({ browser }) => {
+      const [merge, ...others] = await each(browser, options, async (page) => {
+        await cells(page).nth(1).focus();
+        await page.keyboard.press('Delete');
+        await expect(cells(page).nth(1)).toHaveAttribute('data-skipped', /.*/);
+        return page.locator('[data-page-number]').allTextContents();
+      });
+      others.forEach((other, t) => expect(other, ROUTES[t + 1]).toEqual(merge));
     });
 
     // Edit Pages once showed the source number; the number is the output position. Skip
     // page 2 and bring page 5 to the front by keyboard, then both tools must still agree.
     test('page numbers read the same after skipping page 2 and moving page 5 to the front', async ({ browser }) => {
-      const [merge, edit] = await both(browser, options, async (page) => {
+      const [merge, edit] = await each(browser, options, async (page) => {
         await cells(page).nth(1).focus();
         await page.keyboard.press('Delete');
         await expect(cells(page).nth(1)).toHaveAttribute('data-skipped', /.*/);
@@ -143,11 +162,33 @@ for (const viewport of VIEWPORTS) {
           await expect.poll(async () => (await keys(page)).indexOf(moved)).toBe(4 - step);
         }
         return { order: await keys(page), numbers: await page.locator('[data-page-number]').allTextContents() };
-      });
+      }, REORDERABLE);
       expect(merge.numbers.length).toBeGreaterThan(0);
       expect(edit.numbers).toEqual(merge.numbers);
       expect(edit.order.map((key) => key.split(':')[1])).toEqual(merge.order.map((key) => key.split(':')[1]));
     });
+  });
+}
+
+async function dragPage(page, fromIndex, toIndex) {
+  const from = await cells(page).nth(fromIndex).locator('[data-thumb-box]').boundingBox();
+  const to = await cells(page).nth(toIndex).locator('[data-thumb-box]').boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
+  await page.mouse.up();
+}
+
+for (const route of ROUTES.filter((r) => !REORDERABLE.includes(r))) {
+  test(`${route} keeps source order: a drag and the arrow keys move nothing`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openTool(page, route);
+    const before = await keys(page);
+    await dragPage(page, 1, 4);
+    await cells(page).nth(4).focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(300);
+    expect(await keys(page)).toEqual(before);
   });
 }
 
@@ -156,14 +197,10 @@ for (const route of ROUTES) {
     test.use({ viewport: { width: 1280, height: 900 } });
 
     test('dragging page 2 onto page 5 reorders it', async ({ page }) => {
+      test.skip(!REORDERABLE.includes(route), 'source order only');
       await openTool(page, route);
       const before = await keys(page);
-      const from = await cells(page).nth(1).locator('[data-thumb-box]').boundingBox();
-      const to = await cells(page).nth(4).locator('[data-thumb-box]').boundingBox();
-      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
-      await page.mouse.up();
+      await dragPage(page, 1, 4);
       // The drop commits through the tool's history on the next render. Where it
       // lands depends on how the landscape page 4 (two columns) reflows under the
       // pointer, so the guard asks only that page 2 moved forward.
