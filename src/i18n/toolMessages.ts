@@ -18,6 +18,7 @@
  * props as JSON - a function couldn't cross that boundary at all).
  */
 import type { DocumentationLocaleId } from './documentationLocales';
+import type { HistoryButtonsMessages } from '../shell/HistoryButtons.tsx';
 import type { ElementUpdateKind } from '../editor/model/updateKind.ts';
 
 /** The whiteout colour group's text from a message table (the shape of `WhiteoutColorLabels`). */
@@ -787,7 +788,7 @@ const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>>
  * The output file names (`extracted_<name>.pdf`, `<name>-page-N.pdf`) are real
  * file names and are never translated.
  */
-export interface SplitMessages {
+export interface SplitMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
   lang: string;
   dir: 'ltr' | 'rtl';
   skippedOne: string;
@@ -874,6 +875,28 @@ export interface SplitMessages {
   rangeOutOfRange: string;
   invalidPart: string;
   noValidPages: string;
+  /* The shared page grid's own strings (Split reads the same Download and Undo/Redo elements). */
+  includeAll: string;
+  skipAll: string;
+  invert: string;
+  documentHeading: string;
+  downloadShort: string;
+  readyAnnouncement: string;
+  sharedSuccessfully: string;
+  sharingCanceled: string;
+  shareError: string;
+  undoneAnnouncement: string;
+  redoneAnnouncement: string;
+  allIncluded: string;
+  inverted: string;
+  loaded: string;
+  loadFailed: string;
+  announceNeedsPassword: string;
+  announceRestricted: string;
+  closeStrip: string;
+  handoffCompress: string;
+  handoffSign: string;
+  shareLabel: string;
 }
 
 const englishSplitMessages: SplitMessages = {
@@ -956,6 +979,55 @@ const englishSplitMessages: SplitMessages = {
   rangeOutOfRange: 'Range {start}-{end} contains out of range page numbers (1-{max})',
   invalidPart: 'Invalid page range or number: "{part}"',
   noValidPages: 'No valid pages selected',
+  captionPages: 'pages {from} to {to}',
+  includePage: 'Include page {number}',
+  pageIncluded: 'Page {number} included again.',
+  pageItemLabel: 'Page {number} of {total}{state}',
+  pageMoved: 'Page moved to position {position} of {total}.',
+  pageRotated: 'Page {number} rotated to {degrees} degrees.',
+  pageSkipped: 'Page {number} skipped. It stays here and is left out of the download.',
+  previewIncludeAgain: 'Include it again',
+  previewSkippedBanner: 'Left out of the split PDF',
+  previewSkippedNote: 'Left out of the download.',
+  rotatePage: 'Rotate page {number}',
+  skipPage: 'Skip page {number}',
+  skippedBadge: 'Skipped',
+  skippedState: ', skipped',
+  stripHint: 'Focus a page and press R to rotate it, Delete to skip it, or Enter to open it larger.',
+  tipBringBack: 'Show',
+  tipOpen: 'Open',
+  tipRotate: 'Rotate',
+  tipSkip: 'Skip',
+  allSkipped: 'Every page is skipped',
+  downloadLabel: 'Download 1 PDF',
+  buildFailed: 'Could not split this PDF',
+  preparingPages: 'Preparing {count} pages…',
+  renderProgress: '{done} of {total} rendered',
+  savedLabel: 'Saved',
+  redo: 'Redo',
+  undoLabel: 'Undo last change',
+  redoLabel: 'Redo last undone change',
+  includeAll: 'Include all',
+  skipAll: 'Skip all',
+  invert: 'Invert',
+  documentHeading: 'Your split PDF',
+  downloadShort: 'Download',
+  readyAnnouncement: 'Your PDF is ready.',
+  sharedSuccessfully: 'Split PDF shared successfully.',
+  sharingCanceled: 'Sharing canceled. Your PDF is still ready.',
+  shareError: 'Could not open the share sheet. Please try again.',
+  undoneAnnouncement: 'Undid last change.',
+  redoneAnnouncement: 'Redid last change.',
+  allIncluded: 'All pages included.',
+  inverted: 'Included and skipped pages swapped.',
+  loaded: 'Loaded PDF file "{name}" with {count} pages.',
+  loadFailed: 'Failed to load PDF file.',
+  announceNeedsPassword: 'This PDF has a password',
+  announceRestricted: 'This PDF is protected',
+  closeStrip: 'Close',
+  handoffCompress: 'Compress',
+  handoffSign: 'Sign',
+  shareLabel: 'Share',
 };
 
 // An AI draft, not reviewed copy: pairs with he/split.yaml's own draft status
@@ -1041,6 +1113,55 @@ const hebrewSplitMessages: SplitMessages = {
   rangeOutOfRange: 'הטווח {start}-{end} כולל עמודים מחוץ לטווח (1-{max})',
   invalidPart: 'טווח או מספר עמוד לא תקין: "{part}"',
   noValidPages: 'לא נבחרו עמודים תקינים',
+  captionPages: 'עמודים {from} עד {to}',
+  includePage: 'הוספת עמוד {number}',
+  pageIncluded: 'עמוד {number} הוחזר.',
+  pageItemLabel: 'עמוד {number} מתוך {total}{state}',
+  pageMoved: 'העמוד עבר למקום {position} מתוך {total}.',
+  pageRotated: 'עמוד {number} סובב ל-{degrees} מעלות.',
+  pageSkipped: 'דילגנו על עמוד {number}. הוא נשאר כאן ולא ייכלל בהורדה.',
+  previewIncludeAgain: 'להחזיר אותו',
+  previewSkippedBanner: 'לא ייכלל ב-PDF המפוצל',
+  previewSkippedNote: 'לא ייכלל בהורדה.',
+  rotatePage: 'סיבוב עמוד {number}',
+  skipPage: 'דילוג על עמוד {number}',
+  skippedBadge: 'מדולג',
+  skippedState: ', מדולג',
+  stripHint: 'התמקדו בעמוד ולחצו R כדי לסובב אותו, Delete כדי לדלג עליו, או Enter כדי לפתוח אותו בגדול.',
+  tipBringBack: 'הצגה',
+  tipOpen: 'פתיחה',
+  tipRotate: 'סיבוב',
+  tipSkip: 'דילוג',
+  allSkipped: 'כל העמודים מדולגים',
+  downloadLabel: 'הורדת PDF אחד',
+  buildFailed: 'לא הצלחנו לפצל את ה-PDF הזה',
+  preparingPages: 'מכינים {count} עמודים…',
+  renderProgress: '{done} מתוך {total} עומדו',
+  savedLabel: 'נשמר',
+  redo: 'ביצוע מחדש',
+  undoLabel: 'ביטול השינוי האחרון',
+  redoLabel: 'ביצוע מחדש של השינוי שבוטל',
+  includeAll: 'הוספת הכול',
+  skipAll: 'דילוג על הכול',
+  invert: 'היפוך',
+  documentHeading: 'ה-PDF המפוצל שלכם',
+  downloadShort: 'הורדה',
+  readyAnnouncement: 'ה-PDF שלכם מוכן.',
+  sharedSuccessfully: 'ה-PDF המפוצל שותף.',
+  sharingCanceled: 'השיתוף בוטל. ה-PDF עדיין מוכן.',
+  shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  undoneAnnouncement: 'השינוי האחרון בוטל',
+  redoneAnnouncement: 'השינוי בוצע מחדש',
+  allIncluded: 'כל העמודים כלולים.',
+  inverted: 'העמודים הכלולים והמדולגים התחלפו.',
+  loaded: 'הקובץ "{name}" נטען, {count} עמודים.',
+  loadFailed: 'טעינת קובץ ה-PDF נכשלה.',
+  announceNeedsPassword: 'ל-PDF הזה יש סיסמה',
+  announceRestricted: 'ה-PDF הזה מוגן',
+  closeStrip: 'סגירה',
+  handoffCompress: 'כיווץ',
+  handoffSign: 'חתימה',
+  shareLabel: 'שיתוף',
 };
 
 const splitMessages: Partial<Record<DocumentationLocaleId, SplitMessages>> = {
