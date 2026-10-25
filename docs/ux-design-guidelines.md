@@ -417,6 +417,13 @@ in the HTML but hide once files are loaded, like the subhead. (MERGE-24, 2026-10
 - The number under a page is where it lands in the output; the preview and the cell's label name the
   source page. (GRID-04)
 - A tap on a page selects it; nothing destructive hangs off a tap on the page body. (GRID-04)
+- The rail runs in order of consequence. A one-file tool (Edit PDF, Split, PDF to Image): the choice
+  that defines the output first (Split's One PDF or one per page, PDF to Image's format, quality and
+  output, Edit PDF's page numbers), then which pages (the range field, Include all, Skip all, Invert),
+  then Download and the hand-offs, and Replace file as a quiet last line: starting over with another
+  file is an ending, not a first step. Merge keeps section 4's order, because its file list is its
+  first decision. The rail sits at the end of the reading line, after the pages: they are what a
+  person checks first, and Download closes the path. (Shlomi, 2026-10-25)
 
 ## The review questions
 
