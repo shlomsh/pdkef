@@ -242,8 +242,8 @@ export default function PdfSplitTool({
   const onSkipAll = bulk(skipAll, t.allSkipped);
   const onInvert = bulk(invert, t.inverted);
 
-  const onSelectPages = useCallback((numbers: number[]) => {
-    onPlanChange((current) => withIncludedPages(current, numbers));
+  const onSelectPages = useCallback((numbers: number[], options: { merge: boolean }) => {
+    onPlanChange((current) => withIncludedPages(current, numbers), options);
   }, [onPlanChange]);
 
   const chooseMode = (next: SplitMode) => {

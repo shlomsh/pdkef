@@ -23,11 +23,11 @@ export function useDocumentHistory<D extends { plan: PlanEntry[] }>(
 ) {
   const { present, canUndo, canRedo, commit, undo, redo, amend, reset } = useEditHistory(initial);
 
-  const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
+  const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[], options?: { merge?: boolean }) => {
     commit((current: D) => {
       const next = update(current.plan);
       return next === current.plan ? current : { ...current, plan: next };
-    });
+    }, options);
     reportEdit(tool);
   }, [commit, tool]);
 

@@ -54,10 +54,14 @@ export function useEditHistory(initialPresent) {
   // undo/redo stack (a fresh action after an undo overwrites what could have
   // been redone). Returning the same `present` reference from `updater` is a
   // no-op: no history entry, no state change.
-  const commit = useCallback((updater) => {
+  // `merge` folds the change into the step before it instead of adding one:
+  // Split's page range typed in one go ("1", "1-", "1-3") is one step. With
+  // no step before it, a merged commit is an ordinary one.
+  const commit = useCallback((updater, { merge = false } = {}) => {
     setState((s) => {
       const nextPresent = typeof updater === 'function' ? updater(s.present) : updater;
       if (nextPresent === s.present) return s;
+      if (merge && s.past.length > 0) return { past: s.past, present: nextPresent, future: [] };
       return {
         past: capPast([...s.past, s.present]),
         present: nextPresent,
