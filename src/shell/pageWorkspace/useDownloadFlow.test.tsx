@@ -1,17 +1,39 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { decideDownloadState, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
+import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
-const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), clearPrepared: vi.fn() }));
+const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn() }));
 vi.mock('../../lib/usePdfShare.js', () => ({
   usePdfShare: () => ({ shareReady: false, sharePrepared: vi.fn(), ...share }),
 }));
 
 type Prepared = DownloadFlowInput['prepared'];
 const blob = new Blob(['x'], { type: 'application/pdf' });
-const ready = (generation = 1): Prepared => ({ status: 'ready', blob, url: 'blob:x', generation, prepareNow: vi.fn() });
-const pending = (): Prepared => ({ status: 'pending', blob: null, url: null, generation: 0, prepareNow: vi.fn() });
+const ready = (generation = 1): Prepared => ({ status: 'ready', blob, url: 'blob:x', parts: null, generation, prepareNow: vi.fn() });
+const pending = (): Prepared => ({ status: 'pending', blob: null, url: null, parts: null, generation: 0, prepareNow: vi.fn() });
+
+const partBlobs = [new Blob(['a']), new Blob(['b']), new Blob(['c'])];
+const parts = partBlobs.map((partBlob, i) => ({ blob: partBlob, filename: `out-page-${i + 1}.pdf` }));
+const readyParts = (generation = 1): Prepared => ({ status: 'ready', blob: null, url: null, parts, generation, prepareNow: vi.fn() });
+
+describe('deliverParts', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('saves the first part at once and the rest 200 ms apart, in order', async () => {
+    vi.useFakeTimers();
+    const download = vi.fn();
+    const done = deliverParts(parts, download);
+    expect(download.mock.calls.map((c) => c[1])).toEqual(['out-page-1.pdf']);
+    await vi.advanceTimersByTimeAsync(199);
+    expect(download).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(download).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(200);
+    await done;
+    expect(download.mock.calls).toEqual(parts.map((p) => [p.blob, p.filename]));
+  });
+});
 
 describe('decideDownloadState', () => {
   it('lets a blocked tool win over everything else', () => {
@@ -130,5 +152,41 @@ describe('useDownloadFlow', () => {
     expect(flow.downloadedOnce).toBe(false);
     expect(flow.showStrip).toBe(false);
     expect(share.clearPrepared).toHaveBeenCalled();
+  });
+
+  it('parts: Share prepares every part, and a ready blob output still uses prepare', () => {
+    mount(base(readyParts()));
+    expect(share.prepareFiles).toHaveBeenCalledWith(parts.map((p) => ({ blob: p.blob, filename: p.filename, type: 'application/pdf' })));
+    expect(share.prepare).not.toHaveBeenCalled();
+    mount(base(ready(2)));
+    expect(share.prepare).toHaveBeenCalledWith(blob, 'out.pdf');
+  });
+
+  it('parts: a tap on an already-ready output delivers every part once, ready to saved without preparing', async () => {
+    vi.useFakeTimers();
+    try {
+      mount(base(readyParts()));
+      const states: string[] = [flow.downloadState];
+      act(() => flow.onRowPreparingTap());
+      states.push(flow.downloadState);
+      expect(share.download).toHaveBeenCalledTimes(1);
+      expect(share.download).toHaveBeenCalledWith(parts[0].blob, 'out-page-1.pdf');
+      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+      expect(share.download.mock.calls.map((c) => c[1])).toEqual(['out-page-1.pdf', 'out-page-2.pdf', 'out-page-3.pdf']);
+      expect(states).toEqual(['ready', 'saved']);
+      expect(flow.downloadState).toBe('saved');
+      expect(flow.tap).toBe('done');
+      expect(onDelivered).toHaveBeenCalledTimes(1);
+      expect(announce).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('parts: requestHandoff does nothing', async () => {
+    mount(base(readyParts()));
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(flow.handoffBusy).toBe(false);
+    expect(flow.handoffFailed).toBe(false);
   });
 });

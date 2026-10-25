@@ -415,6 +415,22 @@ describe('PageGrid', () => {
     expect(onPlanChange).toHaveBeenCalledTimes(1);
   });
 
+  it('reorderable={false}: no Sortable, no move keys, but rotate and skip keys still work', async () => {
+    const createSpy = vi.spyOn(Sortable, 'create');
+    const { onPlanChange, announce } = mount({ props: { reorderable: false } });
+    expect(createSpy).not.toHaveBeenCalled();
+    const card = cards()[1];
+    card.focus();
+    await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
+    await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
+    expect(onPlanChange).not.toHaveBeenCalled();
+    expect(announce).not.toHaveBeenCalled();
+    await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true })));
+    expect(onPlanChange.mock.results[0].value[1]).toMatchObject({ key: '1:1', rotation: 90 });
+    await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })));
+    expect(onPlanChange.mock.results[1].value[1]).toMatchObject({ key: '1:1', skipped: true });
+  });
+
   it('reports the first keyboard (not pointer) focus of a page cell, once', () => {
     const onFirstKeyboardFocus = vi.fn();
     mount({ props: { onFirstKeyboardFocus } });

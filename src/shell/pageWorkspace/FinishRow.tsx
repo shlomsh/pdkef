@@ -14,16 +14,18 @@ interface FinishRowProps {
   /** Hover, focus or press anywhere in the row: build now. */
   onWarm: () => void;
   labels: { share: string; compress: string; sign: string };
+  /** Which hand-offs follow Share. Split's one PDF per page passes none. */
+  tools?: HandoffTool[];
 }
 
-const TOOLS: HandoffTool[] = ['compress', 'sign'];
+const DEFAULT_TOOLS: HandoffTool[] = ['compress', 'sign'];
 
-/** The rail's finish row: Share, then hand-offs to Compress and Sign. */
-export default function FinishRow({ ready, shareReady, onShare, busy, onHandoff, onWarm, labels }: FinishRowProps) {
+/** The rail's finish row: Share, then hand-offs (Compress and Sign unless `tools` says otherwise). */
+export default function FinishRow({ ready, shareReady, onShare, busy, onHandoff, onWarm, labels, tools = DEFAULT_TOOLS }: FinishRowProps) {
   return (
     <div class={styles['handoff-row']} onPointerOver={onWarm} onFocusIn={onWarm} onPointerDown={onWarm}>
       {ready && <PdfShareButton visible={shareReady} onShare={onShare} label={labels.share} className={styles['handoff-button']} />}
-      {TOOLS.map((tool) => {
+      {tools.map((tool) => {
         const Icon = tool === 'compress' ? Shrink : FileSignature;
         return (
           <button

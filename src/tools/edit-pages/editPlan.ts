@@ -1,9 +1,7 @@
 import type { PlanEntry } from '../../lib/pagePlan.ts';
 
-/* Edit Pages' half of the shared page plan: what editPages.js reads out of it,
-   and the three bulk updaters behind Include all / Skip all / Invert. The
-   updaters return the same array when nothing changes, which is the no-op
-   contract useEditHistory's commit turns into "no undo step". */
+/* Edit Pages' half of the shared page plan: what editPages.js reads out of it.
+   The bulk updaters (Include all / Skip all / Invert) live in lib/pagePlan.ts. */
 
 export interface EditOptions {
   /** Final order, as 1-based original page numbers (skipped pages included; removedPageNums drops them). */
@@ -24,16 +22,3 @@ export function editOptionsFromPlan(plan: PlanEntry[]): EditOptions {
   });
   return { pageOrder, removedPageNums, rotations };
 }
-
-function setSkipped(plan: PlanEntry[], skipped: (entry: PlanEntry) => boolean): PlanEntry[] {
-  if (plan.every((entry) => entry.skipped === skipped(entry))) return plan;
-  return plan.map((entry) => (entry.skipped === skipped(entry) ? entry : { ...entry, skipped: skipped(entry) }));
-}
-
-export const includeAll = (plan: PlanEntry[]): PlanEntry[] => setSkipped(plan, () => false);
-
-export const skipAll = (plan: PlanEntry[]): PlanEntry[] => setSkipped(plan, () => true);
-
-export const invert = (plan: PlanEntry[]): PlanEntry[] => (
-  plan.length === 0 ? plan : plan.map((entry) => ({ ...entry, skipped: !entry.skipped }))
-);
