@@ -80,6 +80,37 @@ describe('toolToMarkdown', () => {
   });
 });
 
+describe('localized twins', () => {
+  const labels = { howItWorks: 'איך זה עובד', faq: 'שאלות נפוצות', lastUpdated: 'עודכן לאחרונה' };
+
+  it('toolToMarkdown takes an explicit path and Hebrew headings', () => {
+    const md = toolToMarkdown(
+      { h1: 'חתימה', subhead: 'ש.', href: '/sign/', steps: [{ title: 'א', text: 'ב' }], faq: [{ question: 'ש?', answer: 'ת.' }] },
+      { path: '/he/sign/', labels },
+    );
+    expect(md).toContain('URL: https://pdkef.com/he/sign/');
+    expect(md).toContain('## איך זה עובד');
+    expect(md).toContain('## שאלות נפוצות');
+    expect(md).not.toContain('## FAQ');
+  });
+
+  it('contentPageToMarkdown takes an explicit path and Hebrew labels', () => {
+    const md = contentPageToMarkdown(
+      'guide',
+      { h1: 'מדריך', subhead: 'ת.', sections: [], faq: [{ question: 'ש?', answer: 'ת.' }] },
+      { lastModified: '2026-01-02T00:00:00Z', path: '/he/guide/', labels },
+    );
+    expect(md).toContain('URL: https://pdkef.com/he/guide/');
+    expect(md).toContain('עודכן לאחרונה: 2026-01-02');
+    expect(md).toContain('## שאלות נפוצות');
+  });
+
+  it('homeToMarkdown uses the FAQ label', () => {
+    const md = homeToMarkdown({ h1: 'ח', description: 'ת', faq: [{ question: 'ש?', answer: 'ת.' }], tools: [], path: '/he/', labels });
+    expect(md).toContain('## שאלות נפוצות');
+  });
+});
+
 describe('contentPageToMarkdown', () => {
   const page = {
     h1: 'A guide',

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
-import { hasLastUpdatedDate, localizedPageProblems, sitemapIsNoindexed, sitemapLocations, sitemapUrlsMissingLastmod } from './localizedSeoChecks.mjs';
+import { hasLastUpdatedDate, localizedPageProblems, sitemapIsNoindexed, sitemapLocations, sitemapUrlsMissingLastmod, pagesMissingMarkdownTwin } from './localizedSeoChecks.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -267,6 +267,18 @@ if (sitemapXml) {
 const vercelConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));
 if (!sitemapIsNoindexed(vercelConfig)) {
   console.error('[ERROR] vercel.json: /sitemap.xml needs an X-Robots-Tag: noindex header rule');
+  hasError = true;
+}
+
+// Every built page answers Accept: text/markdown from its sibling .md twin
+// (middleware.ts); a page without one, other than the documented exceptions,
+// silently gets the Markdown 404.
+const pagePaths = htmlFiles
+  .map((file) => path.relative(distDir, file).split(path.sep).join('/'))
+  .filter((rel) => rel.endsWith('index.html'))
+  .map((rel) => `/${rel.slice(0, -'index.html'.length)}`);
+for (const pagePath of pagesMissingMarkdownTwin(pagePaths, (twin) => fs.existsSync(path.join(distDir, twin)))) {
+  console.error(`[ERROR] ${pagePath}: no Markdown twin in dist (add it to a *.md.ts route, or to NO_MARKDOWN_TWIN if intended)`);
   hasError = true;
 }
 

@@ -9,6 +9,7 @@ import vercelConfig from '../vercel.json';
 import { describe, expect, it } from 'vitest';
 import {
   MIN_SCRIPT_PURITY,
+  pagesMissingMarkdownTwin,
   TARGET_SCRIPTS,
   hasLastUpdatedDate,
   localeForRelPath,
@@ -254,5 +255,17 @@ describe('the sitemap file itself is served noindex (2026-10-07 GSC "Crawled - c
 
   it('holds for the real vercel.json', () => {
     expect(sitemapIsNoindexed(vercelConfig)).toBe(true);
+  });
+});
+
+describe('pagesMissingMarkdownTwin', () => {
+  const has = (files) => (twin) => files.includes(twin);
+
+  it('names a page whose sibling .md is missing, root included', () => {
+    expect(pagesMissingMarkdownTwin(['/', '/sign/', '/he/sign/'], has(['sign.md']))).toEqual(['/', '/he/sign/']);
+  });
+
+  it('skips the documented exceptions', () => {
+    expect(pagesMissingMarkdownTwin(['/licenses/'], has([]))).toEqual([]);
   });
 });

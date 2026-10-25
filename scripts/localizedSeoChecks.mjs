@@ -194,3 +194,20 @@ export function sitemapIsNoindexed(vercelConfig) {
     .flatMap((rule) => rule.headers)
     .some(({ key, value }) => key.toLowerCase() === 'x-robots-tag' && /\bnoindex\b/.test(value));
 }
+
+/** Pages documented as having no Markdown twin: middleware.ts answers them with the Markdown 404 fallback. */
+export const NO_MARKDOWN_TWIN = new Set(['/licenses/']);
+
+/**
+ * The URL paths ('/', '/he/sign/') whose built page has no sibling Markdown
+ * twin. `pagePaths` come from dist/**\/index.html; `twinExists` takes a dist
+ * path ('index.md', 'he/sign.md'). A twin is what middleware.ts's
+ * markdownRoute() fetches, so a missing one is a silent Markdown 404.
+ */
+export function pagesMissingMarkdownTwin(pagePaths, twinExists, allowlist = NO_MARKDOWN_TWIN) {
+  return pagePaths.filter((pagePath) => {
+    if (allowlist.has(pagePath)) return false;
+    const twin = pagePath === '/' ? 'index.md' : `${pagePath.replace(/^\/|\/$/g, '')}.md`;
+    return !twinExists(twin);
+  });
+}
