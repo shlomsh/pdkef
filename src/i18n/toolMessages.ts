@@ -1039,7 +1039,7 @@ const splitMessages: Partial<Record<DocumentationLocaleId, SplitMessages>> = {
  * `{format}` is PNG or JPG, which stay Latin on every locale. The output file
  * names (`<name>-page-N.png`) are real file names and are never translated.
  */
-export interface ToImageMessages {
+export interface ToImageMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
   lang: string;
   dir: 'ltr' | 'rtl';
   formatGroupLabel: string;
@@ -1110,6 +1110,28 @@ export interface ToImageMessages {
   rangeOutOfRange: string;
   invalidPart: string;
   noValidPages: string;
+  /* The shared page grid's own strings (as Split's). Not the bare Tailwind utility name for invertPages: src/i18n is a Tailwind @source. */
+  includeAll: string;
+  skipAll: string;
+  invertPages: string;
+  allIncluded: string;
+  inverted: string;
+  documentHeading: string;
+  downloadShort: string;
+  readyAnnouncement: string;
+  sharedSuccessfully: string;
+  sharingCanceled: string;
+  shareError: string;
+  undoneAnnouncement: string;
+  redoneAnnouncement: string;
+  loaded: string;
+  loadFailed: string;
+  announceNeedsPassword: string;
+  announceRestricted: string;
+  closeStrip: string;
+  shareLabel: string;
+  /** The visible tooltip word of the per-page save action; its aria-label is downloadPageAria. */
+  tipSave: string;
 }
 
 const englishToImageMessages: ToImageMessages = {
@@ -1172,6 +1194,55 @@ const englishToImageMessages: ToImageMessages = {
   rangeOutOfRange: 'Range {start}-{end} contains out of range page numbers (1-{max})',
   invalidPart: 'Invalid page range or number: "{part}"',
   noValidPages: 'No valid pages selected',
+  captionPages: 'pages {from} to {to}',
+  includePage: 'Include page {number}',
+  pageIncluded: 'Page {number} included again.',
+  pageItemLabel: 'Page {number} of {total}{state}',
+  pageMoved: 'Page moved to position {position} of {total}.',
+  pageRotated: 'Page {number} rotated to {degrees} degrees.',
+  pageSkipped: 'Page {number} skipped. It stays here and is left out of the images.',
+  previewIncludeAgain: 'Include it again',
+  previewSkippedBanner: 'Left out of the images',
+  previewSkippedNote: 'Left out of the download.',
+  rotatePage: 'Rotate page {number}',
+  skipPage: 'Skip page {number}',
+  skippedBadge: 'Skipped',
+  skippedState: ', skipped',
+  stripHint: 'Focus a page and press R to rotate it, Delete to skip it, or Enter to open it larger.',
+  tipBringBack: 'Show',
+  tipOpen: 'Open',
+  tipRotate: 'Rotate',
+  tipSkip: 'Skip',
+  tipSave: 'Save',
+  allSkipped: 'Every page is skipped',
+  downloadLabel: 'Download 1 image',
+  downloadAgain: 'download again',
+  preparingPages: 'Preparing {count} pages…',
+  renderProgress: '{done} of {total} rendered',
+  savedLabel: 'Saved',
+  undo: 'Undo',
+  redo: 'Redo',
+  undoLabel: 'Undo last change',
+  redoLabel: 'Redo last undone change',
+  includeAll: 'Include all',
+  skipAll: 'Skip all',
+  invertPages: 'Invert',
+  allIncluded: 'All pages included.',
+  inverted: 'Included and skipped pages swapped.',
+  documentHeading: 'Your images',
+  downloadShort: 'Download',
+  readyAnnouncement: 'Your images are ready.',
+  sharedSuccessfully: 'Images shared successfully.',
+  sharingCanceled: 'Sharing canceled. Your images are still ready.',
+  shareError: 'Could not open the share sheet. Please try again.',
+  undoneAnnouncement: 'Undid last change.',
+  redoneAnnouncement: 'Redid last change.',
+  loaded: 'Loaded PDF file "{name}" with {count} pages.',
+  loadFailed: 'Failed to load PDF file.',
+  announceNeedsPassword: 'This PDF has a password',
+  announceRestricted: 'This PDF is protected',
+  closeStrip: 'Close',
+  shareLabel: 'Share',
 };
 
 // An AI draft, not reviewed copy: pairs with he/pdf-to-image.yaml and awaits
@@ -1239,6 +1310,55 @@ const hebrewToImageMessages: ToImageMessages = {
   rangeOutOfRange: 'הטווח {start}-{end} כולל עמודים מחוץ לטווח (1-{max})',
   invalidPart: 'טווח או מספר עמוד לא תקין: "{part}"',
   noValidPages: 'לא נבחרו עמודים תקינים',
+  captionPages: 'עמודים {from} עד {to}',
+  includePage: 'הוספת עמוד {number}',
+  pageIncluded: 'עמוד {number} הוחזר.',
+  pageItemLabel: 'עמוד {number} מתוך {total}{state}',
+  pageMoved: 'העמוד עבר למקום {position} מתוך {total}.',
+  pageRotated: 'עמוד {number} סובב ל-{degrees} מעלות.',
+  pageSkipped: 'דילגנו על עמוד {number}. הוא נשאר כאן ולא ייכלל בתמונות.',
+  previewIncludeAgain: 'להחזיר אותו',
+  previewSkippedBanner: 'לא ייכלל בתמונות',
+  previewSkippedNote: 'לא ייכלל בהורדה.',
+  rotatePage: 'סיבוב עמוד {number}',
+  skipPage: 'דילוג על עמוד {number}',
+  skippedBadge: 'מדולג',
+  skippedState: ', מדולג',
+  stripHint: 'התמקדו בעמוד ולחצו R כדי לסובב אותו, Delete כדי לדלג עליו, או Enter כדי לפתוח אותו בגדול.',
+  tipBringBack: 'הצגה',
+  tipOpen: 'פתיחה',
+  tipRotate: 'סיבוב',
+  tipSkip: 'דילוג',
+  tipSave: 'שמירה',
+  allSkipped: 'כל העמודים מדולגים',
+  downloadLabel: 'הורדת תמונה אחת',
+  downloadAgain: 'הורדה שוב',
+  preparingPages: 'מכינים {count} עמודים…',
+  renderProgress: '{done} מתוך {total} עומדו',
+  savedLabel: 'נשמר',
+  undo: 'ביטול',
+  redo: 'ביצוע מחדש',
+  undoLabel: 'ביטול השינוי האחרון',
+  redoLabel: 'ביצוע מחדש של השינוי שבוטל',
+  includeAll: 'הוספת הכול',
+  skipAll: 'דילוג על הכול',
+  invertPages: 'היפוך',
+  allIncluded: 'כל העמודים כלולים.',
+  inverted: 'העמודים הכלולים והמדולגים התחלפו.',
+  documentHeading: 'התמונות שלכם',
+  downloadShort: 'הורדה',
+  readyAnnouncement: 'התמונות שלכם מוכנות.',
+  sharedSuccessfully: 'התמונות שותפו.',
+  sharingCanceled: 'השיתוף בוטל. התמונות עדיין מוכנות.',
+  shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  undoneAnnouncement: 'השינוי האחרון בוטל',
+  redoneAnnouncement: 'השינוי בוצע מחדש',
+  loaded: 'הקובץ "{name}" נטען, {count} עמודים.',
+  loadFailed: 'טעינת קובץ ה-PDF נכשלה.',
+  announceNeedsPassword: 'ל-PDF הזה יש סיסמה',
+  announceRestricted: 'ה-PDF הזה מוגן',
+  closeStrip: 'סגירה',
+  shareLabel: 'שיתוף',
 };
 
 const toImageMessages: Partial<Record<DocumentationLocaleId, ToImageMessages>> = {
