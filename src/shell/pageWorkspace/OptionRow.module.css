@@ -17,6 +17,8 @@
 
 .note {
   margin: 0;
+  /* The phone controls run their row nowrap; a note always wraps to its column. */
+  white-space: normal;
   font-size: 0.85rem;
   line-height: 1.45;
   color: var(--color-muted);

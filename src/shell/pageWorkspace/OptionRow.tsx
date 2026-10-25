@@ -30,7 +30,8 @@ export default function OptionRow<T extends string | number>({
 }: OptionRowProps<T>) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const selected = options.find((o) => o.value === value) ?? options[0];
-  const noteText = note ?? selected.hint;
+  // The compact form lives in the phone bar, which stays one line: no note there.
+  const noteText = compact ? undefined : note ?? selected.hint;
 
   const onKeyDown = (e: KeyboardEvent) => {
     const rtl = dir === 'rtl';
