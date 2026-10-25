@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 57 live: 4 up next, 11 then, 25 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 58 live: 4 up next, 11 then, 26 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -85,6 +85,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | SIGN-40 | P2 | [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark | Waiting on The next Sign NotFoundError report, with the translated flag |
 | DEBT-40 | P3 | [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it | Waiting on @astrojs/preact peer range admits preact 11 |
 | DEBT-48 | P3 | [DEBT-48](backlog/tasks/DEBT-48.md) · The usage funnel can say how many sessions finished, not only how many runs | Waiting on A full UTC day of production reads on a stamped build with the fix |
+| QUAL-28 | P3 | [QUAL-28](backlog/tasks/QUAL-28.md) · Move e2e-webkit back to ubuntu-latest once Playwright's WebKit runs on Ubuntu 26.04 | Waiting on A Playwright release whose WebKit starts on Ubuntu 26.04 |
 
 ### Parked
 

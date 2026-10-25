@@ -39,6 +39,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - The next Sign NotFoundError report, with the translated flag: [SIGN-40](backlog/tasks/SIGN-40.md) · Sign: Preact NotFoundError while arming a tool or placing a mark
 - @astrojs/preact peer range admits preact 11: [DEBT-40](backlog/tasks/DEBT-40.md) · Move to preact 11 once @astrojs/preact supports it
 - A full UTC day of production reads on a stamped build with the fix: [DEBT-48](backlog/tasks/DEBT-48.md) · The usage funnel can say how many sessions finished, not only how many runs
+- A Playwright release whose WebKit starts on Ubuntu 26.04: [QUAL-28](backlog/tasks/QUAL-28.md) · Move e2e-webkit back to ubuntu-latest once Playwright's WebKit runs on Ubuntu 26.04
 - SEO-06 crawl gate and a volume check: [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency
 - SEO-06 crawl gate and a volume check: [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated
 - SEO-06 crawl gate and a volume check: [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned
