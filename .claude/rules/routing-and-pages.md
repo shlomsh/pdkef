@@ -112,7 +112,9 @@ Middleware, which is unrelated to Astro's own (SSR-only, inactive here) middlewa
   `negotiateRepresentation()` in `src/site-lib/acceptNegotiation.js` (RFC 9110 precedence: exact type >
   `type/*` > `*/*`; Markdown only on a *strict* preference, because curl's `*/*` once got Markdown).
   On a canonical URL it fetches the `.md` sibling and re-wraps it; a missing twin or a nonexistent path
-  gets `/404.md` with a `404`. Everything else passes through `next()` with `Vary: Accept,
+  gets `/404.md` with a `404`. The matcher excludes any path with a file extension (and the asset
+  directories), so those never invoke the function; an in-code extension check stays as a backstop.
+  Everything else passes through `next()` with `Vary: Accept,
   Accept-Encoding` added. A non-slash URL is not served Markdown: a real route's redirect must fire
   first, and `markdownRoute()` tells that case from a nonexistent path by reading `vercel.json`'s
   redirect sources, which is what scanners probe with `curl .../some-path` (no slash).

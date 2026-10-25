@@ -27,12 +27,12 @@ import { negotiateRepresentation, markdownRoute } from './src/site-lib/acceptNeg
 import vercelConfig from './vercel.json';
 
 export const config = {
-  // Keep this broad and do the real filtering (extension check) in code
-  // instead of a denser regex here - matcher errors are silent, so simple
-  // and readable wins. The excluded directories are pure asset trees that
-  // can never be negotiable pages; everything else still gets the
-  // extension check on the next line before any negotiation logic runs.
-  matcher: ['/((?!_astro/|images/|icons/|fonts/).*)'],
+  // Paths with a file extension (sitemap.xml, sw.js, robots.txt, the .md
+  // twins, favicon.ico) and the pure asset directories are excluded here, so
+  // they never invoke the function at all. The HAS_EXTENSION check below
+  // stays as a backstop. Kept as a literal because Vercel reads this config
+  // statically; a test compiles it and checks real paths.
+  matcher: ['/((?!_astro/|images/|icons/|fonts/|.*\\..*).*)'],
 };
 
 const VARY_VALUE = 'Accept, Accept-Encoding';
