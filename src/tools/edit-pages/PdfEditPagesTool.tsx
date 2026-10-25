@@ -305,7 +305,7 @@ export default function PdfEditPagesTool() {
                     fileName={fileName}
                     detail={detail}
                     handoffs={handoffs}
-                    labels={{ download: t.downloadShort, ready: t.editedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
+                    labels={{ download: t.downloadShort, ready: t.editedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
                   />
                 </div>
               )}

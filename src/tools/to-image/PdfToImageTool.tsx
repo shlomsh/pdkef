@@ -381,7 +381,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
                     fileName={outputName}
                     detail={detail}
                     handoffs={[]}
-                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: '' }}
+                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: '', nothing: t.allSkipped }}
                   />
                 </div>
               )}
