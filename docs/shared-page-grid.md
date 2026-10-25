@@ -111,3 +111,57 @@ module needs two consumers, no exceptions) only holds once Edit Pages is the sec
 GRID-01 shared grid (Merge on it, nothing visible changes) · GRID-02 shared workspace layout (same) ·
 GRID-03 Undo/Redo stack in Merge · GRID-04 Edit Pages on the grid, the layout and the stack, with the
 parity guard · GRID-05 Split on the grid · GRID-06 PDF to Image on the grid.
+
+## GRID-05 and GRID-06: Split and PDF to Image (decided 2026-10-25)
+
+The target is the sketch Shlomi approved on 2026-10-25: all four tools share the heading (output name,
+count, Undo/Redo), the cell (thumbnail, output number under it, rotate / skip / preview on hover or tap,
+a skipped page dimmed) and the rail order (Replace file, the tool's own choices, Download, hand-offs).
+Split's file card, framed "one document" box, always-on tile icons and undo chip go.
+
+### Decisions
+
+6. **No drag in Split or PDF to Image.** Their output keeps source order; `PageGrid` gets
+   `reorderable={false}`.
+7. **Split's selection is the plan's `skipped`.** A tile toggle is the skip button, Select all / Clear
+   become Include all / Skip all / Invert (Edit PDF's words), and the page-range field stays as Split's
+   own control, kept in step with the plan both ways.
+8. **The number under a page is its output position in both modes.** One PDF per page keeps its file
+   names (`<name>-page-<source page>.pdf`), so with pages skipped a file's name and the number under its
+   page can differ; the heading names the pattern.
+9. **Several files are one prepared output.** One PDF per page builds `parts`; Download saves each part,
+   Share offers all of them, and there is no hand-off (Compress and Sign take one PDF).
+10. **One PDF gains Sign** beside Compress, like Edit PDF and Merge. A protected file shows `NeedsUnlock`,
+    like Edit PDF, instead of a plain link.
+11. The mode switch and the output name stay outside the Undo stack, like Edit PDF's page numbers. Every
+    plan change is a step: a tile, a bulk button, rotate, and each typed range that parses to a different
+    selection.
+
+### Contract additions (GRID-05)
+
+`src/lib/pagePlan.ts` (pure):
+
+```ts
+includeAll(plan) / skipAll(plan) / invert(plan)   // moved from src/tools/edit-pages/editPlan.ts, same no-op contract
+includedPageNumbers(plan): number[]               // 1-based source page numbers of the kept entries, in plan order
+withIncludedPages(plan, pageNumbers: number[]): PlanEntry[]  // skipped = not in the list; same array when nothing changes
+```
+
+`src/shell/pageGrid/PageGrid.tsx`: `reorderable?: boolean` (default `true`). False creates no Sortable and
+binds no move keys; rotate, skip, preview, R, Delete, Enter and the phone tap behave as before.
+
+`src/lib/usePreparedOutput.ts`: `build` may resolve `{ parts: OutputPart[]; pageCount }` instead of
+`{ blob; pageCount }`, with `OutputPart = { blob: Blob; filename: string }`. For parts, `blob` and `url`
+are null, `parts` holds them and `size` is their sum; for a single blob `parts` is null.
+
+`src/shell/pageWorkspace/useDownloadFlow.ts`: with `prepared.parts`, Share prepares every part
+(`usePdfShare().prepareFiles`), a Download tap saves each part in order (200 ms apart, as Split does
+today) and counts as one delivery, and `requestHandoff` does nothing. The tap path is the existing one:
+`DownloadElement` has no `href`, so its click is the preparing tap, delivered at once because the output
+is ready.
+
+`src/shell/pageWorkspace/FinishRow.tsx`: `tools?: HandoffTool[]` (default `['compress', 'sign']`); Split's
+One PDF per page passes `[]`.
+
+Split's page-range field stays in `src/tools/split/` until PDF to Image is its second consumer (GRID-06
+moves it to `src/shell/pageWorkspace/`, rule 9).
