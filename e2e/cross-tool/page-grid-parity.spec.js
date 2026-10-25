@@ -275,3 +275,37 @@ for (const route of ROUTES) {
     });
   }
 }
+
+/* A page's actions stay on the screen at phone width (GRID-06 review): the
+   cluster is wider than a 72px cell, and centred on a first- or last-column
+   page it ran off the edge (PDF to Image's four controls by 28px at 375px).
+   An edge page keeps its cluster inside the grid, mirrored in right-to-left. */
+const EDGE_ROUTES = [...ROUTES, '/he/split/', '/he/pdf-to-image/'];
+for (const route of EDGE_ROUTES) {
+  test(`at 375px every action of an edge page is on screen, ${route}`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await openTool(page, route);
+    const columns = await columnCount(page);
+    // PDF to Image adds its Save link once the images are built.
+    // The sticky bars cover the top of a phone screen: centre a page before clicking it.
+    const reveal = async (cell) => {
+      await cell.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await cell.locator('[data-thumb-box]').click();
+    };
+    // The Save link is rendered once the images are built, shown with the rest on reveal.
+    if (route.includes('pdf-to-image')) {
+      await expect(cells(page).first().locator('a[download]')).toHaveCount(1, { timeout: 15_000 });
+    }
+    for (const index of [0, columns - 1]) {
+      const cell = cells(page).nth(index);
+      await reveal(cell);
+      const controls = cell.locator('button, a[download]');
+      await expect(controls.first()).toBeVisible();
+      const rects = await controls.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [r.left, r.right]; }));
+      for (const [left, right] of rects) {
+        expect(left, `page ${index + 1} control starts on screen`).toBeGreaterThanOrEqual(0);
+        expect(right, `page ${index + 1} control ends on screen`).toBeLessThanOrEqual(375);
+      }
+    }
+  });
+}
