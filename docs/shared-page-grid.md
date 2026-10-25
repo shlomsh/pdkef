@@ -165,3 +165,30 @@ One PDF per page passes `[]`.
 
 Split's page-range field stays in `src/tools/split/` until PDF to Image is its second consumer (GRID-06
 moves it to `src/shell/pageWorkspace/`, rule 9).
+
+### Contract additions (GRID-06)
+
+12. **PDF to Image on the grid, without drag.** It gains rotate (the export renders each page at its
+    rotation) and the Undo/Redo stack; a protected file shows `NeedsUnlock` instead of failing.
+13. **Saving one image is a fourth action, PDF to Image only.** The always-on arrow on each tile becomes
+    an action in the hover/tap cluster, present once that page's image is built (as today).
+14. **One segmented option control.** PDF to Image's `OptionRow` and Split's `ModeControl` are the same
+    control written twice; one `OptionRow` in `src/shell/pageWorkspace/` serves Split's mode and PDF to
+    Image's format, quality and output rows (label, options, a one-line note, a compact form for the
+    phone bar, 44px targets).
+15. **Hand-offs: Share only.** Compress Image has no hand-off intake, so none is offered.
+16. A one-page PDF shows no range field and no bulk row, as today.
+
+`src/shell/pageGrid/PageGrid.tsx`: `cellAction?: (entry: PlanEntry) => CellAction | null` with
+`CellAction = { href: string; download: string; label: string; tip: string }`, rendered as a link after
+the preview button, inside the same cluster and with the same reveal rules. Null renders nothing.
+
+`src/lib/usePreparedOutput.ts`:
+- `OutputPart` gains an optional `pageNumber` (the 1-based source page an image came from).
+- `PreparedOutput.parts` items gain `url`: an object URL made when the output is ready and revoked
+  when it is replaced, cleared or unmounted.
+- `autoBuild?: boolean` (default `true`). False builds nothing until `prepareNow` (hover, focus, tap):
+  PDF to Image above 30 pages, as today.
+
+`PageRangeField` moves from `src/tools/split/` to `src/shell/pageWorkspace/` (Split and PDF to Image).
+`PageToggleTile` is deleted.
