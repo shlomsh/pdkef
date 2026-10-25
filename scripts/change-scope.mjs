@@ -39,13 +39,25 @@
 // this file never decided `fonts` itself; it only supplies the base
 // resolution and changed-file list both scripts share.
 //
-// Fails open: when the base cannot be resolved (first push of a branch, a
-// force-push, no origin/main locally), nothing is docs-only.
+// The docs_only verdict has two readers, so CI and the deploy cannot disagree
+// on what counts as docs-only: ci.yml's `scope` job, and vercel.json's
+// `ignoreCommand`, which greps this script's output for docs_only=true to skip
+// the production build (exit 0 skips, anything else builds). Vercel compares
+// against the last deployed commit, VERCEL_GIT_PREVIOUS_SHA, and runs before
+// npm install, so this file stays plain node and git.
 //
-//   node scripts/change-scope.mjs --base <ref>   prints docs_only=…
+// Fails open: when the base cannot be resolved (first push of a branch, a
+// force-push, no origin/main locally, an empty previous deploy SHA), or --head
+// does not resolve, nothing is docs-only.
+//
+//   node scripts/change-scope.mjs --base <ref>               prints docs_only=…
+//   node scripts/change-scope.mjs --base <ref> --head <ref>  same, for the fixed
+//                                                            commit range only
 //
 // Without --base it compares the working tree against the merge base with
-// origin/main, which is what a developer about to push wants.
+// origin/main, which is what a developer about to push wants. With --head it
+// looks at the commit range alone, with no working-tree or untracked files,
+// which is what a deploy wants.
 
 import { execFileSync } from 'node:child_process';
 
@@ -168,16 +180,34 @@ export function changedFilesWithStatus(base, head, run = git) {
   return [...tracked, ...untracked];
 }
 
-function main(argv) {
-  const baseIndex = argv.indexOf('--base');
-  const explicitBase = baseIndex >= 0 ? argv[baseIndex + 1] : undefined;
+function flag(argv, name) {
+  const index = argv.indexOf(name);
+  return index >= 0 ? argv[index + 1] : undefined;
+}
 
-  const base = resolveBase(explicitBase);
+function resolvesToCommit(ref) {
+  try {
+    git(['rev-parse', '--verify', `${ref}^{commit}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function main(argv) {
+  const explicitBase = flag(argv, '--base');
+  const head = flag(argv, '--head');
+
+  // A fixed range needs a real base: an empty one (no previous deploy) must not
+  // fall back to the merge base with origin/main.
+  const base = head !== undefined && !explicitBase ? null : resolveBase(explicitBase);
   let scope = { docs_only: false };
   if (!base) {
     console.error(`change-scope: no usable base (${explicitBase ?? 'origin/main'}); treating the change as touching everything.`);
+  } else if (head !== undefined && !resolvesToCommit(head)) {
+    console.error(`change-scope: no usable head (${head}); treating the change as touching everything.`);
   } else {
-    const files = changedFiles(base);
+    const files = changedFiles(base, head);
     scope = classify(files);
     if (scope.docs_only) {
       console.error(`change-scope: all ${files.length} changed files since ${base.slice(0, 7)} are docs or backlog; only the backlog and guidance checks apply.`);

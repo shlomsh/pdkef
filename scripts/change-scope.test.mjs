@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { changedFiles, changedFilesWithStatus, classify, isDocsOnly } from './change-scope.mjs';
 
 /* scripts/change-scope.mjs decides, for CI and for `npm run test:e2e`, whether
@@ -175,5 +180,61 @@ describe('changedFilesWithStatus', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]).toContain('-M');
     expect(files).toEqual([{ path: 'src/lib/format.js', status: 'M' }]);
+  });
+});
+
+// Vercel's ignoreCommand runs `change-scope.mjs --base $VERCEL_GIT_PREVIOUS_SHA
+// --head HEAD` and builds unless it prints docs_only=true. Driven through the
+// real CLI against a throwaway repo, since main() reads git directly.
+describe('CLI --head (a fixed commit range, the Vercel ignoreCommand form)', () => {
+  const script = fileURLToPath(new URL('./change-scope.mjs', import.meta.url));
+  let repo;
+  let first;
+  let docsCommit;
+  let srcCommit;
+
+  const sh = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
+  const verdict = (args) =>
+    execFileSync('node', [script, ...args], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), 'change-scope-'));
+    sh(['init', '-q']);
+    sh(['config', 'user.email', 't@example.com']);
+    sh(['config', 'user.name', 't']);
+    sh(['config', 'commit.gpgsign', 'false']);
+    mkdirSync(join(repo, 'backlog'));
+    mkdirSync(join(repo, 'src'));
+    writeFileSync(join(repo, 'backlog/a.md'), '1');
+    sh(['add', '.']);
+    sh(['commit', '-qm', 'first']);
+    first = sh(['rev-parse', 'HEAD']);
+    writeFileSync(join(repo, 'backlog/a.md'), '2');
+    sh(['commit', '-qam', 'docs']);
+    docsCommit = sh(['rev-parse', 'HEAD']);
+    writeFileSync(join(repo, 'src/x.js'), '1');
+    sh(['add', '.']);
+    sh(['commit', '-qm', 'src']);
+    srcCommit = sh(['rev-parse', 'HEAD']);
+    // dirty tree and untracked file must not leak into a fixed range
+    writeFileSync(join(repo, 'untracked.js'), '1');
+  });
+
+  afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+  it('is docs_only=true for a docs-only range, ignoring untracked files', () => {
+    expect(verdict(['--base', first, '--head', docsCommit])).toBe('docs_only=true');
+  });
+
+  it('is docs_only=false when the range touches src/', () => {
+    expect(verdict(['--base', docsCommit, '--head', srcCommit])).toBe('docs_only=false');
+  });
+
+  it('fails open when --head does not resolve', () => {
+    expect(verdict(['--base', first, '--head', 'no-such-ref'])).toBe('docs_only=false');
+  });
+
+  it('fails open on an empty base', () => {
+    expect(verdict(['--base', '', '--head', 'HEAD'])).toBe('docs_only=false');
   });
 });
