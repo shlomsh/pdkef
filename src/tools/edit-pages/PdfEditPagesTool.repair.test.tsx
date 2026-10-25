@@ -158,4 +158,14 @@ describe('PdfEditPagesTool working file after a repair', () => {
     expect(container.querySelector('ul[data-page-grid]')).toBeNull();
     expect(container.textContent).toContain('the file may be damaged');
   });
+
+  it('a load failure still offers Replace file, which asks first', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(loadPdfWithPages).mockRejectedValue(new Error('Failed to parse PDF'));
+    await open();
+    const replace = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Replace file');
+    expect(replace).toBeDefined();
+    await act(async () => { replace.click(); });
+    expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]').open).toBe(true);
+  });
 });

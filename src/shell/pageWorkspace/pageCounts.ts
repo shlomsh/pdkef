@@ -1,11 +1,16 @@
 import { formatFileSize, isolateLtr } from '../../lib/format.js';
-import { formatMessage, type ShellMessages } from '../../i18n/toolMessages';
+import { formatMessage, type PageGridMessages, type ShellMessages } from '../../i18n/toolMessages';
 
 type CountMessages = Pick<ShellMessages, 'pageCountOne' | 'pageCountOther'>;
 
 /** "1 page" / "N pages", in the catalogue's words. */
 export function pagesLabel(count: number, sm: CountMessages): string {
   return count === 1 ? sm.pageCountOne : formatMessage(sm.pageCountOther, { count });
+}
+
+/** "1 page skipped" / "N pages skipped", as whole phrases so a language can agree in number. */
+export function skippedLabel(count: number, messages: Pick<PageGridMessages, 'skippedCountOne' | 'skippedCountOther'>): string {
+  return count === 1 ? messages.skippedCountOne : formatMessage(messages.skippedCountOther, { count });
 }
 
 /** The Download element's detail line: "N pages" while the file builds, then "N pages · size". */
