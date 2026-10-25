@@ -9,7 +9,7 @@ import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
 import OptionRow from './OptionRow.tsx';
 import styles from './PdfToImageTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import PageToggleTile from '../../shell/PageToggleTile.tsx';
+import PageToggleTile from './PageToggleTile.tsx';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';

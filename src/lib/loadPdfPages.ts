@@ -1,14 +1,14 @@
 /**
- * How Edit Pages opens a PDF with pdf-lib and reads its pages (DEBT-54; other tools adopt it in DEBT-55).
+ * How Edit PDF and Split open a PDF with pdf-lib and read its pages (DEBT-54).
  *
  * `PDFDocument.load` succeeds on a file whose catalog lost its /Pages entry and only
  * `getPageCount()` throws. When exactly one page-tree root survives we repair it, save,
  * and hand back the repaired bytes so pdf.js (thumbnails) and export read the same file.
  * Anything we cannot repair rethrows the ORIGINAL error, so error reports keep pdf-lib's frames.
  */
-import { getPdfLib } from '../../lib/pdfLib.js';
+import { getPdfLib } from './pdfLib.js';
 import { diagnosePageTree, repairPageTree } from './pdfPageTree';
-import { beaconMaintenanceTransport, pdfPageTreeFailed, pdfPageTreeRepaired, reportMaintenanceEvent } from '../../lib/maintenanceTelemetry';
+import { beaconMaintenanceTransport, pdfPageTreeFailed, pdfPageTreeRepaired, reportMaintenanceEvent } from './maintenanceTelemetry';
 
 type Bytes = ArrayBuffer | Uint8Array;
 type PdfLib = typeof import('@cantoo/pdf-lib');

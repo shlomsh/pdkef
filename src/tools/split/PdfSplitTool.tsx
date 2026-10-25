@@ -1,33 +1,18 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { createQuietPreparer, type QuietPolicy } from '../../lib/quietPrepare.ts';
-import { Shrink } from 'lucide-preact';
-import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import SplitVerb from './verb/SplitVerb.tsx';
-import { splitPdf, outputBaseName, extractedFileName } from './split.js';
-import OutputName from '../../shell/OutputName.tsx';
-import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pageSelector.js';
-import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
-import styles from './PdfSplitTool.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import PageToggleTile from '../../shell/PageToggleTile.tsx';
-import PdfShareButton from '../../shell/PdfShareButton.tsx';
-import ProgressRing from '../../shell/ProgressRing.tsx';
-import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import { usePdfShare } from '../../lib/usePdfShare.js';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { useUndoChip } from './useUndoChip.ts';
-import { useLatestRun } from '../../lib/useLatestRun.ts';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { describeFile, formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
-import { getPdfRenderContext } from '../../lib/pdfRender.js';
-import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
-import { loadPdfjs } from '../../lib/loadPdfjs.js';
+import { FileSignature, Shrink } from 'lucide-preact';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
+import { includeAll, invert, outputPageCount, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
+import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
+import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
+import type { QuietPolicy } from '../../lib/quietPrepare.ts';
+import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
-import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../../shell/PagePreviewDialog.tsx';
 import { recordAction } from '../../lib/actionTrail.ts';
+import { formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
 import {
   englishShellMessages,
   englishSplitMessages,
@@ -35,47 +20,42 @@ import {
   type ShellMessages,
   type SplitMessages,
 } from '../../i18n/toolMessages';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
+import DownloadElement from '../../shell/DownloadElement.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import HistoryButtons from '../../shell/HistoryButtons.tsx';
+import OutputName from '../../shell/OutputName.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
+import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
+import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
+import SplitVerb from './verb/SplitVerb.tsx';
+import ModeControl from './ModeControl.tsx';
+import PageRangeField from './PageRangeField.tsx';
+import { buildSplit, type SplitMode } from './splitOutput.ts';
+import { outputBaseName, extractedFileName } from './split.js';
 
-/** Fills a sentence that holds one non-text node (a link, a <bdi>) at `{slot}`. */
+const HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
+
+// The one file has one source in the shared plan.
+const FILE_ID = 0;
+
+interface SplitDocument {
+  plan: PlanEntry[];
+}
+
+const EMPTY_DOCUMENT: SplitDocument = { plan: [] };
+
+/** Fills a sentence that holds one non-text node (a link) at `{slot}`. */
 function withSlot(template: string, slot: string, node: any) {
   const [before, after] = template.split(slot);
   return <>{before}{node}{after}</>;
 }
-
-let pdfjsLib: any;
-
-async function getPdfjs() {
-  pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
-  return pdfjsLib;
-}
-
-interface SplitPage {
-  pageNumber: number;
-  selected: boolean;
-  thumbnail: string | null;
-  /** Cumulative delta from the per-cell rotate control, 0/90/180/270, added
-   * on top of the source page's own rotation at export (split.js). */
-  rotation: number;
-}
-
-interface OutputFile {
-  url: string;
-  filename: string;
-  pageNumber?: number;
-  blob: Blob;
-}
-
-type Mode = 'combined' | 'separate';
-/** idle: no file. loading: reading the PDF. preparing: the person tapped
- * Download or Share before the quiet-time build finished (the build itself is
- * silent: Download keeps its ready look). ready: Download is offered.
- * error: the last prepare failed. */
-type Status = 'idle' | 'loading' | 'preparing' | 'ready' | 'error';
-
-/** Above this many pages the per-page mode shows one caption line instead of
- * a file name under every cell (review 2026-09-14, P1: fifty captions with
- * the same base name say nothing). */
-const PER_CELL_CAPTION_LIMIT = 24;
 
 export interface PdfSplitToolProps {
   /** Server-rendered by its src/pages/[locale]/<tool>.astro route for a localized
@@ -91,608 +71,249 @@ export interface PdfSplitToolProps {
 export default function PdfSplitTool({
   messages: messagesProp,
   shellMessages,
-  navigate = (href) => { window.location.href = href; },
+  navigate,
   quietPolicy,
 }: PdfSplitToolProps = {}) {
   const t: SplitMessages = { ...englishSplitMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const [file, setFile] = useState<File | null>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [previewPage, setPreviewPage] = useState<number | null>(null);
-  const [PreviewDialog, setPreviewDialog] = useState<ComponentType<{
-    target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void;
-    toggle?: PreviewToggle; messages: PreviewMessages;
-  }> | null>(null);
-  const [pages, setPages] = useState<SplitPage[]>([]);
-  const [pageSelector, setPageSelector] = useState('');
-  const [pageSelectorError, setPageSelectorError] = useState('');
-  const [mode, setMode] = useState<Mode>('combined');
-  /** The person's rename of the combined output (null = the source's own name). */
+  // The bytes everything after opening reads: the person's file, or its
+  // repaired copy when the page list had to be rebuilt. `file` stays the
+  // original, so the name, memory and hand-off never change identity.
+  const [workingFile, setWorkingFile] = useState<File | null>(null);
+  const [pageCount, setPageCount] = useState(0);
+  // The file picked last. A load that finishes after a newer pick is stale.
+  const pickedFileRef = useRef<File | null>(null);
+  // Bumped on every pick: the prepared key's file identity, since two different
+  // PDFs can share a name, size and date while the result cache outlives a replacement.
+  const [loadId, setLoadId] = useState(0);
+  const resetDownloadFlowRef = useRef<() => void>(() => {});
+  // A protected PDF is a precondition, not a failure (src/shell/NeedsUnlock.tsx).
+  const [needsUnlock, setNeedsUnlock] = useState<{ kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
+  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading-file' | 'error'>('idle');
+  // What to save and the output name are outside the Undo stack, like Edit PDF's page numbers.
+  const [mode, setMode] = useState<SplitMode>('combined');
+  // null means "still the source's own name"; a string is the person's own.
   const [customName, setCustomName] = useState<string | null>(null);
-  const [status, setStatus] = useState<Status>('idle');
-  const [progress, setProgress] = useState(0);
-  const [outputs, setOutputs] = useState<OutputFile[]>([]);
-  const [saved, setSaved] = useState(false);
-  // DEBT-46 analytics: the person's Download or Share is the start; idle prepares
-  // are not counted (as in Merge's MERGE-12).
-  const [tap, setTap] = useState<'idle' | 'processing' | 'done'>('idle');
+  const [isRenamingOutputName, setIsRenamingOutputName] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
+  const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
-  /** A protected PDF is a precondition, not a failure (DEBT-41): no prepare run, nothing reported. */
-  const [isProtected, setIsProtected] = useState(false);
-  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
-  const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
-
-  const primaryRef = useRef<HTMLAnchorElement | null>(null);
-  const segmentRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  /** Quiet-time preparer (src/lib/quietPrepare.ts), one per opened file so a new file starts with an empty cache. */
-  const preparerRef = useRef<ReturnType<typeof createQuietPreparer<any[]>> | null>(null);
-  /** The key of the state on screen; a result for any other key is dropped. */
-  const keyRef = useRef<string | null>(null);
-  /** What the next build reads; always the inputs of the current key. */
-  const inputsRef = useRef<{ file: File | null; mode: Mode; pages: number[]; rotations: Record<number, number> }>({
-    file: null, mode: 'combined', pages: [], rotations: {},
-  });
-  /**
-   * The document load is a separate race from the prepare (DEBT-18): a page
-   * selector change must not abandon a thumbnail loop, and a new file must.
-   * `begin()` supersedes the run before it, so picking a second file is all
-   * the invalidation this needs - no counter of its own beside prepareSeq.
-   */
-  const loadRun = useLatestRun();
-  /** The Compress hand-off awaits too (DEBT-19): a new file must abandon it. */
-  const handoffRun = useLatestRun();
-  /** A tap on the element while it was still preparing: deliver on ready. */
-  const pendingTap = useRef(false);
-  // A Download tap during 'preparing' waits on this build, so hold through all of
-  // it; an untapped prepare only delays an update by a moment.
-  useHoldUpdate(status === 'preparing');
+  const gridRef = useRef<HTMLUListElement | null>(null);
+  // Loaded through a dynamic import() so the grid, its preview dialog and
+  // Sortable stay off the eager graph check-page-weight.js measures.
+  const [PageGrid, setPageGrid] = useState<ComponentType<PageGridProps> | null>(null);
   useHoldUpdate(file !== null, 'open');
-  const outputsRef = useRef<OutputFile[]>([]);
-  outputsRef.current = outputs;
 
-  const selectedPages = pages.filter((p) => p.selected).map((p) => p.pageNumber);
-  const selectedCount = selectedPages.length;
-  const renderedCount = pages.filter((p) => p.thumbnail).length;
-  const baseName = file ? outputBaseName(file.name) : '';
-  const outputName = customName ?? baseName;
-  // { [pageNumber]: 0|90|180|270 }, non-zero entries only - what splitPdf
-  // applies on top of the source page's own rotation.
-  const rotations = Object.fromEntries(
-    pages.filter((p) => p.rotation).map((p) => [p.pageNumber, p.rotation]),
+  const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<SplitDocument>(
+    EMPTY_DOCUMENT,
+    { tool: 'split', announce: setAnnouncement, messages: { undone: t.undoneAnnouncement, redone: t.redoneAnnouncement } },
   );
-  const rotationKey = pages.map((p) => p.rotation).join(',');
+  const { plan } = present;
 
-  inputsRef.current = { file, mode, pages: selectedPages, rotations };
-  const preparerNow = () => preparerRef.current?.now();
+  const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
+    const incoming = Array.from(fileList);
+    const pdfs = incoming.filter((f) => f.type === 'application/pdf');
+    setRejectedFiles(incoming.filter((f) => f.type !== 'application/pdf').map((f) => f.name));
+    if (pdfs.length === 0) return;
+    const selectedFile = pdfs[0];
+    recordAction(file ? 'replace_file' : 'add_files');
 
-  const revokeAll = (list: OutputFile[]) => {
-    for (const f of list) URL.revokeObjectURL(f.url);
-  };
+    setFile(selectedFile);
+    setWorkingFile(selectedFile);
+    pickedFileRef.current = selectedFile;
+    setLoadId((n) => n + 1);
+    resetDownloadFlowRef.current();
+    setLoadStatus('loading-file');
+    setNeedsUnlock(null);
+    setPageCount(0);
+    setRenderedCount(0);
+    setMode('combined');
+    setCustomName(null);
+    // A new file starts a fresh document: reset (not commit) so the previous
+    // file's undo/redo stacks don't leak across files.
+    reset(EMPTY_DOCUMENT);
 
-  useEffect(() => () => revokeAll(outputsRef.current), []);
-
-  // The single-slot undo chip Merge shares. Rotate is the only action that
-  // uses it today; a new file clears it so a stale undo never runs on it.
-  const { action: undoAction, register: registerUndo, clear: clearUndo, run: runUndo } = useUndoChip();
-
-  // Any edit invalidates the prepared output; the quiet-time prepare below rebuilds it.
-  const invalidate = () => {
-    pendingTap.current = false;
-    clearPrepared();
-    setSaved(false);
-    setTap('idle');
-    // A hand-off still reading the old bytes must not park them or navigate,
-    // and its button comes back for the newly chosen file.
-    handoffRun.invalidate();
-    setHandoffBusy(false);
-    setHandoffFailed(false);
-    setOutputs((prev) => {
-      revokeAll(prev);
-      return [];
-    });
-  };
-
-  // Guideline §2, "Quiet means quiet": the build waits for the person to go
-  // quiet and runs silently - Download keeps its ready look meanwhile. Only a
-  // tap on Download or Share before it lands shows 'preparing'. A new file gets
-  // a new preparer (and so an empty cache); unmount disposes it.
-  useEffect(() => {
-    const preparer = createQuietPreparer<any[]>({
-      policy: quietPolicy,
-      build: (_key, signal) => {
-        const { file: f, mode: m, pages: wanted, rotations: rots } = inputsRef.current;
-        setProgress(0);
-        return splitPdf(f, {
-          pageNumbers: wanted,
-          mode: m,
-          rotations: rots,
-          signal,
-          onProgress: (value: number) => { if (!signal.aborted) setProgress(value); },
-        });
-      },
-      onReady: (key, results) => {
-        if (key !== keyRef.current) return;
-        const next: OutputFile[] = results.map((r) => ({ ...r, url: URL.createObjectURL(r.blob) }));
-        setOutputs((prev) => {
-          revokeAll(prev);
-          return next;
-        });
-        prepareFiles(results.map(({ blob, filename }) => ({ blob, filename, type: 'application/pdf' })));
-        setStatus('ready');
-      },
-      onError: (key, err: any) => {
-        // expected: a superseded build is aborted on purpose and is not a failure
-        if (err?.name === 'AbortError' || key !== keyRef.current) return;
-        reportError('pdf_tool_run', err, 'prepare_split');
-        console.error(err);
-        setStatus('error');
-        setAnnouncement(t.announcePrepareFailed);
-      },
-    });
-    preparerRef.current = preparer;
-    return () => {
-      preparer.dispose();
-      if (preparerRef.current === preparer) preparerRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file]);
-
-  useEffect(() => {
-    if (!file || isProtected || status === 'loading') return;
-    if (selectedCount === 0) {
-      keyRef.current = null;
-      setStatus('ready');
-      return;
-    }
-    const key = `${mode}|${selectedPages.join(',')}|${rotationKey}`;
-    keyRef.current = key;
-    setStatus('ready');
-    preparerRef.current?.change(key);
-    // selectedPages and rotationKey are derived from pages; the joins key
-    // the effect on the actual selection and rotation, not object identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, isProtected, mode, selectedPages.join(','), rotationKey, status === 'loading']);
-
-  // A rename reaches Share too: the prepared File is rebuilt under the new name
-  // from the same blob (no PDF work), after each prepare as well as each rename.
-  useEffect(() => {
-    if (status !== 'ready' || mode !== 'combined' || !outputs[0]) return;
-    prepareFiles([{ blob: outputs[0].blob, filename: extractedFileName(outputName), type: 'application/pdf' }]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputs, outputName, mode, status]);
-
-  const downloadAll = useCallback((list: OutputFile[]) => {
-    list.forEach((f, index) => {
-      setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = f.url;
-        link.download = f.filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }, index * 200);
-    });
-  }, []);
-
-  // A tap while preparing queues the download and delivers on ready.
-  useEffect(() => {
-    if (status !== 'ready' || !pendingTap.current || outputs.length === 0) return;
-    pendingTap.current = false;
-    if (mode === 'combined') primaryRef.current?.click();
-    else {
-      downloadAll(outputs);
-      setSaved(true);
-    }
-  }, [status, outputs, mode, downloadAll]);
-
-  // A tap on a ready Download or a share: 'processing' renders once so
-  // BasePdfTool reports the start, then 'done' once the download is delivered.
-  useEffect(() => {
-    if (tap === 'processing' && !pendingTap.current && status === 'ready') setTap('done');
-  }, [tap, status, outputs]);
-
-  const loadDocumentAndThumbnails = async (pdfFile: File) => {
-    const run = loadRun.begin();
-    let loadingTask: any = null;
     try {
-      const lib = await getPdfjs();
-      const bytes = await pdfFile.arrayBuffer();
-      if (!run.isCurrent()) return;
+      const bytes = await selectedFile.arrayBuffer();
+      // pdf-lib cannot read either kind of protection (an owner-only file loads as blank pages), so both go to Unlock.
       let protection = 'open';
       try {
         protection = await probeEncryption(bytes);
       } catch (err) {
         // The probe itself failing says nothing about the file; load as today.
-        if (!run.isCurrent()) return;
         reportError('pdf_tool_run', err, 'check_encryption');
       }
-      if (!run.isCurrent()) return;
+      if (pickedFileRef.current !== selectedFile) return;
       if (protection === 'needs-password' || protection === 'owner-restricted') {
-        setIsProtected(true);
-        setStatus('error');
-        setAnnouncement(t.announceProtected);
-        run.settle();
+        setNeedsUnlock({ kind: protection, bytes });
+        setLoadStatus('idle');
+        setAnnouncement(protection === 'needs-password' ? t.announceNeedsPassword : t.announceRestricted);
         return;
       }
-      loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
-      const pdf = await loadingTask.promise;
-      if (!run.isCurrent()) return;
-
-      const pageCount = pdf.numPages;
-      setNumPages(pageCount);
-
-      const initialPages = Array.from({ length: pageCount }, (_, idx) => ({
-        pageNumber: idx + 1,
-        selected: true,
-        thumbnail: null,
-        rotation: 0,
-      }));
-      setPages(initialPages);
-      setPageSelector(pageNumbersToRangeString(initialPages.map((p) => p.pageNumber)));
-      setStatus('ready');
-      setAnnouncement(formatMessage(t.announceLoaded, { name: pdfFile.name, count: pageCount }));
-
-      for (let i = 1; i <= pageCount; i += 1) {
-        // Checked per page, not once before the loop: setPages below matches
-        // on `p.pageNumber === i` alone, so a loop that outlives its file
-        // would stamp this document's thumbnails into the next one's cells
-        // one at a time.
-        if (!run.isCurrent()) return;
-        try {
-          const page = await pdf.getPage(i);
-          const nativeViewport = page.getViewport({ scale: 1 });
-          const scale = 100 / nativeViewport.width;
-          const viewport = page.getViewport({ scale });
-
-          const canvas = document.createElement('canvas');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const context = getPdfRenderContext(canvas);
-
-          await page.render({ canvasContext: context, viewport }).promise;
-          const url = canvas.toDataURL('image/png');
-          if (!run.isCurrent()) return;
-
-          setPages((current) =>
-            current.map((p) => (p.pageNumber === i ? { ...p, thumbnail: url } : p)),
-          );
-        } catch (err) {
-          // A run that lost its file had its document destroyed under it.
-          if (run.isCurrent()) reportError('pdf_render', err, 'render_thumbnail');
-          console.error(`Error rendering thumbnail for page ${i}:`, err);
-        }
-      }
-
-      run.settle();
+      const loaded = await loadPdfWithPages(bytes);
+      if (pickedFileRef.current !== selectedFile) return;
+      // The grid (pdf.js) and the export read the repaired bytes, so the repair runs once.
+      setWorkingFile(loaded.repaired
+        ? new File([loaded.bytes as BlobPart], selectedFile.name, {
+          type: 'application/pdf',
+          lastModified: selectedFile.lastModified,
+        })
+        : selectedFile);
+      setPageCount(loaded.pageCount);
+      reset({ plan: planForFile(FILE_ID, loaded.pageCount) });
+      setLoadStatus('idle');
+      setAnnouncement(formatMessage(t.loaded, { name: selectedFile.name, count: loaded.pageCount }));
     } catch (err) {
-      console.error('Error loading PDF document:', err);
-      if (!run.isCurrent()) return;
-      reportError('pdf_render', err, 'load_document');
-      setStatus('error');
-      setAnnouncement(t.announceLoadFailed);
-    } finally {
-      // In `finally` so an abandoned load releases pdf.js too, not only one
-      // that walked every page - that was the leak behind the old
-      // after-the-loop destroy().
-      // try/catch, not `Promise.resolve(destroy()).catch()`: destroy() is
-      // called before the wrapper exists, so a synchronous throw would escape
-      // this `finally` entirely - past the catch branch's setStatus('error')
-      // and out of a `void`-called async function as an unhandled rejection.
-      if (loadingTask) {
-        try {
-          await loadingTask.destroy();
-        } catch {
-          // expected: an abandoned task failing to release is nothing the person can act on
-        }
-      }
+      reportError('pdf_tool_run', err, 'load_document');
+      console.error(err);
+      if (pickedFileRef.current !== selectedFile) return;
+      setLoadStatus('error');
+      setAnnouncement(t.loadFailed);
     }
-  };
+  }, [reset, file, t.announceNeedsPassword, t.announceRestricted, t.loaded, t.loadFailed]);
 
-  const handleFilesAdded = (fileList: FileList | File[]) => {
-    const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => f.type === 'application/pdf');
-    const rejected = incoming.filter((f) => f.type !== 'application/pdf');
-
-    setRejectedFiles(rejected.map((f) => f.name));
-    if (pdfs.length === 0) return;
-
-    const picked = pdfs[0];
-    recordAction(file ? 'replace_file' : 'add_files');
-    invalidate();
-    clearUndo();
-    setFile(picked);
-    setCustomName(null);
-    setIsProtected(false);
-    setPages([]);
-    setPageSelector('');
-    setPageSelectorError('');
-    setNumPages(0);
-    setStatus('loading');
-    void loadDocumentAndThumbnails(picked);
-  };
-
-  // MERGE-14: a merged PDF handed off from /merge/ (saveHandoff + navigate)
-  // is collected here on mount and dropped straight into the same path a
-  // manual pick takes. This tool has no draft to race against, so mount is
-  // enough - see useHandoffIntake.ts's own comment for why Sign/Redact
-  // instead resolve their hand-off ahead of a draft restore.
+  // MERGE-14: a PDF handed off from another tool (or the home page) is collected
+  // on mount and dropped into the same path a manual pick takes.
   useHandoffIntake('split', (f) => handleFilesAdded([f]));
 
-  // parsePageSelector's errors carry a code and params so this catalogue can
-  // phrase them; anything else keeps its own message.
-  const selectorErrorText = (err: any): string => {
-    const template = err?.code ? (t as any)[err.code] : undefined;
-    return template ? formatMessage(template, err.params ?? {}) : err.message;
-  };
+  useEffect(() => {
+    if (!file || PageGrid) return undefined;
+    let cancelled = false;
+    import('../../shell/pageGrid/PageGrid.tsx')
+      .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
+      .catch((err) => reportError('pdf_render', err, 'load_page_grid'));
+    return () => { cancelled = true; };
+  }, [file !== null, PageGrid]);
 
-  const handlePageSelectorChange = (value: string) => {
-    setPageSelector(value);
-    invalidate();
-    try {
-      const parsed = parsePageSelector(value, numPages);
-      setPages((prev) =>
-        prev.map((p) => ({ ...p, selected: parsed.includes(p.pageNumber) })),
-      );
-      setPageSelectorError('');
-    } catch (err: any) {
-      // expected: the person's own page range did not parse; its message is shown under the field.
-      // While a selector is being typed ("1-" or "1,") hold the error.
-      const isPartial = /[-,]\s*$/.test(value);
-      setPageSelectorError(isPartial ? '' : selectorErrorText(err));
-    }
+  const sources = useMemo(
+    () => (workingFile ? [{ id: FILE_ID, file: workingFile, pageCount, error: null }] : []),
+    [workingFile, pageCount],
+  );
+
+  const outputCount = outputPageCount(plan);
+  const skippedCount = plan.length - outputCount;
+  const baseName = file ? outputBaseName(file.name) : '';
+  const title = customName ?? baseName;
+  const combined = mode === 'combined';
+  const fileName = combined ? extractedFileName(title) : `${baseName}-page-N.pdf`;
+
+  // The output name is not in the key: renaming never rebuilds.
+  const key = file && workingFile && loadStatus === 'idle' && !needsUnlock && outputCount > 0
+    ? `${loadId}|${planKey(plan)}|${mode}`
+    : null;
+  /** What the next build reads; always the inputs of the current key. */
+  const inputsRef = useRef({ workingFile, plan, mode });
+  inputsRef.current = { workingFile, plan, mode };
+  const prepared = usePreparedOutput({
+    key,
+    quietPolicy,
+    build: (signal, onProgress) => {
+      const { workingFile: source, plan: current, mode: chosen } = inputsRef.current;
+      return buildSplit(source as File, current, chosen, onProgress, signal);
+    },
+    onBuildError: (err) => reportError('pdf_tool_run', err, 'prepare_split'),
+  });
+
+  const downloadFlow = useDownloadFlow({
+    prepared,
+    fileName,
+    hrefs: HANDOFF_HREFS,
+    blocked: prepared.status === 'error' ? 'error' : null,
+    nothing: plan.length > 0 && outputCount === 0,
+    announce: setAnnouncement,
+    messages: { ready: t.readyAnnouncement, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
+    navigate,
+  });
+  const {
+    tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff,
+    onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow,
+  } = downloadFlow;
+  resetDownloadFlowRef.current = resetDownloadFlow;
+
+  // A bulk action is one step, and none at all when it changes nothing.
+  const bulk = (update: (current: PlanEntry[]) => PlanEntry[], message: string) => () => {
+    if (update(plan) === plan) return;
+    onPlanChange(update);
     recordAction('select_pages');
-    reportEdit('split');
+    setAnnouncement(message);
   };
+  const onIncludeAll = bulk(includeAll, t.allIncluded);
+  const onSkipAll = bulk(skipAll, t.allSkipped);
+  const onInvert = bulk(invert, t.inverted);
 
-  // Review 2026-09-14, P1: a toggled cell stays where it is. Membership is
-  // shown by state (dimmed, dashed, struck number), never by moving the cell,
-  // so the next tap lands on the page the finger is over.
-  const togglePageSelection = (pageNumber: number) => {
-    invalidate();
-    setPages((prev) => {
-      const next = prev.map((p) =>
-        p.pageNumber === pageNumber ? { ...p, selected: !p.selected } : p,
-      );
-      setPageSelector(pageNumbersToRangeString(next.filter((p) => p.selected).map((p) => p.pageNumber)));
-      setPageSelectorError('');
-      return next;
-    });
-    recordAction('select_pages');
-    reportEdit('split');
-  };
+  const onSelectPages = useCallback((numbers: number[]) => {
+    onPlanChange((current) => withIncludedPages(current, numbers));
+  }, [onPlanChange]);
 
-  // Rotation is a page property, not a selection one: it applies in either
-  // mode, and toggling a page out and back in keeps whatever rotation it had.
-  const rotatePage = (pageNumber: number) => {
-    invalidate();
-    setPages((prev) =>
-      prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 90) % 360 } : p)),
-    );
-    setAnnouncement(formatMessage(t.announceRotated, { number: pageNumber }));
-    recordAction('rotate');
-    reportEdit('split');
-    registerUndo(formatMessage(t.undoRotated, { number: pageNumber }), () => {
-      invalidate();
-      setPages((prev) =>
-        prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 270) % 360 } : p)),
-      );
-    });
-  };
-
-  // The dialog is a lazy chunk: it stays out of the eager graph until a
-  // magnifier is pressed (npm run test:lazy-modules).
-  const openPreview = (pageNumber: number) => {
-    setPreviewPage(pageNumber);
-    if (!PreviewDialog) {
-      import('../../shell/PagePreviewDialog.tsx').then((module) => setPreviewDialog(() => module.default)).catch((err) => { reportError('chunk_load', err, 'import_preview_dialog'); });
-    }
-  };
-
-  const selectAll = () => {
-    invalidate();
-    setPages((prev) => {
-      const next = prev.map((p) => ({ ...p, selected: true }));
-      setPageSelector(pageNumbersToRangeString(next.map((p) => p.pageNumber)));
-      setPageSelectorError('');
-      return next;
-    });
-    recordAction('select_pages');
-    reportEdit('split');
-  };
-
-  const selectNone = () => {
-    invalidate();
-    setPages((prev) => prev.map((p) => ({ ...p, selected: false })));
-    setPageSelector('');
-    setPageSelectorError('');
-    recordAction('select_pages');
-    reportEdit('split');
-  };
-
-  const chooseMode = (next: Mode) => {
+  const chooseMode = (next: SplitMode) => {
     if (next === mode) return;
-    invalidate();
     setMode(next);
     recordAction('change_setting');
     reportEdit('split');
     setAnnouncement(next === 'combined' ? t.announceCombined : t.announceSeparate);
   };
 
-  const onSegmentKeyDown = (e: KeyboardEvent) => {
-    const order: Mode[] = ['combined', 'separate'];
-    const current = order.indexOf(mode);
-    let next: number | null = null;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (current + 1) % 2;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (current + 1) % 2;
-    else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = 1;
-    if (next === null) return;
-    e.preventDefault();
-    chooseMode(order[next]);
-    segmentRefs.current[next]?.focus();
-  };
+  // '' means the person emptied the name, which goes back to the source's own.
+  const renameOutput = useCallback((next: string) => {
+    setCustomName(next.length > 0 && next !== baseName ? next : null);
+  }, [baseName]);
 
-  const onPrimaryClick = (event: MouseEvent) => {
-    if (selectedCount === 0) {
-      event.preventDefault();
-      return;
-    }
-    if (status === 'preparing' || (status === 'ready' && outputs.length === 0)) {
-      // The quiet-time build has not landed: show it now and deliver on ready.
-      event.preventDefault();
-      pendingTap.current = true;
-      setTap('processing');
-      if (status !== 'preparing') {
-        setProgress(0);
-        setStatus('preparing');
-      }
-      setAnnouncement(t.announcePreparingTap);
-      preparerNow();
-      return;
-    }
-    if (status !== 'ready' || outputs.length === 0) {
-      event.preventDefault();
-      return;
-    }
-    recordAction('download');
-    setTap('processing');
-    if (mode === 'separate') {
-      event.preventDefault();
-      downloadAll(outputs);
-    }
-    setSaved(true);
-    setAnnouncement(mode === 'combined' ? t.announceSavedOne : formatMessage(t.announceSavedMany, { count: outputs.length }));
-  };
+  const pdfsLabel = (n: number) => (n === 1 ? t.pdfOne : formatMessage(t.pdfOther, { count: n }));
+  const detail = combined
+    ? downloadDetail(prepared, outputCount, sm, t.dir)
+    : prepared.status === 'ready'
+      ? formatMessage(t.detailSeparate, { size: isolateLtr(formatFileSize(prepared.size), t.dir) })
+      : pagesLabel(outputCount, sm);
+  // The Download element reads its label from the catalogue; One PDF per page counts the files.
+  const downloadMessages = combined
+    ? t
+    : { ...t, downloadLabel: formatMessage(t.downloadMany, { files: pdfsLabel(outputCount) }), savedLabel: formatMessage(t.savedMany, { files: pdfsLabel(outputCount) }) };
+  const analyticsStatus = loadStatus === 'error' || prepared.status === 'error' ? 'error' : tap;
+  const handoffs = combined
+    ? [
+      { tool: 'compress' as HandoffTool, label: t.handoffCompress, Icon: Shrink },
+      { tool: 'sign' as HandoffTool, label: t.handoffSign, Icon: FileSignature },
+    ]
+    : [];
 
-  const handleShare = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setTap('processing');
-    if (result.status === 'shared') setAnnouncement(t.announceShared);
-    else if (result.status === 'canceled') setAnnouncement(t.announceShareCanceled);
-    else if (result.status === 'error') setAnnouncement(t.announceShareError);
-  };
+  const bulkRow = (
+    <div class={workspaceStyles['quiet-row']}>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onIncludeAll}>{t.includeAll}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onSkipAll}>{t.skipAll}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onInvert}>{t.invertPages}</button>
+    </div>
+  );
 
-  // Cross-tool hand-off (guideline §13): park the prepared bytes for Compress
-  // and navigate. Only the single-file mode has one file to hand over.
-  const handoffToCompress = async () => {
-    const output = combinedOutput;
-    if (handoffBusy || mode !== 'combined' || !output) return;
-    const run = handoffRun.begin();
-    setHandoffBusy(true);
-    setHandoffFailed(false);
-    try {
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      if (!run.isCurrent()) return;
-      const fileBytes = await output.blob.arrayBuffer();
-      if (!run.isCurrent()) return;
-      const ok = await saveHandoff('compress', {
-        fileName: output.filename,
-        fileType: 'application/pdf',
-        fileBytes,
-      });
-      if (!run.isCurrent()) return;
-      if (!ok) throw new Error('handoff');
-      run.settle();
-      navigate('/compress/');
-    } catch {
-      // expected: saveHandoff reports its own failure; a stale failure must not touch the new file UI
-      if (!run.isCurrent()) return;
-      setHandoffFailed(true);
-      setHandoffBusy(false);
-    }
-  };
+  const replaceRow = (requestReplace: () => void) => (
+    <div class={workspaceStyles['quiet-row']}>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.replaceLabel}</button>
+    </div>
+  );
 
-  const hasFiles = !!file;
-  const totalBytes = outputs.reduce((sum, f) => sum + f.blob.size, 0);
-  const perCellCaptions = mode === 'separate' && numPages <= PER_CELL_CAPTION_LIMIT;
+  const rangeField = (id?: string) => (
+    <PageRangeField plan={plan} pageCount={pageCount} onSelect={onSelectPages} messages={t} id={id} />
+  );
 
-  const primaryState = selectedCount === 0
-    ? 'empty'
-    : status === 'preparing' ? 'preparing'
-      : status === 'error' ? 'error'
-        : saved ? 'saved' : 'ready';
-  // The prepared blob is named for the source; a rename in the heading only changes the name it is handed out under.
-  const combinedOutput = mode === 'combined' && outputs[0]
-    ? { ...outputs[0], filename: extractedFileName(outputName) }
-    : undefined;
-  const primaryIsLink = !!combinedOutput && (primaryState === 'ready' || primaryState === 'saved');
-
-  const pageWord = (n: number) => (n === 1 ? t.pageOne : formatMessage(t.pageOther, { count: n }));
-  const fileWord = (n: number) => (n === 1 ? t.pdfOne : formatMessage(t.pdfOther, { count: n }));
-  // A page range ("1-3, 5") inside right-to-left text keeps its digits in
-  // reading order; left-to-right pages need no wrapper.
-  // A file size ("1.0 MB") is isolated the same way (LRI ... PDI) inside a catalogue string.
-  const rangeNode = (range: string) => (t.dir === 'rtl' ? <bdi dir="ltr">{range}</bdi> : range);
-
-  const canvasHeading = mode === 'combined'
-    ? (
-      <OutputName
-        prefix="extracted_"
-        name={outputName}
-        label={t.fileNameEditableLabel}
-        onRename={(next) => setCustomName(next.length > 0 && next !== baseName ? next : null)}
-      />
-    )
-    : formatMessage(t.headingSeparate, { files: fileWord(selectedCount) });
-  const canvasCount = formatMessage(t.pageCountOf, { selected: selectedCount, pages: pageWord(numPages) });
-
-  const renderCell = (p: SplitPage) => (
-    <PageToggleTile
-      key={p.pageNumber}
-      class={`${styles.cell}${perCellCaptions && p.selected ? ` ${styles['is-own-file']}` : ''}`}
-      selected={p.selected}
-      thumbnail={p.thumbnail}
-      rotation={p.rotation}
-      label={formatMessage(t.pageAria, { number: p.pageNumber })}
-      onToggle={() => togglePageSelection(p.pageNumber)}
-      onPreview={() => openPreview(p.pageNumber)}
-      previewLabel={formatMessage(t.openPreview, { number: p.pageNumber })}
-      previewClass={styles['preview-btn']}
-      caption={perCellCaptions && p.selected ? (
-        <span class={styles['cell-caption']} dir="ltr" title={`${baseName}-page-${p.pageNumber}.pdf`}>
-          {'…-page-'}{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
-        </span>
-      ) : (
-        <span class={styles['cell-number']}>{formatMessage(t.pageCell, { number: p.pageNumber })}</span>
-      )}
-    >
-      {/* Always visible, not hover/tap-gated: the cell body's own click
-          already toggles inclusion (the frame is the mode), so a second,
-          select-to-reveal gesture like Merge's would collide with it on
-          touch. One small button fits a corner without the crowding three
-          buttons would (ux-design-guidelines §8). */}
-      <button
-        type="button"
-        class={styles['rotate-btn']}
-        aria-label={formatMessage(t.rotateAria, { number: p.pageNumber })}
-        onClick={() => rotatePage(p.pageNumber)}
-      >
-        {/* The same rotate-clockwise arrow Edit Pages uses (Shlomi, 2026-09-14:
-            a page-with-arrow glyph was not readable as rotate at 14px). */}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-          <path d="M21 3v5h-5" />
-        </svg>
-      </button>
-    </PageToggleTile>
+  const failure = (
+    <ErrorMessage>
+      {withSlot(t.splitFailedBody, '{unlock}', <a href="/unlock/">{t.unlockLink}</a>)}
+    </ErrorMessage>
   );
 
   return (
     <BasePdfTool
       emptyArt={<SplitVerb />}
-      hasFiles={hasFiles}
+      hasFiles={file !== null}
       analyticsTool="split"
       // A protected file is the person's file, not a failed operation: it stays out of the failure count.
-      analyticsStatus={status === 'error' && !isProtected ? 'error' : tap}
+      analyticsStatus={analyticsStatus}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       file={file}
       fileLabel={file?.name}
-      fileMeta={describeFile(file, numPages, undefined, sm)}
       shellMessages={shellMessages}
+      hideIdentity
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
@@ -702,254 +323,145 @@ export default function PdfSplitTool({
         </p>
       )}
 
-      {hasFiles && (
-        <div class="tool-workspace">
-          {status === 'loading' ? (
-            <div class={pdfToolStyles['status-block']}>
-              <p class={pdfToolStyles['status-text-muted']}>{t.loadingPages}</p>
-            </div>
-          ) : isProtected ? (
-            <ErrorMessage>
-              {withSlot(t.protectedBody, '{unlock}', <a href="/unlock/">{t.unlockLink}</a>)}
-            </ErrorMessage>
-          ) : (
-            <div class={styles.stage}>
-              {/* The heading names the output and spans both columns, so the
-                  canvas frame and the rail start on the same line (Shlomi,
-                  2026-09-14: the two boxes were not top-aligned). */}
-              <div class={styles['canvas-head']}>
-                <div class={styles['canvas-title-row']}>
-                  <h3 id="split-canvas-title" class={styles['canvas-title']}>{canvasHeading}</h3>
-                  <span class={styles['canvas-count']}>{canvasCount}</span>
-                </div>
-                {renderedCount < numPages && (
-                  <span class={styles['canvas-status']} role="status">{formatMessage(t.rendering, { done: renderedCount, total: numPages })}</span>
-                )}
-                {undoAction && (
-                  <span class={styles['undo-chip']} role="status">
-                    {undoAction.message}
-                    <button type="button" onClick={runUndo}>{t.undo}</button>
-                  </span>
-                )}
-              </div>
-
-              {/* The canvas: the output, as the person will get it. */}
-              <section class={styles.canvas} aria-label={t.canvasLabel}>
-                {mode === 'combined' ? (
-                  <div class={styles['doc-frame']} data-empty={selectedCount === 0 ? 'true' : undefined}>
-                    <div class={styles['frame-caption']}>
-                      <span>{t.frameOneDocument}</span>
-                      <span class={styles['frame-caption-note']}>
-                        {selectedCount === 0
-                          ? t.pickAtLeastOne
-                          : withSlot(selectedCount === 1 ? t.frameNoteOne : t.frameNoteMany, '{range}', rangeNode(pageNumbersToRangeString(selectedPages)))}
-                      </span>
-                    </div>
-                    <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>
-                  </div>
-                ) : (
-                  <div class={styles['doc-frames']}>
-                    <div class={styles['frame-caption']}>
-                      <span>{t.frameSeparate}</span>
-                      <span class={styles['frame-caption-note']}>
-                        {selectedCount === 0
-                          ? t.pickAtLeastOne
-                          : withSlot(t.eachSavesAs, '{name}', <bdi dir="ltr">{baseName}-page-N.pdf</bdi>)}
-                      </span>
-                    </div>
-                    <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>
-                  </div>
-                )}
-
-                <p class={styles['canvas-hint']}>
-                  {selectedCount === numPages ? t.hintAllIn : t.hintSomeOut}
-                </p>
-
-              </section>
-
-              {/* The rail: commands on the selection, the setting, the primary control. */}
-              <aside class={styles.rail} aria-label={t.railLabel}>
-                <div class={styles.commands}>
-                  <div class={pdfToolStyles['page-selector-field']}>
-                    <div class={styles['command-row']}>
-                      <label for="page-selector-input" class={pdfToolStyles['page-selector-label']}>{t.pagesLabel}</label>
-                      <button type="button" class={styles.command} onClick={selectAll}>{t.selectAll}</button>
-                      <button type="button" class={styles.command} onClick={selectNone}>{t.clear}</button>
-                    </div>
-                    <input
-                      id="page-selector-input"
-                      type="text"
-                      class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
-                      value={pageSelector}
-                      onInput={(e) => handlePageSelectorChange((e.target as HTMLInputElement).value)}
-                      dir="ltr"
-                      placeholder={t.pageSelectorPlaceholder}
-                      aria-describedby={pageSelectorError ? 'page-selector-hint' : undefined}
-                      aria-invalid={!!pageSelectorError}
-                    />
-                  </div>
-                  {pageSelectorError && (
-                    <p id="page-selector-hint" class={pdfToolStyles['page-selector-error']} role="alert">{pageSelectorError}</p>
-                  )}
-                </div>
-
-                <div class={styles.sheet}>
-                  <div class={styles.setting}>
-                    <div
-                      class={styles.segmented}
-                      role="radiogroup"
-                      aria-label={t.modeGroupLabel}
-                      onKeyDown={onSegmentKeyDown}
-                    >
-                      {(['combined', 'separate'] as Mode[]).map((m, index) => (
-                        <button
-                          key={m}
-                          ref={(el) => { segmentRefs.current[index] = el; }}
-                          type="button"
-                          role="radio"
-                          aria-checked={mode === m}
-                          tabIndex={mode === m ? 0 : -1}
-                          class={`${styles.segment}${mode === m ? ` ${styles['is-active']}` : ''}`}
-                          onClick={() => chooseMode(m)}
-                        >
-                          {m === 'combined' ? t.modeCombined : t.modeSeparate}
-                        </button>
-                      ))}
-                    </div>
-                    <p class={styles['setting-note']}>
-                      {mode === 'combined' ? t.modeNoteCombined : t.modeNoteSeparate}
-                    </p>
-                  </div>
-
-                  <a
-                    ref={primaryRef}
-                    class={styles.primary}
-                    data-state={primaryState}
-                    href={primaryIsLink ? combinedOutput!.url : undefined}
-                    download={primaryIsLink ? combinedOutput!.filename : undefined}
-                    role={primaryIsLink ? undefined : 'button'}
-                    tabIndex={0}
-                    aria-disabled={primaryState === 'empty' || primaryState === 'error' ? 'true' : undefined}
-                    aria-busy={primaryState === 'preparing' ? 'true' : undefined}
-                    onClick={onPrimaryClick}
-                    onPointerEnter={preparerNow}
-                    onFocus={preparerNow}
-                    onPointerDown={preparerNow}
-                    onKeyDown={(e) => {
-                      if (!primaryIsLink && (e.key === ' ' || e.key === 'Enter')) {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLAnchorElement).click();
-                      }
-                    }}
-                  >
-                    {primaryState === 'empty' ? (
-                      <span class={styles['primary-label']}>{t.pickAtLeastOne}</span>
-                    ) : primaryState === 'preparing' ? (
-                      <ProgressRing progress={progress} label={formatMessage(t.preparing, { pages: pageWord(selectedCount) })} />
-                    ) : primaryState === 'error' ? (
-                      <span class={styles['primary-label']}>{t.cannotPrepare}</span>
-                    ) : primaryState === 'saved' ? (
-                      <>
-                        <svg class={styles['primary-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
-                          <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                        </svg>
-                        <span class={styles['primary-label']}>
-                          {mode === 'combined' ? t.saved : formatMessage(t.savedMany, { files: fileWord(outputs.length) })}
-                        </span>
-                        <span class={styles['primary-detail']}>{t.downloadAgain}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span class={styles['primary-label']}>
-                          {mode === 'combined' ? t.downloadOne : formatMessage(t.downloadMany, { files: fileWord(outputs.length || selectedCount) })}
-                        </span>
-                        <span class={styles['primary-detail']}>
-                          {outputs.length === 0
-                            ? pageWord(selectedCount)
-                            : mode === 'combined'
-                            ? formatMessage(t.detailCombined, { pages: pageWord(selectedCount), size: isolateLtr(formatFileSize(totalBytes), t.dir) })
-                            : formatMessage(t.detailSeparate, { size: isolateLtr(formatFileSize(totalBytes), t.dir) })}
-                        </span>
-                      </>
-                    )}
-                  </a>
-
-                  {/* Guideline §4, row 6: next steps sit right after the
-                      primary control. The segmented control is directly
-                      above Download in this same block, so a quiet "or
-                      switch mode" line here would only repeat a control
-                      already in view - dropped (Shlomi, 2026-09-14).
-                      Share appears the moment there is something to share
-                      (PdfShareButton's own `visible` prop, not gated behind
-                      a first Download tap); Compress stays in the row,
-                      disabled until then, so the row doesn't jump in. */}
-                  {selectedCount > 0 && status !== 'error' && (
-                    <div class={styles['next-steps']} onPointerOver={preparerNow} onFocusIn={preparerNow} onPointerDown={preparerNow}>
-                      <PdfShareButton
-                        visible={shareReady}
-                        onShare={handleShare}
-                        label={outputs.length === 1 ? t.shareOne : formatMessage(t.shareMany, { count: outputs.length })}
-                        className={styles['next-step']}
-                      />
-                      {mode === 'combined' && (
-                        <button
-                          type="button"
-                          class={styles['next-step']}
-                          disabled={handoffBusy || !combinedOutput}
-                          onClick={() => { void handoffToCompress(); }}
-                        >
-                          <Shrink size={16} aria-hidden="true" />
-                          {t.compress}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {handoffFailed && (
-                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-                      {t.handoffFailed}
-                    </p>
-                  )}
-                </div>
-
-                {status === 'error' && (
-                  <ErrorMessage>
-                    {withSlot(t.splitFailedBody, '{unlock}', <a href="/unlock/">{t.unlockLink}</a>)}
-                  </ErrorMessage>
-                )}
-              </aside>
-            </div>
-          )}
+      {file && loadStatus === 'loading-file' && (
+        <div class={pdfToolStyles['status-block']}>
+          <p class={pdfToolStyles['status-text-muted']}>{t.loadingPages}</p>
         </div>
       )}
 
-      {PreviewDialog && file && (() => {
-        const page = pages.find((p) => p.pageNumber === previewPage);
-        const target: PreviewTarget | null = page ? {
-          file,
-          pageIndex: page.pageNumber - 1,
-          rotation: page.rotation,
-          title: formatMessage(t.previewTitle, { number: page.pageNumber, total: numPages }),
-          badge: page.selected ? undefined : t.previewLeftOut,
-          atStart: page.pageNumber <= 1,
-          atEnd: page.pageNumber >= numPages,
-        } : null;
-        return (
-          <PreviewDialog
-            target={target}
-            onClose={() => setPreviewPage(null)}
-            onStep={(delta) => setPreviewPage((current) => (current == null ? null : Math.max(1, Math.min(numPages, current + delta))))}
-            toggle={page ? {
-              label: page.selected ? t.previewLeaveOut : t.previewBringBack,
-              pressed: !page.selected,
-              always: true,
-              onToggle: () => togglePageSelection(page.pageNumber),
-            } : undefined}
-            messages={{ close: t.previewClose, previous: t.previewPrev, next: t.previewNext, loading: t.previewLoading }}
-          />
-        );
-      })()}
+      {file && loadStatus === 'error' && failure}
+
+      {file && needsUnlock && (
+        <NeedsUnlock
+          kind={needsUnlock.kind}
+          file={file}
+          bytes={needsUnlock.bytes}
+          from="split"
+          toolName="Split PDF"
+          verb="split"
+        />
+      )}
+
+      {file && loadStatus === 'idle' && !needsUnlock && (
+        <ToolShellBridge>
+          {({ requestReplace }) => (
+            <PageWorkspace
+              phoneBar={(
+                <div class={workspaceStyles['chip-bar']}>
+                  {/* The mode stays in view at every scroll position; the quiet Download sits at the bar's end. */}
+                  <ModeControl mode={mode} onChange={chooseMode} messages={t} compact />
+                  <PhoneFinish
+                    flow={downloadFlow}
+                    prepared={prepared}
+                    fileName={fileName}
+                    detail={detail}
+                    handoffs={handoffs}
+                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
+                  />
+                </div>
+              )}
+              phoneControls={(
+                <div class={workspaceStyles['mobile-file-controls']}>
+                  {replaceRow(requestReplace)}
+                  {bulkRow}
+                  {rangeField('page-selector-input-phone')}
+                </div>
+              )}
+              heading={(
+                <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
+                  <span class="sr-only">{t.documentHeading}</span>
+                  {combined ? (
+                    <OutputName
+                      prefix="extracted_"
+                      name={title}
+                      label={t.fileNameEditableLabel}
+                      onRename={renameOutput}
+                      onEditingChange={setIsRenamingOutputName}
+                      wrapOnPhone
+                    >
+                      <span class={workspaceStyles['doc-heading-count']}>
+                        {' · '}{pagesLabel(outputCount, sm)}
+                        {skippedCount > 0 ? ` · ${pagesLabel(skippedCount, sm)} ${t.skippedBadge.toLowerCase()}` : ''}
+                      </span>
+                    </OutputName>
+                  ) : (
+                    <>
+                      <bdi dir="ltr">{fileName}</bdi>
+                      <span class={workspaceStyles['doc-heading-count']}>
+                        {' · '}{pdfsLabel(outputCount)}
+                        {skippedCount > 0 ? ` · ${pagesLabel(skippedCount, sm)} ${t.skippedBadge.toLowerCase()}` : ''}
+                      </span>
+                    </>
+                  )}
+                </h2>
+              )}
+              headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
+              railContent={(
+                <>
+                  {replaceRow(requestReplace)}
+                  {rangeField()}
+                  {bulkRow}
+                  <ModeControl mode={mode} onChange={chooseMode} messages={t} note={combined ? t.modeNoteCombined : t.modeNoteSeparate} />
+                </>
+              )}
+              railPinned={(
+                <>
+                  <DownloadElement
+                    state={downloadState}
+                    href={prepared.status === 'ready' ? prepared.url : null}
+                    fileName={fileName}
+                    detail={detail}
+                    renderedCount={renderedCount}
+                    totalCount={plan.length}
+                    pageCount={outputCount}
+                    progress={prepared.progress}
+                    errorMessage={t.buildFailed}
+                    messages={downloadMessages}
+                    onPreparingTap={onRowPreparingTap}
+                    onWarm={prepared.prepareNow}
+                    onDownloadClick={onDownloadTap}
+                    isOutputNameBeingRenamed={isRenamingOutputName}
+                  />
+
+                  <FinishRow
+                    ready={prepared.status === 'ready'}
+                    shareReady={shareReady}
+                    onShare={handleShare}
+                    busy={handoffBusy}
+                    onHandoff={(tool) => { void requestHandoff(tool); }}
+                    onWarm={prepared.prepareNow}
+                    labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign }}
+                    tools={combined ? ['compress', 'sign'] : []}
+                  />
+
+                  {handoffFailed && (
+                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                  )}
+                </>
+              )}
+            >
+              {prepared.status === 'error' && failure}
+
+              {PageGrid && plan.length > 0 && (
+                <PageGrid
+                  sources={sources}
+                  plan={plan}
+                  onPlanChange={onPlanChange}
+                  announce={setAnnouncement}
+                  messages={t}
+                  labelledBy="page-grid-heading"
+                  reorderable={false}
+                  grouped
+                  labelSources={false}
+                  gridRef={gridRef}
+                  onRenderedCountChange={setRenderedCount}
+                />
+              )}
+            </PageWorkspace>
+          )}
+        </ToolShellBridge>
+      )}
+
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>

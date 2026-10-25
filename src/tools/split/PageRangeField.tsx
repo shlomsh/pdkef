@@ -1,0 +1,87 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pageSelector.js';
+import { includedPageNumbers, type PlanEntry } from '../../lib/pagePlan.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
+import { formatMessage, type SplitMessages } from '../../i18n/toolMessages';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+
+type FieldMessages = Pick<SplitMessages,
+  'pagesLabel' | 'pageSelectorPlaceholder' | 'outOfRange' | 'rangeOutOfRange' | 'invalidPart' | 'noValidPages'>;
+
+interface PageRangeFieldProps {
+  plan: PlanEntry[];
+  pageCount: number;
+  /** The pages the typed range keeps; called only when that differs from the plan. */
+  onSelect: (pageNumbers: number[]) => void;
+  messages: FieldMessages;
+  /** The rail and the phone controls each carry a field; ids stay unique. */
+  id?: string;
+}
+
+/** parsePageSelector's errors carry a code and params so the catalogue can phrase them; anything else keeps its own message. */
+function errorText(err: any, messages: FieldMessages): string {
+  const template = err?.code ? (messages as any)[err.code] : undefined;
+  return template ? formatMessage(template, err.params ?? {}) : err.message;
+}
+
+/** The selection in the one form the field shows and compares: "1-3, 5". */
+const canonical = (pageNumbers: number[]) => pageNumbersToRangeString(pageNumbers);
+
+/**
+ * Split's page range ("1-3, 5, 8-"), kept in step with the plan both ways.
+ * A range typed here commits through `onSelect`; any other change to the plan
+ * (a tile, a bulk button, Undo) rewrites the text. What the field itself just
+ * committed is not rewritten, so the person's own spelling stays while typing.
+ */
+export default function PageRangeField({ plan, pageCount, onSelect, messages, id = 'page-selector-input' }: PageRangeFieldProps) {
+  const included = canonical(includedPageNumbers(plan));
+  const [text, setText] = useState(included);
+  const [error, setError] = useState('');
+  // The selection the text currently stands for.
+  const shownRef = useRef(included);
+
+  useEffect(() => {
+    if (included === shownRef.current) return;
+    shownRef.current = included;
+    setText(included);
+    setError('');
+  }, [included]);
+
+  const onInput = (event: Event) => {
+    const value = (event.target as HTMLInputElement).value;
+    setText(value);
+    try {
+      const numbers: number[] = parsePageSelector(value, pageCount);
+      setError('');
+      const next = canonical(numbers);
+      shownRef.current = next;
+      if (next === included) return;
+      onSelect(numbers);
+      recordAction('select_pages');
+    } catch (err: any) {
+      // expected: the person's own range did not parse; the selection stays and the message shows under the field.
+      // While a range is being typed ("1-" or "1,") the error is held back.
+      setError(/[-,]\s*$/.test(value) ? '' : errorText(err, messages));
+    }
+  };
+
+  return (
+    <div>
+      <div class={pdfToolStyles['page-selector-field']}>
+        <label for={id} class={pdfToolStyles['page-selector-label']}>{messages.pagesLabel}</label>
+        <input
+          id={id}
+          type="text"
+          class={`${pdfToolStyles['page-selector-input']}${error ? ` ${pdfToolStyles['has-error']}` : ''}`}
+          value={text}
+          onInput={onInput}
+          dir="ltr"
+          placeholder={messages.pageSelectorPlaceholder}
+          aria-describedby={error ? `${id}-hint` : undefined}
+          aria-invalid={!!error}
+        />
+      </div>
+      {error && <p id={`${id}-hint`} class={pdfToolStyles['page-selector-error']} role="alert">{error}</p>}
+    </div>
+  );
+}

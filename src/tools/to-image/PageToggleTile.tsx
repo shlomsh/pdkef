@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import styles from './PageToggleTile.module.css';
-import pdfToolStyles from './PdfTool.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 
 export interface PageToggleTileProps {
   thumbnail: string | null;

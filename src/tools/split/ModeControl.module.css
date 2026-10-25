@@ -1,0 +1,65 @@
+.setting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+/* The two-way segmented control: both options side by side, 44px. A track
+   with an inset pill: the segments have their own radius inside a 3px gutter,
+   so the active ring never meets the track's rounded corner. */
+.segmented {
+  display: flex;
+  gap: 3px;
+  height: 44px;
+  padding: 3px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.segment {
+  flex: 1 1 0;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.35rem;
+  white-space: nowrap;
+  border-radius: calc(var(--radius-sm) - 3px);
+}
+
+.segment:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -3px;
+}
+
+/* Tinted, not filled: Download is the only dark block. */
+.segment.is-active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
+}
+
+/* In the phone bar the control takes what Download leaves; a long label wraps
+   inside its 44px segment instead of pushing Download off the bar. */
+.compact {
+  flex: 1 1 0;
+}
+
+.compact .segment {
+  white-space: normal;
+  font-size: 0.8rem;
+  line-height: 1.1;
+  text-align: center;
+}

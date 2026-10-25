@@ -82,6 +82,8 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
+  // DEBT-19: reset() (a new file was picked) bumps this so a hand-off still saving never navigates.
+  const handoffRunRef = useRef(0);
 
   // Once the output is ready, any subsequent edit takes the Download element
   // back through preparing -> ready; this only has to stop pretending a stale
@@ -130,6 +132,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // discard anything, so there is nothing left to confirm.
   const performHandoff = useCallback(async (tool: HandoffTool) => {
     if (!prepared.blob) return;
+    const run = ++handoffRunRef.current;
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
@@ -141,6 +144,10 @@ export function useDownloadFlow(input: DownloadFlowInput) {
         fileType: 'application/pdf',
         fileBytes: await prepared.blob.arrayBuffer(),
       });
+      if (run !== handoffRunRef.current) {
+        setHandoffBusy(false);
+        return;
+      }
       if (!saved) throw new Error('handoff');
       navigate(hrefs[tool]);
     } catch {
@@ -193,6 +200,8 @@ export function useDownloadFlow(input: DownloadFlowInput) {
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    // A completed Share counts like a Download tap (ANALYTICS.md); the effect above settles it to 'done'.
+    if (result.status === 'shared') setTap('processing');
     if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') announce(messages.shared);
     else if (result.status === 'canceled') announce(messages.canceled);
@@ -223,6 +232,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // What Clear all clears: the shared finish-flow state and the Share blob.
   const reset = useCallback(() => {
     clearPrepared();
+    handoffRunRef.current += 1;
     setTap('idle');
     setPendingDownload(false);
     quietPendingRef.current = false;

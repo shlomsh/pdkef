@@ -37,7 +37,6 @@ const srcDir = path.join(__dirname, '..', 'src');
 // Every entry must name its consumer, and "it looked unused" is not a reason - if the
 // class has a rule in some .module.css, the bug is a missing import, not a hook.
 const allowedClasses = new Map([
-  ['tool-workspace', 'layout hook; queried by PdfSplitTool.test.tsx'],
   ['redact-draw-area', 'gesture-surface hook; queried by PdfRedactTool.test.tsx and src/tools/redact/e2e/redact-editor.spec.js. Its appearance comes from the page-wrapper module class beside it'],
   ['redact-drawing-preview', 'selector hook; queried by src/tools/redact/e2e/redact-editor.spec.js. Its visuals are inline geometry'],
 ]);

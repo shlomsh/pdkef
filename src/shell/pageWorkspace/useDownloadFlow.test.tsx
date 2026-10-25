@@ -3,10 +3,12 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decideDownloadState, deliverParts, useDownloadFlow, type DownloadFlowInput } from './useDownloadFlow.ts';
 
-const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn() }));
+const share = vi.hoisted(() => ({ download: vi.fn(), prepare: vi.fn(), prepareFiles: vi.fn(), clearPrepared: vi.fn(), sharePrepared: vi.fn() }));
 vi.mock('../../lib/usePdfShare.js', () => ({
-  usePdfShare: () => ({ shareReady: false, sharePrepared: vi.fn(), ...share }),
+  usePdfShare: () => ({ shareReady: false, ...share }),
 }));
+const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));
+vi.mock('../../lib/drafts/draftStore.js', () => store);
 
 type Prepared = DownloadFlowInput['prepared'];
 const blob = new Blob(['x'], { type: 'application/pdf' });
@@ -188,5 +190,30 @@ describe('useDownloadFlow', () => {
     await act(async () => { await flow.requestHandoff('compress'); });
     expect(flow.handoffBusy).toBe(false);
     expect(flow.handoffFailed).toBe(false);
+  });
+
+  it('a hand-off still saving when reset() runs does not navigate', async () => {
+    let finish!: (saved: boolean) => void;
+    store.saveHandoff.mockReturnValue(new Promise<boolean>((resolve) => { finish = resolve; }));
+    const navigate = vi.fn();
+    mount({ ...base(ready()), navigate });
+    let run!: Promise<void>;
+    await act(async () => { run = flow.requestHandoff('compress'); await Promise.resolve(); });
+    act(() => flow.reset());
+    await act(async () => { finish(true); await run; });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(flow.handoffBusy).toBe(false);
+  });
+
+  it('a completed Share counts as a tap (processing, then done); a canceled one does not', async () => {
+    mount(base(ready()));
+    const taps: string[] = [flow.tap];
+    share.sharePrepared.mockResolvedValue({ status: 'canceled' });
+    await act(async () => { await flow.handleShare(); });
+    expect(flow.tap).toBe('idle');
+    share.sharePrepared.mockResolvedValue({ status: 'shared' });
+    await act(async () => { await flow.handleShare(); });
+    taps.push(flow.tap);
+    expect(taps).toEqual(['idle', 'done']);
   });
 });

@@ -10,7 +10,7 @@ import {
   pagesRefMissing,
   pagesWrongType,
   twoRoots,
-} from '../../test/pdfPageTreeFixtures';
+} from '../test/pdfPageTreeFixtures';
 
 const load = (bytes: Uint8Array) => lib.PDFDocument.load(bytes, { ignoreEncryption: true });
 const widths = async (bytes: Uint8Array) =>

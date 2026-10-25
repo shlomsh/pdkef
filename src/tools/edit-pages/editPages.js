@@ -1,6 +1,6 @@
 import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
-import { loadPdfWithPages } from './loadPdfPages.ts';
+import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 
 function checkAborted(signal) {
   if (signal?.aborted) throw new DOMException('Edit aborted', 'AbortError');
