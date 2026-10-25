@@ -5,7 +5,7 @@ import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { editPages } from './editPages.js';
 import { editOptionsFromPlan } from './editPlan.ts';
 import { englishEditPagesMessages as t } from './messages.ts';
-import { loadPdfWithPages } from './loadPdfPages.ts';
+import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { includeAll, invert, outputPageCount, skipAll, planForFile, planKey, type PlanEntry } from '../../lib/pagePlan.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -326,8 +326,8 @@ export default function PdfEditPagesTool() {
               headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
               railContent={(
                 <>
-                  {bulkRow}
                   {replaceRow(requestReplace)}
+                  {bulkRow}
                 </>
               )}
               railPinned={(

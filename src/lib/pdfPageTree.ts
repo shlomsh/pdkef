@@ -9,7 +9,7 @@
  *
  * Pure: pdf-lib is 628 KiB and lazy-loaded (pdfLib.js), so the module comes in as `lib`.
  */
-import type { PageTreeRoots, PageTreeShape } from '../../lib/maintenanceEventSchema';
+import type { PageTreeRoots, PageTreeShape } from './maintenanceEventSchema';
 
 type PdfLib = typeof import('@cantoo/pdf-lib');
 type Doc = import('@cantoo/pdf-lib').PDFDocument;

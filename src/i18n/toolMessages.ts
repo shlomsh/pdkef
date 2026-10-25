@@ -794,82 +794,33 @@ export interface SplitMessages extends PageGridMessages, DownloadMessages, Histo
   skippedOne: string;
   skippedMany: string;
   loadingPages: string;
-  /** '{unlock}' is the link. */
-  protectedBody: string;
   splitFailedBody: string;
   unlockLink: string;
-  pageOne: string;
-  pageOther: string;
   pdfOne: string;
   pdfOther: string;
   /** aria-label of the editable output name in the combined heading. */
   fileNameEditableLabel: string;
-  /** '{files}' is a pdfOne/pdfOther phrase. */
-  headingSeparate: string;
-  /** '{selected}' of '{pages}' (a page phrase). */
-  pageCountOf: string;
-  rendering: string;
   undo: string;
-  undoRotated: string;
-  canvasLabel: string;
-  railLabel: string;
-  frameOneDocument: string;
-  frameSeparate: string;
-  pickAtLeastOne: string;
-  frameNoteOne: string;
-  frameNoteMany: string;
-  /** '{name}' is the file's base name. */
-  eachSavesAs: string;
-  hintAllIn: string;
-  hintSomeOut: string;
   pagesLabel: string;
-  selectAll: string;
-  clear: string;
   pageSelectorPlaceholder: string;
   modeGroupLabel: string;
   modeCombined: string;
   modeSeparate: string;
   modeNoteCombined: string;
   modeNoteSeparate: string;
-  pageAria: string;
-  rotateAria: string;
   openPreview: string;
   previewTitle: string;
   previewClose: string;
   previewPrev: string;
   previewNext: string;
   previewLoading: string;
-  previewLeftOut: string;
-  previewLeaveOut: string;
-  previewBringBack: string;
-  pageCell: string;
-  preparing: string;
-  cannotPrepare: string;
-  saved: string;
   savedMany: string;
   downloadAgain: string;
-  downloadOne: string;
   downloadMany: string;
-  detailCombined: string;
   detailSeparate: string;
-  shareOne: string;
-  shareMany: string;
-  compress: string;
   handoffFailed: string;
-  /* Screen-reader announcements. */
-  announceLoaded: string;
-  announceProtected: string;
-  announceLoadFailed: string;
-  announcePrepareFailed: string;
-  announceRotated: string;
   announceCombined: string;
   announceSeparate: string;
-  announcePreparingTap: string;
-  announceSavedOne: string;
-  announceSavedMany: string;
-  announceShared: string;
-  announceShareCanceled: string;
-  announceShareError: string;
   /* parsePageSelector's errors, rebuilt from its code and params. */
   outOfRange: string;
   rangeOutOfRange: string;
@@ -878,7 +829,8 @@ export interface SplitMessages extends PageGridMessages, DownloadMessages, Histo
   /* The shared page grid's own strings (Split reads the same Download and Undo/Redo elements). */
   includeAll: string;
   skipAll: string;
-  invert: string;
+  /* Not the bare Tailwind utility name: src/i18n is a Tailwind @source, and that ships a dead rule on every page. */
+  invertPages: string;
   documentHeading: string;
   downloadShort: string;
   readyAnnouncement: string;
@@ -905,76 +857,32 @@ const englishSplitMessages: SplitMessages = {
   skippedOne: 'Skipped “{name}” - not a PDF.',
   skippedMany: 'Skipped {count} files - not PDFs.',
   loadingPages: 'Loading document pages...',
-  protectedBody: 'This PDF is protected. Open it in {unlock} first, then split it here.',
   splitFailedBody: 'The split failed. A protected PDF opens in {unlock} first. Otherwise the file may be damaged.',
   unlockLink: 'Unlock',
-  pageOne: '1 page',
-  pageOther: '{count} pages',
   pdfOne: '1 PDF',
   pdfOther: '{count} PDFs',
   fileNameEditableLabel: 'File name, editable',
-  headingSeparate: '{files}, one page each',
-  pageCountOf: '{selected} of {pages}',
-  rendering: 'Rendering {done} of {total}',
   undo: 'Undo',
-  undoRotated: 'Rotated page {number}',
-  canvasLabel: 'Your split PDF',
-  railLabel: 'Split options',
-  frameOneDocument: 'one document',
-  frameSeparate: 'separate documents',
-  pickAtLeastOne: 'Pick at least one page',
-  frameNoteOne: 'page {range}',
-  frameNoteMany: 'pages {range}',
-  eachSavesAs: 'each saves as {name}',
-  hintAllIn: 'Every page is in. Click a page to leave it out.',
-  hintSomeOut: 'Dimmed pages are left out. Click one to bring it back.',
   pagesLabel: 'Pages',
-  selectAll: 'Select all',
-  clear: 'Clear',
   pageSelectorPlaceholder: 'e.g. 1-3, 5, 8-',
   modeGroupLabel: 'What to save',
   modeCombined: 'One PDF',
   modeSeparate: 'One PDF per page',
   modeNoteCombined: 'Selected pages become a single PDF.',
   modeNoteSeparate: 'Each selected page becomes its own PDF.',
-  pageAria: 'Page {number}',
-  rotateAria: 'Rotate page {number}',
   openPreview: 'Open page {number} larger',
   previewTitle: 'Page {number} of {total}',
   previewClose: 'Close',
   previewPrev: 'Previous page',
   previewNext: 'Next page',
   previewLoading: 'Rendering the page…',
-  previewLeftOut: 'Left out of the download',
-  previewLeaveOut: 'Leave out',
-  previewBringBack: 'Bring back',
-  pageCell: 'Page {number}',
-  preparing: 'Preparing {pages}…',
-  cannotPrepare: 'Could not prepare this PDF',
-  saved: 'Saved',
   savedMany: 'Saved {files}',
   downloadAgain: 'download again',
-  downloadOne: 'Download 1 PDF',
   downloadMany: 'Download {files}',
-  detailCombined: '{pages} · {size}',
   detailSeparate: '1 page each · {size}',
-  shareOne: 'Share PDF',
-  shareMany: 'Share {count} PDFs',
-  compress: 'Compress',
-  handoffFailed: 'Could not hand the file to Compress. Download it and open Compress instead.',
-  announceLoaded: 'Loaded PDF "{name}" with {count} pages.',
-  announceProtected: 'This PDF is protected. Open it in Unlock first.',
-  announceLoadFailed: 'Failed to load PDF file.',
-  announcePrepareFailed: 'Could not prepare the split PDF.',
-  announceRotated: 'Page {number} rotated.',
+  handoffFailed: 'Could not hand the file over. Download it instead.',
   announceCombined: 'Selected pages will become a single PDF.',
   announceSeparate: 'Each selected page will become its own PDF.',
-  announcePreparingTap: 'Preparing. The download starts as soon as it is ready.',
-  announceSavedOne: 'PDF saved.',
-  announceSavedMany: '{count} PDFs saved.',
-  announceShared: 'Split PDF files shared successfully.',
-  announceShareCanceled: 'Sharing canceled. Your PDF files are still ready.',
-  announceShareError: 'Could not open the share sheet. Please try again.',
   outOfRange: 'Page number {number} out of range (1-{max})',
   rangeOutOfRange: 'Range {start}-{end} contains out of range page numbers (1-{max})',
   invalidPart: 'Invalid page range or number: "{part}"',
@@ -1009,7 +917,7 @@ const englishSplitMessages: SplitMessages = {
   redoLabel: 'Redo last undone change',
   includeAll: 'Include all',
   skipAll: 'Skip all',
-  invert: 'Invert',
+  invertPages: 'Invert',
   documentHeading: 'Your split PDF',
   downloadShort: 'Download',
   readyAnnouncement: 'Your PDF is ready.',
@@ -1039,76 +947,32 @@ const hebrewSplitMessages: SplitMessages = {
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF.',
   loadingPages: 'טוענים את עמודי המסמך...',
-  protectedBody: 'ה-PDF הזה מוגן. קודם פותחים אותו ב{unlock}, ואז מפצלים אותו כאן.',
   splitFailedBody: 'הפיצול נכשל. קובץ PDF מוגן נפתח קודם ב{unlock}. אם הוא לא מוגן, ייתכן שהקובץ פגום.',
   unlockLink: 'הסרת נעילה',
-  pageOne: 'עמוד אחד',
-  pageOther: '{count} עמודים',
   pdfOne: 'קובץ PDF אחד',
   pdfOther: '{count} קבצי PDF',
   fileNameEditableLabel: 'שם הקובץ, ניתן לעריכה',
-  headingSeparate: '{files}, עמוד אחד בכל קובץ',
-  pageCountOf: '{selected} מתוך {pages}',
-  rendering: 'מציגים {done} מתוך {total}',
   undo: 'ביטול',
-  undoRotated: 'סובב עמוד {number}',
-  canvasLabel: 'ה-PDF המפוצל שלכם',
-  railLabel: 'אפשרויות פיצול',
-  frameOneDocument: 'מסמך אחד',
-  frameSeparate: 'מסמכים נפרדים',
-  pickAtLeastOne: 'בחרו לפחות עמוד אחד',
-  frameNoteOne: 'עמוד {range}',
-  frameNoteMany: 'עמודים {range}',
-  eachSavesAs: 'כל עמוד נשמר בשם {name}',
-  hintAllIn: 'כל העמודים כלולים. לחצו על עמוד כדי להשאיר אותו בחוץ.',
-  hintSomeOut: 'עמודים עמומים נשארים בחוץ. לחצו על עמוד כדי להחזיר אותו.',
   pagesLabel: 'עמודים',
-  selectAll: 'בחירת הכול',
-  clear: 'ניקוי',
   pageSelectorPlaceholder: 'לדוגמה 1-3, 5, 8-',
   modeGroupLabel: 'מה לשמור',
   modeCombined: 'PDF אחד',
   modeSeparate: 'PDF לכל עמוד',
   modeNoteCombined: 'העמודים שבחרתם יהפכו לקובץ PDF אחד.',
   modeNoteSeparate: 'כל עמוד שבחרתם יהפוך לקובץ PDF משלו.',
-  pageAria: 'עמוד {number}',
-  rotateAria: 'סיבוב עמוד {number}',
   openPreview: 'הגדלת עמוד {number}',
   previewTitle: 'עמוד {number} מתוך {total}',
   previewClose: 'סגירה',
   previewPrev: 'העמוד הקודם',
   previewNext: 'העמוד הבא',
   previewLoading: 'מציירים את העמוד…',
-  previewLeftOut: 'לא ייכלל בהורדה',
-  previewLeaveOut: 'להשאיר בחוץ',
-  previewBringBack: 'להחזיר',
-  pageCell: 'עמוד {number}',
-  preparing: 'מכינים {pages}…',
-  cannotPrepare: 'לא הצלחנו להכין את ה-PDF הזה',
-  saved: 'נשמר',
   savedMany: 'נשמרו {files}',
   downloadAgain: 'הורדה שוב',
-  downloadOne: 'הורדת PDF אחד',
   downloadMany: 'הורדת {files}',
-  detailCombined: '{pages} · {size}',
   detailSeparate: 'עמוד אחד בכל קובץ · {size}',
-  shareOne: 'שיתוף PDF',
-  shareMany: 'שיתוף {count} קבצי PDF',
-  compress: 'כיווץ',
-  handoffFailed: 'לא הצלחנו להעביר את הקובץ לכיווץ. הורידו אותו ופתחו את הכיווץ בעצמכם.',
-  announceLoaded: 'הקובץ "{name}" נטען, {count} עמודים.',
-  announceProtected: 'ה-PDF הזה מוגן. קודם פותחים אותו בהסרת נעילה.',
-  announceLoadFailed: 'טעינת קובץ ה-PDF נכשלה.',
-  announcePrepareFailed: 'לא הצלחנו להכין את ה-PDF המפוצל.',
-  announceRotated: 'עמוד {number} סובב.',
+  handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
   announceCombined: 'העמודים שבחרתם יהפכו לקובץ PDF אחד.',
   announceSeparate: 'כל עמוד שבחרתם יהפוך לקובץ PDF משלו.',
-  announcePreparingTap: 'מכינים. ההורדה תתחיל ברגע שהקובץ יהיה מוכן.',
-  announceSavedOne: 'ה-PDF נשמר.',
-  announceSavedMany: 'נשמרו {count} קבצי PDF.',
-  announceShared: 'קבצי ה-PDF המפוצלים שותפו.',
-  announceShareCanceled: 'השיתוף בוטל. קבצי ה-PDF עדיין מוכנים.',
-  announceShareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
   outOfRange: 'עמוד {number} מחוץ לטווח (1-{max})',
   rangeOutOfRange: 'הטווח {start}-{end} כולל עמודים מחוץ לטווח (1-{max})',
   invalidPart: 'טווח או מספר עמוד לא תקין: "{part}"',
@@ -1143,7 +1007,7 @@ const hebrewSplitMessages: SplitMessages = {
   redoLabel: 'ביצוע מחדש של השינוי שבוטל',
   includeAll: 'הוספת הכול',
   skipAll: 'דילוג על הכול',
-  invert: 'היפוך',
+  invertPages: 'היפוך',
   documentHeading: 'ה-PDF המפוצל שלכם',
   downloadShort: 'הורדה',
   readyAnnouncement: 'ה-PDF שלכם מוכן.',

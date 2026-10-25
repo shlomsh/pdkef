@@ -1,4 +1,6 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
+import fs from 'fs';
+import path from 'path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
@@ -7,14 +9,10 @@ import PdfSplitTool from './PdfSplitTool.tsx';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import styles from './PdfSplitTool.module.css';
-import tileStyles from '../../shell/PageToggleTile.module.css';
-
-const toggleOf = (tile) => tile.querySelector('button[aria-pressed]');
 import outputNameStyles from '../../shell/OutputName.module.css';
+import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
-import * as pdfjsDist from 'pdfjs-dist';
 import { hebrewSplitMessages, hebrewShellMessages } from '../../i18n/toolMessages';
 
 const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
@@ -24,62 +22,68 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   reportEdit: editSpy,
 }));
 
-function makePdfFile(name) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
-}
-
-const { saveHandoffMock } = vi.hoisted(() => ({ saveHandoffMock: vi.fn() }));
+const { saveHandoffMock, takeHandoffMock } = vi.hoisted(() => ({
+  saveHandoffMock: vi.fn(),
+  takeHandoffMock: vi.fn(() => Promise.resolve(null)),
+}));
 vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   ...(await importOriginal()),
   saveHandoff: saveHandoffMock,
+  takeHandoff: takeHandoffMock,
 }));
 
-const { probeMock, reportErrorMock } = vi.hoisted(() => ({
-  probeMock: vi.fn(),
-  reportErrorMock: vi.fn(),
-}));
+const { probeMock, reportErrorMock } = vi.hoisted(() => ({ probeMock: vi.fn(), reportErrorMock: vi.fn() }));
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
 vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportError: reportErrorMock,
 }));
-// Tests that are not about timing build after 5ms instead of the real 1500ms.
-const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
-const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 4 } }));
-// Wraps the real splitPdf so every test still builds real PDFs; the quiet-time
-// tests swap in a fast fake through splitOverride and count calls.
-const { splitCalls, splitOverride } = vi.hoisted(() => ({ splitCalls: { n: 0 }, splitOverride: { fn: null as any } }));
+
+// The page count and the repair are loadPdfWithPages' own tests (src/lib/loadPdfPages.test.ts).
+const { mockState, loadMock } = vi.hoisted(() => ({
+  mockState: { numPages: 5 },
+  loadMock: { fn: null as any },
+}));
+vi.mock('../../lib/loadPdfPages.ts', () => ({
+  loadPdfWithPages: (bytes: ArrayBuffer) => (loadMock.fn
+    ? loadMock.fn(bytes)
+    : Promise.resolve({ doc: null, pageCount: mockState.numPages, bytes, repaired: false })),
+}));
+
+// The shared grid reads pdf.js through this source; no real rendering here.
+vi.mock('../../lib/thumbnails.js', () => ({
+  openThumbnailSource: vi.fn(async (file) => ({
+    file,
+    pageCount: mockState.numPages,
+    render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
+    destroy: vi.fn(async () => {}),
+  })),
+  renderThumbnail: vi.fn(() => Promise.resolve(null)),
+  renderPdfThumbnails: vi.fn(async () => 0),
+}));
+
+// Wraps the real splitPdf so every test still builds real PDFs, and records what it was asked for.
+const { splitCalls } = vi.hoisted(() => ({ splitCalls: { calls: [] as any[], fail: false } }));
 vi.mock('./split.js', async (importOriginal) => {
   const actual: any = await importOriginal();
   return {
     ...actual,
-    splitPdf: (...args: any[]) => {
-      splitCalls.n += 1;
-      return (splitOverride.fn ?? actual.splitPdf)(...args);
+    splitPdf: (file: File, options: any) => {
+      splitCalls.calls.push({ file, options });
+      if (splitCalls.fail) return Promise.reject(new Error('split failed'));
+      return actual.splitPdf(file, options);
     },
   };
 });
 
-// Mock pdfjs-dist
-vi.mock('pdfjs-dist', () => {
-  return {
-    GlobalWorkerOptions: { workerSrc: '' },
-    getDocument: vi.fn(() => ({
-      promise: Promise.resolve({
-        get numPages() {
-          return mockState.numPages;
-        },
-        getPage: vi.fn(() =>
-          Promise.resolve({
-            getViewport: () => ({ width: 600, height: 800 }),
-            render: () => ({ promise: Promise.resolve() }),
-          }),
-        ),
-      }),
-      destroy: vi.fn(() => Promise.resolve()),
-    })),
-  };
-});
+// Tests that are not about timing build after 5ms instead of the real 1500ms.
+const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
+const FIXTURE = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
+const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+
+function fixtureFile(name = 'open.pdf') {
+  return new File([fs.readFileSync(FIXTURE)], name, { type: 'application/pdf' });
+}
 
 describe('PdfSplitTool UI flow', () => {
   let container;
@@ -89,6 +93,27 @@ describe('PdfSplitTool UI flow', () => {
     probeMock.mockReset();
     probeMock.mockResolvedValue('open');
     reportErrorMock.mockClear();
+    saveHandoffMock.mockReset();
+    saveHandoffMock.mockResolvedValue(true);
+    lifecycleSpy.mockClear();
+    editSpy.mockClear();
+    splitCalls.calls = [];
+    splitCalls.fail = false;
+    loadMock.fn = null;
+    mockState.numPages = 5;
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    // jsdom's Blob has no arrayBuffer().
+    if (!Blob.prototype.arrayBuffer) {
+      Blob.prototype.arrayBuffer = function arrayBuffer() {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
   });
 
   afterEach(() => {
@@ -97,1232 +122,440 @@ describe('PdfSplitTool UI flow', () => {
       container.remove();
       container = null;
     }
-    mockState.numPages = 4;
     vi.restoreAllMocks();
   });
 
-  it('renders initial dropzone', () => {
+  function mount(props = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => {
-      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
-    });
+    // jsdom cannot follow a download link.
+    container.addEventListener('click', (e) => { if (e.target.closest?.('a[download]')) e.preventDefault(); });
+    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} {...props} />, container));
+  }
+  const pick = async (file) => {
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
+    await wait(50);
+  };
+  // A second file asks first (ConfirmDialog); the answer is Replace.
+  const replaceWith = async (file) => {
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
+    await wait(150);
+  };
+  // Mounts, picks the 5-page fixture and waits for the quiet build.
+  async function open(props = {}, name = 'open.pdf') {
+    mount(props);
+    await pick(fixtureFile(name));
+    await wait(150);
+  }
 
+  const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
+  const button = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
+  const heading = () => container.querySelector('#page-grid-heading');
+  const field = () => container.querySelector('#page-selector-input');
+  const downloadElement = () => container.querySelector('a[data-state]');
+  // By position in the grid: a page's label carries its output number, which shifts when earlier pages are skipped.
+  const skipButton = (n) => cells()[n - 1].querySelector('[aria-label^="Skip page"], [aria-label^="Include page"]');
+  const isSkipped = (n) => skipButton(n).getAttribute('aria-label').startsWith('Include');
+  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  const radio = (label) => Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === label);
+  const type = (value) => act(async () => {
+    field().value = value;
+    field().dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const undo = () => click(container.querySelector('[aria-label="Undo last change"]'));
+  const redo = () => click(container.querySelector('[aria-label="Redo last undone change"]'));
+  const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
+
+  it('renders initial dropzone', () => {
+    mount();
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
 
-  describe.each(['needs-password', 'owner-restricted'])('a %s PDF (DEBT-41)', (protection) => {
-    it('never starts a prepare run, reports nothing, and points to Unlock', async () => {
-      probeMock.mockResolvedValue(protection);
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
-      });
-      const input = container.querySelector('input[type="file"]');
-      await act(async () => {
-        setInputFiles(input, [makePdfFile('locked.pdf')]);
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 150));
-      });
-      // A fake file would make splitPdf throw and report, so no report also means no prepare run.
-      expect(container.querySelector(`.${styles.primary}`)).toBeNull();
-      expect(reportErrorMock).not.toHaveBeenCalled();
-      expect(container.querySelector('a[href="/unlock/"]')).not.toBeNull();
+  it('loads the file into the shared grid under a heading that names the output', async () => {
+    await open();
+    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
+    expect(heading().textContent).toContain('extracted_open.pdf');
+    expect(heading().textContent).toContain('5 pages');
+    // The heading names the output, so the shell's own identity row is not shown.
+    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    expect(field().value).toBe('1-5');
+    expect(container.querySelector('label[for="page-selector-input"]').textContent).toBe('Pages');
+    expect(container.querySelector('[role="radiogroup"]').getAttribute('aria-label')).toBe('What to save');
+    expect(Array.from(container.querySelectorAll('[role="radiogroup"]')[1].querySelectorAll('[role="radio"]')).map((r) => r.textContent))
+      .toEqual(['One PDF', 'One PDF per page']);
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    expect(downloadElement().textContent).toContain('Download 1 PDF');
+    expect(downloadElement().textContent).toContain('5 pages');
+    expect(splitCalls.calls.at(-1).options.pageNumbers).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('starts the rail with Replace file, then the range, the bulk row and the mode', async () => {
+    await open();
+    const rail = container.querySelector(`.${workspaceStyles['rail-scroll']}`);
+    const order = Array.from(rail.querySelectorAll('button, input, [role="radiogroup"]')).map((el) => el.getAttribute('role') || el.id || el.textContent);
+    expect(order.slice(0, 6)).toEqual(['Replace file', 'page-selector-input', 'Include all', 'Skip all', 'Invert', 'radiogroup']);
+  });
+
+  it('a skipped tile stays in place, the range follows, and the heading counts it', async () => {
+    await open();
+    await click(skipButton(2));
+    expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
+    expect(isSkipped(2)).toBe(true);
+    expect(field().value).toBe('1, 3-5');
+    expect(heading().textContent).toContain('4 pages');
+    expect(heading().textContent).toContain('1 page skipped');
+  });
+
+  it('typing a range skips the other pages, as one Undo step', async () => {
+    await open();
+    await type('2-3');
+    expect([1, 2, 3, 4, 5].map(isSkipped)).toEqual([true, false, false, true, true]);
+    expect(heading().textContent).toContain('2 pages');
+    await undo();
+    expect([1, 2, 3, 4, 5].map(isSkipped)).toEqual([false, false, false, false, false]);
+    expect(field().value).toBe('1-5');
+    await redo();
+    expect(field().value).toBe('2-3');
+    expect(recentActions()).toEqual(['add_files', 'select_pages', 'undo', 'redo']);
+  });
+
+  it('keeps the selection and shows the error for an invalid range', async () => {
+    await open();
+    await click(skipButton(1));
+    await type('9');
+    expect(container.querySelector('[role="alert"]').textContent).toBe('Page number 9 out of range (1-5)');
+    expect(isSkipped(1)).toBe(true);
+    expect(isSkipped(2)).toBe(false);
+    await type('1-');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('Include all, Skip all and Invert are one step each, and none when nothing changes', async () => {
+    await open();
+    await click(button('Include all'));
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+    await click(button('Skip all'));
+    expect(field().value).toBe('');
+    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
+    expect(downloadElement().textContent).toContain('Every page is skipped');
+    await click(button('Invert'));
+    expect(field().value).toBe('1-5');
+    await undo();
+    expect(downloadElement().getAttribute('data-state')).toBe('nothing');
+    await undo();
+    expect(downloadElement().getAttribute('data-state')).not.toBe('nothing');
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+  });
+
+  it('rotating a page is a step and reaches the build as a rotation of that page number', async () => {
+    await open();
+    await click(container.querySelector('[aria-label="Rotate page 2"]'));
+    await wait(100);
+    expect(splitCalls.calls.at(-1).options.rotations).toEqual({ 2: 90 });
+    expect(isSkipped(2)).toBe(false);
+    expect(recentActions()).toEqual(['add_files', 'rotate']);
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
+  });
+
+  it('switching to One PDF per page renames the heading and the Download, and drops the hand-offs', async () => {
+    await open();
+    expect(button('Compress')).toBeDefined();
+    expect(button('Sign')).toBeDefined();
+    await click(radio('One PDF per page'));
+    await wait(100);
+    expect(heading().textContent).toContain('open-page-N.pdf');
+    expect(heading().textContent).toContain('5 PDFs');
+    expect(heading().querySelector('[contenteditable]')).toBeNull();
+    expect(container.querySelector(`.${outputNameStyles.name}`)).toBeNull();
+    expect(downloadElement().textContent).toContain('Download 5 PDFs');
+    expect(downloadElement().textContent).toContain('1 page each');
+    expect(button('Compress')).toBeUndefined();
+    expect(button('Sign')).toBeUndefined();
+    await click(radio('One PDF'));
+    expect(heading().textContent).toContain('extracted_open.pdf');
+    expect(button('Compress')).toBeDefined();
+  });
+
+  it('One PDF per page builds a file for each kept page only', async () => {
+    await open();
+    await type('2, 4');
+    await click(radio('One PDF per page'));
+    await wait(100);
+    expect(heading().textContent).toContain('2 PDFs');
+    expect(downloadElement().textContent).toContain('Download 2 PDFs');
+    expect(splitCalls.calls.at(-1).options.mode).toBe('separate');
+    expect(splitCalls.calls.at(-1).options.pageNumbers).toEqual([2, 4]);
+  });
+
+  it('Download in One PDF per page saves every part, once each', async () => {
+    await open();
+    await click(radio('One PDF per page'));
+    await wait(100);
+    const saved = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function save() { if (this.download) saved.push(this.download); });
+    await click(downloadElement());
+    await wait(1200);
+    expect(saved).toEqual(['open-page-1.pdf', 'open-page-2.pdf', 'open-page-3.pdf', 'open-page-4.pdf', 'open-page-5.pdf']);
+    expect(downloadElement().getAttribute('data-state')).toBe('saved');
+  });
+
+  it('shares every part as native files in One PDF per page, and offers Share only', async () => {
+    const nativeShare = mockNativeFileShare();
+    await open();
+    await click(radio('One PDF per page'));
+    await wait(150);
+    const share = button('Share');
+    expect(share).toBeDefined();
+    await click(share);
+    const files = nativeShare.share.mock.calls[0][0].files;
+    expect(files.map((f) => f.name)).toEqual(['open-page-1.pdf', 'open-page-2.pdf', 'open-page-3.pdf', 'open-page-4.pdf', 'open-page-5.pdf']);
+    nativeShare.restore();
+  });
+
+  it('Share appears as soon as the output is ready, not only after a first save', async () => {
+    const nativeShare = mockNativeFileShare();
+    mount();
+    await pick(fixtureFile());
+    expect(button('Share')).toBeUndefined();
+    await wait(150);
+    expect(downloadElement().getAttribute('data-state')).toBe('ready');
+    expect(button('Share')).toBeDefined();
+    nativeShare.restore();
+  });
+
+  describe('the hand-offs in One PDF', () => {
+    it.each([['Compress', '/compress/', 'compress'], ['Sign', '/sign/', 'sign']])('%s takes the extracted file', async (label, href, tool) => {
+      const navigate = vi.fn();
+      await open({ navigate });
+      await click(skipButton(1));
+      await wait(150);
+      await act(async () => { button(label).click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+      expect(saveHandoffMock).toHaveBeenCalledTimes(1);
+      expect(saveHandoffMock.mock.calls[0][0]).toBe(tool);
+      expect(saveHandoffMock.mock.calls[0][1].fileName).toBe('extracted_open.pdf');
+      expect(navigate).toHaveBeenCalledWith(href);
     });
   });
 
-  it('still prepares an open PDF', async () => {
-    mockState.numPages = 5;
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
-    });
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    expect(probeMock).toHaveBeenCalled();
-    expect(container.querySelector(`.${styles.primary}`).getAttribute('data-state')).toBe('ready');
-    expect(reportErrorMock).not.toHaveBeenCalled();
-  });
-
-  async function openFive(name = 'open.pdf') {
-    mockState.numPages = 5;
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], name, { type: 'application/pdf' })]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-  }
-
-  it('renaming the heading changes the combined download filename', async () => {
-    await openFive();
+  it('renaming the heading changes the combined file name without a rebuild', async () => {
+    await open();
+    const builds = splitCalls.calls.length;
     const nameEl = () => container.querySelector(`.${outputNameStyles.name}`);
     expect(nameEl().textContent).toBe('open');
-    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_open.pdf');
-    expect(container.querySelector(`.${styles.primary}`).getAttribute('download')).toBe('extracted_open.pdf');
+    expect(downloadElement().getAttribute('download')).toBe('extracted_open.pdf');
     await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
     await act(async () => { nameEl().textContent = 'chapter two'; });
     await act(async () => {
       nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_chapter two.pdf');
-    expect(container.querySelector(`.${styles.primary}`).getAttribute('download')).toBe('extracted_chapter two.pdf');
+    await wait(150);
+    expect(heading().textContent).toContain('extracted_chapter two.pdf');
+    expect(downloadElement().getAttribute('download')).toBe('extracted_chapter two.pdf');
+    expect(splitCalls.calls.length).toBe(builds);
   });
 
-  it('shows no editable name in one-PDF-per-page mode', async () => {
-    await openFive();
-    const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === 'One PDF per page');
-    await act(async () => perPage.click());
-    expect(container.querySelector(`.${outputNameStyles.name}`)).toBeNull();
-    expect(container.querySelector('[contenteditable]')).toBeNull();
+  it('a new file starts over: combined, the source name, a fresh history', async () => {
+    await open();
+    await click(radio('One PDF per page'));
+    await click(skipButton(1));
+    await replaceWith(fixtureFile('next.pdf'));
+    expect(heading().textContent).toContain('extracted_next.pdf');
+    expect(radio('One PDF').getAttribute('aria-checked')).toBe('true');
+    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+    expect(field().value).toBe('1-5');
   });
 
-  it('loads file and populates page grid', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('test.pdf');
-
-    await act(async () => {
-      setInputFiles(input, [file]);
-    });
-
-    // Wait for the async loader to finish
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const workspace = container.querySelector('.tool-workspace');
-    expect(workspace).not.toBeNull();
-
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar).not.toBeNull();
-    expect(fileBar.textContent).toContain('test.pdf');
-    expect(fileBar.textContent).toContain('4 pages');
-
-    // Textbox range should default to "1-4"
-    const selectorInput = container.querySelector('#page-selector-input');
-    expect(selectorInput.value).toBe('1-4');
-
-    // Should render 4 page cells, all included, inside the one-document frame
-    const cards = container.querySelectorAll(`.${styles.cell}`);
-    expect(cards.length).toBe(4);
-    expect(container.querySelectorAll('[data-out]').length).toBe(0);
-    expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
-    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_test.pdf');
-
-    // The default mode is shown as a choice, with the alternative beside it
-    const radios = container.querySelectorAll('[role="radio"]');
-    expect(Array.from(radios).map((r) => r.textContent)).toEqual(['One PDF', 'One PDF per page']);
-    expect(radios[0].getAttribute('aria-checked')).toBe('true');
-    expect(radios[1].getAttribute('aria-checked')).toBe('false');
+  it('builds from the repaired copy when the page list had to be rebuilt, and keeps the person\'s file for the hand-off', async () => {
+    const navigate = vi.fn();
+    const repairedBytes = fs.readFileSync(FIXTURE);
+    loadMock.fn = (bytes) => Promise.resolve({ doc: null, pageCount: 5, bytes: new Uint8Array(repairedBytes), repaired: true });
+    await open({ navigate }, 'broken.pdf');
+    const { file } = splitCalls.calls.at(-1);
+    expect(file.name).toBe('broken.pdf');
+    await act(async () => { button('Compress').click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(saveHandoffMock.mock.calls[0][1].fileName).toBe('extracted_broken.pdf');
   });
 
-  // LOC: /he/split/ passes the Hebrew catalogue; nothing the island renders
-  // stays English, and the page-range field keeps digits readable in an RTL page.
-  it('renders Hebrew controls from the messages prop', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    mockState.numPages = 5;
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    const text = container.textContent;
-    expect(text).toContain(hebrewSplitMessages.modeCombined);
-    expect(text).toContain(hebrewSplitMessages.modeSeparate);
-    expect(text).toContain(hebrewSplitMessages.selectAll);
-    expect(text).not.toContain('Select all');
-    expect(text).not.toContain('One PDF');
-    expect(container.querySelector(`.${styles.primary}`).textContent).toContain(hebrewSplitMessages.downloadOne);
-    const selector = container.querySelector('#page-selector-input');
-    expect(selector.getAttribute('dir')).toBe('ltr');
-    expect(selector.getAttribute('placeholder')).toBe(hebrewSplitMessages.pageSelectorPlaceholder);
-    expect(container.querySelector(`.${styles['rotate-btn']}`).getAttribute('aria-label')).toBe('סיבוב עמוד 1');
-  });
-
-  // Bidi: in RTL the whole saved file name must be one LTR isolate, and the
-  // per-cell caption must lay out left-to-right.
-  it('keeps saved file names whole and LTR in Hebrew', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    mockState.numPages = 5;
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} messages={hebrewSplitMessages} shellMessages={hebrewShellMessages} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === hebrewSplitMessages.modeSeparate);
-    await act(async () => perPage.click());
-    const isolates = Array.from(container.querySelectorAll('bdi[dir="ltr"]'));
-    expect(isolates.some((b) => b.textContent === 'open-page-N.pdf')).toBe(true);
-    expect(container.querySelector(`.${styles['cell-caption']}`).getAttribute('dir')).toBe('ltr');
-  });
-
-  // The size ("1.0 MB") inside the Hebrew detail line must be bidi-isolated or
-  // it renders reversed; English stays untouched.
-  describe('the download detail line size', () => {
-    const openAndWait = async (props) => {
-      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-      URL.revokeObjectURL = vi.fn();
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      mockState.numPages = 5;
-      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} {...props} />, container));
-      const input = container.querySelector('input[type="file"]');
-      await act(async () => {
-        setInputFiles(input, [new File([fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'))], 'open.pdf', { type: 'application/pdf' })]);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 150));
-      });
-      return container.querySelector(`.${styles['primary-detail']}`).textContent;
-    };
-
-    it('wraps the size in LRI/PDI in Hebrew', async () => {
-      const detail = await openAndWait({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
-      expect(detail).toMatch(/\u2066[^\u2066\u2069]*\d[^\u2066\u2069]*\u2069/);
-    });
-
-    it('adds no isolates in English', async () => {
-      const detail = await openAndWait({});
-      expect(detail).not.toContain('\u2066');
-      expect(detail).not.toContain('\u2069');
-    });
-  });
-
-  it('isolates a skipped file name inside the Hebrew sentence, and only in Hebrew', async () => {
-    const skippedHint = async (props) => {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} {...props} />, container));
+  it('skips a file that is not a PDF with a note, in Hebrew only isolated', async () => {
+    const note = async (props) => {
+      mount(props);
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [new File(['plain text'], '2025-notes.txt', { type: 'text/plain' })]);
       });
       return container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent;
     };
-    expect(await skippedHint({ messages: hebrewSplitMessages })).toContain('\u20682025-notes.txt\u2069');
+    expect(await note({ messages: hebrewSplitMessages })).toContain('⁨2025-notes.txt⁩');
     act(() => render(null, container));
     container.remove();
-    const english = await skippedHint({});
+    const english = await note({});
     expect(english).toContain('2025-notes.txt');
-    expect(english).not.toContain('\u2068');
+    expect(english).not.toContain('⁨');
   });
 
-  it('shows a Hebrew page-range error', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} messages={hebrewSplitMessages} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+  describe.each(['needs-password', 'owner-restricted'])('a %s PDF (DEBT-41)', (protection) => {
+    it('shows NeedsUnlock, never builds, reports nothing, and is not a failed operation (DEBT-44)', async () => {
+      probeMock.mockResolvedValue(protection);
+      mount();
+      await pick(fixtureFile('locked.pdf'));
+      await wait(150);
+      expect(container.textContent).toContain(protection === 'needs-password' ? 'This PDF has a password' : 'This PDF is protected');
+      expect(button('Unlock it')).toBeDefined();
+      expect(cells()).toHaveLength(0);
+      expect(downloadElement()).toBeNull();
+      expect(splitCalls.calls).toHaveLength(0);
+      expect(reportErrorMock).not.toHaveBeenCalled();
+      expect(events('tool_operation_failed')).toBe(0);
     });
-    const selector = container.querySelector('#page-selector-input');
-    await act(async () => {
-      selector.value = '9';
-      selector.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    expect(container.querySelector('#page-selector-hint').textContent).toBe('עמוד 9 מחוץ לטווח (1-4)');
   });
 
-  it('a toggled cell stays in place and the primary element reflects the count', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cells = () => Array.from(container.querySelectorAll(`.${styles.cell}`));
-    await act(async () => toggleOf(cells()[1]).click());
-
-    // Same four cells, same order; the second is dimmed, not moved
-    expect(cells().map((c) => toggleOf(c).getAttribute('aria-label'))).toEqual(['Page 1', 'Page 2', 'Page 3', 'Page 4']);
-    expect(cells()[1].getAttribute('data-out')).toBe('true');
-    expect(container.querySelector('#page-selector-input').value).toBe('1, 3-4');
-    expect(container.querySelector(`.${styles['canvas-count']}`).textContent).toBe('3 of 4 pages');
-
-    // Clear: the frame stays, empty, and the primary element says what to do
-    const clearButton = Array.from(container.querySelectorAll(`.${styles.command}`))
-      .find((b) => b.textContent === 'Clear');
-    await act(async () => clearButton.click());
-    expect(container.querySelector(`.${styles['doc-frame']}`).getAttribute('data-empty')).toBe('true');
-    const primary = container.querySelector(`.${styles.primary}`);
-    expect(primary.getAttribute('data-state')).toBe('empty');
-    expect(primary.textContent).toContain('Pick at least one page');
-  });
-
-  it('switching to one PDF per page regroups the same cells in place', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === 'One PDF per page');
-    await act(async () => perPage.click());
-
-    expect(container.querySelector(`.${styles['doc-frame']}`)).toBeNull();
-    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('4 PDFs, one page each');
-    const cells = Array.from(container.querySelectorAll(`.${styles.cell}`));
-    expect(cells.length).toBe(4);
-    expect(cells.every((c) => c.classList.contains(styles['is-own-file']))).toBe(true);
-    expect(cells[2].querySelector(`.${styles['cell-caption']}`).textContent).toBe('…-page-3.pdf');
-    expect(cells[2].querySelector(`.${styles['cell-caption']}`).getAttribute('title')).toBe('test-page-3.pdf');
-
-    // The segmented control (directly above Download) flips it back - no
-    // separate "or switch mode" link duplicating it (Shlomi, 2026-09-14).
-    const onePdf = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === 'One PDF');
-    await act(async () => onePdf.click());
-    expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
-  });
-
-  it('a protected file ends in an alert that points to Unlock', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/encrypted/owner-only.pdf');
-    const file = new File([fs.readFileSync(fixturePath)], 'owner-only.pdf', { type: 'application/pdf' });
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [file]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    const alert = container.querySelector('[role="alert"]');
-    expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
-  });
-
-  it('Share appears next to Download as soon as output is ready, not only after a first save', async () => {
-    const nativeShare = mockNativeFileShare();
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-
-    // A real fixture, not the fake makePdfFile(): this test waits for the
-    // actual splitPdf() prepare to resolve, which a synthetic "%PDF-1.4"
-    // body cannot parse.
-    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
-    const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [file]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const findShareButton = () =>
-      Array.from(container.querySelectorAll(`.${styles['next-step']}`)).find((b) => b.textContent.includes('Share'));
-
-    // Nothing to share yet: usePdfShare's shareReady is preparedFiles.length
-    // > 0, which only becomes true once the debounced prepare finishes.
-    expect(findShareButton()).toBeUndefined();
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    const primary = container.querySelector(`.${styles.primary}`);
-    expect(primary.getAttribute('data-state')).toBe('ready');
-    // Share is visible now, before the primary control has ever been tapped.
-    expect(findShareButton()).not.toBeUndefined();
-    nativeShare.restore();
-  });
-
-  it('records add, select, rotate and undo in order (DEBT-31)', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    const cell = container.querySelectorAll(`.${styles.cell}`)[1];
-    await act(async () => toggleOf(cell).click());
-    await act(async () => cell.querySelector(`.${styles['rotate-btn']}`).click());
-    await act(async () => container.querySelector(`.${styles['undo-chip']} button`).click());
-    expect(recentActions()).toEqual(['add_files', 'select_pages', 'rotate', 'undo']);
-  });
-
-  it('rotating a cell never toggles it, and Undo reverts the rotation', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cell = container.querySelectorAll(`.${styles.cell}`)[1];
-    const rotateBtn = cell.querySelector(`.${styles['rotate-btn']}`);
-
-    await act(async () => rotateBtn.click());
-    expect(toggleOf(cell).getAttribute('aria-pressed')).toBe('true'); // rotating never toggles inclusion
-    expect(cell.querySelector(`.${tileStyles.thumb}`).getAttribute('data-rotation')).toBe('90');
-
-    const undoChip = container.querySelector(`.${styles['undo-chip']}`);
-    expect(undoChip.textContent).toContain('Rotated page 2');
-    await act(async () => undoChip.querySelector('button').click());
-    expect(cell.querySelector(`.${tileStyles.thumb}`).getAttribute('data-rotation')).toBeNull();
-    expect(container.querySelector(`.${styles['undo-chip']}`)).toBeNull();
-  });
-
-  it('replacing the file clears a pending rotate Undo chip', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('first.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cell = container.querySelectorAll(`.${styles.cell}`)[0];
-    await act(async () => cell.querySelector(`.${styles['rotate-btn']}`).click());
-    expect(container.querySelector(`.${styles['undo-chip']}`)).not.toBeNull();
-
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('second.pdf')]);
-    });
-    // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
-    const confirmReplace = Array.from(container.querySelectorAll('dialog button'))
-      .find((button) => button.textContent.trim() === 'Replace file');
-    await act(async () => confirmReplace.click());
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    expect(container.querySelector(`.${styles['undo-chip']}`)).toBeNull();
-  });
-
-  it('Undo reverts only the rotated page and keeps edits made inside the window', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('test.pdf')]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const cells = () => Array.from(container.querySelectorAll(`.${styles.cell}`));
-    await act(async () => cells()[0].querySelector(`.${styles['rotate-btn']}`).click());
-    await act(async () => toggleOf(cells()[2]).click()); // toggle page 3 out, inside the window
-    expect(cells()[2].getAttribute('data-out')).toBe('true');
-
-    await act(async () => container.querySelector(`.${styles['undo-chip']} button`).click());
-    expect(cells()[0].querySelector(`.${tileStyles.thumb}`).getAttribute('data-rotation')).toBeNull();
-    expect(cells()[2].getAttribute('data-out')).toBe('true');
-  });
-
-  it('shares separately split PDFs as multiple native files', async () => {
-    const nativeShare = mockNativeFileShare();
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    mockState.numPages = 5;
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-
-    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
-    const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
-    const input = container.querySelector('input[type="file"]');
-    await act(async () => {
-      setInputFiles(input, [file]);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const separateButton = Array.from(container.querySelectorAll('[role="radio"]'))
-      .find((button) => button.textContent === 'One PDF per page');
-    await act(async () => separateButton.click());
-
-    // The output is prepared on idle; wait past the debounce and the split.
-    const primary = container.querySelector(`.${styles.primary}`);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-    expect(primary.getAttribute('data-state')).toBe('ready');
-    expect(primary.textContent).toContain('Download 5 PDFs');
-
-    // Tapping the primary saves all five and reveals the next steps.
-    await act(async () => {
-      primary.click();
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-    expect(primary.getAttribute('data-state')).toBe('saved');
-
-    const shareButton = Array.from(container.querySelectorAll(`.${styles['next-step']}`))
-      .find((b) => b.textContent.includes('Share'));
-    expect(shareButton).not.toBeNull();
-    await act(async () => shareButton.click());
-    const files = nativeShare.share.mock.calls[0][0].files;
-    expect(files).toHaveLength(5);
-    expect(files.map((sharedFile) => sharedFile.name)).toEqual([
-      'num-5-page-1.pdf',
-      'num-5-page-2.pdf',
-      'num-5-page-3.pdf',
-      'num-5-page-4.pdf',
-      'num-5-page-5.pdf',
-    ]);
-    nativeShare.restore();
-  });
-
-  // DEBT-19: handoffToCompress awaited an import and a save with no staleness
-  // check, so a file dropped meanwhile still had its predecessor's bytes parked
-  // for Compress and the page navigated away.
-  describe('the Compress hand-off (DEBT-19)', () => {
-    async function readyWithFixture() {
-      // jsdom's Blob has no arrayBuffer().
-      if (!Blob.prototype.arrayBuffer) {
-        Blob.prototype.arrayBuffer = function arrayBuffer() {
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsArrayBuffer(this);
-          });
-        };
+  it('ignores a load that was replaced before it finished (DEBT-18)', async () => {
+    let releaseFirst;
+    let call = 0;
+    loadMock.fn = (bytes) => {
+      call += 1;
+      if (call === 1) {
+        return new Promise((resolve) => { releaseFirst = () => resolve({ doc: null, pageCount: 300, bytes, repaired: false }); });
       }
-      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-      URL.revokeObjectURL = vi.fn();
-      const navigate = vi.fn();
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} navigate={navigate} />, container));
-      const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'));
-      const input = container.querySelector('input[type="file"]');
-      const pick = async (name) => {
-        await act(async () => {
-          setInputFiles(input, [new File([bytes], name, { type: 'application/pdf' })]);
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        });
-        await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 150));
-        });
-      };
-      const compressButton = () =>
-        Array.from(container.querySelectorAll(`.${styles['next-step']}`)).find((b) => b.textContent.includes('Compress'));
-      await pick('first.pdf');
-      return { navigate, pick, compressButton };
-    }
-
-    it('hands nothing to Compress and stays put when a new file arrives mid-save', async () => {
-      let releaseSave;
-      saveHandoffMock.mockImplementation(() => new Promise((resolve) => { releaseSave = () => resolve(true); }));
-      const { navigate, pick, compressButton } = await readyWithFixture();
-
-      await act(async () => {
-        compressButton().click();
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      expect(releaseSave).toBeDefined();
-
-      await pick('second.pdf');
-      await act(async () => {
-        releaseSave();
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      });
-
-      expect(navigate).not.toHaveBeenCalled();
-      expect(compressButton().disabled).toBe(false);
-    });
-
-    it('still navigates to Compress when nothing changed', async () => {
-      saveHandoffMock.mockResolvedValue(true);
-      const { navigate, compressButton } = await readyWithFixture();
-
-      await act(async () => {
-        compressButton().click();
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-
-      expect(saveHandoffMock).toHaveBeenCalledTimes(1);
-      expect(navigate).toHaveBeenCalledWith('/compress/');
-    });
-
-    // The button disables itself for the navigation it starts, so a restored
-    // page used to bring it back permanently greyed out (lib/useNavigatingAway.ts).
-    it('offers Compress again after a restore, rather than coming back greyed out', async () => {
-      saveHandoffMock.mockResolvedValue(true);
-      const { navigate, compressButton } = await readyWithFixture();
-
-      await act(async () => {
-        compressButton().click();
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      expect(navigate).toHaveBeenCalledWith('/compress/');
-      expect(compressButton().disabled).toBe(true);
-
-      await act(async () => {
-        const restore = new Event('pageshow');
-        restore.persisted = true;
-        window.dispatchEvent(restore);
-      });
-
-      expect(compressButton().disabled).toBe(false);
-      await act(async () => {
-        compressButton().click();
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      expect(navigate).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  // DEBT-18: the load path had no cancellation at all, so the first file's
-  // continuation kept writing numPages/pages/status after a second pick, and
-  // its thumbnail loop stamped the first file's rendered pages into the
-  // second file's cells one at a time - `p.pageNumber === i` matches whatever
-  // grid is mounted. loadingTask.destroy() was only reached after all N pages.
-  it('drops a load whose file was replaced before the document resolved', async () => {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-
-    let resolveFirstDocument;
-    const firstDestroy = vi.fn(() => Promise.resolve());
-    const firstGetPage = vi.fn(() =>
-      Promise.resolve({
-        getViewport: () => ({ width: 600, height: 800 }),
-        render: () => ({ promise: Promise.resolve() }),
-      }),
-    );
-    vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-      promise: new Promise((resolve) => {
-        resolveFirstDocument = () => resolve({ numPages: 300, getPage: firstGetPage });
-      }),
-      destroy: firstDestroy,
-    }));
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
-    });
-
-    const input = container.querySelector('input[type="file"]');
-
-    // The 300-page file, still opening.
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('three-hundred.pdf')]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-    expect(resolveFirstDocument).toBeDefined();
-
-    // Replaced by a three-page one, which opens immediately.
+      return Promise.resolve({ doc: null, pageCount: 3, bytes, repaired: false });
+    };
+    mount();
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('three-hundred.pdf')]); });
+    await wait(20);
+    expect(releaseFirst).toBeDefined();
     mockState.numPages = 3;
-    await act(async () => {
-      setInputFiles(input, [makePdfFile('three.pdf')]);
-    });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Only now does the first file's document arrive.
-    await act(async () => {
-      resolveFirstDocument();
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
-    expect(fileBar.textContent).toContain('three.pdf');
-    expect(fileBar.textContent).toContain('3 pages');
-    expect(container.querySelector('#page-selector-input').value).toBe('1-3');
-    expect(container.querySelectorAll(`.${styles.cell}`).length).toBe(3);
-    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_three.pdf');
-
-    // The abandoned task is released, and released without walking 300 pages
-    // into the three-page grid first.
-    expect(firstDestroy).toHaveBeenCalled();
-    expect(firstGetPage).not.toHaveBeenCalled();
+    await replaceWith(fixtureFile('three.pdf'));
+    await act(async () => { releaseFirst(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    expect(cells()).toHaveLength(3);
+    expect(field().value).toBe('1-3');
+    expect(heading().textContent).toContain('extracted_three.pdf');
   });
 
-  // The test above never reaches the thumbnail loop: it resolves the first
-  // document only after the replacement has finished loading, so the run is
-  // already stale before the loop is entered (firstGetPage is never called).
-  // These two do reach it - the document resolves first, the file is replaced
-  // mid-loop - because `p.pageNumber === i` matches whatever grid is mounted,
-  // so a loop that outlives its file stamps its thumbnails into the next
-  // file's cells one cell at a time. DEBT-18's scope calls for bailing
-  // *inside* the loop, not only after the document resolves.
-  describe('a file replaced while the thumbnail loop is running (DEBT-18)', () => {
-    // jsdom cannot rasterise, so toDataURL() would otherwise hand back
-    // undefined and a missing guard would look like a passing one: every
-    // thumbnail would be falsy and no <img> would render either way.
-    function stubCanvasDataUrl() {
-      vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,STALE');
-    }
-
-    function thumbnails() {
-      return container.querySelectorAll(`.${tileStyles['thumb-img']}`);
-    }
-
-    /** A 3-page replacement whose own pages never finish rendering, so every
-     *  thumbnail visible in its grid can only have come from the abandoned load. */
-    function mockReplacementDocument() {
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-        promise: Promise.resolve({
-          numPages: 3,
-          getPage: vi.fn(() => Promise.resolve({
-            getViewport: () => ({ width: 600, height: 800 }),
-            render: () => ({ promise: new Promise(() => {}) }),
-          })),
-        }),
-        destroy: vi.fn(() => Promise.resolve()),
-      }));
-    }
-
-    async function pickFile(name) {
-      const input = container.querySelector('input[type="file"]');
-      await act(async () => {
-        setInputFiles(input, [makePdfFile(name)]);
-      });
-      // Replacing a file that is already loaded is confirmed first (MEM-03,
-      // BasePdfTool). Take the same step the person does.
-      const confirmReplace = Array.from(container.querySelectorAll('dialog button'))
-        .find((button) => button.textContent.trim() === 'Replace file');
-      if (confirmReplace) {
-        await act(async () => {
-          confirmReplace.click();
-        });
-      }
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      });
-    }
-
-    function mountTool() {
-      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-      URL.revokeObjectURL = vi.fn();
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container);
-      });
-    }
-
-    it('does not stamp the replacement grid with a thumbnail the abandoned loop was still rendering', async () => {
-      stubCanvasDataUrl();
-
-      let finishSecondPage;
-      const firstGetPage = vi.fn((pageNumber) => Promise.resolve({
-        getViewport: () => ({ width: 600, height: 800 }),
-        render: () => ({
-          promise: pageNumber === 2
-            ? new Promise((resolve) => { finishSecondPage = resolve; })
-            : Promise.resolve(),
-        }),
-      }));
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-        promise: Promise.resolve({ numPages: 5, getPage: firstGetPage }),
-        destroy: vi.fn(() => Promise.resolve()),
-      }));
-      mockReplacementDocument();
-
-      mountTool();
-
-      // The five-page file opens immediately, so the loop really runs: page 1
-      // lands in its own grid, page 2 is mid-render.
-      await pickFile('five.pdf');
-      expect(container.querySelectorAll(`.${styles.cell}`).length).toBe(5);
-      expect(thumbnails().length).toBe(1);
-      expect(finishSecondPage).toBeDefined();
-
-      // Replaced mid-loop.
-      await pickFile('three.pdf');
-      expect(container.querySelectorAll(`.${styles.cell}`).length).toBe(3);
-      expect(thumbnails().length).toBe(0);
-
-      // Page 2 of the *previous* file finishes rendering into a canvas nobody
-      // is waiting for any more.
-      await act(async () => {
-        finishSecondPage();
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      });
-
-      expect(thumbnails().length).toBe(0);
-      // And the loop stopped rather than walking the remaining three pages.
-      expect(firstGetPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2]);
-    });
-
-    it('stops the abandoned loop at the next page even when the page it was on failed to render', async () => {
-      stubCanvasDataUrl();
-      vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      let failSecondPage;
-      const firstGetPage = vi.fn((pageNumber) => Promise.resolve({
-        getViewport: () => ({ width: 600, height: 800 }),
-        render: () => ({
-          promise: pageNumber === 2
-            ? new Promise((_resolve, reject) => { failSecondPage = reject; })
-            : Promise.resolve(),
-        }),
-      }));
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-        promise: Promise.resolve({ numPages: 5, getPage: firstGetPage }),
-        destroy: vi.fn(() => Promise.resolve()),
-      }));
-      mockReplacementDocument();
-
-      mountTool();
-      await pickFile('five.pdf');
-      expect(failSecondPage).toBeDefined();
-
-      await pickFile('three.pdf');
-
-      // A page that throws is caught per page, so the loop would otherwise
-      // carry on to page 3 without ever reaching the post-render check.
-      await act(async () => {
-        failSecondPage(new Error('page render failed'));
-        await new Promise((resolve) => setTimeout(resolve, 20));
-      });
-
-      expect(firstGetPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2]);
-      expect(thumbnails().length).toBe(0);
-    });
-  });
-
-});
-
-import fs from 'fs';
-import path from 'path';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-// DEBT-46: the funnel counts the person's Download or Share, not each idle prepare.
-describe('PdfSplitTool usage events (DEBT-46)', () => {
-  let container;
-  const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-  const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
-  const primary = () => container.querySelector(`.${styles.primary}`);
-
-  async function openFixture(quietPolicy = FAST_QUIET) {
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    mockState.numPages = 5;
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool quietPolicy={quietPolicy} />, container));
-    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
-    const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [file]);
-    });
-    await wait(50);
-  }
-  const toggleFirstCell = () => act(async () => toggleOf(container.querySelectorAll(`.${styles.cell}`)[0]).click());
-
-  beforeEach(() => {
-    lifecycleSpy.mockClear();
-    editSpy.mockClear();
-    resetActionTrailForTests();
-  });
-
-  afterEach(() => {
-    act(() => render(null, container));
-    container.remove();
-    container = null;
-    mockState.numPages = 4;
-    vi.restoreAllMocks();
-  });
-
-  it('does not count a protected file as a failed operation (DEBT-44)', async () => {
-    probeMock.mockResolvedValue('needs-password');
-    await openFixture();
-    await wait(150);
-    probeMock.mockReset();
-    expect(container.querySelector('[role="alert"]')).not.toBeNull();
-    expect(events('tool_operation_failed')).toBe(0);
-  });
-
-  it('still counts a document that fails to load as a failed operation', async () => {
+  it('a build that fails says so on the Download element and counts as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { getDocument } = await import('pdfjs-dist');
-    getDocument.mockImplementationOnce(() => ({ promise: Promise.reject(new Error('boom')), destroy: vi.fn(() => Promise.resolve()) }));
-    await openFixture();
+    splitCalls.fail = true;
+    mount();
+    await pick(fixtureFile());
+    await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     await wait(150);
+    expect(downloadElement().getAttribute('data-state')).toBe('error');
+    expect(container.querySelector('[role="alert"] a[href="/unlock/"]')).not.toBeNull();
+    expect(reportErrorMock).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'prepare_split');
     expect(events('tool_operation_failed')).toBe(1);
   });
 
-  it('reports no start for the background prepare after an option change', async () => {
-    await openFixture();
+  it('counts a document that fails to load as a failed operation', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    loadMock.fn = () => Promise.reject(new Error('boom'));
+    mount();
+    await pick(fixtureFile());
     await wait(150);
-    await toggleFirstCell();
-    await wait(150);
-    const separate = Array.from(container.querySelectorAll('[role="radio"]'))
-      .find((button) => button.textContent === 'One PDF per page');
-    await act(async () => separate.click());
-    await wait(150);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    expect(events('tool_operation_started')).toBe(0);
-    expect(events('tool_result_ready')).toBe(0);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(events('tool_operation_failed')).toBe(1);
   });
 
-  it('reports an edit when the person changes a page or the mode, not on arrival (DEBT-58)', async () => {
-    await openFixture();
-    await wait(150);
-    expect(editSpy).not.toHaveBeenCalled();
-    await toggleFirstCell();
-    expect(editSpy).toHaveBeenCalledWith('split');
-    editSpy.mockClear();
-    const separate = Array.from(container.querySelectorAll('[role="radio"]'))
-      .find((button) => button.textContent === 'One PDF per page');
-    await act(async () => separate.click());
-    expect(editSpy).toHaveBeenCalledWith('split');
-  });
-
-  it('reports started then ready for a Download tap, again after a change', async () => {
-    await openFixture();
-    await wait(150);
-    await act(async () => primary().click());
-    await wait(50);
-    expect(events('tool_operation_started')).toBe(1);
-    expect(events('tool_result_ready')).toBe(1);
-
-    await toggleFirstCell();
-    await wait(150);
-    expect(events('tool_operation_started')).toBe(1);
-    await act(async () => primary().click());
-    await wait(50);
-    expect(events('tool_operation_started')).toBe(2);
-    expect(events('tool_result_ready')).toBe(2);
-  });
-
-  it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
-    await openFixture(null as any); // the real policy: the build has not started when the tap lands
-    // Quiet means quiet: the build is silent until the person taps.
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    await act(async () => primary().click());
-    expect(primary().getAttribute('data-state')).toBe('preparing');
-    expect(events('tool_operation_started')).toBe(1);
-    expect(events('tool_result_ready')).toBe(0);
-    await wait(150);
-    expect(primary().getAttribute('data-state')).toBe('saved');
-    expect(events('tool_operation_started')).toBe(1);
-    expect(events('tool_result_ready')).toBe(1);
-  });
-
-  it('reports started then ready for a shared result', async () => {
-    const nativeShare = mockNativeFileShare();
-    await openFixture();
-    await wait(150);
-    const shareButton = Array.from(container.querySelectorAll(`.${styles['next-step']}`))
-      .find((b) => b.textContent.includes('Share'));
-    await act(async () => shareButton.click());
-    await wait(50);
-    expect(nativeShare.share).toHaveBeenCalled();
-    expect(events('tool_operation_started')).toBe(1);
-    expect(events('tool_result_ready')).toBe(1);
-    nativeShare.restore();
-  });
-});
-
-describe('splitPdf library integration with real fixtures', () => {
-  function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
-    const buffer = fs.readFileSync(filePath);
-    return new File([buffer], name, { type: 'application/pdf' });
-  }
-
-  async function extractTextFromPdfBlob(blob) {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const loadingTask = pdfjs.getDocument({
-      data: bytes,
-      useWorkerFetch: false,
-      isEvalSupported: false,
+  describe('usage events (DEBT-46)', () => {
+    it('reports no start for the background prepare after a change', async () => {
+      await open();
+      await click(skipButton(1));
+      await wait(150);
+      await click(radio('One PDF per page'));
+      await wait(150);
+      expect(downloadElement().getAttribute('data-state')).toBe('ready');
+      expect(events('tool_operation_started')).toBe(0);
+      expect(events('tool_result_ready')).toBe(0);
     });
-    const pdf = await loadingTask.promise;
-    const pageTexts = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map(item => item.str).join('').trim();
-      pageTexts.push(pageText);
-    }
-    await loadingTask.destroy();
-    return pageTexts;
-  }
 
-  it('splits page range 2-4 from num-5.pdf to yield pages "12", "13", "14"', async () => {
-    const { splitPdf } = await vi.importActual('./split.js');
-    const file = getFixtureFile('num-5.pdf');
-    const results = await splitPdf(file, { pageNumbers: [2, 3, 4], mode: 'combined' });
-
-    expect(results.length).toBe(1);
-    expect(results[0].filename).toBe('extracted_num-5.pdf');
-    
-    const texts = await extractTextFromPdfBlob(results[0].blob);
-    expect(texts).toEqual(['12', '13', '14']);
-  });
-
-  it('extracts single page 1 from num-5.pdf to yield page "11"', async () => {
-    const { splitPdf } = await vi.importActual('./split.js');
-    const file = getFixtureFile('num-5.pdf');
-    const results = await splitPdf(file, { pageNumbers: [1], mode: 'combined' });
-
-    expect(results.length).toBe(1);
-    expect(results[0].filename).toBe('extracted_num-5.pdf');
-
-    const texts = await extractTextFromPdfBlob(results[0].blob);
-    expect(texts).toEqual(['11']);
-  });
-
-  it('extracts pages separately', async () => {
-    const { splitPdf } = await vi.importActual('./split.js');
-    const file = getFixtureFile('num-5.pdf');
-    const results = await splitPdf(file, { pageNumbers: [2, 4], mode: 'separate' });
-
-    expect(results.length).toBe(2);
-    expect(results[0].filename).toBe('num-5-page-2.pdf');
-    expect(results[1].filename).toBe('num-5-page-4.pdf');
-
-    const texts1 = await extractTextFromPdfBlob(results[0].blob);
-    expect(texts1).toEqual(['12']);
-
-    const texts2 = await extractTextFromPdfBlob(results[1].blob);
-    expect(texts2).toEqual(['14']);
-  });
-
-  it('applies the per-page rotation map in both modes (pageOps.js, shared with Merge and Edit Pages)', async () => {
-    const { splitPdf } = await vi.importActual('./split.js');
-    const { PDFDocument } = await import('@cantoo/pdf-lib');
-    const file = getFixtureFile('num-5.pdf');
-
-    const combined = await splitPdf(file, {
-      pageNumbers: [1, 2, 3],
-      mode: 'combined',
-      rotations: { 2: 90 },
+    it('reports an edit when the person changes a page or the mode, not on arrival (DEBT-58)', async () => {
+      await open();
+      expect(editSpy).not.toHaveBeenCalled();
+      await click(skipButton(1));
+      expect(editSpy).toHaveBeenCalledWith('split');
+      editSpy.mockClear();
+      await type('1-2');
+      expect(editSpy).toHaveBeenCalledWith('split');
+      editSpy.mockClear();
+      await click(radio('One PDF per page'));
+      expect(editSpy).toHaveBeenCalledWith('split');
     });
-    const combinedDoc = await PDFDocument.load(new Uint8Array(await combined[0].blob.arrayBuffer()));
-    expect(combinedDoc.getPages().map((p) => p.getRotation().angle)).toEqual([0, 90, 0]);
 
-    const separate = await splitPdf(file, {
-      pageNumbers: [2],
-      mode: 'separate',
-      rotations: { 2: 270 },
+    it('reports started then ready for a Download tap, again after a change', async () => {
+      await open();
+      await click(downloadElement());
+      await wait(50);
+      expect(events('tool_operation_started')).toBe(1);
+      expect(events('tool_result_ready')).toBe(1);
+      await click(skipButton(1));
+      await wait(150);
+      expect(events('tool_operation_started')).toBe(1);
+      await click(downloadElement());
+      await wait(50);
+      expect(events('tool_operation_started')).toBe(2);
+      expect(events('tool_result_ready')).toBe(2);
     });
-    const separateDoc = await PDFDocument.load(new Uint8Array(await separate[0].blob.arrayBuffer()));
-    expect(separateDoc.getPages()[0].getRotation().angle).toBe(270);
-  });
 
-  describe('page magnifier', () => {
-    let container;
-    afterEach(() => {
-      if (container) {
-        act(() => render(null, container));
-        container.remove();
-        container = null;
-      }
-      mockState.numPages = 4;
+    it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
+      await open({ quietPolicy: undefined });
+      // Quiet means quiet: the build is silent until the person taps.
+      expect(downloadElement().getAttribute('data-state')).toBe('ready');
+      await click(downloadElement());
+      expect(downloadElement().getAttribute('data-state')).toBe('preparing');
+      expect(events('tool_operation_started')).toBe(1);
+      expect(events('tool_result_ready')).toBe(0);
+      await wait(250);
+      expect(downloadElement().getAttribute('data-state')).toBe('saved');
+      expect(events('tool_result_ready')).toBe(1);
     });
-    async function loadFive() {
-      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-      URL.revokeObjectURL = vi.fn();
-      mockState.numPages = 5;
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => render(<PdfSplitTool quietPolicy={FAST_QUIET} />, container));
-      const input = container.querySelector('input[type="file"]');
-      await act(async () => {
-        setInputFiles(input, [makePdfFile('test.pdf')]);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-    }
-    const cells = () => container.querySelectorAll(`.${styles.cell}`);
-    const waitDialog = async () => {
-      const find = () => container.querySelector('dialog:has(#page-preview-title)');
-      for (let i = 0; i < 20 && !find(); i += 1) {
-        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
-      }
-      return find();
-    };
 
-    it('opens "Page 2 of 5" without changing inclusion, toggles it out, and Next moves to page 3', async () => {
-      await loadFive();
-      await act(async () => cells()[1].querySelector(`.${styles['preview-btn']}`).click());
-      const dialog = await waitDialog();
-      expect(dialog).not.toBeNull();
-      expect(dialog.textContent).toContain('Page 2 of 5');
-      expect(toggleOf(cells()[1]).getAttribute('aria-pressed')).toBe('true');
-
-      const leaveOut = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Leave out');
-      await act(async () => leaveOut.click());
-      expect(toggleOf(cells()[1]).getAttribute('aria-pressed')).toBe('false');
-      expect(Array.from(dialog.querySelectorAll('button')).some((b) => b.textContent === 'Bring back')).toBe(true);
-
-      await act(async () => dialog.querySelector('button[aria-label="Next page"]').click());
-      expect(dialog.textContent).toContain('Page 3 of 5');
+    it('shares the result from the finish row', async () => {
+      const nativeShare = mockNativeFileShare();
+      await open();
+      await click(button('Share'));
+      await wait(50);
+      expect(nativeShare.share).toHaveBeenCalled();
+      nativeShare.restore();
     });
   });
-});
 
+  describe('Hebrew (LOC)', () => {
+    const hebrew = { messages: hebrewSplitMessages, shellMessages: hebrewShellMessages };
 
-// Guideline §2, "Quiet means quiet": nothing visibly changes while the person is still editing.
-describe('PdfSplitTool quiet-time prepare', () => {
-  let container;
-  const fakeResult = () => [{ blob: new Blob(['%PDF-1.4 fake'], { type: 'application/pdf' }), filename: 'extracted_open.pdf' }];
-  const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
-  const primary = () => container.querySelector(`.${styles.primary}`);
-  const cell = (i) => container.querySelectorAll(`.${styles.cell}`)[i];
-  const toggle = (i) => act(async () => toggleOf(cell(i)).click());
-
-  beforeEach(async () => {
-    vi.useFakeTimers();
-    splitCalls.n = 0;
-    splitOverride.fn = async () => fakeResult();
-    resetActionTrailForTests();
-    probeMock.mockReset();
-    probeMock.mockResolvedValue('open');
-    mockState.numPages = 5;
-    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
-    URL.revokeObjectURL = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => render(<PdfSplitTool />, container));
-    await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('open.pdf')]);
+    it('renders every control from the messages prop', async () => {
+      await open(hebrew);
+      const text = container.textContent;
+      expect(text).toContain(hebrewSplitMessages.modeCombined);
+      expect(text).toContain(hebrewSplitMessages.modeSeparate);
+      expect(text).toContain(hebrewSplitMessages.includeAll);
+      expect(text).not.toContain('Include all');
+      expect(text).not.toContain('One PDF');
+      expect(downloadElement().textContent).toContain(hebrewSplitMessages.downloadLabel);
+      expect(field().getAttribute('dir')).toBe('ltr');
+      expect(field().getAttribute('placeholder')).toBe(hebrewSplitMessages.pageSelectorPlaceholder);
+      expect(container.querySelector('[aria-label="סיבוב עמוד 1"]')).not.toBeNull();
     });
-    await advance(100);
-    // Settle the first build so each test starts from a built document.
-    // Past the 3s burst window too, so the next change starts a fresh burst.
-    await advance(4000);
-    splitCalls.n = 0;
-  });
 
-  afterEach(() => {
-    act(() => render(null, container));
-    container.remove();
-    container = null;
-    splitOverride.fn = null;
-    mockState.numPages = 4;
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
+    it('isolates the size in the detail line, and only in Hebrew', async () => {
+      await open(hebrew);
+      expect(downloadElement().textContent).toMatch(/⁦[^⁦⁩]*\d[^⁦⁩]*⁩/);
+      act(() => render(null, container));
+      container.remove();
+      await open({});
+      expect(downloadElement().textContent).not.toContain('⁦');
+    });
 
-  it('keeps the ready look after a toggle and does not build before 1500ms', async () => {
-    await toggle(0);
-    await advance(1400);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    expect(primary().getAttribute('aria-busy')).toBeNull();
-    expect(primary().textContent).toContain('Download 1 PDF');
-    expect(primary().textContent).toContain('4 pages');
-    expect(splitCalls.n).toBe(0);
-    await advance(200);
-    expect(splitCalls.n).toBe(1);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-  });
+    it('keeps the file name pattern whole and LTR in One PDF per page', async () => {
+      await open(hebrew);
+      await click(radio(hebrewSplitMessages.modeSeparate));
+      expect(Array.from(heading().querySelectorAll('bdi[dir="ltr"]')).some((b) => b.textContent === 'open-page-N.pdf')).toBe(true);
+    });
 
-  it('builds once, 2500ms after the last of three toggles 500ms apart', async () => {
-    await toggle(0);
-    await advance(500);
-    await toggle(1);
-    await advance(500);
-    await toggle(2);
-    await advance(2400);
-    expect(splitCalls.n).toBe(0);
-    await advance(200);
-    expect(splitCalls.n).toBe(1);
-  });
-
-  it('is ready at once, with no extra build, after an undo back to a built selection', async () => {
-    await toggle(0);
-    await advance(1700);
-    expect(splitCalls.n).toBe(1);
-    await toggle(0);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    expect(primary().getAttribute('href')).toBeTruthy();
-    await advance(5000);
-    expect(splitCalls.n).toBe(1);
-  });
-
-  it('shows preparing only after a Download tap before the build is done, then delivers', async () => {
-    let finish;
-    splitOverride.fn = () => new Promise((resolve) => { finish = () => resolve(fakeResult()); });
-    await toggle(0);
-    await advance(1700);
-    expect(splitCalls.n).toBe(1);
-    expect(primary().getAttribute('data-state')).toBe('ready');
-    await act(async () => primary().click());
-    expect(primary().getAttribute('data-state')).toBe('preparing');
-    await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
-    expect(primary().getAttribute('data-state')).toBe('saved');
-  });
-
-  it('starts the build at once on pointerdown on the primary control', async () => {
-    await toggle(0);
-    await advance(200);
-    expect(splitCalls.n).toBe(0);
-    await act(async () => { primary().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    expect(splitCalls.n).toBe(1);
+    it('shows a Hebrew page-range error', async () => {
+      await open(hebrew);
+      await type('9');
+      expect(container.querySelector('[role="alert"]').textContent).toBe('עמוד 9 מחוץ לטווח (1-5)');
+    });
   });
 });

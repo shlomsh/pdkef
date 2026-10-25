@@ -1,6 +1,6 @@
 /**
  * Raw-byte PDFs whose catalog lost its page list (DEBT-54), for the tests of
- * pdfPageTree and loadPdfPages. Hand-built rather than saved by pdf-lib, because
+ * pdfPageTree and loadPdfPages (src/lib). Hand-built rather than saved by pdf-lib, because
  * pdf-lib would write a healthy file. Pages are told apart by MediaBox width.
  */
 

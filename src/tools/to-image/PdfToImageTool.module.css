@@ -125,7 +125,7 @@
   gap: var(--space-3);
 }
 
-/* The tile itself (frame, thumbnail, toggle, magnifier) is src/shell/PageToggleTile. */
+/* The tile itself (frame, thumbnail, toggle, magnifier) is src/tools/to-image/PageToggleTile. */
 .tile {
   min-width: 0;
 }

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as lib from '@cantoo/pdf-lib';
 
 const sent = vi.hoisted(() => [] as unknown[]);
-vi.mock('../../lib/maintenanceTelemetry', () => ({
+vi.mock('./maintenanceTelemetry', () => ({
   pdfPageTreeRepaired: (shape: string) => ({ name: 'pdf_page_tree', outcome: 'repaired', shape }),
   pdfPageTreeFailed: (shape: string, roots: string) => ({ name: 'pdf_page_tree', outcome: 'failed', shape, roots }),
   reportMaintenanceEvent: (event: unknown) => void sent.push(event),
@@ -18,7 +18,7 @@ import {
   pagesRefMissing,
   pagesWrongType,
   twoRoots,
-} from '../../test/pdfPageTreeFixtures';
+} from '../test/pdfPageTreeFixtures';
 
 const widths = async (bytes: ArrayBuffer | Uint8Array) =>
   (await lib.PDFDocument.load(bytes, { ignoreEncryption: true })).getPages().map((p) => p.getSize().width);

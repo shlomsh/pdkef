@@ -5,14 +5,14 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { editPages } from './editPages.js';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
-import { loadPdfWithPages } from './loadPdfPages.ts';
+import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { setInputFiles } from '../../test/setInputFiles.js';
 
 // DEBT-54: a file whose page list was lost is repaired once on open; the
 // grid (pdf.js) and the export must both read the repaired bytes while the
 // person's file keeps its identity.
 
-vi.mock('./loadPdfPages.ts', () => ({ loadPdfWithPages: vi.fn() }));
+vi.mock('../../lib/loadPdfPages.ts', () => ({ loadPdfWithPages: vi.fn() }));
 
 vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
