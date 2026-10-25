@@ -415,6 +415,40 @@ describe('PageGrid', () => {
     expect(onPlanChange).toHaveBeenCalledTimes(1);
   });
 
+  it('focus returns to a keyboard-moved card, but never yanks it back from a field outside the grid', async () => {
+    const { rerender, plan } = mount();
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    try {
+      const card = cards()[1];
+      card.focus();
+      await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
+      cards()[1].blur();
+      const moved = [plan[0], plan[2], plan[1], plan[3]];
+      rerender({ plan: moved });
+      expect(document.activeElement).toBe(container.querySelector('[data-key="1:1"]'));
+      // The restore was used up: a later plan change leaves a field's focus alone.
+      field.focus();
+      rerender({ plan: [...moved].reverse() });
+      expect(document.activeElement).toBe(field);
+      // And a plain focus on a cell (no keyboard move) is not remembered either.
+      cards()[0].focus();
+      field.focus();
+      rerender({ plan });
+      expect(document.activeElement).toBe(field);
+    } finally {
+      field.remove();
+    }
+  });
+
+  it('carries data-reorderable only when tiles can be dragged', () => {
+    mount();
+    expect(container.querySelector('[data-page-grid]').hasAttribute('data-reorderable')).toBe(true);
+    act(() => render(null, container));
+    mount({ props: { reorderable: false } });
+    expect(container.querySelector('[data-page-grid]').hasAttribute('data-reorderable')).toBe(false);
+  });
+
   it('reorderable={false}: no Sortable, no move keys, but rotate and skip keys still work', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');
     const { onPlanChange, announce } = mount({ props: { reorderable: false } });

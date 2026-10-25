@@ -89,7 +89,10 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // back through preparing -> ready; this only has to stop pretending a stale
   // "saved" still applies to the new blob.
   useEffect(() => {
-    if (prepared.status !== 'ready') setDownloadedOnce(false);
+    if (prepared.status !== 'ready') {
+      setDownloadedOnce(false);
+      setHandoffFailed(false);
+    }
   }, [prepared.status]);
 
   // A fresh blob is what Share hands out; an invalidated one is cleared so
@@ -238,6 +241,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
     quietPendingRef.current = false;
     setStripOpen(false);
     setDownloadedOnce(false);
+    setHandoffFailed(false);
   }, [clearPrepared]);
 
   return {

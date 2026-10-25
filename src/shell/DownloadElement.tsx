@@ -113,7 +113,7 @@ export default function DownloadElement({
   const onClick = (event: MouseEvent) => {
     if (isPlainSurface) {
       return;
-    } else if (state === 'preparing' || (state === 'ready' && !isLink)) {
+    } else if (state === 'preparing' || ((state === 'ready' || state === 'saved') && !isLink)) {
       event.preventDefault();
       onPreparingTap?.();
     } else if (state === 'error' || state === 'nothing') {

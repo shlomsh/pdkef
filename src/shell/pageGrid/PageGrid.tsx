@@ -445,6 +445,8 @@ export default function PageGrid({
   useEffect(() => {
     const key = focusKey.current;
     if (!key || !gridRef.current) return;
+    // Used once: a later plan change (a field beside the grid, Undo) must not pull focus back.
+    focusKey.current = null;
     // Keys are `${fileId}:${pageIndex}`, digits and a colon, safe inside quotes.
     const card = gridRef.current.querySelector<HTMLElement>(`[data-key="${key}"]`);
     if (card && document.activeElement !== card) card.focus({ preventScroll: false });
@@ -656,7 +658,6 @@ export default function PageGrid({
         }}
         onKeyDown={(event) => onCardKeyDown(event, index, entry.key)}
         onFocus={() => {
-          focusKey.current = entry.key;
           if (keyboardActiveRef.current) onFirstKeyboardFocus?.();
         }}
       >
@@ -791,6 +792,7 @@ export default function PageGrid({
         ref={gridRef}
         aria-describedby="page-grid-hint"
         data-page-grid
+        data-reorderable={reorderable || undefined}
         data-grouped={labelled || undefined}
         data-fit-settled={fitSettledNow || undefined}
         style={{ '--grid-cell': `${gridCell}px`, '--grid-gap': `${gridGap}px` } as any}

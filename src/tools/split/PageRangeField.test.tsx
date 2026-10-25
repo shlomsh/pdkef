@@ -55,6 +55,17 @@ describe('PageRangeField', () => {
     expect(onSelect).toHaveBeenLastCalledWith([4], { merge: false });
   });
 
+  it('a change to the plan from outside ends the merge run', () => {
+    const { onSelect, draw } = mount(planForFile(0, 6));
+    act(() => { input().dispatchEvent(new FocusEvent('focus')); });
+    type('1-3');
+    draw(withIncludedPages(planForFile(0, 6), [1, 2, 3]));
+    // A tile edit lands while the field still has focus (iOS may not blur it).
+    draw(withIncludedPages(planForFile(0, 6), [1, 2, 3, 5]));
+    type('2');
+    expect(onSelect).toHaveBeenLastCalledWith([2], { merge: false });
+  });
+
   it('commits a valid range that changes the selection and records it', () => {
     const { onSelect } = mount(planForFile(0, 6));
     type('2-3, 5');
