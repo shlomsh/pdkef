@@ -163,6 +163,16 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(heading().textContent).not.toContain('skipped');
   });
 
+  // UX guideline 20: the output choice, then which pages, then Download and hand-offs, Replace file last.
+  it('runs the rail in order of consequence, with Replace file last', async () => {
+    await load();
+    const rail = container.querySelector(`.${workspaceStyles.rail}`);
+    const order = Array.from(rail.querySelectorAll('input, button, a[data-state]'))
+      .map((el) => (el.hasAttribute('data-state') ? 'download' : (el as HTMLInputElement).type === 'checkbox' ? 'page numbers' : el.textContent.trim()));
+    expect(order.slice(0, 5)).toEqual(['page numbers', 'Include all', 'Skip all', 'Invert', 'download']);
+    expect(order[order.length - 1]).toBe('Replace file');
+  });
+
   it('Include all, Skip all and Invert each change the pages in one step', async () => {
     await load();
     const skipped = () => cells().map((c) => c.hasAttribute('data-skipped'));

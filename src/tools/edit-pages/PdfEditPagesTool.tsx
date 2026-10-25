@@ -335,14 +335,13 @@ export default function PdfEditPagesTool() {
               headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
               railContent={(
                 <>
-                  {replaceRow(requestReplace)}
+                  {/* In order of consequence (UX guideline 20): what the output is, then which pages. */}
+                  <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
                   {bulkRow}
                 </>
               )}
               railPinned={(
                 <>
-                  <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
-
                   <DownloadElement
                     state={downloadState}
                     href={prepared.status === 'ready' ? prepared.url : null}
@@ -373,6 +372,9 @@ export default function PdfEditPagesTool() {
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
                   )}
+
+                  {/* Starting over with another file ends the rail. */}
+                  {replaceRow(requestReplace)}
                 </>
               )}
             >
