@@ -108,6 +108,10 @@ Middleware, which is unrelated to Astro's own (SSR-only, inactive here) middlewa
 - `src/pages/[slug].md.ts`, `index.md.ts`, `404.md.ts` are prerendered endpoints producing `/sign.md`,
   `/about.md`, `/index.md`, `/404.md` and so on, one per tool page, content-pages entry and trust page,
   with no registry to sync. `/licenses/` has no twin and gets the Markdown `404` fallback.
+- `src/pages/[locale]/[slug].md.ts` adds `/he/sign.md`, `/he/<guide>.md` and so on for every localized tool
+  and content page, from the same variant lists as their HTML routes and with the headings the HTML uses
+  (`markdownLabels()` over the shell messages). `verify-seo.js` fails by name any built page without a
+  sibling twin; `NO_MARKDOWN_TWIN` in `scripts/localizedSeoChecks.mjs` is the allowlist (`/licenses/`).
 - `middleware.ts` (project root, Edge runtime) decides with the unit-tested `acceptQuality()` and
   `negotiateRepresentation()` in `src/site-lib/acceptNegotiation.js` (RFC 9110 precedence: exact type >
   `type/*` > `*/*`; Markdown only on a *strict* preference, because curl's `*/*` once got Markdown).

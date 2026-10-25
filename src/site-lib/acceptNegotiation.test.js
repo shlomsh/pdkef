@@ -115,6 +115,14 @@ describe('markdownRoute', () => {
     });
   });
 
+  it('maps a localized page to its .md twin under the locale folder', () => {
+    expect(markdownRoute('/he/sign/', redirectSources)).toEqual({ kind: 'markdown', path: '/he/sign.md' });
+    expect(markdownRoute('/he/how-to-sign-a-pdf-on-iphone/', redirectSources)).toEqual({
+      kind: 'markdown',
+      path: '/he/how-to-sign-a-pdf-on-iphone.md',
+    });
+  });
+
   it('passes a non-slash path through when vercel.json has a redirect for it', () => {
     // A real route's non-slash form, and a retired route: both must reach
     // Vercel's redirect so the agent is sent to the canonical URL.

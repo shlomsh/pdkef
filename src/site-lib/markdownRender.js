@@ -45,26 +45,36 @@ function absoluteUrl(href) {
   return href.startsWith('http') ? href : `${SITE}${href}`;
 }
 
-function faqSection(faq) {
+/** Section headings of a twin. English by default; a localized twin passes
+ * the same strings its HTML page renders, via `markdownLabels`. */
+const DEFAULT_LABELS = { howItWorks: 'How it works', faq: 'FAQ', lastUpdated: 'Last updated' };
+
+/** The documentation shell messages (src/i18n/documentationMessages.ts) ->
+ * the headings a twin shows, so Hebrew Markdown reads like the Hebrew page. */
+export function markdownLabels(shellMessages) {
+  return { howItWorks: shellMessages.howItWorks, faq: shellMessages.faqHeading, lastUpdated: shellMessages.lastUpdated };
+}
+
+function faqSection(faq, heading = DEFAULT_LABELS.faq) {
   if (!faq || faq.length === 0) return '';
   const items = faq
     .map(({ question, answer }) => `### ${inlineToMarkdown(question)}\n\n${inlineToMarkdown(answer)}`)
     .join('\n\n');
-  return `## FAQ\n\n${items}\n`;
+  return `## ${heading}\n\n${items}\n`;
 }
 
 /** A src/data/tools.js entry -> Markdown. */
-export function toolToMarkdown(tool) {
-  const parts = [`# ${tool.h1}`, '', inlineToMarkdown(tool.subhead), '', `URL: ${absoluteUrl(tool.href)}`];
+export function toolToMarkdown(tool, { path = tool.href, labels = DEFAULT_LABELS } = {}) {
+  const parts = [`# ${tool.h1}`, '', inlineToMarkdown(tool.subhead), '', `URL: ${absoluteUrl(path)}`];
 
   if (tool.steps?.length) {
-    parts.push('', `## ${tool.aboutHeading ?? 'How it works'}`, '');
+    parts.push('', `## ${tool.aboutHeading ?? labels.howItWorks}`, '');
     if (tool.aboutLead) parts.push(inlineToMarkdown(tool.aboutLead), '');
     parts.push(...tool.steps.map((step, i) => `${i + 1}. **${inlineToMarkdown(step.title)}** - ${inlineToMarkdown(step.text)}`));
   }
 
   if (tool.faq?.length) {
-    parts.push('', faqSection(tool.faq));
+    parts.push('', faqSection(tool.faq, labels.faq));
   }
 
   return `${parts.join('\n').trimEnd()}\n`;
@@ -102,10 +112,13 @@ function blockToMarkdown(block) {
 /** A contentPages collection entry's `.data` (plus its id/slug) -> Markdown.
  * `lastModified` is the same git-derived ISO timestamp the HTML page shows as
  * "Last updated" (SEO-29); it is optional only so the pure renderer stays
- * testable without git. */
-export function contentPageToMarkdown(slug, page, { lastModified } = {}) {
-  const parts = [`# ${page.h1}`, '', inlineToMarkdown(page.subhead), '', `URL: ${absoluteUrl(`/${slug}/`)}`];
-  if (lastModified) parts.push(`Last updated: ${lastModified.slice(0, 10)}`);
+ * testable without git. `path` and `labels` default to the English page's.
+ * @param {string} slug
+ * @param {any} page
+ * @param {{ lastModified?: string, path?: string, labels?: typeof DEFAULT_LABELS }} [options] */
+export function contentPageToMarkdown(slug, page, { lastModified, path = `/${slug}/`, labels = DEFAULT_LABELS } = {}) {
+  const parts = [`# ${page.h1}`, '', inlineToMarkdown(page.subhead), '', `URL: ${absoluteUrl(path)}`];
+  if (lastModified) parts.push(`${labels.lastUpdated}: ${lastModified.slice(0, 10)}`);
 
   for (const section of page.sections) {
     parts.push('', `## ${inlineToMarkdown(section.heading)}`, '');
@@ -117,7 +130,7 @@ export function contentPageToMarkdown(slug, page, { lastModified } = {}) {
   }
 
   if (page.faq?.length) {
-    parts.push('', faqSection(page.faq));
+    parts.push('', faqSection(page.faq, labels.faq));
   }
 
   return `${parts.join('\n').trimEnd()}\n`;
@@ -139,7 +152,7 @@ export function staticPageToMarkdown(page) {
  * localized home - src/pages/[slug].md.ts passes each locale's own
  * `documentationHomePath()` result here, same as every other *ToMarkdown
  * function takes its page's own URL instead of assuming the English one. */
-export function homeToMarkdown({ h1, description, faq, tools, path = '/' }) {
+export function homeToMarkdown({ h1, description, faq, tools, path = '/', labels = DEFAULT_LABELS }) {
   const parts = [
     `# ${h1}`,
     '',
@@ -152,7 +165,7 @@ export function homeToMarkdown({ h1, description, faq, tools, path = '/' }) {
     ...tools.map((tool) => `- [${tool.toolName}](${absoluteUrl(tool.href)}): ${inlineToMarkdown(tool.gridDescription)}`),
   ];
   if (faq?.length) {
-    parts.push('', faqSection(faq));
+    parts.push('', faqSection(faq, labels.faq));
   }
   return `${parts.join('\n').trimEnd()}\n`;
 }

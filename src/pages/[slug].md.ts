@@ -16,12 +16,13 @@ import { getCollection } from 'astro:content';
 import { tools } from '../data/tools.js';
 import { staticPages } from '../data/staticPages.js';
 import { homeContent } from '../data/homeContent.js';
-import { toolToMarkdown, contentPageToMarkdown, staticPageToMarkdown, homeToMarkdown } from '../site-lib/markdownRender.js';
+import { toolToMarkdown, contentPageToMarkdown, staticPageToMarkdown, homeToMarkdown, markdownLabels } from '../site-lib/markdownRender.js';
 import { documentationSourceFiles, lastModifiedFor } from '../site-lib/gitLastModified.js';
 import { getLocalizedHomeVariants, mergeLocalizedHome } from '../i18n/localizedHome';
 import { getPublishedEditionPaths } from '../i18n/localizedTools';
 import { documentationLocales, documentationPath } from '../i18n/documentationLocales';
 import { getToolCardCopy } from '../i18n/cardMessages';
+import { getDocumentationShellMessages } from '../i18n/documentationMessages';
 
 export async function getStaticPaths() {
   const toolEntries = tools.map((tool) => ({
@@ -75,7 +76,7 @@ export async function getStaticPaths() {
       });
       return {
         params: { slug: locale.prefix },
-        props: { markdown: homeToMarkdown({ ...home, tools: localizedTools, path: variant.path } as any) },
+        props: { markdown: homeToMarkdown({ ...home, tools: localizedTools, path: variant.path, labels: markdownLabels(getDocumentationShellMessages(variant.locale)) } as any) },
       };
     }),
   );
