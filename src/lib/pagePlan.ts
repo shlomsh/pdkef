@@ -69,3 +69,31 @@ export function outputPageCount(plan: PlanEntry[]): number {
 export function planKey(plan: PlanEntry[]): string {
   return plan.map((e) => `${e.fileId}.${e.pageIndex}.${e.rotation}.${e.skipped ? 1 : 0}`).join(',');
 }
+
+/* The bulk updaters behind Include all / Skip all / Invert. They return the
+   same array when nothing changes, which is the no-op contract
+   useEditHistory's commit turns into "no undo step". */
+function setSkipped(plan: PlanEntry[], skipped: (entry: PlanEntry) => boolean): PlanEntry[] {
+  if (plan.every((entry) => entry.skipped === skipped(entry))) return plan;
+  return plan.map((entry) => (entry.skipped === skipped(entry) ? entry : { ...entry, skipped: skipped(entry) }));
+}
+
+export const includeAll = (plan: PlanEntry[]): PlanEntry[] => setSkipped(plan, () => false);
+
+export const skipAll = (plan: PlanEntry[]): PlanEntry[] => setSkipped(plan, () => true);
+
+export const invert = (plan: PlanEntry[]): PlanEntry[] => (
+  plan.length === 0 ? plan : plan.map((entry) => ({ ...entry, skipped: !entry.skipped }))
+);
+
+// The 1-based source page numbers of the kept entries, in plan order.
+export function includedPageNumbers(plan: PlanEntry[]): number[] {
+  return plan.filter((entry) => !entry.skipped).map((entry) => entry.pageIndex + 1);
+}
+
+// Keeps exactly the listed source pages (1-based) and skips the rest. Same
+// array when nothing changes; unchanged entries keep their identity.
+export function withIncludedPages(plan: PlanEntry[], pageNumbers: number[]): PlanEntry[] {
+  const wanted = new Set(pageNumbers);
+  return setSkipped(plan, (entry) => !wanted.has(entry.pageIndex + 1));
+}

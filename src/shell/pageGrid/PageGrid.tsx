@@ -52,6 +52,10 @@ export interface PageGridProps {
    * permanently. May fire more than once across the mount; the parent is
    * the one that only acts on the first call. */
   onFirstKeyboardFocus?: () => void;
+  /** Whether pages can be dragged or moved with the arrow keys. Split and PDF
+   * to Image keep source order and pass false: no Sortable, no move keys.
+   * Rotate, skip, preview and the tap-to-select behave as before. */
+  reorderable?: boolean;
 }
 
 interface ThumbnailSource {
@@ -173,6 +177,7 @@ export default function PageGrid({
   gridRef,
   onRenderedCountChange,
   onFirstKeyboardFocus,
+  reorderable = true,
 }: PageGridProps) {
   // A plain keyboard/pointer heuristic (not :focus-visible, which some jsdom
   // versions don't implement): a keydown anywhere sets "keyboard modality"
@@ -395,7 +400,7 @@ export default function PageGrid({
   // SortableJS owns the DOM during a drag; the plan is committed once in onEnd.
   useEffect(() => {
     const grid = gridRef.current;
-    if (!grid) return undefined;
+    if (!grid || !reorderable) return undefined;
     const clearDraggingCursor = () => document.documentElement.removeAttribute('data-page-dragging');
     const sortable = Sortable.create(grid, {
       animation: 220,
@@ -433,7 +438,7 @@ export default function PageGrid({
       clearDraggingCursor();
       sortable.destroy();
     };
-  }, [gridRef, onPlanChange]);
+  }, [gridRef, onPlanChange, reorderable]);
 
   // Keep focus on the page that was just moved by keyboard, even though its
   // node changed position in the DOM.
@@ -483,10 +488,10 @@ export default function PageGrid({
     const rtl = typeof getComputedStyle === 'function' && getComputedStyle(event.currentTarget as HTMLElement).direction === 'rtl';
     const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
     const backward = rtl ? 'ArrowRight' : 'ArrowLeft';
-    if (event.key === forward) {
+    if (reorderable && event.key === forward) {
       event.preventDefault();
       move(index, 1);
-    } else if (event.key === backward) {
+    } else if (reorderable && event.key === backward) {
       event.preventDefault();
       move(index, -1);
     } else if (event.key === 'r' || event.key === 'R') {

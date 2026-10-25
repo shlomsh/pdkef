@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveEntry, outputPageCount, planForFile, planKey, rotateEntry, updateEntry, type PlanEntry } from './pagePlan.ts';
+import { includeAll, includedPageNumbers, invert, moveEntry, outputPageCount, skipAll, withIncludedPages, planForFile, planKey, rotateEntry, updateEntry, type PlanEntry } from './pagePlan.ts';
 
 describe('planForFile', () => {
   it('builds one entry per page, in order, unrotated and unskipped', () => {
@@ -118,5 +118,59 @@ describe('planKey', () => {
     const plan = planForFile(1, 3);
     expect(planKey(moveEntry(plan, 0, 2))).not.toBe(planKey(plan));
     expect(planKey([...plan])).toBe(planKey(plan));
+  });
+});
+
+describe('bulk updaters', () => {
+  const mixed = updateEntry(planForFile(0, 3), '0:1', { skipped: true });
+
+  it('includeAll brings every page back, and returns the same plan when none is skipped', () => {
+    expect(includeAll(mixed).map((e) => e.skipped)).toEqual([false, false, false]);
+    const fresh = planForFile(0, 3);
+    expect(includeAll(fresh)).toBe(fresh);
+  });
+
+  it('skipAll skips every page, and returns the same plan when all are already skipped', () => {
+    const all = skipAll(mixed);
+    expect(all.map((e) => e.skipped)).toEqual([true, true, true]);
+    expect(skipAll(all)).toBe(all);
+  });
+
+  it('invert flips each page, and twice is the original', () => {
+    const flipped = invert(mixed);
+    expect(flipped.map((e) => e.skipped)).toEqual([true, false, true]);
+    expect(invert(flipped).map((e) => e.skipped)).toEqual([false, true, false]);
+  });
+
+  it('keeps order, rotation and keys, and leaves an empty plan alone', () => {
+    const rotated = rotateEntry(mixed, '0:2', 90);
+    const flipped = invert(rotated);
+    expect(flipped.map((e) => [e.key, e.rotation])).toEqual([['0:0', 0], ['0:1', 0], ['0:2', 90]]);
+    const empty: ReturnType<typeof planForFile> = [];
+    expect(invert(empty)).toBe(empty);
+    expect(includeAll(empty)).toBe(empty);
+    expect(skipAll(empty)).toBe(empty);
+  });
+});
+
+describe('includedPageNumbers and withIncludedPages', () => {
+  const mixed = updateEntry(planForFile(0, 4), '0:1', { skipped: true });
+
+  it('lists the 1-based source page numbers of the kept entries, in plan order', () => {
+    expect(includedPageNumbers(mixed)).toEqual([1, 3, 4]);
+    expect(includedPageNumbers(moveEntry(mixed, 0, 3))).toEqual([3, 4, 1]);
+    expect(includedPageNumbers([])).toEqual([]);
+  });
+
+  it('skips every entry whose page number is not listed, and returns the same plan when nothing changes', () => {
+    expect(withIncludedPages(mixed, [2, 4]).map((e) => e.skipped)).toEqual([true, false, true, false]);
+    expect(withIncludedPages(mixed, [1, 3, 4])).toBe(mixed);
+  });
+
+  it('keeps the identity of entries that do not change', () => {
+    const next = withIncludedPages(mixed, [1, 2, 3, 4]);
+    expect(next[0]).toBe(mixed[0]);
+    expect(next[1]).not.toBe(mixed[1]);
+    expect(next[1].skipped).toBe(false);
   });
 });

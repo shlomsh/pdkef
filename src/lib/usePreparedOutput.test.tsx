@@ -72,6 +72,51 @@ describe('usePreparedOutput', () => {
     expect(build).toHaveBeenCalledTimes(2);
   });
 
+  const builtParts = () => ({
+    parts: [
+      { blob: new Blob(['aa']), filename: 'a-page-1.pdf' },
+      { blob: new Blob(['bbb']), filename: 'a-page-2.pdf' },
+    ],
+    pageCount: 2,
+  });
+
+  it('exposes a parts result with no blob or url, the summed size, and parts null for a blob', async () => {
+    await mount({ key: 'a', build: vi.fn(async () => builtParts()) });
+    await settle();
+    expect(api.current.status).toBe('ready');
+    expect(api.current.blob).toBeNull();
+    expect(api.current.url).toBeNull();
+    expect(api.current.parts.map((p) => p.filename)).toEqual(['a-page-1.pdf', 'a-page-2.pdf']);
+    expect(api.current.size).toBe(5);
+    expect(api.current.pageCount).toBe(2);
+    expect(api.current.generation).toBe(1);
+    await mount({ key: 'b', build: vi.fn(async () => built()) });
+    await settle();
+    expect(api.current.parts).toBeNull();
+    expect(api.current.blob).not.toBeNull();
+  });
+
+  it('clears parts on a key change, a null key and an error, and restores them from the cache', async () => {
+    const build = vi.fn(async () => builtParts());
+    await mount({ key: 'a', build });
+    await settle();
+    await mount({ key: 'b', build });
+    expect(api.current.status).toBe('pending');
+    expect(api.current.parts).toBeNull();
+    await settle();
+    await mount({ key: 'a', build });
+    expect(api.current.status).toBe('ready');
+    expect(api.current.parts).toHaveLength(2);
+    expect(build).toHaveBeenCalledTimes(2);
+    await mount({ key: null, build });
+    expect(api.current.parts).toBeNull();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await mount({ key: 'c', build: vi.fn(async () => { throw new Error('boom'); }) });
+    await settle();
+    expect(api.current.status).toBe('error');
+    expect(api.current.parts).toBeNull();
+  });
+
   it('does not treat an aborted build as an error', async () => {
     const onBuildError = vi.fn();
     const build = vi.fn(async () => { throw new DOMException('aborted', 'AbortError'); });

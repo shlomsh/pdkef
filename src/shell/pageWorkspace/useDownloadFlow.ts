@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import type { PreparedOutput } from '../../lib/usePreparedOutput.ts';
+import type { OutputPart, PreparedOutput } from '../../lib/usePreparedOutput.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
@@ -9,7 +9,7 @@ import type { DownloadElementState } from '../DownloadElement.tsx';
 export type HandoffTool = 'compress' | 'sign';
 
 export interface DownloadFlowInput {
-  prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'generation' | 'prepareNow'>;
+  prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;
   hrefs: Record<HandoffTool, string>;
   /** Why Download cannot run at all: too few files, or a file/build error. */
@@ -43,6 +43,22 @@ export function decideDownloadState(
   return status === 'pending' && !pendingDownload ? 'ready' : 'preparing';
 }
 
+const PART_GAP_MS = 200;
+const sleep = (ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+
+/** Saves a multi-file output: the first part at once, the rest `PART_GAP_MS`
+ * apart so the browser does not drop the later downloads. */
+export async function deliverParts(
+  parts: OutputPart[],
+  download: (blob: Blob, filename: string) => void,
+  wait: (ms: number) => Promise<void> = sleep,
+): Promise<void> {
+  for (let i = 0; i < parts.length; i += 1) {
+    if (i > 0) await wait(PART_GAP_MS);
+    download(parts[i].blob, parts[i].filename);
+  }
+}
+
 const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
 
 /** The finish flow both page tools share: Download (prepared in the
@@ -62,7 +78,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // Only the person's Download tap, not the speculative background build.
   useHoldUpdate(tap === 'processing');
   const [downloadedOnce, setDownloadedOnce] = useState(false);
-  const { shareReady, prepare, clearPrepared, sharePrepared, download } = usePdfShare();
+  const { shareReady, prepare, prepareFiles, clearPrepared, sharePrepared, download } = usePdfShare();
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
@@ -77,20 +93,23 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // A fresh blob is what Share hands out; an invalidated one is cleared so
   // the sheet never offers a stale order.
   useEffect(() => {
-    if (prepared.status === 'ready' && prepared.blob) prepare(prepared.blob, fileName);
+    if (prepared.status === 'ready' && prepared.parts) {
+      prepareFiles(prepared.parts.map((part) => ({ blob: part.blob, filename: part.filename, type: 'application/pdf' })));
+    } else if (prepared.status === 'ready' && prepared.blob) prepare(prepared.blob, fileName);
     else clearPrepared();
   }, [prepared.status, prepared.generation, fileName]);
 
   // The tap arrived while the background build was still running: deliver the blob
-  // the moment it exists, through the same download path Share uses.
+  // (or every part) the moment it exists, through the same download path Share uses.
   useEffect(() => {
-    if (!pendingDownload || prepared.status !== 'ready' || !prepared.blob) return;
+    if (!pendingDownload || prepared.status !== 'ready' || !(prepared.blob || prepared.parts)) return;
     setPendingDownload(false);
     if (quietPendingRef.current) {
       quietPendingRef.current = false;
       setStripOpen(true);
     }
-    download(prepared.blob, fileName);
+    if (prepared.parts) void deliverParts(prepared.parts, download);
+    else if (prepared.blob) download(prepared.blob, fileName);
     setTap('done');
     setDownloadedOnce(true);
     onDelivered?.();
