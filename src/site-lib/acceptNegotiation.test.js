@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { acceptQuality, negotiateRepresentation, markdownRoute } from './acceptNegotiation.js';
 
@@ -139,4 +140,29 @@ describe('markdownRoute against the real vercel.json', () => {
     expect(markdownRoute('/about', sources)).toEqual({ kind: 'passthrough' });
     expect(markdownRoute('/some-path-that-does-not-exist', sources)).toEqual({ kind: 'not-found' });
   });
+});
+
+describe('middleware.ts matcher', () => {
+  // The literal stays in middleware.ts (Vercel reads `config` statically), so
+  // the test pulls it out of the source. Installed path-to-regexp is v8, which
+  // rejects this raw-regex syntax, so compile it as the anchored RegExp that
+  // Vercel's older path-to-regexp produces for it.
+  const source = readFileSync(new URL('../../middleware.ts', import.meta.url), 'utf8');
+  const literal = source.match(/matcher:\s*\[\s*'([^']+)'\s*\]/)?.[1];
+  // The source text is a TS string literal, so undo its backslash escaping.
+  const regexp = new RegExp(`^${(literal ?? '').replace(/\\\\/g, '\\')}$`);
+
+  it('finds the matcher literal', () => {
+    expect(literal).toBeTruthy();
+  });
+
+  it.each(['/', '/sign/', '/sign', '/about/', '/some-path-that-does-not-exist', '/he/sign/'])(
+    'runs for %s',
+    (path) => expect(regexp.test(path)).toBe(true),
+  );
+
+  it.each([
+    '/sitemap.xml', '/sw.js', '/robots.txt', '/llms.txt', '/manifest.webmanifest', '/sign.md',
+    '/404.md', '/favicon.ico', '/_astro/a.js', '/images/x.png', '/fonts/f.woff2', '/icons/i.svg',
+  ])('skips %s', (path) => expect(regexp.test(path)).toBe(false));
 });
