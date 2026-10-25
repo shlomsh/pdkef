@@ -213,3 +213,28 @@ for (const route of ROUTES) {
     });
   });
 }
+
+/* The loaded card is one screen on desktop: its first-screen floor reaches
+   the viewport's foot on a tall window, and it does not depend on the view
+   density Sign and Redact save (a saved 'relaxed' dropped the floor, and
+   Edit PDF's pages sat at the 104px minimum in a short card). */
+const SCREENS = [
+  { density: 'condensed', width: 1920, height: 1200 },
+  { density: 'relaxed', width: 1440, height: 900 },
+];
+for (const route of ROUTES) {
+  for (const { density, width, height } of SCREENS) {
+    test(`the loaded card reaches the foot of a ${width}x${height} screen (${density}), ${route}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.addInitScript((d) => localStorage.setItem('pdf-toolkit:view-density', d), density);
+      await openTool(page, route);
+      const floor = await page.evaluate(() => {
+        const card = document.querySelector('[data-tool-loaded]');
+        return card.getBoundingClientRect().top + parseFloat(getComputedStyle(card).minHeight);
+      });
+      expect(floor).toBeGreaterThan(height - 32);
+      expect(floor).toBeLessThanOrEqual(height);
+      expect((await boxSizes(page))[0].w).toBeGreaterThan(104);
+    });
+  }
+}

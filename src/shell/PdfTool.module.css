@@ -78,6 +78,16 @@
   :global(html[data-view-density='condensed']) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded] {
     min-height: calc(var(--first-screen) - 5.5rem);
   }
+
+  /* A page-grid card (docs/shared-page-grid.md) is one screen at any window
+     height: its floor reaches the viewport's foot, without --first-screen's
+     900px cap, and the page grid sizes its cells to that floor. Its hero folds
+     the same in either view density, so the density gate above does not
+     apply: a 'relaxed' saved in Sign dropped the floor and left every page at
+     the grid's 104px minimum. */
+  :global(html) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded]:has([data-page-grid]) {
+    min-height: calc(max(600px, 100svh - 3.5rem) - 5.5rem);
+  }
 }
 
 /* Nothing loaded: the empty-state sheet is the frame (Dropzone.module.css), so
