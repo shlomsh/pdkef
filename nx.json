@@ -17,10 +17,6 @@
     ]
   },
   "targetDefaults": {
-    "test": {
-      "inputs": ["default"],
-      "cache": true
-    },
     "e2e": {
       "inputs": ["default", "^default"],
       "cache": true
