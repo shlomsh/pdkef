@@ -353,7 +353,7 @@ export default function PdfMergeTool({
   // One protected file is a precondition, not a failure: it gets the shared locked state in place of the
   // result (src/shell/NeedsUnlock.tsx), as in every other tool. Among several files the inline error stays.
   // The probe tells a password from an owner-only restriction; if it cannot say, the inline error shows.
-  const [lockedProbe, setLockedProbe] = useState<{ file: File; kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
+  const [lockedProbe, setLockedProbe] = useState<{ file: File; kind: NeedsUnlockKind | null; bytes: ArrayBuffer | null } | null>(null);
   const lockedFile = entries.length === 1 && entries[0].error === 'encrypted' ? entries[0].file : null;
   useEffect(() => {
     if (!lockedFile) return undefined;
@@ -362,14 +362,21 @@ export default function PdfMergeTool({
       try {
         const bytes = await lockedFile.arrayBuffer();
         const kind = await probeEncryption(bytes);
-        if (!cancelled && (kind === 'needs-password' || kind === 'owner-restricted')) setLockedProbe({ file: lockedFile, kind, bytes });
+        const locked = kind === 'needs-password' || kind === 'owner-restricted';
+        if (!cancelled) setLockedProbe({ file: lockedFile, kind: locked ? kind : null, bytes: locked ? bytes : null });
       } catch (err) {
         reportError('pdf_tool_run', err, 'check_encryption');
+        if (!cancelled) setLockedProbe({ file: lockedFile, kind: null, bytes: null });
       }
     })();
     return () => { cancelled = true; };
   }, [lockedFile]);
-  const needsUnlock = lockedFile && lockedProbe?.file === lockedFile ? lockedProbe : null;
+  // Settled once the probe has answered for this file; until then nothing shows, so the inline error never
+  // flashes before the locked state replaces it.
+  const probeSettled = !lockedFile || lockedProbe?.file === lockedFile;
+  const needsUnlock = lockedFile && probeSettled && lockedProbe?.kind && lockedProbe.bytes
+    ? { file: lockedFile, kind: lockedProbe.kind, bytes: lockedProbe.bytes }
+    : null;
 
   const downloadFlow = useDownloadFlow({
     prepared,
@@ -1366,7 +1373,7 @@ export default function PdfMergeTool({
                 />
               )}
 
-              {!needsUnlock && failedEntry && failedReason && (
+              {!needsUnlock && probeSettled && failedEntry && failedReason && (
                 <ErrorMessage>
                   {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
                   {' '}
