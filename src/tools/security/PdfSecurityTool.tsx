@@ -24,11 +24,12 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 
 // The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
 // state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).
+// Keyed by the sender's tool id; the page is its own field because the Edit Pages island ('edit-pdf') lives at /organize-pdf/.
 const RETURN_TO = {
-  redact: { name: 'Redact', Icon: Eraser },
-  sign: { name: 'Sign', Icon: FileSignature },
-  compress: { name: 'Compress', Icon: Shrink },
-  'edit-pdf': { name: 'Edit PDF', Icon: FileEdit },
+  redact: { name: 'Redact', href: '/redact/', Icon: Eraser },
+  sign: { name: 'Sign', href: '/sign/', Icon: FileSignature },
+  compress: { name: 'Compress', href: '/compress/', Icon: Shrink },
+  'edit-pdf': { name: 'Organize PDF', href: '/organize-pdf/', Icon: FileEdit },
 } as const;
 type ReturnTool = keyof typeof RETURN_TO;
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
@@ -224,7 +225,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
         fileBytes: outputBytes,
       });
       if (!saved) throw new Error('handoff');
-      navigate(`/${tool}/`);
+      navigate(RETURN_TO[tool].href);
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the handoff-failed line
       console.error(err);

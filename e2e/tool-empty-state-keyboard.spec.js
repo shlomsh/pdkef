@@ -17,7 +17,7 @@ const toolRoutes = [
   '/unlock/',
   '/sign/?next=0',
   '/redact/',
-  '/edit-pdf/',
+  '/organize-pdf/',
 ];
 
 const PICKER = '[data-empty-state] label:has(input[type="file"])';

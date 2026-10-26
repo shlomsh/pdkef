@@ -7,10 +7,11 @@
  */
 
 import { deriveFileKind } from '../lib/fileKind.js';
+import { toolIdOf, toolsBySlug } from '../data/tools.js';
 
 export type ToolSlug =
   | 'sign' | 'redact' | 'merge' | 'pdf-to-image' | 'image-to-pdf'
-  | 'split' | 'compress' | 'compress-image' | 'unlock' | 'edit-pdf';
+  | 'split' | 'compress' | 'compress-image' | 'unlock' | 'organize-pdf';
 
 type Kind = 'pdf' | 'image';
 
@@ -27,7 +28,7 @@ const CAPABILITIES: readonly { slug: ToolSlug; kinds: readonly Kind[]; several: 
   { slug: 'compress', kinds: ['pdf'], several: false },
   { slug: 'compress-image', kinds: ['image'], several: false },
   { slug: 'unlock', kinds: ['pdf'], several: false },
-  { slug: 'edit-pdf', kinds: ['pdf'], several: false },
+  { slug: 'organize-pdf', kinds: ['pdf'], several: false },
 ];
 
 export type FileRoute =
@@ -53,7 +54,7 @@ export function routeFiles(files: readonly File[]): FileRoute {
   return { kind: 'choose', tools: fitting, files: picked, skipped };
 }
 
-/** The draft-store hand-off key a tool page collects under. Compress Image is the Compress island in image mode. */
+/** The draft-store hand-off key a tool page collects under: its island's id (src/data/tools.js `toolId`). */
 export function handoffKeyFor(slug: string): string {
-  return slug === 'compress-image' ? 'compress' : slug;
+  return toolIdOf(toolsBySlug[slug]);
 }

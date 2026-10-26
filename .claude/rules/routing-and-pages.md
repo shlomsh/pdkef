@@ -27,14 +27,17 @@ through the content collection in [content-and-copy], not `tools.js`.
 
 ## Tool registry
 
-All nine tools are implemented and indexed; `src/data/tools.js` is the registry (title, description,
+All ten tools are implemented and indexed; `src/data/tools.js` is the registry (title, description,
 FAQ, href), and `src/pages/sitemap.xml.js` generates `/sitemap.xml` from it. Retired routes stay as
 redirects: `/protect` → `/unlock/` (one tool covers both intents by auto-detecting encryption),
-`/remove-pages/` → `/edit-pdf/`. `/offline-pdf-form-filler/` was retired to `/install-pdf-app/` for a
+`/edit-pdf/` → `/organize-pdf/`. `/offline-pdf-form-filler/` was retired to `/install-pdf-app/` for a
 while, then relaunched as its own content page (commit `b4ffd96`) without removing the old redirect,
 which silently 301'd the live page away for weeks. A route's build output and its `vercel.json` entry
 can disagree on whether it's retired with no build error, and the redirect always wins, so check
 `vercel.json` by hand whenever a slug is reused.
+
+`toolId` (optional, `src/data/tools.js`): the island's id when it differs from the slug (`organize-pdf` has `toolId: 'edit-pdf'`); drafts, recents, telemetry and hand-offs keep that id.
+`variantOf` (optional): marks a landing page over another tool's island (slug = URL); it stays out of the dock and cross-link cards, and the island keeps writing its own `toolId`.
 
 **Definition of done for a new tool page, as one unit:** real `src/lib/` logic with no network calls;
 the island calls it and downloads the result (mirror `PdfMergeTool.tsx`); a visible "How it works" +

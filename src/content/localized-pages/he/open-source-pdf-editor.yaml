@@ -13,7 +13,7 @@ kicker: 'ברישיון MIT'
 h1: 'עורך PDF חינמי בקוד פתוח'
 subhead: 'כלי ה‑PDF פועלים בדפדפן והקוד שלהם גלוי. אפשר לבדוק את הארכיטקטורה, את רישיון ה‑MIT ואת האפשרות לבנות ולהגיש עותק עצמאי.'
 primaryCta:
-  href: '/edit-pdf/'
+  href: '/organize-pdf/'
   label: 'ניסיון בעורך ה‑PDF'
 sections:
   - sketch: 'arcs'
