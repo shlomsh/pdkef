@@ -76,6 +76,18 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
 - Redirects: `/edit-pdf/` and `/edit-pdf` 308 to `/organize-pdf/`; the two `/remove-pages` redirects are
   deleted (they would win over the new page); a non-slash pair for each of the five new routes.
 
+## Notes from the build (2026-10-26)
+
+- Page numbers were drawn in unrotated space, so on a rotated page (turned here, or a landscape scan stored
+  rotated) they landed on a side edge, sideways. Fixed in `src/lib/pageOps.js` (`pageNumberPlacement`); Merge
+  shares it. Verified by rendering a real export with pdf.js.
+- The page tools (Organize and its landing pages, Split, Extract) keep no recents or drafts; only Sign, Redact
+  and Merge do. Unchanged by this ticket.
+- For Shlomi: the Hebrew Split text now names הסרת עמודי PDF and links /remove-pages/ (`he/split.yaml`), and
+  the Hebrew dock tile for /organize-pdf/ still reads עריכת עמודי PDF (`src/i18n/cardMessages.ts`).
+- `/split/`'s title also says "Extract Pages". If Google serves `/split/` for "extract pages from pdf" after
+  `/extract-pdf-pages/` is indexed, drop the phrase from Split's title.
+
 ## Acceptance
 
 - [ ] Five pages live with distinct copy; `/edit-pdf/` and `/remove-pages` 308 to their new homes in one hop

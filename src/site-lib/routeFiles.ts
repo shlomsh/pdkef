@@ -54,7 +54,8 @@ export function routeFiles(files: readonly File[]): FileRoute {
   return { kind: 'choose', tools: fitting, files: picked, skipped };
 }
 
-/** The draft-store hand-off key a tool page collects under: its island's id (src/data/tools.js `toolId`). */
+/** The draft-store hand-off key a tool page collects under: its island's id (src/data/tools.js `toolId`).
+    Compress Image is the Compress island in image mode, but rates and reports as itself, so it keeps its own toolId. */
 export function handoffKeyFor(slug: string): string {
-  return toolIdOf(toolsBySlug[slug]);
+  return slug === 'compress-image' ? 'compress' : toolIdOf(toolsBySlug[slug]);
 }

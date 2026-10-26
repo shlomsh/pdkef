@@ -95,7 +95,7 @@ const variants = locale === 'en' ? tools.filter((tool) => tool.variantOf && tool
       {variants.map((tool, index) => (
         <>
           {index > 0 && ' \u00b7 '}
-          <a href={tool.href} class="font-medium text-[var(--color-primary-text)]">{tool.gridTitle}</a>
+          <a href={tool.href} class="whitespace-nowrap font-medium text-[var(--color-primary-text)]">{tool.gridTitle}</a>
         </>
       ))}
     </p>
