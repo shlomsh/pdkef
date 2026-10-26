@@ -1,0 +1,298 @@
+import { describe, expect, it } from 'vitest';
+import { mergedFileName } from '../../tools/merge/mergePlan.ts';
+import { outputFileName as splitName } from '../../tools/split/split.js';
+import { compressedFileName } from '../../tools/compress/outputName.ts';
+import { modifiedTitle } from '../../tools/edit-pages/outputName.ts';
+import { outputFileName as securityName } from '../../tools/security/outputName.ts';
+import { signedFileName } from '../../tools/sign/signedFileName.ts';
+import { redactedFileName } from '../../tools/redact/redactFileName.ts';
+import { imageBaseName, imageFileName } from '../../tools/to-image/toImage.js';
+import { scanMessages } from '../../tools/scan/scanMessages.ts';
+import { defaultOutputName } from '../../lib/pageOrder.js';
+
+// ARCH-38: every tool's output name, pinned. Six conventions (merged_x, extracted_x, x-compressed,
+// x_modified, x_unlocked, signed_x ...) are the product owner's open question (docs/architecture-debt-review-2026-10-26.md);
+// until he decides, one shared helper (src/lib/outputName.ts) builds all of them and this table
+// proves not one byte moved. Some edge inputs (a bare ".pdf", "a.", ".hidden") pin accidents of the old
+// per-tool regexes on purpose: they are what ships today.
+const LONG = 'a'.repeat(200);
+
+type Names = {
+  merge: string; splitCombined: string; splitSeparate3: string;
+  compressPdf: string; compressPng: string; compressJpg: string;
+  editPages: string; security_unlock: string; security_protect: string;
+  sign: string; redact: string; toImagePng: string; toImagePageN: string; imageToPdf: string;
+};
+
+const PINNED: [string, Names][] = [
+  ['Invoice.pdf', {
+    merge: "merged_Invoice.pdf",
+    splitCombined: "extracted_Invoice.pdf",
+    splitSeparate3: "Invoice-page-3.pdf",
+    compressPdf: "Invoice-compressed.pdf",
+    compressPng: "Invoice-compressed.png",
+    compressJpg: "Invoice-compressed.jpg",
+    editPages: "Invoice_modified",
+    security_unlock: "Invoice_unlocked.pdf",
+    security_protect: "Invoice_protected.pdf",
+    sign: "signed_Invoice.pdf",
+    redact: "redacted_Invoice.pdf",
+    toImagePng: "Invoice.png",
+    toImagePageN: "Invoice-page-N.jpg",
+    imageToPdf: "Invoice",
+  }],
+  ['my.report.v2.pdf', {
+    merge: "merged_my.report.v2.pdf",
+    splitCombined: "extracted_my.report.v2.pdf",
+    splitSeparate3: "my.report.v2-page-3.pdf",
+    compressPdf: "my.report.v2-compressed.pdf",
+    compressPng: "my.report.v2-compressed.png",
+    compressJpg: "my.report.v2-compressed.jpg",
+    editPages: "my.report.v2_modified",
+    security_unlock: "my.report.v2_unlocked.pdf",
+    security_protect: "my.report.v2_protected.pdf",
+    sign: "signed_my.report.v2.pdf",
+    redact: "redacted_my.report.v2.pdf",
+    toImagePng: "my.report.v2.png",
+    toImagePageN: "my.report.v2-page-N.jpg",
+    imageToPdf: "my.report.v2",
+  }],
+  ['notes', {
+    merge: "merged_notes.pdf",
+    splitCombined: "extracted_notes.pdf",
+    splitSeparate3: "notes-page-3.pdf",
+    compressPdf: "notes-compressed.pdf",
+    compressPng: "notes-compressed.png",
+    compressJpg: "notes-compressed.jpg",
+    editPages: "notes_modified",
+    security_unlock: "notes_unlocked.pdf",
+    security_protect: "notes_protected.pdf",
+    sign: "signed_notes",
+    redact: "redacted_notes",
+    toImagePng: "notes.png",
+    toImagePageN: "notes-page-N.jpg",
+    imageToPdf: "notes",
+  }],
+  ['SCAN.PDF', {
+    merge: "merged_SCAN.pdf",
+    splitCombined: "extracted_SCAN.pdf",
+    splitSeparate3: "SCAN-page-3.pdf",
+    compressPdf: "SCAN-compressed.pdf",
+    compressPng: "SCAN-compressed.png",
+    compressJpg: "SCAN-compressed.jpg",
+    editPages: "SCAN_modified",
+    security_unlock: "SCAN_unlocked.pdf",
+    security_protect: "SCAN_protected.pdf",
+    sign: "signed_SCAN.PDF",
+    redact: "redacted_SCAN.PDF",
+    toImagePng: "SCAN.png",
+    toImagePageN: "SCAN-page-N.jpg",
+    imageToPdf: "SCAN",
+  }],
+  ['חוזה שכירות.pdf', {
+    merge: "merged_חוזה שכירות.pdf",
+    splitCombined: "extracted_חוזה שכירות.pdf",
+    splitSeparate3: "חוזה שכירות-page-3.pdf",
+    compressPdf: "חוזה שכירות-compressed.pdf",
+    compressPng: "חוזה שכירות-compressed.png",
+    compressJpg: "חוזה שכירות-compressed.jpg",
+    editPages: "חוזה שכירות_modified",
+    security_unlock: "חוזה שכירות_unlocked.pdf",
+    security_protect: "חוזה שכירות_protected.pdf",
+    sign: "signed_חוזה שכירות.pdf",
+    redact: "redacted_חוזה שכירות.pdf",
+    toImagePng: "חוזה שכירות.png",
+    toImagePageN: "חוזה שכירות-page-N.jpg",
+    imageToPdf: "חוזה שכירות",
+  }],
+  [LONG + '.pdf', {
+    merge: `merged_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.pdf`,
+    splitCombined: `extracted_${LONG}.pdf`,
+    splitSeparate3: `${LONG}-page-3.pdf`,
+    compressPdf: `${LONG}-compressed.pdf`,
+    compressPng: `${LONG}-compressed.png`,
+    compressJpg: `${LONG}-compressed.jpg`,
+    editPages: `${LONG}_modified`,
+    security_unlock: `${LONG}_unlocked.pdf`,
+    security_protect: `${LONG}_protected.pdf`,
+    sign: `signed_${LONG}.pdf`,
+    redact: `redacted_${LONG}.pdf`,
+    toImagePng: `${LONG}.png`,
+    toImagePageN: `${LONG}-page-N.jpg`,
+    imageToPdf: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+  }],
+  ['.pdf', {
+    merge: "merged_.pdf.pdf",
+    splitCombined: "extracted_split.pdf",
+    splitSeparate3: "split-page-3.pdf",
+    compressPdf: "file-compressed.pdf",
+    compressPng: "file-compressed.png",
+    compressJpg: "file-compressed.jpg",
+    editPages: "_modified",
+    security_unlock: "_unlocked.pdf",
+    security_protect: "_protected.pdf",
+    sign: "signed_.pdf",
+    redact: "redacted_.pdf",
+    toImagePng: "page.png",
+    toImagePageN: "page-page-N.jpg",
+    imageToPdf: "images",
+  }],
+  ['a.', {
+    merge: "merged_a.pdf",
+    splitCombined: "extracted_a..pdf",
+    splitSeparate3: "a.-page-3.pdf",
+    compressPdf: "a.-compressed.pdf",
+    compressPng: "a.-compressed.png",
+    compressJpg: "a.-compressed.jpg",
+    editPages: "a._modified",
+    security_unlock: "a._unlocked.pdf",
+    security_protect: "a._protected.pdf",
+    sign: "signed_a.",
+    redact: "redacted_a.",
+    toImagePng: "a..png",
+    toImagePageN: "a.-page-N.jpg",
+    imageToPdf: "a",
+  }],
+  ['photo.jpeg', {
+    merge: "merged_photo.pdf",
+    splitCombined: "extracted_photo.jpeg.pdf",
+    splitSeparate3: "photo.jpeg-page-3.pdf",
+    compressPdf: "photo-compressed.pdf",
+    compressPng: "photo-compressed.png",
+    compressJpg: "photo-compressed.jpg",
+    editPages: "photo.jpeg_modified",
+    security_unlock: "photo.jpeg_unlocked.pdf",
+    security_protect: "photo.jpeg_protected.pdf",
+    sign: "signed_photo.jpeg",
+    redact: "redacted_photo.jpeg",
+    toImagePng: "photo.jpeg.png",
+    toImagePageN: "photo.jpeg-page-N.jpg",
+    imageToPdf: "photo",
+  }],
+  ['A+B.pdf', {
+    merge: "merged_AB.pdf",
+    splitCombined: "extracted_A+B.pdf",
+    splitSeparate3: "A+B-page-3.pdf",
+    compressPdf: "A+B-compressed.pdf",
+    compressPng: "A+B-compressed.png",
+    compressJpg: "A+B-compressed.jpg",
+    editPages: "A+B_modified",
+    security_unlock: "A+B_unlocked.pdf",
+    security_protect: "A+B_protected.pdf",
+    sign: "signed_A+B.pdf",
+    redact: "redacted_A+B.pdf",
+    toImagePng: "A+B.png",
+    toImagePageN: "A+B-page-N.jpg",
+    imageToPdf: "AB",
+  }],
+  ['x.pdf.pdf', {
+    merge: "merged_x.pdf.pdf",
+    splitCombined: "extracted_x.pdf.pdf",
+    splitSeparate3: "x.pdf-page-3.pdf",
+    compressPdf: "x.pdf-compressed.pdf",
+    compressPng: "x.pdf-compressed.png",
+    compressJpg: "x.pdf-compressed.jpg",
+    editPages: "x.pdf_modified",
+    security_unlock: "x.pdf_unlocked.pdf",
+    security_protect: "x.pdf_protected.pdf",
+    sign: "signed_x.pdf.pdf",
+    redact: "redacted_x.pdf.pdf",
+    toImagePng: "x.pdf.png",
+    toImagePageN: "x.pdf-page-N.jpg",
+    imageToPdf: "x.pdf",
+  }],
+  ['redacted_redacted_x.pdf', {
+    merge: "merged_redacted_redacted_x.pdf",
+    splitCombined: "extracted_redacted_redacted_x.pdf",
+    splitSeparate3: "redacted_redacted_x-page-3.pdf",
+    compressPdf: "redacted_redacted_x-compressed.pdf",
+    compressPng: "redacted_redacted_x-compressed.png",
+    compressJpg: "redacted_redacted_x-compressed.jpg",
+    editPages: "redacted_redacted_x_modified",
+    security_unlock: "redacted_redacted_x_unlocked.pdf",
+    security_protect: "redacted_redacted_x_protected.pdf",
+    sign: "signed_redacted_redacted_x.pdf",
+    redact: "redacted_x.pdf",
+    toImagePng: "redacted_redacted_x.png",
+    toImagePageN: "redacted_redacted_x-page-N.jpg",
+    imageToPdf: "redacted_redacted_x",
+  }],
+  ['Redacted_x.pdf', {
+    merge: "merged_Redacted_x.pdf",
+    splitCombined: "extracted_Redacted_x.pdf",
+    splitSeparate3: "Redacted_x-page-3.pdf",
+    compressPdf: "Redacted_x-compressed.pdf",
+    compressPng: "Redacted_x-compressed.png",
+    compressJpg: "Redacted_x-compressed.jpg",
+    editPages: "Redacted_x_modified",
+    security_unlock: "Redacted_x_unlocked.pdf",
+    security_protect: "Redacted_x_protected.pdf",
+    sign: "signed_Redacted_x.pdf",
+    redact: "Redacted_x.pdf",
+    toImagePng: "Redacted_x.png",
+    toImagePageN: "Redacted_x-page-N.jpg",
+    imageToPdf: "Redacted_x",
+  }],
+  ['.hidden', {
+    merge: "merged_.hidden.pdf",
+    splitCombined: "extracted_.hidden.pdf",
+    splitSeparate3: ".hidden-page-3.pdf",
+    compressPdf: "file-compressed.pdf",
+    compressPng: "file-compressed.png",
+    compressJpg: "file-compressed.jpg",
+    editPages: ".hidden_modified",
+    security_unlock: ".hidden_unlocked.pdf",
+    security_protect: ".hidden_protected.pdf",
+    sign: "signed_.hidden",
+    redact: "redacted_.hidden",
+    toImagePng: ".hidden.png",
+    toImagePageN: ".hidden-page-N.jpg",
+    imageToPdf: "images",
+  }],
+  ['a b.PdF', {
+    merge: "merged_a b.pdf",
+    splitCombined: "extracted_a b.pdf",
+    splitSeparate3: "a b-page-3.pdf",
+    compressPdf: "a b-compressed.pdf",
+    compressPng: "a b-compressed.png",
+    compressJpg: "a b-compressed.jpg",
+    editPages: "a b_modified",
+    security_unlock: "a b_unlocked.pdf",
+    security_protect: "a b_protected.pdf",
+    sign: "signed_a b.PdF",
+    redact: "redacted_a b.PdF",
+    toImagePng: "a b.png",
+    toImagePageN: "a b-page-N.jpg",
+    imageToPdf: "a b",
+  }],
+];
+
+describe('output names, every tool', () => {
+  it.each(PINNED)('%s', (input, expected) => {
+    const actual: Names = {
+      merge: mergedFileName(input),
+      splitCombined: splitName(input, 'combined'),
+      splitSeparate3: splitName(input, 'separate', 3),
+      compressPdf: compressedFileName(input, 'application/pdf'),
+      compressPng: compressedFileName(input, 'image/png'),
+      compressJpg: compressedFileName(input, 'image/jpeg'),
+      editPages: modifiedTitle(input),
+      security_unlock: securityName(input, 'unlock'),
+      security_protect: securityName(input, 'protect'),
+      sign: signedFileName(input),
+      redact: redactedFileName(input),
+      toImagePng: imageFileName(imageBaseName(input), 'png'),
+      toImagePageN: imageFileName(imageBaseName(input), 'jpg', 'N'),
+      imageToPdf: defaultOutputName([{ file: { name: input } }]),
+    };
+    expect(actual).toEqual(expected);
+  });
+
+  it('names that need no source file', () => {
+    expect(scanMessages.defaultName).toBe('scan');
+    expect(defaultOutputName([])).toBe('images');
+    expect(splitName('', 'combined')).toBe('extracted_split.pdf');
+    expect(imageBaseName('.pdf')).toBe('page');
+    expect(mergedFileName('+.pdf')).toBe('merged_merged.pdf');
+  });
+});

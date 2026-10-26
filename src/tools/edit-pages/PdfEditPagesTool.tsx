@@ -33,6 +33,7 @@ import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
 import RemovePagesVerb from './verb/RemovePagesVerb.tsx';
 import RotatePagesVerb from './verb/RotatePagesVerb.tsx';
+import { modifiedTitle } from './outputName.ts';
 
 /** The page's one job (SEO-47): each landing page over this island shows that job in its empty state. */
 type PageJob = 'organize' | 'rotate' | 'remove' | 'numbers';
@@ -106,7 +107,7 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
 
   const outputCount = outputPageCount(plan);
   const skippedCount = plan.length - outputCount;
-  const title = customOutputName ?? (file ? `${file.name.replace(/\.pdf$/i, '')}_modified` : '');
+  const title = customOutputName ?? (file ? modifiedTitle(file.name) : '');
   const fileName = title ? `${title}.pdf` : 'edited.pdf';
 
   const key = file && workingFile && loadStatus === 'idle' && outputCount > 0
