@@ -67,6 +67,7 @@ export function isConvexQuad(quad: Quad): boolean;
 export function clampPoint(point: Point): Point;
 export function scaleQuad(quad: Quad, width: number, height: number): Quad;
 export function quadKey(quad: Quad): string;
+export function rotateQuad(quad: Quad, turns: number): Quad; // the page turned clockwise: corners moved one place on per turn
 
 // src/tools/scan/edges/index.ts
 export type EdgeGuesser = (image: GrayImage) => Quad | null; // normalized; null = no page found

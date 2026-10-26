@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, scaleQuad, type Point, type Quad } from './quad.ts';
+import { applyHomography, homography } from './homography.ts';
+import { warpSize } from './warp.ts';
+import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, rotateQuad, scaleQuad, type Point, type Quad } from './quad.ts';
 
 describe('orderQuad', () => {
   it('orders four points top-left, top-right, bottom-right, bottom-left', () => {
@@ -85,5 +87,39 @@ describe('insetQuad', () => {
 
   it('is the same quad at zero', () => {
     expect(insetQuad(FULL_QUAD, 0)).toEqual(FULL_QUAD);
+  });
+});
+
+describe('rotateQuad', () => {
+  const q: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.8, y: 0.05 }, { x: 0.9, y: 0.85 }, { x: 0.15, y: 0.9 }];
+
+  it('gives the same corners at 0 and 4 turns, without touching the input', () => {
+    const copy = structuredClone(q);
+    expect(rotateQuad(q, 0)).toEqual(q);
+    expect(rotateQuad(q, 4)).toEqual(q);
+    expect(rotateQuad(q, 0)).not.toBe(q);
+    expect(q).toEqual(copy);
+  });
+
+  it('moves each corner one place on per turn, either way round', () => {
+    expect(rotateQuad(q, 1)).toEqual([q[3], q[0], q[1], q[2]]);
+    expect(rotateQuad(q, 2)).toEqual([q[2], q[3], q[0], q[1]]);
+    expect(rotateQuad(q, -1)).toEqual(rotateQuad(q, 3));
+    expect(rotateQuad(rotateQuad(q, 2), 2)).toEqual(q);
+  });
+
+  it('swaps the output width and height in the warp', () => {
+    const px = scaleQuad(FULL_QUAD, 400, 300);
+    const before = warpSize(px, 4000);
+    const after = warpSize(rotateQuad(px, 1), 4000);
+    expect(before.width).toBeGreaterThan(before.height);
+    expect(after.height).toBeGreaterThan(after.width);
+  });
+
+  it('puts the photo bottom-left corner at the output top-left', () => {
+    const rect = scaleQuad(FULL_QUAD, 300, 400);
+    const p = applyHomography(homography(rotateQuad(q, 1), rect), q[3]);
+    expect(p.x).toBeCloseTo(0, 6);
+    expect(p.y).toBeCloseTo(0, 6);
   });
 });
