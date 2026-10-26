@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WYSIWYG_STRING_CASES } from '../../test/fixtures/wysiwygStrings.js';
+import { WYSIWYG_STRING_CASES } from '../../test/support/fixtures/wysiwygStrings.js';
 import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection, getTextAlign, textAnchorsRightEdge, textElementLayout } from './signHelpers.js';
 
 describe('sign text direction helpers', () => {

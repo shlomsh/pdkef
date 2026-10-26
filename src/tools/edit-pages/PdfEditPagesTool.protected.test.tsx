@@ -8,7 +8,7 @@ import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { editPages } from './editPages.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // A protected PDF is a precondition, not a failure: Edit Pages shows NeedsUnlock (src/shell/NeedsUnlock.tsx)
 // in place of the page grid. The real classifier runs under pdf.js's Node build against the real fixtures.

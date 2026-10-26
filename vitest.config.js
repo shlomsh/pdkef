@@ -58,11 +58,11 @@ export default defineConfig({
       'react/jsx-runtime': 'preact/jsx-runtime',
       // Build-only virtual module; see the stub for why documentation.ts has to
       // name it with a literal specifier that Vitest then cannot resolve.
-      'astro:content': new URL('./src/test/astroContentStub.js', import.meta.url).pathname
+      'astro:content': new URL('./src/test/support/astroContentStub.js', import.meta.url).pathname
     }
   },
   test: {
-    setupFiles: ['./src/test/setup.js'],
+    setupFiles: ['./src/test/support/setup.js'],
     server: {
       deps: {
         inline: [/@floating-ui/]

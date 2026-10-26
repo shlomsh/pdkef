@@ -8,7 +8,7 @@ import PdfSignTool from './PdfSignTool.tsx';
 import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '../../editor/registry/messages';
 import { saveHandoff } from '../../lib/drafts/draftStore.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 
 declare const __dirname: string;
