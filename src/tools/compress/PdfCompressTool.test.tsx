@@ -1671,4 +1671,17 @@ describe('PdfCompressTool UI flow', () => {
       expect(detail).not.toContain('⁩');
     });
   });
+
+  it('re-clicking the selected target preset while its build is in flight still lands the result', async () => {
+    await loadPdf('big_scan.pdf', 5_000_000);
+    await choose('Exact size');
+    const held = deferred();
+    imagesLib.compressPdfImagesToTarget.mockImplementationOnce(() => held.promise);
+    await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await waitFor(ran(imagesLib.compressPdfImagesToTarget, 2));
+    await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await act(async () => { held.resolve(imagesResult()); });
+    await wait(300);
+    expect(statusOf()).toBe('done');
+  });
 });

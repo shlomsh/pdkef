@@ -215,6 +215,19 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(clicks).toHaveBeenCalledTimes(1);
   });
 
+  it('does not re-announce an unchanged ready message on every Download tap', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    const live = () => container.querySelector('[role="status"][aria-live="polite"]').textContent;
+    const tap = () => act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    await tap();
+    expect(live()).toBe('Your PDF is ready.');
+    await tap();
+    expect(live()).toBe('Your PDF is ready.');
+  });
+
   it('records export on a tap that beat the build and download when it is delivered', async () => {
     resetActionTrailForTests();
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
