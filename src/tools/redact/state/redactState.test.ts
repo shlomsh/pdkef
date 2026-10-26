@@ -173,7 +173,7 @@ describe('EDIT_COMMITTED', () => {
 describe('UNDO and REDO', () => {
   it('UNDO reverts the newest command, keeps it redoable, bumps the revision and announces it', () => {
     let s = run(fresh(), addCommit([box('a')]), addCommit([box('b')], 1));
-    s = redactReducer(s, { type: 'UNDO' });
+    s = redactReducer(s, { type: 'UNDO', announceTemplate: 'Undid: {description}' });
     expect(s.edits.elements.map((e) => e.id)).toEqual(['a']);
     expect(s.edits.history.past).toHaveLength(1);
     expect(s.edits.history.future).toHaveLength(1);
@@ -204,10 +204,19 @@ describe('UNDO and REDO', () => {
   it('UNDO by entry id reverts that entry from the middle of the stack and drops the future', () => {
     let s = run(fresh(), addCommit([box('a')]), addCommit([box('b')], 1), addCommit([box('c')], 2));
     const middle = s.edits.history.past[1];
-    s = redactReducer(s, { type: 'UNDO', entryId: middle.id });
+    s = redactReducer(s, { type: 'UNDO', entryId: middle.id, announceTemplate: 'Undid: {description}' });
     expect(s.edits.elements.map((e) => e.id).sort()).toEqual(['a', 'c']);
     expect(s.edits.history.future).toEqual([]);
     expect(s.view.announcement).toBe(`Undid: ${middle.description}`);
+  });
+
+  it('UNDO and REDO without a template announce the bare description', () => {
+    let s = run(fresh(), addCommit([box('a')]));
+    const description = s.edits.history.past[0].description;
+    s = redactReducer(s, { type: 'UNDO' });
+    expect(s.view.announcement).toBe(description);
+    s = redactReducer(s, { type: 'REDO' });
+    expect(s.view.announcement).toBe(description);
   });
 
   it('UNDO by a stale entry id is a silent no-op', () => {
@@ -218,7 +227,7 @@ describe('UNDO and REDO', () => {
   it('REDO reapplies the most recently undone command, bumps the revision and announces it', () => {
     let s = run(fresh(), addCommit([box('a')]), { type: 'UNDO' });
     const revision = s.edits.documentRevision;
-    s = redactReducer(s, { type: 'REDO' });
+    s = redactReducer(s, { type: 'REDO', announceTemplate: 'Redid: {description}' });
     expect(s.edits.elements.map((e) => e.id)).toEqual(['a']);
     expect(s.edits.history.future).toEqual([]);
     expect(s.edits.history.past).toHaveLength(1);
