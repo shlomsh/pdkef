@@ -5,7 +5,7 @@ import FieldSlot from './FieldSlot.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from './fill.module.css';
-import { fieldTextInset, textElementLayout } from '../../../lib/signHelpers.js';
+import { fieldTextInset, textElementLayout } from '../../../editor/text/signHelpers.js';
 import { combLayout } from '../../../editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';

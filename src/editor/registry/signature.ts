@@ -1,6 +1,6 @@
 import { MAX_SHAPE_SIZE_PCT, MIN_STANDARD_WIDTH_PCT } from '../model/signGeometry.js';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
-import { tintImageDataUrl } from '../../lib/signHelpers.js';
+import { tintImageDataUrl } from '../text/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 import type { SignatureElement } from '../model/editorModel.ts';

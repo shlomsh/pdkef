@@ -1,7 +1,7 @@
 import { MAX_SYMBOL_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../model/signGeometry.js';
 import { LINE_CAP_ROUND, rgb } from '../../lib/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
-import { hexToRgbFractions } from '../../lib/signHelpers.js';
+import { hexToRgbFractions } from '../text/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 import type { SymbolElement, SymbolMark } from '../model/editorModel.ts';
