@@ -1,11 +1,18 @@
 /* Scan's loaded state: the selected page's corners above, the strip of finished pages below. */
 
 .editor {
-  /* Clear of the sticky phone bar when the first photos scroll it into view. */
+  /* Clear of the sticky app bar when the first photos scroll it into view. */
   scroll-margin-top: 96px;
   display: grid;
   gap: 10px;
   justify-items: center;
+}
+
+/* Below 1024px the quiet Download bar sticks under the app bar: about 170px of chrome together. */
+@media (max-width: 1023px) {
+  .editor {
+    scroll-margin-top: 184px;
+  }
 }
 
 .editor-head {
