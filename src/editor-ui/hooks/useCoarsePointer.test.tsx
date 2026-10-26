@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, vi } from 'vitest';
-import useCoarsePointer from './useCoarsePointer.js';
+import useCoarsePointer from './useCoarsePointer.ts';
 
 // No @testing-library/preact-hooks in this repo - see useCurrentPage.test.jsx
 // for the same tiny-harness pattern used for hook tests elsewhere.
@@ -110,5 +110,19 @@ describe('useCoarsePointer', () => {
     Object.defineProperty(window, 'matchMedia', { value: undefined, configurable: true, writable: true });
     const { apiRef } = mount();
     expect(apiRef.current.coarse).toBe(false);
+  });
+
+  it('is right on the very first render, with no flip after the effect', () => {
+    installMatchMedia({ matches: true });
+    const seen: boolean[] = [];
+    function Probe() {
+      seen.push(useCoarsePointer());
+      return null;
+    }
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<Probe />, host));
+    expect(seen[0]).toBe(true);
+    act(() => render(null, host));
   });
 });
