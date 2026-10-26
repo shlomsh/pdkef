@@ -45,14 +45,38 @@
   font-size: 0.9rem;
 }
 
-.editor-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.page-look {
+  width: 100%;
+  max-width: 32rem;
 }
 
-/* Done is the way back to the result: the one primary-looking control in corners mode. */
-.editor-actions .done-button {
+/* The photo's own shape, held while its preview is made, so nothing below jumps when it lands. */
+.corners-wait {
+  display: grid;
+  place-items: center;
+  width: min(100%, 22rem);
+  border-radius: 6px;
+  background: var(--color-surface-sunken);
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.corners-actions {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 26rem);
+}
+
+.corners-quiet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Use these corners (or Done): the one primary control in corners mode, full width. */
+.corners-actions .done-button {
+  min-height: 3rem;
+  font-size: 1rem;
   color: var(--color-surface);
   background: var(--color-primary);
   border-color: var(--color-primary);
