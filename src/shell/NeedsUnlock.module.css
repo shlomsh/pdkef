@@ -1,20 +1,111 @@
+/* A locked file stands where the workspace would be: a centred panel with a locked page, the
+   title, the file's name, why, and Unlock as the primary action. Replace stays the shell's quiet chip. */
 .state {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: var(--space-4) 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: min(34rem, 64vh);
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+  border-radius: var(--radius-2xl);
+  background: var(--color-primary-tint);
+}
+
+/* Fill the tool card it stands in (a block with a min-height): the card becomes a column and the
+   panel takes all of it, so no white band is left under it. */
+*:has(> .state) {
+  display: flex;
+  flex-direction: column;
+}
+
+*:has(> .state) > .state {
+  flex: 1 0 auto;
+}
+
+@media (max-width: 560px) {
+  .state {
+    padding: var(--space-6) var(--space-3);
+  }
+}
+
+/* A page with a lock badge on its corner; geometry in rem so it holds at every width. */
+.art {
+  position: relative;
+  width: 5.5rem;
+  height: 7rem;
+  margin-bottom: var(--space-5);
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--color-border) 0 0.18rem,
+      transparent 0.18rem 0.55rem
+    ) 0.8rem 1.6rem / calc(100% - 1.6rem) 2.2rem no-repeat,
+    linear-gradient(var(--color-primary), var(--color-primary)) 0.8rem 0.8rem / 1.7rem 0.22rem no-repeat,
+    var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-md);
+}
+
+.badge {
+  position: absolute;
+  inset-inline-end: -1.1rem;
+  bottom: -0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  color: var(--color-surface);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 0.3rem var(--color-surface), var(--shadow-md);
 }
 
 .title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: clamp(1.4rem, 1.15rem + 1vw, 1.85rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   color: var(--color-text);
+}
+
+.file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.file svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22rem;
 }
 
 .body {
   margin: 0;
-  max-width: 36rem;
+  max-width: 32rem;
   color: var(--color-muted);
 }
 
@@ -22,24 +113,65 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.unlock {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
-}
-
-/* Colours only: shape, size and type come from the shell's .action chip so this sits
-   beside Replace as its twin. The tag selector outranks .action regardless of sheet order. */
-button.lead {
-  color: var(--color-primary-text);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-button.lead:hover:not(:disabled) {
+  padding: 0.8rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  font-size: 1.02rem;
   color: var(--color-surface);
   background: var(--color-primary);
-  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 26%, transparent);
+  cursor: pointer;
 }
 
-button.lead:disabled {
+.unlock:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.unlock:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.unlock:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+@keyframes lock-in {
+  0% {
+    scale: 0.4;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.12;
+    opacity: 1;
+  }
+  80% {
+    rotate: -8deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .badge {
+    animation: lock-in 0.6s var(--ease-emphasized) 0.15s both;
+  }
+
+  .unlock {
+    transition: background-color 0.18s var(--ease-out);
+  }
 }
