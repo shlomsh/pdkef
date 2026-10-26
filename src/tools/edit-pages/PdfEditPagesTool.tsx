@@ -30,6 +30,13 @@ import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWo
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
+import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
+import RemovePagesVerb from './verb/RemovePagesVerb.tsx';
+import RotatePagesVerb from './verb/RotatePagesVerb.tsx';
+
+/** The page's one job (SEO-47): each landing page over this island shows that job in its empty state. */
+type PageJob = 'organize' | 'rotate' | 'remove' | 'numbers';
+const VERBS = { organize: EditPagesVerb, rotate: RotatePagesVerb, remove: RemovePagesVerb, numbers: PageNumbersVerb };
 
 const HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
 
@@ -42,7 +49,8 @@ interface EditDocument {
 
 const EMPTY_DOCUMENT: EditDocument = { plan: [] };
 
-export default function PdfEditPagesTool() {
+export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }) {
+  const Verb = VERBS[job];
   const [file, setFile] = useState<File | null>(null);
   // The bytes everything after opening reads: the person's file, or its
   // repaired copy when the page list had to be rebuilt (DEBT-54). `file` stays
@@ -254,7 +262,7 @@ export default function PdfEditPagesTool() {
   return (
     <BasePdfTool
       hasFiles={file !== null}
-      emptyArt={<EditPagesVerb />}
+      emptyArt={<Verb />}
       analyticsTool="edit-pdf"
       analyticsStatus={analyticsStatus}
       onFilesAdded={handleFilesAdded}

@@ -126,6 +126,21 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
 
+  it.each([
+    [undefined, 4, 0],
+    ['rotate', 3, 0],
+    ['remove', 4, 0],
+    ['numbers', 3, 3],
+  ])('shows the empty-state verb for its page job (%s)', (job, pages, numbers) => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfEditPagesTool job={job} />, container); });
+
+    const stage = container.querySelector(`.${dropzoneStyles.dropzone} [aria-hidden="true"]`);
+    expect(stage.querySelectorAll('i').length).toBe(pages);
+    expect(stage.querySelectorAll('i > b').length).toBe(numbers);
+  });
+
   it('loads the PDF into the shared grid under a heading that names the output and its pages', async () => {
     await load();
 
