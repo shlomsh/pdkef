@@ -18,6 +18,7 @@
  */
 
 import { sanitizeOutputName } from '../../lib/sanitizeOutputName.ts';
+import { outputName, withAffixes } from '../../lib/outputName.ts';
 import { clampIndex, type PlanEntry } from '../../lib/pagePlan.ts';
 export interface MergeMapEntry {
   fileIndex: number;
@@ -178,18 +179,6 @@ export function toMergeMap(plan: PlanEntry[], fileIds: number[]): MergeMapEntry[
   });
 }
 
-function baseName(fileName: string): string {
-  // Strip exactly the final extension, the same way a Finder/Explorer
-  // "name" column would: 'Invoice 2024-03-01.pdf' -> 'Invoice 2024-03-01',
-  // but a dotfile-style name with no other dot ('.hidden.pdf' has one) keeps
-  // its leading dot rather than being stripped down to '' - the last dot
-  // must not be the first character for us to treat it as an extension
-  // marker.
-  const lastDot = fileName.lastIndexOf('.');
-  if (lastDot <= 0) return fileName;
-  return fileName.slice(0, lastDot);
-}
-
 // Builds the merged file's display title (no '.pdf' suffix): `merged_`
 // ahead of the first file's own base name, exactly the way `signed_`/
 // `redacted_` are built beside the source name in Sign and Redact - no
@@ -198,13 +187,14 @@ function baseName(fileName: string): string {
 export function mergedTitle(firstFileName: string): string {
   // The derived name goes through the same sanitiser as a typed one, so a
   // source called "a+b.pdf" never puts a "+" in the merged name either.
-  const name = sanitizeOutputName(baseName(firstFileName)) || 'merged';
-  return `${MERGED_FILE_NAME_PREFIX}${name}`;
+  // Strips exactly the final extension, the way a Finder/Explorer "name" column would
+  // ('Invoice 2024-03-01.pdf' -> 'Invoice 2024-03-01'); a dotfile-style name keeps its leading dot.
+  return outputName(firstFileName, { prefix: MERGED_FILE_NAME_PREFIX, strip: 'extension-keep-dotfile', sanitize: true, fallback: 'merged', ext: null });
 }
 
 // Same as mergedTitle, with the '.pdf' extension the download actually needs.
 export function mergedFileName(firstFileName: string): string {
-  return `${mergedTitle(firstFileName)}.pdf`;
+  return withAffixes(mergedTitle(firstFileName));
 }
 
 // The sanitiser moved to src/lib so the shared shell OutputName can use it too.

@@ -22,6 +22,7 @@ import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../lib/toolIds.ts';
+import { outputFileName } from './outputName.ts';
 
 // The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
 // state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).
@@ -39,8 +40,6 @@ const RETURN_TO = Object.fromEntries(
 type ReturnTool = UnlockReturnId;
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
 
-// One name for the Download button, the share sheet and the hand-off, so they cannot drift.
-const outputFileName = (name: string, mode: string) => `${name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`;
 
 // The result cell before there is a mode: the encryption check is running, or the file could not be read.
 const CHECKING_PLAN = { tag: 'Checking', source: 'none', locked: false, protectedDone: false } as const;
