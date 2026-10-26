@@ -27,7 +27,7 @@ export function summarizeCounts(tools, replies) {
     const flat = replies[i]?.result ?? [];
     const stars = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     for (let n = 0; n + 1 < flat.length; n += 2) {
-      if (n in stars || String(flat[n]) in stars) stars[Number(flat[n])] = Number(flat[n + 1]) || 0;
+      if (/^[1-5]$/.test(String(flat[n]))) stars[Number(flat[n])] = Number(flat[n + 1]) || 0;
     }
     const votes = Object.values(stars).reduce((a, b) => a + b, 0);
     if (votes === 0) return;

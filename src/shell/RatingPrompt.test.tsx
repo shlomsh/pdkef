@@ -172,6 +172,25 @@ describe('RatingPrompt', () => {
       expect(comments()[0][0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 5, comment: 'moved' } });
     });
 
+    it('keeps the thanks, not a fresh form, when the prompt moves after a comment', () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      submit('once');
+      act(() => render(null, container));
+      mount(true);
+      expect(form()).toBeNull();
+      expect(container.textContent).toContain('Got it, thank you.');
+      expect(comments()).toHaveLength(1);
+    });
+
+    it('keeps the form when the comment could not be sent', () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      submit('\u0001'.repeat(500));
+      expect(comments()).toHaveLength(0);
+      expect(form()).not.toBeNull();
+    });
+
     it('sends one comment with the tapped stars and shows thanks', () => {
       showAfterDelay();
       act(() => stars()[3].click());

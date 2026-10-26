@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_COMMENT_LENGTH, RATING_TOOLS, parseRatingCommentEvent, parseRatingEvent } from './ratingSchema.js';
+import { MAX_REPORT_BYTES } from './errorReportSchema.js';
+import { MAX_COMMENT_LENGTH, RATING_TOOLS, REPORT_BYTE_LIMIT, parseRatingCommentEvent, parseRatingEvent } from './ratingSchema.js';
 import { ANALYTICS_TOOLS } from './usageEventSchema.js';
 
 const ok = { name: 'tool_rating', properties: { tool: 'merge', stars: 4 } };
@@ -35,6 +36,15 @@ describe('parseRatingCommentEvent', () => {
   });
   it.each(['', '   ', 'x'.repeat(501), 7, null])('rejects comment %s', (comment) => {
     expect(parseRatingCommentEvent({ ...note, properties: { ...note.properties, comment } })).toBeNull();
+  });
+  it('mirrors the endpoint body limit', () => {
+    expect(REPORT_BYTE_LIMIT).toBe(MAX_REPORT_BYTES);
+  });
+  it('refuses a comment whose event would not fit the 2,048-byte report limit', () => {
+    const control = '\u0001'.repeat(MAX_COMMENT_LENGTH); // 6 bytes each once JSON-encoded
+    expect(parseRatingCommentEvent({ ...note, properties: { ...note.properties, comment: control } })).toBeNull();
+    const cjk = '字'.repeat(MAX_COMMENT_LENGTH); // 1,500 bytes: fits
+    expect(parseRatingCommentEvent({ ...note, properties: { ...note.properties, comment: cjk } })).not.toBeNull();
   });
   it('rejects extra keys, bad stars and unknown tools', () => {
     expect(parseRatingCommentEvent({ ...note, extra: 1 })).toBeNull();
