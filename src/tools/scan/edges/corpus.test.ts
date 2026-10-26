@@ -23,6 +23,6 @@ describe('edge guess corpus', () => {
     }
     console.log(`\n${rows.join('\n')}\nscore ${found}/${corpus.length}, confidently wrong: ${wrong.length ? wrong.join(', ') : 'none'}`);
     expect(wrong).toEqual([]);
-    expect(found).toBeGreaterThanOrEqual(corpus.length - 2);
+    expect(found).toBeGreaterThanOrEqual(corpus.length - 1);
   });
 });
