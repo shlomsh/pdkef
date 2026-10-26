@@ -117,6 +117,43 @@ describe('usePreparedOutput', () => {
     expect(api.current.parts).toBeNull();
   });
 
+  describe('meta', () => {
+    it('is null until a build lands, then carries what the build returned', async () => {
+      await mount({ key: 'a', build: vi.fn(async () => ({ ...built(), meta: { level: 'high', before: 10 } })) });
+      expect(api.current.meta).toBeNull();
+      await settle();
+      expect(api.current.meta).toEqual({ level: 'high', before: 10 });
+    });
+
+    it('is withdrawn with the blob on a key change and restored from the cache', async () => {
+      const build = vi.fn(async () => ({ ...built(), meta: { n: Math.random() } }));
+      await mount({ key: 'a', build });
+      await settle();
+      const first = api.current.meta;
+      await mount({ key: 'b', build });
+      expect(api.current.meta).toBeNull();
+      await settle();
+      await mount({ key: 'a', build });
+      expect(api.current.meta).toBe(first);
+      expect(build).toHaveBeenCalledTimes(2);
+    });
+
+    it('is null for a build that returns none, a null key and an error', async () => {
+      await mount({ key: 'a', build: vi.fn(async () => built()) });
+      await settle();
+      expect(api.current.meta).toBeNull();
+      await mount({ key: 'b', build: vi.fn(async () => ({ ...built(), meta: 1 })) });
+      await settle();
+      expect(api.current.meta).toBe(1);
+      await mount({ key: null, build: vi.fn() });
+      expect(api.current.meta).toBeNull();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      await mount({ key: 'c', build: vi.fn(async () => { throw new Error('boom'); }) });
+      await settle();
+      expect(api.current.meta).toBeNull();
+    });
+  });
+
   it('does not treat an aborted build as an error', async () => {
     const onBuildError = vi.fn();
     const build = vi.fn(async () => { throw new DOMException('aborted', 'AbortError'); });
