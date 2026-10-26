@@ -1,11 +1,9 @@
 ---
 id: "ARCH-40"
 title: "Small seams from the October review"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 1
 depends_on: []
 ---
 
@@ -32,8 +30,8 @@ Small, independent leftovers, each a few lines, listed in the record's section 7
 
 ## Acceptance
 
-- [ ] Each item above is done or struck with a reason in this ticket.
-- [ ] `check:push` green; `test:css` ratchets unchanged or lower.
+- [x] Each item above is done or struck with a reason in this ticket.
+- [x] `check:push` green; `test:css` ratchets unchanged or lower.
 
 ## Result
 
@@ -43,3 +41,7 @@ Small, independent leftovers, each a few lines, listed in the record's section 7
 4. Done. Merge uses `pageOrder.js`'s `moveEntry` and `sortEntries` (Merge keeps only its own `reversed` and `added`). pageOrder already had every case Merge relied on, so no new test was needed. `pagePlan.ts`'s index move is renamed `movePlanEntry`, with its callers and tests.
 5. Partly done. New `src/lib/usePhotoTileList.ts` holds the Sortable config, the focus restore after a keyboard move or removal, and the accepted photo types; Scan and Image to PDF both use it (island change is the swap only). Struck: shared tile CSS and the single `.loaded-layout` / `.result`. The two tools' tile CSS is not the same (Scan is a horizontal strip with a radial remove disc, Image to PDF an auto-fill grid with a pseudo-element disc), and Scan has no `.loaded-layout`. The three modules that declare `.loaded-layout` and `.result` are Compress, Image to PDF and Security, and their grid areas, `.result` alignment and extras differ; one shared declaration needs a design pass, not a move.
 6. Colours done: `--color-danger-ink` (`#8a221c`) and `--color-danger-ink-strong` (`#6b1813`) in `global.css`, used by `PdfTool.module.css`. Breakpoints struck, listed in the report: the only values within 1px of a declared one (767.84, 767.98, 1023.98) are fractional complements of 768 and 1024, and moving them to 767 or 1023 opens a gap at fractional viewport widths.
+
+## Closed 2026-10-27
+
+Every item is done or struck with its reason in the Result section above. `check:push` was green on the branch and the CSS ratchets passed.

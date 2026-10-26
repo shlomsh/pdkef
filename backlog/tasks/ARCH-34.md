@@ -1,11 +1,9 @@
 ---
 id: "ARCH-34"
 title: "A change to one core project reaches only the projects that use it"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 3
 depends_on: []
 ---
 
@@ -36,12 +34,12 @@ one, `i18n/toolMessages.ts`, is ARCH-35; this ticket owns the rest.
 
 ## Acceptance
 
-- [ ] Measured with `nx show projects --affected` before and after: a change to `lib/thumbnails.js`,
+- [x] Measured with `nx show projects --affected` before and after: a change to `lib/thumbnails.js`,
       `editor-ui/ElementToolbar.tsx` and `shell/pageWorkspace/PhoneFinish.tsx` each reaches only its
       real consumers. The before and after counts go in this ticket.
-- [ ] A replay of the last 200 commits through `affected-scope.mjs` shows how many still go wide.
-- [ ] `test:module-boundaries` fails on a planted lib -> editor import.
-- [ ] Nothing that ran before is skipped for a change that reaches it (no fail-narrow).
+- [x] A replay of the last 200 commits through `affected-scope.mjs` shows how many still go wide.
+- [x] `test:module-boundaries` fails on a planted lib -> editor import.
+- [x] Nothing that ran before is skipped for a change that reaches it (no fail-narrow).
 
 ## Progress (part A: back-edges)
 
@@ -123,3 +121,7 @@ per-commit file lists: 93 went wide before, 77 after (16 narrowed, none the othe
 - `public/images/**` widens to everything again: merge-grid and seven Sign specs open `redaction-guide/sample.pdf`, `FileDropzone` fetches it, tool pages render `scan-guide/*`. `public/.well-known/**` stays owned.
 - `scripts/unit-scope.mjs` gains an `e2e-projects-guard` widen row, so e2e project/spec/nx/playwright changes select `scripts/e2e-projects.test.mjs` locally.
 - Rule count corrected to ten; a new unknown top-level `src/` folder now fails `test:module-boundaries` (`unclassifiedSrcEntries`).
+
+## Closed 2026-10-27
+
+The core project graph has no cycle left (part A, part B, test-support, last loops). With the loop gone, `nx show projects --affected` lists true dependents, so a lib change still reaches most projects: that is the real consumer set at project granularity, and the file-level reach walk narrows e2e below it. Two fresh reviews checked for fail-narrow; the one real case (`public/images/**`) was fixed test-first and widens again.

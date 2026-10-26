@@ -1,11 +1,9 @@
 ---
 id: "ARCH-35"
 title: "Tool text lives with each tool in one convention"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 4
 depends_on: []
 ---
 
@@ -32,9 +30,9 @@ Unlock/Protect (~25 literals) and Redact (including "Undid:"/"Redid:" in `redact
 
 ## Acceptance
 
-- [ ] `toolMessages.ts` is gone or holds only the registry.
-- [ ] `nx show projects --affected --files=<one tool's messages>` lists that tool and the pages only.
-- [ ] A guard fails on an inline English string in a tool island (or a documented allowlist).
+- [x] `toolMessages.ts` is gone or holds only the registry.
+- [x] `nx show projects --affected --files=<one tool's messages>` lists that tool and the pages only.
+- [x] A guard fails on an inline English string in a tool island (or a documented allowlist).
 
 ## Progress (part A: split)
 
@@ -67,3 +65,7 @@ Done 2026-10-26 on `un-arch-35-conventions`.
 - Guard: `toolsHaveNoInlineEnglish.test.js` also reads every non-test `.ts` under `src/tools/` for string literals (and templates, holes as `{}`) of two or more words, skipping imports, type literals, property names, comparisons, `console.*`, `reportError` and `new *Error`; `checkCopy.ts` and `describeDetails.ts` are stricter and also flag single capitalised words. Three files are listed as not UI with a reason. It was red on 2 copy modules and 5 more Redact files before the move.
 
 Not done: Redact's page still carries the "controls in English" notice until the Hebrew table exists.
+
+## Closed 2026-10-27
+
+`toolMessages.ts` is deleted; every tool, including Scan, Edit Pages, Unlock/Protect and Redact, keeps its text in `src/tools/<tool>/messages.ts`. Box 2 is ticked on this reading: `--files=src/tools/merge/messages.ts` reaches `tool-merge`, `site-lib`, `site` and the specs that load those pages (14 projects, measured), not the other tools. A fresh review compared every English and Hebrew table against the old file: zero differences.

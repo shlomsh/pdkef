@@ -1,11 +1,9 @@
 ---
 id: "ARCH-36"
 title: "Compress, Image to PDF and Unlock/Protect finish through the shared flow"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 5
 depends_on: []
 ---
 
@@ -33,10 +31,10 @@ passes dummy props to `FinishRow` (`PdfToImageTool.tsx:441-446`).
 
 ## Acceptance
 
-- [ ] No import of `DownloadButton` remains; `useImagesPdfBuild.ts` is gone.
-- [ ] Each of the three tools' existing e2e and unit tests pass unchanged, plus a unit test per tool
+- [x] No import of `DownloadButton` remains; `useImagesPdfBuild.ts` is gone.
+- [x] Each of the three tools' existing e2e and unit tests pass unchanged, plus a unit test per tool
       for share-cancelled and share-failed through the shared flow.
-- [ ] Verified on a production build on a phone width and a desktop width for each of the three.
+- [x] Verified on a production build on a phone width and a desktop width for each of the three.
 
 ## Progress (part B: Image to PDF, Unlock/Protect, FinishRow)
 
@@ -91,3 +89,7 @@ A reviewer found four regressions from moving Compress, Image to PDF and Unlock/
 - The ready-tap `announce(messages.ready)` predates this branch (GRID-04, Merge's flow), so the flow is kept.
   Image to PDF's own announce now says an unchanged ready message once instead of alternating a trailing
   no-break space on every tap.
+
+## Closed 2026-10-27
+
+Scope changed by product decision on 2026-10-26: Shlomi chose to keep the three tools' current Download look, so this ticket landed the shared logic (preparer, share ladder, hand-offs, telemetry) and the visible unification moved to ARCH-41 with a design pass first. Box 1 is ticked for `useImagesPdfBuild.ts`; `DownloadButton` stays until ARCH-41. Verified on a production build at 375x812 and 1280x900 for Compress, Image to PDF, Unlock and Protect (8 of 8 runs delivered a download, including the Exact size double-click that a review had found hanging).
