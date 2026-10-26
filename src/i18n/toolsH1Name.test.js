@@ -2,8 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { describe, expect, it } from 'vitest';
-import { mergeLocalizedTool } from '../i18n/localizedTools';
-import { tools } from './tools.js';
+import { mergeLocalizedTool } from './localizedTools';
+import { tools } from '../data/tools.js';
 
 function expectSplit(label, tool) {
   const { h1, h1Name } = tool;
