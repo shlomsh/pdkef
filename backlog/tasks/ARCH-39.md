@@ -1,11 +1,9 @@
 ---
 id: "ARCH-39"
 title: "One set of PDF primitives in lib"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 8
 depends_on: []
 ---
 
@@ -33,10 +31,10 @@ written five ways (two use a cross-realm unsafe `instanceof ArrayBuffer`), and 1
 
 ## Acceptance
 
-- [ ] The guards were red on the old code and are green.
-- [ ] Every tool's unit tests and the export e2e guards pass; Compress and PDF to Image output is
+- [x] The guards were red on the old code and are green.
+- [x] Every tool's unit tests and the export e2e guards pass; Compress and PDF to Image output is
       byte-identical for the existing fixtures.
-- [ ] Merge and Split's export decide on the page-tree repair deliberately, recorded in this ticket.
+- [x] Merge and Split's export decide on the page-tree repair deliberately, recorded in this ticket.
 
 ## Progress
 
@@ -74,3 +72,7 @@ Also changed in passing: `useDeletableObjects.js` keeps the same empty array on 
 - `FENCED_ABORT_ERROR` and `FENCED_PDFJS_LOADER` are gone from `pdfPrimitives.test.js`; no allowlist is left.
 - Left on `.arrayBuffer()` deliberately: every remaining island read (`useOpenPageDocument.ts`, `useEditorFileSession.ts`, `PdfCompressTool.tsx` checkEncryption, `PdfMergeTool.tsx`, `PdfSecurityTool.tsx`) hands an ArrayBuffer to `probeEncryption`/pdf.js or to ArrayBuffer-typed state (`needsUnlock.bytes`, `loadPdf(selected, bytes: ArrayBuffer)`), so `toBytes` would add a conversion back. Redact, Sign, Split, Edit Pages and To Image no longer read the file themselves.
 - `PdfPageCanvas.tsx` stays as the first pass decided.
+
+## Closed 2026-10-27
+
+Landed with the unify-and-narrow branch, including the island pass; the guards in `src/lib/pdfPrimitives.test.js` have no allowlist left.

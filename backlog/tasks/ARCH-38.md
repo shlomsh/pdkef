@@ -1,11 +1,9 @@
 ---
 id: "ARCH-38"
 title: "Adding a tool edits one registry, and hand-offs go through one function"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 7
 depends_on: []
 ---
 
@@ -46,3 +44,7 @@ navigate" is copied 7 times. `ToolPageLayout` and `ToolHero` special-case `sign`
 4. **Output names.** `src/lib/outputName.ts` builds every tool's name; `src/test/cross-tool/outputNames.test.ts` pins 15 inputs across all tools, written green against the old code first. Four strip modes remain only because the old regexes differed on a bare `.pdf`, `a.` and `.hidden`; they collapse when Shlomi picks a convention.
 
 Not done: `scripts/ratings-read.mjs` still mirrors the rating ids by hand (a script cannot import TS).
+
+## Closed 2026-10-27
+
+Landed with the unify-and-narrow branch. Output names keep today's six conventions behind `src/lib/outputName.ts` until Shlomi picks one.

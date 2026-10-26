@@ -35,9 +35,9 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
 
 ## Acceptance
 
-- [ ] Each island's open path is a hook call; the copies are gone.
+- [x] Each island's open path is a hook call; the copies are gone.
 - [ ] Opening a PDF from the operating system ("Open with" on the installed app) works in Redact.
-- [ ] Existing unit and e2e tests for the five tools pass; the new hooks have unit tests, including
+- [x] Existing unit and e2e tests for the five tools pass; the new hooks have unit tests, including
       an encrypted file and a stale pick replaced by a newer one.
 
 ## Progress (part A: useOpenPageDocument)
@@ -61,3 +61,7 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
 - Sign's export invalidation uses `lib/useLatestRun`; the hand-rolled request ids are gone.
 - One `UndoRedoButtons`, one `toggleWorkspaceFullscreen` / `useFullscreenChange`, one `useCoarsePointer` (`(pointer: coarse)`, read on the first render) in `editor-ui`.
 - Still open for this outcome: the manifest's `file_handlers` routes only to `/sign/`, so the installed app's "Open with" never reaches `/redact/`; see the manifest finding in the commit report.
+
+## Status 2026-10-27
+
+The hooks landed (parts A and B) and Redact handles `launchQueue`. Still open: the installed app's manifest sends every "Open with" PDF to `/sign/`, and a second `file_handlers` entry cannot carry its own name (Chrome lists the app name only), so Redact is reachable that way only through a chooser page. Waiting on Shlomi's call: a chooser, or Sign only.

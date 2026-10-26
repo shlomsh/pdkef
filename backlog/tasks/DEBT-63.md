@@ -1,11 +1,9 @@
 ---
 id: "DEBT-63"
 title: "Compress and PDF to Image stay inside the browser's canvas limit on very large pages"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 2
 depends_on: []
 ---
 
@@ -34,8 +32,8 @@ blank or throw.
 
 ## Acceptance
 
-- [ ] The red test is green, for Compress, a single PDF to Image page and a stacked output.
-- [ ] Normal-sized pages render at exactly the scale they do today (no quality change).
+- [x] The red test is green, for Compress, a single PDF to Image page and a stacked output.
+- [x] Normal-sized pages render at exactly the scale they do today (no quality change).
 
 ## Result
 
@@ -43,3 +41,7 @@ blank or throw.
 - Files: new `src/lib/canvasLimits.js` (`MAX_CANVAS_AREA`, `MAX_CANVAS_SIDE`, `clampScaleToCanvas`); `rasterPage.js` imports and re-exports the constants, `rasterScaleFor` is `clampScaleToCanvas(w, h, RASTER_SCALE)`; `compress.js` (`compressRenderScale`, used by `compressPdf` and the target-size render); `toImage.js` (`pageRenderScale`, `stackedRenderScale`); tests `compressScale.test.js` and `imageScale.test.js`.
 - Stacked rule: when the combined canvas (widest page by summed heights) would pass the cap, every page renders at one lower scale, `clampScaleToCanvas(maxWidth, totalHeight, chosenScale)`, so the stack keeps its proportions. Sizes come from a cheap scale-1 pass before rendering.
 - US Letter at every Compress level and every PDF to Image scale keeps exactly today's scale (asserted).
+
+## Closed 2026-10-27
+
+Landed with the unify-and-narrow branch. The clamp is `src/lib/canvasLimits.js`, and ARCH-39 moved every page render onto `renderPageToCanvas`, which applies it. The first red run failed on missing functions rather than on an oversized canvas; the arithmetic (a 5000 x 5000 pt page at Compress scale 2.0 needs about 100M pixels against a 16.7M cap) is what makes the bug real.
