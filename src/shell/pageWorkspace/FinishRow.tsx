@@ -23,8 +23,10 @@ const DEFAULT_TOOLS: HandoffTool[] = ['compress', 'sign'];
 
 /** The rail's finish row: Share, then hand-offs (Compress and Sign unless `tools` says otherwise). */
 export default function FinishRow({ ready, shareReady, onShare, busy, onHandoff, onWarm, labels, tools = DEFAULT_TOOLS }: FinishRowProps) {
+  // How many buttons render: the CSS lays four out as two columns.
+  const count = (ready && shareReady ? 1 : 0) + tools.filter((tool) => labels[tool]).length;
   return (
-    <div class={styles['handoff-row']} onPointerOver={onWarm} onFocusIn={onWarm} onPointerDown={onWarm}>
+    <div class={styles['handoff-row']} data-count={count} onPointerOver={onWarm} onFocusIn={onWarm} onPointerDown={onWarm}>
       {ready && <PdfShareButton visible={shareReady} onShare={onShare} label={labels.share} className={styles['handoff-button']} />}
       {tools.map((tool) => {
         if (!labels[tool]) return null;
