@@ -351,9 +351,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   }));
   const limitNote = missed !== null && missed === key ? t.limitMissed : undefined;
 
-  const controls = (compact: boolean, suffix: string) => (
+  // One set for the rail, one for phones under the pages (the rail is hidden below 1024px).
+  const controls = (suffix: string) => (
     <>
-      {!compact && <OptionRow id={`scan-look${suffix}`} label={t.lookLabel} options={lookOptions} value={filter} onChange={choose(setFilter, filter)} dir={t.dir} />}
+      <OptionRow id={`scan-look${suffix}`} label={t.lookLabel} options={lookOptions} value={filter} onChange={choose(setFilter, filter)} dir={t.dir} />
       <OptionRow id={`scan-size${suffix}`} label={t.pageSizeLabel} options={sizeOptions} value={pageSize} onChange={choose(setPageSize, pageSize)} dir={t.dir} />
       <OptionRow id={`scan-limit${suffix}`} label={t.limitLabel} options={limitOptions} value={limit} onChange={choose(setLimit, limit)} dir={t.dir} note={limitNote} />
     </>
@@ -399,7 +400,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               rootAttrs={{ 'data-scan-ready': prepared.status === 'ready' || undefined }}
               phoneBar={(
                 <div class={workspaceStyles['chip-bar']}>
-                  <OptionRow id="scan-look-bar" label={t.lookLabel} showLabel={false} options={lookOptions} value={filter} onChange={choose(setFilter, filter)} dir={t.dir} compact />
                   <PhoneFinish
                     flow={downloadFlow}
                     prepared={prepared}
@@ -410,7 +410,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   />
                 </div>
               )}
-              phoneControls={<div class={workspaceStyles['mobile-file-controls']}>{controls(true, '-phone')}</div>}
               heading={(
                 <h2 class={workspaceStyles['doc-heading']}>
                   <span class="sr-only">{t.documentHeading}</span>
@@ -421,7 +420,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               )}
               railContent={(
                 <>
-                  {controls(false, '')}
+                  {controls('')}
                   <div class={workspaceStyles['quiet-row']}>
                     <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? 'Clear all'}</button>
                   </div>
@@ -527,6 +526,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   </button>
                 </li>
               </ul>
+
+              {/* On a phone the corners come first; the choices follow the pages they apply to. */}
+              <div class={styles['phone-options']}>{controls('-phone')}</div>
             </PageWorkspace>
           )}
         </ToolShellBridge>
