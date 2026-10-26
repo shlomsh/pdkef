@@ -50,10 +50,23 @@ crop of the finish row).
 - [ ] At 820x1180: the same, with the strip under the controls.
 - [ ] Unit tests follow the new names; the corner-drag and loupe e2e specs pass.
 
-## Progress 2026-10-26 (branch `scan-layout`, not on main)
+## Progress 2026-10-27 (branch `scan-layout`, not on main)
 
-Built and measured in Chromium at 1525x870, 1440x900, 1280x720, 1024x700, 820x1180, 390x844, 375x667 and 320x640:
-photo, controls, pages and an add control on the first screen, no sideways scroll. Full screen measured native on
-desktop and phone, and as the layer with element full screen removed (an iPhone stand-in). `check:fast` green; the
-full Playwright product suite passed before rotate, the fit and full screen landed. Still to do: Shlomi on his
-iPhone, `check:push` and `check:e2e` on the final branch, landing.
+Added after the first layout pass, at Shlomi's asks: Rotate in both views (the corners view turns the photo
+itself, `turnedQuad`/`unturnedQuad`), full screen for the corners, the desktop fit measured to the card's floor
+(`useFloorHeight`), the Done animation rebuilt as a tested timeline (`flattenFrame`: the photo's own page carried
+to the paper, the made page fading in), an on-page Updating state, and first corners that are Auto-detect's.
+
+Two independent QA agents then tested a production build twice: desktop (Chromium 1440/1280/1024, WebKit,
+Firefox) and phones (WebKit iPhone 13 and SE, Pixel 7, 320px, iPad). Their findings, all fixed and re-verified:
+Use these corners under the fold on iPhones (the phone editor is now one screen under the bars), a blank and
+then a light first frame of the flatten (it starts before paint and paints its photo from canvases), the
+rating ask growing the card past the fold (one ask, placed by width, inside the measured first screen), a
+corrupt photo leaving Download preparing for good (blocked with "Remove page N to make the PDF", and a tap goes
+there), corners dragged into a bow tie, dent or near-straight corner (they stop at the last page-like shape,
+`isPagelike`), "x.pdf.pdf" (shared OutputName), a duplicated Updating, stuck hover tints on touch (shared),
+and scroll after removing a photo. Left on purpose: the Download block moving when an option's note wraps,
+36px segmented options (shared OptionRow), the corners head wrapping at 1024, a bad photo first in a batch
+needing removal, the iPad landscape-photo gap, and the site header's crumb at 320px (not Scan's).
+
+Still to do: Shlomi on his iPhone, `check:push` on the final branch, landing.
