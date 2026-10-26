@@ -340,8 +340,11 @@
   white-space: nowrap;
 }
 
+/* Row one's own buttons wrap too: Merge's Add files and Clear all files
+   with their icons fill 262px of 262 at 320px on macOS, and Linux fonts
+   draw wider, so a nowrap row spilled out of the card in CI. */
 .mobile-file-controls > :first-child {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .mobile-file-controls > :nth-child(2) {
