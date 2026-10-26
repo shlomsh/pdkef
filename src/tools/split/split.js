@@ -9,10 +9,11 @@ export function outputBaseName(fileName) {
   return (fileName || '').replace(/\.pdf$/i, '') || 'split';
 }
 
-// The single-file output is `extracted_<base>.pdf`, the shape every other
-// tool uses (`merged_x.pdf`, `signed_x.pdf`, `compressed_x.pdf`): a prefix in
+// The single-file output is `extracted_<base>.pdf`, the shape Merge, Sign and
+// Redact use (`merged_x.pdf`, `signed_x.pdf`, `redacted_x.pdf`): a prefix in
 // the tool's language, then the name in its own direction, so a Hebrew name
-// needs no bidi isolation (ux-design-guidelines §5). Per-page files keep
+// needs no bidi isolation (ux-design-guidelines §5). Compress is the one tool
+// that suffixes instead (`x-compressed.pdf`). Per-page files keep
 // `<base>-page-<n>.pdf`, one per page, in page order.
 export function outputFileName(fileName, mode, pageNumber) {
   const base = outputBaseName(fileName);
