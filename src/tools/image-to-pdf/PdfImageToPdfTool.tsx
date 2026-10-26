@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import Sortable from 'sortablejs';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { ScanLine } from 'lucide-preact';
 import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from '../../lib/pageOrder.js';
 import { useImagesPdfBuild, type ImageEntry } from './useImagesPdfBuild.ts';
+import { PHOTO_ACCEPT, PHOTO_ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShell, { FileActions, useToolShell } from '../../shell/ToolShell.tsx';
@@ -30,7 +30,6 @@ import {
 } from '../../i18n/toolMessages';
 
 let nextId = 0;
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 
 const sortOptions = (t: ImageToPdfMessages) => [
   { value: 'custom', label: t.sortCustom },
@@ -86,9 +85,7 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
-  const listRef = useRef<HTMLUListElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
-  const focusIdRef = useRef<number | null>(null);
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   const lastSizeRef = useRef<string | undefined>(undefined);
@@ -116,17 +113,6 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
   // Revoke every live thumbnail object URL on unmount.
   useRevokeOnUnmount(entries.map((e) => e.thumbnail));
 
-  // A keyboard move re-parents the tile, which can drop focus: put it back.
-  // A layout effect, so the focus is back before the next auto-repeated key lands.
-  // Also where focus goes after a tile is removed.
-  useLayoutEffect(() => {
-    const id = focusIdRef.current;
-    if (id === null) return;
-    focusIdRef.current = null;
-    const list = listRef.current;
-    list?.querySelector<HTMLElement>(`[data-id="${id}"] [data-page]`)?.focus();
-  }, [entries]);
-
   // Repeats of the same sentence must still be announced: alternate a trailing no-break space.
   const announce = useCallback((text: string) => {
     setAnnouncement((previous) => (previous === text ? `${text}\u00A0` : text));
@@ -138,36 +124,22 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
     recordAction('reorder');
   }, []);
 
-  // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop we
-  // read its final order back into state, which is the source of truth again.
-  useEffect(() => {
-    if (!listRef.current) return undefined;
-    const sortable = Sortable.create(listRef.current, {
-      animation: 220,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      draggable: '[data-id]',
-      filter: 'button',
-      preventOnFilter: false,
-      delay: 150,
-      delayOnTouchOnly: true,
-      ghostClass: styles['is-ghost'],
-      chosenClass: styles['is-chosen'],
-      forceFallback: false,
-      onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        const { oldIndex, newIndex } = evt;
-        setEntries((current) => reorderEntries(current, oldIndex, newIndex));
-        setSortMode('custom');
-        recordAction('reorder');
-      },
-    });
-    return () => sortable.destroy();
-  }, [entries.length > 0]);
+  const { listRef, focusIdRef } = usePhotoTileList({
+    active: entries.length > 0,
+    items: entries,
+    ghostClass: styles['is-ghost'],
+    chosenClass: styles['is-chosen'],
+    onReorder: (oldIndex, newIndex) => {
+      setEntries((current) => reorderEntries(current, oldIndex, newIndex));
+      setSortMode('custom');
+      recordAction('reorder');
+    },
+  });
 
   const addFiles = useCallback((fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
-    const imageFiles = incoming.filter((f) => ACCEPTED_TYPES.includes(f.type));
-    const rejected = incoming.filter((f) => !ACCEPTED_TYPES.includes(f.type));
+    const imageFiles = incoming.filter((f) => PHOTO_ACCEPTED_TYPES.includes(f.type));
+    const rejected = incoming.filter((f) => !PHOTO_ACCEPTED_TYPES.includes(f.type));
 
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
     if (imageFiles.length === 0) return;
@@ -359,7 +331,7 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
       analyticsTool="image-to-pdf"
       analyticsStatus={status}
       onFilesAdded={addFiles}
-      accept="image/jpeg,image/png"
+      accept={PHOTO_ACCEPT}
       emptyStateMessage={t.dropHere}
       fileLabel={fileSummary}
       fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}

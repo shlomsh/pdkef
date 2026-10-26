@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import Sortable from 'sortablejs';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Camera, FileSignature, Merge, Shrink } from 'lucide-preact';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
+import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -37,8 +37,6 @@ import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeli
 import { scanMessages as t } from './scanMessages.ts';
 import styles from './PdfScanTool.module.css';
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
-const ACCEPT = ACCEPTED_TYPES.join(',');
 const HANDOFF_HREFS = { compress: '/compress/', sign: '/sign/', merge: '/merge/' };
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
 
@@ -157,10 +155,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     shownByKeyRef.current.clear();
     missedKeysRef.current.clear();
   };
-  const listRef = useRef<HTMLUListElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
   const hadPagesRef = useRef(false);
-  const focusIdRef = useRef<number | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
   const defaultFilterRef = useRef(defaultFilter);
@@ -359,27 +355,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const { tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
   resetDownloadFlowRef.current = resetDownloadFlow;
 
-  // Drag to reorder: SortableJS owns the DOM order during a drag; on drop the order is read back into state.
-  useEffect(() => {
-    if (!listRef.current) return undefined;
-    const sortable = Sortable.create(listRef.current, {
-      animation: 220,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      draggable: '[data-id]',
-      filter: 'button',
-      preventOnFilter: false,
-      delay: 150,
-      delayOnTouchOnly: true,
-      ghostClass: styles['is-ghost'],
-      onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        const { oldIndex, newIndex } = evt;
-        setPages((current) => reorderEntries(current, oldIndex, newIndex));
-        recordAction('reorder');
-      },
-    });
-    return () => sortable.destroy();
-  }, [pages.length > 0]);
+  const { listRef, focusIdRef } = usePhotoTileList({
+    active: pages.length > 0,
+    items: pages,
+    ghostClass: styles['is-ghost'],
+    onReorder: (oldIndex, newIndex) => {
+      setPages((current) => reorderEntries(current, oldIndex, newIndex));
+      recordAction('reorder');
+    },
+  });
 
   // Bring the page's top into view: the first photos replace the tall empty state, and moving on from
   // the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
@@ -436,13 +420,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       quad: page.quad,
     };
   };
-
-  useLayoutEffect(() => {
-    const id = focusIdRef.current;
-    if (id === null) return;
-    focusIdRef.current = null;
-    listRef.current?.querySelector<HTMLElement>(`[data-id="${id}"] [data-page]`)?.focus();
-  }, [pages]);
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
