@@ -437,6 +437,41 @@ describe('PdfScanTool', () => {
     expect(handles()[0].style.left).toBe(`${turnedQuad(GUESS, 2)[0].x * 100}%`);
   });
 
+  it('brings the next new photo into view when the one under review is removed from the strip', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await settle();
+      scrollTo.mockClear();
+      await act(async () => { container.querySelector('[aria-label="Remove page 1"]').click(); });
+      await settle();
+      expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 1 of 1');
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    } finally {
+      scrollTo.mockRestore();
+    }
+  });
+
+  it('takes a tap on the held-back Download to the photo that could not be read', async () => {
+    vi.mocked(pipeline.inspectPhoto).mockImplementation((file) => (file.name === 'b.jpg'
+      ? Promise.reject(new Error('decode failed'))
+      : Promise.resolve(seen(GUESS))));
+    mount();
+    await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+    await settle();
+    await useCorners();
+    await settle();
+    // On page 1 again, away from the photo that could not be read.
+    await act(async () => { tiles()[0].click(); });
+    expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 1 of 2');
+    const blocked = Array.from(container.querySelectorAll('a, button')).find((el) => el.textContent.includes('Remove page 2 to make the PDF'));
+    await act(async () => { blocked.click(); });
+    await settle();
+    expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 2 of 2');
+    expect(container.textContent).toContain('Could not read this photo');
+  });
+
   it('brings a newly added photo into view, also when photos were already there: on desktop the page top, where the card is the first screen', async () => {
     // The setup's matchMedia matches every query: the desktop path.
     const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});

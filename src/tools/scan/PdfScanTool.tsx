@@ -497,10 +497,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const captureFlatten = (page: ScanPage) => {
     const host = editorRef.current;
     const frame = host?.querySelector('[data-corner-frame]');
-    const photoUrl = shownPhoto(page);
-    if (!host || !frame || !photoUrl) return;
+    // The editor's own photo, already decoded: the flatten paints from it on its first frame.
+    const photo = frame?.querySelector<HTMLImageElement>('img');
+    if (!host || !frame || !photo) return;
     flattenFromRef.current = {
-      photoUrl,
+      photo,
       frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
       quad: turnedQuad(page.quad, page.turns),
     };
@@ -611,6 +612,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       const nextNew = view === 'corners' ? left.find((p) => !p.reviewed) : undefined;
       setSelectedId(nextNew?.id ?? neighbour?.id ?? null);
       if (view === 'corners' && !nextNew) setView('result');
+      // A new photo opens in view, whether this one went from its own box or from the strip.
+      if (nextNew) topPendingRef.current = true;
     }
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
@@ -671,6 +674,16 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: URL.createObjectURL(turned) }));
     }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
   }, [view, turnKey, selected?.preview]);
+
+  // A tap on the held-back Download: to the first photo that could not be read, where Remove is.
+  const showFailedPage = () => {
+    const failed = pages.find((p) => failedIds.includes(p.id));
+    if (!failed) return;
+    setSelectedId(failed.id);
+    setView('corners');
+    topPendingRef.current = true;
+    focusPendingRef.current = true;
+  };
 
   // Use these corners: on to the next new photo still waiting for a look, or to the result.
   const approveCorners = () => {
@@ -823,6 +836,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                       : t.buildFailed}
                     messages={t}
                     onPreparingTap={onRowPreparingTap}
+                    onErrorTap={failedIds.length > 0 ? showFailedPage : undefined}
                     onWarm={prepared.prepareNow}
                     onDownloadClick={onDownloadTap}
                     isOutputNameBeingRenamed={isRenaming}

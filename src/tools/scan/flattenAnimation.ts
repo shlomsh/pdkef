@@ -10,13 +10,26 @@ const DURATION_MS = 800;
 
 interface Box { left: number; top: number; width: number; height: number }
 
-/** Where the photo was, relative to the host, and the corners on it. Captured before the view changes. */
-export interface FlattenFrom { photoUrl: string; frame: Box; quad: Quad }
+/** Where the photo was, relative to the host, the corners on it, and the editor's own decoded photo.
+ * Captured before the view changes. */
+export interface FlattenFrom { photo: HTMLImageElement; frame: Box; quad: Quad }
 
 export const relativeBox = (rect: DOMRect, host: DOMRect): Box =>
   ({ left: rect.left - host.left, top: rect.top - host.top, width: rect.width, height: rect.height });
 
 const px = (v: number) => `${v}px`;
+
+/* The photo drawn into a canvas at once, from the editor's already decoded image: a new <img> of the
+   same photo painted a frame late, and the first frame showed the tint alone (Scan QA, Pixel 7). */
+const photoCanvas = (photo: HTMLImageElement, frame: Box, style: Partial<CSSStyleDeclaration>) => {
+  const canvas = document.createElement('canvas');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.max(1, Math.round(frame.width * dpr));
+  canvas.height = Math.max(1, Math.round(frame.height * dpr));
+  (canvas.getContext('2d') as CanvasRenderingContext2D).drawImage(photo, 0, 0, canvas.width, canvas.height);
+  Object.assign(canvas.style, { position: 'absolute', left: '0', top: '0', width: px(frame.width), height: px(frame.height), ...style });
+  return canvas;
+};
 
 const layerImage = (src: string, style: Partial<CSSStyleDeclaration>) => {
   const img = document.createElement('img');
@@ -37,9 +50,12 @@ export function playFlatten(host: HTMLElement, from: FlattenFrom, target: HTMLIm
 
   let layer: HTMLDivElement | null = null;
   let frame = 0;
+  const canvases: HTMLCanvasElement[] = [];
   const stop = () => {
     cancelAnimationFrame(frame);
     layer?.remove();
+    // Their pixels go now, not whenever the collector gets to them (a phone's memory).
+    canvases.forEach((canvas) => { canvas.width = 0; canvas.height = 0; });
     target.style.visibility = '';
     paper.style.opacity = '';
   };
@@ -61,12 +77,14 @@ export function playFlatten(host: HTMLElement, from: FlattenFrom, target: HTMLIm
     });
     const tint = document.createElement('div');
     Object.assign(tint.style, { position: 'absolute', inset: '0', background: 'var(--color-night)', opacity: '0.45' });
-    surround.append(layerImage(from.photoUrl, { width: '100%', height: '100%' }), tint);
+    const surroundPhoto = photoCanvas(from.photo, from.frame, {});
+    surround.append(surroundPhoto, tint);
     // The photo itself cut to the corners: the page as photographed, carried to the paper.
-    const photoPage = layerImage(from.photoUrl, {
-      width: px(from.frame.width), height: px(from.frame.height), transformOrigin: '0 0', willChange: 'transform',
+    const photoPage = photoCanvas(from.photo, from.frame, {
+      transformOrigin: '0 0', willChange: 'transform',
       clipPath: `polygon(${local.map((p) => `${p.x}px ${p.y}px`).join(', ')})`,
     });
+    canvases.push(surroundPhoto, photoPage);
     // The made page, pinned to the same corners as they travel, fading in over the photo's.
     const page = layerImage(target.currentSrc || target.src, {
       width: px(to.width), height: px(to.height), transformOrigin: '0 0', willChange: 'transform, opacity', opacity: '0',
