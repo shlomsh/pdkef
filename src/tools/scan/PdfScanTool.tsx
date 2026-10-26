@@ -624,6 +624,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       onClearAll={reset}
       clearSummary={pagesLabel(pages.length, englishShellMessages)}
       hideIdentity
+      needsPdfjs={false}
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">

@@ -96,8 +96,9 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
 
 ## Acceptance
 
-- [ ] Five pages live with distinct copy; `/edit-pdf/` 308s to `/organize-pdf/` in one hop, `/remove-pages/` is a page again
+- [x] Five pages live with distinct copy; `/edit-pdf/` 308s to `/organize-pdf/` in one hop, `/remove-pages/` is a page again
+      (pdkef.com, 2026-10-26: all five 200 and in sitemap.xml, `/edit-pdf/` one 308)
 - [x] Every internal link points at the new URLs; sitemap carries the five (checked in `dist/`, 2026-10-26)
-- [ ] Full CI chain green (`check:push`, then CI)
+- [x] Full CI chain green (`check:push`, then CI run 40361495800 on 5f6a8a87)
 - [ ] Shlomi requests indexing for the five after deploy
 - [ ] 2026-11-23 read: URL Inspection on the five (crawled or not), and Search Console impressions per page

@@ -33,10 +33,14 @@ describe('outline strategy', () => {
   // PERF_BUDGETS (CLAUDE.md); this keeps the number in view.
   it('logs its time on a phone-sized preview (target: under 40ms on its own)', () => {
     const c = corpus[2];
-    guessByOutline(c.image); // warm the JIT
-    const t0 = performance.now();
-    const quad = guessByOutline(c.image);
-    console.log(`outline guess: ${(performance.now() - t0).toFixed(1)}ms`);
+    let best = Infinity; // fastest of a few runs: the first warms the JIT, and a busy test worker adds noise
+    let quad = null;
+    for (let run = 0; run < 5; run += 1) {
+      const t0 = performance.now();
+      quad = guessByOutline(c.image);
+      best = Math.min(best, performance.now() - t0);
+    }
+    console.log(`outline guess: ${best.toFixed(1)}ms (fastest of 5)`);
     expect(quad).not.toBeNull();
   });
 });
