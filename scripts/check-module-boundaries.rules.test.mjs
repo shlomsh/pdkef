@@ -78,6 +78,22 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
   });
 });
 
+describe('module boundaries: ruleViolation() - rule 10, lib is the bottom layer (ARCH-34)', () => {
+  it.each([
+    ['src/editor/text/fonts.js', 'editor'],
+    ['src/editor-ui/ColorPicker.tsx', 'editor-ui'],
+    ['src/shell/BasePdfTool.tsx', 'shell'],
+    ['src/i18n/translate.js', 'site-i18n'],
+    ['src/data/tools.js', 'site-data'],
+  ])('lib may not import %s (%s)', (to, toName) => {
+    expect(check('src/lib/format.js', to)).toBe(`lib is the bottom layer: it may not import ${toName}`);
+  });
+
+  it('lib may import lib', () => {
+    expect(check('src/lib/format.js', 'src/lib/other.js')).toBeNull();
+  });
+});
+
 describe('module boundaries: ruleViolation() - rule 2, core modules', () => {
   it.each([
     ['src/shell/BasePdfTool.tsx', 'shell'],
