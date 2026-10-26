@@ -286,7 +286,7 @@ export default function PdfEditPagesTool() {
           file={file}
           bytes={needsUnlock.bytes}
           from="edit-pdf"
-          toolName="Edit PDF"
+          toolName="Organize PDF"
           verb="edit"
         />
       )}

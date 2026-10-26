@@ -549,7 +549,7 @@ export const tools = [
       { question: 'Is there a limit on file size or number of pages?', answer: "There is no artificial limit. The tool can handle any file size and page count, constrained only by your device's system memory." },
       { question: 'Can I pull a single chapter or receipt out of a large PDF?', answer: 'Yes. Type the page range for just the chapter, invoice, or receipt you need, and Split extracts exactly those pages into their own file.' },
       { question: 'Can I compress the pages I extracted?', answer: 'Yes. With One PDF chosen, the Compress button opens the extracted pages in Compress PDF on your device, with nothing to open again.' },
-      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose "One PDF per page" to pull each one out as its own file, or "One PDF" to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Edit PDF Pages.' },
+      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose "One PDF per page" to pull each one out as its own file, or "One PDF" to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Remove PDF pages.' },
     ],
   },
 
@@ -654,7 +654,6 @@ export const tools = [
   {
     slug: 'compress-image',
     href: '/compress-image/',
-    toolId: 'compress',
     // Same island and loaded layout as compress, so the same fold.
     condenseOnLoad: true,
     icon: ImageMinus,
