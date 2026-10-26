@@ -275,15 +275,24 @@ jobs:
   # `build` still vouch for what these specs load.
   e2e:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, playwright-version]
+    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
+    # QUAL-29: Playwright's own image, as `e2e-webkit` below, so no shard waits on the Ubuntu mirror for
+    # `install-deps chromium` (11 and 13+ min on two shards of run 40394949781). `font-guards` stays on
+    # the runner: its pixel thresholds were measured against the runner's own fonts.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      options: --ipc=host
 
     steps:
     - uses: actions/checkout@v5
+
+    - name: Trust the workspace for git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -311,39 +320,6 @@ jobs:
 
     - name: Build
       run: npm run build
-
-    - name: Resolve Playwright version
-      id: playwright
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
-
-    # Chromium only (QUAL-09): webkit and the perf budgets moved to the
-    # unsharded `e2e-webkit` job below. Caching was measured and rejected for
-    # the old, pre-QUAL-09 combined chromium+webkit shape that used to run
-    # here: a cache hit was 5s to restore plus 46s of `install-deps` for
-    # webkit's apt libraries, against 38s for the single uncached install
-    # there, so the cache only saved the download, not the apt cost, and
-    # wasn't worth it. That combination no longer runs in this job. This job
-    # now installs chromium only, and each shard pays that apt
-    # cost separately; `font-guards`'s own comment below measured its
-    # chromium-only apt half at 12-19s per shard, so a hit here is worth
-    # trading for even though the old combined case was not. PROJECTION, not
-    # a fresh CI measurement (nothing here can exercise GitHub's real cache
-    # backend) - whoever reviews the next few runs should confirm the cache
-    # actually hits and actually saves the time this comment assumes.
-    - name: Install Playwright browsers (cache miss)
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system dependencies (cache hit)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
 
     # One command per project (QUAL-09): webkit now lives in its own job
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
@@ -454,9 +430,10 @@ jobs:
           test-results/
         if-no-files-found: ignore
 
-  # The Playwright version `e2e-webkit`'s container is tagged with: Playwright's image carries the
-  # browsers of one release, so the tag comes from the lockfile, never a copy kept by hand. Its own job,
-  # not a step of `scope`, because `scope` is skipped on workflow_dispatch and `e2e-webkit` runs then too.
+  # The Playwright version the `e2e` and `e2e-webkit` containers are tagged with: Playwright's image
+  # carries the browsers of one release, so the tag comes from the lockfile, never a copy kept by hand.
+  # Its own job, not a step of `scope`, because `scope` is skipped on workflow_dispatch and both e2e
+  # jobs run then too.
   playwright-version:
     runs-on: ubuntu-latest
     outputs:

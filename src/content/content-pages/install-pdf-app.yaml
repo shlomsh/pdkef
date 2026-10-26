@@ -66,6 +66,44 @@ sections:
           install anything either: an ordinary browser tab keeps working offline too once you've
           visited once. Installing just makes it easy to find when there's no connection to search
           with.
+  - sketch: 'rings'
+    icon: 'FileText'
+    iconPos: 'tr'
+    kicker: 'On a Mac'
+    heading: 'Open a PDF straight from Finder'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Once PDkef is installed from Chrome on a Mac, it shows up in Finder's right-click "Open
+          With" menu for PDF files, next to the other apps that can open them. So a PDF in your
+          Downloads folder is two clicks from being ready to fill and sign.
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Right-click a PDF in Finder</strong> and choose "Open With".
+          - >-
+            <strong>Pick "PDkef - Free Online PDF Tools".</strong> The first time, Chrome asks
+            "Open and edit this file in this web app?" and you choose Open. Tick "Remember my
+            choice for this file type: PDF" and it won't ask again.
+          - >-
+            <strong>Fill and sign in the Sign &amp; Fill tool.</strong> The PDF opens there, on your
+            device, and nothing is uploaded.
+      - kind: 'image'
+        src: '/images/install-guide/open-with-finder.jpg'
+        alt: 'Real Finder window with the right-click menu open on a PDF and PDkef - Free Online PDF Tools highlighted under Open With'
+        width: 960
+        height: 591
+        caption: >-
+          <strong>PDkef in Finder's "Open With" menu.</strong> Right-click a PDF and it is listed
+          alongside your other apps.
+      - kind: 'image'
+        src: '/images/install-guide/open-with-chrome-prompt.jpg'
+        alt: 'Real Chrome dialog asking to open and edit a PDF in the PDkef web app, with a Remember my choice checkbox'
+        width: 448
+        height: 258
+        caption: >-
+          <strong>Chrome asks once.</strong> Choose Open, and tick "Remember my choice for this file
+          type: PDF" to skip the question next time.
   - sketch: 'waves'
     icon: 'Save'
     iconPos: 'cl'
@@ -135,3 +173,8 @@ faq:
     answer: >-
       No. Nothing uploads your file at any point, online or offline. Reconnecting changes nothing
       about where your document lives, which is on your device and nowhere else.
+  - question: 'Can I open a PDF straight from Finder?'
+    answer: >-
+      Yes, on a Mac with PDkef installed from Chrome. Right-click the PDF, choose "Open With", then
+      "PDkef - Free Online PDF Tools". Chrome asks once whether to open the file in the web app, and
+      the PDF then opens in the Sign & Fill tool on your device, with nothing uploaded.
