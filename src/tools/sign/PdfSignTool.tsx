@@ -20,10 +20,11 @@ import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../ed
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/signGeometry.js';
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
-import useCoarsePointer from './useCoarsePointer.ts';
+import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
 import { viewportContent, zoomsOnFocus } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';
@@ -294,13 +295,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   });
 
   // Track fullscreen state (also covers exiting via Esc, not just our own button)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === workspaceRef.current);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  useFullscreenChange(workspaceRef, setIsFullscreen);
 
   // pdf.js owns worker and document resources outside Preact. Release the
   // active one when the editor leaves the tree, rather than letting a late
@@ -331,25 +326,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setAnnouncement(t.editsChangedWhilePreparing);
   }, [file, documentRevision, clearPrepared, exportRun]);
 
-  const toggleFullscreen = () => {
-    recordAction('fullscreen');
-    if (isPseudoFullscreen) {
-      setIsPseudoFullscreen(false);
-      return;
-    }
-
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
-      const promise = workspaceRef.current.requestFullscreen();
-      if (promise) {
-        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
-        promise.catch(() => setIsPseudoFullscreen(true));
-      }
-    } else {
-      setIsPseudoFullscreen(true);
-    }
-  };
+  const toggleFullscreen = () => toggleWorkspaceFullscreen(workspaceRef.current, isPseudoFullscreen, setIsPseudoFullscreen);
 
   const logAction: HistoryLogger<EditorElement> = (operation, type, pageIndex, description, snapshots) => {
     dispatch({

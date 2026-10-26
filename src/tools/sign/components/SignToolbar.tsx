@@ -11,7 +11,7 @@ import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '../../../editor-ui/hooks/toolArming.js';
 import { WhiteoutIcon } from '../../../editor-ui/toolIcons.tsx';
-import useCoarsePointer from '../useCoarsePointer.ts';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from '../fill/FillContext.tsx';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
@@ -20,6 +20,7 @@ import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import type { FieldNavigation } from '../useFieldNavigation.ts';
 import type { FormDetectionState } from '../useFormFieldRegions.ts';
 import styles from '../../../editor-ui/SignToolbar.module.css';
+import UndoRedoButtons from '../../../editor-ui/UndoRedoButtons.tsx';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 import { recordAction } from '../../../lib/actionTrail.ts';
 
@@ -167,7 +168,7 @@ export default function SignToolbar({
   // copy sitting over the identity row for no reason (Shlomi, on the shipped
   // MOBI-16: "those buttons and the real estate they consume should have
   // been gone"). The pointer question is asked in one place for both this and
-  // DraggableWrapper's side of the same hand-off - see useCoarsePointer.ts.
+  // DraggableWrapper's side of the same hand-off - see editor-ui/hooks/useCoarsePointer.ts.
   const isCoarsePointer = useCoarsePointer();
   // Fill mode (SNG-15), off (FILL_OFF) unless PdfSignTool.tsx provided a real
   // value - see docs/sign-fill-mode.md, "The toolbar".
@@ -743,35 +744,14 @@ export default function SignToolbar({
               are `data-icon-only`: an arrow is a convention, neither is a
               tool, and the labelled desktop row has no width to spare (see the
               1300px block in SignToolbar.module.css). */}
-          <button
-            type="button"
-            className={styles.button}
-            onClick={onUndo}
-            title={t.undoTitle}
-            disabled={actionHistory.length === 0}
-            data-icon-only
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 7v6h6" />
-              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-            </svg>
-            <span className={styles.label}>{t.undoButton}</span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.button}
-            onClick={onRedo}
-            title={t.redoTitle}
-            disabled={!canRedo}
-            data-icon-only
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 7v6h-6" />
-              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
-            </svg>
-            <span className={styles.label}>{t.redoButton}</span>
-          </button>
+          <UndoRedoButtons
+            onUndo={onUndo}
+            onRedo={onRedo}
+            canUndo={actionHistory.length > 0}
+            canRedo={canRedo}
+            iconOnly
+            labels={{ undoTitle: t.undoTitle, undoButton: t.undoButton, redoTitle: t.redoTitle, redoButton: t.redoButton }}
+          />
 
           <ViewControl
             isFullscreen={isFullscreen}

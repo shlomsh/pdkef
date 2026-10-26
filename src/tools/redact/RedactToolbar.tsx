@@ -10,6 +10,7 @@ import { WhiteoutIcon, EraserIcon, BlurToolIcon, BlackoutToolIcon } from '../../
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import styles from '../../editor-ui/SignToolbar.module.css';
+import UndoRedoButtons from '../../editor-ui/UndoRedoButtons.tsx';
 import redactStyles from './PdfRedactTool.module.css';
 import barStyles from './RedactToolbar.module.css';
 
@@ -322,33 +323,7 @@ export default function RedactToolbar({
             timeline redundant and its selective revert fought linear redo. Do
             not bring it back. Folding undo and redo into one button is what
             once left a phone unable to redo at all - keep them as two. */}
-        <button
-          type="button"
-          className={styles.button}
-          onClick={onUndo}
-          title="Undo"
-          disabled={actionHistory.length === 0}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7v6h6" />
-            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-          </svg>
-          <span className={styles.label}>Undo</span>
-        </button>
-
-        <button
-          type="button"
-          className={styles.button}
-          onClick={onRedo}
-          title="Redo"
-          disabled={!canRedo}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 7v6h-6" />
-            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
-          </svg>
-          <span className={styles.label}>Redo</span>
-        </button>
+        <UndoRedoButtons onUndo={onUndo} onRedo={onRedo} canUndo={actionHistory.length > 0} canRedo={canRedo} />
 
         <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 

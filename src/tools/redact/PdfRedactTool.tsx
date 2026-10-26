@@ -4,6 +4,7 @@ import RedactVerb from './verb/RedactVerb.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId } from '../../editor/model/ids.ts';
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
@@ -280,13 +281,7 @@ export default function PdfRedactTool() {
 
   const workspaceRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      dispatch({ type: 'FULLSCREEN_CHANGED', active: document.fullscreenElement === workspaceRef.current });
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  useFullscreenChange(workspaceRef, (active) => dispatch({ type: 'FULLSCREEN_CHANGED', active }));
 
   // Escape disarms the tool and drops the selection, matching the Sign editor.
   // It is a shortcut for the status line's Stop chip, not the only way out: a
@@ -333,26 +328,11 @@ export default function PdfRedactTool() {
     return () => document.removeEventListener('click', onDocumentClick);
   }, []);
 
-  const toggleFullscreen = () => {
-    if (isPseudoFullscreen) {
-      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: false });
-      recordAction('fullscreen');
-      return;
-    }
-
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
-      const promise = workspaceRef.current.requestFullscreen();
-      if (promise) {
-        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
-        promise.catch(() => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true }));
-      }
-    } else {
-      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true });
-    }
-    recordAction('fullscreen');
-  };
+  const toggleFullscreen = () => toggleWorkspaceFullscreen(
+    workspaceRef.current,
+    isPseudoFullscreen,
+    (active) => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active }),
+  );
 
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
   // RED-51: the page's colour just outside a box, read from that page's canvas.
