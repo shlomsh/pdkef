@@ -327,7 +327,12 @@ describe('PdfScanTool', () => {
     await settle();
     expect(container.textContent).not.toContain('Finding the page edges');
     expect(container.textContent).toContain('Could not read this photo');
-    expect(byText('Use these corners')[0].disabled).toBe(true);
+    // Nothing to straighten: the one thing offered is taking it out.
+    expect(byText('Use these corners')).toHaveLength(0);
+    expect(byText('Find the page')).toHaveLength(0);
+    await act(async () => { byText('Remove this photo')[0].click(); });
+    await settle();
+    expect(container.querySelector('[data-empty-state]')).not.toBeNull();
   });
 
   it('moves focus to the page heading when the view changes, so a keyboard is not dropped on the body', async () => {
@@ -351,5 +356,40 @@ describe('PdfScanTool', () => {
     await act(async () => { resolveFind?.(GUESS); });
     await settle();
     expect(container.textContent).not.toContain('Page edges found');
+  });
+
+  it('after removing the photo under review, goes to the next new photo, or to the result when none is left', async () => {
+    mount();
+    await pick([jpeg('a.jpg'), jpeg('b.jpg'), jpeg('c.jpg')]);
+    await settle();
+    await useCorners();
+    // Page 2 is under review; remove it: page 3, still new, is next.
+    await act(async () => { container.querySelector('[aria-label="Remove page 2"]').click(); });
+    await settle();
+    expect(container.textContent).toContain('Page 2 of 2');
+    expect(byText('Use these corners')).toHaveLength(1);
+    // Remove that one too: nothing new is left, so the result shows.
+    await act(async () => { container.querySelector('[aria-label="Remove page 2"]').click(); });
+    await settle();
+    expect(handles()).toHaveLength(0);
+    expect(container.querySelector('[data-paper]')).not.toBeNull();
+  });
+
+  it('brings a newly added photo into view, also when photos were already there', async () => {
+    const scroll = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scroll;
+    try {
+      mount();
+      await pick([jpeg('a.jpg')]);
+      await settle();
+      await useCorners();
+      scroll.mockClear();
+      await pick([jpeg('b.jpg')]);
+      await settle();
+      expect(scroll).toHaveBeenCalled();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
   });
 });

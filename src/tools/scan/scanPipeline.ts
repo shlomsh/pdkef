@@ -4,7 +4,7 @@
 import { guessCorners } from './edges/index.ts';
 import { warpPerspective, warpSize } from './warp.ts';
 import { applyFilter, type ScanFilter } from './filters.ts';
-import { scaleQuad, type GrayImage, type Quad } from './quad.ts';
+import { insetQuad, scaleQuad, type GrayImage, type Quad } from './quad.ts';
 import { fitScanToBudget, type FitResult } from './scanBudget.ts';
 import { canvasToBlob } from '../../lib/canvasBlob.js';
 import { imagesToPdf } from '../../lib/imagesToPdf.js';
@@ -32,6 +32,10 @@ const SOURCE_LONG_EDGE = 3200;
 const OUTPUT_LONG_EDGE = 2400;
 /** The edge guess looks at a small copy; the page's outline survives, the noise does not. */
 const GUESS_LONG_EDGE = 320;
+/** How far inside its corners a page is cropped: about 0.8% from each edge, a margin's worth. The
+ * edge guess works on a 320px copy, so a corner can sit a pixel of that (0.3%) out on the table, and
+ * that sliver turns into a black line under the Document look (QA, 2026-10-26). */
+const EDGE_INSET = 0.016;
 /** A processed page is kept at this quality; the PDF is encoded from it. */
 const KEEP_QUALITY = 0.92;
 /** The corner editor and loupe show this, never the photo itself: 12 MP decodes to 48 MB, and iPhone
@@ -112,7 +116,7 @@ export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): 
   const source = drawCapped(await loadImage(photo), SOURCE_LONG_EDGE);
   const src = pixels(source);
   freeCanvas(source);
-  const quadPx = scaleQuad(quad, src.width, src.height);
+  const quadPx = scaleQuad(insetQuad(quad, EDGE_INSET), src.width, src.height);
   const { width, height } = warpSize(quadPx, OUTPUT_LONG_EDGE);
   const flat = applyFilter(warpPerspective(src, quadPx, width, height), filter);
   const out = document.createElement('canvas');
