@@ -1070,7 +1070,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               {/* On a phone the corners come first; the choices follow the pages they apply to. */}
               <div class={styles['phone-options']}>{controls('-phone')}</div>
               {/* Desktop: under the page, inside the first screen (useFloorHeight leaves it the room). */}
-              {wide && rating}
+              {wide && <div class={styles['rating-slot']}>{rating}</div>}
             </PageWorkspace>
           )}
         </ToolShellBridge>
