@@ -32,10 +32,11 @@
   stroke: var(--color-surface);
 }
 
+/* 52px to grab, a 20px ring to see: a finger can take the corner from beside it. */
 .handle {
   position: absolute;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -63,4 +64,35 @@
 
 .handle:focus-visible .ring {
   box-shadow: 0 0 0 1px var(--color-night), 0 0 0 4px var(--color-primary-ring);
+}
+
+/* The touch loupe (loupe.ts places it): the photo magnified around the corner being dragged. */
+.loupe {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-night), var(--shadow-md);
+  background-color: var(--color-night);
+  background-repeat: no-repeat;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.loupe[hidden] {
+  display: none;
+}
+
+.loupe-lines {
+  display: block;
+}
+
+.loupe-edge {
+  stroke: var(--color-primary);
+}
+
+.loupe-cross {
+  stroke: var(--color-surface);
+  fill: none;
 }

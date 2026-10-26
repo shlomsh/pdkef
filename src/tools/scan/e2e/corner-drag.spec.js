@@ -26,6 +26,15 @@ async function makePhotoBytes(page) {
   return Buffer.from(bytes);
 }
 
+// The first photos scroll the result into view (smoothly): a drag measured mid-scroll is off by the scroll.
+async function waitForScrollToSettle(page) {
+  await expect.poll(async () => {
+    const a = await page.evaluate(() => window.scrollY);
+    await page.waitForTimeout(120);
+    return a === await page.evaluate(() => window.scrollY);
+  }, { timeout: 5_000 }).toBe(true);
+}
+
 const center = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
 test.describe('scan - corner drag', () => {
@@ -39,6 +48,9 @@ test.describe('scan - corner drag', () => {
       buffer: await makePhotoBytes(page),
     });
 
+    await waitForScrollToSettle(page);
+    // The centre shows the result; the corners are a mode.
+    await page.getByRole('button', { name: 'Adjust corners' }).click();
     const group = page.getByRole('group', { name: 'Page corners' });
     // The group div has no box of its own (its handles are absolutely placed), so wait on a handle.
     const handle = group.getByRole('button', { name: 'Top-left corner' });
