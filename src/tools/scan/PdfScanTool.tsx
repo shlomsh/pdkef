@@ -31,7 +31,7 @@ import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
 import { playFlatten, relativeBox, type FlattenFrom } from './flattenAnimation.ts';
 import ScanVerb from './verb/ScanVerb.tsx';
-import { FULL_QUAD, quadKey, rotateQuad, type Quad } from './quad.ts';
+import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } from './quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
 import type { ScanFilter } from './filters.ts';
 import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
@@ -131,6 +131,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const [customName, setCustomName] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [results, setResults] = useState<Record<number, PageResult>>({});
+  /** Each turned page's preview, turned the same way for the corner editor, by `${id}|${turns}`. */
+  const [turnedPreviews, setTurnedPreviews] = useState<Record<string, string>>({});
   const [failedIds, setFailedIds] = useState<number[]>([]);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   /** Bumped when a build lands, so the per-key maps below are read again. */
@@ -320,11 +322,16 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   urlsRef.current = [
     ...pages.flatMap((p) => (p.preview ? [p.preview] : [])),
     ...Object.values(results).flatMap((r) => [r.url, r.thumbUrl]),
+    ...Object.values(turnedPreviews),
     ...[...shownByKeyRef.current.values()].flatMap((kept) => kept.pages.map((p) => p.url)),
   ];
-  useEffect(() => () => {
-    unmountedRef.current = true;
-    urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  useEffect(() => {
+    // Set on mount too: a dev server's hot swap runs this cleanup on a live island, then mounts it again.
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
   }, []);
 
   const allGuessed = pages.length > 0 && pages.every((p) => p.guessed) && failedIds.length === 0;
@@ -484,11 +491,12 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const captureFlatten = (page: ScanPage) => {
     const host = editorRef.current;
     const frame = host?.querySelector('[data-corner-frame]');
-    if (!host || !frame || !page.preview) return;
+    const photoUrl = shownPhoto(page);
+    if (!host || !frame || !photoUrl) return;
     flattenFromRef.current = {
-      photoUrl: page.preview,
+      photoUrl,
       frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
-      quad: pageQuad(page),
+      quad: turnedQuad(page.quad, page.turns),
     };
   };
 
@@ -553,6 +561,19 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       });
   };
 
+  const forgetTurned = (match: (key: string) => boolean) => {
+    setTurnedPreviews((map) => {
+      const left: Record<string, string> = {};
+      for (const [k, url] of Object.entries(map)) {
+        if (match(k)) URL.revokeObjectURL(url);
+        else left[k] = url;
+      }
+      return left;
+    });
+  };
+  /** The photo the corner editor shows: as photographed, or turned with the page (null while turning). */
+  const shownPhoto = (page: ScanPage) => (page.turns === 0 ? page.preview : turnedPreviews[`${page.id}|${page.turns}`] ?? null);
+
   const commitCorners = (id: number, quad: Quad) => {
     setPages((current) => current.map((p) => (p.id === id ? { ...p, quad, edited: true } : p)));
     recordAction('move_mark');
@@ -564,6 +585,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     const removed = pages[index];
     if (!removed) return;
     if (removed.preview) URL.revokeObjectURL(removed.preview);
+    forgetTurned((k) => k.startsWith(`${id}|`));
     previewBlobsRef.current.delete(id);
     removedRef.current.add(id);
     dropCached(id);
@@ -597,6 +619,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     resultsRef.current = {};
     forgetShown();
     previewBlobsRef.current.clear();
+    forgetTurned(() => true);
     setView('result');
     setPages([]);
     setResults({});
@@ -610,6 +633,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
   const selectedIndex = selected ? pages.indexOf(selected) : -1;
+  const shownAspect = selected && selected.turns % 2 === 1 ? 1 / (selected.aspect ?? 0.75) : selected?.aspect ?? 0.75;
 
   // The look is the selected page's own; it also becomes the look for the next new photo.
   const chooseLook = (next: ScanFilter) => {
@@ -627,6 +651,20 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     recordAction('change_setting');
     reportEdit('scan-to-pdf');
   };
+
+  // A turned page shows its preview turned the same way while its corners are set (scanPipeline's turnImage).
+  // Outside the queue: it is one preview-sized image, and it should not wait behind a build.
+  const turnKey = selected && selected.turns !== 0 ? `${selected.id}|${selected.turns}` : null;
+  useEffect(() => {
+    if (view !== 'corners' || !selected || !turnKey || turnedPreviews[turnKey]) return;
+    const blob = previewBlobsRef.current.get(selected.id);
+    if (!blob) return;
+    const { id, turns } = selected;
+    loadPipeline().then((pipeline) => pipeline.turnImage(blob, turns)).then((turned) => {
+      if (unmountedRef.current || removedRef.current.has(id)) return;
+      setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: URL.createObjectURL(turned) }));
+    }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
+  }, [view, turnKey, selected?.preview]);
 
   // Use these corners: on to the next new photo still waiting for a look, or to the result.
   const approveCorners = () => {
@@ -827,6 +865,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   </p>
                   {view === 'corners' && selected.preview !== null && (
                     <div class={styles['head-actions']}>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>
+                        <RotateCw size={16} aria-hidden="true" />
+                        {t.rotate}
+                      </button>
                       <button type="button" class={workspaceStyles['quiet-button']} onClick={full ? exitFull : enterFull}>
                         {full ? <Minimize2 size={16} aria-hidden="true" /> : <Expand size={16} aria-hidden="true" />}
                         {full ? t.exitFullScreen : t.fullScreen}
@@ -856,21 +898,22 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 </div>
                 {view === 'corners' && (
                   <div class={styles['photo-area']}>
-                    {selected.preview === null ? (
+                    {shownPhoto(selected) === null ? (
                       // The photo's own shape and size, so nothing moves when its preview lands.
                       <div
                         class={styles['corners-wait']}
-                        style={{ aspectRatio: String(selected.aspect ?? 0.75), width: `min(100%, calc(var(--scan-view-h) * ${selected.aspect ?? 0.75}))` }}
+                        style={{ aspectRatio: String(shownAspect), width: `min(100%, calc(var(--scan-view-h) * ${shownAspect}))` }}
                       >
-                        {selected.guessed ? t.pageFailed : t.findingEdges}
+                        {selected.preview !== null ? '' : selected.guessed ? t.pageFailed : t.findingEdges}
                       </div>
                     ) : (
+                      // On a turned page the photo, its shape and its corners are all shown turned (quad.ts).
                       <CornerEditor
-                        key={selected.id}
-                        src={selected.preview}
-                        aspect={selected.aspect ?? undefined}
-                        quad={selected.quad}
-                        onCommit={(quad) => commitCorners(selected.id, quad)}
+                        key={`${selected.id}|${selected.turns}`}
+                        src={shownPhoto(selected) as string}
+                        aspect={selected.aspect === null ? undefined : shownAspect}
+                        quad={turnedQuad(selected.quad, selected.turns)}
+                        onCommit={(quad) => commitCorners(selected.id, unturnedQuad(quad, selected.turns))}
                         labels={{ group: t.cornersGroup, corners: t.corners }}
                       />
                     )}
