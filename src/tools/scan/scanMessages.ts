@@ -19,6 +19,8 @@ export const scanMessages = {
   wholePhoto: 'Whole photo',
   removePhoto: 'Remove this photo',
   adjustCorners: 'Adjust corners',
+  rotate: 'Rotate',
+  announceRotated: 'Page {position} turned a quarter to the right.',
   findPage: 'Auto-detect',
   findMissed: 'No page edges were found here either. Drag the corners onto the corners of the page.',
   pageFoundAnnounce: 'Page edges found.',

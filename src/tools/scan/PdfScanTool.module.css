@@ -57,6 +57,13 @@
   width: 100%;
 }
 
+/* Rotate and Adjust corners, together at the head's end. */
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* "Page 2 of 3" and, in corners, what to do: one line where it fits. */
 .editor-title {
   margin: 0;
