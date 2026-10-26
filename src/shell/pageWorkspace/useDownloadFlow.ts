@@ -6,12 +6,12 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
-export type HandoffTool = 'compress' | 'sign';
+export type HandoffTool = 'compress' | 'sign' | 'merge';
 
 export interface DownloadFlowInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;
-  hrefs: Record<HandoffTool, string>;
+  hrefs: Record<'compress' | 'sign', string> & Partial<Record<'merge', string>>;
   /** Why Download cannot run at all: too few files, or a file/build error. */
   blocked: 'one-file' | 'error' | null;
   /** The plan leaves no page to export (every page skipped). */
@@ -160,13 +160,13 @@ export function useDownloadFlow(input: DownloadFlowInput) {
         return;
       }
       if (!saved) throw new Error('handoff');
-      navigate(hrefs[tool]);
+      navigate(hrefs[tool] as string);
     } catch {
       // expected: saveHandoff reports its own failure, this shows the handoffFailed state
       setHandoffFailed(true);
       setHandoffBusy(false);
     }
-  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign]);
+  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign, hrefs.merge]);
 
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;

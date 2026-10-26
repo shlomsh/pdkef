@@ -81,6 +81,8 @@ interface BasePdfToolProps {
    * message and privacy line). */
   emptyHeading?: string;
   emptyBody?: string;
+  /** An extra action under the pick button in the empty-state sheet. */
+  emptyAction?: ComponentChild;
   /** Direction A (Merge): a tool whose loaded state replaces the identity
    * row and file actions with its own add bar (AddBar.tsx) sets this so
    * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
@@ -145,6 +147,7 @@ export default function BasePdfTool({
   emptyArt,
   emptyHeading,
   emptyBody,
+  emptyAction,
   hideIdentity = false,
   dropAnywhere = true,
 }: BasePdfToolProps) {
@@ -432,6 +435,7 @@ export default function BasePdfTool({
             art={emptyArt}
             heading={emptyHeading}
             body={emptyBody}
+            action={emptyAction}
           />
         )
       )}

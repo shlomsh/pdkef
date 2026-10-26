@@ -7,11 +7,11 @@ vi.mock('../PdfShareButton.tsx', () => ({
   default: ({ label }: { label: string }) => <button type="button">{label}</button>,
 }));
 
-const labels = { share: 'Share', compress: 'Compress it', sign: 'Sign it' };
+const labels = { share: 'Share', compress: 'Compress it', sign: 'Sign it', merge: 'Merge it' };
 
 describe('FinishRow', () => {
   let container: HTMLElement;
-  const mount = (tools?: ('compress' | 'sign')[]) => {
+  const mount = (tools?: ('compress' | 'sign' | 'merge')[]) => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(
@@ -27,6 +27,10 @@ describe('FinishRow', () => {
 
   it('offers Compress and Sign after Share by default', () => {
     expect(mount()).toEqual(['Share', 'Compress it', 'Sign it']);
+  });
+
+  it('renders sign, merge and compress in the order given, each with its label', () => {
+    expect(mount(['sign', 'merge', 'compress'])).toEqual(['Share', 'Sign it', 'Merge it', 'Compress it']);
   });
 
   it('renders only the listed hand-offs, and only Share for an empty list', () => {
