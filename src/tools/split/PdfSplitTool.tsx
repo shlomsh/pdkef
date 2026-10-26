@@ -1,9 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { ComponentType } from 'preact';
+import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { FileSignature, Shrink } from 'lucide-preact';
 import { isPdfFile } from '../../lib/fileKind.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { includeAll, invert, outputPageCount, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -24,7 +21,7 @@ import {
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
-import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
+import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -35,7 +32,8 @@ import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
+import { repairedPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import SplitVerb from './verb/SplitVerb.tsx';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
@@ -78,21 +76,7 @@ export default function PdfSplitTool({
 }: PdfSplitToolProps = {}) {
   const t: SplitMessages = { ...englishSplitMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
-  const [file, setFile] = useState<File | null>(null);
-  // The bytes everything after opening reads: the person's file, or its
-  // repaired copy when the page list had to be rebuilt. `file` stays the
-  // original, so the name, memory and hand-off never change identity.
-  const [workingFile, setWorkingFile] = useState<File | null>(null);
-  const [pageCount, setPageCount] = useState(0);
-  // The file picked last. A load that finishes after a newer pick is stale.
-  const pickedFileRef = useRef<File | null>(null);
-  // Bumped on every pick: the prepared key's file identity, since two different
-  // PDFs can share a name, size and date while the result cache outlives a replacement.
-  const [loadId, setLoadId] = useState(0);
   const resetDownloadFlowRef = useRef<() => void>(() => {});
-  // A protected PDF is a precondition, not a failure (src/shell/NeedsUnlock.tsx).
-  const [needsUnlock, setNeedsUnlock] = useState<{ kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
-  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading-file' | 'error'>('idle');
   // What to save and the output name are outside the Undo stack, like Edit PDF's page numbers.
   const [mode, setMode] = useState<SplitMode>('combined');
   // null means "still the source's own name"; a string is the person's own.
@@ -102,10 +86,6 @@ export default function PdfSplitTool({
   const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
-  // Loaded through a dynamic import() so the grid, its preview dialog and
-  // Sortable stay off the eager graph check-page-weight.js measures.
-  const [PageGrid, setPageGrid] = useState<ComponentType<PageGridProps> | null>(null);
-  useHoldUpdate(file !== null, 'open');
 
   const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<SplitDocument>(
     EMPTY_DOCUMENT,
@@ -113,80 +93,38 @@ export default function PdfSplitTool({
   );
   const { plan } = present;
 
+  // The one open path (src/shell/pageWorkspace/useOpenPageDocument.ts): stale-pick guard,
+  // protection check, repaired copy. What is Split's own is reset in onPick/onLoaded.
+  const { file, workingFile, pageCount, loadId, loadStatus, needsUnlock, open } = useOpenPageDocument({
+    loader: repairedPdfLoader,
+    unlockKinds: ['needs-password', 'owner-restricted'],
+    messages: { needsPassword: t.announceNeedsPassword, restricted: t.announceRestricted, loaded: t.loaded, loadFailed: t.loadFailed },
+    announce: setAnnouncement,
+    onPick: () => {
+      resetDownloadFlowRef.current();
+      setRenderedCount(0);
+      setMode('combined');
+      setCustomName(null);
+      // A new file starts a fresh document: reset (not commit) so the previous
+      // file's undo/redo stacks don't leak across files.
+      reset(EMPTY_DOCUMENT);
+    },
+    onLoaded: ({ pageCount: count }) => reset({ plan: planForFile(FILE_ID, count) }),
+  });
+  useHoldUpdate(file !== null, 'open');
+  const PageGrid = useLazyPageGrid(file !== null);
+
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
     const pdfs = incoming.filter((f) => isPdfFile(f));
     setRejectedFiles(incoming.filter((f) => !isPdfFile(f)).map((f) => f.name));
     if (pdfs.length === 0) return;
-    const selectedFile = pdfs[0];
-    recordAction(file ? 'replace_file' : 'add_files');
-
-    setFile(selectedFile);
-    setWorkingFile(selectedFile);
-    pickedFileRef.current = selectedFile;
-    setLoadId((n) => n + 1);
-    resetDownloadFlowRef.current();
-    setLoadStatus('loading-file');
-    setNeedsUnlock(null);
-    setPageCount(0);
-    setRenderedCount(0);
-    setMode('combined');
-    setCustomName(null);
-    // A new file starts a fresh document: reset (not commit) so the previous
-    // file's undo/redo stacks don't leak across files.
-    reset(EMPTY_DOCUMENT);
-
-    try {
-      const bytes = await selectedFile.arrayBuffer();
-      // pdf-lib cannot read either kind of protection (an owner-only file loads as blank pages), so both go to Unlock.
-      let protection = 'open';
-      try {
-        protection = await probeEncryption(bytes);
-      } catch (err) {
-        // The probe itself failing says nothing about the file; load as today.
-        reportError('pdf_tool_run', err, 'check_encryption');
-      }
-      if (pickedFileRef.current !== selectedFile) return;
-      if (protection === 'needs-password' || protection === 'owner-restricted') {
-        setNeedsUnlock({ kind: protection, bytes });
-        setLoadStatus('idle');
-        setAnnouncement(protection === 'needs-password' ? t.announceNeedsPassword : t.announceRestricted);
-        return;
-      }
-      const loaded = await loadPdfWithPages(bytes);
-      if (pickedFileRef.current !== selectedFile) return;
-      // The grid (pdf.js) and the export read the repaired bytes, so the repair runs once.
-      setWorkingFile(loaded.repaired
-        ? new File([loaded.bytes as BlobPart], selectedFile.name, {
-          type: 'application/pdf',
-          lastModified: selectedFile.lastModified,
-        })
-        : selectedFile);
-      setPageCount(loaded.pageCount);
-      reset({ plan: planForFile(FILE_ID, loaded.pageCount) });
-      setLoadStatus('idle');
-      setAnnouncement(formatMessage(t.loaded, { name: selectedFile.name, count: loaded.pageCount }));
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'load_document');
-      console.error(err);
-      if (pickedFileRef.current !== selectedFile) return;
-      setLoadStatus('error');
-      setAnnouncement(t.loadFailed);
-    }
-  }, [reset, file, t.announceNeedsPassword, t.announceRestricted, t.loaded, t.loadFailed]);
+    await open(pdfs[0]);
+  }, [open]);
 
   // MERGE-14: a PDF handed off from another tool (or the home page) is collected
   // on mount and dropped into the same path a manual pick takes.
   useHandoffIntake('split', (f) => handleFilesAdded([f]));
-
-  useEffect(() => {
-    if (!file || PageGrid) return undefined;
-    let cancelled = false;
-    import('../../shell/pageGrid/PageGrid.tsx')
-      .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
-      .catch((err) => reportError('pdf_render', err, 'load_page_grid'));
-    return () => { cancelled = true; };
-  }, [file !== null, PageGrid]);
 
   const sources = useMemo(
     () => (workingFile ? [{ id: FILE_ID, file: workingFile, pageCount, error: null }] : []),
