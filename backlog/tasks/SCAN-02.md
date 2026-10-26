@@ -33,6 +33,13 @@ crop of the finish row).
   "Use these corners" (check). They wrap to two rows only where one does not fit.
 - **The finish row** becomes two columns when it holds four buttons (`FinishRow`, shared; only Scan has four).
 - Icons on Adjust corners (crop), Remove this photo (bin), Clear all files (bin) and the add tiles.
+- **Desktop fills the first screen exactly** (added the same evening): Scan's card takes the page-grid floor and
+  `useFloorHeight` (`src/shell/pageWorkspace/`, sharing `cardFloor` with the page grid's `useStageFit`) measures
+  the room down to it; the photo or the result paper fills it through container units. No scroll on desktop.
+- **Rotate** (his "there is no rotate page functionality"): a quarter turn clockwise per press, beside Adjust
+  corners. The warp gets the corners one place on per turn (`rotateQuad`), so the photo's corners never move.
+- **Full screen for the corners** (his request): the browser's own full screen on the editor, a fixed layer where
+  there is none for an element (iPhone Safari); the result view leaves it.
 
 ## Acceptance
 
@@ -42,3 +49,11 @@ crop of the finish row).
       viewport after a pick; no sideways scroll at 320.
 - [ ] At 820x1180: the same, with the strip under the controls.
 - [ ] Unit tests follow the new names; the corner-drag and loupe e2e specs pass.
+
+## Progress 2026-10-26 (branch `scan-layout`, not on main)
+
+Built and measured in Chromium at 1525x870, 1440x900, 1280x720, 1024x700, 820x1180, 390x844, 375x667 and 320x640:
+photo, controls, pages and an add control on the first screen, no sideways scroll. Full screen measured native on
+desktop and phone, and as the layer with element full screen removed (an iPhone stand-in). `check:fast` green; the
+full Playwright product suite passed before rotate, the fit and full screen landed. Still to do: Shlomi on his
+iPhone, `check:push` and `check:e2e` on the final branch, landing.
