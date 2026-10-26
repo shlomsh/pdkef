@@ -265,3 +265,36 @@
   box-shadow: var(--shadow-lg);
   border-color: var(--color-primary);
 }
+
+/* A quiet secondary hand-off, the look of the other tools' follow-up buttons. */
+.scan-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+}
+
+.scan-button:hover {
+  background: var(--color-primary-soft);
+}
+
+.scan-button:disabled {
+  color: var(--color-muted);
+  border-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+.scan-button svg {
+  flex: none;
+}

@@ -164,6 +164,18 @@
   }
 }
 
+.phone-options {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+@media (min-width: 1024px) {
+  .phone-options {
+    display: none;
+  }
+}
+
 .is-ghost {
   opacity: 0.35;
 }
