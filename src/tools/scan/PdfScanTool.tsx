@@ -83,8 +83,8 @@ function TakePhotoButton({ onFiles, primary = false }: { onFiles: (files: File[]
   if (primary) {
     return (
       <span class={styles['take-photo']}>
+        {/* No icon: it pairs with Choose files, which has none, as two equal buttons. */}
         <label class={dropzoneStyles['file-picker-button']}>
-          <Camera size={18} aria-hidden="true" />
           {t.takePhoto}
           <input type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
         </label>

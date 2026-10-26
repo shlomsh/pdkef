@@ -192,7 +192,7 @@
 
 /* The camera is a phone's: a mouse has nothing to point at a page. */
 .take-photo {
-  display: block;
+  display: flex;
 }
 
 @media (pointer: fine) {
