@@ -9,11 +9,11 @@
 // its own style: the hash is registered by the route or layout that owns the
 // <head>, from the text this module hands both sides. `npm run test:csp` names
 // any page whose inline style has no hash.
-import compareFigureCss from '../components/compareFigure.css?inline';
-import toolExamplesCss from '../components/toolExamples.css?inline';
-import theOCss from '../components/theO.css?inline';
-import { cspSha256 } from './cspHash.js';
-import { theOTimelineCss } from './theOTimeline';
+import compareFigureCss from './compareFigure.css?inline';
+import toolExamplesCss from './toolExamples.css?inline';
+import theOCss from './theO.css?inline';
+import { cspSha256 } from '../site-lib/cspHash.js';
+import { theOTimelineCss } from '../site-lib/theOTimeline';
 
 /** What CompareFigure.astro emits: ?inline, so the build minifies it and the hash covers the shipped text. */
 export const compareFigureStyle = compareFigureCss;
