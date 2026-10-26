@@ -380,7 +380,7 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
 
   it('i18n and data modules count as site too, crediting the same single identity', () => {
     const graph = reverseGraph([
-      ['src/lib/platform.ts', 'src/i18n/toolMessages.ts'],
+      ['src/lib/platform.ts', 'src/i18n/localizedTools.ts'],
       ['src/lib/platform.ts', 'src/tools/merge/PdfMergeTool.tsx'],
     ]);
     expect(commonLayerConsumers('src/lib/platform.ts', graph))
