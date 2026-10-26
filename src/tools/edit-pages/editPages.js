@@ -1,10 +1,8 @@
 import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
-
-function checkAborted(signal) {
-  if (signal?.aborted) throw new DOMException('Edit aborted', 'AbortError');
-}
+import { throwIfAborted } from '../../lib/abort.js';
+import { toBytes } from '../../lib/toBytes.js';
 
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.
@@ -27,9 +25,9 @@ export async function editPages(
   onProgress,
   signal,
 ) {
-  checkAborted(signal);
+  throwIfAborted(signal);
   const { PDFDocument } = await getPdfLib();
-  const bytes = await file.arrayBuffer();
+  const bytes = await toBytes(file);
   const srcDoc = (await loadPdfWithPages(bytes)).doc;
   // An owner-only file loads without a password, but its page streams are still
   // encrypted: copying them out would save a valid PDF of blank pages.
@@ -57,7 +55,7 @@ export async function editPages(
   }
 
   for (let i = 0; i < copiedPages.length; i++) {
-    checkAborted(signal);
+    throwIfAborted(signal);
     const page = outDoc.addPage(copiedPages[i]);
     const originalPageNum = orderedPageNums[i];
 
@@ -73,7 +71,7 @@ export async function editPages(
     onProgress?.(opsDone / totalOps);
   }
 
-  checkAborted(signal);
+  throwIfAborted(signal);
   const modifiedBytes = await outDoc.save();
   return new Blob([modifiedBytes], { type: 'application/pdf' });
 }

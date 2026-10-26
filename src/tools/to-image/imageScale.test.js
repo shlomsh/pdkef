@@ -1,23 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE } from '../../lib/canvasLimits.js';
-import { pageRenderScale, stackedRenderScale } from './toImage.js';
+import { stackedRenderScale } from './toImage.js';
 
 const fits = (w, h, scale) => {
   const cw = Math.floor(w * scale);
   const ch = Math.floor(h * scale);
   return cw * ch <= MAX_CANVAS_AREA && Math.max(cw, ch) <= MAX_CANVAS_SIDE;
 };
-
-describe('pageRenderScale', () => {
-  it('keeps a US Letter page at exactly the chosen scale', () => {
-    for (const scale of [1, 2, 3]) expect(pageRenderScale(612, 792, scale)).toBe(scale);
-  });
-
-  it('lowers the scale of a huge page so its canvas fits', () => {
-    expect(fits(5000, 5000, pageRenderScale(5000, 5000, 3))).toBe(true);
-    expect(fits(2384, 3370, pageRenderScale(2384, 3370, 3))).toBe(true);
-  });
-});
 
 describe('stackedRenderScale', () => {
   it('keeps ordinary stacks at exactly the chosen scale', () => {

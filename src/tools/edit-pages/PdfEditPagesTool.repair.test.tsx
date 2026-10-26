@@ -14,6 +14,9 @@ import { setInputFiles } from '../../test/setInputFiles.js';
 
 vi.mock('../../lib/loadPdfPages.ts', () => ({ loadPdfWithPages: vi.fn() }));
 
+// The stub files here are not PDFs: the encryption gate must not run real pdf.js on them.
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
+
 vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
   openThumbnailSource: vi.fn(async (file) => ({

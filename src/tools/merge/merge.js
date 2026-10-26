@@ -2,6 +2,8 @@ import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/p
 import { mergedFileName, mergedTitle } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { openPdfDoc } from '../../lib/openPdfDoc.ts';
+import { throwIfAborted } from '../../lib/abort.js';
 import { addImagePage, hasImageSignature } from '../../lib/imagePage.js';
 import { deriveFileKind, mimeTypeOf } from '../../lib/fileKind.js';
 
@@ -18,7 +20,7 @@ function fileOutlineTitle(fileName) {
 // A photo takes part in a merge as a one-page source document, sized by the
 // shared Image to PDF rule; a PDF is loaded as itself.
 async function loadSourceDoc(PDFDocument, file, bytes) {
-  if (deriveFileKind(file) !== 'image') return PDFDocument.load(bytes, { ignoreEncryption: true });
+  if (deriveFileKind(file) !== 'image') return (await openPdfDoc(bytes, { encryption: 'ignore' })).doc;
   const doc = await PDFDocument.create();
   await addImagePage(doc, bytes, mimeTypeOf(file));
   return doc;
@@ -130,12 +132,6 @@ async function yieldToEventLoop() {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function checkAborted(signal) {
-  if (signal?.aborted) {
-    throw new DOMException('Merge aborted', 'AbortError');
-  }
-}
-
 // Merges PDF files into a single PDF Blob, following `plan` (or, without
 // one, every page of every file in file order) - see mergePlan.ts for the
 // PlanEntry shape the island builds this from via toMergeMap().
@@ -154,7 +150,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
   const { addPageNumbers = false, title, bookmarks = false } = options;
   const hasExplicitPlan = Array.isArray(options.plan);
 
-  checkAborted(signal);
+  throwIfAborted(signal);
 
   const { PDFDocument } = await getPdfLib();
   const merged = await PDFDocument.create();
@@ -215,7 +211,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
   // in that count, it is just never loaded.
   for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
     await yieldToEventLoop();
-    checkAborted(signal);
+    throwIfAborted(signal);
 
     if (hasExplicitPlan && !referencedFileIndices.has(fileIndex)) {
       onProgress?.((fileIndex + 1) / files.length);
@@ -278,7 +274,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
   }
 
   if (hasExplicitPlan) {
-    checkAborted(signal);
+    throwIfAborted(signal);
     // Second pass: add pages in the plan's own order, consuming each file's
     // copied-page batch with a per-file cursor (plan order can interleave
     // files, but within one file it always matches copyPages()'s order).
@@ -304,7 +300,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
     }
   }
 
-  checkAborted(signal);
+  throwIfAborted(signal);
 
   // A one-entry outline is noise (the bookmark names the whole document), so
   // the outline only exists once two or more files made it into the output.

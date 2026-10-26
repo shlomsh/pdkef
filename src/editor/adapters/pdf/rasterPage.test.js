@@ -35,7 +35,7 @@ describe('rasterizePageToJpeg', () => {
   beforeEach(() => {
     original = HTMLCanvasElement.prototype.toDataURL;
     HTMLCanvasElement.prototype.toDataURL = encode;
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ fillRect: vi.fn() });
   });
   afterEach(() => {
     HTMLCanvasElement.prototype.toDataURL = original;
