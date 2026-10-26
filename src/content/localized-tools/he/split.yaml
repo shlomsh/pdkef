@@ -16,7 +16,8 @@ reviewNotes: >-
   חינם", "פיצול מסמכי pdf". חיתוך and הפרדת עמודים stay as secondary words.
   2026-10-22: Shlomi's read-through; no changes.
   2026-10-25: select step follows the page grid; Shlomi approved it.
-sourceHash: 'fnv1a64:0bee6e12766f2666'
+  2026-10-26: SEO-47 link target only.
+sourceHash: 'fnv1a64:6cde51f521684848'
 seoTitle: 'פיצול PDF בחינם - חילוץ עמודים ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   פצלו קובץ PDF או חלצו ממנו עמודים מסוימים, בחינם ובלי הגבלה. הכול קורה

@@ -530,7 +530,7 @@ export const tools = [
     aboutLead:
       'Extract pages or split a PDF file into separate documents, right in your browser. No upload, no server. Your files never leave your device.',
     freeNoteLead:
-      "Extract pages or split a PDF into separate files as often as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration. Want to remove a few pages and keep the rest of the original document? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/organize-pdf/\">Edit PDF Pages</a> instead: Split pulls the pages you pick out into a new file, Edit Pages deletes them and keeps everything else.",
+      "Extract pages or split a PDF into separate files as often as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration. Want to remove a few pages and keep the rest of the original document? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/remove-pages/\">Remove PDF pages</a> instead: Split pulls the pages you pick out into a new file, Remove pages deletes them and keeps everything else.",
     aboutSketch: 'grid',
     aboutIconPos: 'tr',
     faqSketch: 'arcs',
