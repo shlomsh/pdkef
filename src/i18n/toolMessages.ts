@@ -182,6 +182,13 @@ export interface MergeMessages extends PageGridMessages, DownloadMessages {
   errorEncrypted: string;
   unlockLink: string;
   removeAndMergeRest: string;
+  /* A lone protected file shows the shared locked state (src/shell/NeedsUnlock.tsx) in place of the result. */
+  protectedNeedsPasswordTitle: string;
+  protectedNeedsPasswordBody: string;
+  protectedOwnerOnlyTitle: string;
+  protectedOwnerOnlyBody: string;
+  protectedUnlockIt: string;
+  protectedHandoffFailed: string;
   errorTooLarge: string;
   rowUnreadable: string;
   rowEncrypted: string;
@@ -282,6 +289,12 @@ const englishMergeMessages: MergeMessages = {
   errorEncrypted: '"{name}" is password-protected. Remove the password first, on your device, then add it again.',
   unlockLink: 'Open Unlock',
   removeAndMergeRest: 'Remove it and merge the rest',
+  protectedNeedsPasswordTitle: 'This PDF has a password',
+  protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can merge it.',
+  protectedOwnerOnlyTitle: 'This PDF is protected',
+  protectedOwnerOnlyBody: "It opens without a password, but Merge can't change it as it is. Unlock takes the protection off on your device, then you can merge it.",
+  protectedUnlockIt: 'Unlock it',
+  protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
   errorTooLarge: 'This set is too large for this device to merge in the browser. Try fewer files at a time.',
   rowUnreadable: 'Could not read',
   rowEncrypted: 'Password-protected',
@@ -401,6 +414,12 @@ const hebrewMergeMessages: MergeMessages = {
   errorEncrypted: '"{name}" מוגן בסיסמה. הסירו קודם את הסיסמה, על המכשיר שלכם, ואז הוסיפו אותו שוב.',
   unlockLink: 'לפתיחת כלי ההסרה',
   removeAndMergeRest: 'להסיר אותו ולאחד את השאר',
+  protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
+  protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לאחד אותו.',
+  protectedOwnerOnlyTitle: 'קובץ ה-PDF הזה נעול',
+  protectedOwnerOnlyBody: 'הוא נפתח בלי סיסמה, אבל אי אפשר לאחד אותו כמו שהוא. הסרת הנעילה מורידה את ההגנה במכשיר שלכם, ואז אפשר לאחד אותו.',
+  protectedUnlockIt: 'הסרת נעילה',
+  protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
   errorTooLarge: 'הסט הזה גדול מדי לאיחוד בדפדפן על המכשיר הזה. נסו פחות קבצים בכל פעם.',
   rowUnreadable: 'לא ניתן לקרוא',
   rowEncrypted: 'מוגן בסיסמה',

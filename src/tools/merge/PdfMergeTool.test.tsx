@@ -27,6 +27,8 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   reportToolLifecycleEvent: vi.fn(),
   reportEdit: vi.fn(),
 }));
+const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
 vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportError: vi.fn(),
@@ -844,6 +846,48 @@ describe('PdfMergeTool UI flow', () => {
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     expect(mergeLib.mergePdfs.mock.calls[0][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf']);
     expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it.each([
+    ['owner-only.pdf', 'owner-restricted'],
+    ['needs-password.pdf', 'needs-password'],
+  ])('a single protected file (%s) shows the locked state in place of the result area', async (fixture, kind) => {
+    const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', fixture));
+    probeMock.mockResolvedValue(kind);
+    pageCounts.set(fixture, { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles([new File([bytes], fixture, { type: 'application/pdf' })]);
+    await settle();
+    await act(async () => { await flush(20); });
+
+    expect(container.querySelector('[data-needs-unlock]').getAttribute('data-needs-unlock')).toBe(kind);
+    expect(container.textContent).not.toContain("That didn't work");
+    expect(container.textContent).not.toContain('0 pages');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Undo last change"]')).toBeNull();
+    expect(fileNames()).toEqual([fixture]);
+    expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.includes('Add files'))).toBe(true);
+  });
+
+  it('shows the Hebrew locked-state copy on the /he/ edition', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
+    await loadFiles(['locked.pdf']);
+    await settle();
+    await act(async () => { await flush(20); });
+    expect(container.textContent).toContain(hebrewMergeMessages.protectedNeedsPasswordTitle);
+    expect(container.textContent).toContain(hebrewMergeMessages.protectedUnlockIt);
+  });
+
+  it('keeps the inline error when a protected file sits among several (MERGE-04)', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles(['a.pdf', 'locked.pdf']);
+    await settle();
+    expect(container.querySelector('[data-needs-unlock]')).toBeNull();
+    expect(container.querySelector('[role="alert"]').textContent).toContain('is password-protected');
   });
 
   it('reports an unreadable file by name when the merge itself rejects it (MERGE-04)', async () => {

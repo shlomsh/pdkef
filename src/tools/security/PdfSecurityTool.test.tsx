@@ -487,7 +487,7 @@ describe('PdfSecurityTool', () => {
       nativeShare.restore();
     });
 
-    it.each([['sign', 'Continue in Sign', '/sign/'], ['compress', 'Continue in Compress', '/compress/'], ['edit-pdf', 'Continue in Organize PDF', '/organize-pdf/']])('leads back to whichever tool sent it (%s)', async (from, label, href) => {
+    it.each([['sign', 'Continue in Sign', '/sign/'], ['compress', 'Continue in Compress', '/compress/'], ['edit-pdf', 'Continue in Organize PDF', '/organize-pdf/'], ['merge', 'Continue in Merge', '/merge/']])('leads back to whichever tool sent it (%s)', async (from, label, href) => {
       probeEncryption.mockResolvedValue('owner-restricted');
       securityLib.unlockPdf.mockResolvedValue(new Blob(['u'], { type: 'application/pdf' }));
       takeHandoffMock.mockResolvedValue({ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1]).buffer, from });

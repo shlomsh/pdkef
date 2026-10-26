@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { Download, Eraser, FileEdit, FileSignature, Shrink } from 'lucide-preact';
+import { Download, Eraser, FileEdit, FileSignature, Merge, Shrink } from 'lucide-preact';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
@@ -30,6 +30,7 @@ const RETURN_TO = {
   sign: { name: 'Sign', href: '/sign/', Icon: FileSignature },
   compress: { name: 'Compress', href: '/compress/', Icon: Shrink },
   'edit-pdf': { name: 'Organize PDF', href: '/organize-pdf/', Icon: FileEdit },
+  merge: { name: 'Merge', href: '/merge/', Icon: Merge },
 } as const;
 type ReturnTool = keyof typeof RETURN_TO;
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
