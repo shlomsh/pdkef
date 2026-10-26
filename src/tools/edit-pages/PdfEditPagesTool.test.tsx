@@ -252,7 +252,7 @@ describe('PdfEditPagesTool UI flow', () => {
     await load();
     await prepareNow();
     const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
-    vi.stubGlobal('location', { href: '/edit-pdf/' });
+    vi.stubGlobal('location', { href: '/organize-pdf/' });
     await act(async () => { compress.click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
     expect(saveHandoffMock).toHaveBeenCalledWith('compress', expect.objectContaining({
       fileName: 'document_modified.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),

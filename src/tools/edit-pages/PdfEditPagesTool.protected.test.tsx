@@ -101,7 +101,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
 
   it('"Unlock it" parks the file for Unlock and goes there', async () => {
     await pick(fixtureFile('needs-password'));
-    const location = { href: '/edit-pdf/' };
+    const location = { href: '/organize-pdf/' };
     vi.stubGlobal('location', location);
     await act(async () => {
       Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Unlock it').click();

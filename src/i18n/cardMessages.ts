@@ -57,7 +57,7 @@ const hebrewToolCards: Record<string, CardCopy> = {
     title: 'הגנה ופתיחה',
     description: 'הוסיפו סיסמה כדי להגן על PDF, או הסירו סיסמה שאתם מכירים.',
   },
-  'edit-pdf': {
+  'organize-pdf': {
     title: 'עריכת עמודי PDF',
     description: 'הסירו, סובבו וסדרו מחדש עמודים, והוסיפו מספרי עמודים, הכול במעבר אחד.',
   },

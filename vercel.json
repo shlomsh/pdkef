@@ -20,16 +20,6 @@
   ],
   "redirects": [
     {
-      "source": "/remove-pages/",
-      "destination": "/edit-pdf/",
-      "permanent": true
-    },
-    {
-      "source": "/remove-pages",
-      "destination": "/edit-pdf/",
-      "permanent": true
-    },
-    {
       "source": "/protect/",
       "destination": "/unlock/",
       "permanent": true
@@ -65,8 +55,38 @@
       "permanent": true
     },
     {
+      "source": "/edit-pdf/",
+      "destination": "/organize-pdf/",
+      "permanent": true
+    },
+    {
       "source": "/edit-pdf",
-      "destination": "/edit-pdf/",
+      "destination": "/organize-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/organize-pdf",
+      "destination": "/organize-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/rotate-pdf",
+      "destination": "/rotate-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/remove-pages",
+      "destination": "/remove-pages/",
+      "permanent": true
+    },
+    {
+      "source": "/add-page-numbers-to-pdf",
+      "destination": "/add-page-numbers-to-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/extract-pdf-pages",
+      "destination": "/extract-pdf-pages/",
       "permanent": true
     },
     {

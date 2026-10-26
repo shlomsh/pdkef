@@ -74,7 +74,7 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    The tool -> routes map is derived, never hand-written: a top-level `src/pages/<slug>.astro` that
    imports `../tools/<t>/Pdf*Tool` maps route `/<slug>` to tool folder `<t>` (so `/compress/` and
    `/compress-image/` both belong to `compress`, `/unlock/` to `security`, `/pdf-to-image/` to
-   `to-image`, `/edit-pdf/` to `edit-pages`). A route may appear as a string literal, a template
+   `to-image`, `/organize-pdf/` to `edit-pages`). A route may appear as a string literal, a template
    literal, or inside a regex literal, with or without a trailing slash and optionally behind a
    locale prefix (`/he/redact`); comments are stripped first, so a route named only in prose never
    counts. A spec that genuinely needs another tool's page - `toolbar-touch-targets.spec.js` driving

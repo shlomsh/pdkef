@@ -13,7 +13,7 @@
 // Deliberately not a <FeatureCard>: that lays out at min-h-[calc(100vh-6rem)]
 // on desktop, and a third near-full-viewport panel below the how-it-works and
 // FAQ cards would bury the footer. This is a compact strip.
-import { tools } from '../data/tools.js';
+import { listedTools, tools } from '../data/tools.js';
 import type { CrossLinksMessages } from '../i18n/documentationMessages';
 import { getToolCardCopy } from '../i18n/cardMessages';
 import { documentationPath } from '../i18n/documentationLocales';
@@ -42,7 +42,11 @@ const cardFor = (tool: { slug: string; href: string; gridTitle: string; gridDesc
     english: locale !== 'en' && href === tool.href,
   };
 };
-const others = tools.filter((tool) => tool.slug !== currentSlug);
+const others = listedTools.filter((tool) => tool.slug !== currentSlug);
+// Variant landing pages (rotate, extract pages, ...) get no card of their own: one quiet text row of
+// plain links, so every indexed tool page hands crawlers and people a path to them. They are English-only pages,
+// so a localized page leaves the row out rather than mixing languages.
+const variants = locale === 'en' ? tools.filter((tool) => tool.variantOf && tool.slug !== currentSlug) : [];
 ---
 
 <section
@@ -84,4 +88,16 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
       );
     })}
   </ul>
+
+  {variants.length > 0 && (
+    <p class="type-body m-0 mt-6 text-center text-[var(--color-muted)]">
+      Also:{' '}
+      {variants.map((tool, index) => (
+        <>
+          {index > 0 && ' \u00b7 '}
+          <a href={tool.href} class="font-medium text-[var(--color-primary-text)]">{tool.gridTitle}</a>
+        </>
+      ))}
+    </p>
+  )}
 </section>

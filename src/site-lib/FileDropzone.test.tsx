@@ -419,7 +419,7 @@ describe('FileDropzone', () => {
   describe('routing picked files (SITE-42)', () => {
     const LABELS = {
       redact: 'Redact PDF', sign: 'Sign PDF', merge: 'Merge PDF', 'image-to-pdf': 'Image to PDF', 'pdf-to-image': 'PDF to Image',
-      split: 'Split PDF', compress: 'Compress PDF', 'compress-image': 'Compress Image', unlock: 'Unlock PDF', 'edit-pdf': 'Edit PDF Pages',
+      split: 'Split PDF', compress: 'Compress PDF', 'compress-image': 'Compress Image', unlock: 'Unlock PDF', 'organize-pdf': 'Edit PDF Pages',
     };
     const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' });
     const photo = (name = 'p.jpg') => new File(['jpg'], name, { type: 'image/jpeg' });
@@ -498,7 +498,7 @@ describe('FileDropzone', () => {
       expect(saveHandoff).not.toHaveBeenCalled();
       expect(hero.hasAttribute('data-picking')).toBe(true);
       expect(picker().hasAttribute('data-picking')).toBe(true);
-      expect(lit()).toEqual(['redact', 'sign', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'edit-pdf']);
+      expect(lit()).toEqual(['redact', 'sign', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'organize-pdf']);
       expect(picker().textContent).toContain('contract.pdf');
       expect(picker().textContent).toContain('Change');
       expect(picker().textContent).toContain('Now pick a tool below');

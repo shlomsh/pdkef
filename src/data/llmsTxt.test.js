@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { tools } from './tools.js';
+import { listedTools } from './tools.js';
 import { staticPages } from './staticPages.js';
 
 const llmsTxt = fs.readFileSync(path.join(process.cwd(), 'public/llms.txt'), 'utf8');
@@ -22,7 +22,7 @@ describe('public/llms.txt', () => {
   });
 
   it('links to every real tool page', () => {
-    for (const tool of tools) {
+    for (const tool of listedTools) {
       expect(llmsTxt).toContain(`https://pdkef.com${tool.href}`);
     }
   });

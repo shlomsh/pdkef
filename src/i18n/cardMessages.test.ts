@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { tools } from '../data/tools.js';
+import { listedTools } from '../data/tools.js';
 import { contentPages } from '../data/contentPages.js';
 import { getToolCardCopy, getGuideCardCopy } from './cardMessages';
 
 describe('getToolCardCopy', () => {
   it('has a Hebrew card entry for every tool in tools.js', () => {
-    const missing = tools.filter((tool) => !getToolCardCopy('he', tool.slug)).map((tool) => tool.slug);
+    const missing = listedTools.filter((tool) => !getToolCardCopy('he', tool.slug)).map((tool) => tool.slug);
     expect(missing).toEqual([]);
   });
 });
