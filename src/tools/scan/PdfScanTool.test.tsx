@@ -375,6 +375,22 @@ describe('PdfScanTool', () => {
     expect(container.querySelector('[data-paper]')).not.toBeNull();
   });
 
+  it('opens the corners full screen, as a full-page layer where the browser has no element full screen, and leaves it for the result', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    const editor = () => container.querySelector('[data-page-heading]').closest('section');
+    // jsdom has no requestFullscreen: the full-page layer.
+    await act(async () => { byText('Full screen')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(true);
+    await act(async () => { byText('Exit full screen')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(false);
+    await act(async () => { byText('Full screen')[0].click(); });
+    await useCorners();
+    expect(editor().hasAttribute('data-full')).toBe(false);
+    expect(byText('Full screen')).toHaveLength(0);
+  });
+
   it('turns a page a quarter clockwise with Rotate, by handing the warp its corners one place on', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
