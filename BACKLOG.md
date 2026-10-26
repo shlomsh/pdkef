@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 61 live: 7 up next, 11 then, 26 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 62 live: 8 up next, 11 then, 26 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -65,6 +65,12 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 ## Robustness and debt
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 
 ### Then, in order
 

@@ -10,9 +10,14 @@
      shell's `.rail-scroll > *` (flex-shrink: 0). */
   ul.file-list {
     flex-shrink: 1;
-    min-height: 116px; /* two 58px rows stay visible */
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  /* Two 58px rows stay visible once there are two files; a single row sizes to
+     itself instead of leaving a white band under it. */
+  ul.file-list:has(> li:nth-child(2)) {
+    min-height: 116px;
   }
 }
 
@@ -66,6 +71,11 @@
 
 .file-row[data-error] .file-pages {
   color: var(--color-danger);
+}
+
+/* A locked file is a precondition, not a failure: no tint, no bar, just a lock in the page-count slot. */
+.file-row[data-locked] .file-pages {
+  color: var(--color-primary);
 }
 
 .file-row:last-child {

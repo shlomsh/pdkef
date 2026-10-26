@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { FileText, LockKeyhole } from 'lucide-preact';
-import { FileActions } from './ToolShell.tsx';
+import FileName from './FileName.tsx';
+import ReplaceFileLine from './pageWorkspace/ReplaceFileLine.tsx';
 import pdfToolStyles from './PdfTool.module.css';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import styles from './NeedsUnlock.module.css';
@@ -35,8 +36,8 @@ function englishCopy(kind: NeedsUnlockKind, toolName: string, verb: string): Nee
  * heading at the top of an empty card was easy to miss).
  * "Unlock it" parks the file for Unlock with `from` set to the sending tool (the detour contract,
  * docs/ux-design-guidelines.md section 13: Unlock's done state then leads with "Continue in <tool>")
- * and goes there; the shell's Replace chooses another file. Rendered inside BasePdfTool, so
- * FileActions is in reach.
+ * and goes there; the quiet Replace line (the one the loaded page tools show, UX guideline 20)
+ * chooses another file. Rendered inside BasePdfTool, so the shell context is in reach.
  *
  * `from` is the sending tool's key ('redact', 'sign', 'compress'), `toolName` its name in a sentence
  * ("Redact can't change it") and `verb` what the person came to do ("then you can redact it").
@@ -84,7 +85,7 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
       {file && (
         <div class={styles.file}>
           <FileText size={14} stroke-width={1.75} aria-hidden="true" />
-          <span class={styles.name}>{file.name}</span>
+          <FileName name={file.name} className={styles.name} />
         </div>
       )}
       <p class={styles.body}>{body}</p>
@@ -93,8 +94,8 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
           <LockKeyhole size={18} stroke-width={2} aria-hidden="true" />
           {unlockIt}
         </button>
-        {replace && <FileActions />}
       </div>
+      {replace && <ReplaceFileLine />}
       {failed && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {handoffFailed}

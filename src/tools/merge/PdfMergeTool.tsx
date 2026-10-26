@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature, File as FileIcon, FilePlus, Trash2, X as XIcon } from 'lucide-preact';
+import { Shrink, FileSignature, LockKeyhole, File as FileIcon, FilePlus, Trash2, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -328,7 +328,9 @@ export default function PdfMergeTool({
   // download attribute and the PDF Title (usePreparedMerge's own `title`
   // input, passed straight through to mergePdfs's setTitle call) come from
   // the same `title` below, so a rename touches both without extra plumbing.
-  const autoOutputTitle = entries.length > 0 ? mergedTitle(entries[0].file.name) : '';
+  // A locked file that leads the list is skipped for the name: the merged file is named after the first readable one.
+  const nameEntry = entries.find((e) => !e.error) ?? entries[0];
+  const autoOutputTitle = nameEntry ? mergedTitle(nameEntry.file.name) : '';
   const title = customOutputName ?? autoOutputTitle;
   const fileName = title ? `${title}.pdf` : 'merged.pdf';
 
@@ -377,6 +379,9 @@ export default function PdfMergeTool({
   const needsUnlock = lockedFile && probeSettled && lockedProbe?.kind && lockedProbe.bytes
     ? { file: lockedFile, kind: lockedProbe.kind, bytes: lockedProbe.bytes }
     : null;
+  // The heading and the one-file box wait for the probe too, so neither shows for a moment and then
+  // gives way to the locked state.
+  const lockedView = !!needsUnlock || (!!lockedFile && !probeSettled);
 
   const downloadFlow = useDownloadFlow({
     prepared,
@@ -1057,11 +1062,19 @@ export default function PdfMergeTool({
                           key={entry.id}
                           class={docStyles.chip}
                           data-id={entry.id}
+                          data-locked={entry.error === 'encrypted' ? '' : undefined}
                         >
                           <span class={docStyles['chip-pill']}>
                             <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
                             <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
-                            <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
+                            {entry.error === 'encrypted' ? (
+                              <span class={docStyles['chip-pages']} title={t.protectedOwnerOnlyTitle}>
+                                <LockKeyhole size={12} aria-hidden="true" />
+                                <span class="sr-only">{t.protectedOwnerOnlyTitle}</span>
+                              </span>
+                            ) : (
+                              <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
+                            )}
                             <button
                               type="button"
                               class={docStyles['chip-remove']}
@@ -1125,7 +1138,7 @@ export default function PdfMergeTool({
                  having something worth reordering, same threshold as the
                  desktop rail's own Sort control. */
               touchHint={(entries.length > 1 || outputCount > 1) && t.touchDragHint}
-              heading={needsUnlock ? null : (
+              heading={lockedView ? null : (
                 <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
                   {/* MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the
                       visible name IS the editable output file name - one
@@ -1153,7 +1166,7 @@ export default function PdfMergeTool({
                   </OutputName>
                 </h2>
               )}
-              headerStatus={needsUnlock ? null : (
+              headerStatus={lockedView ? null : (
                 <>
                   <HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />
                   {pickedUpHintVisible ? (
@@ -1189,7 +1202,8 @@ export default function PdfMergeTool({
                           data-id={entry.id}
                           data-file-id={entry.id}
                           data-link-row
-                          data-error={entry.error || undefined}
+                          data-error={entry.error === 'unreadable' ? 'unreadable' : undefined}
+                          data-locked={entry.error === 'encrypted' ? '' : undefined}
                           onClick={() => scrollToCaption(entry.id)}
                         >
                           {/* A whole-file move is also the quickest way back from
@@ -1216,10 +1230,17 @@ export default function PdfMergeTool({
                           )}
                           <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
                           <FileName name={entry.file.name} className={railStyles['file-name']} />
-                          <span class={railStyles['file-pages']}>
-                            <FileIcon size={12} aria-hidden="true" />
-                            {entry.pageCount ?? '…'}
-                          </span>
+                          {entry.error === 'encrypted' ? (
+                            <span class={railStyles['file-pages']} title={t.protectedOwnerOnlyTitle}>
+                              <LockKeyhole size={12} aria-hidden="true" />
+                              <span class="sr-only">{t.protectedOwnerOnlyTitle}</span>
+                            </span>
+                          ) : (
+                            <span class={railStyles['file-pages']}>
+                              <FileIcon size={12} aria-hidden="true" />
+                              {entry.pageCount ?? '…'}
+                            </span>
+                          )}
                           <button
                             type="button"
                             class={railStyles['file-remove']}
@@ -1297,24 +1318,26 @@ export default function PdfMergeTool({
                     <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
                   )}
 
-                  <DownloadElement
-                    state={downloadState}
-                    href={prepared.status === 'ready' ? prepared.url : null}
-                    fileName={fileName}
-                    detail={detail}
-                    renderedCount={renderedCount}
-                    totalCount={renderTotal}
-                    pageCount={outputCount}
-                    progress={prepared.progress}
-                    errorMessage={failedEntry ? undefined : t.buildFailed}
-                    messages={t}
-                    chooseFilesLabel={sm.chooseFilesMany}
-                    onChooseFiles={requestReplace}
-                    onPreparingTap={onRowPreparingTap}
-                    onWarm={prepared.prepareNow}
-                    onDownloadClick={onDownloadTap}
-                    isOutputNameBeingRenamed={isRenamingOutputName}
-                  />
+                  {!lockedView && (
+                    <DownloadElement
+                      state={downloadState}
+                      href={prepared.status === 'ready' ? prepared.url : null}
+                      fileName={fileName}
+                      detail={detail}
+                      renderedCount={renderedCount}
+                      totalCount={renderTotal}
+                      pageCount={outputCount}
+                      progress={prepared.progress}
+                      errorMessage={failedEntry ? undefined : t.buildFailed}
+                      messages={t}
+                      chooseFilesLabel={sm.chooseFilesMany}
+                      onChooseFiles={requestReplace}
+                      onPreparingTap={onRowPreparingTap}
+                      onWarm={prepared.prepareNow}
+                      onDownloadClick={onDownloadTap}
+                      isOutputNameBeingRenamed={isRenamingOutputName}
+                    />
+                  )}
 
                   {entries.length >= 2 && (
                     <FinishRow
@@ -1373,16 +1396,28 @@ export default function PdfMergeTool({
                 />
               )}
 
-              {!needsUnlock && probeSettled && failedEntry && failedReason && (
+              {!needsUnlock && probeSettled && failedEntry && failedReason === 'encrypted' && (
+                <div class={docStyles['locked-notice']} role="status" data-locked-notice>
+                  <LockKeyhole size={18} aria-hidden="true" stroke-width={2} />
+                  <div>
+                    <p>{formatMessage(t.errorEncrypted, { name: isolateName(failedEntry.file.name, t.dir) })}</p>
+                    <div class={docStyles['locked-notice-actions']}>
+                      <a class={docStyles['locked-notice-unlock']} href={unlockHref}>
+                        <LockKeyhole size={16} aria-hidden="true" />
+                        {t.unlockLink}
+                      </a>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={() => removeEntry(failedEntry.id)}>
+                        {t.removeAndMergeRest}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!needsUnlock && probeSettled && failedEntry && failedReason === 'unreadable' && (
                 <ErrorMessage>
-                  {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
+                  {formatMessage(t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
                   {' '}
-                  {failedReason === 'encrypted' && (
-                    <>
-                      <a href={unlockHref}>{t.unlockLink}</a>
-                      {' '}
-                    </>
-                  )}
                   <button type="button" class={pdfToolStyles['quiet-link']} onClick={() => removeEntry(failedEntry.id)}>
                     {t.removeAndMergeRest}
                   </button>
