@@ -199,7 +199,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/compress/ src/test/');
     expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ e2e/home/');
   });
 
@@ -244,7 +243,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(true);
-    expect(scope.unit_paths).toBe('src/test/');
     expect(scope.e2e_paths).toBe('');
   });
 
@@ -364,7 +362,6 @@ describe('deriveScope', () => {
       roots: ROOTS,
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/merge/ src/test/');
   });
 
   it('narrows to nothing for a purely docs-only change (affected=[])', () => {
@@ -375,7 +372,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
-    expect(scope.unit_paths).toBe('src/test/');
     expect(scope.e2e_paths).toBe('');
   });
 
@@ -388,7 +384,6 @@ describe('deriveScope', () => {
       siteE2ePaths: ['e2e/demo/', 'e2e/home/'],
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/merge/ src/test/');
     expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ src/tools/merge/e2e/ e2e/demo/ e2e/home/');
   });
 
@@ -398,7 +393,6 @@ describe('deriveScope', () => {
       affected: ['tool-split', 'tool-compress'],
       roots: ROOTS,
     });
-    expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/split/ src/test/');
   });
 
   it('an unowned file wins over a core-project match (rule order: unowned before core)', () => {
@@ -438,7 +432,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
   });
 
   // DEBT-06: editor-ui left CORE_PROJECTS, so an editor-ui-only change now
@@ -459,7 +452,6 @@ describe('deriveScope', () => {
       siteE2ePaths: ['e2e/home/'],
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/editor-ui/ src/tools/redact/ src/tools/sign/ src/test/');
     expect(scope.fonts).toBe(false);
     expect(scope.export_guards).toBe(true);
     expect(scope.e2e_paths).toContain('src/tools/sign/e2e/');
@@ -471,7 +463,7 @@ describe('deriveScope', () => {
   // `cross-tool-tests` (rooted at `src/test/cross-tool`), that root does not
   // match the `startsWith('src/test/')` check extraPaths already used to
   // skip src/test/'s own roots, so without the `root !== 'src/test'` guard
-  // this would have doubled `src/test/` in unit_paths.
+  // this would have doubled `src/test/` in the unit paths.
   it('does not duplicate src/test/ when site-test itself is affected', () => {
     const scope = deriveScope({
       files: ['src/test/setInputFiles.js'],
@@ -480,7 +472,6 @@ describe('deriveScope', () => {
       toolE2eExists: () => true,
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
   });
 
   it('still widens to everything on a shell change', () => {
@@ -507,7 +498,7 @@ describe('deriveScope', () => {
   // to a flat scripts/ file narrows the same way an editor-ui-only change
   // does - see the `tooling` root added to ROOTS above.
   describe('the tooling project (ARCH-22)', () => {
-    it('(a) a change to a flat scripts/ file narrows: no fonts, unit_paths has scripts/ and src/test/, e2e_paths empty', () => {
+    it('(a) a change to a flat scripts/ file narrows: no fonts, e2e_paths empty', () => {
       const scope = deriveScope({
         files: ['scripts/backlog-data.mjs'],
         affected: ['tooling'],
@@ -515,7 +506,6 @@ describe('deriveScope', () => {
       });
       expect(scope.everything).toBe(false);
       expect(scope.fonts).toBe(false);
-      expect(scope.unit_paths).toBe('scripts/ src/test/');
       expect(scope.e2e_paths).toBe('');
     });
 
@@ -549,7 +539,6 @@ describe('deriveScope', () => {
       });
       expect(scope.everything).toBe(false);
       expect(scope.reason).not.toMatch(/CI oracle/);
-      expect(scope.unit_paths).toBe('scripts/ src/test/');
     });
 
     it('(d) a spike file still resolves to sign-spike-mobi10 by longest-prefix match, not tooling', () => {
@@ -560,7 +549,6 @@ describe('deriveScope', () => {
         roots: ROOTS,
       });
       expect(scope.everything).toBe(false);
-      expect(scope.unit_paths).toBe('scripts/spike/mobi-10/ src/test/');
     });
 
     it('a tooling change does not itself force fonts=true (nx affected walks dependents, and nothing depends on tooling)', () => {
@@ -593,7 +581,6 @@ describe('wide', () => {
     expect(scope.everything).toBe(true);
     expect(scope.fonts).toBe(true);
     expect(scope.export_guards).toBe(true);
-    expect(scope.unit_paths).toBe('');
     expect(scope.e2e_paths).toBe('');
     expect(scope.reason).toBe('test reason');
 

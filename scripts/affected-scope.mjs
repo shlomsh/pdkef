@@ -17,7 +17,7 @@
 // Usage:
 //   node scripts/affected-scope.mjs [--base <ref>] [--head <ref>]
 //     Prints KEY=value lines for $GITHUB_OUTPUT: affected, everything,
-//     unit_paths, e2e_paths, fonts, export_guards. Without --head, this is
+//     e2e_paths, fonts, export_guards. Without --head, this is
 //     "what would I push right now" (working tree against --base, or against
 //     the merge base with origin/main when --base is omitted). With --head,
 //     this is a fixed historical commit range (used by the histogram and the
@@ -77,17 +77,8 @@
 //      NOT automatically true here - it is matchesFontsGlob(files), the same
 //      as rule 5's narrow path, computed once and threaded through every
 //      wide() call and the narrow() return alike (see wide()'s own comment).
-//   5. Otherwise narrow: unit_paths is each affected tool-<name> project's
-//      src/tools/<name>/, plus the root of every other affected project that
-//      is not a tool and not in CORE_PROJECTS (so a narrowed `editor-ui`
-//      change still runs editor-ui's own unit tests, and a narrowed
-//      `tooling` change runs `scripts/`, with no hand-written second list -
-//      see the `roots` map in deriveScope), plus src/test/ (its own Nx
-//      project is `site-test`; several of its guard tests walk all of src
-//      and must run on any source change, so this is unconditional, not
-//      gated on `site-test` itself being affected). All of that is sorted
-//      alphabetically together, with src/test/ pinned last regardless (both
-//      orders are equally arbitrary; this is just the one the test pins).
+//   5. Otherwise narrow (ARCH-34 removed the dead unit_paths output: unit tests are chosen by
+//      import impact in scripts/unit-scope.mjs, ARCH-28, never from this file):
 //      e2e_paths is each affected tool's src/tools/<name>/e2e/ (only the
 //      tools that have one) plus site-e2e's own direct children (e2e/home/,
 //      e2e/demo/, ... - never the bare "e2e/" string: Playwright's CLI path
@@ -248,7 +239,7 @@ export function siteE2eOwnPaths(children, roots) {
 // matchesFontsGlob's own comment for why this is a directory rule, not a
 // hand-kept list of catalogue files.
 export function wide(affected, reason, fonts = true) {
-  return { everything: true, fonts, export_guards: true, affected, unit_paths: '', e2e_paths: '', reason };
+  return { everything: true, fonts, export_guards: true, affected, e2e_paths: '', reason };
 }
 
 // ARCH-32: file-level narrowing for a core-project verdict. Nx cannot tell which tools a change in
@@ -352,9 +343,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     return narrowResult({
       files,
       affected,
-      roots,
       toolProjects: reached.tools.map((t) => `tool-${t}`),
-      otherProjects: [...new Set(reached.seeds.map((f) => ownerOf(f, roots)))].filter((p) => p && !p.startsWith('tool-')),
       toolE2eExists,
       siteE2ePaths,
       includeSiteE2e: true, // the site-wide specs are the floor of any narrowed run
@@ -367,9 +356,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   return narrowResult({
     files,
     affected,
-    roots,
     toolProjects,
-    otherProjects: [...affectedSet].filter((p) => !p.startsWith('tool-') && !CORE_PROJECTS.has(p)),
     toolE2eExists,
     siteE2ePaths,
     includeSiteE2e: affectedSet.has('site-e2e'),
@@ -402,28 +389,9 @@ function reachFromCore({ files, loadReachGraph, siteE2ePaths }) {
   return { tools: result.tools, seeds, why };
 }
 
-// The scope for a narrowed run. `toolProjects` get their own src/tools/<t>/ (unit) and e2e/ dirs;
-// every other project in `otherProjects` whose root sits under src/ (not src/test/, which is
-// always added) or is `scripts` or a folder under it (ARCH-22's `tooling` and its pre-existing
-// subfolder projects) adds its own root, straight from the injected `roots` map - never a
-// hand-written list - so e.g. an editor-ui-only change still runs editor-ui's own unit tests
-// (DEBT-06) and a tooling-only change runs `scripts/`. A root already covered by the
-// always-present src/test/ is skipped, not duplicated: both `cross-tool-tests` (root
-// `src/test/cross-tool`, caught by the `startsWith` check) and `site-test` itself (root the
-// literal `src/test`, which `startsWith('src/test/')` does not match - no trailing slash - so it
-// needs its own equality check, DEBT-04 second pass).
-function narrowResult({ files, affected, roots, toolProjects, otherProjects, toolE2eExists, siteE2ePaths, includeSiteE2e, exportGuards, reason }) {
-  const toolPaths = toolProjects.map((p) => `src/tools/${toolNameOf(p)}/`);
-  const extraPaths = otherProjects
-    .map((p) => roots.get(p))
-    .filter((root) => root && (root.startsWith('src/') || root === 'scripts' || root.startsWith('scripts/')) && root !== 'src/test' && !root.startsWith('src/test/'))
-    .map((root) => `${root}/`);
-
-  // Sorted together, alphabetically; src/test/ is pinned last regardless of
-  // where it would otherwise fall (either order is equally arbitrary here -
-  // this is just the one scripts/affected-scope.test.mjs pins).
-  const unitPaths = [...new Set([...toolPaths, ...extraPaths])].sort();
-  unitPaths.push('src/test/');
+// The scope for a narrowed run. `toolProjects` get their own src/tools/<t>/e2e/ dir. (Unit tests are
+// selected by import impact, scripts/unit-scope.mjs, ARCH-28; this file no longer computes unit paths.)
+function narrowResult({ files, affected, toolProjects, toolE2eExists, siteE2ePaths, includeSiteE2e, exportGuards, reason }) {
   const e2ePaths = toolProjects
     .filter((p) => toolE2eExists(p))
     .map((p) => `src/tools/${toolNameOf(p)}/e2e/`);
@@ -438,7 +406,6 @@ function narrowResult({ files, affected, roots, toolProjects, otherProjects, too
     fonts: files.some(matchesFontsGlob),
     export_guards: exportGuards,
     affected,
-    unit_paths: unitPaths.join(' '),
     e2e_paths: e2ePaths.join(' '),
     reason,
   };
@@ -489,7 +456,6 @@ export function resolveScope({ explicitBase, explicitHead }) {
 function printOutputs(scope) {
   console.log(`affected=${JSON.stringify(scope.affected)}`);
   console.log(`everything=${scope.everything}`);
-  console.log(`unit_paths=${scope.unit_paths}`);
   console.log(`e2e_paths=${scope.e2e_paths}`);
   console.log(`fonts=${scope.fonts}`);
   console.log(`export_guards=${scope.export_guards}`);
@@ -501,7 +467,6 @@ function summaryMarkdown(scope) {
     '',
     `- **everything**: ${scope.everything} (${scope.reason})`,
     `- **affected projects**: ${scope.affected.length ? scope.affected.join(', ') : '(none)'}`,
-    `- **unit_paths**: ${scope.unit_paths || '(full suite)'}`,
     `- **e2e_paths**: ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
     `- **fonts**: ${scope.fonts}`,
     `- **export_guards**: ${scope.export_guards}`,
@@ -510,9 +475,7 @@ function summaryMarkdown(scope) {
 }
 
 // ARCH-28: unit selection no longer comes from this file's own
-// project-level `unit_paths` (deriveScope() above still computes it, for
-// e2e/font/export narrowing's own tests to pin against, but nothing runs
-// tests off it any more - a core-project verdict here would otherwise force
+// project-level scope (a core-project verdict here would otherwise force
 // all ~193 unit files, exactly the thing ARCH-28 replaces). `runUnit` is now
 // a thin wrapper around scripts/unit-scope.mjs's own `resolveUnitScope`/
 // `runUnitByImpact` - the same functions check-push.mjs calls directly
