@@ -66,3 +66,11 @@ export function insetQuad(quad: Quad, fraction: number): Quad {
 export function quadKey(quad: Quad): string {
   return quad.map((p) => `${p.x.toFixed(4)},${p.y.toFixed(4)}`).join(';');
 }
+
+/** The corners for the page turned `turns` quarter turns clockwise (any integer; 4 is a full turn,
+ * negative turns go the other way). The warp maps quad[0] to the output's top-left, so one turn
+ * makes the photo's bottom-left corner the page's top-left: [q3, q0, q1, q2]. */
+export function rotateQuad(quad: Quad, turns: number): Quad {
+  const n = ((turns % 4) + 4) % 4;
+  return [0, 1, 2, 3].map((i) => quad[(i - n + 4) % 4]) as Quad;
+}
