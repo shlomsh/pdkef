@@ -462,6 +462,23 @@ describe('PdfCompressTool UI flow', () => {
     nativeShare.restore();
   });
 
+  // The Share ladder is the shared download flow's (useDownloadFlow): a closed sheet is not a failure.
+  it.each([
+    ['cancelled', Object.assign(new Error('closed'), { name: 'AbortError' }), englishCompressMessages.sharingCanceled],
+    ['failed', new Error('no share target'), englishCompressMessages.shareError],
+  ])('a share that is %s says so in the live region and records no share', async (_name, rejection, expected) => {
+    const nativeShare = mockNativeFileShare();
+    nativeShare.share.mockImplementationOnce(() => Promise.reject(rejection));
+    resetActionTrailForTests();
+    await loadPdf('test_doc.pdf', 100000);
+    await act(async () => container.querySelector(`.${pdfToolStyles['pdf-share-button']}`).click());
+    await wait(20);
+    expect(nativeShare.share).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain(expected);
+    expect(recentActions()).not.toContain('share');
+    nativeShare.restore();
+  });
+
   it('renders the comparison automatically, with a skeleton while the previews are pending that never blocks the download row, and no show or hide toggle', async () => {
     let resolveBefore;
     let resolveAfter;

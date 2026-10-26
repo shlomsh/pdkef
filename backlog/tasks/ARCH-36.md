@@ -44,9 +44,9 @@ passes dummy props to `FinishRow` (`PdfToImageTool.tsx:441-446`).
   `PreparedOutput<M>.meta` reads it back; null until ready and withdrawn with the blob), unit tested.
 - Done: Compress's compare previews live in `src/tools/compress/useComparePreviews.ts` with a unit test;
   `PdfCompressTool.tsx` went from 1237 to 1010 lines.
-- Open: moving Compress's delivery onto `usePreparedOutput` + `useDownloadFlow` + `DownloadElement` /
-  `FinishRow` / `PhoneFinish` needs decisions first (see the hand-back): `DownloadElement` takes
-  `DownloadMessages` that `CompressMessages` lacks (`savedLabel`, `downloadAgain`, ... in English and
-  Hebrew), `PhoneFinish` needs a `PageWorkspace` phone bar Compress's layout does not have, and
-  Compress's unit and e2e specs locate `DownloadButton`'s markup (`.download-button`, `a[download]`,
-  the `Download Compressed PDF` link name).
+- Done (logic only, no visible change, lead's decision): Compress builds through `usePreparedOutput` (sizes, level
+  flags and file name ride in `meta`; the encryption gate is `autoBuild` closed, a new file is a new key) and
+  delivers through `useDownloadFlow` (tap, deliver-when-ready, Share ladder, `recordAction('download'|'share')`),
+  still rendering `DownloadButton`. `useLastResult.ts` keeps the last landed result on screen while a new build
+  runs. `usePreparedOutput` gained `onReady` and registers a key while rendering. Not adopted: `DownloadElement`,
+  `FinishRow`, `PhoneFinish`. Hand-offs are passed as empty strings until `HandoffHrefs` is made partial.
