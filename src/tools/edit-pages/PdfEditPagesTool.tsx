@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { ComponentType } from 'preact';
+import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { FileSignature, Shrink } from 'lucide-preact';
 import { isPdfFile } from '../../lib/fileKind.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { editPages } from './editPages.js';
 import { editOptionsFromPlan } from './editPlan.ts';
 import { englishEditPagesMessages as t } from './messages.ts';
-import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { includeAll, invert, outputPageCount, skipAll, planForFile, planKey, type PlanEntry } from '../../lib/pagePlan.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -14,11 +11,11 @@ import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { englishShellMessages as sm, formatMessage } from '../../i18n/toolMessages';
+import { englishShellMessages as sm } from '../../i18n/toolMessages';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
-import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
+import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -30,7 +27,8 @@ import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
+import { repairedPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
 import RemovePagesVerb from './verb/RemovePagesVerb.tsx';
@@ -53,24 +51,8 @@ const EMPTY_DOCUMENT: EditDocument = { plan: [] };
 
 export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }) {
   const Verb = VERBS[job];
-  const [file, setFile] = useState<File | null>(null);
-  // The bytes everything after opening reads: the person's file, or its
-  // repaired copy when the page list had to be rebuilt (DEBT-54). `file` stays
-  // the original, so the name, memory and hand-off never change identity.
-  const [workingFile, setWorkingFile] = useState<File | null>(null);
-  const [pageCount, setPageCount] = useState(0);
-  // The file picked last. A load that finishes after a newer pick is stale and
-  // must not touch the page list or the working file.
-  const pickedFileRef = useRef<File | null>(null);
-  // Bumped on every pick: the prepared key's file identity, since two different
-  // PDFs can share a name, size and date while the result cache outlives a replacement.
-  const [loadId, setLoadId] = useState(0);
   // The download flow is made after this callback, so it reaches its reset through a ref.
   const resetDownloadFlowRef = useRef<() => void>(() => {});
-  // A protected PDF is a precondition, not a failure: set, the workspace gives way to NeedsUnlock
-  // (src/shell/NeedsUnlock.tsx). Every new pick clears it before the check runs again.
-  const [needsUnlock, setNeedsUnlock] = useState<{ kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
-  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading-file' | 'error'>('idle');
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   // null means "still the automatic name"; a string is the person's own.
   const [customOutputName, setCustomOutputName] = useState<string | null>(null);
@@ -78,11 +60,6 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
   const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
-  // Loaded through a dynamic import() so the grid, its preview dialog and
-  // Sortable stay off the eager graph check-page-weight.js measures.
-  const [PageGrid, setPageGrid] = useState<ComponentType<PageGridProps> | null>(null);
-  useHoldUpdate(file !== null, 'open');
-
   // One Undo/Redo stack over the plan. A deliberate change is a `commit`
   // (rotate, skip, move, a bulk action); opening a file is a `reset`.
   const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<EditDocument>(
@@ -91,85 +68,37 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
   );
   const { plan } = present;
 
+  // The one open path (src/shell/pageWorkspace/useOpenPageDocument.ts): stale-pick guard,
+  // protection check, repaired copy. pdf-lib stays lazy: the loader imports it on the first pick.
+  const { file, workingFile, pageCount, loadId, loadStatus, needsUnlock, open } = useOpenPageDocument({
+    loader: repairedPdfLoader,
+    unlockKinds: ['needs-password', 'owner-restricted'],
+    messages: { needsPassword: t.announceNeedsPassword, restricted: t.announceRestricted, loaded: t.loaded, loadFailed: t.loadFailed },
+    announce: setAnnouncement,
+    onPick: () => {
+      resetDownloadFlowRef.current();
+      setRenderedCount(0);
+      setAddPageNumbers(false);
+      setCustomOutputName(null);
+      // A new file starts a fresh document: reset (not commit) so the previous
+      // file's undo/redo stacks don't leak across files.
+      reset(EMPTY_DOCUMENT);
+    },
+    onLoaded: ({ pageCount: count }) => reset({ plan: planForFile(FILE_ID, count) }),
+  });
+  useHoldUpdate(file !== null, 'open');
+  const PageGrid = useLazyPageGrid(file !== null);
+
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
     const pdfs = Array.from(fileList).filter((f) => isPdfFile(f));
     if (pdfs.length === 0) return;
-    const selectedFile = pdfs[0];
-    recordAction(file ? 'replace_file' : 'add_files');
-
-    setFile(selectedFile);
-    setWorkingFile(selectedFile);
-    pickedFileRef.current = selectedFile;
-    setLoadId((n) => n + 1);
-    resetDownloadFlowRef.current();
-    setLoadStatus('loading-file');
-    setNeedsUnlock(null);
-    setPageCount(0);
-    setRenderedCount(0);
-    setAddPageNumbers(false);
-    setCustomOutputName(null);
-    // A new file starts a fresh document: reset (not commit) so the previous
-    // file's undo/redo stacks don't leak across files.
-    reset(EMPTY_DOCUMENT);
-
-    try {
-      // Loaded here, not at module scope: pdf-lib is 628 KiB and this is the
-      // first moment the page needs it, so /edit-pdf/ ships without it until a
-      // file is picked (the loader imports it lazily). The catch below already
-      // covers a failure.
-      const bytes = await selectedFile.arrayBuffer();
-      // pdf-lib cannot read either kind of protection (an owner-only file loads as blank pages), so both go to Unlock.
-      let protection = 'open';
-      try {
-        protection = await probeEncryption(bytes);
-      } catch (err) {
-        // The probe itself failing says nothing about the file; load as today.
-        reportError('pdf_tool_run', err, 'check_encryption');
-      }
-      if (pickedFileRef.current !== selectedFile) return;
-      if (protection === 'needs-password' || protection === 'owner-restricted') {
-        setNeedsUnlock({ kind: protection, bytes });
-        setLoadStatus('idle');
-        setAnnouncement(protection === 'needs-password' ? t.announceNeedsPassword : t.announceRestricted);
-        return;
-      }
-      const loaded = await loadPdfWithPages(bytes);
-      if (pickedFileRef.current !== selectedFile) return;
-      // The grid (pdf.js) and the export need the repaired bytes: pdf.js
-      // rejects the unrepaired file. Handing them the same working file means
-      // the repair runs, and is counted, once.
-      setWorkingFile(loaded.repaired
-        ? new File([loaded.bytes as BlobPart], selectedFile.name, {
-          type: 'application/pdf',
-          lastModified: selectedFile.lastModified,
-        })
-        : selectedFile);
-      setPageCount(loaded.pageCount);
-      reset({ plan: planForFile(FILE_ID, loaded.pageCount) });
-      setLoadStatus('idle');
-      setAnnouncement(formatMessage(t.loaded, { name: selectedFile.name, count: loaded.pageCount }));
-    } catch (err) {
-      reportError('pdf_tool_run', err, 'load_document');
-      console.error(err);
-      if (pickedFileRef.current !== selectedFile) return;
-      setLoadStatus('error');
-      setAnnouncement(t.loadFailed);
-    }
-  }, [reset, file]);
+    await open(pdfs[0]);
+  }, [open]);
 
   // SITE-42: files picked on the home page arrive as a hand-off, collected on
   // mount and sent down the same path a manual pick takes. This tool restores
   // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
   useHandoffIntake('edit-pdf', (f) => handleFilesAdded([f]));
-
-  useEffect(() => {
-    if (!file || PageGrid) return undefined;
-    let cancelled = false;
-    import('../../shell/pageGrid/PageGrid.tsx')
-      .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
-      .catch((err) => reportError('pdf_render', err, 'load_page_grid'));
-    return () => { cancelled = true; };
-  }, [file !== null, PageGrid]);
 
   const sources = useMemo(
     () => (workingFile ? [{ id: FILE_ID, file: workingFile, pageCount, error: null }] : []),
