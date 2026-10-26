@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
@@ -34,14 +34,14 @@ const toolsDir = fileURLToPath(new URL('../../tools', import.meta.url));
 const ANNOUNCERS = new Set(['setAnnouncement', 'announce']);
 const TEXT_ATTRIBUTES = new Set(['aria-label', 'title', 'placeholder', 'alt']);
 
-function sourceFiles(dir) {
+function sourceFiles(dir, ext = '.tsx') {
   const out = [];
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) {
       if (name === 'e2e' || name === 'node_modules') continue;
-      out.push(...sourceFiles(path));
-    } else if (name.endsWith('.tsx') && !/\.test\.tsx$/.test(name)) {
+      out.push(...sourceFiles(path, ext));
+    } else if (name.endsWith(ext) && !name.endsWith(`.test${ext}`)) {
       out.push(path);
     }
   }
@@ -86,6 +86,76 @@ export function findInlineEnglish(source) {
   return found.map((text) => text.replace(/\s+/g, ' ').trim()).map((text) => text.replace(/&\w+;/g, '').trim()).filter((text) => /[A-Za-z]{2}/.test(text));
 }
 
+// Plain .ts modules (copy builders, state, hooks). The rule: a string literal or template piece
+// that holds two words of letters separated by a space is a sentence a person might read. It is
+// skipped where it is code: import/export specifiers, type literals, property names, case labels,
+// comparisons, console.* and reportError arguments (log lines and error-report labels). The named
+// copy modules are stricter: they hold words only, so one word ("Title") counts too.
+/** Plain .ts files whose multi-word strings are not UI text, each with the reason. */
+const TS_NOT_UI = {
+  'redact/useFind.ts': 'a canvas font shorthand used to measure glyphs',
+  'scan/edges/corpus.ts': 'names of edge-detection fixtures, shown only in test output',
+  'sign/useFormFieldRegions.ts': 'developer diagnostics sent to the error report, not shown to a person',
+};
+const COPY_MODULES = new Set(['redact/check/checkCopy.ts', 'redact/details/describeDetails.ts']);
+const SENTENCE = /[A-Za-z]{2,} (?:\{\} )*[A-Za-z]{2,}/;
+const CAPITAL_WORD = /^[A-Z][a-z]{2,}/;
+const LOGGERS = new Set(['reportError']);
+
+function isCodeLiteral(node) {
+  const parent = node.parent;
+  if (ts.isImportDeclaration(parent) || ts.isExportDeclaration(parent) || ts.isLiteralTypeNode(parent) || ts.isCaseClause(parent)) return true;
+  if (ts.isPropertyAssignment(parent) && parent.name === node) return true;
+  if (ts.isElementAccessExpression(parent) && parent.argumentExpression === node) return true;
+  if (ts.isBinaryExpression(parent) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken].includes(parent.operatorToken.kind)) return true;
+  for (let up = parent; up; up = up.parent) {
+    if (!ts.isCallExpression(up)) continue;
+    const callee = up.expression;
+    if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && callee.expression.text === 'console') return true;
+    if (ts.isIdentifier(callee) && LOGGERS.has(callee.text)) return true;
+  }
+  for (let up = parent; up; up = up.parent) if (ts.isNewExpression(up) && ts.isIdentifier(up.expression) && up.expression.text.endsWith('Error')) return true;
+  return false;
+}
+
+export function findInlineEnglishInTs(source, strict = false) {
+  const file = ts.createSourceFile('x.ts', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const found = [];
+  const rule = { test: (text) => SENTENCE.test(text) || (strict && CAPITAL_WORD.test(text)) };
+  const take = (node, text) => {
+    const one = text.replace(/\s+/g, ' ').trim();
+    if (rule.test(one) && !isCodeLiteral(node)) found.push(one);
+  };
+  const visit = (node) => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) take(node, node.text);
+    else if (ts.isTemplateExpression(node)) {
+      // The pieces read together, holes as {}: `Page ${n} done` is one sentence.
+      take(node, [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join('{}'));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return found;
+}
+
+describe('findInlineEnglishInTs', () => {
+  it('sees sentences and skips code', () => {
+    const found = findInlineEnglishInTs(`
+      import x from './a b';
+      type T = 'one two';
+      const a = { 'key one': 1, label: 'Saved again', tpl: \`Page \${n} done\` };
+      if (k === 'two words') {}
+      console.error('Could not read this');
+      reportError('redact', 'load the file');
+      const cls = 'row';`);
+    expect(found).toEqual(['Saved again', 'Page {} done']);
+  });
+
+  it('counts a single word in a copy module', () => {
+    expect(findInlineEnglishInTs(`const a = { label: 'Title' }; const b = 'x';`, true)).toEqual(['Title']);
+  });
+});
+
 describe('findInlineEnglish', () => {
   it('sees text nodes, text attributes, branches and announcements, and skips code', () => {
     const found = findInlineEnglish(`
@@ -123,5 +193,28 @@ describe('tool components carry no inline English', () => {
       for (const text of Object.keys(entries)) if (!found.includes(text)) stale.push(`${rel}: ${JSON.stringify(text)}`);
     }
     expect(stale).toEqual([]);
+  });
+});
+
+describe('tool .ts modules carry no inline English', () => {
+  const files = sourceFiles(toolsDir, '.ts');
+
+  it('keeps every sentence in the tool\'s messages.ts', () => {
+    const offenders = [];
+    for (const path of files) {
+      const rel = relative(toolsDir, path);
+      if (basename(path) === 'messages.ts' || rel in TS_NOT_UI) continue;
+      for (const text of findInlineEnglishInTs(readFileSync(path, 'utf8'), COPY_MODULES.has(rel))) offenders.push(`${rel}: ${JSON.stringify(text)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('lists only files that exist', () => {
+    const rels = files.map((f) => relative(toolsDir, f));
+    for (const rel of Object.keys(TS_NOT_UI)) expect(rels).toContain(rel);
+  });
+
+  it('names copy modules that exist', () => {
+    for (const rel of COPY_MODULES) expect(files.map((f) => relative(toolsDir, f))).toContain(rel);
   });
 });

@@ -1,4 +1,7 @@
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
+import { formatMessage } from '../../lib/formatMessage.ts';
+import { englishRedactMessages } from './messages.ts';
+import type { RedactMessages } from './messages.ts';
 
 export interface SameImage {
   /** Every draw of the picked image that is not deleted yet. */
@@ -26,8 +29,9 @@ export function restOfImage(
 }
 
 /** The undo chip text for one deleted image that other pages also draw. */
-export function sharedImageMessage(otherPages: number): string {
-  return `Deleted an image, also on ${otherPages} other ${otherPages === 1 ? 'page' : 'pages'}`;
+export function sharedImageMessage(otherPages: number, messages: RedactMessages = englishRedactMessages): string {
+  const m = messages.deleted;
+  return formatMessage(otherPages === 1 ? m.sharedImageOne : m.sharedImageMany, { count: otherPages });
 }
 
-export const EVERY_PAGE_MESSAGE = 'Deleted the image on every page';
+export const EVERY_PAGE_MESSAGE = englishRedactMessages.deleted.everyPageMessage;

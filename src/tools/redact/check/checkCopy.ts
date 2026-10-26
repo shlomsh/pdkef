@@ -3,71 +3,70 @@
  * that matters is testable: nothing here says a term is absent from the
  * file. "No match" is always "in the text I could read", and the lead line
  * always says pictures can't be searched and the person decides.
+ *
+ * ARCH-35: the words live in `messages.ts` (`check`, `details`). The constants below are the
+ * English edition's text, for the components that read it directly; each function takes the
+ * messages as its last argument, so a second edition needs no change here.
  */
+import { formatMessage } from '../../../lib/formatMessage.ts';
+import { englishRedactMessages } from '../messages.ts';
+import type { RedactMessages } from '../messages.ts';
 import type { Finding, PlaceKind, SavedPlace } from './types.ts';
 
-export const CHECK_LEAD =
-  "I searched the saved file's text, form fields, comments, bookmarks and document details. "
-  + "Text inside pictures can't be searched, so you're the one who decides it's safe to share.";
+const en = englishRedactMessages;
 
-export const CHECKING = 'Checking the saved file...';
+export const CHECK_LEAD = en.check.lead;
 
-export const CHECK_FAILED = "I couldn't read the saved file to check it. Your download is fine; look it over yourself before you share it.";
+export const CHECKING = en.check.checking;
+
+export const CHECK_FAILED = en.check.failed;
 /** RED-69: the check's code could not load because the tab outlived a deploy. */
-export const CHECK_UPDATED = 'PDkef was updated while this page was open. Reload the page to check the saved file. Your edits are kept.';
+export const CHECK_UPDATED = en.check.updated;
 
-export const NO_MATCH = 'No match in the text I could read.';
+export const NO_MATCH = en.check.noMatch;
 
-export const ALL_CLEAR = 'I searched the saved file for what you covered and deleted. No match in the text I could read.';
+export const ALL_CLEAR = en.check.allClear;
 
-export const NOTHING_COVERED_SHORT = 'Nothing you covered or deleted had text I could read.';
+export const NOTHING_COVERED_SHORT = en.check.nothingCoveredShort;
 
-export const SEARCH_SUMMARY = 'Search the saved file';
+export const SEARCH_SUMMARY = en.check.searchSummary;
 
-export const SEARCH_LABEL = 'Look for something else in the saved file';
+export const SEARCH_LABEL = en.check.searchLabel;
 
-export const SEARCH_BUTTON = 'Search';
+export const SEARCH_BUTTON = en.check.searchButton;
 
-export const COVER_IT = 'Add a box over it';
+export const COVER_IT = en.check.coverIt;
 
-export const REMOVE_IT = 'Remove it';
+export const REMOVE_IT = en.check.removeIt;
 
-export const REMOVING = 'Removing…';
+export const REMOVING = en.check.removing;
 
-export const COVER_IT_NOTE = 'Adding a box covers it in your next download. Download again to get the new copy.';
+export const COVER_IT_NOTE = en.check.coverItNote;
 
 /** "3", "3 and 7", "2, 5 and 9", from zero-based indexes. */
-export function pageList(pages: readonly number[]): string {
+export function pageList(pages: readonly number[], messages: RedactMessages = en): string {
   const oneBased = pages.map((page) => String(page + 1));
   if (oneBased.length <= 1) return oneBased.join('');
-  return `${oneBased.slice(0, -1).join(', ')} and ${oneBased[oneBased.length - 1]}`;
+  return formatMessage(messages.check.listAnd, { head: oneBased.slice(0, -1).join(', '), last: oneBased[oneBased.length - 1] });
 }
 
-const PLACE_TEXT: Record<PlaceKind, (page?: string) => string> = {
-  field: (page) => (page ? `In a form field on page ${page}.` : 'In a form field.'),
-  comment: (page) => (page ? `In a comment on page ${page}.` : 'In a comment.'),
-  link: (page) => (page ? `In a link on page ${page}.` : 'In a link.'),
-  bookmark: () => 'In a bookmark.',
-  title: () => "In the document's title.",
-  author: () => 'In the author field.',
-  subject: () => "In the document's subject.",
-  keywords: () => "In the document's keywords.",
-  metadata: () => "In the document's details.",
-  attachment: () => "In an attached file's name.",
-  unused: () => 'In a part of the file no page shows.',
-};
-
-export function findingText(finding: Finding): string {
+export function findingText(finding: Finding, messages: RedactMessages = en): string {
+  const m = messages.check;
   switch (finding.kind) {
     case 'visible-in-picture':
-      return `Page ${finding.pageIndex + 1}: still visible in the picture.`;
+      return formatMessage(m.visibleInPicture, { page: finding.pageIndex + 1 });
     case 'in-text':
-      return `Page ${finding.pageIndex + 1}: in the page's text.`;
-    case 'in-place':
+      return formatMessage(m.inText, { page: finding.pageIndex + 1 });
+    case 'in-place': {
       if (finding.place === 'field' && finding.removable === false) {
-        return finding.pageIndex === undefined ? "In a form field's name." : `In a form field's name on page ${finding.pageIndex + 1}.`;
+        return finding.pageIndex === undefined ? m.fieldName : formatMessage(m.fieldNameOnPage, { page: finding.pageIndex + 1 });
       }
-      return PLACE_TEXT[finding.place](finding.pageIndex === undefined ? undefined : String(finding.pageIndex + 1));
+      const place: PlaceKind = finding.place;
+      if (finding.pageIndex !== undefined && (place === 'field' || place === 'comment' || place === 'link')) {
+        return formatMessage(m.placeOnPage[place], { page: finding.pageIndex + 1 });
+      }
+      return m.place[place];
+    }
   }
 }
 
@@ -89,68 +88,63 @@ function truncated(text: string, max = 40): string {
 }
 
 /** What the panel says after a place was removed and the file saved again. */
-export function removedMessage(place: Pick<SavedPlace, 'kind' | 'text'>): string {
-  const done = 'Saved again and downloaded.';
-  switch (place.kind) {
-    case 'bookmark': return `Removed the bookmark "${truncated(place.text)}". ${done}`;
-    case 'attachment': return `Removed the attachment "${truncated(place.text)}". ${done}`;
-    case 'field': return `Cleared the field. ${done}`;
-    case 'comment': return `Removed the comment. ${done}`;
-    case 'link': return `Removed the link. ${done}`;
-    case 'title': return `Removed the title. ${done}`;
-    case 'author': return `Removed the author. ${done}`;
-    case 'subject': return `Removed the subject. ${done}`;
-    case 'keywords': return `Removed the keywords. ${done}`;
-    case 'metadata': return `Removed the document details. ${done}`;
-    case 'unused': return `Removed the parts of the file no page shows. ${done}`;
-  }
+export function removedMessage(place: Pick<SavedPlace, 'kind' | 'text'>, messages: RedactMessages = en): string {
+  const m = messages.check;
+  const removed: Record<SavedPlace['kind'], string> = {
+    bookmark: formatMessage(m.removedBookmark, { text: truncated(place.text) }),
+    attachment: formatMessage(m.removedAttachment, { text: truncated(place.text) }),
+    field: m.removedField,
+    comment: m.removedComment,
+    link: m.removedLink,
+    title: m.removedTitle,
+    author: m.removedAuthor,
+    subject: m.removedSubject,
+    keywords: m.removedKeywords,
+    metadata: m.removedMetadata,
+    unused: m.removedUnused,
+  };
+  return `${removed[place.kind]} ${m.removedDone}`;
 }
 
-export function picturePagesNote(pages: readonly number[]): string | null {
+export function picturePagesNote(pages: readonly number[], messages: RedactMessages = en): string | null {
   if (pages.length === 0) return null;
-  return pages.length === 1
-    ? `Page ${pageList(pages)} is a picture. Have a look at it before you share.`
-    : `Pages ${pageList(pages)} are pictures. Have a look at them before you share.`;
+  return formatMessage(pages.length === 1 ? messages.check.picturePageOne : messages.check.picturePagesMany, { pages: pageList(pages, messages) });
 }
 
 /** The caller passes how many attachments the *saved* file still has (`saved.attachments.length`). */
-export function attachmentsNote(count: number): string | null {
+export function attachmentsNote(count: number, messages: RedactMessages = en): string | null {
   if (count <= 0) return null;
-  return count === 1
-    ? "This file has an attached file. I didn't look inside it."
-    : `This file has ${count} attached files. I didn't look inside them.`;
+  return count === 1 ? messages.check.attachmentOne : formatMessage(messages.check.attachmentMany, { count });
 }
 
-export function unsolidNote(pages: readonly number[]): string | null {
+export function unsolidNote(pages: readonly number[], messages: RedactMessages = en): string | null {
   if (pages.length === 0) return null;
-  return pages.length === 1
-    ? `A box on page ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`
-    : `Boxes on pages ${pageList(pages)} didn't come out solid in the saved file. Don't share this copy.`;
+  return formatMessage(pages.length === 1 ? messages.check.unsolidOne : messages.check.unsolidMany, { pages: pageList(pages, messages) });
 }
 
 /** RED-59: the file's details are the person's to keep, alter or delete. */
-export const DETAILS_TITLE = 'Details';
+export const DETAILS_TITLE = en.details.title;
 
-export const DETAILS_REVIEW = 'Review';
+export const DETAILS_REVIEW = en.details.review;
 
-export const DETAIL_EDIT = 'Edit';
+export const DETAIL_EDIT = en.details.edit;
 
-export const DETAIL_DELETE = 'Delete';
+export const DETAIL_DELETE = en.details.delete;
 
-export const DETAIL_UNDO = 'Undo';
+export const DETAIL_UNDO = en.details.undo;
 
-export const DETAIL_DONE = 'Done';
+export const DETAIL_DONE = en.details.done;
 
-export const DETAILS_CLOSE = 'Done';
+export const DETAILS_CLOSE = en.details.close;
 
-export const DETAIL_IMPLIED = 'Goes with the changes above';
+export const DETAIL_IMPLIED = en.details.implied;
 
-export const DETAILS_THUMBS = "Page pictures from before your marks go on their own, so a mark can't be seen through them.";
+export const DETAILS_THUMBS = en.details.thumbs;
 
-export const DETAILS_CHANGED = (summary: string) => `Details: ${summary}.`;
+export const DETAILS_CHANGED = (summary: string) => formatMessage(en.details.changed, { summary });
 
-export const DETAILS_SURVIVED = (labels: string) => `Still in your download: ${labels}. Don't share this copy yet.`;
+export const DETAILS_SURVIVED = (labels: string) => formatMessage(en.details.survived, { labels });
 
-export const DETAILS_CHANGED_ANNOUNCEMENT = (summary: string) => `Checked your download. Details: ${summary}.`;
+export const DETAILS_CHANGED_ANNOUNCEMENT = (summary: string) => formatMessage(en.details.changedAnnouncement, { summary });
 
-export const DETAILS_SURVIVED_ANNOUNCEMENT = (labels: string) => `Still in your download: ${labels}.`;
+export const DETAILS_SURVIVED_ANNOUNCEMENT = (labels: string) => formatMessage(en.details.survivedAnnouncement, { labels });
