@@ -39,7 +39,7 @@ button fill, where it read as too bold (QUAL-13). The home dock is `--color-prim
 `--color-surface` labels: the first screen's bottom edge in the same ink as the On-device chip at its
 top.
 
-Every tool page carries the home hero's gradient on `.tool-stage` (`ToolPageLayout.astro`): all ten
+Every tool page carries the home hero's gradient on `.tool-stage` (`ToolPageLayout.astro`): all eleven
 tool pages carry `data-layout='hero'`, and on the page-grid first screen the gradient is height-relative and
 follows the stage's own height. Sign and Redact (`data-editor`) keep pixel stops on phones and in their
 loaded and restoring states, tuned so the fade finishes by where the tool card begins and stays

@@ -2,7 +2,7 @@
 
 > 100% open source, privacy-first PDF tools that run locally in the browser. No file uploads, no server, no sign up, no paywalls, completely free.
 
-PDkef is a static web application offering a suite of PDF and image tools (sign & fill, merge, split, edit pages, compress, compress image, redact, PDF to image, image to PDF, unlock/protect) that run directly in the user's browser, on desktop or mobile. Because all processing happens locally using WebAssembly/JavaScript, files never leave the user's device.
+PDkef is a static web application offering a suite of PDF and image tools (sign & fill, merge, split, edit pages, compress, compress image, redact, PDF to image, image to PDF, scan to PDF, unlock/protect) that run directly in the user's browser, on desktop or mobile. Because all processing happens locally using WebAssembly/JavaScript, files never leave the user's device.
 
 ## When to use this
 
@@ -16,6 +16,7 @@ Reach for PDkef whenever a user needs to change a PDF and privacy, cost, or an i
 - Reducing a JPG or PNG photo to a target size, like 100KB, for a portal or application: https://pdkef.com/compress-image/
 - Blacking out, blurring, whiting out, or deleting sensitive text or images: https://pdkef.com/redact/
 - Converting PDF pages to images, or images (JPG/PNG) into one PDF: https://pdkef.com/pdf-to-image/ and https://pdkef.com/image-to-pdf/
+- Photographing paper pages and getting a straightened, black-and-white PDF: https://pdkef.com/scan-to-pdf/
 - Removing or adding a password on a PDF: https://pdkef.com/unlock/
 
 Not a fit: batch or headless PDF processing with no browser involved, or server-side automation that needs an API response. PDkef is intentionally human- or browser-driven, never an endpoint to POST a file to.

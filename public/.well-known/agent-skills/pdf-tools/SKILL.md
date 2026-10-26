@@ -18,6 +18,7 @@ PDkef is a set of free, open source PDF and image tools that run entirely in the
 - Black out, blur, white out or delete sensitive text or images: https://pdkef.com/redact/
 - Turn PDF pages into images: https://pdkef.com/pdf-to-image/
 - Combine JPG or PNG images into one PDF: https://pdkef.com/image-to-pdf/
+- Photograph paper pages and get a straightened, black-and-white PDF: https://pdkef.com/scan-to-pdf/
 - Remove or add a password on a PDF: https://pdkef.com/unlock/
 
 ## In a browser that supports WebMCP
@@ -25,7 +26,7 @@ PDkef is a set of free, open source PDF and image tools that run entirely in the
 Every page registers two tools on `navigator.modelContext`:
 
 - `list_pdf_tools` returns each tool with a short description and its URL.
-- `open_pdf_tool` takes a `tool` slug (`sign`, `merge`, `split`, `edit-pdf`, `compress`, `compress-image`, `redact`, `pdf-to-image`, `image-to-pdf`, `unlock`) and opens that tool for the person.
+- `open_pdf_tool` takes a `tool` slug (`sign`, `merge`, `split`, `edit-pdf`, `compress`, `compress-image`, `redact`, `pdf-to-image`, `image-to-pdf`, `scan-to-pdf`, `unlock`) and opens that tool for the person.
 
 Both only discover and navigate. Never ask the person to paste a document into the chat to use PDkef: they pick the file on the tool page and it stays on their device.
 
