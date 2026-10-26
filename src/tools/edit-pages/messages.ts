@@ -1,3 +1,4 @@
+import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
@@ -5,8 +6,7 @@ import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
    Download element and the Undo/Redo pair read, plus the few strings that are
    this tool's own. Values start from Merge's English set (src/tools/merge/messages.ts)
    and say "skip" / "edited" where Merge says "merged"; the grid's sentence
-   shapes are unchanged. Not localized yet, so it is a plain object here and
-   not part of the i18n catalogue. */
+   shapes are unchanged. English only until a Hebrew edition exists. */
 
 export interface EditPagesMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
   includeAll: string;
@@ -108,3 +108,7 @@ export const englishEditPagesMessages: EditPagesMessages = {
   handoffFailed: 'Could not hand the file over. Download it instead.',
   shareLabel: 'Share',
 };
+
+export function getEditPagesMessages(_locale: DocumentationLocaleId): EditPagesMessages {
+  return englishEditPagesMessages;
+}
