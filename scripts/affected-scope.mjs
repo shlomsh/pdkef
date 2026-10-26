@@ -209,18 +209,15 @@ export function siteE2eProjectList(info, children) {
 // don't reach this script's callers in CI, but if it is ever invoked on one
 // directly it should not be forced to "everything" for having no project
 // owner - it simply narrows to nothing.
-// ARCH-34: public/ is copied verbatim into the site, so a project.json inside public/images or
-// public/.well-known would be published as /images/project.json (public/fonts/project.json already
-// is, a leftover nobody wants more of). These two have owners here instead of in Nx:
-//   - public/images/**: pictures the guide pages and the home/demo specs show. No tool page or tool
-//     spec references one (git grep '/images/' over src/ finds only content YAML and e2e/ specs),
-//     so the site-wide specs run, the tool directories do not.
+// ARCH-34: public/ is copied verbatim into the site, so a project.json inside public/.well-known
+// would be published. That directory has an owner here instead of in Nx:
 //   - public/.well-known/**: agent-discovery files. No spec requests them (a unit test reads them,
 //     and unit selection is scripts/unit-scope.mjs's business), so no e2e runs.
-// public/sw.js and the other loose files in public/ stay unowned on purpose: a service-worker
-// change can alter any spec, so they widen to everything.
+// public/images/** is deliberately NOT owned: tool specs open public/images/redaction-guide/sample.pdf
+// (merge-grid and seven Sign specs), FileDropzone.tsx fetches it, and src/data/tools.js renders
+// /images/scan-guide/* on tool pages, so an image change can alter any spec and widens to everything.
+// public/sw.js and the other loose files in public/ stay unowned for the same reason.
 export function publicOwnerOf(file) {
-  if (file.startsWith('public/images/')) return 'public-images';
   if (file.startsWith('public/.well-known/')) return 'public-well-known';
   return null;
 }
@@ -417,8 +414,6 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     toolE2eExists,
     siteE2ePaths: siteE2eProjects ? siteE2eProjects.filter((p) => affectedSet.has(p.name)).flatMap((p) => p.paths) : siteE2ePaths,
     includeSiteE2e: siteE2eProjects ? true : affectedSet.has('site-e2e'),
-    imagesChanged: files.some((f) => publicOwnerOf(f) === 'public-images'),
-    allSiteE2ePaths: siteE2ePaths,
     // ARCH-23: a real Nx affected-check, same as any tool project: e2e/export/
     // project.json's implicitDependencies (font-assets, editor, lib,
     // tool-sign) are what make it true here.
@@ -480,12 +475,11 @@ function reachFromCore({ files, loadReachGraph, siteE2ePaths }) {
 
 // The scope for a narrowed run. `toolProjects` get their own src/tools/<t>/e2e/ dir. (Unit tests are
 // selected by import impact, scripts/unit-scope.mjs, ARCH-28; this file no longer computes unit paths.)
-function narrowResult({ files, affected, toolProjects, toolE2eExists, siteE2ePaths, includeSiteE2e, exportGuards, reason, imagesChanged = false, allSiteE2ePaths = [] }) {
+function narrowResult({ files, affected, toolProjects, toolE2eExists, siteE2ePaths, includeSiteE2e, exportGuards, reason }) {
   const e2ePaths = toolProjects
     .filter((p) => toolE2eExists(p))
     .map((p) => `src/tools/${toolNameOf(p)}/e2e/`);
   if (includeSiteE2e) e2ePaths.push(...siteE2ePaths);
-  if (imagesChanged) e2ePaths.push(...allSiteE2ePaths.filter((p) => !e2ePaths.includes(p)));
 
   return {
     everything: false,
