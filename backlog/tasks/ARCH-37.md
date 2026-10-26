@@ -1,7 +1,7 @@
 ---
 id: "ARCH-37"
 title: "Opening a file is one hook per kind of tool"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
@@ -39,3 +39,18 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
 - [ ] Opening a PDF from the operating system ("Open with" on the installed app) works in Redact.
 - [ ] Existing unit and e2e tests for the five tools pass; the new hooks have unit tests, including
       an encrypted file and a stale pick replaced by a newer one.
+
+## Progress (part A: useOpenPageDocument)
+
+- `src/shell/pageWorkspace/useOpenPageDocument.ts` is the one open path for Split, Edit Pages and
+  PDF to Image: stale-pick guard, encryption probe, repaired copy, load status. A tool picks a
+  `loader` (`repairedPdfLoader` for pdf-lib tools, `thumbnailPdfLoader` for PDF to Image) and which
+  protection kinds stop it (`unlockKinds`). `useLazyPageGrid.ts` owns the lazy `PageGrid` import.
+- Differences found between the three copies: PDF to Image gates only on a password (an
+  owner-restricted file renders) and reads with pdf.js, reporting under `pdf_render`; Split also
+  tracks rejected non-PDF files (kept in the island, before `open`); per-tool resets differ (mode,
+  page numbers, name). Drift unified: Edit Pages' `useCallback` omitted the announcement strings
+  from its dependencies (a stale-message bug for localized editions), now read through the hook's
+  latest-options ref.
+- Unit tests: `useOpenPageDocument.test.tsx` (ordinary PDF, repaired copy, encrypted, owner-restricted
+  pass-through, stale pick, damaged PDF, replace vs add).

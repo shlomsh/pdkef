@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { ComponentType } from 'preact';
+import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { isPdfFile } from '../../lib/fileKind.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { includeAll, includedPageNumbers, invert, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -34,7 +32,9 @@ import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWo
 import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
-import type { CellAction, PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
+import type { CellAction } from '../../shell/pageGrid/PageGrid.tsx';
+import { thumbnailPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
 import { imageBaseName, imageExtension, imageFileName } from './toImage.js';
 import {
@@ -67,17 +67,7 @@ export interface PdfToImageToolProps {
 export default function PdfToImageTool({ messages: messagesProp, shellMessages, quietPolicy }: PdfToImageToolProps = {}) {
   const t: ToImageMessages = { ...englishToImageMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
-  const [file, setFile] = useState<File | null>(null);
-  const [pageCount, setPageCount] = useState(0);
-  // The file picked last. A load that finishes after a newer pick is stale.
-  const pickedFileRef = useRef<File | null>(null);
-  // Bumped on every pick: the prepared key's file identity, since two different
-  // PDFs can share a name, size and date while the result cache outlives a replacement.
-  const [loadId, setLoadId] = useState(0);
   const resetDownloadFlowRef = useRef<() => void>(() => {});
-  // A password-locked PDF is a precondition, not a failure (src/shell/NeedsUnlock.tsx).
-  const [needsUnlock, setNeedsUnlock] = useState<ArrayBuffer | null>(null);
-  const [loadStatus, setLoadStatus] = useState<'idle' | 'loading-file' | 'error'>('idle');
   // What the images are made as sits outside the Undo stack, like Split's mode.
   const [format, setFormat] = useState<ImageFormat>('image/png');
   const [scale, setScale] = useState(2);
@@ -85,10 +75,6 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
-  // Loaded through a dynamic import() so the grid, its preview dialog and
-  // Sortable stay off the eager graph check-page-weight.js measures.
-  const [PageGrid, setPageGrid] = useState<ComponentType<PageGridProps> | null>(null);
-  useHoldUpdate(file !== null, 'open');
 
   const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<ImageDocument>(
     EMPTY_DOCUMENT,
@@ -96,74 +82,34 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   );
   const { plan } = present;
 
+  // The one open path (src/shell/pageWorkspace/useOpenPageDocument.ts). Only a password stops
+  // pdf.js; an owner-restricted file renders and converts as it is.
+  const { file, pageCount, loadId, loadStatus, needsUnlock, open } = useOpenPageDocument({
+    loader: thumbnailPdfLoader,
+    unlockKinds: ['needs-password'],
+    messages: { needsPassword: t.announceNeedsPassword, loaded: t.loaded, loadFailed: t.loadFailed },
+    announce: setAnnouncement,
+    onPick: () => {
+      resetDownloadFlowRef.current();
+      setRenderedCount(0);
+      // Format, quality and output are the person's choices and outlast a replaced file.
+      // A new file starts a fresh document: reset (not commit) so the previous
+      // file's undo/redo stacks don't leak across files.
+      reset(EMPTY_DOCUMENT);
+    },
+    onLoaded: ({ pageCount: count }) => reset({ plan: planForFile(FILE_ID, count) }),
+  });
+  useHoldUpdate(file !== null, 'open');
+  const PageGrid = useLazyPageGrid(file !== null);
+
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
     const pdfs = Array.from(fileList).filter((f) => isPdfFile(f));
     if (pdfs.length === 0) return;
-    const selectedFile = pdfs[0];
-    recordAction(file ? 'replace_file' : 'add_files');
-
-    setFile(selectedFile);
-    pickedFileRef.current = selectedFile;
-    setLoadId((n) => n + 1);
-    resetDownloadFlowRef.current();
-    setLoadStatus('loading-file');
-    setNeedsUnlock(null);
-    setPageCount(0);
-    setRenderedCount(0);
-    // Format, quality and output are the person's choices and outlast a replaced file.
-    // A new file starts a fresh document: reset (not commit) so the previous
-    // file's undo/redo stacks don't leak across files.
-    reset(EMPTY_DOCUMENT);
-
-    let source: { pageCount: number; destroy: () => Promise<void> } | null = null;
-    try {
-      const bytes = await selectedFile.arrayBuffer();
-      // Only a password stops pdf.js; an owner-restricted file renders and converts as it is.
-      let protection = 'open';
-      try {
-        protection = await probeEncryption(bytes);
-      } catch (err) {
-        // The probe itself failing says nothing about the file; load as today.
-        reportError('pdf_tool_run', err, 'check_encryption');
-      }
-      if (pickedFileRef.current !== selectedFile) return;
-      if (protection === 'needs-password') {
-        setNeedsUnlock(bytes);
-        setLoadStatus('idle');
-        setAnnouncement(t.announceNeedsPassword);
-        return;
-      }
-      // Lazy: pdf.js stays out of the eager graph until a file is picked.
-      const { openThumbnailSource } = await import('../../lib/thumbnails.js');
-      source = await openThumbnailSource(selectedFile);
-      if (pickedFileRef.current !== selectedFile) return;
-      setPageCount(source.pageCount);
-      reset({ plan: planForFile(FILE_ID, source.pageCount) });
-      setLoadStatus('idle');
-      setAnnouncement(formatMessage(t.loaded, { name: selectedFile.name, count: source.pageCount }));
-    } catch (err) {
-      reportError('pdf_render', err, 'load_document');
-      console.error(err);
-      if (pickedFileRef.current !== selectedFile) return;
-      setLoadStatus('error');
-      setAnnouncement(t.loadFailed);
-    } finally {
-      // expected: an abandoned document failing to release is nothing the person can act on
-      await source?.destroy().catch(() => {});
-    }
-  }, [reset, file, t.announceNeedsPassword, t.loaded, t.loadFailed]);
+    await open(pdfs[0]);
+  }, [open]);
 
   // SITE-42: a PDF picked on the home page arrives as a hand-off and takes the path a manual pick takes.
   useHandoffIntake('pdf-to-image', (f) => handleFilesAdded([f]));
-
-  useEffect(() => {
-    if (!file || PageGrid) return undefined;
-    let cancelled = false;
-    import('../../shell/pageGrid/PageGrid.tsx')
-      .then((module) => { if (!cancelled) setPageGrid(() => module.default); })
-      .catch((err) => reportError('pdf_render', err, 'load_page_grid'));
-    return () => { cancelled = true; };
-  }, [file !== null, PageGrid]);
 
   const sources = useMemo(
     () => (file ? [{ id: FILE_ID, file, pageCount, error: null }] : []),
@@ -356,7 +302,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
         <NeedsUnlock
           kind="needs-password"
           file={file}
-          bytes={needsUnlock}
+          bytes={needsUnlock.bytes}
           from="pdf-to-image"
           toolName="PDF to Image"
           verb="turn it into images"
