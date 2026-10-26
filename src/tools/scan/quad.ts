@@ -43,6 +43,21 @@ export function isConvexQuad(quad: Quad): boolean {
   return true;
 }
 
+/** The sine of 15 degrees: no corner of a photographed page is sharper than that, or flatter than 165. */
+const MIN_CORNER_SINE = Math.sin((15 * Math.PI) / 180);
+
+/** Convex, and every corner a real page could have: a corner on, or all but on, the line between its
+ * neighbours (near 180 degrees) passes isConvexQuad by a hair, and the warp fans the page out. */
+export function isPagelike(quad: Quad): boolean {
+  if (!isConvexQuad(quad)) return false;
+  return quad.every((p, i) => {
+    const a = quad[(i + 1) % 4];
+    const b = quad[(i + 3) % 4];
+    const lengths = Math.hypot(a.x - p.x, a.y - p.y) * Math.hypot(b.x - p.x, b.y - p.y);
+    return lengths > 0 && Math.abs(cross(p, a, b)) / lengths >= MIN_CORNER_SINE;
+  });
+}
+
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 export function clampPoint(point: Point): Point {

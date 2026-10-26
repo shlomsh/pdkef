@@ -26,6 +26,7 @@ import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWo
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
+import { useMediaQuery } from './useMediaQuery.ts';
 import { englishShellMessages } from '../../i18n/toolMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
@@ -193,6 +194,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   useHoldUpdate(pages.length > 0, 'open');
   const downloaded = useDownloaded();
+  /** One rating ask, in the place that has room for it: two would both try to ask (RatingPrompt). */
+  const wide = useMediaQuery('(min-width: 1024px)');
+  const rating = <RatingPrompt tool="scan-to-pdf" downloaded={downloaded} messages={englishShellMessages} />;
 
   const announce = useCallback((text: string) => {
     setAnnouncement((previous) => (previous === text ? `${text} ` : text));
@@ -854,9 +858,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
                   )}
-                  {/* In the rail with the next steps, not under the card: on desktop the card is exactly the
-                      first screen, and the ask grew it past the fold (Scan QA). */}
-                  <RatingPrompt tool="scan-to-pdf" downloaded={downloaded} messages={englishShellMessages} />
+                  {/* On a phone the ask follows the next steps; on desktop it sits under the page instead
+                      (below), where the photo gives it the room: the rail had none (Scan QA). */}
+                  {!wide && rating}
                 </>
               )}
             >
@@ -1065,6 +1069,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
               {/* On a phone the corners come first; the choices follow the pages they apply to. */}
               <div class={styles['phone-options']}>{controls('-phone')}</div>
+              {/* Desktop: under the page, inside the first screen (useFloorHeight leaves it the room). */}
+              {wide && rating}
             </PageWorkspace>
           )}
         </ToolShellBridge>
