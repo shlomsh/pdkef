@@ -9,7 +9,7 @@ export default function PageNumbersVerb() {
   return (
     <VerbStage>
       <i class={`${page} ${styles.p1}`}><b class={`${styles.num} ${styles.n1}`} /></i>
-      <i class={`${page} ${styles.p2}`}><b class={`${styles.num} ${styles.n2}`} /></i>
+      <i class={page}><b class={`${styles.num} ${styles.n2}`} /></i>
       <i class={`${page} ${styles.p3}`}><b class={`${styles.num} ${styles.n3}`} /></i>
     </VerbStage>
   );
