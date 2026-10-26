@@ -117,6 +117,7 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
   const inputsRef = useRef({ workingFile, plan, addPageNumbers });
   inputsRef.current = { workingFile, plan, addPageNumbers };
   const prepared = usePreparedOutput({
+    cacheScope: loadId,
     key,
     build: async (signal, onProgress) => {
       const { workingFile: source, plan: current, addPageNumbers: numbers } = inputsRef.current;

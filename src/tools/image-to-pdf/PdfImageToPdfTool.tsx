@@ -131,7 +131,11 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
     prepared,
     fileName,
     blocked: failed ? 'error' : null,
-    announce,
+    // A Download tap on a ready link announces the ready message each time; the live region says it once.
+    announce: (text: string) => {
+      if (text === t.announceReady) setAnnouncement((previous) => (previous.trim() === text ? previous : text));
+      else announce(text);
+    },
     messages: { ready: t.announceReady, shared: t.announceShared, canceled: t.announceShareCanceled, shareError: t.announceShareError },
     // A tap that beat the build is delivered by the flow; the tap on a ready link records its own download.
     onDelivered: () => {

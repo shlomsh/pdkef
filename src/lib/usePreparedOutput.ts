@@ -34,6 +34,9 @@ export interface PreparedOutputInput<M = unknown> {
   /** Default true. False withdraws on a key change as usual but builds nothing
    * until `prepareNow` (a long document builds on hover, focus or tap). */
   autoBuild?: boolean;
+  /** Identifies the document the key belongs to. When it changes, every cached result is dropped, so a
+   * hook that lives as long as its island does not hold a replaced file's blobs. */
+  cacheScope?: unknown;
 }
 
 export interface PreparedOutput<M = unknown> {
@@ -62,7 +65,7 @@ export interface PreparedOutput<M = unknown> {
 export type Built<M = unknown> = ({ blob: Blob; pageCount: number } | { parts: OutputPart[]; pageCount: number }) & { meta?: M };
 
 export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): PreparedOutput<M> {
-  const { key, build, onBuildError, onReady, quietPolicy, autoBuild = true } = input;
+  const { key, build, onBuildError, onReady, quietPolicy, autoBuild = true, cacheScope } = input;
   const { url, setBlob, clear } = useObjectUrls();
   const [state, setState] = useState<{
     status: PreparedStatus; blob: Blob | null; parts: PreparedPart[] | null; pageCount: number; meta: M | null; error: Error | null; generation: number;
@@ -70,6 +73,8 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
   const [progress, setProgress] = useState(0);
   const preparerRef = useRef<ReturnType<typeof createQuietPreparer<Built<M>>> | null>(null);
   const keyRef = useRef<string | null>(null);
+  /** The key whose aborted build has already been re-armed once. */
+  const rearmedKeyRef = useRef<string | null>(null);
   const autoBuildRef = useRef(autoBuild);
   autoBuildRef.current = autoBuild;
   /** Every object URL made for the parts on screen; revoked whenever they go. */
@@ -102,8 +107,17 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
         setState((current) => ({ status: 'ready', blob, parts, pageCount: built.pageCount, meta: built.meta ?? null, error: null, generation: current.generation + 1 }));
       },
       onError: (errorKey, error) => {
-        // expected: a superseded build is aborted on purpose and is not a failure
-        if ((error as DOMException)?.name === 'AbortError' || errorKey !== keyRef.current) return;
+        if (errorKey !== keyRef.current) return;
+        // expected: a superseded build is aborted on purpose and is not a failure. A supersede that did not
+        // change the key (a tool bumped its own token) would leave the key pending for good, so the current
+        // key is armed again, once per key change: a build that always aborts must not spin.
+        if ((error as DOMException)?.name === 'AbortError') {
+          if (rearmedKeyRef.current !== errorKey) {
+            rearmedKeyRef.current = errorKey;
+            preparerRef.current?.change(errorKey, autoBuildRef.current);
+          }
+          return;
+        }
         callbacksRef.current.onBuildError?.(error);
         console.error(error);
         revokePartUrls();
@@ -121,9 +135,15 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
 
   /** Points the preparer at `nextKey`. Idempotent per key, so the render below and the effect can both call it. */
   const appliedKeyRef = useRef<string | null | undefined>(undefined);
+  const appliedScopeRef = useRef<unknown>(cacheScope);
   const applyKey = (nextKey: string | null) => {
     const preparer = preparerRef.current;
-    if (!preparer || appliedKeyRef.current === nextKey) return;
+    if (!preparer) return;
+    if (appliedScopeRef.current !== cacheScope) {
+      appliedScopeRef.current = cacheScope;
+      preparer.clearCache();
+    }
+    if (appliedKeyRef.current === nextKey) return;
     appliedKeyRef.current = nextKey;
     if (nextKey === null) {
       keyRef.current = null;
@@ -138,6 +158,7 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
     // never hand out a result for an order the person has since changed. A
     // cache hit inside change() restores a built state in the same commit.
     keyRef.current = nextKey;
+    rearmedKeyRef.current = null;
     setState((current) => ({ status: 'pending', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: current.generation }));
     clear();
     revokePartUrls();

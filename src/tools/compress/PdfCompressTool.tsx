@@ -161,6 +161,7 @@ export default function PdfCompressTool({
   // Guideline §2, "Quiet means quiet": usePreparedOutput builds once the person goes quiet and caches
   // by key, so a state already built is instant. The first build of a file starts at once (below).
   const prepared = usePreparedOutput<CompressMeta>({
+    cacheScope: fileSeq,
     // Registered at once so the gate can start it with no render in between; behind a closed gate nothing builds.
     key: file ? buildKey(fileSeq, level, targetKB, flatten) : null,
     autoBuild: runnable,
@@ -360,6 +361,7 @@ export default function PdfCompressTool({
   };
 
   const handleFlattenChange = (next: boolean) => {
+    if (next === flatten) return;
     setFlatten(next);
     recordAction('change_setting');
     reportEdit(analyticsTool);
@@ -369,6 +371,7 @@ export default function PdfCompressTool({
   // The quiet policy covers typing too: every keystroke is a change, and only the last one builds.
   const handleTargetKBChange = (nextTargetKB: number) => {
     const next = Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1;
+    if (next === targetKB) return;
     setTargetKB(next);
     recordAction('change_setting');
     reportEdit(analyticsTool);

@@ -72,3 +72,22 @@ passes dummy props to `FinishRow` (`PdfToImageTool.tsx:441-446`).
   still rendering `DownloadButton`. `useLastResult.ts` keeps the last landed result on screen while a new build
   runs. `usePreparedOutput` gained `onReady` and registers a key while rendering. Not adopted: `DownloadElement`,
   `FinishRow`, `PhoneFinish`. Hand-offs are passed as empty strings until `HandoffHrefs` is made partial.
+
+## Review fixes
+
+A reviewer found four regressions from moving Compress, Image to PDF and Unlock/Protect onto
+`usePreparedOutput` and `useDownloadFlow`. Each fix started as a test seen failing.
+
+- Compress hung on "processing": re-clicking the selected target preset bumped the run token under a build
+  in flight, the build threw its supersede AbortError, and the unchanged key was never rebuilt. Compress's
+  option handlers now return early for an unchanged value, and `usePreparedOutput` re-arms the current key
+  once (per key change) when its build aborts with nothing newer queued, so a supersede that left the key
+  alone cannot strand it. A build that always aborts runs twice, not forever.
+- Replaced files' results stayed cached: `usePreparedOutput` takes an optional `cacheScope`; when it changes
+  the result cache is cleared (`clearCache()` on the quiet preparer). Compress, Split, Edit Pages and PDF to
+  Image pass their load id or file number.
+- `useDownloadFlow`: a superseded hand-off no longer clears `handoffBusy` for the newer run, on failure or on
+  a refused `proceed`; `reset()` clears it itself.
+- The ready-tap `announce(messages.ready)` predates this branch (GRID-04, Merge's flow), so the flow is kept.
+  Image to PDF's own announce now says an unchanged ready message once instead of alternating a trailing
+  no-break space on every tap.

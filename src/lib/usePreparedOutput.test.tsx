@@ -163,6 +163,54 @@ describe('usePreparedOutput', () => {
     expect(onBuildError).not.toHaveBeenCalled();
   });
 
+  it('re-arms the current key once when its build aborts without a newer change, so it cannot stay pending', async () => {
+    const onBuildError = vi.fn();
+    let calls = 0;
+    const build = vi.fn(async () => {
+      calls++;
+      if (calls === 1) throw new DOMException('aborted', 'AbortError');
+      return built();
+    });
+    await mount({ key: 'a', build, onBuildError });
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    expect(api.current.status).toBe('ready');
+    expect(onBuildError).not.toHaveBeenCalled();
+  });
+
+  it('re-arms an aborting key only once, so a build that always aborts does not spin', async () => {
+    const build = vi.fn(async () => { throw new DOMException('aborted', 'AbortError'); });
+    await mount({ key: 'a', build });
+    await settle();
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    expect(api.current.status).toBe('pending');
+  });
+
+  it('forgets results built for an earlier cacheScope, so a replaced document is not retained', async () => {
+    const build = vi.fn(async () => built());
+    await mount({ key: 'a', build, cacheScope: 1 });
+    await settle();
+    await mount({ key: 'b', build, cacheScope: 2 });
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    await mount({ key: 'a', build, cacheScope: 1 });
+    expect(api.current.status).toBe('pending');
+    await settle();
+    expect(build).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps cached results while the cacheScope stays the same', async () => {
+    const build = vi.fn(async () => built());
+    await mount({ key: 'a', build, cacheScope: 1 });
+    await settle();
+    await mount({ key: 'b', build, cacheScope: 1 });
+    await settle();
+    await mount({ key: 'a', build, cacheScope: 1 });
+    expect(api.current.status).toBe('ready');
+    expect(build).toHaveBeenCalledTimes(2);
+  });
+
   it('turns a failed build into error and reports it', async () => {
     const failure = new Error('boom');
     const onBuildError = vi.fn();

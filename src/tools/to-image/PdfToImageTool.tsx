@@ -131,6 +131,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const inputsRef = useRef({ file, plan, format, scale, layout });
   inputsRef.current = { file, plan, format, scale, layout };
   const prepared = usePreparedOutput({
+    cacheScope: loadId,
     key,
     quietPolicy,
     autoBuild: autoBuilds(includedCount),
