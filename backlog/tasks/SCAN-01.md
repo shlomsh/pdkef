@@ -1,13 +1,13 @@
 ---
 id: "SCAN-01"
-title: "Scan to PDF: a camera-and-clean-up mode on Image to PDF, plus a how-to-scan-to-PDF guide"
+title: "Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide"
 status: "open"
 priority: "P3"
 epic: "search-and-languages"
 horizon: "next"
 ---
 
-# SCAN-01 · Scan to PDF on Image to PDF, and a guide that answers "how to scan to PDF"
+# SCAN-01 · Scan to PDF as its own tool, and a guide that answers "how to scan to PDF"
 
 *Filed 2026-10-26* from a look at https://www.ilovepdf.com/scan-pdf, Shlomi's Google Trends screenshots and US
 Google results read in the built-in browser the same day.
@@ -33,9 +33,20 @@ Google results read in the built-in browser the same day.
 
 ## Scope
 
-### 1. Scan mode on Image to PDF (`src/tools/image-to-pdf/`)
+### 1. Scan to PDF tool (`src/tools/scan/`, route `/scan-to-pdf/`)
 
-Today the tool takes JPEG/PNG and sizes each page to its image. Add, on the same island:
+**Decided 2026-10-26: its own tool, because the search case holds.** A mode inside Image to PDF cannot carry "scan to
+PDF" in its title, H1 and description, and the term has its own demand and its own page-one results. So: a new route
+with its static SEO shell (title, H1, description, how-it-works, FAQ and JSON-LD on "scan to PDF"), a registry entry
+in `src/data/tools.js`, the non-slash redirect pair in `vercel.json`, and the tool count updated wherever it is stated
+(CLAUDE.md "ten tools", README, site copy). Image to PDF keeps its page and stays as it is apart from what moves.
+
+**Shared engine, not a copy.** What both tools use (image to PDF page building, `pageOrder.js`) moves from
+`src/tools/image-to-pdf/` to `src/lib/` under the rules in `docs/module-boundaries.md`; scan-only code (corners,
+warp, filters) stays in `src/tools/scan/`. Image to PDF's done state offers "Clean it up as a scan" for a photo of a
+page, and Scan's done state hands off to Sign, Merge and Compress.
+
+Today Image to PDF takes JPEG/PNG and sizes each page to its image. The Scan tool adds:
 
 - **Camera.** On a phone, a "Take a photo" entry (file input with `capture`, so no camera permission prompt and no
   `getUserMedia` in v1), one page per shot, add more pages, reorder with the existing `pageOrder.js`.
@@ -51,10 +62,7 @@ Today the tool takes JPEG/PNG and sizes each page to its image. Add, on the same
 - Gesture rule applies to the corner drags: DOM during the drag, one commit on release through
   `src/lib/gestures/controller.ts`.
 
-Decide in the build whether this is a mode inside the Image to PDF page or its own `/scan-to-pdf/` route over the
-same island. A route needs its `vercel.json` redirect pair, registry entry in `src/data/tools.js` and its own static
-SEO shell (title, H1 and description on "scan to PDF"); a mode keeps one page and earns the term through copy. Check
-the page-weight budget either way: the warp and filter code loads only when Scan is used.
+The page carries its own weight budget; the warp and filter code loads only once a photo is in.
 
 ### 2. Guide page (`src/content/content-pages/how-to-scan-a-document-to-pdf.yaml`)
 
@@ -76,6 +84,8 @@ file too big for a portal, a scan to sign next). Link from `remove-camscanner-wa
 - [ ] The same from photos already on the device.
 - [ ] Edge guess, warp, filters and size-target stepping are pure functions with unit tests; one e2e covers the
       corner drag on a rendered page.
+- [ ] `/scan-to-pdf/` is live with its static SEO shell, registry entry and redirect pair; `test:seo`,
+      `test:redirects` and `test:module-boundaries` pass, and Image to PDF behaves as before.
 - [ ] Nothing new leaves the device; `test:csp`, `test:weight` and `test:lazy-modules` pass.
 - [ ] The guide page is live, linked from the two pages above, its FAQ JSON-LD matches the page.
 - [ ] After four weeks, Search Console impressions and clicks for queries containing "scan" are recorded here.
@@ -83,4 +93,4 @@ file too big for a portal, a scan to sign next). Link from `remove-camscanner-wa
 ## Open questions
 
 - Does iOS Safari hand over HEIC from the photo library? `accept` today is `image/jpeg,image/png`.
-- Mode or route (above).
+- Does Hebrew get a `/he/` Scan page at launch? Follow the languages page, not this ticket.
