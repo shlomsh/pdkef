@@ -6,6 +6,8 @@ import styles from './CornerEditor.module.css';
 
 interface CornerEditorProps {
   src: string;
+  /** The photo's width over height: the frame takes this shape before the image decodes. */
+  aspect?: number;
   quad: Quad;
   onCommit(quad: Quad): void;
   /** Already localized, e.g. corners[0] = 'Top-left corner'. */
@@ -34,7 +36,7 @@ function clientPoint(event: any): { x: number; y: number } {
 // The photo with four draggable corners. Gesture golden rule: a drag moves the
 // handle and rewrites the outline straight through refs, and the final quad goes
 // to onCommit once, on release. Render always derives from the `quad` prop.
-export default function CornerEditor({ src, quad, onCommit, labels }: CornerEditorProps) {
+export default function CornerEditor({ src, aspect, quad, onCommit, labels }: CornerEditorProps) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const handleRefs = useRef<(HTMLButtonElement | null)[]>([null, null, null, null]);
   const outlineRef = useRef<SVGPolygonElement | null>(null);
@@ -132,7 +134,12 @@ export default function CornerEditor({ src, quad, onCommit, labels }: CornerEdit
   };
 
   return (
-    <div class={styles['frame']} ref={frameRef} data-corner-frame>
+    <div
+      class={styles['frame']}
+      ref={frameRef}
+      data-corner-frame
+      style={aspect ? { aspectRatio: String(aspect), width: `min(100%, calc(62svh * ${aspect}))` } : undefined}
+    >
       <img class={styles['photo']} src={src} alt="" draggable={false} />
       <svg class={styles['overlay']} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
         <path ref={dimRef} class={styles['dim']} d={dimPath(quad)} fill-rule="evenodd" />

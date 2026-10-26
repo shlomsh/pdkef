@@ -12,7 +12,15 @@ import { placeImage } from '../../lib/imagePage.js';
 import { MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
 
 export type PageSize = 'fit' | 'a4' | 'letter';
-export interface ProcessedPage { blob: Blob; width: number; height: number }
+export interface ProcessedPage {
+  blob: Blob;
+  width: number;
+  height: number;
+  /** A small copy for the page strip: phones drop decoded images once their memory budget fills. */
+  thumb: Blob;
+}
+/** What a new photo needs on screen: its corners, its shape, and a preview small enough to decode. */
+export interface InspectedPhoto { quad: Quad | null; width: number; height: number; preview: Blob }
 /** placeImage's shape: PDF points, y from the page's bottom. */
 export interface Placement { pageWidth: number; pageHeight: number; x: number; y: number; width: number; height: number }
 /** One page of the built PDF: the very JPEG inside it, and where it sits on its paper. */
@@ -26,6 +34,11 @@ const OUTPUT_LONG_EDGE = 2400;
 const GUESS_LONG_EDGE = 320;
 /** A processed page is kept at this quality; the PDF is encoded from it. */
 const KEEP_QUALITY = 0.92;
+/** The corner editor and loupe show this, never the photo itself: 12 MP decodes to 48 MB, and iPhone
+ * Safari drops images (they render at zero size) once its decoded-image budget fills. 2.5x of a phone
+ * width still has the pixels the loupe needs. */
+const PREVIEW_LONG_EDGE = 1600;
+const THUMB_LONG_EDGE = 480;
 
 // An <img> rather than createImageBitmap: drawImage then honours the EXIF orientation the
 // same way the corner editor's <img> shows it, on every browser, so the corners line up.
@@ -61,16 +74,37 @@ const freeCanvas = (canvas: HTMLCanvasElement) => {
   canvas.height = 0;
 };
 
-/** The page's corners as the edge guess sees them, or null when it finds no page. */
-export async function guessPage(photo: Blob): Promise<Quad | null> {
-  const canvas = drawCapped(await loadImage(photo), GUESS_LONG_EDGE);
+function grayOf(source: CanvasImageSource, w: number, h: number): GrayImage {
+  const fit = Math.min(1, GUESS_LONG_EDGE / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(w * fit));
+  canvas.height = Math.max(1, Math.round(h * fit));
+  (canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D).drawImage(source, 0, 0, canvas.width, canvas.height);
   const { data, width, height } = pixels(canvas);
   freeCanvas(canvas);
   const gray: GrayImage = { width, height, data: new Uint8ClampedArray(width * height) };
   for (let i = 0, j = 0; j < gray.data.length; i += 4, j += 1) {
     gray.data[j] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
   }
-  return guessCorners(gray);
+  return gray;
+}
+
+/** The page's corners as the edge guess sees them, or null when it finds no page. */
+export async function guessPage(photo: Blob): Promise<Quad | null> {
+  const img = await loadImage(photo);
+  return guessCorners(grayOf(img, img.naturalWidth, img.naturalHeight));
+}
+
+/** One decode of a new photo: its corners, its upright size, and the preview the screen shows. */
+export async function inspectPhoto(photo: Blob): Promise<InspectedPhoto> {
+  const img = await loadImage(photo);
+  const preview = drawCapped(img, PREVIEW_LONG_EDGE);
+  try {
+    const quad = guessCorners(grayOf(preview, preview.width, preview.height));
+    return { quad, width: img.naturalWidth, height: img.naturalHeight, preview: await canvasToBlob(preview, 'image/jpeg', 0.85) };
+  } finally {
+    freeCanvas(preview);
+  }
 }
 
 /** One page: flattened to its corners, given its look, kept as a high-quality JPEG. */
@@ -85,10 +119,21 @@ export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): 
   out.width = width;
   out.height = height;
   (out.getContext('2d') as CanvasRenderingContext2D).putImageData(new ImageData(flat.data as Uint8ClampedArray<ArrayBuffer>, width, height), 0, 0);
+  const fit = Math.min(1, THUMB_LONG_EDGE / Math.max(width, height));
+  const small = document.createElement('canvas');
+  small.width = Math.max(1, Math.round(width * fit));
+  small.height = Math.max(1, Math.round(height * fit));
   try {
-    return { blob: await canvasToBlob(out, 'image/jpeg', KEEP_QUALITY), width, height };
+    (small.getContext('2d') as CanvasRenderingContext2D).drawImage(out, 0, 0, small.width, small.height);
+    return {
+      blob: await canvasToBlob(out, 'image/jpeg', KEEP_QUALITY),
+      width,
+      height,
+      thumb: await canvasToBlob(small, 'image/jpeg', 0.8),
+    };
   } finally {
     freeCanvas(out);
+    freeCanvas(small);
   }
 }
 
