@@ -91,7 +91,7 @@
 // its own separate astroScriptSrcEdges() pass below, since otherwise a
 // module loaded only this way would misread as having no site consumer.
 //
-// Anything not covered by these nine rules is not checked here (test
+// Anything not covered by these ten rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
 // its own, below, because it is not part of the target layout
 // docs/module-boundaries.md describes); this file is deliberately narrower
@@ -161,6 +161,16 @@ export function classify(relPath) {
     return relPath.endsWith('.astro') ? 'site' : 'components';
   }
   return null; // src/assets, src/content.config.ts, ...: outside the module graph
+}
+
+// A top-level src/ entry that classify() has no row for would classify as null and so escape every
+// rule. These are the only ones allowed to: not part of the module graph on purpose. Anything else
+// (a new src/foo/ folder) fails loudly until it gets a MODULE_PREFIXES row or is listed here.
+const OUTSIDE_THE_GRAPH = new Set(['assets', 'content.config.ts', 'project.json']);
+const CLASSIFIED_TOP_LEVEL = new Set(['components', 'tools', ...MODULE_PREFIXES.map(([p]) => p.split('/')[1])]);
+
+export function unclassifiedSrcEntries(entries) {
+  return entries.filter((e) => !CLASSIFIED_TOP_LEVEL.has(e) && !OUTSIDE_THE_GRAPH.has(e)).sort();
 }
 
 const isTool = (m) => typeof m === 'string' && m.startsWith('tool:');
@@ -308,12 +318,17 @@ function main() {
   const specRouteIssues = toolSpecRouteViolations();
   const scriptsViolations = scriptsImportViolations();
   const consumerViolations = commonLayerConsumerViolations();
+  const unknownSrc = unclassifiedSrcEntries(fs.readdirSync(path.join(ROOT, 'src')));
 
   if (
-    unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
+    unknownSrc.length > 0 || unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
     || specRouteIssues.length > 0 || scriptsViolations.length > 0 || consumerViolations.length > 0
   ) {
     console.error('Module boundary check failed:');
+    if (unknownSrc.length > 0) {
+      console.error('\nUnclassified top-level src/ entries (they would escape every rule; add a MODULE_PREFIXES row or list them in OUTSIDE_THE_GRAPH):');
+      for (const e of unknownSrc) console.error(`  src/${e}`);
+    }
     if (unallowed.length > 0) {
       console.error('\nNew violations (not on the allowlist):');
       for (const v of unallowed) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);

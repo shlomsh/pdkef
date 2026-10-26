@@ -845,10 +845,9 @@ describe('deriveScope: site-wide e2e split by directory (ARCH-34)', () => {
     expect(paths(scope)).toContain('e2e/handoff/');
   });
 
-  it('a changed file outside src/ and outside a site-wide e2e root keeps every site-wide directory (no fail-narrow)', () => {
+  it('an image change alongside a lib change still widens to everything', () => {
     const scope = derive(['src/lib/mergeOnly.ts', 'public/images/scan-guide/a.jpg'], ['lib', 'tool-merge']);
-    expect(scope.everything).toBe(false);
-    for (const p of ALL_SITE_PATHS) expect(paths(scope)).toContain(p);
+    expect(scope.everything).toBe(true);
   });
 
   it('a verdict that reaches no tool keeps every site-wide directory', () => {
@@ -867,11 +866,9 @@ describe('deriveScope: site-wide e2e split by directory (ARCH-34)', () => {
     expect(paths(scope)).toEqual(['e2e/home/']);
   });
 
-  it('public/images has an owner: an image-only change runs every site-wide directory and no tool directory', () => {
-    const scope = derive(['public/images/scan-guide/a.jpg'], []);
-    expect(scope.everything).toBe(false);
-    expect(scope.reason).not.toContain('unowned');
-    expect(paths(scope)).toEqual([...ALL_SITE_PATHS].sort());
+  it('public/images stays unowned: tool specs open redaction-guide/sample.pdf, so an image change runs everything', () => {
+    const scope = derive(['public/images/redaction-guide/sample.pdf'], []);
+    expect(scope.everything).toBe(true);
   });
 
   it('public/.well-known has an owner and no spec reads it: nothing runs in e2e', () => {
