@@ -102,3 +102,9 @@ per-commit file lists: 93 went wide before, 77 after (16 narrowed, none the othe
   editor-ui -> lib, shell, editor; i18n -> data and data -> i18n (a two-project cycle); data -> i18n;
   site-lib -> lib, test-support, data, i18n, site, shell, editor; site -> data, i18n, site-lib (so
   site <-> site-lib is a cycle); site-test -> data, editor; test-support -> nothing.
+
+## Review fixes
+
+- `public/images/**` widens to everything again: merge-grid and seven Sign specs open `redaction-guide/sample.pdf`, `FileDropzone` fetches it, tool pages render `scan-guide/*`. `public/.well-known/**` stays owned.
+- `scripts/unit-scope.mjs` gains an `e2e-projects-guard` widen row, so e2e project/spec/nx/playwright changes select `scripts/e2e-projects.test.mjs` locally.
+- Rule count corrected to ten; a new unknown top-level `src/` folder now fails `test:module-boundaries` (`unclassifiedSrcEntries`).

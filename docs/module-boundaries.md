@@ -128,7 +128,7 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    consumes a given module.
 10. **`lib` is the bottom layer: it may import only `lib`** (ARCH-34). A `src/lib/` module that imports `editor`, `editor-ui`, `shell`, `i18n` or `data` fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
 
-`scripts/check-module-boundaries.mjs` enforces exactly these nine rules; its header comment is the
+`scripts/check-module-boundaries.mjs` enforces exactly these ten rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
 never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteViolations()`,

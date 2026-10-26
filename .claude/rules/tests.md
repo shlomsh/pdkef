@@ -168,10 +168,10 @@ which unit test files run; see the section above for that.
   live imports (`middleware.ts`, `api/`, `content.config.ts`, a file only a build script or a path
   string loads) and a diff with no `src/` file. ARCH-34: a CSS file with an importer is walked through
   that importer; `src/content/**` goes wide with its own reason (the layouts every page renders read
-  the collections); `ANALYTICS.md` is docs-only; `public/images/**` runs the site-wide specs and no
-  tool directory, `public/.well-known/**` runs no spec (both owned by `publicOwnerOf()` rather than an
-  Nx `project.json`, which `public/` would publish); `public/sw.js` and the other loose public files
-  stay unowned and widen.
+  the collections); `ANALYTICS.md` is docs-only; `public/.well-known/**` runs no spec (owned by
+  `publicOwnerOf()` rather than an Nx `project.json`, which `public/` would publish); `public/images/**`
+  stays unowned and widens (tool specs open `redaction-guide/sample.pdf`, `FileDropzone` fetches it,
+  tool pages render `scan-guide/*`), as do `public/sw.js` and the other loose public files.
 - The site-wide specs are split by directory into Nx projects tagged `site-e2e` (`e2e/<dir>/project.json`,
   root specs stay in `site-e2e`). A directory lists in `implicitDependencies` the `tool-<t>` projects whose
   pages its specs visit; a narrowed core verdict runs a directory only when it owns a changed or

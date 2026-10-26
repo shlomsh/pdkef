@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   classify, ruleViolation, specRouteViolation, testImportViolation,
   scriptSrcSpecifiers, commonLayerConsumers, commonLayerConsumerViolations,
-  astroScriptSrcEdges, buildEdges,
+  astroScriptSrcEdges, buildEdges, unclassifiedSrcEntries,
 } from './check-module-boundaries.mjs';
 
 function check(from, to) {
@@ -453,5 +453,17 @@ describe('rule 9: commonLayerConsumerViolations() on the real tree', () => {
     // src/site-lib/ once the chain reaches it - shares the single `site`
     // identity, so the real tree gives exactly one consumer, not two.
     expect(commonLayerConsumers('src/site-lib/homeWorkspace.ts', withScriptSrc)).toEqual(new Set(['site']));
+  });
+});
+
+describe('module boundaries: unknown src/ folders fail loudly (ARCH-34)', () => {
+  it('reports a new top-level src/ folder that classify() has no row for', () => {
+    expect(classify('src/constants/x.js')).toBeNull();
+    expect(unclassifiedSrcEntries(['constants'])).toEqual(['constants']);
+  });
+
+  it('accepts every real top-level src/ entry today', () => {
+    const real = ['assets', 'components', 'content', 'content.config.ts', 'data', 'editor', 'editor-ui', 'i18n', 'layouts', 'lib', 'pages', 'project.json', 'shell', 'site-lib', 'styles', 'test', 'tools'];
+    expect(unclassifiedSrcEntries(real)).toEqual([]);
   });
 });
