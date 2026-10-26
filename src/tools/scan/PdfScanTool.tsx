@@ -24,7 +24,7 @@ import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
-import { englishShellMessages } from '../../i18n/toolMessages';
+import { englishShellMessages } from '../../shell/shellMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';

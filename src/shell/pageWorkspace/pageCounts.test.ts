@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { englishShellMessages as sm, englishMergeMessages, hebrewMergeMessages } from '../../i18n/toolMessages';
+import { englishMergeMessages, hebrewMergeMessages } from '../../i18n/toolMessages';
+import { englishShellMessages as sm } from '../shellMessages';
 import { downloadDetail, pagesLabel, skippedLabel } from './pageCounts.ts';
 
 describe('skippedLabel', () => {

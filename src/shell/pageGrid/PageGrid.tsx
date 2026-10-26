@@ -6,7 +6,7 @@ import styles from './PageGrid.module.css';
 import FileName from '../FileName.tsx';
 import { movePlanEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../lib/pagePlan.ts';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
-import { type PageGridMessages } from '../../i18n/toolMessages';
+import { type PageGridMessages } from '../shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../PagePreviewDialog.tsx';
 import { reportError } from '../../lib/errorReport.ts';
