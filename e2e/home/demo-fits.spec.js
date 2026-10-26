@@ -60,7 +60,7 @@ test.describe('home demo fits its column on desktop windows', () => {
   }
 });
 
-// SITE-43: ten tools no longer fit the dock's 20px gaps at 960-1027px, and an
+// SITE-43: eleven tools no longer fit the dock's 20px gaps below 1128px, and an
 // end tool's centred tooltip hung past the page edge.
 const dockViewports = [
   { width: 960, height: 800 },

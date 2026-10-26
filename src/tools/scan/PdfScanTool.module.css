@@ -1,0 +1,244 @@
+/* Scan's loaded state: the selected page's corners above, the strip of finished pages below. */
+
+.editor {
+  /* The flatten animation's overlay is placed against it. */
+  position: relative;
+  /* Clear of the sticky app bar when the first photos scroll it into view. */
+  scroll-margin-top: 96px;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+/* Below 1024px the quiet Download bar sticks under the app bar: about 170px of chrome together. */
+@media (max-width: 1023px) {
+  .editor {
+    scroll-margin-top: 184px;
+  }
+}
+
+.editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.editor-title {
+  margin: 0;
+  display: grid;
+  font-weight: 600;
+}
+
+.not-found {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-paper);
+  font-size: 0.9rem;
+}
+
+.page-look {
+  width: 100%;
+  max-width: 32rem;
+}
+
+/* The photo's own shape, held while its preview is made, so nothing below jumps when it lands. */
+.corners-wait {
+  display: grid;
+  place-items: center;
+  width: min(100%, 22rem);
+  border-radius: 6px;
+  background: var(--color-surface-sunken);
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.corners-actions {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 26rem);
+}
+
+.corners-quiet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Use these corners (or Done): the one primary control in corners mode, full width. */
+.corners-actions .done-button {
+  min-height: 3rem;
+  font-size: 1rem;
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.editor-hint {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+/* One row of pages that scrolls sideways: on a phone the corners keep the screen. */
+.strip {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 4px 4px 8px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.tile {
+  position: relative;
+  flex: 0 0 96px;
+}
+
+.page {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tile[data-selected] .page {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-ring);
+}
+
+.page:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.page img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* A page whose corners or look just changed keeps its old picture, dimmed, until the new one lands. */
+.page img[data-stale] {
+  opacity: 0.45;
+}
+
+.pending {
+  padding: 6px;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.badge {
+  position: absolute;
+  inset-block-end: 6px;
+  inset-inline-start: 6px;
+  padding: 0 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-surface);
+  background: var(--color-text);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+/* 28px visible disc in a 44px hit area. */
+.remove {
+  position: absolute;
+  inset-block-start: -8px;
+  inset-inline-end: -8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: radial-gradient(circle, var(--color-surface) 13px, var(--color-border) 14px, transparent 15px);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.remove:hover {
+  color: var(--color-danger);
+}
+
+.add-tile {
+  flex: 0 0 96px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.add-button,
+.take-photo-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 60px;
+  padding: 6px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-button:hover,
+.add-button:focus-visible,
+.take-photo-button:hover,
+.take-photo-button:focus-visible {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+/* The camera is a phone's: a mouse has nothing to point at a page. */
+.take-photo {
+  display: flex;
+}
+
+@media (pointer: fine) {
+  .take-photo {
+    display: none;
+  }
+}
+
+.phone-options {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+@media (min-width: 1024px) {
+  .phone-options {
+    display: none;
+  }
+}
+
+.is-ghost {
+  opacity: 0.35;
+}

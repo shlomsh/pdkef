@@ -68,7 +68,7 @@ describe('useDownloadFlow', () => {
   const base = (prepared: Prepared, blocked: DownloadFlowInput['blocked'] = null): DownloadFlowInput => ({
     prepared,
     fileName: 'out.pdf',
-    hrefs: { compress: '/compress/', sign: '/sign/' },
+    hrefs: { compress: '/compress/', sign: '/sign/', merge: '/merge/' },
     blocked,
     announce,
     messages: { ready: 'Ready', shared: 'Shared', canceled: 'Canceled', shareError: 'Failed' },
@@ -255,6 +255,15 @@ describe('useDownloadFlow', () => {
     expect(flow.handoffFailed).toBe(true);
     mount(base(pending()));
     expect(flow.handoffFailed).toBe(false);
+  });
+
+  it('a merge hand-off is saved under merge and navigates to the merge href', async () => {
+    store.saveHandoff.mockResolvedValue(true);
+    const navigate = vi.fn();
+    mount({ ...base(ready()), navigate });
+    await act(async () => { await flow.requestHandoff('merge'); });
+    expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('merge');
+    expect(navigate).toHaveBeenCalledWith('/merge/');
   });
 
   it('parts: requestHandoff does nothing', async () => {

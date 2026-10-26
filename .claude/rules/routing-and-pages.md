@@ -27,7 +27,7 @@ through the content collection in [content-and-copy], not `tools.js`.
 
 ## Tool registry
 
-All ten tools are implemented and indexed; `src/data/tools.js` is the registry (title, description,
+All eleven tools are implemented and indexed; `src/data/tools.js` is the registry (title, description,
 FAQ, href), and `src/pages/sitemap.xml.js` generates `/sitemap.xml` from it. Retired routes stay as
 redirects: `/protect` → `/unlock/` (one tool covers both intents by auto-detecting encryption),
 `/edit-pdf/` → `/organize-pdf/`. `/offline-pdf-form-filler/` was retired to `/install-pdf-app/` for a

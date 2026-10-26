@@ -411,17 +411,19 @@ own text layer, not a site-only helper, even though neither is imported by a bro
 | `fontOfflinePacks.js` | `lib/useAutoFontProvisioning.js` only (transitive) | `sign` (see note) |
 | `compress.js` | `PdfCompressTool`, `lib/compressImage.js` | `compress` |
 | `compressImage.js` | `PdfCompressTool` | `compress` |
-| `targetSizeSearch.js` | `lib/{compress,compressImage}.js` only (transitive) | `compress` |
+| `targetSizeSearch.js` | `compress.js`, `compressImage.js` (`tools/compress/`), Scan | `compress`, `scan` |
+| `canvasBlob.js` | `compress.js`, `compressImage.js`, `compressImages.js` (`tools/compress/`), Scan | `compress`, `scan` |
 | `editPages.js` | `PdfEditPagesTool` | `edit-pages` |
 | `security.js` | `PdfSecurityTool` | `security` |
 | `split.js` | `PdfSplitTool` | `split` |
 | `toImage.js` | `PdfToImageTool`, `toImageOutput.ts` | `to-image` |
-| `imageToPdf.js` | `PdfImageToPdfTool` | `image-to-pdf` |
+| `imagesToPdf.js` | `useImagesPdfBuild.ts` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
+| `pageOrder.js` | `PdfImageToPdfTool`, `useImagesPdfBuild.ts` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
 | `useDeletableObjects.js` | `PdfRedactTool` | `redact` |
 | `useViewDensity.js` | `ViewControl.tsx` | `editor-ui`, not a tool - see the `editor-ui` section above |
 | `fontCoverageTable.js` | `src/editor/text/fonts.js` (the editor core) | moved to `src/editor/text/` (DEBT-04) - the core itself was the sole consumer |
 
-A module marked "transitive" above (`outline.js`, `fontOfflinePacks.js`, `targetSizeSearch.js`) has no
+A module marked "transitive" above (`outline.js`, `fontOfflinePacks.js`) has no
 *direct* island/editor consumer; it is only reached through another `lib` module that itself has one.
 Moving it is optional tidiness, not correctness: a tool importing `lib` is always legal, so
 `tools/merge/` reaching back into `src/lib/outline.js` (if it is left there) is not a violation.

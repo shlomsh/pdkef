@@ -1419,6 +1419,9 @@ export interface ImageToPdfMessages {
   announceShared: string;
   announceShareCanceled: string;
   announceShareError: string;
+  /** The hand-off to Scan to PDF (English page only for now, as other Hebrew pages link English tools). */
+  scanHandoff: string;
+  scanHandoffFailed: string;
 }
 
 const englishImageToPdfMessages: ImageToPdfMessages = {
@@ -1460,6 +1463,8 @@ const englishImageToPdfMessages: ImageToPdfMessages = {
   announceShared: 'PDF shared successfully.',
   announceShareCanceled: 'Sharing canceled. Your PDF is still ready.',
   announceShareError: 'Could not open the share sheet. Please try again.',
+  scanHandoff: 'Clean it up as a scan',
+  scanHandoffFailed: 'Could not open Scan to PDF. Try again.',
 };
 
 // An AI draft, not reviewed copy: pairs with he/image-to-pdf.yaml and awaits
@@ -1504,6 +1509,8 @@ const hebrewImageToPdfMessages: ImageToPdfMessages = {
   announceShared: 'ה-PDF שותף.',
   announceShareCanceled: 'השיתוף בוטל. ה-PDF עדיין מוכן.',
   announceShareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  scanHandoff: 'לנקות כסריקה',
+  scanHandoffFailed: 'לא הצלחנו לפתוח את סריקה ל-PDF. נסו שוב.',
 };
 
 const imageToPdfMessages: Partial<Record<DocumentationLocaleId, ImageToPdfMessages>> = {

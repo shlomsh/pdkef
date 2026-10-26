@@ -687,6 +687,11 @@ describe('BasePdfTool', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
+    it('passes emptyAction into the empty state', () => {
+      mount({ hasFiles: false, onFilesAdded: vi.fn(), emptyAction: <button type="button" data-testid="act">Take a photo</button> });
+      expect(container.querySelector('[data-empty-state] [data-testid="act"]')).not.toBeNull();
+    });
+
     it('renders emptyArt inside the empty state in place of the file-plus icon', () => {
       mount({ hasFiles: false, onFilesAdded: vi.fn(), emptyArt: <i data-testid="verb" /> });
       const zone = container.querySelector('[data-empty-state]');

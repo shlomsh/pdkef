@@ -1,0 +1,106 @@
+.frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.photo {
+  display: block;
+  max-width: 100%;
+  max-height: 62svh;
+  height: auto;
+  width: auto;
+}
+
+/* A frame given its shape (aspect) holds it whatever the image is doing; the photo fills it. */
+.frame[style] .photo {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.dim {
+  fill: var(--color-night);
+  fill-opacity: 0.45;
+}
+
+.outline {
+  stroke: var(--color-surface);
+}
+
+/* 52px to grab, a 20px ring to see: a finger can take the corner from beside it. */
+.handle {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid var(--color-surface);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-night);
+}
+
+.handle:focus-visible {
+  outline: none;
+}
+
+.handle:focus-visible .ring {
+  box-shadow: 0 0 0 1px var(--color-night), 0 0 0 4px var(--color-primary-ring);
+}
+
+/* The touch loupe (loupe.ts places it): the photo magnified around the corner being dragged. */
+.loupe {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-night), var(--shadow-md);
+  background-color: var(--color-night);
+  background-repeat: no-repeat;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.loupe[hidden] {
+  display: none;
+}
+
+.loupe-lines {
+  display: block;
+}
+
+.loupe-edge {
+  stroke: var(--color-primary);
+}
+
+.loupe-cross {
+  stroke: var(--color-surface);
+  fill: none;
+}

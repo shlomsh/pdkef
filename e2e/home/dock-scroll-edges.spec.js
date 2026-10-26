@@ -82,14 +82,14 @@ test('the dock fades an edge only while that end of the row has more to reach', 
 test('a dock wide enough for every tool fades neither edge', async ({ page }) => {
   // Wide enough to fit all ten cards, still inside the 960px ceiling the strip
   // rules are scoped to - the gap the non-overflowing case lives in.
-  await page.setViewportSize({ width: 900, height: 844 });
+  await page.setViewportSize({ width: 950, height: 844 });
   await page.goto('/');
   await expect(page.locator('.home-dock')).toBeVisible();
 
   const edges = await dockEdges(page);
   expect(
     edges.maxScroll,
-    'the dock still overflows at 900px, so this viewport no longer exercises the non-overflowing case',
+    'the dock still overflows at 950px, so this viewport no longer exercises the non-overflowing case',
   ).toBe(0);
 
   // An inactive timeline reports null progress, so the strips must be invisible

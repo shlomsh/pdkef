@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from './pageOrder.js';
+import { ScanLine } from 'lucide-preact';
+import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from '../../lib/pageOrder.js';
 import { useImagesPdfBuild, type ImageEntry } from './useImagesPdfBuild.ts';
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -18,6 +19,7 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
+import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import {
@@ -66,10 +68,14 @@ export interface PdfImageToPdfToolProps {
    * edition; every key not overridden keeps the English default. */
   messages?: Partial<ImageToPdfMessages>;
   shellMessages?: Partial<ShellMessages>;
+  /** Tests only: jsdom cannot navigate. */
+  navigate?: (href: string) => void;
 }
 
-export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp, shellMessages }: PdfImageToPdfToolProps = {}) {
+export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp, shellMessages, navigate = (href) => { window.location.href = href; } }: PdfImageToPdfToolProps = {}) {
   const t: ImageToPdfMessages = { ...englishImageToPdfMessages, ...messagesProp };
+  const [scanBusy, setScanBusy] = useNavigatingAway();
+  const [scanFailed, setScanFailed] = useState(false);
   const [entries, setEntries] = useState<ImageEntry[]>([]);
   const [sortMode, setSortMode] = useState('custom');
   const [customName, setCustomName] = useState<string | null>(null);
@@ -284,6 +290,25 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
     else if (result.status === 'error') announce(t.announceShareError);
   };
 
+  // The photographed pages, in page order, parked for Scan to PDF (one multi-file hand-off).
+  const openAsScan = async () => {
+    if (scanBusy) return;
+    setScanBusy(true);
+    setScanFailed(false);
+    try {
+      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
+      const files = await Promise.all(
+        entriesRef.current.map(async ({ file }) => ({ fileName: file.name, fileType: file.type, fileBytes: await file.arrayBuffer() })),
+      );
+      if (!(await saveHandoff('scan-to-pdf', { files }))) throw new Error('handoff');
+      navigate('/scan-to-pdf/');
+    } catch {
+      // expected: saveHandoff reports its own failure; this shows the status line
+      setScanFailed(true);
+      setScanBusy(false);
+    }
+  };
+
   const hasFiles = entries.length > 0;
   const fileSummary = imageCount(t, entries.length);
   const tappedBusy = tapped && !fresh && !build.failed;
@@ -319,6 +344,11 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
           <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} />
         </>
       )}
+      <button type="button" class={styles['scan-button']} disabled={scanBusy} onClick={openAsScan}>
+        <ScanLine size={16} aria-hidden="true" />
+        {t.scanHandoff}
+      </button>
+      {scanFailed && <p class={pdfToolStyles['hint-message']} role="status">{t.scanHandoffFailed}</p>}
     </div>
   );
 

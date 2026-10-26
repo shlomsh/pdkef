@@ -1,0 +1,81 @@
+---
+// "What you get": an illustrated block for a tool page, driven by `tool.examples`
+// (src/data/tools.js). Static HTML and zero JS. A `compare` figure is a
+// CompareFigure; a `row` is two to four images side by side with a label
+// under each. The card family is ToolAboutCard's (FeatureCard + CardDecor).
+// The page's inline-style CSP hash for CompareFigure is registered by
+// ToolPageLayout (registerToolPageStyles), not here.
+import FeatureCard from './FeatureCard.astro';
+import CardDecor from './CardDecor.astro';
+import CompareFigure from './CompareFigure.astro';
+import { toolExamplesStyle } from '../site-lib/inlineStyles';
+import { CONTENT_FLOW_CLASS, CONTENT_PARAGRAPH_CLASS, renderInline } from '../site-lib/contentMarkup';
+
+interface RowItem {
+  src: string;
+  label: string;
+  width: number;
+  height: number;
+  alt: string;
+}
+interface Figure {
+  kind: 'compare' | 'row';
+  [key: string]: any;
+}
+interface Props {
+  examples: { heading: string; lead: string; figures: Figure[] };
+  icon?: any;
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+}
+const { examples, icon, sketch = 'arcs', iconPos = 'tr' } = Astro.props;
+
+---
+
+<style is:inline set:html={toolExamplesStyle}></style>
+<FeatureCard id="what-you-get" variant="highlight" density="flow" class="relative isolate overflow-hidden scroll-mt-[4.5rem]">
+  <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={280} />
+  <div>
+    <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{examples.heading}</h2>
+    <div class={CONTENT_FLOW_CLASS}>
+      <p class={CONTENT_PARAGRAPH_CLASS}>{examples.lead}</p>
+      {examples.figures.map((figure) =>
+        figure.kind === 'compare' ? (
+          <div class="examples-compare">
+            <CompareFigure
+              beforeSrc={figure.beforeSrc}
+              afterSrc={figure.afterSrc}
+              beforeLabel={figure.beforeLabel}
+              afterLabel={figure.afterLabel}
+              alt={figure.alt}
+              width={figure.width}
+              height={figure.height}
+              caption={figure.caption}
+              wipe
+            />
+          </div>
+        ) : (
+          <figure class="examples-row">
+            <h3 class="type-feature examples-row-heading">{figure.heading}</h3>
+            <ul class:list={['examples-grid', `examples-grid-${figure.items.length}`]}>
+              {figure.items.map((item: RowItem) => (
+                <li>
+                  <img
+                    src={item.src}
+                    alt={item.alt}
+                    width={item.width}
+                    height={item.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span>{item.label}</span>
+                </li>
+              ))}
+            </ul>
+            <figcaption set:html={renderInline(figure.caption, 'muted')} />
+          </figure>
+        ),
+      )}
+    </div>
+  </div>
+</FeatureCard>

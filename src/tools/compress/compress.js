@@ -1,6 +1,7 @@
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
-import { searchTargetSize } from './targetSizeSearch.js';
+import { searchTargetSize, MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
+import { canvasToBlob } from '../../lib/canvasBlob.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { loadPdfjs } from '../../lib/loadPdfjs.js';
 
@@ -9,18 +10,6 @@ let pdfjsLib;
 async function getPdfjs() {
   pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
   return pdfjsLib;
-}
-
-// Exported so compressImage.js's search can reuse it and the two tools
-// cannot drift on how a canvas becomes a Blob.
-export function canvasToBlob(canvas, type, quality) {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error('Canvas export failed'))),
-      type,
-      quality,
-    );
-  });
 }
 
 /**
@@ -112,19 +101,6 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
 // rendered if the previous (higher-DPI) tier can't hit the target even at
 // the lowest JPEG quality.
 const TARGET_SCALE_LADDER = [1.5, 1.1, 0.85, 0.65, 0.5]; // ~108, 79, 61, 47, 36 DPI
-// Quality bounds and search budget are exported so compressImage.js's search
-// uses the exact same numbers - the FAQ describes one search behaviour for
-// both tools, and they must not drift apart.
-export const MIN_QUALITY = 0.05;
-export const MAX_QUALITY = 0.92;
-export const QUALITY_SEARCH_STEPS = 6;
-// Hard wall-clock budget for the whole DPI-tier x quality search. The loops
-// above are already finite (5 tiers x 6 steps), but each step's cost scales
-// with page count and resolution, so a large/adversarial PDF could still
-// take a very long time to exhaust every tier. Once the budget is spent we
-// stop searching and ship the best-effort result found so far rather than
-// let the tab hang.
-export const MAX_SEARCH_MS = 20000;
 // The smallest valid JPEG (1x1). Assembling the output PDF around one of
 // these per page measures the container's own bytes (catalog, page objects,
 // image dictionaries, content streams, xref) before anything is rendered, so

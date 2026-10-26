@@ -10,12 +10,16 @@
 // <head>, from the text this module hands both sides. `npm run test:csp` names
 // any page whose inline style has no hash.
 import compareFigureCss from '../components/compareFigure.css?inline';
+import toolExamplesCss from '../components/toolExamples.css?inline';
 import theOCss from '../components/theO.css?inline';
 import { cspSha256 } from './cspHash.js';
 import { theOTimelineCss } from './theOTimeline';
 
 /** What CompareFigure.astro emits: ?inline, so the build minifies it and the hash covers the shipped text. */
 export const compareFigureStyle = compareFigureCss;
+
+/** What ToolExamplesCard.astro emits. */
+export const toolExamplesStyle = toolExamplesCss;
 
 /** What TheO.astro emits: the static rules plus the pacing-derived keyframes. */
 export const theOStyle = theOCss + theOTimelineCss();
@@ -34,4 +38,14 @@ export function registerContentPageStyles(
 ): void {
   const hasFigure = entry.data.sections.some((section) => section.blocks.some((block) => block.kind === 'compareFigure'));
   if (hasFigure) registerInlineStyle(csp, compareFigureStyle);
+}
+
+/** A tool page with `examples` carries toolExamplesStyle, plus compareFigureStyle for a compare figure. */
+export function registerToolPageStyles(
+  csp: StyleHashSink,
+  tool: { examples?: { figures: { kind: string }[] } },
+): void {
+  if (!tool.examples) return;
+  registerInlineStyle(csp, toolExamplesStyle);
+  if (tool.examples.figures.some((figure) => figure.kind === 'compare')) registerInlineStyle(csp, compareFigureStyle);
 }

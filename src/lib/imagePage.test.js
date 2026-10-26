@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { addImagePage, jpegOrientation, UnsupportedImageError } from './imagePage.js';
+import { addImagePage, jpegOrientation, placeImage, PAGE_SIZES, UnsupportedImageError } from './imagePage.js';
 
 const fixture = (name) => new Uint8Array(fs.readFileSync(path.resolve(__dirname, '__fixtures__', name)));
 
@@ -75,5 +75,51 @@ describe('addImagePage rotation', () => {
     const doc = await PDFDocument.create();
     expect((await addImagePage(doc, fixture('photo-1.jpg'), 'image/jpeg')).getRotation().angle).toBe(0);
     expect((await addImagePage(doc, fixture('photo-2.png'), 'image/png')).getRotation().angle).toBe(0);
+  });
+});
+
+describe('placeImage', () => {
+  it("'fit' makes the page the image's pixel size with the image filling it", () => {
+    expect(placeImage(60, 40, 'fit')).toEqual({ pageWidth: 60, pageHeight: 40, x: 0, y: 0, width: 60, height: 40 });
+  });
+
+  it("'fit' at a set density sizes the page in points per pixel, so a downscaled scan keeps its paper size", () => {
+    expect(placeImage(2400, 1800, 'fit', 72 / 200)).toEqual({ pageWidth: 864, pageHeight: 648, x: 0, y: 0, width: 864, height: 648 });
+    expect(placeImage(720, 540, 'fit', 72 / 60)).toEqual({ pageWidth: 864, pageHeight: 648, x: 0, y: 0, width: 864, height: 648 });
+  });
+
+  it('centres a portrait image on A4, scaled to fit', () => {
+    const [w, h] = PAGE_SIZES.a4;
+    const p = placeImage(1000, 2000, 'a4'); // narrower than the page's aspect: height-bound
+    expect(p.pageWidth).toBe(w);
+    expect(p.pageHeight).toBe(h);
+    expect(p.height).toBeCloseTo(h);
+    expect(p.width).toBeCloseTo(h / 2);
+    expect(p.x).toBeCloseTo((w - p.width) / 2);
+    expect(p.y).toBeCloseTo(0);
+  });
+
+  it('turns the page landscape for a wide image and scales a small one up', () => {
+    const [w, h] = PAGE_SIZES.letter;
+    const p = placeImage(100, 50, 'letter');
+    expect([p.pageWidth, p.pageHeight]).toEqual([h, w]);
+    expect(p.width).toBeCloseTo(h);
+    expect(p.height).toBeCloseTo(h / 2);
+    expect(p.x).toBeCloseTo(0);
+    expect(p.y).toBeCloseTo((w - p.height) / 2);
+  });
+
+  it('keeps the aspect ratio', () => {
+    const p = placeImage(3000, 4000, 'a4');
+    expect(p.width / p.height).toBeCloseTo(0.75);
+  });
+});
+
+describe('addImagePage with a page size', () => {
+  it('lays a JPEG on an A4 page', async () => {
+    const doc = await PDFDocument.create();
+    const page = await addImagePage(doc, fixture('photo-1.jpg'), 'image/jpeg', 'photo-1.jpg', { pageSize: 'a4' }); // 60x40, wide
+    expect(page.getSize().width).toBeCloseTo(PAGE_SIZES.a4[1]);
+    expect(page.getSize().height).toBeCloseTo(PAGE_SIZES.a4[0]);
   });
 });
