@@ -453,6 +453,22 @@ describe('PdfScanTool', () => {
     }
   });
 
+  it('goes back to the default name when the file name is emptied', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    const nameEl = () => container.querySelector('h2 [contenteditable]') as HTMLElement;
+    const rename = async (text: string) => {
+      await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+      await act(async () => { nameEl().textContent = text; });
+      await act(async () => { nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
+    };
+    await rename('Contract');
+    expect(nameEl().textContent).toBe('Contract');
+    await rename('');
+    expect(nameEl().textContent).toBe('scan');
+  });
+
   it('takes a tap on the held-back Download to the photo that could not be read', async () => {
     vi.mocked(pipeline.inspectPhoto).mockImplementation((file) => (file.name === 'b.jpg'
       ? Promise.reject(new Error('decode failed'))
