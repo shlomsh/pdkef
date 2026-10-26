@@ -70,7 +70,7 @@ const LAZY_ONLY = [
     // Every tool that writes a PDF. /pdf-to-image/ is deliberately absent: it
     // reads with pdf.js and never builds a document, so it should not reach
     // pdf-lib at all, and listing it here would make that a requirement.
-    reachableFrom: ['sign', 'redact', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'edit-pdf'],
+    reachableFrom: ['sign', 'redact', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'scan-to-pdf', 'edit-pdf'],
   },
   {
     chunk: /^pdf\./,
@@ -79,6 +79,11 @@ const LAZY_ONLY = [
     // `/^pdf\./` needs the literal dot: it must not also match `pdf-lib.`,
     // whose row is right above and means something different.
     reachableFrom: ['sign', 'redact', 'compress', 'split', 'pdf-to-image'],
+  },
+  {
+    chunk: /^scanPipeline\./,
+    why: 'Scan\'s warp, filters and edge guess (SCAN-01): nothing needs them until a photo is in',
+    reachableFrom: ['scan-to-pdf'],
   },
 ];
 
