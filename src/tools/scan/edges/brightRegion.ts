@@ -9,7 +9,7 @@ const MIN_AREA = 0.15;
 const MIN_FILL = 0.85;
 const FRAME_MARGIN = 0.02;
 
-function blur3(src: ArrayLike<number>, w: number, h: number): Float32Array {
+export function blur3(src: ArrayLike<number>, w: number, h: number): Float32Array {
   const out = new Float32Array(w * h);
   for (let y = 0; y < h; y += 1) {
     const y0 = Math.max(0, y - 1);
@@ -27,7 +27,7 @@ function blur3(src: ArrayLike<number>, w: number, h: number): Float32Array {
 }
 
 /** Otsu's threshold over a 256-bin histogram, or -1 when the image has a single level. */
-function otsu(values: Float32Array): number {
+export function otsu(values: Float32Array): number {
   const hist = new Float64Array(256);
   for (let i = 0; i < values.length; i += 1) hist[Math.min(255, Math.max(0, Math.round(values[i])))] += 1;
   const total = values.length;
