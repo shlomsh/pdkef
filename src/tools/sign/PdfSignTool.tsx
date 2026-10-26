@@ -103,7 +103,7 @@ const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
    page's language like every other tool.
 
    LOC-09 stage 1 is the first crack in that: the always-visible toolbar row
-   and its status line now read from `messages` (src/i18n/toolMessages.ts's
+   and its status line now read from `messages` (src/editor/registry/messages.ts's
    SignMessages) too. Popovers, dialogs, element controls and announcements
    are not covered yet and stay English - see that catalogue's header
    comment. `messages` is optional and English-default, same as

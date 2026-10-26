@@ -989,7 +989,7 @@ describe('narrowByReachability on the real repo graph (ARCH-32 review fix)', () 
 
   it('site-lib files and the localized tool page go wide: tool specs start from the home page and /he/merge/', () => {
     // ARCH-33 split src/pages/[locale]/[tool].astro into one route per tool over a shared layout and loader.
-    for (const f of ['src/site-lib/RecentFiles.tsx', 'src/site-lib/sampleDocument.ts', 'src/layouts/LocalizedToolLayout.astro', 'src/i18n/localizedToolPage.ts', 'src/pages/[locale]/merge.astro']) {
+    for (const f of ['src/site-lib/RecentFiles.tsx', 'src/site-lib/sampleDocument.ts', 'src/layouts/LocalizedToolLayout.astro', 'src/site-lib/localizedToolPage.ts', 'src/pages/[locale]/merge.astro']) {
       expect(realReach(f).wide, f).toMatch(/which tool specs also visit|a spec the site-wide run does not cover/);
     }
   });

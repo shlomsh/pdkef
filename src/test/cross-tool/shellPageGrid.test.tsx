@@ -4,10 +4,10 @@ import { createRef } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
-import PageGrid, { cellEdge } from './PageGrid.tsx';
-import styles from './PageGrid.module.css';
+import PageGrid, { cellEdge } from '../../shell/pageGrid/PageGrid.tsx';
+import styles from '../../shell/pageGrid/PageGrid.module.css';
 import { planForFile } from '../../lib/pagePlan.ts';
-import { englishMergeMessages } from '../../i18n/toolMessages';
+import { englishMergeMessages } from '../../tools/merge/messages';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 
 const sources = [];

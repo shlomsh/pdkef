@@ -10,7 +10,7 @@ import * as imagesLib from './compressImages.js';
 import * as imageLib from './compressImage.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.js';
-import { hebrewCompressMessages } from '../../i18n/toolMessages';
+import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/setInputFiles.js';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state

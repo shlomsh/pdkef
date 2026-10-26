@@ -55,7 +55,9 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    state and binds events to it.
 4. The site (pages, layouts, content, data, i18n, styles, and the `.astro` files still under
    `src/components/`) may reach a tool only through that tool's island entry point, `Pdf*Tool.tsx`
-   directly under `src/tools/<name>/`.
+   directly under `src/tools/<name>/`, or its text, `messages.ts` directly under `src/tools/<name>/`
+   (ARCH-35: the site's message registry, `src/site-lib/toolMessageRegistry.ts`, picks a tool's
+   catalogue without loading its island).
 5. **`components` is what is left of the flat `src/components/` now that ARCH-16 through ARCH-18
    have landed:** only `.astro` site components (which classify as `site`, not `components`) and
    `HeroDemo/` remain there. `components` MUST NOT import a tool. The reverse allowance this rule

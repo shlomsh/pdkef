@@ -133,7 +133,7 @@ export default function SignToolbar({
    * already holds. Counted, never quoted. */
   formDetection?: FormDetection;
   /** LOC-09 stage 1: the always-visible toolbar row's own catalogue - see
-   * src/i18n/toolMessages.ts's SignMessages. Optional and English-default so
+   * SignMessages. Optional and English-default so
    * every existing caller (this file's own tests included) is unaffected;
    * PdfSignTool.tsx is the only caller passing a Hebrew edition. */
   messages?: Partial<SignMessages>;

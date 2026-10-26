@@ -25,7 +25,7 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { isolateLtr, isolateName } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
-import { englishCompressMessages, type CompressMessages } from '../../i18n/toolMessages';
+import { englishCompressMessages, type CompressMessages } from './messages';
 import { type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import { getPdfLib } from '../../lib/pdfLib.js';

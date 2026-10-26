@@ -1339,7 +1339,7 @@ describe('SignToolbar Component', () => {
   });
 
   // LOC-09 stage 1: the always-visible toolbar row and its status line read
-  // from a `messages` catalogue now (src/i18n/toolMessages.ts's SignMessages).
+  // from a `messages` catalogue now (SignMessages).
   // Every test above mounts with no `messages` prop and keeps asserting the
   // English literals; this is the one test proving the Hebrew edition is
   // actually wired up, not just defined in the catalogue.

@@ -290,7 +290,7 @@ export interface SignMessages {
   duplicatedElementDescriptionTemplate: string;
   /** UNDO-04: labels for the move/resize/text/style update entries `updateElement`
    * (PdfWorkspace.tsx) logs at its one choke point, via `signUpdateDescription`
-   * in src/i18n/toolMessages.ts. */
+   * in src/editor/registry/signMessages.ts. */
   movedElementDescriptionTemplate: string;
   resizedElementDescriptionTemplate: string;
   editedTextDescription: string;

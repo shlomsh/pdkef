@@ -15,7 +15,7 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
-import { hebrewImageToPdfMessages } from '../../i18n/toolMessages';
+import { hebrewImageToPdfMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({

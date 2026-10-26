@@ -24,7 +24,7 @@ import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import { englishImageToPdfMessages, type ImageToPdfMessages } from '../../i18n/toolMessages';
+import { englishImageToPdfMessages, type ImageToPdfMessages } from './messages';
 import { type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 
