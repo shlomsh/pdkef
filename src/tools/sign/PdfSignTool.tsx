@@ -9,7 +9,11 @@ import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import SignVerb from './verb/SignVerb.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
-import { englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
+import { englishSignMessages } from './messages';
+import { signElementTypeLabel } from '../../editor/registry/signLabels';
+import type { SignMessages } from '../../editor/registry/messages';
+import type { ShellMessages } from '../../shell/shellMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import { SignToolProvider, useDocumentStyle, useSignTool } from './components/SignToolContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
@@ -101,7 +105,7 @@ const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
    page's language like every other tool.
 
    LOC-09 stage 1 is the first crack in that: the always-visible toolbar row
-   and its status line now read from `messages` (src/i18n/toolMessages.ts's
+   and its status line now read from `messages` (src/editor/registry/messages.ts's
    SignMessages) too. Popovers, dialogs, element controls and announcements
    are not covered yet and stay English - see that catalogue's header
    comment. `messages` is optional and English-default, same as

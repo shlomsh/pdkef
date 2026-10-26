@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ToolShellContext } from '../ToolShell.tsx';
-import { englishShellMessages } from '../../i18n/toolMessages';
+import { englishShellMessages } from '../shellMessages';
 import ReplaceFileLine from './ReplaceFileLine.tsx';
 
 describe('ReplaceFileLine', () => {

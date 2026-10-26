@@ -5,7 +5,8 @@ import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../../..
 import { DEFAULT_LINE_HEIGHT_EM } from '../../../editor/model/signGeometry.js';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../../editor/workspace/preferenceStore.ts';
 import { encodeSignatureCanvas, typedSignatureFontPx, TYPED_SIGNATURE_MIN_FONT_PX } from '../../../editor/workspace/signatureImagePolicy.ts';
-import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import type { SignMessages } from '../../../editor/registry/messages';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from '../../../shell/Dialog.module.css';
 

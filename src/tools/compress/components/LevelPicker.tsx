@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks';
-import type { CompressMessages } from '../../../i18n/toolMessages';
+import type { CompressMessages } from '../messages';
 import styles from './LevelPicker.module.css';
 
 export type Level = 'high' | 'medium' | 'low' | 'target';

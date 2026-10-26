@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import styles from './SignToolbar.module.css';
-import { formatMessage } from '../i18n/toolMessages';
+import { formatMessage } from '../lib/formatMessage';
 
 /** What an armed tool says, in each toolbar's TOOL_COPY. `actionTouch` is the same instruction
  * for a coarse pointer: "Tap" and "Tap and drag" instead of "Click" and "Click and drag", and short enough to stay within two
@@ -103,7 +103,7 @@ export default function EditorToolStatus({
   // this component is shared with Redact, which stays English by not passing
   // any of these, so every default here is the exact literal this file used
   // to hardcode. SignToolbar.tsx is the only caller passing its own values,
-  // read from src/i18n/toolMessages.ts's SignMessages.
+  // read from SignMessages (src/editor/registry/messages.ts).
   keepOnLabel = 'Keep {button} on',
   // The phone-width label, where the pill sits beside the sentence that has
   // just named the tool ("...draw a blackout box.") and every character of it

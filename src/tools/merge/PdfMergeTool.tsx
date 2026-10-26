@@ -52,13 +52,9 @@ import { usePreparedMerge } from './components/usePreparedMerge.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import type { MergeDraftPersistenceProps } from './components/MergeDraftPersistence.tsx';
 import type { MergeDraftRestore, MergeDraftSaveState } from './components/useMergeDraft.ts';
-import {
-  englishMergeMessages,
-  englishShellMessages,
-  formatMessage,
-  type MergeMessages,
-  type ShellMessages,
-} from '../../i18n/toolMessages';
+import { englishMergeMessages, type MergeMessages } from './messages';
+import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportableCause } from './reportableCause.ts';
 

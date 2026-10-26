@@ -10,7 +10,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize } from '../../lib/format.js';
-import { formatMessage } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
@@ -24,7 +24,7 @@ import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
-import { englishShellMessages } from '../../i18n/toolMessages';
+import { englishShellMessages } from '../../shell/shellMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';

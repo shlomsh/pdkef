@@ -1,9 +1,9 @@
-import type { DownloadMessages, PageGridMessages } from '../../i18n/toolMessages';
+import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /* Edit Pages' one English catalogue: the slices the shared page grid, the
    Download element and the Undo/Redo pair read, plus the few strings that are
-   this tool's own. Values start from Merge's English set (toolMessages.ts)
+   this tool's own. Values start from Merge's English set (src/tools/merge/messages.ts)
    and say "skip" / "edited" where Merge says "merged"; the grid's sentence
    shapes are unchanged. Not localized yet, so it is a plain object here and
    not part of the i18n catalogue. */

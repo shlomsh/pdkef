@@ -13,7 +13,10 @@ import { useArmTool, useAutoArmHint, useDoubleTap } from '../../../editor-ui/hoo
 import { WhiteoutIcon } from '../../../editor-ui/toolIcons.tsx';
 import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from '../fill/FillContext.tsx';
-import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import type { SignMessages } from '../../../editor/registry/messages';
+import { englishShellMessages } from '../../../shell/shellMessages';
+import { formatMessage } from '../../../lib/formatMessage';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
@@ -130,7 +133,7 @@ export default function SignToolbar({
    * already holds. Counted, never quoted. */
   formDetection?: FormDetection;
   /** LOC-09 stage 1: the always-visible toolbar row's own catalogue - see
-   * src/i18n/toolMessages.ts's SignMessages. Optional and English-default so
+   * SignMessages. Optional and English-default so
    * every existing caller (this file's own tests included) is unaffected;
    * PdfSignTool.tsx is the only caller passing a Hebrew edition. */
   messages?: Partial<SignMessages>;

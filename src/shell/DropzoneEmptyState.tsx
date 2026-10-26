@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { dropHasDirectory, filesFromDataTransfer } from './dropFiles.js';
 import type { ComponentChild, Ref } from 'preact';
 import styles from './Dropzone.module.css';
-import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
+import { englishShellMessages, type ShellMessages } from './shellMessages';
 import { isAndroidDevice, isIOSDevice } from '../lib/platform.ts';
 
 interface DropzoneEmptyStateProps {

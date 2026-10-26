@@ -6,7 +6,7 @@ const eyedropper = vi.hoisted(() => ({ calls: [] as any[][] }));
 vi.mock('../../../editor-ui/whiteout/pageSampling.ts', () => ({
   useEyedropper: (...args: any[]) => { eyedropper.calls.push(args); },
 }));
-import { englishSignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import { getRecentWhiteoutColors } from '../../../editor/workspace/preferenceStore.ts';
 
