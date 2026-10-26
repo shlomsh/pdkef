@@ -117,14 +117,12 @@ See DEBT-07's "Investigated (2026-09-17)" note for the measured numbers.
 
 `scripts/affected-scope.mjs` is the oracle, never the executor: it asks
 `nx show projects --affected --files=<changed files>` once, then CI runs
-ONE `playwright test <paths>` per shard, filtered by what it prints. `nx run <project>:test` targets
-still exist on every `project.json` for local `npx nx run <project>:test`/`npx nx run-many -t test`
-use, but nothing in `ci.yml` or `package.json` calls them.
+ONE `playwright test <paths>` per shard, filtered by what it prints. The per-project `test` targets
+were removed in ARCH-34 (nothing in `ci.yml` or `package.json` called them since ARCH-28).
 
 **ARCH-28 (2026-09-25) superseded the `vitest run <paths>` half of this** - see that section, near the
-end of this record, for the full change. `deriveScope()`'s own `unit_paths` field (and every rule below
-that talks about it) is unchanged code and still backs `e2e_paths`, but nothing runs unit tests off it
-any more.
+end of this record, for the full change. ARCH-34 deleted `deriveScope()`'s `unit_paths` field, which
+nothing read after that; the rules below that talk about it describe the history.
 
 ## Executor vs. oracle: measured, not assumed
 

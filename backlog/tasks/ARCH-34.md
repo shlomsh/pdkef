@@ -50,3 +50,39 @@ one, `i18n/toolMessages.ts`, is ARCH-35; this ticket owns the rest.
 - `src/editor-ui/ExportHandoffs.{tsx,module.css,test.tsx}` moved to `src/shell/`, so `PhoneFinish.tsx` no longer imports `editor-ui`; Sign and Redact import it from shell.
 - `languageCoverage.test.js` moved from `src/editor/text/` to `src/test/`, removing the editor -> `data/tools.js` edge.
 - `check-module-boundaries.mjs` rule 10: lib may not import editor, editor-ui, shell, i18n or data; unit-tested in `check-module-boundaries.rules.test.mjs`.
+
+## Progress (part B: graph)
+
+Done in `scripts/affected-scope.mjs`, `scripts/change-scope.mjs` and the `project.json` files; part A (moving
+`signHelpers.js`, `signGeometry.js`, `PhoneFinish`'s import, `languageCoverage.test.js`) is another change.
+
+- `data` and `site-lib` are Nx projects (a `constants` project was dropped at merge: part A emptied the folder) of their own and no longer part of `site`. They stay in
+  `CORE_PROJECTS`: Nx cannot see an `.astro` page's imports, so without that a data change would no longer make
+  `site` affected and would narrow past the home specs. The reach walk decides for them, as it did before.
+- `unit_paths` and the per-project `test` targets (and `targetDefaults.test`) are gone; nothing read them since ARCH-28.
+- The walk reaches a CSS file through its importer; `src/content/**` goes wide with a named reason (the layouts every
+  page renders read the collections, tool specs visit those pages); `ANALYTICS.md` is docs-only; `public/images/**`
+  runs the site-wide specs and no tool directory; `public/.well-known/**` runs no spec. Both live in `publicOwnerOf()`,
+  not in a `project.json`, because `public/` is published verbatim. `public/sw.js` and the other loose public files
+  stay unowned and widen.
+- `site-e2e` is split into `site-e2e` (root specs, every tool) and `e2e-home`, `e2e-demo`, `e2e-handoff`,
+  `e2e-offline`, `e2e-localized`, `e2e-cross-tool`, `e2e-content`, `e2e-toolbars`, each tagged `site-e2e` and
+  declaring only the tool projects its specs visit. `scripts/e2e-projects.test.mjs` fails on a spec whose directory
+  has no selectable project or does not declare a tool route it visits.
+- Not done: the `test-support` project. The helpers other projects' tests import (`astroContentStub.js`,
+  `mockFileShare.js`, `pdfPageTreeFixtures.ts`, `setInputFiles.js`, `setup.js`, `fixtures/`) sit loose in `src/test/`
+  beside the one guard `noCamelCaseSvgAttrs.test.js`; a project is a directory, so this needs a file move.
+
+Measured with `nx show projects --affected --files=<file>` (projects went from 24 to 39 because of the new ones, so
+read the counts against that; the back-edges are part A):
+
+| changed file | before | after |
+| --- | --- | --- |
+| `src/lib/thumbnails.js` | 24 of 24 | 34 of 39 |
+| `src/editor-ui/ElementToolbar.tsx` | 24 of 24 | 34 of 39 |
+| `src/shell/pageWorkspace/PhoneFinish.tsx` | 24 of 24 | 34 of 39 |
+
+Replay of the last 200 non-merge commits before this change (`90690936`) through `deriveScope()` with the same
+per-commit file lists: 93 went wide before, 77 after (16 narrowed, none the other way). 18 of the remaining 77 are
+`i18n/toolMessages.ts` (ARCH-35); the rest are root config, `vercel.json`, `public/sw.js`, `middleware.ts`,
+`api/`, and files that reach a non-tool page.

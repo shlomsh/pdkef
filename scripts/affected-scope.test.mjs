@@ -30,6 +30,9 @@ const ROOTS = new Map([
   ['cross-tool-tests', 'src/test/cross-tool'],
   ['site-test', 'src/test'],
   ['i18n', 'src/i18n'],
+  // ARCH-34: carved out of `site` (root `src`), still core.
+  ['data', 'src/data'],
+  ['site-lib', 'src/site-lib'],
   // ARCH-22: scripts/ is a project of its own now (`tooling`), with three
   // pre-existing subfolders that still win by longest-prefix match.
   ['tooling', 'scripts'],
@@ -90,7 +93,8 @@ describe('ownerOf', () => {
     ['src/tools/sign/e2e/sign-editor.spec.js', 'tool-sign'],
     ['src/tools/edit-pages/PdfEditPagesTool.tsx', 'tool-edit-pages'],
     ['src/pages/index.astro', 'site'],
-    ['src/data/tools.js', 'site'],
+    ['src/data/tools.js', 'data'],
+    ['src/site-lib/ratingStore.ts', 'site-lib'],
     // DEBT-07: src/i18n/ got its own Nx project (same shape as site-test), so
     // this now resolves to 'i18n', not the 'site' fallback it used to.
     ['src/i18n/toolMessages.ts', 'i18n'],
@@ -184,8 +188,19 @@ describe('siteE2eOwnPaths', () => {
 });
 
 describe('CORE_PROJECTS', () => {
-  it('is exactly the four modules every tool depends on (editor-ui left in DEBT-06)', () => {
-    expect([...CORE_PROJECTS].sort()).toEqual(['editor', 'lib', 'shell', 'site']);
+  it('is the four modules every tool depends on (editor-ui left in DEBT-06) plus the three folders carved out of site (ARCH-34)', () => {
+    expect([...CORE_PROJECTS].sort()).toEqual(['data', 'editor', 'lib', 'shell', 'site', 'site-lib']);
+  });
+
+  // Nx cannot see an .astro page's imports, so after the carve-out a change to src/data/ or
+  // src/site-lib/ no longer makes `site` affected. Without core status here it would narrow to
+  // nothing and skip the home specs a page of that data feeds: the walk decides, as before.
+  it('a change in a carved-out folder still goes through the core rule even though Nx does not list site', () => {
+    for (const [file, project] of [['src/data/homeContent.js', 'data'], ['src/site-lib/ratingStore.ts', 'site-lib']]) {
+      const scope = deriveScope({ files: [file], affected: [project], roots: ROOTS });
+      expect(scope.everything, file).toBe(true);
+      expect(scope.reason).toContain('core project(s) affected');
+    }
   });
 });
 
@@ -199,7 +214,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/compress/ src/test/');
     expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ e2e/home/');
   });
 
@@ -244,7 +258,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(true);
-    expect(scope.unit_paths).toBe('src/test/');
     expect(scope.e2e_paths).toBe('');
   });
 
@@ -364,7 +377,6 @@ describe('deriveScope', () => {
       roots: ROOTS,
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/merge/ src/test/');
   });
 
   it('narrows to nothing for a purely docs-only change (affected=[])', () => {
@@ -375,7 +387,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
-    expect(scope.unit_paths).toBe('src/test/');
     expect(scope.e2e_paths).toBe('');
   });
 
@@ -388,7 +399,6 @@ describe('deriveScope', () => {
       siteE2ePaths: ['e2e/demo/', 'e2e/home/'],
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/merge/ src/test/');
     expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ src/tools/merge/e2e/ e2e/demo/ e2e/home/');
   });
 
@@ -398,7 +408,6 @@ describe('deriveScope', () => {
       affected: ['tool-split', 'tool-compress'],
       roots: ROOTS,
     });
-    expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/split/ src/test/');
   });
 
   it('an unowned file wins over a core-project match (rule order: unowned before core)', () => {
@@ -438,7 +447,6 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
   });
 
   // DEBT-06: editor-ui left CORE_PROJECTS, so an editor-ui-only change now
@@ -459,7 +467,6 @@ describe('deriveScope', () => {
       siteE2ePaths: ['e2e/home/'],
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/editor-ui/ src/tools/redact/ src/tools/sign/ src/test/');
     expect(scope.fonts).toBe(false);
     expect(scope.export_guards).toBe(true);
     expect(scope.e2e_paths).toContain('src/tools/sign/e2e/');
@@ -471,7 +478,7 @@ describe('deriveScope', () => {
   // `cross-tool-tests` (rooted at `src/test/cross-tool`), that root does not
   // match the `startsWith('src/test/')` check extraPaths already used to
   // skip src/test/'s own roots, so without the `root !== 'src/test'` guard
-  // this would have doubled `src/test/` in unit_paths.
+  // this would have doubled `src/test/` in the unit paths.
   it('does not duplicate src/test/ when site-test itself is affected', () => {
     const scope = deriveScope({
       files: ['src/test/setInputFiles.js'],
@@ -480,7 +487,6 @@ describe('deriveScope', () => {
       toolE2eExists: () => true,
     });
     expect(scope.everything).toBe(false);
-    expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
   });
 
   it('still widens to everything on a shell change', () => {
@@ -507,7 +513,7 @@ describe('deriveScope', () => {
   // to a flat scripts/ file narrows the same way an editor-ui-only change
   // does - see the `tooling` root added to ROOTS above.
   describe('the tooling project (ARCH-22)', () => {
-    it('(a) a change to a flat scripts/ file narrows: no fonts, unit_paths has scripts/ and src/test/, e2e_paths empty', () => {
+    it('(a) a change to a flat scripts/ file narrows: no fonts, e2e_paths empty', () => {
       const scope = deriveScope({
         files: ['scripts/backlog-data.mjs'],
         affected: ['tooling'],
@@ -515,7 +521,6 @@ describe('deriveScope', () => {
       });
       expect(scope.everything).toBe(false);
       expect(scope.fonts).toBe(false);
-      expect(scope.unit_paths).toBe('scripts/ src/test/');
       expect(scope.e2e_paths).toBe('');
     });
 
@@ -549,7 +554,6 @@ describe('deriveScope', () => {
       });
       expect(scope.everything).toBe(false);
       expect(scope.reason).not.toMatch(/CI oracle/);
-      expect(scope.unit_paths).toBe('scripts/ src/test/');
     });
 
     it('(d) a spike file still resolves to sign-spike-mobi10 by longest-prefix match, not tooling', () => {
@@ -560,7 +564,6 @@ describe('deriveScope', () => {
         roots: ROOTS,
       });
       expect(scope.everything).toBe(false);
-      expect(scope.unit_paths).toBe('scripts/spike/mobi-10/ src/test/');
     });
 
     it('a tooling change does not itself force fonts=true (nx affected walks dependents, and nothing depends on tooling)', () => {
@@ -593,7 +596,6 @@ describe('wide', () => {
     expect(scope.everything).toBe(true);
     expect(scope.fonts).toBe(true);
     expect(scope.export_guards).toBe(true);
-    expect(scope.unit_paths).toBe('');
     expect(scope.e2e_paths).toBe('');
     expect(scope.reason).toBe('test reason');
 
@@ -732,8 +734,8 @@ describe('narrowByReachability', () => {
     expect(reach(['src/lib/signHelper.test.ts'])).toMatchObject({ tools: [] });
   });
 
-  it('goes wide for a file the scan never saw: CSS, content YAML, an image, a deleted file', () => {
-    for (const file of ['src/styles/global.css', 'src/content/content-pages/x.yaml', 'src/assets/logo.svg', 'src/lib/deleted.ts']) {
+  it('goes wide for a file the scan never saw: CSS nothing imports, an image, a deleted file', () => {
+    for (const file of ['src/styles/global.css', 'src/assets/logo.svg', 'src/lib/deleted.ts']) {
       expect(reach([file]).wide, file).toContain('not a source file the import graph knows');
     }
   });
@@ -759,6 +761,136 @@ describe('narrowByReachability', () => {
       'src/tools/sign/PdfSignTool.tsx': ['src/lib/a.ts'],
     });
     expect(narrowByReachability({ changedFiles: ['src/lib/b.ts'], ...cyclic, toolOf }).tools).toEqual(['sign']);
+  });
+});
+
+describe('narrowByReachability: what ARCH-34 taught it', () => {
+  // import-graph records `import styles from './X.module.css'` as an edge to the CSS file, but a
+  // CSS file is not a scanned source file, so it was never in knownFiles and always went wide.
+  const cssGraph = () => {
+    const base = graphOf({ 'src/tools/merge/PdfMergeTool.tsx': [], 'src/pages/index.astro': [], 'src/shell/Orphan.tsx': [] });
+    base.reverseEdges.set('src/shell/Dropzone.module.css', new Set(['src/tools/merge/PdfMergeTool.tsx']));
+    base.reverseEdges.set('src/styles/home.css', new Set(['src/pages/index.astro']));
+    return { ...base, toolOf };
+  };
+
+  it('a CSS file a tool imports is reached through its importer: that tool, not wide', () => {
+    const result = narrowByReachability({ changedFiles: ['src/shell/Dropzone.module.css'], ...cssGraph() });
+    expect(result.tools).toEqual(['merge']);
+    expect(result.via.get('merge')).toBe('src/shell/Dropzone.module.css');
+  });
+
+  it('a CSS file a non-tool page imports still goes wide, as its importer does', () => {
+    expect(narrowByReachability({ changedFiles: ['src/styles/home.css'], ...cssGraph() }).wide).toContain('src/pages/index.astro');
+  });
+
+  it('a CSS file nothing imports stays wide: an entry sheet or a @source side channel cannot be walked', () => {
+    expect(narrowByReachability({ changedFiles: ['src/styles/tool-entry.css'], ...cssGraph() }).wide).toContain('not a source file the import graph knows');
+  });
+
+  it('src/content/** goes wide with its own reason: the layouts every page renders read the collections', () => {
+    for (const file of ['src/content/content-pages/x.yaml', 'src/content/localized-tools/he/merge.yaml', 'src/content/localized-home/he.yaml']) {
+      const result = narrowByReachability({ changedFiles: [file], ...cssGraph() });
+      expect(result.wide, file).toContain('src/content');
+      expect(result.wide, file).toContain('layouts');
+    }
+  });
+});
+
+describe('deriveScope: site-wide e2e split by directory (ARCH-34)', () => {
+  const E2E_ROOTS = new Map([
+    ...ROOTS,
+    ['tool-security', 'src/tools/security'],
+    ['e2e-home', 'e2e/home'],
+    ['e2e-handoff', 'e2e/handoff'],
+    ['e2e-cross-tool', 'e2e/cross-tool'],
+  ]);
+  const SITE_E2E = [
+    { name: 'site-e2e', root: 'e2e', paths: ['e2e/tool-layout.spec.js'], tools: new Set(['tool-merge', 'tool-sign', 'tool-redact', 'tool-compress', 'tool-split', 'tool-security']) },
+    { name: 'e2e-home', root: 'e2e/home', paths: ['e2e/home/'], tools: new Set(['tool-sign', 'tool-merge']) },
+    { name: 'e2e-handoff', root: 'e2e/handoff', paths: ['e2e/handoff/'], tools: new Set(['tool-sign', 'tool-security']) },
+    { name: 'e2e-cross-tool', root: 'e2e/cross-tool', paths: ['e2e/cross-tool/'], tools: new Set(['tool-merge', 'tool-split']) },
+  ];
+  const ALL_SITE_PATHS = SITE_E2E.flatMap((p) => p.paths);
+  const IMPORTS2 = {
+    'src/tools/merge/PdfMergeTool.tsx': ['src/lib/mergeOnly.ts'],
+    'src/tools/security/PdfUnlockTool.tsx': ['src/lib/unlockOnly.ts'],
+    'src/tools/split/PdfSplitTool.tsx': [],
+    'src/tools/sign/PdfSignTool.tsx': [],
+    'src/lib/mergeOnly.ts': [],
+    'src/lib/unlockOnly.ts': [],
+    'src/lib/mergeOnly.test.ts': ['src/lib/mergeOnly.ts'],
+  };
+  const graph = () => ({ ...graphOf(IMPORTS2), toolOf: makeToolOf(new Map([['/merge', 'merge'], ['/unlock', 'security'], ['/split', 'split'], ['/sign', 'sign']])) });
+  const derive = (files, affected, extra = {}) => deriveScope({
+    files, affected, roots: E2E_ROOTS, siteE2ePaths: ALL_SITE_PATHS, siteE2eProjects: SITE_E2E, loadReachGraph: graph, ...extra,
+  });
+  const paths = (scope) => scope.e2e_paths.split(' ').filter(Boolean).sort();
+
+  it('a core change that reaches only Merge runs Merge and the site-wide directories that declare Merge', () => {
+    const scope = derive(['src/lib/mergeOnly.ts'], ['lib', 'tool-merge', 'e2e-home', 'e2e-handoff', 'e2e-cross-tool', 'site-e2e']);
+    expect(scope.everything).toBe(false);
+    expect(paths(scope)).toEqual(['e2e/cross-tool/', 'e2e/home/', 'e2e/tool-layout.spec.js', 'src/tools/merge/e2e/']);
+    expect(paths(scope)).not.toContain('e2e/handoff/');
+  });
+
+  it('a change that reaches only Unlock runs the handoff directory, not home or cross-tool', () => {
+    const scope = derive(['src/lib/unlockOnly.ts'], ['lib', 'tool-security']);
+    expect(paths(scope)).toEqual(['e2e/handoff/', 'e2e/tool-layout.spec.js', 'src/tools/security/e2e/']);
+  });
+
+  it('a directory that owns a changed file runs even if it declares no reached tool', () => {
+    const scope = derive(['src/lib/mergeOnly.ts', 'e2e/handoff/new.spec.js'], ['lib', 'tool-merge', 'e2e-handoff']);
+    expect(paths(scope)).toContain('e2e/handoff/');
+  });
+
+  it('a changed file outside src/ and outside a site-wide e2e root keeps every site-wide directory (no fail-narrow)', () => {
+    const scope = derive(['src/lib/mergeOnly.ts', 'public/images/scan-guide/a.jpg'], ['lib', 'tool-merge']);
+    expect(scope.everything).toBe(false);
+    for (const p of ALL_SITE_PATHS) expect(paths(scope)).toContain(p);
+  });
+
+  it('a verdict that reaches no tool keeps every site-wide directory', () => {
+    const scope = derive(['src/lib/mergeOnly.test.ts'], ['lib']);
+    for (const p of ALL_SITE_PATHS) expect(paths(scope)).toContain(p);
+  });
+
+  it('without the project list the old floor holds: every site-wide path runs', () => {
+    const scope = derive(['src/lib/mergeOnly.ts'], ['lib', 'tool-merge'], { siteE2eProjects: undefined });
+    for (const p of ALL_SITE_PATHS) expect(paths(scope)).toContain(p);
+  });
+
+  it('with no core project, only the site-wide directories Nx lists as affected run', () => {
+    const scope = derive(['e2e/home/new.spec.js'], ['e2e-home']);
+    expect(scope.everything).toBe(false);
+    expect(paths(scope)).toEqual(['e2e/home/']);
+  });
+
+  it('public/images has an owner: an image-only change runs every site-wide directory and no tool directory', () => {
+    const scope = derive(['public/images/scan-guide/a.jpg'], []);
+    expect(scope.everything).toBe(false);
+    expect(scope.reason).not.toContain('unowned');
+    expect(paths(scope)).toEqual([...ALL_SITE_PATHS].sort());
+  });
+
+  it('public/.well-known has an owner and no spec reads it: nothing runs in e2e', () => {
+    const scope = derive(['public/.well-known/agent-skills/index.json'], []);
+    expect(scope.everything).toBe(false);
+    expect(paths(scope)).toEqual([]);
+  });
+
+  it('public/sw.js and the other loose files in public/ stay unowned: everything runs', () => {
+    for (const file of ['public/sw.js', 'public/llms.txt', 'public/manifest.webmanifest']) {
+      expect(derive([file], []).everything, file).toBe(true);
+    }
+  });
+});
+
+describe('siteE2eOwnPaths with tagged site-wide subdirectories (ARCH-34)', () => {
+  it('a nested root tagged as site-wide is not a hole in site-e2e: its dir is listed by its own project', () => {
+    const roots = new Map([['site-e2e', 'e2e'], ['e2e-home', 'e2e/home'], ['fonts', 'e2e/sign']]);
+    const children = [{ name: 'home', isDirectory: true }, { name: 'sign', isDirectory: true }, { name: 'tool-layout.spec.js', isDirectory: false }, { name: 'project.json', isDirectory: false }];
+    expect(siteE2eOwnPaths(children, roots)).toEqual(['e2e/tool-layout.spec.js']);
   });
 });
 

@@ -17,7 +17,7 @@
 // Usage:
 //   node scripts/affected-scope.mjs [--base <ref>] [--head <ref>]
 //     Prints KEY=value lines for $GITHUB_OUTPUT: affected, everything,
-//     unit_paths, e2e_paths, fonts, export_guards. Without --head, this is
+//     e2e_paths, fonts, export_guards. Without --head, this is
 //     "what would I push right now" (working tree against --base, or against
 //     the merge base with origin/main when --base is omitted). With --head,
 //     this is a fixed historical commit range (used by the histogram and the
@@ -77,17 +77,8 @@
 //      NOT automatically true here - it is matchesFontsGlob(files), the same
 //      as rule 5's narrow path, computed once and threaded through every
 //      wide() call and the narrow() return alike (see wide()'s own comment).
-//   5. Otherwise narrow: unit_paths is each affected tool-<name> project's
-//      src/tools/<name>/, plus the root of every other affected project that
-//      is not a tool and not in CORE_PROJECTS (so a narrowed `editor-ui`
-//      change still runs editor-ui's own unit tests, and a narrowed
-//      `tooling` change runs `scripts/`, with no hand-written second list -
-//      see the `roots` map in deriveScope), plus src/test/ (its own Nx
-//      project is `site-test`; several of its guard tests walk all of src
-//      and must run on any source change, so this is unconditional, not
-//      gated on `site-test` itself being affected). All of that is sorted
-//      alphabetically together, with src/test/ pinned last regardless (both
-//      orders are equally arbitrary; this is just the one the test pins).
+//   5. Otherwise narrow (ARCH-34 removed the dead unit_paths output: unit tests are chosen by
+//      import impact in scripts/unit-scope.mjs, ARCH-28, never from this file):
 //      e2e_paths is each affected tool's src/tools/<name>/e2e/ (only the
 //      tools that have one) plus site-e2e's own direct children (e2e/home/,
 //      e2e/demo/, ... - never the bare "e2e/" string: Playwright's CLI path
@@ -120,7 +111,13 @@ const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 // so the Nx graph already answers precisely for it instead of needing this
 // blanket treatment. `editor` stays for now - DEBT-07 decides its fate,
 // after DEBT-04.
-export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib']);
+// ARCH-34: `data` and `site-lib` were folders (and `constants`, until part A emptied it into `editor`) of the catch-all `site` project and
+// are projects of their own now so the Nx graph stops treating every import of them as an import
+// of `site`. They stay core on purpose: Nx cannot see an .astro page's imports, so a change in
+// them no longer makes `site` affected by itself, and a page that renders the data would be
+// missed by a narrow verdict. Core status sends them through the import-reachability walk, the
+// same verdict they had as part of `site`.
+export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib', 'data', 'site-lib']);
 
 // The CI oracle itself. `tooling` (ARCH-22) gives scripts/ a project, so
 // without this a change to the file deciding what to narrow could narrow
@@ -170,30 +167,64 @@ function nx(args) {
   }).trim();
 }
 
-// Project name -> root directory (relative to ROOT), read from Nx's own
-// project graph - not a second hand-written map. `nx graph --file=<path>`
-// writes the graph as JSON; every project node's `data.root` is exactly
-// what its project.json declares as `sourceRoot`/root.
-function projectRoots() {
+// Project name -> { root, tags, implicitDependencies }, read from Nx's own project graph - not a
+// second hand-written map. `nx graph --file=<path>` writes the graph as JSON; every project node's
+// `data` carries what its project.json declares.
+function projectInfo() {
   const dir = mkdtempSync(join(tmpdir(), 'nx-graph-'));
   const file = join(dir, 'graph.json');
   try {
     nx(['graph', `--file=${file}`]);
     const graph = JSON.parse(readFileSync(file, 'utf8'));
-    const roots = new Map();
+    const info = new Map();
     for (const [name, node] of Object.entries(graph.graph.nodes)) {
-      roots.set(name, node.data.root);
+      info.set(name, { root: node.data.root, tags: node.data.tags ?? [], implicitDependencies: node.data.implicitDependencies ?? [] });
     }
-    return roots;
+    return info;
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+// The tag every site-wide e2e project carries (site-e2e itself and its per-directory siblings).
+export const SITE_E2E_TAG = 'site-e2e';
+
+// The site-wide e2e projects as deriveScope wants them: { name, root, paths, tools }. `paths` is
+// what Playwright is given (the project's own spec files for the root project, whose directories
+// are other projects; `<root>/` for a directory project). `tools` is the tool-<t> projects it
+// declares as implicitDependencies.
+export function siteE2eProjectList(info, children) {
+  const roots = new Map([...info].map(([name, node]) => [name, node.root]));
+  return [...info]
+    .filter(([, node]) => node.tags.includes(SITE_E2E_TAG))
+    .map(([name, node]) => ({
+      name,
+      root: node.root,
+      paths: node.root === 'e2e' ? siteE2eOwnPaths(children, roots) : [`${node.root}/`],
+      tools: new Set(node.implicitDependencies.filter((d) => d.startsWith('tool-'))),
+    }));
 }
 
 // The one file no Nx project root can own, on purpose: docs-only changes
 // don't reach this script's callers in CI, but if it is ever invoked on one
 // directly it should not be forced to "everything" for having no project
 // owner - it simply narrows to nothing.
+// ARCH-34: public/ is copied verbatim into the site, so a project.json inside public/images or
+// public/.well-known would be published as /images/project.json (public/fonts/project.json already
+// is, a leftover nobody wants more of). These two have owners here instead of in Nx:
+//   - public/images/**: pictures the guide pages and the home/demo specs show. No tool page or tool
+//     spec references one (git grep '/images/' over src/ finds only content YAML and e2e/ specs),
+//     so the site-wide specs run, the tool directories do not.
+//   - public/.well-known/**: agent-discovery files. No spec requests them (a unit test reads them,
+//     and unit selection is scripts/unit-scope.mjs's business), so no e2e runs.
+// public/sw.js and the other loose files in public/ stay unowned on purpose: a service-worker
+// change can alter any spec, so they widen to everything.
+export function publicOwnerOf(file) {
+  if (file.startsWith('public/images/')) return 'public-images';
+  if (file.startsWith('public/.well-known/')) return 'public-well-known';
+  return null;
+}
+
 export function ownerOf(file, roots) {
   let owner = null;
   let ownerRootLength = -1;
@@ -248,7 +279,7 @@ export function siteE2eOwnPaths(children, roots) {
 // matchesFontsGlob's own comment for why this is a directory rule, not a
 // hand-kept list of catalogue files.
 export function wide(affected, reason, fonts = true) {
-  return { everything: true, fonts, export_guards: true, affected, unit_paths: '', e2e_paths: '', reason };
+  return { everything: true, fonts, export_guards: true, affected, e2e_paths: '', reason };
 }
 
 // ARCH-32: file-level narrowing for a core-project verdict. Nx cannot tell which tools a change in
@@ -273,6 +304,16 @@ const TEST_SUPPORT_FILE = /^src\/test\/|\.test-helper\.[cm]?[jt]sx?$/;
 // unless it sits under an always-run site-wide spec path (`siteE2ePaths`).
 const PAGE_FILE = /^src\/pages\//;
 const E2E_FILE = /^e2e\//;
+// ARCH-34. A CSS file is not a scanned source file, but import-graph records an edge to it from
+// whatever imports it (`import styles from './X.module.css'`), so a CSS file with an importer is
+// reached through that importer like any module. One nothing imports (an entry sheet, a file only
+// a Tailwind `@source` line reaches) has no walk and stays wide.
+const CSS_FILE = /\.css$/;
+// src/content/** (YAML collections) is read by the layouts every page renders (the published-
+// edition and hreflang links come from `getPublishedEditionPaths`), so a content edit can change
+// any page and any spec that visits one, tool specs included via `/`. Nothing narrower is safe;
+// the rule exists so the verdict names its reason instead of "unknown file".
+const CONTENT_FILE = /^src\/content\//;
 
 // Tool folder of a file: anything under src/tools/<t>/, or a top-level page that renders a tool
 // (`routeMap` is import-graph's buildToolRouteMap(): '/<slug>' -> tool folder).
@@ -291,8 +332,10 @@ export function narrowByReachability({
   siteE2ePaths = [],
 }) {
   const via = new Map();
+  const e2eFiles = new Set();
   for (const seed of changedFiles) {
-    if (!knownFiles.has(seed)) return { wide: `${seed} is not a source file the import graph knows (CSS, content, asset or deleted)` };
+    if (CONTENT_FILE.test(seed)) return { wide: `${seed} is content that the layouts every page renders read, and tool specs visit those pages` };
+    if (!knownFiles.has(seed) && !(CSS_FILE.test(seed) && reverseEdges.has(seed))) return { wide: `${seed} is not a source file the import graph knows (CSS, content, asset or deleted)` };
     const visited = new Set();
     const stack = [seed];
     while (stack.length) {
@@ -307,7 +350,10 @@ export function narrowByReachability({
       }
       if (PAGE_FILE.test(node)) return { wide: `${seed} reaches ${node}, which tool specs also visit` };
       if (E2E_FILE.test(node)) {
-        if (siteE2ePaths.some((p) => node === p || (p.endsWith('/') && node.startsWith(p)))) continue;
+        if (siteE2ePaths.some((p) => node === p || (p.endsWith('/') && node.startsWith(p)))) {
+          e2eFiles.add(node);
+          continue;
+        }
         return { wide: `${seed} reaches ${node}, a spec the site-wide run does not cover` };
       }
       // A unit test importing a file does not make it reachable from a page: only live importers
@@ -318,7 +364,7 @@ export function narrowByReachability({
       for (const importer of live) stack.push(importer);
     }
   }
-  return { tools: [...via.keys()].sort(), via };
+  return { tools: [...via.keys()].sort(), via, e2eFiles };
 }
 
 // The pure mapping: given the changed files, the projects Nx says are
@@ -326,8 +372,10 @@ export function narrowByReachability({
 // run. No `nx`/`git` call in here - scripts/affected-scope.test.mjs exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
-export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], loadReachGraph = null }) {
-  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots));
+export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null }) {
+  // An empty list means "none were found", never "no site-wide spec exists": use the old floor.
+  const siteE2eProjects = projectList?.length ? projectList : null;
+  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f));
   if (unowned.length > 0) {
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
   }
@@ -352,12 +400,10 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     return narrowResult({
       files,
       affected,
-      roots,
       toolProjects: reached.tools.map((t) => `tool-${t}`),
-      otherProjects: [...new Set(reached.seeds.map((f) => ownerOf(f, roots)))].filter((p) => p && !p.startsWith('tool-')),
       toolE2eExists,
-      siteE2ePaths,
-      includeSiteE2e: true, // the site-wide specs are the floor of any narrowed run
+      siteE2ePaths: selectSiteE2eForReach({ projects: siteE2eProjects, allPaths: siteE2ePaths, files, roots, reached }),
+      includeSiteE2e: true, // the site-wide specs the reach selects (all of them unless it can name which) are the floor of a narrowed run
       exportGuards: true, // same as wide(): two cheap specs whose own Nx edges are coarse on purpose
       reason: `${coreReason}, narrowed by import reachability to ${reached.tools.join(', ') || '(no tool; site-e2e only)'} - ${reached.why}`,
     });
@@ -367,18 +413,48 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   return narrowResult({
     files,
     affected,
-    roots,
     toolProjects,
-    otherProjects: [...affectedSet].filter((p) => !p.startsWith('tool-') && !CORE_PROJECTS.has(p)),
     toolE2eExists,
-    siteE2ePaths,
-    includeSiteE2e: affectedSet.has('site-e2e'),
+    siteE2ePaths: siteE2eProjects ? siteE2eProjects.filter((p) => affectedSet.has(p.name)).flatMap((p) => p.paths) : siteE2ePaths,
+    includeSiteE2e: siteE2eProjects ? true : affectedSet.has('site-e2e'),
+    imagesChanged: files.some((f) => publicOwnerOf(f) === 'public-images'),
+    allSiteE2ePaths: siteE2ePaths,
     // ARCH-23: a real Nx affected-check, same as any tool project: e2e/export/
     // project.json's implicitDependencies (font-assets, editor, lib,
     // tool-sign) are what make it true here.
     exportGuards: affectedSet.has('export-guards'),
     reason: `narrowed to ${toolProjects.join(', ') || '(no tool project; site-e2e/fonts only)'}`,
   });
+}
+
+// ARCH-34: the floor of a narrowed core verdict used to be every site-wide spec. `projects` is the
+// site-wide e2e projects ({ name, paths, tools }, `tools` being the tool-<t> projects whose pages
+// that directory's specs visit, declared in its project.json and checked against the specs by
+// scripts/e2e-projects.test.mjs). Narrowing is allowed only when nothing can reach a spec by a path
+// the walk does not follow, so it falls back to every site-wide path ("allPaths", the old floor) when
+//   - no project list was supplied,
+//   - the walk reached no tool (nothing says which directory is exposed), or
+//   - a changed file sits outside src/ (the walk only covers src/) and is not itself inside a
+//     site-wide e2e project (public/images, a config file, scripts/ ...).
+// Otherwise a directory runs when it owns a changed file, owns a spec the walk reached, or declares
+// a tool the walk reached.
+function selectSiteE2eForReach({ projects, allPaths, files, roots, reached }) {
+  if (!projects || reached.tools.length === 0) return allPaths;
+  const names = new Set(projects.map((p) => p.name));
+  const owners = new Set();
+  for (const file of files) {
+    if (isDocsOnly(file) || file.startsWith('src/')) continue;
+    const owner = ownerOf(file, roots);
+    if (!owner || !names.has(owner)) return allPaths;
+    owners.add(owner);
+  }
+  for (const spec of reached.e2eFiles ?? []) {
+    const owner = ownerOf(spec, roots);
+    if (!owner || !names.has(owner)) return allPaths;
+    owners.add(owner);
+  }
+  const reachedTools = new Set(reached.tools.map((t) => `tool-${t}`));
+  return projects.filter((p) => owners.has(p.name) || [...p.tools].some((t) => reachedTools.has(t))).flatMap((p) => p.paths);
 }
 
 // Which tools a core-project change reaches, by import reachability (ARCH-32), or why it cannot
@@ -399,35 +475,17 @@ function reachFromCore({ files, loadReachGraph, siteE2ePaths }) {
   const result = narrowByReachability({ changedFiles: seeds, knownFiles: graph.knownFiles, reverseEdges: graph.reverseEdges, toolOf: graph.toolOf, siteE2ePaths });
   if (result.wide) return { wide: result.wide };
   const why = result.tools.length ? result.tools.map((t) => `${t} via ${result.via.get(t)}`).join('; ') : 'nothing e2e imports the changed files';
-  return { tools: result.tools, seeds, why };
+  return { tools: result.tools, seeds, why, e2eFiles: result.e2eFiles };
 }
 
-// The scope for a narrowed run. `toolProjects` get their own src/tools/<t>/ (unit) and e2e/ dirs;
-// every other project in `otherProjects` whose root sits under src/ (not src/test/, which is
-// always added) or is `scripts` or a folder under it (ARCH-22's `tooling` and its pre-existing
-// subfolder projects) adds its own root, straight from the injected `roots` map - never a
-// hand-written list - so e.g. an editor-ui-only change still runs editor-ui's own unit tests
-// (DEBT-06) and a tooling-only change runs `scripts/`. A root already covered by the
-// always-present src/test/ is skipped, not duplicated: both `cross-tool-tests` (root
-// `src/test/cross-tool`, caught by the `startsWith` check) and `site-test` itself (root the
-// literal `src/test`, which `startsWith('src/test/')` does not match - no trailing slash - so it
-// needs its own equality check, DEBT-04 second pass).
-function narrowResult({ files, affected, roots, toolProjects, otherProjects, toolE2eExists, siteE2ePaths, includeSiteE2e, exportGuards, reason }) {
-  const toolPaths = toolProjects.map((p) => `src/tools/${toolNameOf(p)}/`);
-  const extraPaths = otherProjects
-    .map((p) => roots.get(p))
-    .filter((root) => root && (root.startsWith('src/') || root === 'scripts' || root.startsWith('scripts/')) && root !== 'src/test' && !root.startsWith('src/test/'))
-    .map((root) => `${root}/`);
-
-  // Sorted together, alphabetically; src/test/ is pinned last regardless of
-  // where it would otherwise fall (either order is equally arbitrary here -
-  // this is just the one scripts/affected-scope.test.mjs pins).
-  const unitPaths = [...new Set([...toolPaths, ...extraPaths])].sort();
-  unitPaths.push('src/test/');
+// The scope for a narrowed run. `toolProjects` get their own src/tools/<t>/e2e/ dir. (Unit tests are
+// selected by import impact, scripts/unit-scope.mjs, ARCH-28; this file no longer computes unit paths.)
+function narrowResult({ files, affected, toolProjects, toolE2eExists, siteE2ePaths, includeSiteE2e, exportGuards, reason, imagesChanged = false, allSiteE2ePaths = [] }) {
   const e2ePaths = toolProjects
     .filter((p) => toolE2eExists(p))
     .map((p) => `src/tools/${toolNameOf(p)}/e2e/`);
   if (includeSiteE2e) e2ePaths.push(...siteE2ePaths);
+  if (imagesChanged) e2ePaths.push(...allSiteE2ePaths.filter((p) => !e2ePaths.includes(p)));
 
   return {
     everything: false,
@@ -438,7 +496,6 @@ function narrowResult({ files, affected, roots, toolProjects, otherProjects, too
     fonts: files.some(matchesFontsGlob),
     export_guards: exportGuards,
     affected,
-    unit_paths: unitPaths.join(' '),
     e2e_paths: e2ePaths.join(' '),
     reason,
   };
@@ -460,9 +517,11 @@ export function resolveScope({ explicitBase, explicitHead }) {
   }
 
   let roots;
+  let info;
   let affected;
   try {
-    roots = projectRoots();
+    info = projectInfo();
+    roots = new Map([...info].map(([name, node]) => [name, node.root]));
     const affectedRaw = nx(['show', 'projects', '--affected', `--files=${files.join(',')}`, '--json']);
     affected = JSON.parse(affectedRaw);
   } catch (err) {
@@ -472,12 +531,15 @@ export function resolveScope({ explicitBase, explicitHead }) {
   const e2eChildren = readdirSync(join(ROOT, 'e2e'), { withFileTypes: true })
     .map((entry) => ({ name: entry.name, isDirectory: entry.isDirectory() }));
 
+  const siteE2eProjects = siteE2eProjectList(info, e2eChildren);
+
   return deriveScope({
     files,
     affected,
     roots,
     toolE2eExists: (project) => existsSync(join(ROOT, `src/tools/${toolNameOf(project)}/e2e/`)),
-    siteE2ePaths: siteE2eOwnPaths(e2eChildren, roots),
+    siteE2ePaths: siteE2eProjects.flatMap((p) => p.paths),
+    siteE2eProjects,
     // Scanned lazily: only a core-project verdict reads it, and then once.
     loadReachGraph: () => {
       const graph = buildReachGraph();
@@ -489,7 +551,6 @@ export function resolveScope({ explicitBase, explicitHead }) {
 function printOutputs(scope) {
   console.log(`affected=${JSON.stringify(scope.affected)}`);
   console.log(`everything=${scope.everything}`);
-  console.log(`unit_paths=${scope.unit_paths}`);
   console.log(`e2e_paths=${scope.e2e_paths}`);
   console.log(`fonts=${scope.fonts}`);
   console.log(`export_guards=${scope.export_guards}`);
@@ -501,7 +562,6 @@ function summaryMarkdown(scope) {
     '',
     `- **everything**: ${scope.everything} (${scope.reason})`,
     `- **affected projects**: ${scope.affected.length ? scope.affected.join(', ') : '(none)'}`,
-    `- **unit_paths**: ${scope.unit_paths || '(full suite)'}`,
     `- **e2e_paths**: ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
     `- **fonts**: ${scope.fonts}`,
     `- **export_guards**: ${scope.export_guards}`,
@@ -510,9 +570,7 @@ function summaryMarkdown(scope) {
 }
 
 // ARCH-28: unit selection no longer comes from this file's own
-// project-level `unit_paths` (deriveScope() above still computes it, for
-// e2e/font/export narrowing's own tests to pin against, but nothing runs
-// tests off it any more - a core-project verdict here would otherwise force
+// project-level scope (a core-project verdict here would otherwise force
 // all ~193 unit files, exactly the thing ARCH-28 replaces). `runUnit` is now
 // a thin wrapper around scripts/unit-scope.mjs's own `resolveUnitScope`/
 // `runUnitByImpact` - the same functions check-push.mjs calls directly
