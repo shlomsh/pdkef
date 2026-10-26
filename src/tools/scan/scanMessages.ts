@@ -69,6 +69,7 @@ export const scanMessages = {
   downloadAgain: 'download again',
   savedLabel: 'Saved',
   buildFailed: 'Could not make this PDF',
+  removeToMake: 'Remove page {pages} to make the PDF',
   preparingPages: 'Preparing {count} pages…',
   renderProgress: '{done} of {total} ready',
   allSkipped: 'No pages yet',

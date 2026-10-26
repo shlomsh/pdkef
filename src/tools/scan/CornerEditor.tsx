@@ -99,6 +99,9 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     const touch = 'touches' in event && !!event.touches;
     const restore = () => paint(start);
     if (touch) paintLoupe(start, index, clientPoint(event), rect);
+    // The corner stops where the shape would turn invalid (a bow tie, a dent, a sliver): the outline
+    // only ever shows a usable quad, and release commits the last one.
+    let lastValid = start;
 
     cancelRef.current = startGesture<{ quad: Quad; client: { x: number; y: number } }>({
       computePatch: (moveEvent: any) => {
@@ -108,7 +111,9 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
           x: rect.width ? (c.x - rect.left) / rect.width : start[index].x,
           y: rect.height ? (c.y - rect.top) / rect.height : start[index].y,
         });
-        return { quad: start.map((p, i) => (i === index ? point : p)) as Quad, client: c };
+        const candidate = start.map((p, i) => (i === index ? point : p)) as Quad;
+        if (usable(candidate)) lastValid = candidate;
+        return { quad: lastValid, client: c };
       },
       writeDOM: (patch) => {
         paint(patch.quad);
@@ -118,7 +123,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
         cancelRef.current = null;
         hideLoupe();
         if (!patch) return;
-        if (usable(patch.quad)) onCommit(patch.quad);
+        if (patch.quad !== start) onCommit(patch.quad);
         else restore();
       },
       cancel: () => {

@@ -54,11 +54,14 @@ export function playFlatten(host: HTMLElement, from: FlattenFrom, target: HTMLIm
     layer.setAttribute('aria-hidden', 'true');
     layer.dataset.flatten = '';
     Object.assign(layer.style, { position: 'absolute', inset: '0', pointerEvents: 'none', zIndex: '2' });
-    // The photo as the corner editor showed it: dimmed around the page.
-    const surround = layerImage(from.photoUrl, {
-      left: px(from.frame.left), top: px(from.frame.top), width: px(from.frame.width), height: px(from.frame.height),
-      filter: 'brightness(0.55)',
+    // The photo as the corner editor showed it: its own night tint around the page (CornerEditor's dim).
+    const surround = document.createElement('div');
+    Object.assign(surround.style, {
+      position: 'absolute', left: px(from.frame.left), top: px(from.frame.top), width: px(from.frame.width), height: px(from.frame.height),
     });
+    const tint = document.createElement('div');
+    Object.assign(tint.style, { position: 'absolute', inset: '0', background: 'var(--color-night)', opacity: '0.45' });
+    surround.append(layerImage(from.photoUrl, { width: '100%', height: '100%' }), tint);
     // The photo itself cut to the corners: the page as photographed, carried to the paper.
     const photoPage = layerImage(from.photoUrl, {
       width: px(from.frame.width), height: px(from.frame.height), transformOrigin: '0 0', willChange: 'transform',
