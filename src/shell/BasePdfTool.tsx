@@ -33,6 +33,8 @@ function renderTemplate(text: string, values: Record<string, string>, className:
 // aren't modeled yet, so they stay `any` rather than inventing types nothing
 // else uses.
 interface BasePdfToolProps {
+  /** False for a tool that never loads pdf.js (Image to PDF, Scan): the old-browser notice is about pdf.js only. */
+  needsPdfjs?: boolean;
   hasFiles: boolean;
   onFilesAdded: (files: File[]) => void;
   children?: ComponentChildren;
@@ -150,6 +152,7 @@ export default function BasePdfTool({
   emptyAction,
   hideIdentity = false,
   dropAnywhere = true,
+  needsPdfjs = true,
 }: BasePdfToolProps) {
   const downloaded = useDownloaded();
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
@@ -476,7 +479,7 @@ export default function BasePdfTool({
         </div>
       )}
 
-      {hasFiles && oldBrowser && (
+      {hasFiles && needsPdfjs && oldBrowser && (
         <p class={styles['old-browser-notice']} role="status">
           {formatMessage(sm.oldBrowserNotice, { browser: oldBrowser.browser, version: String(oldBrowser.minimum) })}
         </p>

@@ -85,6 +85,20 @@ describe('BasePdfTool', () => {
       expect(container.textContent).toContain('needs Chrome 122 or newer');
     });
 
+    const IOS_17 = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+
+    it('is skipped for a tool that never loads pdf.js (needsPdfjs false)', () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: IOS_17 });
+      mount({ hasFiles: true, onFilesAdded: vi.fn(), needsPdfjs: false });
+      expect(container.textContent).not.toContain('or newer to open PDFs');
+    });
+
+    it('still appears on iOS 17 by default', () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: IOS_17 });
+      mount({ hasFiles: true, onFilesAdded: vi.fn() });
+      expect(container.textContent).toContain('needs iOS 18.4 or newer');
+    });
+
     it('does not appear in a current browser', () => {
       vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME.replace('109', '143') });
       mount({ hasFiles: true, onFilesAdded: vi.fn() });

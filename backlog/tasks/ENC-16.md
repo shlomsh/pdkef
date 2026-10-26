@@ -35,7 +35,7 @@ touch phone the intro folds and "Unlock it" sits at y=536 of 844, the same as a 
 
 ## Acceptance
 
-- [ ] Failing tests first for the behaviour changes (output name, no one-file box, calm notice, locked row,
+- [x] Failing tests first for the behaviour changes (output name, no one-file box, calm notice, locked row,
       file chip, Replace line); `check:fast` green
-- [ ] Screenshots at 390 and 1280: Merge (one locked, locked + plain), Organize, Sign, Hebrew Merge
+- [x] Screenshots at 390 and 1280: Merge (one locked, locked + plain), Organize, Sign, Hebrew Merge
 - [ ] Fresh reviewer pass; CI green after landing
