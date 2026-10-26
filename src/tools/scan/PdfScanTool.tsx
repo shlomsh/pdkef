@@ -330,7 +330,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
-      urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      // A dev server's hot swap keeps the island's state, photos included: only a real unmount frees them.
+      if (!import.meta.hot) urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
 
