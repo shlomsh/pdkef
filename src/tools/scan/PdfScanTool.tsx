@@ -645,7 +645,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 <>
                   {controls('')}
                   <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? 'Clear all'}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? t.clearAll}</button>
                   </div>
                 </>
               )}

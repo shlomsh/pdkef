@@ -97,6 +97,9 @@ export interface CompressMessages {
   compareCloseLabel: string;
   compareBeforeLabel: string;
   compareAfterLabel: string;
+  /** alt text of a compare image: the label, then the page. */
+  comparePageAlt: string;
+  compareSliderLabel: string;
   compareCaptionImage: string;
   compareCaptionPdf: string;
   compareCaptionPdfSingle: string;
@@ -189,6 +192,8 @@ export const englishCompressMessages: CompressMessages = {
   compareCloseLabel: 'Close',
   compareBeforeLabel: 'Original',
   compareAfterLabel: 'Compressed',
+  comparePageAlt: '{label} - page 1',
+  compareSliderLabel: 'Compare original and compressed page 1',
   compareCaptionImage: 'Drag to compare the original and the compressed image.',
   compareCaptionPdf: 'Drag to compare page 1 with the original.',
   compareCaptionPdfSingle: 'Drag to compare the original and the compressed page.',
@@ -286,6 +291,9 @@ export const hebrewCompressMessages: CompressMessages = {
   compareCloseLabel: 'סגירה',
   compareBeforeLabel: 'מקור',
   compareAfterLabel: 'מכווץ',
+  // Not yet translated: the Hebrew edition rendered these in English before they moved here.
+  comparePageAlt: '{label} - page 1',
+  compareSliderLabel: 'Compare original and compressed page 1',
   compareCaptionImage: 'גררו כדי להשוות בין התמונה המקורית לתמונה המכווצת.',
   compareCaptionPdf: 'גררו כדי להשוות את עמוד 1 למקור.',
   compareCaptionPdfSingle: 'גררו כדי להשוות בין העמוד המקורי לעמוד המכווץ.',
