@@ -45,6 +45,14 @@ function floor(w: number, h: number, seed: number): GrayImage {
   return img;
 }
 
+/** A sub-rectangle of a rotated page, in the page's own coordinates (x0..x1, y0..y1 from its centre). */
+function part(cx: number, cy: number, deg: number, x0: number, y0: number, x1: number, y1: number): Quad {
+  const r = (deg * Math.PI) / 180;
+  const c = Math.cos(r);
+  const s = Math.sin(r);
+  return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => ({ x: cx + x * c - y * s, y: cy + x * s + y * c })) as Quad;
+}
+
 const norm4 = (q: Quad, w: number, h: number) => q.map((p) => norm(p, w, h)) as Quad;
 const cut = (q: Quad): Quad => q.map((p) => ({ x: Math.min(1, Math.max(0, p.x)), y: Math.min(1, Math.max(0, p.y)) })) as Quad;
 
@@ -126,6 +134,25 @@ function build(): CorpusCase[] {
     fillQuad(img, page, 232);
     add('corner outside frame', img, page, { nullOk: true, tol: 0.04 });
     cases[cases.length - 1].truth = cut(norm4(page, PW, PH));
+  }
+  { // 15 white envelope, its left quarter a dark printed band, on a tiled floor
+    const img = floor(PW, PH, 41); const page = rotated(165, 215, 100, 140, 7);
+    fillQuad(img, page, 236); fillQuad(img, part(165, 215, 7, -100, -140, -50, 140), 28);
+    add('dark band on left quarter', img, page);
+  }
+  { // 16 dark-backed card: a dark card on a bright table
+    const img = solid(PW, PH, 205); const page = rotated(160, 212, 95, 135, -9);
+    fillQuad(img, page, 45); addNoise(img, 8, 42); add('dark card on bright table', img, page);
+  }
+  { // 17 the page's top edge is darker than the table (a dark header strip), table mid-grey
+    const img = solid(PW, PH, 120); const page = rotated(160, 214, 100, 140, 4);
+    fillQuad(img, page, 225); fillQuad(img, part(160, 214, 4, -100, -140, 100, -105), 55);
+    addNoise(img, 8, 43); add('top edge darker than table', img, page);
+  }
+  { // 18 dark band along the bottom, page tilted, on a tiled floor
+    const img = floor(PW, PH, 44); const page = rotated(160, 212, 95, 140, -12);
+    fillQuad(img, page, 232); fillQuad(img, part(160, 212, -12, -95, 85, 95, 140), 30);
+    add('dark band along bottom', img, page);
   }
   return cases;
 }
