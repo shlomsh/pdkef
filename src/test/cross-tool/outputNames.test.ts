@@ -7,7 +7,7 @@ import { outputFileName as securityName } from '../../tools/security/outputName.
 import { signedFileName } from '../../tools/sign/signedFileName.ts';
 import { redactedFileName } from '../../tools/redact/redactFileName.ts';
 import { imageBaseName, imageFileName } from '../../tools/to-image/toImage.js';
-import { scanMessages } from '../../tools/scan/scanMessages.ts';
+import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';
 import { defaultOutputName } from '../../lib/pageOrder.js';
 
 // ARCH-38: every tool's output name, pinned. Six conventions (merged_x, extracted_x, x-compressed,

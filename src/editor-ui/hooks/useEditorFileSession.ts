@@ -21,8 +21,7 @@ import { useDocumentRetirement } from './useDocumentRetirement.ts';
  *
  * What stays with the tool is its own state: what a load resets (`initialize`), what it does with
  * the document (`onDocument`), how a coarse status reaches its store (`setLoadStatus`), and the
- * document's elements for the draft. Announcements default to English here; a tool that has
- * translated them passes `messages`.
+ * document's elements for the draft. The announcements are the tool's own: it passes `messages`.
  */
 
 export type NeedsUnlockKind = 'needs-password' | 'owner-restricted';
@@ -35,12 +34,6 @@ export interface EditorSessionMessages {
   /** Timeout, failure, loaded and restored lines (see loadPdf.ts). */
   load?: PdfLoadMessages;
 }
-
-const englishSessionMessages: EditorSessionMessages = {
-  invalidPdf: 'Choose a PDF file.',
-  needsPassword: 'This PDF has a password. Unlock opens it.',
-  ownerRestricted: 'This PDF is protected. Unlock takes the protection off.',
-};
 
 type DraftOptions<TElement extends HistoryElement> = Pick<
   UseEditorDraftPersistenceOptions<TElement>,
@@ -64,7 +57,7 @@ export interface EditorFileSessionOptions<TElement extends HistoryElement> {
   /** pdf.js accepted the file. Resolve with page sizes etc.; the session adds it to recents after. */
   onDocument: (document: PDFDocumentProxy, isCurrent: () => boolean) => Promise<void> | void;
   draft: DraftOptions<TElement>;
-  messages?: Partial<EditorSessionMessages>;
+  messages: EditorSessionMessages;
 }
 
 export function useEditorFileSession<TElement extends HistoryElement>(options: EditorFileSessionOptions<TElement>) {
@@ -87,7 +80,7 @@ export function useEditorFileSession<TElement extends HistoryElement>(options: E
     loadControllerRef.current?.cancel();
   }, []);
 
-  const messages = { ...englishSessionMessages, ...options.messages };
+  const messages = options.messages;
 
   // Core loader shared by fresh picks, launches and draft restore. `bytes` is the source PDF;
   // `preset` seeds restored elements and history. Overlapping calls are ordered by loadPdf.ts: a
@@ -99,7 +92,7 @@ export function useEditorFileSession<TElement extends HistoryElement>(options: E
     restored = false,
   ) => {
     const live = optionsRef.current;
-    const m = { ...englishSessionMessages, ...live.messages };
+    const m = live.messages;
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, loadControllerRef, retireDocument, clearDraft,
       setStatus: live.setLoadStatus,

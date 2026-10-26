@@ -4,6 +4,8 @@ import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
 import type { PresetKey } from './find/types.ts';
 import { coverAllQueueStep } from './find/coverAllQueue.ts';
 import styles from './FindBar.module.css';
+import { englishRedactMessages as t } from './messages.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
 
 /** What a found match becomes. Whiteout is left out on purpose: it hides
  * text on a white page only, and a search result is exactly where that
@@ -112,13 +114,13 @@ export default function FindBar({
   const shortStatus = searching && hasMatches ? `${summary.position}/${summary.total}` : status;
 
   return (
-    <div className={styles['find-bar']} role="search" aria-label="Find and cover" data-redact-find-bar>
+    <div className={styles['find-bar']} role="search" aria-label={t.findAndCover} data-redact-find-bar>
       <div className={styles.field}>
         <Search size={16} aria-hidden="true" className={styles['field-icon']} />
         {preset ? (
           <span className={styles.chip} data-redact-find-preset-chip>
             {PRESET_LABELS[preset]}
-            <button type="button" className={styles['chip-clear']} onClick={() => { onPresetChange(null); inputRef.current?.focus(); }} aria-label="Clear">
+            <button type="button" className={styles['chip-clear']} onClick={() => { onPresetChange(null); inputRef.current?.focus(); }} aria-label={t.clear}>
               <X size={12} aria-hidden="true" />
             </button>
           </span>
@@ -129,8 +131,8 @@ export default function FindBar({
           dir="auto"
           className={styles.input}
           value={preset ? '' : term}
-          placeholder={preset ? '' : 'Find text to redact'}
-          aria-label="Find text to redact"
+          placeholder={preset ? '' : t.findTitle}
+          aria-label={t.findTitle}
           onInput={(event) => {
             setQueued(false);
             if (preset) onPresetChange(null);
@@ -142,10 +144,10 @@ export default function FindBar({
           data-redact-find-input
         />
         <ToolbarMenu
-          title="Kinds of detail"
+          title={t.kindsOfDetail}
           triggerClassName={styles['preset-trigger']}
           triggerAttrs={{ 'data-redact-find-presets': true }}
-          triggerContent={<><span>Kinds</span><ChevronDown size={14} aria-hidden="true" /></>}
+          triggerContent={<><span>{t.kinds}</span><ChevronDown size={14} aria-hidden="true" /></>}
           items={(Object.keys(PRESET_LABELS) as PresetKey[]).map((key) => ({
             label: PRESET_LABELS[key],
             onSelect: () => { onPresetChange(key); inputRef.current?.focus(); },
@@ -160,15 +162,15 @@ export default function FindBar({
       </span>
 
       <div className={styles.nav}>
-        <button type="button" className={styles['icon-button']} onClick={onPrev} disabled={!hasMatches} title="Previous match" aria-label="Previous match">
+        <button type="button" className={styles['icon-button']} onClick={onPrev} disabled={!hasMatches} title={t.previousMatch} aria-label={t.previousMatch}>
           <ChevronUp size={18} aria-hidden="true" />
         </button>
-        <button type="button" className={styles['icon-button']} onClick={onNext} disabled={!hasMatches} title="Next match" aria-label="Next match">
+        <button type="button" className={styles['icon-button']} onClick={onNext} disabled={!hasMatches} title={t.nextMatch} aria-label={t.nextMatch}>
           <ChevronDown size={18} aria-hidden="true" />
         </button>
       </div>
 
-      <div className={styles.segmented} role="group" aria-label="Cover with">
+      <div className={styles.segmented} role="group" aria-label={t.coverWith}>
         {(['blackout', 'blur'] as const).map((style) => (
           <button
             key={style}
@@ -177,7 +179,7 @@ export default function FindBar({
             className={`${styles.segment}${redactStyle === style ? ` ${styles.selected}` : ''}`}
             onClick={() => onRedactStyleChange(style)}
           >
-            {style === 'blackout' ? 'Blackout' : 'Blur'}
+            {t.toolCopy[style].button}
           </button>
         ))}
       </div>
@@ -190,7 +192,7 @@ export default function FindBar({
           disabled={!hasMatches || summary.currentCovered}
           data-redact-find-this
         >
-          Cover this
+          {t.coverThis}
         </button>
         <button
           type="button"
@@ -203,11 +205,11 @@ export default function FindBar({
           disabled={isReading ? !searching : summary.open === 0}
           data-redact-find-all
         >
-          {!isReading && summary.open > 0 ? `Cover all ${summary.open}` : 'Cover all'}
+          {!isReading && summary.open > 0 ? formatMessage(t.coverAllCount, { count: summary.open }) : t.coverAll}
         </button>
       </div>
 
-      <button type="button" className={`${styles['icon-button']} ${styles.close}`} onClick={onClose} title="Close find" aria-label="Close find" data-redact-find-close>
+      <button type="button" className={`${styles['icon-button']} ${styles.close}`} onClick={onClose} title={t.closeFind} aria-label={t.closeFind} data-redact-find-close>
         <X size={18} aria-hidden="true" />
       </button>
     </div>

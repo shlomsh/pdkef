@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { startGesture } from '../../lib/gestures/controller.ts';
+import { formatMessage } from '../../lib/formatMessage';
+import { englishCompressMessages } from './messages';
 import styles from './CompareSlider.module.css';
 
 interface CompareSliderProps {
@@ -7,6 +9,10 @@ interface CompareSliderProps {
   afterSrc: string;
   beforeLabel?: string;
   afterLabel?: string;
+  /** alt-text template, `{label}` is the before or after label. */
+  pageAlt?: string;
+  /** The slider handle's accessible name. */
+  sliderLabel?: string;
   /** Full width, no cap, and vertical swipes scroll the page behind it. */
   fill?: boolean;
   /** The Original / Compressed tags drawn over the images (default true). */
@@ -32,8 +38,10 @@ const ARROW_STEP = 5;
 export default function CompareSlider({
   beforeSrc,
   afterSrc,
-  beforeLabel = 'Original',
-  afterLabel = 'Compressed',
+  beforeLabel = englishCompressMessages.compareBeforeLabel,
+  afterLabel = englishCompressMessages.compareAfterLabel,
+  pageAlt = englishCompressMessages.comparePageAlt,
+  sliderLabel = englishCompressMessages.compareSliderLabel,
   fill = false,
   tags = true,
 }: CompareSliderProps) {
@@ -111,9 +119,9 @@ export default function CompareSlider({
       onMouseDown={handleStart}
       onTouchStart={handleStart}
     >
-      <img class={styles['compare-image']} src={beforeSrc} alt={`${beforeLabel} - page 1`} draggable={false} />
+      <img class={styles['compare-image']} src={beforeSrc} alt={formatMessage(pageAlt, { label: beforeLabel })} draggable={false} />
       <div class={styles['compare-after']}>
-        <img class={styles['compare-image']} src={afterSrc} alt={`${afterLabel} - page 1`} draggable={false} />
+        <img class={styles['compare-image']} src={afterSrc} alt={formatMessage(pageAlt, { label: afterLabel })} draggable={false} />
       </div>
 
       {tags && (
@@ -127,7 +135,7 @@ export default function CompareSlider({
         class={styles['compare-handle']}
         role="slider"
         tabIndex={0}
-        aria-label="Compare original and compressed page 1"
+        aria-label={sliderLabel}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(position)}

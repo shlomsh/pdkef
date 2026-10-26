@@ -35,7 +35,7 @@ import { FULL_QUAD, quadKey, type Quad } from './quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
 import type { ScanFilter } from './filters.ts';
 import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
-import { scanMessages as t } from './scanMessages.ts';
+import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
 
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
@@ -646,7 +646,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 <>
                   {controls('')}
                   <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? 'Clear all'}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? t.clearAll}</button>
                   </div>
                 </>
               )}
