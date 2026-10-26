@@ -45,7 +45,7 @@ import {
   TEXT_BOX_LINE_HEIGHT_EM,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS
-} from '../../constants/signGeometry.js';
+} from '../../editor/model/signGeometry.js';
 
 export type WorkspaceCreationTool = SignToolType;
 

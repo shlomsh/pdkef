@@ -88,7 +88,7 @@ Everything needed is exported from the `@cantoo/pdf-lib` package root - `setText
 dependency and already runs on this path.
 
 **This design is validated, not proposed.** It was run against the real `src/lib/comb.js`,
-`src/lib/fonts.js`, `src/lib/signHelpers.js` and `src/constants/signGeometry.js`, through a port of
+`src/lib/fonts.js`, `src/lib/signHelpers.js` and `src/editor/model/signGeometry.js`, through a port of
 `text.ts`'s `serialize`, covering multi-line RTL pointed Hebrew, Latin, both comb paths, and the
 Latin-only-font substitution path (Pacifico asked to render Hebrew, which `resolveFontFamily` sends to
 Gveret Levin). All produced correct PDFs. What is left is implementation, not investigation.

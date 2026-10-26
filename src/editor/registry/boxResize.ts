@@ -1,4 +1,4 @@
-import { MAX_SHAPE_SIZE_PCT, MIN_SHAPE_SIZE_PCT } from '../../constants/signGeometry.js';
+import { MAX_SHAPE_SIZE_PCT, MIN_SHAPE_SIZE_PCT } from '../model/signGeometry.js';
 import type { BoxResizeInput, BoxResizePatch } from './types.ts';
 
 const clampSize = (value: number, pageLimit: number) =>

@@ -21,7 +21,7 @@ describe('module boundaries: classify()', () => {
     expect(classify('src/editor/model/element.ts')).toBe('editor');
     expect(classify('src/lib/format.js')).toBe('lib');
     expect(classify('src/site-lib/markdownRender.js')).toBe('site');
-    expect(classify('src/constants/signGeometry.js')).toBe('lib');
+    expect(classify('src/editor/model/signGeometry.js')).toBe('editor');
     expect(classify('src/i18n/translate.js')).toBe('site-i18n');
     expect(classify('src/data/tools.js')).toBe('site-data');
     expect(classify('src/pages/tools/merge.astro')).toBe('site');
@@ -70,7 +70,7 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
     ['src/editor-ui/ColorPicker.tsx'],
     ['src/editor/model/element.ts'],
     ['src/lib/format.js'],
-    ['src/constants/signGeometry.js'],
+    ['src/editor/model/signGeometry.js'],
     ['src/i18n/translate.js'],
     ['src/data/tools.js'],
   ])('may import %s', (to) => {

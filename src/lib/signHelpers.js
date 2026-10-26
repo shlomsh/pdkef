@@ -1,4 +1,4 @@
-import { FIELD_TEXT_INSET_EM } from '../constants/signGeometry.js';
+import { FIELD_TEXT_INSET_EM } from '../editor/model/signGeometry.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 
 // "First strong character" (UAX #9): a run's direction comes from its first

@@ -6,7 +6,7 @@ import type { DocumentStyle } from './documentStyle.ts';
 // DEFAULT_FONT_SIZE_PT, DEFAULT_COLOR_BLUE, DEFAULT_STROKE_WIDTH,
 // DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT, DEFAULT_WHITEOUT_COLOR,
 // the 'locale'/'check' initial values useWorkspaceGestures.ts defaults to) -
-// this file cannot import src/constants/signGeometry.js itself
+// this file cannot import src/editor/model/signGeometry.js itself
 // (test:editor-dependency-directions), so the values are copied once, here,
 // as the fixture every case below is checked against. textAlign/bold/italic
 // have no prior remembered value at all (SIGN-33's own premise) - 'left'/

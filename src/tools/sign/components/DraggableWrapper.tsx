@@ -4,7 +4,7 @@ import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { getEffectiveTextDirection, textElementLayout } from '../../../lib/signHelpers.js';
-import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';

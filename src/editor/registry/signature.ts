@@ -1,4 +1,4 @@
-import { MAX_SHAPE_SIZE_PCT, MIN_STANDARD_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { MAX_SHAPE_SIZE_PCT, MIN_STANDARD_WIDTH_PCT } from '../model/signGeometry.js';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { tintImageDataUrl } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';

@@ -4,7 +4,7 @@ import { detectedSlots, freeSlot, placementForField, placementForFree } from './
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { placeTextOnField, type CombRegion, type FieldRegion, type TypableField } from '../../../editor/text/combPlacement.ts';
 import { carriedTextStyle } from '../../../editor/model/elementDefaults.ts';
-import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
+import { DEFAULT_STROKE_WIDTH } from '../../../editor/model/signGeometry.js';
 
 // A4 in PDF points, matching combPlacement.test.ts and fieldOrder.test.ts.
 const PAGE_WIDTH = 595.275;
