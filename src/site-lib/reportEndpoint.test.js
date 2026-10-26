@@ -415,6 +415,40 @@ describe('/api/report stays silent', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps a rating entry with the geo headers and no EXPIRE on it', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(7));
+      const request = new Request('https://pdkef.com/api/report', {
+        method: 'POST',
+        headers: { 'x-vercel-ip-country': 'IL', 'x-vercel-ip-country-region': 'TA' },
+        body: JSON.stringify(rating),
+      });
+      expect((await POST(request)).status).toBe(204);
+      const commands = sentPipelines(fetchSpy).flat();
+      const day = commands[0][1].slice('rating:total:'.length);
+      expect(commands).toContainEqual(['HINCRBY', 'rating:merge', '5', 1]);
+      expect(commands).toContainEqual(['RPUSH', 'rating:entries', JSON.stringify({ tool: 'merge', stars: 5, day, country: 'IL', region: 'TA' })]);
+      expect(commands).toContainEqual(['LTRIM', 'rating:entries', -10000, -1]);
+      expect(commands.filter(([name, key]) => name === 'EXPIRE' && key === 'rating:entries')).toEqual([]);
+    });
+
+    it('keeps a comment entry and counts no star', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(7));
+      const comment = { name: 'tool_rating_comment', properties: { tool: 'merge', stars: 3, comment: 'nice' } };
+      expect((await post(comment)).status).toBe(204);
+      const commands = sentPipelines(fetchSpy).flat();
+      const day = commands[0][1].slice('rating:total:'.length);
+      expect(commands).toContainEqual(['RPUSH', 'rating:entries', JSON.stringify({ tool: 'merge', stars: 3, day, comment: 'nice' })]);
+      expect(commands.filter(([name]) => name === 'HINCRBY')).toEqual([]);
+    });
+
+    it('counts a comment over 500 characters as a reject', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      const long = { name: 'tool_rating_comment', properties: { tool: 'merge', stars: 3, comment: 'x'.repeat(501) } };
+      expect((await post(long)).status).toBe(204);
+      expect(rejectCounts(fetchSpy)).toEqual(['bad_event|other']);
+      expect(JSON.stringify(sentPipelines(fetchSpy))).not.toContain('rating:entries');
+    });
+
     it('counts a bad rating as a reject', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
       const bad = { ...rating, properties: { tool: 'merge', stars: 6 } };
