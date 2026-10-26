@@ -29,7 +29,7 @@ import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import type { CellAction } from '../../shell/pageGrid/PageGrid.tsx';
@@ -44,7 +44,6 @@ import {
 import styles from './PdfToImageTool.module.css';
 
 // Nothing is handed off from here (Share only), but the shared flow's contract names the targets.
-const HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
@@ -149,7 +148,6 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: HANDOFF_HREFS,
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && includedCount === 0,
     announce: setAnnouncement,

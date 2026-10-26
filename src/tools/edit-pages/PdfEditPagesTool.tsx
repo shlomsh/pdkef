@@ -26,19 +26,19 @@ import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { repairedPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
 import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
 import RemovePagesVerb from './verb/RemovePagesVerb.tsx';
 import RotatePagesVerb from './verb/RotatePagesVerb.tsx';
+import { modifiedTitle } from './outputName.ts';
 
 /** The page's one job (SEO-47): each landing page over this island shows that job in its empty state. */
 type PageJob = 'organize' | 'rotate' | 'remove' | 'numbers';
 const VERBS = { organize: EditPagesVerb, rotate: RotatePagesVerb, remove: RemovePagesVerb, numbers: PageNumbersVerb };
 
-const HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
@@ -107,7 +107,7 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
 
   const outputCount = outputPageCount(plan);
   const skippedCount = plan.length - outputCount;
-  const title = customOutputName ?? (file ? `${file.name.replace(/\.pdf$/i, '')}_modified` : '');
+  const title = customOutputName ?? (file ? modifiedTitle(file.name) : '');
   const fileName = title ? `${title}.pdf` : 'edited.pdf';
 
   const key = file && workingFile && loadStatus === 'idle' && outputCount > 0
@@ -129,7 +129,6 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: HANDOFF_HREFS,
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && outputCount === 0,
     announce: setAnnouncement,

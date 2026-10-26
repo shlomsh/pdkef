@@ -31,7 +31,7 @@ import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { repairedPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
 import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import SplitVerb from './verb/SplitVerb.tsx';
@@ -40,7 +40,6 @@ import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import { buildSplit, type SplitMode } from './splitOutput.ts';
 import { outputBaseName, extractedFileName } from './split.js';
 
-const HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
@@ -158,7 +157,6 @@ export default function PdfSplitTool({
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: HANDOFF_HREFS,
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && outputCount === 0,
     announce: setAnnouncement,

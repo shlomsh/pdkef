@@ -31,6 +31,7 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
+import { compressedFileName as deriveDownloadName } from './outputName.ts';
 
 // Wording only: below this saving the result says so plainly. The file is still offered (COMP-01).
 const SLIGHT_GAIN_PERCENT = 5;
@@ -49,18 +50,6 @@ function formatBytes(bytes: number) {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// The PDF search re-encodes as JPEG-in-PDF and the image search re-encodes
-// as JPEG (compressImageToTarget flattens PNG transparency to white), but a
-// file already under the target passes through untouched in both cases, so
-// a small PNG or an already-small PDF stays exactly what it was: name the
-// download by the *output* blob's own type, never by the input's extension
-// or by which half of the tool ran.
-function deriveDownloadName(originalName: string, outputType: string) {
-  const base = originalName.replace(/\.[^./\\]+$/, '') || 'file';
-  const extension = outputType === 'application/pdf' ? 'pdf' : outputType === 'image/png' ? 'png' : 'jpg';
-  return `${base}-compressed.${extension}`;
 }
 
 interface PdfCompressToolProps {

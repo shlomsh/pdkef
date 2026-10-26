@@ -66,7 +66,9 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
+import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './exportHandoff.ts';
+import { signedFileName } from './signedFileName.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -807,7 +809,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         reportMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
         reportToolLifecycleEvent('tool_result_ready', 'sign');
       }
-      onSigned(signedBlob, `signed_${sourceFile.name}`);
+      onSigned(signedBlob, signedFileName(sourceFile.name));
     } catch (err) {
       if (!ticket.isCurrent()) return;
       ticket.settle();
@@ -891,14 +893,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // (draftStore's saveHandoff, taken by useHandoffIntake on the other end), as Redact does.
   const carryOn = async (tool: string, current: SignedExport) => {
     try {
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, {
-        fileName: current.name,
-        fileType: 'application/pdf',
-        fileBytes: await current.blob.arrayBuffer(),
-      });
-      if (!saved) throw new Error('handoff');
-      window.location.href = handoffHref(tool, window.location.pathname);
+      await sendHandoff(
+        tool,
+        { fileName: current.name, fileType: 'application/pdf', fileBytes: await current.blob.arrayBuffer() },
+        { href: handoffHref(tool, window.location.pathname) },
+      );
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the quiet line
       console.error(err);
