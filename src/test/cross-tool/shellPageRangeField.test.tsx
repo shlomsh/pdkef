@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PageRangeField from './PageRangeField.tsx';
+import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import { planForFile, skipAll, withIncludedPages } from '../../lib/pagePlan.ts';
-import { englishSplitMessages as t } from '../../i18n/toolMessages';
+import { englishSplitMessages as t } from '../../tools/split/messages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 describe('PageRangeField', () => {
@@ -135,7 +135,7 @@ describe('PageRangeField', () => {
   });
 
   it('shows the Hebrew error text from the catalogue', async () => {
-    const { hebrewSplitMessages } = await import('../../i18n/toolMessages');
+    const { hebrewSplitMessages } = await import('../../tools/split/messages');
     host = document.createElement('div');
     document.body.appendChild(host);
     act(() => render(<PageRangeField plan={planForFile(0, 4)} pageCount={4} onSelect={vi.fn()} messages={hebrewSplitMessages} />, host));

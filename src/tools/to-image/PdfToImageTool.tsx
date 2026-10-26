@@ -10,7 +10,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize, isolateLtr } from '../../lib/format.js';
-import { englishToImageMessages, type ToImageMessages } from '../../i18n/toolMessages';
+import { englishToImageMessages, type ToImageMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';

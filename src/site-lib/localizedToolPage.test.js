@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LOCALIZED_TOOL_ISLANDS } from './localizedTools.ts';
+import { LOCALIZED_TOOL_ISLANDS } from '../i18n/localizedTools.ts';
 
 // ARCH-33: every localized tool has its own route file, so a page imports only
 // its own island. A slug without one would silently drop out of the build.

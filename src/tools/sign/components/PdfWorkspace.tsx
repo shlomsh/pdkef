@@ -212,7 +212,7 @@ export default function PdfWorkspace({
    * hasNext/hasPrevious and one goToNext/goToPrevious. */
   fieldNavigation?: FieldNavigation;
   /** LOC-09 stage 1: the toolbar row's own catalogue, passed straight through
-   * from PdfSignTool.tsx to SignToolbar.tsx - see src/i18n/toolMessages.ts's
+   * from PdfSignTool.tsx to SignToolbar.tsx - see src/editor/registry/messages.ts's
    * SignMessages. Optional and English-default so PdfWorkspace.test.tsx (which
    * never passes it) is unaffected. Also supplies EditorPageHeader's lang/dir
    * (bidi-isolation wrapper, 5a1af03) for each rendered page. */

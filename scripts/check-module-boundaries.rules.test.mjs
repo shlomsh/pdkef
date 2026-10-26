@@ -151,12 +151,21 @@ describe('module boundaries: ruleViolation() - rule 4, site reaches a tool only 
 
   it('forbids a page reaching past the entry point into tool internals', () => {
     expect(check('src/pages/tools/merge.astro', 'src/tools/merge/mergePlan.ts'))
-      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point');
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
   it('forbids site-i18n reaching past the entry point the same way', () => {
     expect(check('src/i18n/translate.js', 'src/tools/merge/mergePlan.ts'))
-      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point');
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
+  });
+
+  it('allows the site importing a tool\'s messages.ts (ARCH-35)', () => {
+    expect(check('src/site-lib/toolMessageRegistry.ts', 'src/tools/merge/messages.ts')).toBeNull();
+  });
+
+  it('forbids the site importing a differently named module in a tool', () => {
+    expect(check('src/site-lib/toolMessageRegistry.ts', 'src/tools/merge/components/messages.ts'))
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
   it('allows site-data importing the entry point itself', () => {

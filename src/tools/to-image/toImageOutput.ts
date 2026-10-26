@@ -1,7 +1,7 @@
 import { includedPageNumbers, rotationsOf, type PlanEntry } from '../../lib/pagePlan.ts';
 import { pageNumbersToRangeString } from '../../lib/pageSelector.js';
 import type { Built } from '../../lib/usePreparedOutput.ts';
-import { type ToImageMessages } from '../../i18n/toolMessages';
+import { type ToImageMessages } from './messages';
 import { formatMessage } from '../../lib/formatMessage';
 import { convertPdfToImages } from './toImage.js';
 

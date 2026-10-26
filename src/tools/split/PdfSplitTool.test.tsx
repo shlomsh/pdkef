@@ -13,7 +13,7 @@ import outputNameStyles from '../../shell/OutputName.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
-import { hebrewSplitMessages } from '../../i18n/toolMessages';
+import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
 const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));

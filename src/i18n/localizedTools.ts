@@ -199,7 +199,7 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
  * English behind the shell's "controls are in English" notice rather than
  * claiming a translation that does not exist. Add a slug here only once that
  * tool's component actually has a reviewed message catalogue
- * (src/i18n/toolMessages.ts) and the .astro route below wires it up.
+ * (src/tools/<tool>/messages.ts) and the .astro route below wires it up.
  *
  * `split` joined with its own catalogue (SplitMessages) once /he/split/ was drafted;
  * `pdf-to-image` joined the same way (ToImageMessages) with /he/pdf-to-image/;

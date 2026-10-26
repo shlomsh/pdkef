@@ -15,15 +15,15 @@
  * tool's real component in English behind the "controls are in English"
  * notice ToolPageLayout shows for that case.
  */
-import { documentationLocales, getDocumentationLocaleByPrefix } from './documentationLocales';
+import { documentationLocales, getDocumentationLocaleByPrefix } from '../i18n/documentationLocales';
 import {
   getLocalizedToolContext,
   getLocalizedToolVariants,
   mergeLocalizedTool,
   LOCALIZED_TOOL_ISLANDS,
-} from './localizedTools';
-import { getDocumentationShellMessages } from './documentationMessages';
-import { getToolMessages } from './toolMessages';
+} from '../i18n/localizedTools';
+import { getDocumentationShellMessages } from '../i18n/documentationMessages';
+import { getToolMessages } from './toolMessageRegistry';
 import { getShellMessages } from '../shell/shellMessages';
 import { toolsBySlug } from '../data/tools.js';
 
@@ -68,7 +68,7 @@ export async function loadLocalizedToolPage(toolSlug: string, localeId: string, 
   // message catalogue is a build error, not a silent English fallback.
   if (context.entry && (context.entry as any).data?.status === 'published' && islandLocalized && !toolMessages) {
     throw new Error(
-      `${toolSlug}/${context.effectiveLocale} is published but has no reviewed island message catalogue in src/i18n/toolMessages.ts`,
+      `${toolSlug}/${context.effectiveLocale} is published but has no reviewed island message catalogue in the tool's messages.ts`,
     );
   }
 

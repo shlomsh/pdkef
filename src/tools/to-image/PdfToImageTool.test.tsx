@@ -10,7 +10,7 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { parsePageSelector } from '../../lib/pageSelector.js';
-import { hebrewToImageMessages } from '../../i18n/toolMessages';
+import { hebrewToImageMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
 const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));

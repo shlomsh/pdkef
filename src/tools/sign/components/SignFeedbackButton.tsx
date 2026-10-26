@@ -63,7 +63,7 @@ const FEEDBACK_TITLE = 'Report a bug or share feedback about Sign & Fill PDF (op
 // currently only the one, SignToolbar.tsx, but the defaults keep this
 // component safe to mount on its own, e.g. in a test) is unaffected.
 // SignToolbar.tsx passes its own catalogue's feedbackButton/feedbackTitle/
-// lang/dir from src/i18n/toolMessages.ts's SignMessages.
+// lang/dir from SignMessages.
 export default function SignFeedbackButton({
   className,
   labelClassName,

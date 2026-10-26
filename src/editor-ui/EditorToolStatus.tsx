@@ -103,7 +103,7 @@ export default function EditorToolStatus({
   // this component is shared with Redact, which stays English by not passing
   // any of these, so every default here is the exact literal this file used
   // to hardcode. SignToolbar.tsx is the only caller passing its own values,
-  // read from src/i18n/toolMessages.ts's SignMessages.
+  // read from SignMessages (src/editor/registry/messages.ts).
   keepOnLabel = 'Keep {button} on',
   // The phone-width label, where the pill sits beside the sentence that has
   // just named the tool ("...draw a blackout box.") and every character of it

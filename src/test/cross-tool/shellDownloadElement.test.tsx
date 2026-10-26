@@ -1,10 +1,10 @@
-// @ts-nocheck - test-only, mirrors PdfMergeTool.test.tsx's untyped style
+// @ts-nocheck - test-only, mirrors PdfMergeTool.test.tsx's untyped style. Lives in cross-tool/ because it renders the shell with Merge's real catalogue.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import DownloadElement from './DownloadElement.tsx';
-import styles from './DownloadElement.module.css';
-import { englishMergeMessages } from '../i18n/toolMessages';
+import DownloadElement from '../../shell/DownloadElement.tsx';
+import styles from '../../shell/DownloadElement.module.css';
+import { englishMergeMessages } from '../../tools/merge/messages';
 
 describe('DownloadElement', () => {
   let container;
