@@ -5,6 +5,7 @@ import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
+import { isPdfFile } from '../../lib/fileKind.js';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
@@ -500,7 +501,7 @@ export default function PdfRedactTool() {
 
   const handleFilesAdded = async (fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => f.type === 'application/pdf');
+    const pdfs = incoming.filter((f) => isPdfFile(f));
 
     if (pdfs.length === 0) {
       setAnnouncement('Choose a PDF file.');
