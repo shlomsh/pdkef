@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { Camera, Check, Crop, FileSignature, ImagePlus, Maximize, Merge, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { Camera, Check, Crop, Expand, FileSignature, ImagePlus, Maximize, Merge, Minimize2, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
@@ -434,6 +434,49 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   }, [view, selectedId]);
   useEffect(() => () => stopFlattenRef.current(), []);
 
+  /** The corners full screen: the browser's own, on the editor (Sign's pattern, PdfSignTool), or a
+   * fixed full-page layer where it has none for an element (iPhone Safari). */
+  const [full, setFull] = useState<'native' | 'layer' | null>(null);
+  useEffect(() => {
+    const onChange = () => setFull((mode) => (document.fullscreenElement === editorRef.current ? 'native' : mode === 'native' ? null : mode));
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const enterFull = () => {
+    recordAction('fullscreen');
+    const el = editorRef.current;
+    if (el?.requestFullscreen && document.fullscreenEnabled !== false) {
+      // expected: element full screen is optional, the layer stands in
+      el.requestFullscreen()?.catch(() => setFull('layer'));
+    } else setFull('layer');
+  };
+  const exitFull = () => {
+    // expected: the browser may already have left full screen (Esc), nothing to undo
+    if (document.fullscreenElement === editorRef.current) document.exitFullscreen?.()?.catch(() => {});
+    setFull(null);
+  };
+  // Full screen is for the corners: the page as it downloads comes back in the card.
+  useEffect(() => {
+    if (view !== 'corners') exitFull();
+  }, [view]);
+  useEffect(() => () => {
+    // expected: leaving the page while full screen, nothing to report
+    if (document.fullscreenElement && document.fullscreenElement === editorRef.current) document.exitFullscreen?.()?.catch(() => {});
+  }, []);
+  // The layer: the page behind keeps still, and Esc leaves it as it leaves the browser's own.
+  useEffect(() => {
+    if (full !== 'layer') return undefined;
+    const root = document.documentElement;
+    const overflow = root.style.overflow;
+    root.style.overflow = 'hidden';
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setFull(null); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      root.style.overflow = overflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [full]);
+
   const headingRef = useRef<HTMLParagraphElement | null>(null);
   /** Set by a view switch the person made: the page heading takes focus once the new view is up. */
   const focusPendingRef = useRef(false);
@@ -768,7 +811,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 data-fitted={stageHeight !== null || undefined}
                 style={stageHeight !== null ? { '--scan-stage-h': `${stageHeight}px` } : undefined}
               >
-              <section ref={editorRef} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
+              <section ref={editorRef} class={styles.editor} data-full={full ?? undefined} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
                   <p class={styles['editor-title']} ref={headingRef} tabIndex={-1} data-page-heading>
                     {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
@@ -782,6 +825,14 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                       </span>
                     )}
                   </p>
+                  {view === 'corners' && selected.preview !== null && (
+                    <div class={styles['head-actions']}>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={full ? exitFull : enterFull}>
+                        {full ? <Minimize2 size={16} aria-hidden="true" /> : <Expand size={16} aria-hidden="true" />}
+                        {full ? t.exitFullScreen : t.fullScreen}
+                      </button>
+                    </div>
+                  )}
                   {view === 'result' && (
                     <div class={styles['head-actions']}>
                       <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>

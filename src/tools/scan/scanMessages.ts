@@ -20,6 +20,8 @@ export const scanMessages = {
   removePhoto: 'Remove this photo',
   adjustCorners: 'Adjust corners',
   rotate: 'Rotate',
+  fullScreen: 'Full screen',
+  exitFullScreen: 'Exit full screen',
   announceRotated: 'Page {position} turned a quarter to the right.',
   findPage: 'Auto-detect',
   findMissed: 'No page edges were found here either. Drag the corners onto the corners of the page.',
