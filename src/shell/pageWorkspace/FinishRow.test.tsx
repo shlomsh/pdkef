@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import FinishRow from './FinishRow.tsx';
 
 vi.mock('../PdfShareButton.tsx', () => ({
-  default: ({ label }: { label: string }) => <button type="button">{label}</button>,
+  default: ({ label, visible }: { label: string; visible: boolean }) => (visible ? <button type="button">{label}</button> : null),
 }));
 
 const labels = { share: 'Share', compress: 'Compress it', sign: 'Sign it', merge: 'Merge it' };
@@ -47,15 +47,19 @@ describe('FinishRow', () => {
 
   it('marks the row with how many buttons it renders, so the CSS can lay out four', () => {
     const count = () => container.querySelector('div')!.getAttribute('data-count');
-    mount(['sign', 'merge', 'compress']);
+    let rendered: (string | null)[];
+    rendered = mount(['sign', 'merge', 'compress']);
+    expect(Number(count())).toBe(rendered.length);
     expect(count()).toBe('4');
     render(null, container);
     container.remove();
-    mount();
+    rendered = mount();
+    expect(Number(count())).toBe(rendered.length);
     expect(count()).toBe('3');
     render(null, container);
     container.remove();
-    mount(['sign', 'merge', 'compress'], labels, false);
+    rendered = mount(['sign', 'merge', 'compress'], labels, false);
+    expect(Number(count())).toBe(rendered.length);
     expect(count()).toBe('3');
   });
 });
