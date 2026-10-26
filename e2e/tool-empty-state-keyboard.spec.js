@@ -21,8 +21,6 @@ const toolRoutes = [
   '/organize-pdf/',
 ];
 
-// Choose files, not Scan's "Take a photo" beside it: that one is also a file input in the empty
-// state, and it carries `capture` (SCAN-01).
 const PICKER = '[data-empty-state] label:has(input[type="file"]:not([capture]))';
 // The server-rendered empty state also matches PICKER. On a slow runner a Tab can land on that
 // copy before hydration, and hydration then swaps the dropzone for the draft-check placeholder and
@@ -38,8 +36,7 @@ async function open(page, route) {
 
 const focusedIsPickerInput = (page) => page.evaluate(() => {
   const a = document.activeElement;
-  return a instanceof HTMLInputElement && a.type === 'file' && !a.hasAttribute('capture')
-    && !!a.closest('[data-empty-state]') && document.hasFocus();
+  return a instanceof HTMLInputElement && a.type === 'file' && !!a.closest('[data-empty-state]') && document.hasFocus();
 });
 
 // Press `key` and return the file chooser it opens. Playwright turns chooser interception on
@@ -81,7 +78,7 @@ for (const route of toolRoutes) {
       expect(await focusedIsPickerInput(page), `${route}: focus is still on the file input before ${key}`).toBe(true);
       await (await pressForChooser(page, key)).setFiles([]);
       // Re-focus: the picker may have taken focus away in some engines.
-      await page.locator(`${PICKER} input:not([capture])`).focus();
+      await page.locator(`${PICKER} input`).focus();
     }
   });
 }
