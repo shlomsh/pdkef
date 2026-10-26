@@ -24,6 +24,7 @@ import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
+import { sendHandoff } from '../../lib/sendHandoff.ts';
 import {
   englishImageToPdfMessages,
   formatMessage,
@@ -132,7 +133,6 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: {},
     blocked: failed ? 'error' : null,
     announce,
     messages: { ready: t.announceReady, shared: t.announceShared, canceled: t.announceShareCanceled, shareError: t.announceShareError },
@@ -283,12 +283,10 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
     setScanBusy(true);
     setScanFailed(false);
     try {
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const files = await Promise.all(
         entriesRef.current.map(async ({ file }) => ({ fileName: file.name, fileType: file.type, fileBytes: await file.arrayBuffer() })),
       );
-      if (!(await saveHandoff('scan-to-pdf', { files }))) throw new Error('handoff');
-      navigate('/scan-to-pdf/');
+      await sendHandoff('scan-to-pdf', { files }, { navigate });
     } catch {
       // expected: saveHandoff reports its own failure; this shows the status line
       setScanFailed(true);

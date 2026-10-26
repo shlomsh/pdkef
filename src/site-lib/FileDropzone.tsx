@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
-import { saveHandoff, setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
+import { sendHandoff } from '../lib/sendHandoff.ts';
+import { setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
 import { noteRecentOpen } from '../lib/fileArrival.ts';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
@@ -188,9 +189,7 @@ export default function FileDropzone({
       const records = await Promise.all(files.map(async file => ({
         fileName: file.name, fileType: fileTypeOf(file), fileBytes: await file.arrayBuffer(),
       })));
-      const saved = await saveHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records });
-      if (!saved) throw new Error('handoff');
-      window.location.href = withFillModeParam(href, window.location.search);
+      await sendHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records }, { href: withFillModeParam(href, window.location.search) });
       return true;
     } catch {
       // expected: the user sees handoffFailed, and saveHandoff reports its own failure
