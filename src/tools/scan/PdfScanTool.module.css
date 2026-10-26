@@ -24,10 +24,32 @@
   min-width: 0;
 }
 
-/* At 320px the hint takes a third line. */
-@media (max-width: 359px) {
+/* Below 1024px the selected page is exactly one screen under the app bar and the phone bar: its
+   rows take what they need (the head wraps on a narrow phone) and the photo or the paper takes the
+   rest, so Use these corners is always on that screen. A landscape phone gets a floor and scrolls;
+   full screen is the room for it there. */
+@media (max-width: 1023px) {
   .editor {
-    --scan-view-h: max(15rem, calc(100svh - 20rem));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: max(26rem, calc(100svh - 3.5rem - 3.25rem - 1rem));
+  }
+
+  .photo-area,
+  .paper-area {
+    flex: 1 1 0;
+    min-height: 0;
+    container-type: size;
+  }
+
+  .photo-area {
+    --scan-view-h: 100cqh;
+  }
+
+  /* The caption under the paper takes two lines on a narrow phone. */
+  .paper-area {
+    --scan-paper-h: calc(100cqh - 3rem);
   }
 }
 
@@ -215,9 +237,11 @@
   border-color: var(--color-primary);
 }
 
-.corners-actions .done-button:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+@media (hover: hover) {
+  .corners-actions .done-button:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
 }
 
 .editor-hint {
@@ -354,8 +378,10 @@
   cursor: pointer;
 }
 
-.remove:hover {
-  color: var(--color-danger);
+@media (hover: hover) {
+  .remove:hover {
+    color: var(--color-danger);
+  }
 }
 
 .add-tile {
@@ -401,12 +427,18 @@
   }
 }
 
-.add-button:hover,
 .add-button:focus-visible,
-.take-photo-button:hover,
 .take-photo-button:focus-visible {
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .add-button:hover,
+  .take-photo-button:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
 }
 
 /* The camera is a phone's: a mouse has nothing to point at a page. */
@@ -439,10 +471,16 @@
   cursor: pointer;
 }
 
-.bar-add:hover,
 .bar-add:focus-visible {
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .bar-add:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
 }
 
 /* With a mouse the bar offers the picker instead of the camera. */
