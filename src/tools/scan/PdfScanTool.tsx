@@ -241,6 +241,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     // A new photo is shown first as itself, corners on top, to approve or adjust (Use these corners).
     setSelectedId(added[0].id);
     setView('corners');
+    // Bring the new photo's corners into view, wherever the page was scrolled to pick it.
+    topPendingRef.current = true;
     announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
     recordAction('add_files');
     for (const page of added) {
@@ -504,7 +506,12 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setFailedIds((ids) => ids.filter((x) => x !== id));
     setPages(left);
     const neighbour = left[index] ?? left[index - 1];
-    if (selectedId === id) setSelectedId(neighbour?.id ?? null);
+    if (selectedId === id) {
+      // Removing the photo under review: on to the next new one, or to the result when none is left.
+      const nextNew = view === 'corners' ? left.find((p) => !p.reviewed) : undefined;
+      setSelectedId(nextNew?.id ?? neighbour?.id ?? null);
+      if (view === 'corners' && !nextNew) setView('result');
+    }
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
     recordAction('remove_file');
@@ -748,7 +755,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   />
                   )
                 ) : null}
-                {view === 'corners' && (
+                {view === 'corners' && selected.guessed && selected.preview === null && (
+                  // An unreadable photo has nothing to straighten: the one thing to do is take it out.
+                  <div class={styles['corners-actions']}>
+                    <button type="button" class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`} onClick={() => removePage(selected.id)}>
+                      {t.removePhoto}
+                    </button>
+                  </div>
+                )}
+                {view === 'corners' && !(selected.guessed && selected.preview === null) && (
                   // Under the photo, like a scanner app's bottom bar: the quiet choices, then the one that moves on.
                   <div class={styles['corners-actions']}>
                     <div class={styles['corners-quiet']}>
