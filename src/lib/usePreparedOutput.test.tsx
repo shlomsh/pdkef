@@ -163,6 +163,30 @@ describe('usePreparedOutput', () => {
     expect(onBuildError).not.toHaveBeenCalled();
   });
 
+  it('re-arms the current key once when its build aborts without a newer change, so it cannot stay pending', async () => {
+    const onBuildError = vi.fn();
+    let calls = 0;
+    const build = vi.fn(async () => {
+      calls++;
+      if (calls === 1) throw new DOMException('aborted', 'AbortError');
+      return built();
+    });
+    await mount({ key: 'a', build, onBuildError });
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    expect(api.current.status).toBe('ready');
+    expect(onBuildError).not.toHaveBeenCalled();
+  });
+
+  it('re-arms an aborting key only once, so a build that always aborts does not spin', async () => {
+    const build = vi.fn(async () => { throw new DOMException('aborted', 'AbortError'); });
+    await mount({ key: 'a', build });
+    await settle();
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    expect(api.current.status).toBe('pending');
+  });
+
   it('turns a failed build into error and reports it', async () => {
     const failure = new Error('boom');
     const onBuildError = vi.fn();

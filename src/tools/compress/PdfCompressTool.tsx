@@ -360,6 +360,7 @@ export default function PdfCompressTool({
   };
 
   const handleFlattenChange = (next: boolean) => {
+    if (next === flatten) return;
     setFlatten(next);
     recordAction('change_setting');
     reportEdit(analyticsTool);
@@ -369,6 +370,7 @@ export default function PdfCompressTool({
   // The quiet policy covers typing too: every keystroke is a change, and only the last one builds.
   const handleTargetKBChange = (nextTargetKB: number) => {
     const next = Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1;
+    if (next === targetKB) return;
     setTargetKB(next);
     recordAction('change_setting');
     reportEdit(analyticsTool);
