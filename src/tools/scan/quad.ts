@@ -54,6 +54,14 @@ export function scaleQuad(quad: Quad, width: number, height: number): Quad {
   return quad.map((p) => ({ x: p.x * width, y: p.y * height })) as Quad;
 }
 
+/** Each corner moved toward the middle by `fraction` of its distance from it. The warp crops this,
+ * so pixels sampled right on the outline (half page, half table) never become a dark edge line. */
+export function insetQuad(quad: Quad, fraction: number): Quad {
+  const cx = quad.reduce((sum, p) => sum + p.x, 0) / 4;
+  const cy = quad.reduce((sum, p) => sum + p.y, 0) / 4;
+  return quad.map((p) => ({ x: p.x + (cx - p.x) * fraction, y: p.y + (cy - p.y) * fraction })) as Quad;
+}
+
 /** A cache key: four decimals, a tenth of a pixel on a 1000px photo. */
 export function quadKey(quad: Quad): string {
   return quad.map((p) => `${p.x.toFixed(4)},${p.y.toFixed(4)}`).join(';');
