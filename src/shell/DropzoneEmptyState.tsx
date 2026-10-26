@@ -25,6 +25,8 @@ interface DropzoneEmptyStateProps {
   heading?: string;
   /** Replaces the default privacy line under the heading. */
   body?: string;
+  /** An extra action directly under the pick button (Scan's "Take a photo"). */
+  action?: ComponentChild;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -40,6 +42,7 @@ export default function DropzoneEmptyState({
   art,
   heading,
   body,
+  action,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   // `false` on the server and on this component's first client render, same
@@ -155,6 +158,8 @@ export default function DropzoneEmptyState({
           class={styles['file-input']}
         />
       </label>
+
+      {action}
 
       <p class={styles['privacy-line']}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
