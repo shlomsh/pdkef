@@ -14,6 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Unify the tools, narrow the graph
 
 - [DEBT-62](backlog/tasks/DEBT-62.md) P1 · Every tool accepts a PDF the browser reports with no file type (in progress)
+- [ARCH-40](backlog/tasks/ARCH-40.md) P3 · Small seams from the October review (in progress)
 - [DEBT-63](backlog/tasks/DEBT-63.md) P2 · Compress and PDF to Image stay inside the browser's canvas limit on very large pages (in progress)
 - [ARCH-34](backlog/tasks/ARCH-34.md) P1 · A change to one core project reaches only the projects that use it (in progress)
 
