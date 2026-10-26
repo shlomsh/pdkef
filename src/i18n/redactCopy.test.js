@@ -4,9 +4,9 @@
  * FAQ entry that explains the word.
  */
 import { describe, it, expect } from 'vitest';
-import { contentPages } from './contentPages.js';
-import { toolsBySlug } from './tools.js';
-import { getToolCardCopy } from '../i18n/cardMessages.ts';
+import { contentPages } from '../data/contentPages.js';
+import { toolsBySlug } from '../data/tools.js';
+import { getToolCardCopy } from './cardMessages.ts';
 
 const redact = toolsBySlug.redact;
 const FLATTEN_QUESTION = 'Do I need to flatten the PDF myself?';
