@@ -169,12 +169,20 @@
   min-width: 0;
 }
 
+/* Room above and below the photo for the corner rings: at the photo's edge (Whole photo) they
+   touched the head and the row of controls. */
+.photo-area {
+  box-sizing: border-box;
+  padding-block: 12px;
+}
+
 /* Desktop, once measured (useFloorHeight.ts): the workbench is exactly the card's first screen, the
    editor a column, and the photo or the paper takes whatever its rows leave, sized to that box
    (container units) in both directions. */
 @media (min-width: 1024px) {
+  /* The floor keeps a usable photo when banners above take the room (two banners at 1024x700). */
   .workbench[data-fitted] {
-    height: max(24rem, var(--scan-stage-h));
+    height: max(18rem, var(--scan-stage-h));
     grid-template-rows: minmax(0, 1fr);
   }
 

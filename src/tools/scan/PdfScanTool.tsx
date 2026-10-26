@@ -15,6 +15,7 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -191,6 +192,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const resetDownloadFlowRef = useRef<() => void>(() => {});
 
   useHoldUpdate(pages.length > 0, 'open');
+  const downloaded = useDownloaded();
 
   const announce = useCallback((text: string) => {
     setAnnouncement((previous) => (previous === text ? `${text} ` : text));
@@ -368,7 +370,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     prepared,
     fileName,
     hrefs: HANDOFF_HREFS,
-    blocked: prepared.status === 'error' ? 'error' : null,
+    // A photo that could not be read holds the PDF back: Download says so instead of preparing for good.
+    blocked: prepared.status === 'error' || failedIds.length > 0 ? 'error' : null,
     announce: setAnnouncement,
     messages: { ready: t.readyAnnouncement, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
     navigate,
@@ -752,6 +755,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       onClearAll={reset}
       clearSummary={pagesLabel(pages.length, englishShellMessages)}
       hideIdentity
+      ownsRating
       needsPdfjs={false}
     >
       {rejectedFiles.length > 0 && (
@@ -814,7 +818,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     detail={detail}
                     pageCount={pages.length}
                     progress={prepared.progress}
-                    errorMessage={t.buildFailed}
+                    errorMessage={failedIds.length > 0
+                      ? formatMessage(t.removeToMake, { pages: pages.filter((p) => failedIds.includes(p.id)).map((p) => pages.indexOf(p) + 1).join(', ') })
+                      : t.buildFailed}
                     messages={t}
                     onPreparingTap={onRowPreparingTap}
                     onWarm={prepared.prepareNow}
@@ -834,6 +840,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
                   )}
+                  {/* In the rail with the next steps, not under the card: on desktop the card is exactly the
+                      first screen, and the ask grew it past the fold (Scan QA). */}
+                  <RatingPrompt tool="scan-to-pdf" downloaded={downloaded} messages={englishShellMessages} />
                 </>
               )}
             >
@@ -907,7 +916,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                         class={styles['corners-wait']}
                         style={{ aspectRatio: String(shownAspect), width: `min(100%, calc(var(--scan-view-h) * ${shownAspect}))` }}
                       >
-                        {selected.preview !== null ? '' : selected.guessed ? t.pageFailed : t.findingEdges}
+                        {/* The head already says a photo could not be read; the box stays quiet. */}
+                        {selected.preview !== null || selected.guessed ? '' : t.findingEdges}
                       </div>
                     ) : (
                       // On a turned page the photo, its shape and its corners are all shown turned (quad.ts).

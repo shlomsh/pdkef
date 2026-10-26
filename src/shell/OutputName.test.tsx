@@ -11,10 +11,10 @@ describe('OutputName', () => {
     container.remove();
   });
 
-  function mount(onRename = vi.fn()) {
+  function mount(onRename = vi.fn(), extension?: string) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<OutputName name="merged_a" label="File name, editable" onRename={onRename} />, container));
+    act(() => render(<OutputName name="merged_a" extension={extension} label="File name, editable" onRename={onRename} />, container));
     return onRename;
   }
   const nameEl = () => container.querySelector(`.${styles.name}`) as HTMLElement;
@@ -42,6 +42,32 @@ describe('OutputName', () => {
     await key('Enter');
     expect(onRename).toHaveBeenCalledWith('March invoices');
     expect(nameEl().getAttribute('contenteditable')).toBe('false');
+  });
+
+  it.each([
+    ['x.pdf', 'x'],
+    ['Notes.PDF', 'Notes'],
+    ['a.pdf.pdf', 'a.pdf'],
+    ['pdf', 'pdf'],
+    ['.pdf', ''],
+  ])('a typed extension is not doubled: "%s" commits as "%s"', async (typed, expected) => {
+    const onRename = mount();
+    await begin();
+    await type(typed);
+    await key('Enter');
+    expect(onRename).toHaveBeenCalledWith(expected);
+  });
+
+  it('strips the extension prop, not ".pdf", when it differs', async () => {
+    const onRename = mount(vi.fn(), '.png');
+    await begin();
+    await type('photo.PNG');
+    await key('Enter');
+    expect(onRename).toHaveBeenCalledWith('photo');
+    await begin();
+    await type('doc.pdf');
+    await key('Enter');
+    expect(onRename).toHaveBeenLastCalledWith('doc.pdf');
   });
 
   it('Escape reverts without calling onRename', async () => {

@@ -186,6 +186,9 @@ describe('PdfScanTool', () => {
     await settle(50);
     expect(container.textContent).toContain('Page 2 could not be read.');
     expect(pipeline.buildScanPdf).not.toHaveBeenCalled();
+    // Download says what holds it back, instead of preparing for good.
+    expect(container.textContent).toContain('Remove page 2 to make the PDF');
+    expect(container.textContent).not.toMatch(/Preparing \d+ pages/);
     await act(async () => { container.querySelector('[aria-label="Remove page 2"]').click(); });
     await settle(1000);
     expect(container.textContent).not.toContain('could not be read');

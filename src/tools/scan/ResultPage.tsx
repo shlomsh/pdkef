@@ -57,7 +57,11 @@ export default function ResultPage({ src, place, exact, labels, detail }: Result
           </div>
         )}
       </div>
-      <figcaption class={styles.caption} aria-live="polite">{caption}</figcaption>
+      <figcaption class={styles.caption} aria-live="polite">
+        {/* While it rebuilds, the pill on the page says so: the caption keeps the words for screen
+            readers and its line, so nothing below moves. */}
+        {updating ? <><span class="sr-only">{caption}</span>{'\u00a0'}</> : caption}
+      </figcaption>
     </figure>
   );
 }

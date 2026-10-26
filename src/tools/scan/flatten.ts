@@ -43,7 +43,7 @@ export function flattenFrame(t: number): { move: number; surround: number; photo
   const page = span(t, 0.3, 0.75);
   return {
     move: easeInOutCubic(span(t, 0.05, 0.95)),
-    surround: 1 - span(t, 0, 0.3),
+    surround: 1 - span(t, 0, 0.2),
     photoPage: page < 1 ? 1 : 0,
     page,
     paper: span(t, 0.8, 1),
