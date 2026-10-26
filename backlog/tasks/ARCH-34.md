@@ -103,6 +103,21 @@ per-commit file lists: 93 went wide before, 77 after (16 narrowed, none the othe
   site-lib -> lib, test-support, data, i18n, site, shell, editor; site -> data, i18n, site-lib (so
   site <-> site-lib is a cycle); site-test -> data, editor; test-support -> nothing.
 
+## Progress (last loops)
+
+- `data <-> i18n`: `src/data/redactCopy.test.js` and `toolsH1Name.test.js` were the only `data -> i18n` imports (both
+  tests); they moved to `src/i18n/` with assertions unchanged. `git grep "from '../i18n" -- src/data` is empty.
+- `site-lib <-> site`: the only `site-lib -> site` import was `inlineStyles.ts` (three `?inline` CSS files in
+  `src/components/`); every consumer is a component, layout or page, so it moved to `src/components/inlineStyles.ts`
+  (it imports `cspHash` and `theOTimeline` from site-lib, the allowed direction). No other `site-lib -> pages |
+  layouts | components | styles | content` import is left. Docs and rule references updated.
+- Edges among the core projects (before -> after): `data -> i18n` gone; `site-lib -> site` gone. Now:
+  lib -> test-support; shell -> lib, test-support, i18n; editor -> lib, test-support; editor-ui -> lib, shell, editor;
+  i18n -> data, lib; data -> nothing; site-lib -> lib, test-support, data, i18n, shell, editor; site -> site-lib, data,
+  i18n; site-test -> data, editor. No project cycle among them.
+- Affected projects (before -> after): `lib/thumbnails.js` 35 -> 34, `shell/pageWorkspace/PhoneFinish.tsx` 28 -> 28,
+  `editor-ui/ElementToolbar.tsx` 19 -> 19, `data/homeContent.js` 31 -> 31, `tools/merge/messages.ts` 14 -> 14.
+
 ## Review fixes
 
 - `public/images/**` widens to everything again: merge-grid and seven Sign specs open `redaction-guide/sample.pdf`, `FileDropzone` fetches it, tool pages render `scan-guide/*`. `public/.well-known/**` stays owned.
