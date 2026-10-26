@@ -29,6 +29,7 @@ const ROOTS = new Map([
   ['font-assets', 'public/fonts'],
   ['cross-tool-tests', 'src/test/cross-tool'],
   ['site-test', 'src/test'],
+  ['test-support', 'src/test/support'],
   ['i18n', 'src/i18n'],
   // ARCH-34: carved out of `site` (root `src`), still core.
   ['data', 'src/data'],
@@ -481,8 +482,8 @@ describe('deriveScope', () => {
   // this would have doubled `src/test/` in the unit paths.
   it('does not duplicate src/test/ when site-test itself is affected', () => {
     const scope = deriveScope({
-      files: ['src/test/setInputFiles.js'],
-      affected: ['site-test', 'tool-sign'],
+      files: ['src/test/support/setInputFiles.js'],
+      affected: ['site-test', 'test-support', 'tool-sign'],
       roots: ROOTS,
       toolE2eExists: () => true,
     });

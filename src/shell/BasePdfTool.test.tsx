@@ -8,7 +8,7 @@ import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { reportToolLifecycleEvent } from '../lib/productAnalytics.ts';
 import { markArrival } from '../lib/fileArrival.ts';
-import { setInputFiles } from '../test/setInputFiles.js';
+import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('../lib/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
 vi.mock('../lib/fileArrival.ts', () => ({ markArrival: vi.fn() }));

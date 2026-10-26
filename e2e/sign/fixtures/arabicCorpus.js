@@ -56,7 +56,7 @@
  * file only has to generate the inputs, not judge the outputs.
  */
 
-import { WYSIWYG_ARABIC_SHAPING_CASES } from '../../../src/test/fixtures/wysiwygStrings.js';
+import { WYSIWYG_ARABIC_SHAPING_CASES } from '../../../src/test/support/fixtures/wysiwygStrings.js';
 
 const TATWEEL = 'ـ'; // U+0640, dedicated joiner/elongation character, no letter identity of its own
 

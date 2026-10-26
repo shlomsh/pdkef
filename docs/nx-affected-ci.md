@@ -57,6 +57,11 @@ render guard, language acceptance) moved out to their own `export-guards` projec
 `site-e2e`'s `implicitDependencies`: `site`, `shell`, and every `tool-*` project - Playwright specs have
 no import edges Nx can infer on their own.
 
+**`test-support` (ARCH-34):** the helpers other projects' tests import moved from `src/test/` to
+`src/test/support/` (project `test-support`, no dependencies), so `lib`'s tests importing a helper no longer
+make `lib -> site-test -> editor -> lib`. Paths below that name `src/test/fixtures/` or
+`src/test/setInputFiles.js` now read `src/test/support/...`.
+
 **`site-test` (DEBT-04, second pass):** before this project existed, `src/test/` had no Nx project of
 its own, so `@nx/js`'s inference fell back to attributing it to `site` (root project, `sourceRoot:
 "src"`) - the same "unowned file" fallback `ownerOf()` uses, just at the Nx-graph layer instead of

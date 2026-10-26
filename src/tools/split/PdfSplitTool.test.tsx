@@ -11,8 +11,9 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import outputNameStyles from '../../shell/OutputName.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
@@ -81,15 +82,6 @@ vi.mock('./split.js', async (importOriginal) => {
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const FIXTURE = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
 const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-// Waits for a condition instead of a fixed sleep; the lazy PageGrid import takes as long as the machine is busy.
-// Preact's act holds renders until it exits, so poll in short acts rather than inside one.
-const until = async (cond, timeout = 8000) => {
-  const start = Date.now();
-  while (!cond()) {
-    if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout}ms: ${cond}`);
-    await wait(10);
-  }
-};
 
 function fixtureFile(name = 'open.pdf') {
   return new File([fs.readFileSync(FIXTURE)], name, { type: 'application/pdf' });

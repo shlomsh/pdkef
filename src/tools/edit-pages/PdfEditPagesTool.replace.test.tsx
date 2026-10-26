@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 3 } }));
 
