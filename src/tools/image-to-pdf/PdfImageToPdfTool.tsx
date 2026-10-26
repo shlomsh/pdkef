@@ -367,6 +367,7 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
       clearSummary={fileSummary}
       hideIdentity
       shellMessages={shellMessages}
+      needsPdfjs={false}
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
