@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Download, Eraser, FileEdit, FileSignature, Merge, Shrink } from 'lucide-preact';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
+import { isPdfFile } from '../../lib/fileKind.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -134,7 +135,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
   };
 
   const handleFilesAdded = async (files: FileList | File[], from: string | null = null) => {
-    const incoming = Array.from(files).filter((f) => f.type === 'application/pdf');
+    const incoming = Array.from(files).filter((f) => isPdfFile(f));
     if (incoming.length === 0) return;
     
     const selectedFile = incoming[0];
