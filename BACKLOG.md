@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 63 live: 9 up next, 11 then, 26 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 62 live: 8 up next, 11 then, 26 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -71,7 +71,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
-| QUAL-29 | P2 | [QUAL-29](backlog/tasks/QUAL-29.md) · e2e-webkit runs in Playwright's container image, so a slow Ubuntu mirror can't hold CI for 50 minutes | In progress |
 
 ### Then, in order
 
@@ -180,7 +179,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 56 done, 4 retired
+- Robustness and debt: 57 done, 4 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 16 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired

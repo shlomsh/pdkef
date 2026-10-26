@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
-- [QUAL-29](backlog/tasks/QUAL-29.md) P2 · e2e-webkit runs in Playwright's container image, so a slow Ubuntu mirror can't hold CI for 50 minutes (in progress)
 
 ### Search and languages
 

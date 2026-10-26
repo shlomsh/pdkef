@@ -1,10 +1,9 @@
 ---
 id: "QUAL-29"
 title: "e2e-webkit runs in Playwright's container image, so a slow Ubuntu mirror can't hold CI for 50 minutes"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -35,6 +34,9 @@ run was fast. The slow mirror comes and goes, so a re-run is no fix.
 
 ## Done when
 
-- [ ] A CI run on main shows `e2e-webkit` green in the container, with its two Playwright steps
-      reporting the same test counts as before (webkit, then the perf budgets)
-- [ ] The job's wall time is recorded here against the 0.5 min / 35-55 min install step it replaces
+- [x] A CI run on main shows `e2e-webkit` green in the container, with its two Playwright steps
+      reporting the same test counts as before (webkit, then the perf budgets): run 40394949781 on
+      e95c8d4f, 42 passed then 10 passed, the same as run 40361495800 before the change
+- [x] The job's wall time is recorded here against the 0.5 min / 35-55 min install step it replaces:
+      4 min 23 s for the whole job, of which pulling the image took 26 s (no apt step at all). The job
+      used to take 3-5 min on a fast mirror and 45-56 min on a slow one.
