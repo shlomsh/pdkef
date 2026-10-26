@@ -130,7 +130,6 @@ const MODULE_PREFIXES = [
   // convention for anything more specific than a broad site prefix.
   ['src/site-lib/', () => 'site'],
   ['src/lib/', () => 'lib'],
-  ['src/constants/', () => 'lib'],
   ['src/i18n/', () => 'site-i18n'],
   ['src/data/', () => 'site-data'],
   ['src/pages/', () => 'site'],

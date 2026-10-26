@@ -1,4 +1,4 @@
-import { MAX_SYMBOL_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
+import { MAX_SYMBOL_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../model/signGeometry.js';
 import { LINE_CAP_ROUND, rgb } from '../../lib/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';

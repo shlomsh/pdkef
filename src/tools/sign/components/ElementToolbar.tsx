@@ -8,7 +8,7 @@ import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../../../lib/signHelpers.js';
 import { resolveTypography } from '../../../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../../../editor/text/comb.js';
-import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/text/dateFormat.ts';
 import { englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import styles from '../../../editor-ui/EditorControls.module.css';

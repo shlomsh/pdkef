@@ -9,7 +9,7 @@ import {
   ASPECT_RATIO_SYMBOL,
   ASPECT_RATIO_TEXT,
   MIN_COMB_WIDTH_PCT
-} from '../../constants/signGeometry.js';
+} from '../../editor/model/signGeometry.js';
 
 // MOBI-31. A generic, per-type-agnostic undo for whatever a resize gesture
 // painted directly onto the DOM (elementRef.current.style for a box/centered
