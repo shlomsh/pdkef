@@ -1,4 +1,7 @@
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
+import { formatMessage } from '../../lib/formatMessage.ts';
+import { englishRedactMessages } from './messages.ts';
+import type { RedactMessages } from './messages.ts';
 
 /** A rect in page percent, the space DeletableObjectOverlay draws in. */
 export interface PercentRect { left: number; top: number; width: number; height: number }
@@ -41,14 +44,15 @@ export function objectsInMarquee(
 }
 
 /** The undo entry and chip text for a group of deletions. */
-export function deletedSummary(objects: readonly Pick<DeletablePdfObject, 'kind'>[]): string {
+export function deletedSummary(objects: readonly Pick<DeletablePdfObject, 'kind'>[], messages: RedactMessages = englishRedactMessages): string {
+  const m = messages.deleted;
   const count = (kind: DeletablePdfObject['kind']) => objects.filter((o) => o.kind === kind).length;
   const kinds = [
-    { n: count('text'), alone: 'text', one: '1 piece of text', many: (n: number) => `${n} pieces of text` },
-    { n: count('image'), alone: 'an image', one: '1 image', many: (n: number) => `${n} images` },
-    { n: count('mark'), alone: 'a mark', one: '1 mark', many: (n: number) => `${n} marks` },
+    { n: count('text'), alone: m.textAlone, one: m.textOne, many: m.textMany },
+    { n: count('image'), alone: m.imageAlone, one: m.imageOne, many: m.imageMany },
+    { n: count('mark'), alone: m.markAlone, one: m.markOne, many: m.markMany },
   ].filter((k) => k.n > 0);
-  const parts = kinds.map((k) => (k.n > 1 ? k.many(k.n) : kinds.length === 1 ? k.alone : k.one));
-  const last = parts.pop();
-  return `Deleted ${parts.length ? `${parts.join(', ')} and ${last}` : last}`;
+  const parts = kinds.map((k) => (k.n > 1 ? formatMessage(k.many, { count: k.n }) : kinds.length === 1 ? k.alone : k.one));
+  const last = parts.pop() as string;
+  return formatMessage(m.summary, { what: parts.length ? formatMessage(m.and, { head: parts.join(', '), last }) : last });
 }
