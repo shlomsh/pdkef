@@ -49,9 +49,11 @@ type ShareState = 'idle' | 'copied' | 'link';
 const livePhase = new Map<RatingTool, Phase>();
 // The stars tapped, kept the same way so a comment after such a move still carries them.
 const liveStars = new Map<RatingTool, Stars>();
+const liveCommented = new Set<RatingTool>();
 export function resetRatingPromptForTests(): void {
   livePhase.clear();
   liveStars.clear();
+  liveCommented.clear();
 }
 
 /**
@@ -66,7 +68,7 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     setPhaseState(next);
   };
   const [stars, setStars] = useState<Stars | null>(() => liveStars.get(tool) ?? null);
-  const [commented, setCommented] = useState(false);
+  const [commented, setCommented] = useState(() => liveCommented.has(tool));
   const [share, setShare] = useState<ShareState>('idle');
   // When the follow-up was swapped in. On iPhone the same tap that rated was also delivered to the
   // link that took the star's place, so for a moment the follow-up ignores activation.
@@ -120,7 +122,9 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     event.preventDefault();
     const input = (event.currentTarget as HTMLFormElement).elements.namedItem('comment') as HTMLInputElement;
     if (stars === null || input.value.trim() === '') return;
-    reportRatingComment(tool, stars, input.value);
+    // Not sent (too long once encoded, or no beacon): the form stays, so the words are not silently lost.
+    if (!reportRatingComment(tool, stars, input.value)) return;
+    liveCommented.add(tool);
     setCommented(true);
   };
 

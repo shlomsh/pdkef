@@ -55,6 +55,8 @@ export function parseRatingEvent(value: unknown): RatingEvent | null {
 
 /** A comment is trimmed and kept at 1 to 500 characters (SEO-48). */
 export const MAX_COMMENT_LENGTH = 500;
+/** The endpoint's body limit, MAX_REPORT_BYTES in errorReportSchema.ts (no import here; a test keeps them equal). */
+export const REPORT_BYTE_LIMIT = 2048;
 
 export interface RatingCommentEvent {
   readonly name: 'tool_rating_comment';
@@ -69,8 +71,11 @@ export function parseRatingCommentEvent(value: unknown): RatingCommentEvent | nu
   const rating = parseRatingEvent({ name: 'tool_rating', properties: { tool: p.tool, stars: p.stars } });
   const comment = p.comment.trim();
   if (!rating || comment.length === 0 || [...comment].length > MAX_COMMENT_LENGTH) return null;
-  return Object.freeze({
+  const event = Object.freeze({
     name: 'tool_rating_comment' as const,
     properties: Object.freeze({ ...rating.properties, comment }),
   });
+  // A short comment can still encode past the limit (control characters take 6 bytes each); refuse it here,
+  // where the browser can still tell, rather than have the endpoint drop it as oversize.
+  return new TextEncoder().encode(JSON.stringify(event)).length > REPORT_BYTE_LIMIT ? null : event;
 }
