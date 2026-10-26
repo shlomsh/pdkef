@@ -193,6 +193,11 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   if (CORE_MODULES.has(fromModule) && toModule === 'site') {
     return `${fromModule} may import site-i18n and site-data but not site (pages/layouts/content/styles)`;
   }
+  // Rule 10 (ARCH-34): lib is the bottom layer. It may import only lib, so a
+  // change to a core project never reaches back down into the shared helpers.
+  if (fromModule === 'lib' && ['editor', 'editor-ui', 'shell', 'site-i18n', 'site-data'].includes(toModule)) {
+    return `lib is the bottom layer: it may not import ${toModule}`;
+  }
   // Rule 3: editor is headless.
   if (fromModule === 'editor' && (toModule === 'editor-ui' || toModule === 'shell')) {
     return 'editor is headless: it may not import editor-ui or shell';
