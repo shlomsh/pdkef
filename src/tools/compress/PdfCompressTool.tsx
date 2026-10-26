@@ -97,8 +97,8 @@ interface CompressMeta {
 /** The build is superseded: usePreparedOutput drops an AbortError without reporting it. */
 const superseded = () => new DOMException('Superseded', 'AbortError');
 
-// Compress offers no hand-offs from its Download; the flow's hand-off map is required until it is made partial.
-const NO_HANDOFFS: DownloadFlowInput['hrefs'] = { compress: '', sign: '' };
+// Compress offers no hand-offs from its Download.
+const NO_HANDOFFS: DownloadFlowInput['hrefs'] = {};
 
 export function formatShare(share: number, lessThanOnePercent = englishCompressMessages.lessThanOnePercent): string {
   return share < 0.01 ? lessThanOnePercent : `${Math.round(share * 100)}%`;
