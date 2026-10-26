@@ -3,7 +3,9 @@
  * (`ratingReport.ts`) and `api/report.ts`, which files it under the tool, permanently.
  *
  * What travels is `{name: 'tool_rating', properties: {tool, stars}}`: a tool off the list below and
- * a whole number from 1 to 5. Nothing else: no comment, no file, no build, no time.
+ * a whole number from 1 to 5. A person may then add a few words of their own (SEO-48), sent once as
+ * `{name: 'tool_rating_comment', properties: {tool, stars, comment}}`. Nothing else: no file, no build,
+ * no time. The server adds the request's country and region; the browser never sends a location.
  */
 
 // No imports, and none may be added: `api/report.ts` loads this file in the deployed function
@@ -48,5 +50,27 @@ export function parseRatingEvent(value: unknown): RatingEvent | null {
   return Object.freeze({
     name: 'tool_rating' as const,
     properties: Object.freeze({ tool: p.tool as RatingTool, stars: p.stars as Stars }),
+  });
+}
+
+/** A comment is trimmed and kept at 1 to 500 characters (SEO-48). */
+export const MAX_COMMENT_LENGTH = 500;
+
+export interface RatingCommentEvent {
+  readonly name: 'tool_rating_comment';
+  readonly properties: { readonly tool: RatingTool; readonly stars: Stars; readonly comment: string };
+}
+
+/** Accepts exactly `{name: 'tool_rating_comment', properties: {tool, stars, comment}}`, the comment trimmed. */
+export function parseRatingCommentEvent(value: unknown): RatingCommentEvent | null {
+  if (!isObject(value) || !sameKeys(value, ['name', 'properties']) || value.name !== 'tool_rating_comment') return null;
+  const p = value.properties;
+  if (!isObject(p) || !sameKeys(p, ['comment', 'stars', 'tool']) || typeof p.comment !== 'string') return null;
+  const rating = parseRatingEvent({ name: 'tool_rating', properties: { tool: p.tool, stars: p.stars } });
+  const comment = p.comment.trim();
+  if (!rating || comment.length === 0 || [...comment].length > MAX_COMMENT_LENGTH) return null;
+  return Object.freeze({
+    name: 'tool_rating_comment' as const,
+    properties: Object.freeze({ ...rating.properties, comment }),
   });
 }
