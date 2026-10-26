@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 71 live: 17 up next, 11 then, 26 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 72 live: 17 up next, 11 then, 26 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -121,6 +121,12 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
 | ARCH-38 | P2 | [ARCH-38](backlog/tasks/ARCH-38.md) · Adding a tool edits one registry, and hand-offs go through one function | In progress |
 | ARCH-39 | P2 | [ARCH-39](backlog/tasks/ARCH-39.md) · One set of PDF primitives in lib | In progress |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control |  |
 
 ## Search and languages
 
