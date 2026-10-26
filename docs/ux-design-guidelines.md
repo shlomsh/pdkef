@@ -421,8 +421,12 @@ in the HTML but hide once files are loaded, like the subhead. (MERGE-24, 2026-10
   that defines the output first (Split's One PDF or one per page, PDF to Image's format, quality and
   output, Edit PDF's page numbers), then which pages (the range field, Include all, Skip all, Invert),
   then Download and the hand-offs, and Replace file as a quiet last line: starting over with another
-  file is an ending, not a first step. Merge keeps section 4's order, because its file list is its
-  first decision. The rail sits at the end of the reading line, after the pages: they are what a
+  file is an ending, not a first step. Quiet means one shared line (`ReplaceFileLine` in
+  `src/shell/pageWorkspace/`): the replace glyph and label, no border or fill until hover, centred
+  under the full-width hand-off row. It appears once, at every width; below 1024px the pinned rail
+  sits under the last page, so it is never repeated in the phone bar. Merge keeps section 4's order,
+  because its file list is its first decision; its Add files and Clear all files carry an icon each,
+  the way the hand-offs do. (Shlomi, 2026-10-26) The rail sits at the end of the reading line, after the pages: they are what a
   person checks first, and Download closes the path. (Shlomi, 2026-10-25)
 
 ## The review questions
