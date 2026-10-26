@@ -34,3 +34,9 @@ other job stays on `ubuntu-latest`.
 - A Playwright release lists Ubuntu 26.04 as supported for WebKit, and the repo is on it.
 - `e2e-webkit` is back on `ubuntu-latest` (pin and its comment removed) and a CI run on main shows that
   job green on `Image: ubuntu-26.04`.
+
+## Note (2026-10-26)
+
+QUAL-29 moves `e2e-webkit` into Playwright's own Ubuntu 24.04 image, so WebKit no longer depends on the
+runner's Ubuntu. Once that runs green on main, the `ubuntu-24.04` pin can go back to `ubuntu-latest`
+without waiting for a Playwright release, and this ticket can close on that run.

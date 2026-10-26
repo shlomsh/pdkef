@@ -382,11 +382,26 @@ jobs:
     # every webkit test failed at launch. Back to ubuntu-latest once a
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, playwright-version]
+    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
+    # need already in it. `install-deps` used to fetch about 119 MB of WebKit libraries from the Azure
+    # Ubuntu mirror on every run, usually in 30s but in 35-55 min on 6 runs that day (48 kB/s, run
+    # 40361495800). The tag is the lockfile's Playwright version (the `playwright-version` job), so the
+    # browsers in the image are the ones the tests expect.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      # Docker's 64 MB /dev/shm is too small for Chromium (the perf budgets run here); Playwright's
+      # Docker guide asks for the host's IPC namespace.
+      options: --ipc=host
 
     steps:
     - uses: actions/checkout@v5
+
+    # The container's git did not create the workspace, so it would refuse it as "dubious ownership"
+    # when affected-scope.mjs and nx ask for the diff.
+    - name: Trust the workspace for git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -415,43 +430,6 @@ jobs:
     - name: Build
       run: npm run build
 
-    - name: Resolve Playwright version
-      id: playwright
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        # Own key, distinct from `e2e`'s and `font-guards`'s: this job caches
-        # a different browser set (chromium + webkit) than either, and
-        # sharing a key with one of them would evict on alternating runs.
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit
-
-    # Also installs chromium: the `perf` project is chromium-based (see
-    # `devices['Desktop Chrome']` in playwright.config.js), and the perf
-    # budgets run in this job too, on the job that has the spare time after
-    # dropping webkit from the two chromium shards.
-    #
-    # QUAL-09's own measurement (run 34788031094) was against the old shape
-    # where each of the two chromium shards paid `install --with-deps chromium
-    # webkit` uncached, at 51s a shard; that measurement never covered this
-    # job, which pays the combined apt cost exactly once instead of twice.
-    # Caching that one-time apt cost trades a restore for a chromium+webkit
-    # `install-deps`, which is worth it whenever the restore is cheaper than
-    # apt, per the same reasoning as `e2e` above. PROJECTION, not a fresh CI
-    # measurement (nothing here can exercise GitHub's real cache backend) -
-    # whoever reviews the next few runs should confirm the cache actually
-    # hits and actually saves the time this comment assumes.
-    - name: Install Playwright browsers (cache miss)
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium webkit
-
-    - name: Install Playwright system dependencies (cache hit)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium webkit
-
     - name: Run Playwright e2e tests (product webkit)
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
@@ -475,6 +453,25 @@ jobs:
           playwright-report/
           test-results/
         if-no-files-found: ignore
+
+  # The Playwright version `e2e-webkit`'s container is tagged with: Playwright's image carries the
+  # browsers of one release, so the tag comes from the lockfile, never a copy kept by hand. Its own job,
+  # not a step of `scope`, because `scope` is skipped on workflow_dispatch and `e2e-webkit` runs then too.
+  playwright-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        sparse-checkout: package-lock.json
+        sparse-checkout-cone-mode: false
+
+    - name: Read @playwright/test from the lockfile
+      id: read
+      run: |
+        VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   # Classifies the change, so the jobs above run only when it can reach them.
   # `docs_only` (backlog, docs, guidance, root markdown: a third of the commits
