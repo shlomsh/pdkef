@@ -17,6 +17,7 @@ import DownloadElement from '../../shell/DownloadElement.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
@@ -69,29 +70,34 @@ let pipelinePromise: Promise<Pipeline> | null = null;
 // The warp, filter and edge code load once, when the first photo arrives (docs/scan-to-pdf.md).
 const loadPipeline = () => (pipelinePromise ??= import('./scanPipeline.ts'));
 
-/** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS). */
-function TakePhotoButton({ onFiles }: { onFiles: (files: File[]) => void }) {
+/** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS).
+ * `primary` is the empty state's, the equal of Choose files: the same label-around-input as the shell's
+ * picker, so iOS opens the camera natively. The page strip's is a quiet tile. */
+function TakePhotoButton({ onFiles, primary = false }: { onFiles: (files: File[]) => void; primary?: boolean }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const onChange = (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    if (input.files?.length) onFiles(Array.from(input.files));
+    input.value = '';
+  };
+  if (primary) {
+    return (
+      <span class={styles['take-photo']}>
+        <label class={dropzoneStyles['file-picker-button']}>
+          <Camera size={18} aria-hidden="true" />
+          {t.takePhoto}
+          <input type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
+        </label>
+      </span>
+    );
+  }
   return (
     <span class={styles['take-photo']}>
       <button type="button" class={styles['take-photo-button']} onClick={() => inputRef.current?.click()}>
         <Camera size={18} aria-hidden="true" />
         {t.takePhoto}
       </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT}
-        capture="environment"
-        class="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={(event) => {
-          const input = event.currentTarget as HTMLInputElement;
-          if (input.files?.length) onFiles(Array.from(input.files));
-          input.value = '';
-        }}
-      />
+      <input ref={inputRef} type="file" accept={ACCEPT} capture="environment" class="sr-only" tabIndex={-1} aria-hidden="true" onChange={onChange} />
     </span>
   );
 }
@@ -474,7 +480,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   return (
     <BasePdfTool
       emptyArt={<ScanVerb />}
-      emptyAction={<TakePhotoButton onFiles={addFiles} />}
+      emptyAction={<TakePhotoButton onFiles={addFiles} primary />}
       hasFiles={pages.length > 0}
       analyticsTool="scan-to-pdf"
       analyticsStatus={analyticsStatus}

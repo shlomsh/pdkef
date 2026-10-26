@@ -129,9 +129,10 @@ describe('DropzoneEmptyState', () => {
     expect(line.querySelector(`.${styles['empty-desktop']}`).textContent).toBe('Desktop line.');
   });
 
-  it('renders an action directly under the pick button, and nothing extra without one', () => {
+  it('puts an action in one row with the pick button, as an equal choice, and nothing extra without one', () => {
     mount({ action: <button type="button" data-testid="extra">Take a photo</button> });
     const picker = container.querySelector(`.${styles['file-picker-button']}`);
+    expect(picker.parentElement.className).toBe(styles['pick-row']);
     expect(picker.nextElementSibling.getAttribute('data-testid')).toBe('extra');
     act(() => render(null, container));
     container.remove();
