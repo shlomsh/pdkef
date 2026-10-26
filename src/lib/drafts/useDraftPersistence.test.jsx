@@ -324,7 +324,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
 // SIGN-06 follow-up: the 'unpersisted' warning line. Scoped to an installed/
 // home-screen app (see useDraftPersistence.js's isInstalledStandalone
 // comment for why), so every test here controls window.matchMedia and
-// navigator.standalone explicitly rather than relying on src/test/setup.js's
+// navigator.standalone explicitly rather than relying on src/test/support/setup.js's
 // default matchMedia stub (which answers 'matches' to every query, i.e. the
 // desktop/standalone-looking path - see its own comment).
 describe('useDraftPersistence - unpersisted-storage warning', () => {

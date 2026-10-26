@@ -18,7 +18,7 @@ function Harness({ apiRef, active, numPages }) {
 }
 
 // A controllable stand-in for the real thing (jsdom has no layout, so the
-// global stub in test/setup.js is an inert no-op). Captures every instance so
+// global stub in test/support/setup.js is an inert no-op). Captures every instance so
 // a test can fire its callback with hand-picked intersectionRatio entries.
 class FakeIntersectionObserver {
   static instances = [];

@@ -22,7 +22,7 @@ function installMatchMedia(matches: boolean) {
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
 
-  // src/test/setup.js stubs a missing `window.matchMedia` to always return
+  // src/test/support/setup.js stubs a missing `window.matchMedia` to always return
   // `matches: true` (tuned for ArmHint's `(hover: hover) and (pointer: fine)`
   // query), which - read for `(pointer: coarse)` too - would make every test
   // here default to the phone sheet unless it says otherwise. Force the fine

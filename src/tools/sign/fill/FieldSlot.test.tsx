@@ -739,7 +739,7 @@ describe('FieldSlot component', () => {
 
   describe('sideways inset on a spanned field (fieldTextInset, SNG-15)', () => {
     it('pads a plain field slot inline by fieldTextInset, symmetric, and aligns it by layout.textAlign', () => {
-      // jsdom has no canvas (src/test/setup.js), so textWidthPx measures 0
+      // jsdom has no canvas (src/test/support/setup.js), so textWidthPx measures 0
       // for every value here - the same "no canvas" fallback the component
       // itself falls back to. fieldTextInset with a 0 text width is still
       // the real function under test: half the cell's slack, capped at a
