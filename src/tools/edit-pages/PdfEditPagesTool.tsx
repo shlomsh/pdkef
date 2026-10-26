@@ -23,6 +23,7 @@ import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
@@ -300,111 +301,105 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
       )}
 
       {file && loadStatus === 'idle' && !needsUnlock && (
-        <ToolShellBridge>
-          {({ requestReplace }) => (
-            <PageWorkspace
-              phoneBar={(
-                <div class={workspaceStyles['chip-bar']}>
-                  {/* Replace file at the bar's start, the quiet Download at its end, like Merge's chip row. */}
-                  <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.replaceLabel}</button>
-                  <PhoneFinish
-                    flow={downloadFlow}
-                    prepared={prepared}
-                    fileName={fileName}
-                    detail={detail}
-                    handoffs={handoffs}
-                    labels={{ download: t.downloadShort, ready: t.editedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
-                  />
-                </div>
-              )}
-              phoneControls={(
-                <div class={workspaceStyles['mobile-file-controls']}>
-                  {bulkRow}
-                </div>
-              )}
-              touchHint={plan.length > 1 && t.touchDragHint}
-              heading={(
-                <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
-                  <span class="sr-only">{t.documentHeading}</span>
-                  <OutputName
-                    name={title}
-                    label={t.fileNameEditableLabel}
-                    onRename={renameOutput}
-                    onEditingChange={setIsRenamingOutputName}
-                    wrapOnPhone
-                  >
-                    <span class={workspaceStyles['doc-heading-count']}>
-                      {' · '}{pagesLabel(outputCount, sm)}
-                      {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
-                    </span>
-                  </OutputName>
-                </h2>
-              )}
-              headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
-              railContent={(
-                <>
-                  {/* In order of consequence (UX guideline 20): what the output is, then which pages. */}
-                  <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
-                  {bulkRow}
-                </>
-              )}
-              railPinned={(
-                <>
-                  <DownloadElement
-                    state={downloadState}
-                    href={prepared.status === 'ready' ? prepared.url : null}
-                    fileName={fileName}
-                    detail={detail}
-                    renderedCount={renderedCount}
-                    totalCount={plan.length}
-                    pageCount={outputCount}
-                    progress={prepared.progress}
-                    errorMessage={t.buildFailed}
-                    messages={t}
-                    onPreparingTap={onRowPreparingTap}
-                    onWarm={prepared.prepareNow}
-                    onDownloadClick={onDownloadTap}
-                    isOutputNameBeingRenamed={isRenamingOutputName}
-                  />
-
-                  <FinishRow
-                    ready={prepared.status === 'ready'}
-                    shareReady={shareReady}
-                    onShare={handleShare}
-                    busy={handoffBusy}
-                    onHandoff={(tool) => { void requestHandoff(tool); }}
-                    onWarm={prepared.prepareNow}
-                    labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign }}
-                  />
-
-                  {handoffFailed && (
-                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-                  )}
-
-                  {/* Starting over with another file ends the rail. */}
-                  {replaceRow(requestReplace)}
-                </>
-              )}
-            >
-              {prepared.status === 'error' && failure}
-
-              {PageGrid && plan.length > 0 && (
-                <PageGrid
-                  sources={sources}
-                  plan={plan}
-                  onPlanChange={onPlanChange}
-                  announce={setAnnouncement}
-                  messages={t}
-                  labelledBy="page-grid-heading"
-                  grouped
-                  labelSources={false}
-                  gridRef={gridRef}
-                  onRenderedCountChange={setRenderedCount}
-                />
-              )}
-            </PageWorkspace>
+        <PageWorkspace
+          phoneBar={(
+            <div class={workspaceStyles['chip-bar']}>
+              <PhoneFinish
+                flow={downloadFlow}
+                prepared={prepared}
+                fileName={fileName}
+                detail={detail}
+                handoffs={handoffs}
+                labels={{ download: t.downloadShort, ready: t.editedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
+              />
+            </div>
           )}
-        </ToolShellBridge>
+          phoneControls={(
+            <div class={workspaceStyles['mobile-file-controls']}>
+              {bulkRow}
+            </div>
+          )}
+          touchHint={plan.length > 1 && t.touchDragHint}
+          heading={(
+            <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
+              <span class="sr-only">{t.documentHeading}</span>
+              <OutputName
+                name={title}
+                label={t.fileNameEditableLabel}
+                onRename={renameOutput}
+                onEditingChange={setIsRenamingOutputName}
+                wrapOnPhone
+              >
+                <span class={workspaceStyles['doc-heading-count']}>
+                  {' · '}{pagesLabel(outputCount, sm)}
+                  {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
+                </span>
+              </OutputName>
+            </h2>
+          )}
+          headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
+          railContent={(
+            <>
+              {/* In order of consequence (UX guideline 20): what the output is, then which pages. */}
+              <PageNumbersRow checked={addPageNumbers} onChange={onPageNumbersChange} label={t.addPageNumbers} />
+              {bulkRow}
+            </>
+          )}
+          railPinned={(
+            <>
+              <DownloadElement
+                state={downloadState}
+                href={prepared.status === 'ready' ? prepared.url : null}
+                fileName={fileName}
+                detail={detail}
+                renderedCount={renderedCount}
+                totalCount={plan.length}
+                pageCount={outputCount}
+                progress={prepared.progress}
+                errorMessage={t.buildFailed}
+                messages={t}
+                onPreparingTap={onRowPreparingTap}
+                onWarm={prepared.prepareNow}
+                onDownloadClick={onDownloadTap}
+                isOutputNameBeingRenamed={isRenamingOutputName}
+              />
+
+              <FinishRow
+                ready={prepared.status === 'ready'}
+                shareReady={shareReady}
+                onShare={handleShare}
+                busy={handoffBusy}
+                onHandoff={(tool) => { void requestHandoff(tool); }}
+                onWarm={prepared.prepareNow}
+                labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign }}
+              />
+
+              {handoffFailed && (
+                <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+              )}
+
+              {/* Starting over with another file ends the rail, at every width (UX guideline 20). */}
+              <ReplaceFileLine />
+            </>
+          )}
+        >
+          {prepared.status === 'error' && failure}
+
+          {PageGrid && plan.length > 0 && (
+            <PageGrid
+              sources={sources}
+              plan={plan}
+              onPlanChange={onPlanChange}
+              announce={setAnnouncement}
+              messages={t}
+              labelledBy="page-grid-heading"
+              grouped
+              labelSources={false}
+              gridRef={gridRef}
+              onRenderedCountChange={setRenderedCount}
+            />
+          )}
+        </PageWorkspace>
       )}
 
       <p class="sr-only" role="status" aria-live="polite">

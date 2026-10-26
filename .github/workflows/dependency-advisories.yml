@@ -21,6 +21,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22.x'
+          check-latest: true
 
       # npm audit returns non-zero when it finds an advisory. Preserve the JSON
       # report, then let the policy script decide whether a finding is an

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./errorReport.ts', () => ({ sendBeacon: vi.fn(() => true) }));
 import { sendBeacon } from './errorReport.ts';
-import { markAsked, markRated, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, shouldAsk } from './ratingReport.ts';
+import { markAsked, markRated, ratedKey, RATING_ASK_GAP_MS, ASKED_AT_KEY, reportRating, reportRatingComment, shouldAsk } from './ratingReport.ts';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
@@ -75,5 +75,21 @@ describe('reportRating', () => {
   it('never throws', () => {
     vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
     expect(reportRating('compress', 4)).toBe(false);
+  });
+});
+
+describe('reportRatingComment', () => {
+  it('sends the trimmed comment and returns true', () => {
+    expect(reportRatingComment('compress', 4, '  nice and fast  ')).toBe(true);
+    expect(sendBeacon).toHaveBeenCalledWith({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'nice and fast' } });
+  });
+  it('refuses an empty or over-long comment without sending', () => {
+    expect(reportRatingComment('compress', 4, '   ')).toBe(false);
+    expect(reportRatingComment('compress', 4, 'x'.repeat(501))).toBe(false);
+    expect(sendBeacon).not.toHaveBeenCalled();
+  });
+  it('never throws', () => {
+    vi.mocked(sendBeacon).mockImplementationOnce(() => { throw new Error('x'); });
+    expect(reportRatingComment('compress', 4, 'hi')).toBe(false);
   });
 });
