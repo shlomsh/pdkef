@@ -13,7 +13,7 @@ import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { reportError, type ErrorArea } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { formatMessage } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import type { NeedsUnlockKind } from '../NeedsUnlock.tsx';
 
 export interface LoadedPageDocument {

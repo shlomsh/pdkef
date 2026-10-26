@@ -13,7 +13,8 @@ import { useArmTool, useAutoArmHint, useDoubleTap } from '../../../editor-ui/hoo
 import { WhiteoutIcon } from '../../../editor-ui/toolIcons.tsx';
 import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from '../fill/FillContext.tsx';
-import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
+import { englishShellMessages, englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { formatMessage } from '../../../lib/formatMessage';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';

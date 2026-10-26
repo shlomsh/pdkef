@@ -1,4 +1,5 @@
-import { englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { formatMessage } from '../../../lib/formatMessage';
 import styles from './ExportReadinessNotice.module.css';
 
 type ExportReadinessNoticeProps = {

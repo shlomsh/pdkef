@@ -24,12 +24,8 @@ import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import {
-  englishImageToPdfMessages,
-  formatMessage,
-  type ImageToPdfMessages,
-  type ShellMessages,
-} from '../../i18n/toolMessages';
+import { englishImageToPdfMessages, type ImageToPdfMessages, type ShellMessages } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 
 export interface ImageEntry {
   id: number;
