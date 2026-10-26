@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { startGesture } from '../../lib/gestures/controller.ts';
-import { clampPoint, isConvexQuad, type Quad } from './quad.ts';
+import { clampPoint, isPagelike, type Quad } from './quad.ts';
 import { LOUPE_SIZE, loupeView, placeLoupe } from './loupe.ts';
 import styles from './CornerEditor.module.css';
 
@@ -24,11 +24,12 @@ const ARROWS: Record<string, [number, number]> = {
 };
 
 const pct = (v: number) => `${v * 100}%`;
-/** A quad a page could be: convex, and not a sliver (1% of the photo), which would warp to a line. */
+/** A quad a page could be: every corner a real page's (isPagelike), and not a sliver (1% of the
+ * photo), which would warp to a line. */
 const usable = (q: Quad) => {
   let twice = 0;
   for (let i = 0; i < 4; i += 1) twice += q[i].x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * q[i].y;
-  return isConvexQuad(q) && Math.abs(twice) / 2 >= 0.01;
+  return isPagelike(q) && Math.abs(twice) / 2 >= 0.01;
 };
 const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
 // The whole photo plus the quad, filled evenodd: dims everything outside the quad.

@@ -16,9 +16,24 @@ export function cardFloor(el: Element): { floor: number; paddingBottom: number }
   return { floor: card.getBoundingClientRect().top + minHeight, paddingBottom: px(style.paddingBottom) };
 }
 
+/* What follows the element in its own column shares the first screen with it (Scan's rating ask
+   after a download): its height and the column's gap come off. It never depends on the element's
+   height, so it cannot feed back either. */
+function below(el: HTMLElement): number {
+  const parent = el.parentElement;
+  const gap = parent ? px(getComputedStyle(parent).rowGap) : 0;
+  let total = 0;
+  for (let next = el.nextElementSibling; next; next = next.nextElementSibling) {
+    const style = getComputedStyle(next);
+    if (style.display === 'none' || style.position === 'absolute' || style.position === 'fixed') continue;
+    total += next.getBoundingClientRect().height + gap;
+  }
+  return total;
+}
+
 function measure(el: HTMLElement): number | null {
   const card = cardFloor(el);
-  return card ? Math.max(0, Math.floor(card.floor - el.getBoundingClientRect().top - card.paddingBottom)) : null;
+  return card ? Math.max(0, Math.floor(card.floor - el.getBoundingClientRect().top - below(el) - card.paddingBottom)) : null;
 }
 
 /* Px from the element's top to the card's floor on a desktop viewport, null elsewhere: a tool that
@@ -52,6 +67,8 @@ export function useFloorHeight(ref: RefObject<HTMLElement>, active: boolean): nu
     const card = el.closest('[data-tool-loaded]');
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
     if (card) observer?.observe(card);
+    // Something arriving after it in its column (the rating ask) resizes the column.
+    if (el.parentElement) observer?.observe(el.parentElement);
     // Anything above that changes height (an error line, the heading) moves the element down
     // without resizing it: watch every earlier sibling on the way up to the card.
     for (let node: Element | null = el; node && node !== card; node = node.parentElement) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyHomography, homography } from './homography.ts';
 import { warpSize } from './warp.ts';
-import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, rotateQuad, scaleQuad, turnedQuad, unturnedQuad, type Point, type Quad } from './quad.ts';
+import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, isPagelike, rotateQuad, scaleQuad, turnedQuad, unturnedQuad, type Point, type Quad } from './quad.ts';
 
 describe('orderQuad', () => {
   it('orders four points top-left, top-right, bottom-right, bottom-left', () => {
@@ -151,5 +151,24 @@ describe('turnedQuad / unturnedQuad', () => {
         expect(p.y).toBeCloseTo(q[i].y, 10);
       });
     }
+  });
+});
+
+describe('isPagelike', () => {
+  it('takes a page in any reasonable perspective', () => {
+    expect(isPagelike(FULL_QUAD)).toBe(true);
+    expect(isPagelike([{ x: 0.1, y: 0.1 }, { x: 0.8, y: 0.05 }, { x: 0.9, y: 0.85 }, { x: 0.15, y: 0.9 }])).toBe(true);
+  });
+
+  it('refuses a corner on, or all but on, the line between its neighbours: the warp fans out', () => {
+    // Top-left on the diagonal from top-right to bottom-left: 180 degrees.
+    expect(isPagelike([{ x: 0.5, y: 0.5 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }])).toBe(false);
+    // A hair off it: still not a page.
+    expect(isPagelike([{ x: 0.49, y: 0.49 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }])).toBe(false);
+  });
+
+  it('refuses a bow tie and a dent, as isConvexQuad does', () => {
+    expect(isPagelike([{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.1, y: 0.9 }, { x: 0.9, y: 0.9 }])).toBe(false);
+    expect(isPagelike([{ x: 0.6, y: 0.6 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }])).toBe(false);
   });
 });
