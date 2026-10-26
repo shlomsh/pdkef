@@ -99,16 +99,19 @@ export async function guessPage(photo: Blob): Promise<Quad | null> {
   return guessCorners(grayOf(img, img.naturalWidth, img.naturalHeight));
 }
 
-/** One decode of a new photo: its corners, its upright size, and the preview the screen shows. */
+/** One decode of a new photo: its corners, its upright size, and the preview the screen shows. The
+ * corners are guessed from the preview's own JPEG, exactly as Auto-detect guesses them (guessPage on
+ * the same bytes), so the first corners and Auto-detect's are the same corners. */
 export async function inspectPhoto(photo: Blob): Promise<InspectedPhoto> {
   const img = await loadImage(photo);
-  const preview = drawCapped(img, PREVIEW_LONG_EDGE);
+  const canvas = drawCapped(img, PREVIEW_LONG_EDGE);
+  let preview: Blob;
   try {
-    const quad = guessCorners(grayOf(preview, preview.width, preview.height));
-    return { quad, width: img.naturalWidth, height: img.naturalHeight, preview: await canvasToBlob(preview, 'image/jpeg', 0.85) };
+    preview = await canvasToBlob(canvas, 'image/jpeg', 0.85);
   } finally {
-    freeCanvas(preview);
+    freeCanvas(canvas);
   }
+  return { quad: await guessPage(preview), width: img.naturalWidth, height: img.naturalHeight, preview };
 }
 
 /** The preview turned `turns` quarters clockwise, for setting corners on a page shot sideways. */
