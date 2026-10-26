@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 72 live: 12 up next, 16 then, 26 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 72 live: 13 up next, 16 then, 26 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -114,6 +114,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-62 | P1 | [DEBT-62](backlog/tasks/DEBT-62.md) · Every tool accepts a PDF the browser reports with no file type | In progress |
+| ARCH-40 | P3 | [ARCH-40](backlog/tasks/ARCH-40.md) · Small seams from the October review | In progress |
 | DEBT-63 | P2 | [DEBT-63](backlog/tasks/DEBT-63.md) · Compress and PDF to Image stay inside the browser's canvas limit on very large pages | In progress |
 | ARCH-34 | P1 | [ARCH-34](backlog/tasks/ARCH-34.md) · A change to one core project reaches only the projects that use it | In progress |
 
@@ -126,12 +127,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool |  |
 | ARCH-38 | P2 | [ARCH-38](backlog/tasks/ARCH-38.md) · Adding a tool edits one registry, and hand-offs go through one function |  |
 | ARCH-39 | P2 | [ARCH-39](backlog/tasks/ARCH-39.md) · One set of PDF primitives in lib |  |
-
-### Parked
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| ARCH-40 | P3 | [ARCH-40](backlog/tasks/ARCH-40.md) · Small seams from the October review |  |
 
 ## Search and languages
 
