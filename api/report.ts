@@ -4,7 +4,8 @@
 // tool chose not to send (drop records, DEBT-44; counts only, no sample),
 // per-tool usage (counts only, no engine, no sample), anonymous star ratings
 // (SEO-46: a permanent count per tool and star under rating:<tool>, no expiry,
-// no engine, no time, under their own daily cap), and every body it
+// no engine, no time, under their own daily cap; SEO-48: each also kept as a
+// record with the country and region Vercel reports, and an optional comment), and every body it
 // refuses (oversize, bad JSON, a shape no parser accepts), by reason and
 // engine under its own small daily cap. The second request-time component after middleware.ts; Astro
 // itself stays output 'static' with no adapter, so this is a plain function
@@ -16,11 +17,11 @@
 //
 // Always 204, whatever happens, so the endpoint can never block or break a
 // tool. Stored: counts per day, plus the latest validated example of each,
-// with an engine bucket - no IP, no full user agent, no time finer than the
-// day. Nothing from the request is logged.
+// with an engine bucket - no IP (only the country and region Vercel names for
+// a rating), no full user agent, no time finer than the day. Nothing from the request is logged.
 import { MAX_REPORT_BYTES, parseDropRecord, parseErrorReport } from '../src/lib/errorReportSchema.js';
 import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
-import { parseRatingEvent } from '../src/lib/ratingSchema.js';
+import { parseRatingCommentEvent, parseRatingEvent } from '../src/lib/ratingSchema.js';
 import { parseUsageEvent } from '../src/lib/usageEventSchema.js';
 import {
   DAILY_CAP,
@@ -44,7 +45,14 @@ import {
   withDayExpiry,
   type Command,
 } from '../src/site-lib/errorReportStore.js';
-import { RATING_DAILY_CAP, ratingCapCommands, ratingCommands, ratingTotalKey } from '../src/site-lib/ratingStore.js';
+import {
+  RATING_DAILY_CAP,
+  ratingCapCommands,
+  ratingCommands,
+  ratingEntryCommands,
+  ratingGeo,
+  ratingTotalKey,
+} from '../src/site-lib/ratingStore.js';
 
 // No @types/node in this repo; the function runtime provides process.env.
 declare const process: { env: Record<string, string | undefined> };
@@ -113,8 +121,9 @@ export async function POST(request: Request): Promise<Response> {
     const drop = report || event ? null : parseDropRecord(json);
     const usage = report || event || drop ? null : parseUsageEvent(json);
     const rating = report || event || drop || usage ? null : parseRatingEvent(json);
+    const comment = report || event || drop || usage || rating ? null : parseRatingCommentEvent(json);
     if (!store) return NO_CONTENT();
-    if (!report && !event && !drop && !usage && !rating) {
+    if (!report && !event && !drop && !usage && !rating && !comment) {
       await countReject(store, request, declared, body);
       return NO_CONTENT();
     }
@@ -129,12 +138,16 @@ export async function POST(request: Request): Promise<Response> {
       }
       return NO_CONTENT();
     }
-    if (rating) {
+    if (rating || comment) {
       if (day === cappedRatingDay) return NO_CONTENT();
       const [total] = await pipeline(store, ratingCapCommands(day));
       if (typeof total?.result === 'number' && total.result > RATING_DAILY_CAP) cappedRatingDay = day;
       else if (typeof total?.result === 'number') {
-        await pipeline(store, withDayExpiry(ratingTotalKey(day), total.result, ratingCommands(rating)));
+        const geo = ratingGeo(request.headers);
+        const counting = rating
+          ? [...ratingCommands(rating), ...ratingEntryCommands(rating, geo, day)]
+          : ratingEntryCommands(comment!, geo, day);
+        await pipeline(store, withDayExpiry(ratingTotalKey(day), total.result, counting));
       }
       return NO_CONTENT();
     }

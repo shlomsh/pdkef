@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import styles from './RatingPrompt.module.css';
 import { onAction } from '../lib/actionTrail.ts';
-import { markAsked, markRated, reportRating, shouldAsk, type RatingStorage } from '../lib/ratingReport.ts';
+import { markAsked, markRated, reportRating, reportRatingComment, shouldAsk, type RatingStorage } from '../lib/ratingReport.ts';
 import type { RatingTool, Stars } from '../lib/ratingSchema.ts';
 import { STARS } from '../lib/ratingSchema.ts';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
 
 type RatingMessages = Pick<
   ShellMessages,
-  'ratingQuestion' | 'ratingThanksHigh' | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingThanksLow' | 'ratingTellMe' | 'ratingStarOne' | 'ratingStarOther'
+  'ratingQuestion' | 'ratingThanksHigh' | 'ratingShare' | 'ratingShareCopied' | 'ratingStarGithub' | 'ratingThanksLow' | 'ratingTellMe' | 'ratingStarOne' | 'ratingStarOther' | 'ratingCommentLabel' | 'ratingCommentSend' | 'ratingCommentThanks'
 >;
 
 // Same value as GITHUB_REPO_URL in src/data/organizationSchema.js; src/shell does not import src/data.
@@ -47,8 +47,11 @@ type ShareState = 'idle' | 'copied' | 'link';
 // The live phase per tool for this page load. A host may move one <RatingPrompt> between tree positions
 // (an unmount and a fresh mount); markAsked is already written by then, so without this the ask is lost.
 const livePhase = new Map<RatingTool, Phase>();
+// The stars tapped, kept the same way so a comment after such a move still carries them.
+const liveStars = new Map<RatingTool, Stars>();
 export function resetRatingPromptForTests(): void {
   livePhase.clear();
+  liveStars.clear();
 }
 
 /**
@@ -62,6 +65,8 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     livePhase.set(tool, next);
     setPhaseState(next);
   };
+  const [stars, setStars] = useState<Stars | null>(() => liveStars.get(tool) ?? null);
+  const [commented, setCommented] = useState(false);
   const [share, setShare] = useState<ShareState>('idle');
   // When the follow-up was swapped in. On iPhone the same tap that rated was also delivered to the
   // link that took the star's place, so for a moment the follow-up ignores activation.
@@ -89,6 +94,8 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     reportRating(tool, stars);
     markRated(localStore(), tool);
     swappedAt.current = Date.now();
+    liveStars.set(tool, stars);
+    setStars(stars);
     setPhase(stars >= 4 ? 'high' : 'low');
   };
 
@@ -109,8 +116,25 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
     }
   };
 
+  const onComment = (event: Event) => {
+    event.preventDefault();
+    const input = (event.currentTarget as HTMLFormElement).elements.namedItem('comment') as HTMLInputElement;
+    if (stars === null || input.value.trim() === '') return;
+    reportRatingComment(tool, stars, input.value);
+    setCommented(true);
+  };
+
+  const commentForm = commented ? (
+    <p class={styles.text} role="status">{messages.ratingCommentThanks}</p>
+  ) : (
+    <form class={styles.comment} onSubmit={onComment}>
+      <input class={styles.commentInput} name="comment" type="text" maxLength={500} aria-label={messages.ratingCommentLabel} placeholder={messages.ratingCommentLabel} />
+      <button type="submit" class={`${styles.link} ${styles.action}`} onClick={settling}>{messages.ratingCommentSend}</button>
+    </form>
+  );
+
   return (
-    <div class={styles.rating} role="group" aria-label={messages.ratingQuestion}>
+    <div class={`${styles.rating} ${phase === 'asking' ? '' : styles.followUp}`} role="group" aria-label={messages.ratingQuestion}>
       {phase === 'asking' ? (
         <>
           <p class={styles.text}>{messages.ratingQuestion}</p>
@@ -144,12 +168,16 @@ export default function RatingPrompt({ tool, downloaded, messages = englishShell
             )}
             <a class={`${styles.link} ${styles.action}`} href={GITHUB_REPO_URL} onClick={settling} target="_blank" rel="noopener noreferrer">{messages.ratingStarGithub}</a>
           </div>
+          {commentForm}
         </>
       ) : (
-        <p class={styles.text} role="status">
-          {messages.ratingThanksLow}{' '}
-          <a class={styles.link} href={`${GITHUB_REPO_URL}/issues`} onClick={settling} target="_blank" rel="noopener noreferrer">{messages.ratingTellMe}</a>
-        </p>
+        <>
+          <p class={styles.text} role="status">
+            {messages.ratingThanksLow}{' '}
+            <a class={styles.link} href={`${GITHUB_REPO_URL}/issues`} onClick={settling} target="_blank" rel="noopener noreferrer">{messages.ratingTellMe}</a>
+          </p>
+          {commentForm}
+        </>
       )}
     </div>
   );
