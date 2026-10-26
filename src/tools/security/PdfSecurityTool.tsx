@@ -21,18 +21,22 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
+import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../lib/toolIds.ts';
 
 // The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
 // state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).
-// Keyed by the sender's tool id; the page is its own field because the Edit Pages island ('edit-pdf') lives at /organize-pdf/.
-const RETURN_TO = {
-  redact: { name: 'Redact', href: '/redact/', Icon: Eraser },
-  sign: { name: 'Sign', href: '/sign/', Icon: FileSignature },
-  compress: { name: 'Compress', href: '/compress/', Icon: Shrink },
-  'edit-pdf': { name: 'Organize PDF', href: '/organize-pdf/', Icon: FileEdit },
-  merge: { name: 'Merge', href: '/merge/', Icon: Merge },
-} as const;
-type ReturnTool = keyof typeof RETURN_TO;
+// Which tools those are, and their pages, come from the registry (src/lib/toolIds.ts); the name and icon are this tool's wording.
+const RETURN_LOOK: Record<UnlockReturnId, { name: string; Icon: typeof Eraser }> = {
+  redact: { name: 'Redact', Icon: Eraser },
+  sign: { name: 'Sign', Icon: FileSignature },
+  compress: { name: 'Compress', Icon: Shrink },
+  'edit-pdf': { name: 'Organize PDF', Icon: FileEdit },
+  merge: { name: 'Merge', Icon: Merge },
+};
+const RETURN_TO = Object.fromEntries(
+  UNLOCK_RETURN_IDS.map((id) => [id, { ...RETURN_LOOK[id], href: handoffHrefOf(id) as string }]),
+) as Record<UnlockReturnId, { name: string; Icon: typeof Eraser; href: string }>;
+type ReturnTool = UnlockReturnId;
 // The same ids and pages, in the shape the shared finish flow hands off by.
 const HANDOFF_HREFS: HandoffHrefs = Object.fromEntries(Object.entries(RETURN_TO).map(([tool, { href }]) => [tool, href]));
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
