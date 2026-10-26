@@ -340,8 +340,11 @@
   white-space: nowrap;
 }
 
+/* Row one's own buttons wrap too: Merge's Add files and Clear all files
+   with their icons fill 262px of 262 at 320px on macOS, and Linux fonts
+   draw wider, so a nowrap row spilled out of the card in CI. */
 .mobile-file-controls > :first-child {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .mobile-file-controls > :nth-child(2) {
@@ -441,6 +444,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* For a leading icon (Merge's Add files and Clear all files). */
+  gap: 0.3rem;
   min-height: 36px;
   padding: 0.35rem 0.7rem;
   font: inherit;
@@ -496,6 +501,13 @@
 .handoff-row {
   display: flex;
   gap: 0.5rem;
+}
+
+/* PDF to Image and Split's one PDF per page have no hand-offs, and Share
+   only shows where the browser can share files: an empty row would add a
+   second rail gap above Replace file. */
+.handoff-row:empty {
+  display: none;
 }
 
 /* Every child of the row is a hand-off button, the Share button included

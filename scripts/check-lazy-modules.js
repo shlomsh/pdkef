@@ -70,7 +70,7 @@ const LAZY_ONLY = [
     // Every tool that writes a PDF. /pdf-to-image/ is deliberately absent: it
     // reads with pdf.js and never builds a document, so it should not reach
     // pdf-lib at all, and listing it here would make that a requirement.
-    reachableFrom: ['sign', 'redact', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'scan-to-pdf', 'edit-pdf'],
+    reachableFrom: ['sign', 'redact', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages', 'add-page-numbers-to-pdf', 'extract-pdf-pages'],
   },
   {
     chunk: /^pdf\./,
@@ -90,7 +90,7 @@ const LAZY_ONLY = [
 /**
  * Pages to check. Every one must be free of the list above.
  *
- * All ten tool pages, both localized tool pages, and both home pages. The home
+ * All ten tool pages and their four landing variants, both localized tool pages, and both home pages. The home
  * pages are here because that is where this last went wrong unseen: the Hebrew
  * home was carrying 628 KiB of pdf-lib through the editor registry, and no
  * budget or ratchet said a word. '' is the site root.
@@ -98,7 +98,8 @@ const LAZY_ONLY = [
 const PAGES = [
   '', 'he',
   'sign', 'redact', 'merge', 'compress', 'compress-image', 'split',
-  'unlock', 'image-to-pdf', 'scan-to-pdf', 'edit-pdf', 'pdf-to-image',
+  'unlock', 'image-to-pdf', 'scan-to-pdf', 'organize-pdf', 'rotate-pdf', 'remove-pages',
+  'add-page-numbers-to-pdf', 'extract-pdf-pages', 'pdf-to-image',
   'he/sign', 'he/merge', 'he/compress',
 ];
 

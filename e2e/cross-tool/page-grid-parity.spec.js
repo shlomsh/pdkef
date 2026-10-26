@@ -10,9 +10,9 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
    route and compares what the grid renders; headings and rails differ by
    design and are not compared. */
 
-const ROUTES = ['/merge/', '/edit-pdf/', '/split/', '/pdf-to-image/'];
+const ROUTES = ['/merge/', '/organize-pdf/', '/split/', '/pdf-to-image/'];
 // Split and PDF to Image keep source order (docs/shared-page-grid.md, decision 6): no drag, no move keys.
-const REORDERABLE = ['/merge/', '/edit-pdf/'];
+const REORDERABLE = ['/merge/', '/organize-pdf/'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 900 },
   { name: 'phone', width: 390, height: 844 },

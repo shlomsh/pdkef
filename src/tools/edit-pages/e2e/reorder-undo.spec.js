@@ -28,7 +28,7 @@ function cells(page) {
 }
 
 async function openEditPagesTool(page, pageCount) {
-  await page.goto('/edit-pdf/');
+  await page.goto('/organize-pdf/');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await page.locator('input[type="file"]').setInputFiles({
     name: 'edit-pages-reorder-e2e.pdf',

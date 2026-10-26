@@ -23,6 +23,6 @@ test('both complete stories share one full-viewport pinned space', async ({ page
     // used to silently stop this from finding anything.
     await expect.poll(() => stageLocator(page,key).locator('[data-hero-sent]').evaluate(el => Number(getComputedStyle(el).opacity))).toBeGreaterThan(.85);
   }
-  // One dock card per registered tool; SEO-19 made Compress Image the tenth.
-  expect(await page.locator('.home-dock a').count()).toBe(10);
+  // One dock card per listed tool; SEO-19 made Compress Image the tenth, SCAN-01 Scan to PDF the eleventh.
+  expect(await page.locator('.home-dock a').count()).toBe(11);
 });

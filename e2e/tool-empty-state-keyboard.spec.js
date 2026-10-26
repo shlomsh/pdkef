@@ -18,10 +18,10 @@ const toolRoutes = [
   '/unlock/',
   '/sign/?next=0',
   '/redact/',
-  '/edit-pdf/',
+  '/organize-pdf/',
 ];
 
-const PICKER = '[data-empty-state] label:has(input[type="file"])';
+const PICKER = '[data-empty-state] label:has(input[type="file"]:not([capture]))';
 // The server-rendered empty state also matches PICKER. On a slow runner a Tab can land on that
 // copy before hydration, and hydration then swaps the dropzone for the draft-check placeholder and
 // back, destroying the focused input (CI run 38621971567, 3 of 12). Only a hydrated island counts.

@@ -1,9 +1,9 @@
 import { useState } from 'preact/hooks';
-import { FileLock2 } from 'lucide-preact';
-import { FileActions } from './ToolShell.tsx';
+import { FileText, LockKeyhole } from 'lucide-preact';
+import FileName from './FileName.tsx';
+import ReplaceFileLine from './pageWorkspace/ReplaceFileLine.tsx';
 import pdfToolStyles from './PdfTool.module.css';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
-import shellStyles from './ToolShell.module.css';
 import styles from './NeedsUnlock.module.css';
 
 export type NeedsUnlockKind = 'needs-password' | 'owner-restricted';
@@ -31,11 +31,13 @@ function englishCopy(kind: NeedsUnlockKind, toolName: string, verb: string): Nee
 }
 
 /**
- * One quiet state in the place of a tool's workspace for a protected PDF: what it is, and two ways on.
+ * One state in the place of a tool's workspace for a protected PDF: a locked page, what it is, which
+ * file, and two ways on, with Unlock as the primary action (Shlomi, 2026-10-26: the old one-line
+ * heading at the top of an empty card was easy to miss).
  * "Unlock it" parks the file for Unlock with `from` set to the sending tool (the detour contract,
  * docs/ux-design-guidelines.md section 13: Unlock's done state then leads with "Continue in <tool>")
- * and goes there; the shell's Replace chooses another file. Rendered inside BasePdfTool, so
- * FileActions is in reach.
+ * and goes there; the quiet Replace line (the one the loaded page tools show, UX guideline 20)
+ * chooses another file. Rendered inside BasePdfTool, so the shell context is in reach.
  *
  * `from` is the sending tool's key ('redact', 'sign', 'compress'), `toolName` its name in a sentence
  * ("Redact can't change it") and `verb` what the person came to do ("then you can redact it").
@@ -75,15 +77,25 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
 
   return (
     <div class={styles.state} data-needs-unlock={kind}>
+      <div class={styles.art} aria-hidden="true">
+        <span class={styles.sheet} />
+        <span class={styles.badge}><LockKeyhole size={22} stroke-width={2} /></span>
+      </div>
       <h2 class={styles.title}>{title}</h2>
+      {file && (
+        <div class={styles.file}>
+          <FileText size={14} stroke-width={1.75} aria-hidden="true" />
+          <FileName name={file.name} className={styles.name} />
+        </div>
+      )}
       <p class={styles.body}>{body}</p>
       <div class={styles.actions}>
-        <button type="button" class={`${shellStyles.action} ${styles.lead}`} disabled={busy} onClick={() => { void unlock(); }}>
-          <FileLock2 size={12} stroke-width={1.5} aria-hidden="true" />
+        <button type="button" class={styles.unlock} disabled={busy} onClick={() => { void unlock(); }}>
+          <LockKeyhole size={18} stroke-width={2} aria-hidden="true" />
           {unlockIt}
         </button>
-        {replace && <FileActions />}
       </div>
+      {replace && <ReplaceFileLine />}
       {failed && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {handoffFailed}

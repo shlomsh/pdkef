@@ -205,6 +205,13 @@ describe('PdfToImageTool', () => {
     expect(button('Sign')).toBeUndefined();
   });
 
+  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
+    await open();
+    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
+    expect(replaces).toHaveLength(1);
+    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
+  });
+
   it('does not convert before the quiet wait, then converts once', async () => {
     await open(5, { quietPolicy: SLOW_QUIET });
     await wait(150);

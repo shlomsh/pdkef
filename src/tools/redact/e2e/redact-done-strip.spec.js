@@ -63,7 +63,7 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) 
     await expect(strip).toBeVisible();
     await expect(toolbar.getByRole('button', { name: 'Download', exact: true })).toContainText('Saved');
     await expect(strip.locator('[data-redact-done-result]')).toContainText('Saved');
-    const rating = strip.getByText('a rating helps other people find it', { exact: false });
+    const rating = strip.getByText('a rating helps more people find it', { exact: false });
     await expect(rating).toBeVisible({ timeout: 5000 });
 
     await expectInViewport(page, strip.locator('[data-redact-done-result]'), 'the result');
@@ -74,7 +74,7 @@ for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) 
     const starsBox = await strip.getByRole('button').last().boundingBox();
     expect(starsBox.y + starsBox.height, 'the rating row spills out of the strip').toBeLessThanOrEqual(stripBox.y + stripBox.height);
     // One ask on the page, not one in the strip and another at the bottom.
-    await expect(page.getByText('a rating helps other people find it', { exact: false })).toHaveCount(1);
+    await expect(page.getByText('a rating helps more people find it', { exact: false })).toHaveCount(1);
     // The bottom row has no before-download caption once saved.
     await expect(page.locator('[data-redact-count]')).toHaveCount(0);
 
@@ -91,7 +91,7 @@ test('a second toolbar Download keeps the strip and the rating ask (RED-66 revie
   const toolbar = page.getByRole('toolbar', { name: 'PDF redaction' });
   const downloadButton = toolbar.getByRole('button', { name: 'Download', exact: true });
   const strip = page.locator('[data-redact-done-strip]');
-  const ask = strip.getByText('a rating helps other people find it', { exact: false });
+  const ask = strip.getByText('a rating helps more people find it', { exact: false });
 
   let download = page.waitForEvent('download');
   await downloadButton.click();

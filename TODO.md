@@ -6,11 +6,17 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Robustness and debt
+
+- [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
+- [SEO-47](backlog/tasks/SEO-47.md) P1 · Page tools get the names people search: Organize, Rotate, Remove pages, Page numbers, Extract pages (in progress)
 - [LOC-18](backlog/tasks/LOC-18.md) P2 · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through (in progress)
 - [SEO-46](backlog/tasks/SEO-46.md) P2 · Real star ratings: ask once when a tool finishes, bake an honest aggregate into each tool page, and win the SERP stars (in progress)
+- [SEO-48](backlog/tasks/SEO-48.md) P2 · Ratings carry country and region, and a person may add a comment (in progress)
 - [SCAN-01](backlog/tasks/SCAN-01.md) P3 · Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide (in progress)
 
 ### Polish
