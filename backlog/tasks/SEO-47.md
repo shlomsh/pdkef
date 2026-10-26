@@ -93,6 +93,9 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
   (לאחד) await Shlomi's read.
 - `/split/`'s title also says "Extract Pages". If Google serves `/split/` for "extract pages from pdf" after
   `/extract-pdf-pages/` is indexed, drop the phrase from Split's title.
+- Later on 2026-10-26, after requesting indexing for the five, Shlomi dropped the `/edit-pdf/` redirect:
+  Google never indexed that URL, so there is nothing to pass on, and it now 404s. Nothing in the product
+  links to it; the internal tool id stays `'edit-pdf'`.
 
 ## Acceptance
 
