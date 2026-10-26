@@ -1,7 +1,7 @@
 import { useRef } from 'preact/hooks';
 import RedactBoxBar, { useCoarsePointer } from './RedactBoxBar.tsx';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
-import { TOOLBAR_FLOATING_OFFSET } from '../../constants/signGeometry.js';
+import { TOOLBAR_FLOATING_OFFSET } from '../../editor/model/signGeometry.js';
 import RedactBoxToolbar from './RedactBoxToolbar.tsx';
 import toolbarStyles from './RedactBoxToolbar.module.css';
 import ElementResizers from '../../editor-ui/ElementResizers.tsx';

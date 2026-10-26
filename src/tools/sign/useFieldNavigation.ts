@@ -22,7 +22,7 @@ import {
   DEFAULT_FONT_FAMILY,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS,
-} from '../../constants/signGeometry.js';
+} from '../../editor/model/signGeometry.js';
 
 /**
  * Next/Previous across a page's detected form fields (MOBI-06).

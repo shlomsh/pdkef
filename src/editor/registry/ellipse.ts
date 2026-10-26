@@ -3,7 +3,7 @@ import type { EllipseElement } from '../model/editorModel.ts';
 import { rgb } from '../../lib/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
-import { hexToRgbFractions } from '../../lib/signHelpers.js';
+import { hexToRgbFractions } from '../text/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';
 export const ellipseDefinition: ElementDefinition<EllipseElement> = {
   type: 'ellipse',

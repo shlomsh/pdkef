@@ -18,7 +18,7 @@ import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
-import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
 import { isPdfFile } from '../../lib/fileKind.js';

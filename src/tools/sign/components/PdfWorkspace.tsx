@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
 import { recordAction } from '../../../lib/actionTrail.ts';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
@@ -22,7 +22,7 @@ import { chooseStyle } from '../chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
-import ExportHandoffs from '../../../editor-ui/ExportHandoffs.tsx';
+import ExportHandoffs from '../../../shell/ExportHandoffs.tsx';
 import { Eraser, Shrink } from 'lucide-preact';
 import FormFieldHints from './FormFieldHints.tsx';
 import type { FormFieldRegions } from '../useFormFieldRegions.ts';

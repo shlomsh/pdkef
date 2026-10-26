@@ -1,7 +1,7 @@
 ---
 id: "ARCH-34"
 title: "A change to one core project reaches only the projects that use it"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "unify-and-narrow"
 horizon: "now"
@@ -42,3 +42,11 @@ one, `i18n/toolMessages.ts`, is ARCH-35; this ticket owns the rest.
 - [ ] A replay of the last 200 commits through `affected-scope.mjs` shows how many still go wide.
 - [ ] `test:module-boundaries` fails on a planted lib -> editor import.
 - [ ] Nothing that ran before is skipped for a change that reaches it (no fail-narrow).
+
+## Progress (part A: back-edges)
+
+- `src/constants/signGeometry.js` moved to `src/editor/model/signGeometry.js` (no non-editor, non-Sign/Redact consumer; `src/constants/` is gone).
+- `src/lib/signHelpers.js` and its test moved to `src/editor/text/` (text direction and colour helpers together).
+- `src/editor-ui/ExportHandoffs.{tsx,module.css,test.tsx}` moved to `src/shell/`, so `PhoneFinish.tsx` no longer imports `editor-ui`; Sign and Redact import it from shell.
+- `languageCoverage.test.js` moved from `src/editor/text/` to `src/test/`, removing the editor -> `data/tools.js` edge.
+- `check-module-boundaries.mjs` rule 10: lib may not import editor, editor-ui, shell, i18n or data; unit-tested in `check-module-boundaries.rules.test.mjs`.
