@@ -3,6 +3,9 @@
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "e2e",
+  "tags": [
+    "site-e2e"
+  ],
   "implicitDependencies": [
     "site",
     "shell",
@@ -16,14 +19,5 @@
     "tool-image-to-pdf",
     "tool-scan",
     "tool-security"
-  ],
-  "targets": {
-    "e2e": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npx playwright test --project=chromium --project=webkit e2e/",
-        "cwd": "{workspaceRoot}"
-      }
-    }
-  }
+  ]
 }
