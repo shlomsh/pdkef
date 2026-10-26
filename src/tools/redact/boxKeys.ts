@@ -47,12 +47,10 @@ export function boxMovePatch(
   return { left, top };
 }
 
-const LABELS: Record<string, string> = {
-  blur: 'Blur box',
-  blackout: 'Blackout box',
-  whiteout: 'Whiteout box',
-  blurStroke: 'Blur stroke',
-  whiteoutStroke: 'Whiteout stroke',
-};
+import { englishRedactMessages } from './messages.ts';
+import type { RedactMessages } from './messages.ts';
 
-export const boxAriaLabel = (type: string): string => LABELS[type] ?? 'Box';
+export const boxAriaLabel = (type: string, messages: RedactMessages = englishRedactMessages): string => {
+  const { fallback, ...labels } = messages.boxLabels;
+  return (labels as Record<string, string>)[type] ?? fallback;
+};

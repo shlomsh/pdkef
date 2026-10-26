@@ -116,7 +116,7 @@ export default function SavedFileCheck({
       ) : (
         detailsChanged.length > 0 && (
           <p className={styles.details} data-details-changed>
-            {withPieces(DETAILS_CHANGED, detailsChanged, ({ name, verb }) => <><bdi>{name}</bdi> {verb}</>)}
+            {withPieces(DETAILS_CHANGED, detailsChanged, ({ name, verb }) => <><bdi>{name}</bdi> {t.details.verbs[verb]}</>)}
             <button type="button" className={styles.review} onClick={onReviewDetails}>{DETAILS_REVIEW}</button>
           </p>
         )

@@ -7,6 +7,11 @@
 import { attachmentDetailId, expandDetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
 import type { DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
 import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import { formatMessage } from '../../../lib/formatMessage.ts';
+import { englishRedactMessages } from '../messages.ts';
+import type { RedactMessages } from '../messages.ts';
+
+const en = englishRedactMessages;
 
 export interface DetailRow {
   id: string;
@@ -16,12 +21,7 @@ export interface DetailRow {
   editable: boolean;
 }
 
-const TEXT_ROWS = [
-  ['title', 'Title'],
-  ['author', 'Author'],
-  ['subject', 'Subject'],
-  ['keywords', 'Keywords'],
-] as const;
+const TEXT_ROWS = ['title', 'author', 'subject', 'keywords'] as const;
 
 /** The recorded wall time, read back as the device's clock said it. */
 const wallMs = (iso: string) => Date.parse(`${iso}Z`);
@@ -43,46 +43,47 @@ function formatDate(iso: string, locale: string, now: Date): string {
 const hasHidden = (t: DocumentTraces) => t.xmp.present || t.otherInfoKeys.length > 0 || t.pageDetails.length > 0;
 const hasScripts = (t: DocumentTraces) => t.scripts.document || t.scripts.pages.length > 0;
 
-export function describeDetails(traces: DocumentTraces, options: { locale: string; now: Date }): DetailRow[] {
+export function describeDetails(traces: DocumentTraces, options: { locale: string; now: Date }, messages: RedactMessages = en): DetailRow[] {
   const { locale, now } = options;
+  const m = messages.details;
   const rows: DetailRow[] = [];
 
-  for (const [id, label] of TEXT_ROWS) {
+  for (const id of TEXT_ROWS) {
     const value = traces[id];
-    if (value) rows.push({ id, label, text: value, editable: true });
+    if (value) rows.push({ id, label: m.labels[id], text: value, editable: true });
   }
 
   const { creator, producer } = traces;
   if (creator || producer) {
     const text = creator && producer && creator !== producer ? `${creator} · ${producer}` : (creator || producer)!;
-    rows.push({ id: 'made', label: 'Made with', text, editable: true });
+    rows.push({ id: 'made', label: m.labels.madeWith, text, editable: true });
   }
 
   const { creationDate, modDate } = traces;
   if (creationDate) {
-    rows.push({ id: 'created', label: 'Created', text: formatDate(creationDate.iso, locale, now), iso: creationDate.iso, editable: false });
+    rows.push({ id: 'created', label: m.labels.created, text: formatDate(creationDate.iso, locale, now), iso: creationDate.iso, editable: false });
   }
   if (modDate && (!creationDate || wallMs(modDate.iso) - wallMs(creationDate.iso) >= 60_000)) {
-    rows.push({ id: 'changed', label: 'Changed', text: formatDate(modDate.iso, locale, now), iso: modDate.iso, editable: false });
+    rows.push({ id: 'changed', label: m.labels.changed, text: formatDate(modDate.iso, locale, now), iso: modDate.iso, editable: false });
   }
 
   for (const file of traces.attachments) {
     rows.push({
       id: attachmentDetailId(file),
-      label: file.pageIndex === undefined ? 'Attached' : `Attached on page ${file.pageIndex + 1}`,
+      label: file.pageIndex === undefined ? m.labels.attached : formatMessage(m.attachedOnPage, { page: file.pageIndex + 1 }),
       text: file.name,
       editable: false,
     });
   }
 
-  if (hasScripts(traces)) rows.push({ id: 'scripts', label: 'Scripts', text: 'Run when the file opens', editable: false });
+  if (hasScripts(traces)) rows.push({ id: 'scripts', label: m.labels.scripts, text: m.scriptsText, editable: false });
 
   if (hasHidden(traces)) {
     const parts: string[] = [];
-    if (traces.xmp.present) parts.push(traces.xmp.hasHistory ? 'a second copy of these details with its save history' : 'a second copy of these details');
-    if (traces.otherInfoKeys.length > 0 || traces.pageDetails.length > 0) parts.push("the app's own notes");
+    if (traces.xmp.present) parts.push(traces.xmp.hasHistory ? m.hiddenXmpHistory : m.hiddenXmp);
+    if (traces.otherInfoKeys.length > 0 || traces.pageDetails.length > 0) parts.push(m.hiddenNotes);
     const joined = parts.join(', ');
-    rows.push({ id: 'hidden', label: 'Hidden', text: joined.charAt(0).toUpperCase() + joined.slice(1), editable: false });
+    rows.push({ id: 'hidden', label: m.labels.hidden, text: joined.charAt(0).toUpperCase() + joined.slice(1), editable: false });
   }
 
   return rows;
@@ -94,7 +95,8 @@ export function describeDetails(traces: DocumentTraces, options: { locale: strin
  * deletes with it (`expandDetailEdits`), is left out; an altered one shows its
  * new value. Empty when the file has no details (nothing is rendered then).
  */
-export function detailsSummary(rows: DetailRow[], edits: DetailEdits): string[] {
+export function detailsSummary(rows: DetailRow[], edits: DetailEdits, messages: RedactMessages = en): string[] {
+  const m = messages.details;
   if (rows.length === 0) return [];
   const effective = expandDetailEdits(edits);
   const kept = rows.filter((row) => effective[row.id]?.action !== 'delete');
@@ -108,9 +110,9 @@ export function detailsSummary(rows: DetailRow[], edits: DetailEdits): string[] 
     })
     .filter((text): text is string => Boolean(text));
   const attached = kept.filter((row) => row.id.startsWith('attachment:')).length;
-  if (attached > 0) pieces.push(`${attached} attached ${attached === 1 ? 'file' : 'files'}`);
-  if (kept.some((row) => row.id === 'scripts')) pieces.push('scripts');
-  if (kept.some((row) => row.id === 'hidden')) pieces.push('hidden details');
+  if (attached > 0) pieces.push(attached === 1 ? m.attachedFileOne : formatMessage(m.attachedFileMany, { count: attached }));
+  if (kept.some((row) => row.id === 'scripts')) pieces.push(m.summaryScripts);
+  if (kept.some((row) => row.id === 'hidden')) pieces.push(m.summaryHidden);
   return pieces;
 }
 
@@ -121,21 +123,23 @@ export interface ChangePiece {
 }
 
 /** What the person changed, in row order, one piece each. Only explicit edits (the implied Hidden row is not one). */
-export function changesPieces(rows: DetailRow[], edits: DetailEdits): ChangePiece[] {
+export function changesPieces(rows: DetailRow[], edits: DetailEdits, messages: RedactMessages = en): ChangePiece[] {
   const parts: ChangePiece[] = [];
   for (const row of rows) {
     const edit = edits[row.id];
     if (!edit) continue;
     const verb = edit.action === 'delete' ? 'deleted' : 'altered';
-    const name = row.id.startsWith('attachment:') ? row.text : row.id === 'made' ? 'app' : row.label.toLowerCase();
+    const name = row.id.startsWith('attachment:') ? row.text : row.id === 'made' ? messages.details.appName : row.label.toLowerCase();
     parts.push({ name, verb });
   }
   return parts;
 }
 
-export const changesSummary = (rows: DetailRow[], edits: DetailEdits): string => changesPieces(rows, edits).map((piece) => `${piece.name} ${piece.verb}`).join(', ');
+export const changesSummary = (rows: DetailRow[], edits: DetailEdits, messages: RedactMessages = en): string => (
+  changesPieces(rows, edits, messages).map((piece) => `${piece.name} ${messages.details.verbs[piece.verb]}`).join(', ')
+);
 
-const isText = (id: string): id is (typeof TEXT_ROWS)[number][0] => TEXT_ROWS.some(([textId]) => textId === id);
+const isText = (id: string): id is (typeof TEXT_ROWS)[number] => (TEXT_ROWS as readonly string[]).includes(id);
 
 function attachmentSurvives(id: string, saved: DocumentTraces): boolean {
   const rest = id.slice('attachment:'.length);
@@ -170,22 +174,23 @@ export function survivedDetails(edits: DetailEdits, saved: DocumentTraces): stri
  * Page pictures and app data always go on export, whatever the person edited,
  * so finding either in the saved file is a failure of its own. Labels, not ids.
  */
-export function survivedAlways(saved: DocumentTraces): string[] {
+export function survivedAlways(saved: DocumentTraces, messages: RedactMessages = en): string[] {
   const out: string[] = [];
-  if (saved.thumbnails.length > 0) out.push('Page pictures');
-  if (saved.pieceInfo) out.push('App data');
+  if (saved.thumbnails.length > 0) out.push(messages.details.pagePictures);
+  if (saved.pieceInfo) out.push(messages.details.appData);
   return out;
 }
 
-const PLAIN_LABELS: Record<string, string> = { made: 'App', scripts: 'Scripts', hidden: 'Hidden', created: 'Created', changed: 'Changed' };
 
 /** A survivor's label for the alert: from its row, or its plain label while the rows are still loading. */
-export function survivorLabel(id: string, rows: DetailRow[]): string {
+export function survivorLabel(id: string, rows: DetailRow[], messages: RedactMessages = en): string {
+  const { labels } = messages.details;
+  const plain: Record<string, string> = { made: labels.app, scripts: labels.scripts, hidden: labels.hidden, created: labels.created, changed: labels.changed };
   const row = rows.find((r) => r.id === id);
   if (row) return id.startsWith('attachment:') ? row.text : row.label;
   if (id.startsWith('attachment:')) {
     const rest = id.slice('attachment:'.length);
     return rest.slice(rest.indexOf(':') + 1);
   }
-  return PLAIN_LABELS[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
+  return plain[id] ?? labels[id as keyof typeof labels] ?? id.charAt(0).toUpperCase() + id.slice(1);
 }

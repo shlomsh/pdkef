@@ -1,4 +1,7 @@
 import { formatFileSize } from '../../lib/format.js';
+import { formatMessage } from '../../lib/formatMessage.ts';
+import { englishRedactMessages } from './messages.ts';
+import type { RedactMessages } from './messages.ts';
 
 // All wording for Redact's finish area, as pure functions of a few facts.
 export type FinishPhase = 'empty' | 'ready' | 'exporting' | 'saved' | 'cancelled';
@@ -16,36 +19,39 @@ export interface FinishFacts {
   fileSize: number | null;
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-export function finishStatusText(f: FinishFacts): string | null {
+export function finishStatusText(f: FinishFacts, messages: RedactMessages = englishRedactMessages): string | null {
+  const m = messages.finish;
   switch (f.phase) {
     case 'exporting': {
       const pct = Math.round(Math.min(1, Math.max(0, f.progress)) * 100);
-      return `Saving ${f.fileName}… ${pct}%`;
+      return formatMessage(m.saving, { name: f.fileName, pct });
     }
     case 'saved': {
-      const base = `Saved ${f.fileName} · ${plural(f.pageCount, 'page', 'pages')}`;
+      const base = formatMessage(m.saved, { name: f.fileName, pages: f.pageCount === 1 ? m.pageOne : formatMessage(m.pageMany, { count: f.pageCount }) });
       return typeof f.fileSize === 'number' ? `${base} · ${formatFileSize(f.fileSize)}` : base;
     }
     case 'cancelled':
-      return 'You changed something, so that download stopped. Download again when ready.';
+      return m.cancelled;
     default:
       return null;
   }
 }
 
-export function finishCountText(f: FinishFacts): string | null {
+export function finishCountText(f: FinishFacts, messages: RedactMessages = englishRedactMessages): string | null {
+  const m = messages.finish;
   const parts: string[] = [];
-  if (f.boxCount > 0) parts.push(plural(f.boxCount, 'box', 'boxes'));
-  if (f.deletionCount > 0) parts.push(plural(f.deletionCount, 'deletion', 'deletions'));
-  return parts.length ? `Saves with ${parts.join(' and ')}` : null;
+  if (f.boxCount > 0) parts.push(f.boxCount === 1 ? m.boxOne : formatMessage(m.boxMany, { count: f.boxCount }));
+  if (f.deletionCount > 0) parts.push(f.deletionCount === 1 ? m.deletionOne : formatMessage(m.deletionMany, { count: f.deletionCount }));
+  if (parts.length === 0) return null;
+  return formatMessage(m.savesWith, { parts: parts.length === 2 ? formatMessage(m.and, { head: parts[0], last: parts[1] }) : parts[0] });
 }
 
-export function finishPagesText(f: FinishFacts): string | null {
+export function finishPagesText(f: FinishFacts, messages: RedactMessages = englishRedactMessages): string | null {
+  const m = messages.finish;
   if (f.phase !== 'saved') return null;
-  if (f.picturePages <= 0) return 'Every page keeps its text.';
-  if (f.picturePages >= f.pageCount) return 'Every page is saved as a picture, so nothing hides under a box.';
+  if (f.picturePages <= 0) return m.everyPageText;
+  if (f.picturePages >= f.pageCount) return m.everyPagePicture;
   const n = f.picturePages;
-  return `${n} of ${f.pageCount} pages ${n === 1 ? 'is' : 'are'} saved as ${n === 1 ? 'a picture' : 'pictures'}, so nothing hides under a box. The rest keep their text.`;
+  return formatMessage(n === 1 ? m.somePicturesOne : m.somePicturesMany, { count: n, total: f.pageCount });
 }
