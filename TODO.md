@@ -29,6 +29,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Polish
 
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
+- [SCAN-02](backlog/tasks/SCAN-02.md) P2 · Scan's loaded state: pages and Add photos in view, a photo that fills the stage, named and iconed controls (in progress)
 
 ## Waiting, by date
 

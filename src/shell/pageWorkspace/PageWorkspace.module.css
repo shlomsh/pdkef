@@ -523,6 +523,13 @@
   white-space: nowrap;
 }
 
+/* Four labels cannot share one line in the 320px rail, so they take two
+   equal columns, two per line. Only Scan has four. */
+.handoff-row[data-count='4'] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 /* Review P3: Share, Compress and Sign read
    as peers of Download - same solid surface, same weight. Quieter now: a
    transparent fill and a primary-text label say "secondary", the way a
