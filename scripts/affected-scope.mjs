@@ -111,7 +111,13 @@ const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 // so the Nx graph already answers precisely for it instead of needing this
 // blanket treatment. `editor` stays for now - DEBT-07 decides its fate,
 // after DEBT-04.
-export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib']);
+// ARCH-34: `data`, `site-lib` and `constants` were folders of the catch-all `site` project and
+// are projects of their own now so the Nx graph stops treating every import of them as an import
+// of `site`. They stay core on purpose: Nx cannot see an .astro page's imports, so a change in
+// them no longer makes `site` affected by itself, and a page that renders the data would be
+// missed by a narrow verdict. Core status sends them through the import-reachability walk, the
+// same verdict they had as part of `site`.
+export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib', 'data', 'site-lib', 'constants']);
 
 // The CI oracle itself. `tooling` (ARCH-22) gives scripts/ a project, so
 // without this a change to the file deciding what to narrow could narrow

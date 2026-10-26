@@ -30,6 +30,10 @@ const ROOTS = new Map([
   ['cross-tool-tests', 'src/test/cross-tool'],
   ['site-test', 'src/test'],
   ['i18n', 'src/i18n'],
+  // ARCH-34: carved out of `site` (root `src`), still core.
+  ['data', 'src/data'],
+  ['site-lib', 'src/site-lib'],
+  ['constants', 'src/constants'],
   // ARCH-22: scripts/ is a project of its own now (`tooling`), with three
   // pre-existing subfolders that still win by longest-prefix match.
   ['tooling', 'scripts'],
@@ -90,7 +94,9 @@ describe('ownerOf', () => {
     ['src/tools/sign/e2e/sign-editor.spec.js', 'tool-sign'],
     ['src/tools/edit-pages/PdfEditPagesTool.tsx', 'tool-edit-pages'],
     ['src/pages/index.astro', 'site'],
-    ['src/data/tools.js', 'site'],
+    ['src/data/tools.js', 'data'],
+    ['src/site-lib/ratingStore.ts', 'site-lib'],
+    ['src/constants/signGeometry.js', 'constants'],
     // DEBT-07: src/i18n/ got its own Nx project (same shape as site-test), so
     // this now resolves to 'i18n', not the 'site' fallback it used to.
     ['src/i18n/toolMessages.ts', 'i18n'],
@@ -184,8 +190,19 @@ describe('siteE2eOwnPaths', () => {
 });
 
 describe('CORE_PROJECTS', () => {
-  it('is exactly the four modules every tool depends on (editor-ui left in DEBT-06)', () => {
-    expect([...CORE_PROJECTS].sort()).toEqual(['editor', 'lib', 'shell', 'site']);
+  it('is the four modules every tool depends on (editor-ui left in DEBT-06) plus the three folders carved out of site (ARCH-34)', () => {
+    expect([...CORE_PROJECTS].sort()).toEqual(['constants', 'data', 'editor', 'lib', 'shell', 'site', 'site-lib']);
+  });
+
+  // Nx cannot see an .astro page's imports, so after the carve-out a change to src/data/ or
+  // src/site-lib/ no longer makes `site` affected. Without core status here it would narrow to
+  // nothing and skip the home specs a page of that data feeds: the walk decides, as before.
+  it('a change in a carved-out folder still goes through the core rule even though Nx does not list site', () => {
+    for (const [file, project] of [['src/data/homeContent.js', 'data'], ['src/site-lib/ratingStore.ts', 'site-lib'], ['src/constants/signGeometry.js', 'constants']]) {
+      const scope = deriveScope({ files: [file], affected: [project], roots: ROOTS });
+      expect(scope.everything, file).toBe(true);
+      expect(scope.reason).toContain('core project(s) affected');
+    }
   });
 });
 
