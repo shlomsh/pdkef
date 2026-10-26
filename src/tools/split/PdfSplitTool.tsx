@@ -11,13 +11,8 @@ import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
-import {
-  englishShellMessages,
-  englishSplitMessages,
-  formatMessage,
-  type ShellMessages,
-  type SplitMessages,
-} from '../../i18n/toolMessages';
+import { englishShellMessages, englishSplitMessages, type ShellMessages, type SplitMessages } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';

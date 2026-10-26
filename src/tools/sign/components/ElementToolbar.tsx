@@ -10,7 +10,8 @@ import { resolveTypography } from '../../../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../../../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/text/dateFormat.ts';
-import { englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { formatMessage } from '../../../lib/formatMessage';
 import styles from '../../../editor-ui/EditorControls.module.css';
 
 export default function ElementToolbar({

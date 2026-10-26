@@ -18,6 +18,7 @@
  * props as JSON - a function couldn't cross that boundary at all).
  */
 import type { DocumentationLocaleId } from './documentationLocales';
+import { formatMessage } from '../lib/formatMessage';
 import type { HistoryButtonsMessages } from '../shell/HistoryButtons.tsx';
 import type { ElementUpdateKind } from '../editor/model/updateKind.ts';
 
@@ -33,9 +34,6 @@ export function whiteoutColorLabels(t: SignMessages) {
   };
 }
 
-export function formatMessage(template: string, params: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
-}
 
 /**
  * LOC-16: the one place a Sign element/tool id resolves to its displayed

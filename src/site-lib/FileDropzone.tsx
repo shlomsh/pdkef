@@ -8,7 +8,8 @@ import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 import { withFillModeParam } from './withFillModeParam.ts';
 import { tools, pageForToolId } from '../data/tools.js';
-import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
+import { englishFileDropzoneMessages, type FileDropzoneMessages } from '../i18n/toolMessages';
+import { formatMessage } from '../lib/formatMessage';
 import type { RecentFilesMessages } from '../i18n/toolMessages';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a

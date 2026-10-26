@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { parsePageSelector, pageNumbersToRangeString } from '../../lib/pageSelector.js';
 import { includedPageNumbers, type PlanEntry } from '../../lib/pagePlan.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { formatMessage } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import pdfToolStyles from '../PdfTool.module.css';
 
 /** The strings the field reads; Split's and PDF to Image's catalogues both carry them. */

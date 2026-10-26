@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import styles from './SignToolbar.module.css';
-import { formatMessage } from '../i18n/toolMessages';
+import { formatMessage } from '../lib/formatMessage';
 
 /** What an armed tool says, in each toolbar's TOOL_COPY. `actionTouch` is the same instruction
  * for a coarse pointer: "Tap" and "Tap and drag" instead of "Click" and "Click and drag", and short enough to stay within two
