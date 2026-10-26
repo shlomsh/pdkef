@@ -188,6 +188,13 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(order[order.length - 1]).toBe('Replace file');
   });
 
+  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
+    await load();
+    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
+    expect(replaces).toHaveLength(1);
+    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
+  });
+
   it('Include all, Skip all and Invert each change the pages in one step', async () => {
     await load();
     const skipped = () => cells().map((c) => c.hasAttribute('data-skipped'));

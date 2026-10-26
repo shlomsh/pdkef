@@ -2124,6 +2124,10 @@ export interface ShellMessages {
   /** After 1 to 3 stars: an invitation to report what went wrong. */
   ratingThanksLow: string;
   ratingTellMe: string;
+  /** SEO-48: the optional comment after the stars. */
+  ratingCommentLabel: string;
+  ratingCommentSend: string;
+  ratingCommentThanks: string;
   /** Aria label of one star button, e.g. "3 stars". */
   ratingStarOne: string;
   ratingStarOther: string;
@@ -2154,7 +2158,7 @@ const englishShellMessages: ShellMessages = {
   replaceLabel: 'Replace file',
   replaceShort: 'Replace',
   replaceTitle: 'Replace the current file',
-  clearLabel: 'Clear all',
+  clearLabel: 'Clear all files',
   clearShort: 'Clear',
   clearTitle: 'Remove every file and start again',
   cancel: 'Cancel',
@@ -2181,13 +2185,16 @@ const englishShellMessages: ShellMessages = {
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
   cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
   oldBrowserNotice: 'This tool needs {browser} {version} or newer to open PDFs. A quick update, or another browser, will do it.',
-  ratingQuestion: 'PDkef is free and open source. If it helped, a rating helps other people find it.',
+  ratingQuestion: "You're one of PDkef's early users. It's new, free and open source, and a rating helps more people find it.",
   ratingThanksHigh: "Thank you, that really helps. Know someone who'd use it?",
   ratingShare: 'Share',
   ratingShareCopied: 'Link copied',
   ratingStarGithub: 'Star it on GitHub',
   ratingThanksLow: "Thank you. If something went wrong, I'd love to hear about it.",
   ratingTellMe: 'Tell me on GitHub',
+  ratingCommentLabel: 'Want to add a few words?',
+  ratingCommentSend: 'Send',
+  ratingCommentThanks: 'Got it, thank you.',
   ratingStarOne: '1 star',
   ratingStarOther: '{count} stars',
 };
@@ -2218,7 +2225,7 @@ const hebrewShellMessages: ShellMessages = {
   replaceLabel: 'החלפת קובץ',
   replaceShort: 'החלפה',
   replaceTitle: 'החלפת הקובץ הנוכחי',
-  clearLabel: 'ניקוי הכול',
+  clearLabel: 'ניקוי כל הקבצים',
   clearShort: 'ניקוי',
   clearTitle: 'הסרת כל הקבצים והתחלה מחדש',
   cancel: 'ביטול',
@@ -2243,13 +2250,16 @@ const hebrewShellMessages: ShellMessages = {
   cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
   oldBrowserNotice: 'כדי לפתוח קבצי PDF בכלי הזה צריך {browser} {version} ומעלה. עדכון קצר, או דפדפן אחר, יסדרו את זה.',
   // TODO(SEO-46): AI draft, not reviewed copy - pending Shlomi's read-through.
-  ratingQuestion: 'PDkef חינמי ובקוד פתוח. אם זה עזר לכם, דירוג יעזור גם לאחרים למצוא אותו.',
+  ratingQuestion: 'אתם מהמשתמשים הראשונים של PDkef. הוא חדש, חינמי ובקוד פתוח, ודירוג עוזר לאנשים נוספים למצוא אותו.',
   ratingThanksHigh: 'תודה רבה, זה עוזר מאוד. מכירים מישהו שיוכל להשתמש בזה?',
   ratingShare: 'שתפו',
   ratingShareCopied: 'הקישור הועתק',
   ratingStarGithub: 'כוכב ב-GitHub',
   ratingThanksLow: 'תודה. אם משהו השתבש, אשמח לשמוע על זה.',
   ratingTellMe: 'ספרו לי ב-GitHub',
+  ratingCommentLabel: 'רוצים להוסיף כמה מילים?',
+  ratingCommentSend: 'שליחה',
+  ratingCommentThanks: 'קיבלתי, תודה.',
   ratingStarOne: 'כוכב אחד',
   ratingStarOther: '{count} כוכבים',
 };

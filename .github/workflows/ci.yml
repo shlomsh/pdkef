@@ -93,6 +93,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
@@ -203,6 +204,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
@@ -230,6 +232,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
@@ -286,6 +289,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
@@ -388,6 +392,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
@@ -511,6 +516,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
 
     # The nightly cron is a backstop for a runner-image or browser change none
     # of our own commits made (see the workflow header); on a quiet repo there
@@ -598,6 +604,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
@@ -674,6 +681,7 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+        check-latest: true
         cache: 'npm'
 
     - name: Install dependencies
