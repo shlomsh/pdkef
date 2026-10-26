@@ -1,7 +1,7 @@
 ---
 id: "DEBT-62"
 title: "Every tool accepts a PDF the browser reports with no file type"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "unify-and-narrow"
 horizon: "now"
@@ -35,3 +35,12 @@ in two tools and silently do nothing in six.
 - [ ] A unit test per decision point (or one shared test over the shared helper plus a guard that no
       tool compares `f.type` to `'application/pdf'`) was red before the fix and is green after.
 - [ ] `grep -rn "type === 'application/pdf'" src/tools` finds no intake filter.
+
+## Result
+
+Red first: `src/lib/pdfIntake.test.js` failed 3 of 3 (`isPdfFile is not a function` twice; the source guard listed
+seven offending lines across the six islands, Split having two). Added `isPdfFile` to `src/lib/fileKind.js` and
+switched Split, Edit Pages, PDF to Image, Unlock/Protect, Sign and Redact to it. Split's rejected-files hint now
+uses `!isPdfFile`, so it still lists only real non-PDFs. Guard green.
+
+Files: `src/lib/fileKind.js`, `src/lib/pdfIntake.test.js`, and the six `Pdf*Tool.tsx` islands under `src/tools/`.

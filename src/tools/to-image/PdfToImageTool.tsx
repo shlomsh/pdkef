@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
+import { isPdfFile } from '../../lib/fileKind.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { includeAll, includedPageNumbers, invert, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
@@ -96,7 +97,7 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const { plan } = present;
 
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
-    const pdfs = Array.from(fileList).filter((f) => f.type === 'application/pdf');
+    const pdfs = Array.from(fileList).filter((f) => isPdfFile(f));
     if (pdfs.length === 0) return;
     const selectedFile = pdfs[0];
     recordAction(file ? 'replace_file' : 'add_files');
