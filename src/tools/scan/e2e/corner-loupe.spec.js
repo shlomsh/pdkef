@@ -43,7 +43,7 @@ test('a touch drag on a corner shows a loupe away from the finger, gone on relea
     name: 'desk-photo.jpg', mimeType: 'image/jpeg', buffer: await makePhotoBytes(page),
   });
   await waitForScrollToSettle(page);
-  await page.getByRole('button', { name: 'Adjust corners' }).tap();
+  // A new photo opens in the corners view, to approve or adjust first.
   const handle = page.getByRole('button', { name: 'Top-left corner' });
   await expect(handle).toBeVisible({ timeout: 20_000 });
   await handle.scrollIntoViewIfNeeded();
