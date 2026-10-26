@@ -26,6 +26,9 @@ export interface PreparedOutputInput<M = unknown> {
   build: (signal: AbortSignal, onProgress: (fraction: number) => void) => Promise<Built<M>>;
   /** Turns a failed build into a reportable cause and reports it, or ignores it. */
   onBuildError?: (error: unknown) => void;
+  /** Called the moment a build for the current key lands (fresh or from the cache), before the
+   * state it sets renders, so a tool can start follow-up work (Compress's previews) with no frame lost. */
+  onReady?: (built: Built<M>) => void;
   /** Tests shorten the wait; the tools never pass it. */
   quietPolicy?: QuietPolicy;
   /** Default true. False withdraws on a key change as usual but builds nothing
@@ -59,7 +62,7 @@ export interface PreparedOutput<M = unknown> {
 export type Built<M = unknown> = ({ blob: Blob; pageCount: number } | { parts: OutputPart[]; pageCount: number }) & { meta?: M };
 
 export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): PreparedOutput<M> {
-  const { key, build, onBuildError, quietPolicy, autoBuild = true } = input;
+  const { key, build, onBuildError, onReady, quietPolicy, autoBuild = true } = input;
   const { url, setBlob, clear } = useObjectUrls();
   const [state, setState] = useState<{
     status: PreparedStatus; blob: Blob | null; parts: PreparedPart[] | null; pageCount: number; meta: M | null; error: Error | null; generation: number;
@@ -76,8 +79,8 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
     partUrlsRef.current = [];
   };
   /** The preparer is made once, so it reaches the latest callbacks through this. */
-  const callbacksRef = useRef({ build, onBuildError });
-  callbacksRef.current = { build, onBuildError };
+  const callbacksRef = useRef({ build, onBuildError, onReady });
+  callbacksRef.current = { build, onBuildError, onReady };
 
   useEffect(() => {
     const preparer = createQuietPreparer<Built<M>>({
@@ -88,6 +91,7 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
       },
       onReady: (readyKey, built) => {
         if (readyKey !== keyRef.current) return;
+        callbacksRef.current.onReady?.(built);
         const blob = 'blob' in built ? built.blob : null;
         revokePartUrls();
         const parts = 'parts' in built
@@ -115,10 +119,13 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
+  /** Points the preparer at `nextKey`. Idempotent per key, so the render below and the effect can both call it. */
+  const appliedKeyRef = useRef<string | null | undefined>(undefined);
+  const applyKey = (nextKey: string | null) => {
     const preparer = preparerRef.current;
-    if (!preparer) return;
-    if (key === null) {
+    if (!preparer || appliedKeyRef.current === nextKey) return;
+    appliedKeyRef.current = nextKey;
+    if (nextKey === null) {
       keyRef.current = null;
       preparer.dispose();
       setState((current) => (current.status === 'idle' && !current.blob && !current.parts ? current : { status: 'idle', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: current.generation }));
@@ -130,13 +137,18 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
     // Any change withdraws the previous blob at once: the Download link must
     // never hand out a result for an order the person has since changed. A
     // cache hit inside change() restores a built state in the same commit.
-    keyRef.current = key;
+    keyRef.current = nextKey;
     setState((current) => ({ status: 'pending', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: current.generation }));
     clear();
     revokePartUrls();
     setProgress(0);
-    preparer.change(key, autoBuildRef.current);
-  }, [key]);
+    preparer.change(nextKey, autoBuildRef.current);
+  };
+  // Registered while rendering, not after paint: a tool whose gate opens right after the render that
+  // brought the key (Compress's password check) must be able to start the build in that same tick.
+  // The first key still waits for the effect, since the preparer is made there.
+  applyKey(key);
+  useEffect(() => { applyKey(key); }, [key]);
 
   // Turning autoBuild on starts the quiet wait for a key still waiting to build.
   const wasAutoBuild = useRef(autoBuild);
