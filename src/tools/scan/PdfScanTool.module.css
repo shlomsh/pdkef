@@ -1,6 +1,8 @@
 /* Scan's loaded state: the selected page's corners above, the strip of finished pages below. */
 
 .editor {
+  /* The flatten animation's overlay is placed against it. */
+  position: relative;
   /* Clear of the sticky app bar when the first photos scroll it into view. */
   scroll-margin-top: 96px;
   display: grid;
