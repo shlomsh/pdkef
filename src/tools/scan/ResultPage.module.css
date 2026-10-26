@@ -1,4 +1,6 @@
 .figure {
+  /* Full width, so the paper's own min(100%, ...) is the stage's width and not the caption's. */
+  width: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;

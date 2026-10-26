@@ -27,7 +27,7 @@ export default function ResultPage({ src, place, exact, labels, detail }: Result
         class={styles.paper}
         data-paper
         data-exact={ready && exact ? '' : undefined}
-        style={{ aspectRatio: `${w} / ${h}`, width: `min(100%, calc(62svh * ${w} / ${h}))` }}
+        style={{ aspectRatio: `${w} / ${h}`, width: `min(100%, calc(var(--scan-paper-h, 62svh) * ${w} / ${h}))` }}
       >
         {ready ? (
           <img

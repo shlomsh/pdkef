@@ -10,7 +10,8 @@
 .photo {
   display: block;
   max-width: 100%;
-  max-height: 62svh;
+  /* The tool sets how tall the photo may be on each screen (PdfScanTool.module.css). */
+  max-height: var(--scan-view-h, 62svh);
   height: auto;
   width: auto;
 }

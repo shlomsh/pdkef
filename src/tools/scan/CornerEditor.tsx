@@ -144,7 +144,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
       class={styles['frame']}
       ref={frameRef}
       data-corner-frame
-      style={aspect ? { aspectRatio: String(aspect), width: `min(100%, calc(62svh * ${aspect}))` } : undefined}
+      style={aspect ? { aspectRatio: String(aspect), width: `min(100%, calc(var(--scan-view-h, 62svh) * ${aspect}))` } : undefined}
     >
       <img class={styles['photo']} src={src} alt="" draggable={false} />
       <svg class={styles['overlay']} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
