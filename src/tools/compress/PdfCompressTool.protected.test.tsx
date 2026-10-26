@@ -40,7 +40,7 @@ vi.mock('./compressImages.js', () => ({
   compressPdfImages: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-images'], { type: 'application/pdf' }), reason: 'smaller' })),
   compressPdfImagesToTarget: vi.fn(),
 }));
-vi.mock('../../lib/thumbnails.js', () => ({ renderComparePreview: vi.fn(), getPdfjs: vi.fn() }));
+vi.mock('../../lib/thumbnails.js', () => ({ renderComparePreview: vi.fn() }));
 
 describe('PdfCompressTool with a protected PDF', () => {
   let container;

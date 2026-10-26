@@ -1,6 +1,7 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfjs } from './pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
+import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
 import { dropUnreachable } from './reachability.js';
@@ -212,8 +213,7 @@ export async function assemble(sourceDoc, covered, options = {}) {
  * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
 export async function redactPdf(file, elements, onProgress, options = {}) {
-  const bytes = Object.prototype.toString.call(file) === '[object ArrayBuffer]' ? file : await file.arrayBuffer();
-  const sourceDoc = await PDFDocument.load(bytes, { updateMetadata: false });
+  const { doc: sourceDoc, bytes } = await openPdfDoc(file, { updateMetadata: false });
 
   // We need pdf.js to render pages to an image canvas for flattening
   const pdfjs = await getPdfjs();

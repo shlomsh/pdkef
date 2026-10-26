@@ -5,6 +5,7 @@ import { dropUnreachable } from './reachability.js';
 import { applyDetailEdits } from './documentTraces.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
 import { reportError } from '../../../lib/errorReport.ts';
+import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
 
 /**
  * Removes chosen drawing operations from a PDF by rewriting the affected page
@@ -29,15 +30,10 @@ import { reportError } from '../../../lib/errorReport.ts';
  * @returns {Promise<Blob>}
  */
 export async function deleteObjectsFromPdf(file, deletions, onProgress, options = {}) {
-  const bytes =
-    file instanceof Uint8Array
-      ? file
-      : new Uint8Array(file instanceof ArrayBuffer ? file : await file.arrayBuffer());
-
   // updateMetadata: false so pdf-lib does not itself stamp a new
   // Producer/ModDate into the Info dict on save - an untouched
   // export keeps the source's Info as it came, not pdf-lib's own something.
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  const { doc } = await openPdfDoc(file, { updateMetadata: false });
 
   const byPage = new Map();
   for (const deletion of deletions) {
@@ -638,12 +634,7 @@ export function spliceOut(bytes, ranges) {
  * @returns {Promise<Array>} objects carrying `rect` in page percentages
  */
 export async function listDeletableObjects(file) {
-  const bytes =
-    file instanceof Uint8Array
-      ? file
-      : new Uint8Array(file instanceof ArrayBuffer ? file : await file.arrayBuffer());
-
-  const doc = await PDFDocument.load(bytes);
+  const { doc } = await openPdfDoc(file);
   const all = [];
   for (let i = 0; i < doc.getPageCount(); i += 1) {
     try {
