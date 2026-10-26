@@ -34,7 +34,7 @@ export const homeContent = {
     'Free PDF tools that run on your device: merge, split, compress, sign, blur, and convert. Nothing is uploaded. No account, no watermark, open source.',
   h1: 'Free PDF tools that run on your device',
   h1Accent: 'on your device',
-  subhead: 'Merge, split, compress, sign, blur and convert. Ten PDF tools, no signup, no install, nothing leaves your device.',
+  subhead: 'Merge, split, compress, sign, blur and convert. Eleven PDF tools, no signup, no install, nothing leaves your device.',
   // The home page's own FAQ kicker, deliberately not DocumentationShellMessages'
   // shared `faqTag`. The shell's English value is "Got questions?", which every
   // tool and guide page says; home has always said this instead, and reading it
