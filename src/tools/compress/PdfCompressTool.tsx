@@ -20,7 +20,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import CompareSlider from './CompareSlider.tsx';
 import LevelPicker, { TargetSizePanel, type Level } from './components/LevelPicker.tsx';
-import { comparePreviewWidth } from './compareSize.js';
+import { useComparePreviews } from './useComparePreviews.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { isolateLtr, isolateName } from '../../lib/format.js';
@@ -77,16 +77,6 @@ interface PdfCompressToolProps {
 
 /** The state a build depends on; the quiet-time preparer caches and supersedes by it. */
 const buildKey = (level: string, targetKB: number, flatten: boolean) => `${level}|${targetKB}|${flatten}`;
-
-// Resolves with `url` once the browser has decoded it, so the <img> showing it has its height on the
-// first frame it paints. Painted earlier, the centred in-flight panel was its label row alone and
-// jumped 142px when the photo decoded (DEBT-56). The skeleton holds the place until then.
-const decoded = (url: string) => {
-  const img = new Image();
-  img.src = url;
-  // expected: a decode failure is the <img>'s to show; waiting longer would not help it
-  return (img.decode ? img.decode() : Promise.resolve()).then(() => url, () => url);
-};
 
 /** Thrown inside a build that was superseded; its result is dropped, never reported. */
 class StaleRun extends Error {}
@@ -183,28 +173,11 @@ export default function PdfCompressTool({
   const isImageMode = kind === 'image';
   const targetSizePresets = isImageMode ? IMAGE_TARGET_SIZE_PRESETS_KB : TARGET_SIZE_PRESETS_KB;
 
-  // Before/after preview (SEO-25, extended to images 2026-09-12) - see
-  // openCompare below. The compressed Blob itself never needs to be
-  // state - only its object URL (above) does, for the download link - but
-  // the slider needs the raw bytes (to rasterize page 1 for a PDF, or to
-  // build an object URL for an image), so it's kept in a ref rather than
-  // duplicating it into render-triggering state.
+  // The compressed Blob itself never needs to be state - only its object URL does, for the download
+  // link - but the previews need the raw bytes, so it is kept in a ref (see useComparePreviews).
   const compressedBlobRef = useRef<Blob | null>(null);
-  const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
-  const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  // Full screen view (COMP-01): a modal dialog holding the same slider at the
-  // viewport's width. The PDF path re-renders both sides larger on first open
-  // and caches them for the current result; the image path reuses the inline
-  // object URLs, which are already full resolution.
-  const [fullscreenOpen, setFullscreenOpen] = useState(false);
-  const [fullscreenPreviews, setFullscreenPreviews] = useState<{ before: string; after: string } | null>(null);
-  const [fullscreenStatus, setFullscreenStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  const fullscreenDialogRef = useRef<HTMLDialogElement | null>(null);
-  // True when either compressor's passthrough rule fired (the file was
-  // already under target, so the "compressed" blob is literally the input
-  // File, both bytes and reference) - compressImageToTarget on the image
-  // side, compressPdfToTarget on the PDF side (compressPdf with a level
-  // never returns the input, it always re-encodes). The notice paragraph
+  // True when either compressor's passthrough rule fired (the file was already under target, so the
+  // "compressed" blob is literally the input File, both bytes and reference). The notice paragraph
   // below replaces the re-encode warning with an honest "untouched" one.
   const [passthrough, setPassthrough] = useState(false);
   // A PDF passthrough that is not the "already under target" kind: re-rendering
@@ -212,84 +185,6 @@ export default function PdfCompressTool({
   // Everything that calls the result "compressed" (title, button, file name)
   // reads this instead.
   const [unchanged, setUnchanged] = useState(false);
-  // Object URLs created for the image-mode comparison (see openCompare)
-  // aren't run through `useObjectUrls` like `downloadUrl` is: that hook's own
-  // `url` lands a render after `setBlob` is called, but both sides need to
-  // land in `comparePreviews` together in the same tick so the render below
-  // stays one branch shared with the PDF path. Tracked here purely so they
-  // can be revoked the same way `useObjectUrls` revokes the download URL.
-  const compareImageUrlsRef = useRef<{ before: string; after: string } | null>(null);
-  // Page 1 of the ORIGINAL, rendered once when the file is accepted and shown
-  // while the run is in flight; openCompare then reuses it as the slider's
-  // "before" so only the compressed page is rendered after the run. It belongs
-  // to the file, not to a run, so resetOutput leaves it alone. The promise lets
-  // openCompare wait for a render still pending (null when it failed).
-  const [originalPreview, setOriginalPreview] = useState<string | null>(null);
-  // True while the original is still rendering or decoding, so a result that lands first holds its place.
-  const [originalPending, setOriginalPending] = useState(false);
-  const originalTokenRef = useRef(0);
-  const originalPromiseRef = useRef<Promise<string | null> | null>(null);
-  const originalImageUrlRef = useRef<string | null>(null);
-
-  const clearOriginalPreview = () => {
-    originalTokenRef.current += 1;
-    originalPromiseRef.current = null;
-    if (originalImageUrlRef.current) URL.revokeObjectURL(originalImageUrlRef.current);
-    originalImageUrlRef.current = null;
-    setOriginalPreview(null);
-    setOriginalPending(false);
-  };
-
-  useEffect(() => () => {
-    if (originalImageUrlRef.current) URL.revokeObjectURL(originalImageUrlRef.current);
-  }, []);
-
-  const loadOriginalPreview = (source: File) => {
-    const token = originalTokenRef.current;
-    setOriginalPending(true);
-    if (deriveFileKind(source) === 'image') {
-      const url = URL.createObjectURL(source);
-      originalImageUrlRef.current = url;
-      originalPromiseRef.current = decoded(url).then((u) => {
-        if (token === originalTokenRef.current) {
-          setOriginalPreview(u);
-          setOriginalPending(false);
-        }
-        return u;
-      });
-      return;
-    }
-    const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
-    originalPromiseRef.current = (async () => {
-      try {
-        const { renderComparePreview } = await import('../../lib/thumbnails.js');
-        const url = await decoded(await renderComparePreview(source, width));
-        if (token === originalTokenRef.current) {
-          setOriginalPreview(url);
-          setOriginalPending(false);
-        }
-        return url as string;
-      } catch (err) {
-        if (token === originalTokenRef.current) {
-          setOriginalPending(false);
-          reportError('pdf_render', err, 'render_compare_preview');
-          console.error(err);
-        }
-        return null;
-      }
-    })();
-  };
-
-  const clearComparePreviews = () => {
-    if (compareImageUrlsRef.current) {
-      URL.revokeObjectURL(compareImageUrlsRef.current.after);
-      compareImageUrlsRef.current = null;
-    }
-    setComparePreviews(null);
-    setFullscreenOpen(false);
-    setFullscreenPreviews(null);
-    setFullscreenStatus('idle');
-  };
 
   // Bumped on every change that invalidates an in-flight run (new file,
   // level change, target size change) - resetOutput is the one place all of
@@ -298,6 +193,7 @@ export default function PdfCompressTool({
   // file (a drop or Replace mid-compress, since costsSomething is false
   // until status is 'done') lands nothing.
   const runTokenRef = useRef(0);
+  const compare = useComparePreviews({ runTokenRef });
 
   const resetOutput = () => {
     runTokenRef.current += 1;
@@ -313,134 +209,13 @@ export default function PdfCompressTool({
     setDimensions(null);
     clearDownload();
     compressedBlobRef.current = null;
-    clearComparePreviews();
-    setCompareStatus('idle');
+    compare.clear();
     setPassthrough(false);
     setUnchanged(false);
     setRasterBytes(null);
     setImageReason(null);
     setKeptBytes(0);
     setResultImageBytes(0);
-  };
-
-  // Builds the before/after pair for the CompareSlider. PDF: renders page 1
-  // of the original and of the compressed result to data URLs via a
-  // lazy-imported `renderComparePreview`. Image: no rasterization is
-  // involved - the "before" is the original `file` and the "after" is the
-  // output blob already sitting in `compressedBlobRef`, both already fully
-  // decoded bytes on this device, so two object URLs are all that's needed
-  // and there's nothing to await.
-  //
-  // The panel opens on its own as soon as a result exists (handleCompress);
-  // it guards on `comparePreviews` so a repeat call never re-renders.
-  //
-  // The panel now opens by default as soon as a result exists (Shlomi,
-  // 2026-09-12: "it turned out amazing, it is however very hidden, keep it
-  // open by default so it is visible before the user downloads" - see
-  // backlog/tasks/SEO-25.md's "Open by default" section), so the lazy-import
-  // here is what keeps it off the compress-result's critical path rather
-  // than gating whether it renders at all. A measured cost still matters for
-  // the PDF path, because a visitor who lands on this panel automatically
-  // must not be left waiting or out of memory on a phone. Per the comment on
-  // `renderComparePreview` (src/lib/thumbnails.js), each preview costs about
-  // one page-render at roughly the same scale the compressor itself already
-  // used for every page in the document that was just processed on this
-  // device - so a device that could compress the whole document a moment ago
-  // can afford two more page renders now. An emulated-low-end-mobile
-  // Playwright run (src/tools/compress/e2e/compare-preview.spec.js, 4x CPU throttling,
-  // 390x844 viewport) measured this panel opening in well under a second;
-  // see that spec for the recorded number, timed from the done status
-  // to the slider's auto-open rather than from a tap.
-  // The image path has no equivalent rasterization cost to measure - it's
-  // two `URL.createObjectURL` calls on bytes already decoded a moment
-  // earlier by the compressor itself.
-  //
-  // It is called when a result lands (applyBuilt clears the previous previews just before), so it reads
-  // the file and blob from refs: the closure it runs in can be a render behind.
-  const openCompare = async () => {
-    const activeFile = currentFileRef.current;
-    const activeBlob = compressedBlobRef.current;
-    if (!activeFile || !activeBlob) return;
-
-    if (deriveFileKind(activeFile) === 'image') {
-      const before = originalImageUrlRef.current ?? URL.createObjectURL(activeFile);
-      const after = URL.createObjectURL(activeBlob);
-      compareImageUrlsRef.current = { before, after };
-      setComparePreviews({ before, after });
-      return;
-    }
-
-    // Read before the await: if resetOutput runs while this is loading (a
-    // drop, a Replace pick, or a level/target change), the run below is for
-    // a file that's already gone - see runTokenRef's comment above.
-    const runToken = runTokenRef.current;
-    const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
-    setCompareStatus('loading');
-    try {
-      const { renderComparePreview } = await import('../../lib/thumbnails.js');
-      const [pending, after] = await Promise.all([
-        originalPromiseRef.current ?? Promise.resolve(null),
-        renderComparePreview(activeBlob, width),
-      ]);
-      const before = pending ?? await renderComparePreview(activeFile, width);
-      if (runToken !== runTokenRef.current) return;
-      setComparePreviews({ before, after });
-      setCompareStatus('idle');
-    } catch (err) {
-      if (runToken !== runTokenRef.current) return;
-      reportError('pdf_render', err, 'render_compare_preview');
-      console.error(err);
-      setCompareStatus('error');
-    }
-  };
-
-  const openFullscreen = async () => {
-    if (!file || !compressedBlobRef.current) return;
-    setFullscreenOpen(true);
-    if (fullscreenPreviews || fullscreenStatus === 'loading') return;
-    if (kind === 'image') {
-      if (comparePreviews) setFullscreenPreviews(comparePreviews);
-      return;
-    }
-    const activeFile = file;
-    const activeBlob = compressedBlobRef.current;
-    const runToken = runTokenRef.current;
-    const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, window.innerWidth);
-    setFullscreenStatus('loading');
-    try {
-      const { renderComparePreview } = await import('../../lib/thumbnails.js');
-      const [before, after] = await Promise.all([
-        renderComparePreview(activeFile, width),
-        renderComparePreview(activeBlob, width),
-      ]);
-      if (runToken !== runTokenRef.current) return;
-      setFullscreenPreviews({ before, after });
-      setFullscreenStatus('idle');
-    } catch (err) {
-      if (runToken !== runTokenRef.current) return;
-      reportError('pdf_render', err, 'render_compare_preview');
-      console.error(err);
-      setFullscreenStatus('error');
-    }
-  };
-
-  // showModal() puts the dialog in the top layer, so it shows over a real
-  // fullscreen element (a plain `open` attribute would not). jsdom has no
-  // dialog implementation, hence the fallbacks (same as ConfirmDialog).
-  useEffect(() => {
-    const dialog = fullscreenDialogRef.current;
-    if (!dialog || !fullscreenOpen || dialog.open) return;
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.open = true;
-  }, [fullscreenOpen]);
-
-  const closeFullscreen = () => {
-    const dialog = fullscreenDialogRef.current;
-    if (dialog?.open) {
-      if (typeof dialog.close === 'function') dialog.close();
-      else dialog.open = false;
-    }
-    setFullscreenOpen(false);
   };
 
   const handleFilesAdded = (files: FileList | File[]) => {
@@ -464,7 +239,7 @@ export default function PdfCompressTool({
       currentFileRef.current = next;
       setFile(next);
       resetOutput();
-      clearOriginalPreview();
+      compare.clearOriginal();
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');
       setNeedsUnlockBytes(null);
@@ -475,7 +250,7 @@ export default function PdfCompressTool({
         void checkEncryption(next);
         void analyze(next);
       } else {
-        loadOriginalPreview(next);
+        compare.loadOriginal(next);
         openGate();
       }
     }
@@ -528,7 +303,7 @@ export default function PdfCompressTool({
       if (!run.isCurrent()) return;
       run.settle();
       if (protection !== 'needs-password') {
-        loadOriginalPreview(pdf);
+        compare.loadOriginal(pdf);
         openGate();
         return;
       }
@@ -539,7 +314,7 @@ export default function PdfCompressTool({
       if (!run.isCurrent()) return;
       run.settle();
       reportError('pdf_tool_run', err, 'check_encryption');
-      loadOriginalPreview(pdf);
+      compare.loadOriginal(pdf);
       openGate();
     }
   };
@@ -573,8 +348,7 @@ export default function PdfCompressTool({
     pendingTapRef.current = null;
     setTapped(false);
     setTap('idle');
-    setCompareStatus('idle');
-    setFullscreenStatus('idle');
+    compare.resetStatus();
     if (status === 'error') setStatus('processing');
     if (runnableRef.current) preparerRef.current?.change(key);
   };
@@ -719,8 +493,7 @@ export default function PdfCompressTool({
   const applyBuilt = (key: string, built: Built) => {
     if (key !== wantedKeyRef.current) return;
     setResultKey(key);
-    clearComparePreviews();
-    setCompareStatus('idle');
+    compare.clear();
     setCompressedSize(built.blob.size);
     setRasterBytes(built.rasterBytes);
     setMetTarget(built.metTarget);
@@ -746,7 +519,7 @@ export default function PdfCompressTool({
     setAnnouncement(built.announcement);
     // Open by default (SEO-25, 2026-09-12): see openCompare's comment. Not for a passthrough, whose slider
     // would hold the same bytes on both sides.
-    if (!built.passthrough) void openCompare();
+    if (!built.passthrough) void compare.open(currentFileRef.current, built.blob);
   };
 
   const failBuilt = (key: string, err: unknown) => {
@@ -942,32 +715,32 @@ export default function PdfCompressTool({
     </span>
   );
 
-  const fullscreenDialog = fullscreenOpen && (
+  const fullscreenDialog = compare.fullscreen.open && (
     <dialog
-      ref={fullscreenDialogRef}
+      ref={compare.fullscreen.dialogRef}
       class={styles['compare-fullscreen']}
       aria-label={t.compareFullscreenLabel}
-      onClose={() => setFullscreenOpen(false)}
+      onClose={compare.fullscreen.onClosed}
     >
       <div class={styles['compare-fullscreen-header']}>
         <p class={styles['compare-caption']}>{compareCaption}</p>
-        <button type="button" class={styles['compare-toggle-button']} onClick={closeFullscreen}>
+        <button type="button" class={styles['compare-toggle-button']} onClick={compare.closeFullscreen}>
           {t.compareCloseLabel}
         </button>
       </div>
       <div class={styles['compare-fullscreen-body']}>
-        {fullscreenStatus === 'loading' && (
+        {compare.fullscreen.status === 'loading' && (
           <>
             <div class={styles['compare-skeleton']} aria-hidden="true" />
             <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
           </>
         )}
-        {fullscreenStatus === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
-        {fullscreenPreviews && (
+        {compare.fullscreen.status === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
+        {compare.fullscreen.previews && (
           <CompareSlider
             fill
-            beforeSrc={fullscreenPreviews.before}
-            afterSrc={fullscreenPreviews.after}
+            beforeSrc={compare.fullscreen.previews.before}
+            afterSrc={compare.fullscreen.previews.after}
             beforeLabel={t.compareBeforeLabel}
             afterLabel={t.compareAfterLabel}
           />
@@ -984,9 +757,9 @@ export default function PdfCompressTool({
       <span><bdi>{t.compareBeforeLabel} · {formatBytes(file?.size ?? 0)}</bdi></span>
     </p>
   );
-  const originalBox = originalPreview && (
+  const originalBox = compare.original && (
     <div key="original" class={styles['compare-original']}>
-      <img src={originalPreview} alt={`${t.compareBeforeLabel} - page 1`} draggable={false} />
+      <img src={compare.original} alt={`${t.compareBeforeLabel} - page 1`} draggable={false} />
     </div>
   );
 
@@ -995,7 +768,7 @@ export default function PdfCompressTool({
       {hasFiles && status !== 'done' && status !== 'error' && (
         // Keyed apart: reused, the skeleton's own box would move and shrink into the panel's, a
         // layout shift (0.116 at 1440x820, DEBT-56); replaced, the panel is new content.
-        originalPreview ? (
+        compare.original ? (
           <div key="panel" class={styles['compare-panel']}>
             {labelRow(t.compressing)}
             {originalBox}
@@ -1017,26 +790,26 @@ export default function PdfCompressTool({
 
       {showCompare && (
         <div class={styles['compare-panel']}>
-          {compareStatus === 'loading' && (
+          {compare.status === 'loading' && (
             <>
               {/* The visible "still working" placeholder in the slider's own shape; it never holds up Download. */}
               <div class={styles['compare-skeleton']} aria-hidden="true" />
               <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
             </>
           )}
-          {compareStatus === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
-          {comparePreviews && (
+          {compare.status === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
+          {compare.previews && (
             <>
               {labelRow(`${t.compareAfterLabel} · ${formatBytes(compressedSize ?? 0)}`)}
               <CompareSlider
                 tags={false}
-                beforeSrc={comparePreviews.before}
-                afterSrc={comparePreviews.after}
+                beforeSrc={compare.previews.before}
+                afterSrc={compare.previews.after}
                 beforeLabel={t.compareBeforeLabel}
                 afterLabel={t.compareAfterLabel}
               />
               <p class={styles['compare-caption']}>{compareCaption}</p>
-              <button type="button" class={styles['compare-toggle-button']} onClick={openFullscreen}>
+              <button type="button" class={styles['compare-toggle-button']} onClick={() => { void compare.openFullscreen(file, compressedBlobRef.current); }}>
                 {t.compareFullscreenLabel}
               </button>
             </>
@@ -1092,7 +865,7 @@ export default function PdfCompressTool({
         </p>
       )}
       {isDone && resultNotice && <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>{resultNotice}</p>}
-      {isDone && passthrough && (originalBox || (originalPending && <div key="original-skeleton" class={styles['compare-skeleton']} aria-hidden="true" />))}
+      {isDone && passthrough && (originalBox || (compare.originalPending && <div key="original-skeleton" class={styles['compare-skeleton']} aria-hidden="true" />))}
       {isDone && imageReason === 'smaller' && level === 'target' && !metTarget && (
         <p class={styles['compress-warning']}>
           {formatMessage(t.imagesTargetMissedNotice, { size: sizeText(compressedSize as number), target: sizeText(targetKB * 1024) })}

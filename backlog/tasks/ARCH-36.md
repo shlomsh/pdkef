@@ -1,7 +1,7 @@
 ---
 id: "ARCH-36"
 title: "Compress, Image to PDF and Unlock/Protect finish through the shared flow"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
@@ -37,3 +37,16 @@ passes dummy props to `FinishRow` (`PdfToImageTool.tsx:441-446`).
 - [ ] Each of the three tools' existing e2e and unit tests pass unchanged, plus a unit test per tool
       for share-cancelled and share-failed through the shared flow.
 - [ ] Verified on a production build on a phone width and a desktop width for each of the three.
+
+## Progress (part A: Compress)
+
+- Done: `usePreparedOutput` carries an optional generic `meta` beside the blob (`Built<M>` returns it,
+  `PreparedOutput<M>.meta` reads it back; null until ready and withdrawn with the blob), unit tested.
+- Done: Compress's compare previews live in `src/tools/compress/useComparePreviews.ts` with a unit test;
+  `PdfCompressTool.tsx` went from 1237 to 1010 lines.
+- Open: moving Compress's delivery onto `usePreparedOutput` + `useDownloadFlow` + `DownloadElement` /
+  `FinishRow` / `PhoneFinish` needs decisions first (see the hand-back): `DownloadElement` takes
+  `DownloadMessages` that `CompressMessages` lacks (`savedLabel`, `downloadAgain`, ... in English and
+  Hebrew), `PhoneFinish` needs a `PageWorkspace` phone bar Compress's layout does not have, and
+  Compress's unit and e2e specs locate `DownloadButton`'s markup (`.download-button`, `a[download]`,
+  the `Download Compressed PDF` link name).
