@@ -21,6 +21,8 @@ export const scanMessages = {
   findPage: 'Find the page',
   findMissed: 'No page edges were found here either. Drag the corners onto the corners of the page.',
   pageFoundAnnounce: 'Page edges found.',
+  announceResult: 'Your page, as it will download.',
+  announceCornersOf: 'Corners of page {position}.',
   notFoundCorners: 'No page edges were found in this photo. Drag the corners onto the corners of the page, or try Find the page.',
   notFound: 'No page edges were found in this photo, so the whole photo is used.',
   cornersDone: 'Done',

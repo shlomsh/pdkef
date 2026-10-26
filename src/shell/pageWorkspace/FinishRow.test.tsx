@@ -11,11 +11,11 @@ const labels = { share: 'Share', compress: 'Compress it', sign: 'Sign it', merge
 
 describe('FinishRow', () => {
   let container: HTMLElement;
-  const mount = (tools?: ('compress' | 'sign' | 'merge')[]) => {
+  const mount = (tools?: ('compress' | 'sign' | 'merge')[], rowLabels: Parameters<typeof FinishRow>[0]['labels'] = labels) => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(
-      <FinishRow ready shareReady onShare={vi.fn()} busy={false} onHandoff={vi.fn()} onWarm={vi.fn()} labels={labels} tools={tools} />,
+      <FinishRow ready shareReady onShare={vi.fn()} busy={false} onHandoff={vi.fn()} onWarm={vi.fn()} labels={rowLabels} tools={tools} />,
       container,
     ));
     return [...container.querySelectorAll('button')].map((b) => b.textContent);
@@ -38,5 +38,10 @@ describe('FinishRow', () => {
     render(null, container);
     container.remove();
     expect(mount([])).toEqual(['Share']);
+  });
+
+  it('renders no button for a tool whose label is missing', () => {
+    const { merge: _omit, ...noMerge } = labels;
+    expect(mount(['merge', 'compress'], noMerge)).toEqual(['Share', 'Compress it']);
   });
 });

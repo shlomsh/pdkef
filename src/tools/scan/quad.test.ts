@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_QUAD, clampPoint, isConvexQuad, orderQuad, quadKey, scaleQuad, type Quad } from './quad.ts';
+import { FULL_QUAD, clampPoint, isConvexQuad, orderQuad, quadKey, scaleQuad, type Point, type Quad } from './quad.ts';
 
 describe('orderQuad', () => {
   it('orders four points top-left, top-right, bottom-right, bottom-left', () => {
@@ -8,11 +8,21 @@ describe('orderQuad', () => {
   });
 
   it('orders a page turned close to 45 degrees by angle, not by sums', () => {
-    const diamond = [{ x: 0.5, y: 0.05 }, { x: 0.95, y: 0.5 }, { x: 0.5, y: 0.95 }, { x: 0.05, y: 0.5 }];
-    const [tl, tr, br, bl] = orderQuad(diamond);
-    // Clockwise from the corner nearest the top-left, whichever that is.
-    expect(isConvexQuad([tl, tr, br, bl])).toBe(true);
-    expect(new Set([tl, tr, br, bl].map((p) => `${p.x},${p.y}`)).size).toBe(4);
+    const [top, right, bottom, left] = [{ x: 0.5, y: 0.05 }, { x: 0.95, y: 0.5 }, { x: 0.5, y: 0.95 }, { x: 0.05, y: 0.5 }];
+    // An exact diamond ties two corners on x+y: the higher one starts.
+    expect(orderQuad([bottom, left, right, top])).toEqual([top, right, bottom, left]);
+    // A square turned clockwise by `deg`, listed as its own TL, TR, BR, BL.
+    const turned = (deg: number) => {
+      const a = (deg * Math.PI) / 180;
+      return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => ({
+        x: 0.5 + 0.3 * (x * Math.cos(a) - y * Math.sin(a)),
+        y: 0.5 + 0.3 * (x * Math.sin(a) + y * Math.cos(a)),
+      }));
+    };
+    const indices = (pts: Point[]) => orderQuad([pts[2], pts[0], pts[3], pts[1]]).map((p) => pts.indexOf(p));
+    expect(indices(turned(44))).toEqual([0, 1, 2, 3]);
+    // Past 45 the old left edge is the corner nearest the top-left.
+    expect(indices(turned(46))).toEqual([3, 0, 1, 2]);
   });
 
   it('rejects anything but four points', () => {

@@ -127,19 +127,35 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const [results, setResults] = useState<Record<number, PageResult>>({});
   const [failedIds, setFailedIds] = useState<number[]>([]);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
-  const [missed, setMissed] = useState<string | null>(null);
+  /** Bumped when a build lands, so the per-key maps below are read again. */
+  const [, setBuilt] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   /** The centre shows the page as it will download; corners are a mode you step into. */
   const [view, setView] = useState<'result' | 'corners'>('result');
   /** Pages where Find the page ran on request and found nothing; and the one it is running for. */
   const [findMissed, setFindMissed] = useState<number[]>([]);
   const [finding, setFinding] = useState<number | null>(null);
-  const [shown, setShown] = useState<Shown | null>(null);
-  const shownRef = useRef<Shown | null>(null);
-  const showPages = (next: Shown | null) => {
-    for (const page of shownRef.current?.pages ?? []) URL.revokeObjectURL(page.url);
-    shownRef.current = next;
-    setShown(next);
+  // Per built key, like the preparer's own cache: going back to a setting already built is a cache
+  // hit with no build call, and its pages and its limit note must come back with it.
+  const shownByKeyRef = useRef(new Map<string, Shown>());
+  const missedKeysRef = useRef(new Set<string>());
+  const keepShown = (next: Shown) => {
+    const map = shownByKeyRef.current;
+    const old = map.get(next.key);
+    if (old) old.pages.forEach((page) => URL.revokeObjectURL(page.url));
+    map.delete(next.key);
+    map.set(next.key, next);
+    // Twice the preparer's cache (4), so a key it can still serve always has its pages here.
+    while (map.size > 8) {
+      const [oldest, evicted] = map.entries().next().value as [string, Shown];
+      evicted.pages.forEach((page) => URL.revokeObjectURL(page.url));
+      map.delete(oldest);
+    }
+  };
+  const forgetShown = () => {
+    for (const kept of shownByKeyRef.current.values()) kept.pages.forEach((page) => URL.revokeObjectURL(page.url));
+    shownByKeyRef.current.clear();
+    missedKeysRef.current.clear();
   };
   const listRef = useRef<HTMLUListElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
@@ -159,6 +175,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   /** Pages removed while their edge guess still waited in the queue. */
   const removedRef = useRef(new Set<number>());
   const resultsRef = useRef<Record<number, PageResult>>({});
+  /** Async work that finishes after the island is gone makes no object URLs and sets no state. */
+  const unmountedRef = useRef(false);
   const resetDownloadFlowRef = useRef<() => void>(() => {});
 
   useHoldUpdate(pages.length > 0, 'open');
@@ -232,7 +250,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
           return null;
         })
         .then((seen) => {
-          if (removedRef.current.has(page.id)) return;
+          if (removedRef.current.has(page.id) || unmountedRef.current) return;
+          // A photo that could not be decoded: say so (failedIds), never "finding edges" forever.
+          if (!seen) setFailedIds((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
           if (seen) previewBlobsRef.current.set(page.id, seen.preview);
           const preview = seen ? URL.createObjectURL(seen.preview) : null;
           const quad = seen?.quad ?? null;
@@ -256,13 +276,14 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   // Every guessed page gets its result for the current corners and look, one at a time.
   useEffect(() => {
     for (const page of pages) {
-      if (!page.guessed) continue;
+      // Not yet inspected, or inspected and unreadable (failedIds already says so): nothing to process.
+      if (!page.guessed || page.preview === null) continue;
       const key = resultKey(page);
       if (resultsRef.current[page.id]?.key === key || watchingRef.current.has(key)) continue;
       watchingRef.current.add(key);
       processed(page).then((result) => {
         watchingRef.current.delete(key);
-        if (!isCurrentKey(key) || resultsRef.current[page.id]?.key === key) return;
+        if (unmountedRef.current || !isCurrentKey(key) || resultsRef.current[page.id]?.key === key) return;
         const previous = resultsRef.current[page.id];
         if (previous) {
           URL.revokeObjectURL(previous.url);
@@ -288,9 +309,12 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   urlsRef.current = [
     ...pages.flatMap((p) => (p.preview ? [p.preview] : [])),
     ...Object.values(results).flatMap((r) => [r.url, r.thumbUrl]),
-    ...(shown?.pages.map((p) => p.url) ?? []),
+    ...[...shownByKeyRef.current.values()].flatMap((kept) => kept.pages.map((p) => p.url)),
   ];
-  useEffect(() => () => urlsRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
+  useEffect(() => () => {
+    unmountedRef.current = true;
+    urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const allGuessed = pages.length > 0 && pages.every((p) => p.guessed) && failedIds.length === 0;
   const key = allGuessed
@@ -306,11 +330,14 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       const made = await Promise.all(current.map((page) => processed(page)));
       if (signal.aborted) throw new DOMException('Scan build aborted', 'AbortError');
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
-      const fit = await (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal });
-      if (inputsRef.current.key === builtKey) {
-        setMissed(fit.metTarget ? null : builtKey);
-        showPages({ key: builtKey as string, pages: fit.pages.map((page: BuiltPage) => ({ url: URL.createObjectURL(page.blob), place: page.place })) });
-      }
+      // Through the queue like every decode: a phone holds one photo's worth of pixels at a time.
+      const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
+      if (signal.aborted || unmountedRef.current) throw new DOMException('Scan build aborted', 'AbortError');
+      const builtAs = builtKey as string;
+      if (fit.metTarget) missedKeysRef.current.delete(builtAs);
+      else missedKeysRef.current.add(builtAs);
+      keepShown({ key: builtAs, pages: fit.pages.map((page: BuiltPage) => ({ url: URL.createObjectURL(page.blob), place: page.place })) });
+      setBuilt((n) => n + 1);
       return { blob: fit.blob, pageCount: current.length };
     },
     onBuildError: (err) => reportError('pdf_tool_run', err, 'prepare_scan'),
@@ -369,6 +396,13 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const flattenFromRef = useRef<FlattenFrom | null>(null);
   const stopFlattenRef = useRef<() => void>(() => {});
   useEffect(() => {
+    // Whatever was playing belongs to the view that just went.
+    stopFlattenRef.current();
+    stopFlattenRef.current = () => {};
+    if (focusPendingRef.current) {
+      focusPendingRef.current = false;
+      headingRef.current?.focus({ preventScroll: true });
+    }
     const from = flattenFromRef.current;
     flattenFromRef.current = null;
     const host = editorRef.current;
@@ -381,11 +415,14 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       showEditorTop(flatten);
     }
     if (flatten) {
-      stopFlattenRef.current();
       stopFlattenRef.current = playFlatten(host as HTMLElement, from as FlattenFrom, target as HTMLImageElement);
     }
   }, [view, selectedId]);
   useEffect(() => () => stopFlattenRef.current(), []);
+
+  const headingRef = useRef<HTMLParagraphElement | null>(null);
+  /** Set by a view switch the person made: the page heading takes focus once the new view is up. */
+  const focusPendingRef = useRef(false);
 
   const captureFlatten = (page: ScanPage) => {
     const host = editorRef.current;
@@ -421,13 +458,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   // Find the page again, on request: the person asked, so what it finds becomes their corners.
   const findPage = (page: ScanPage) => {
     setFinding(page.id);
-    enqueue(async () => (await loadPipeline()).guessPage(previewBlobsRef.current.get(page.id) ?? page.file))
+    enqueue(async () => (removedRef.current.has(page.id) ? null : (await loadPipeline()).guessPage(previewBlobsRef.current.get(page.id) ?? page.file)))
       .then((quad) => quad, (err) => {
         reportError('pdf_tool_run', err, 'scan_find_page');
         return null;
       })
       .then((quad) => {
+        if (unmountedRef.current) return;
         setFinding(null);
+        if (removedRef.current.has(page.id)) return;
         if (!quad) {
           setFindMissed((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
           announce(t.findMissed);
@@ -477,7 +516,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     processingRef.current.clear();
     for (const page of pagesRef.current) removedRef.current.add(page.id);
     resultsRef.current = {};
-    showPages(null);
+    forgetShown();
+    previewBlobsRef.current.clear();
     setView('result');
     setPages([]);
     setResults({});
@@ -485,7 +525,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setSelectedId(null);
     setCustomName(null);
     setRejectedFiles([]);
-    setMissed(null);
     resetDownloadFlowRef.current();
     announce(t.announceCleared);
   };
@@ -513,6 +552,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       setView('result');
     }
     topPendingRef.current = true;
+    focusPendingRef.current = true;
+    announce(next ? formatMessage(t.announceCornersOf, { position: pages.indexOf(next) + 1 }) : t.announceResult);
     recordAction('move_mark');
   };
 
@@ -539,7 +580,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     label: limitLabels[l.id],
     hint: l.bytes === null ? t.limitNoneHint : formatMessage(t.limitHint, { size: limitLabels[l.id] }),
   }));
-  const limitNote = missed !== null && missed === key ? t.limitMissed : undefined;
+  const limitNote = key !== null && missedKeysRef.current.has(key) ? t.limitMissed : undefined;
 
   // One set for the rail, one for phones under the pages (the rail is hidden below 1024px).
   const controls = (suffix: string) => (
@@ -559,7 +600,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   // The page as it will download: the built PDF's own JPEG once it matches what is on screen,
   // otherwise this page's newest result laid on its paper by the same rule, shown as updating.
-  const exact = shown !== null && shown.key === key && prepared.status === 'ready';
+  const shown = key === null ? undefined : shownByKeyRef.current.get(key);
+  const exact = !!shown && prepared.status === 'ready';
   const resultView = (page: ScanPage, index: number) => {
     if (exact && shown?.pages[index]) return { src: shown.pages[index].url, place: shown.pages[index].place, exact: true };
     const result = results[page.id];
@@ -665,11 +707,12 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
               <section ref={editorRef} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
-                  <p class={styles['editor-title']}>
+                  <p class={styles['editor-title']} ref={headingRef} tabIndex={-1} data-page-heading>
                     {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
                     {view === 'corners' && (
                       <span class={styles['editor-hint']} role="status">
-                        {!selected.guessed || finding === selected.id ? t.findingEdges
+                        {selected.guessed && selected.preview === null ? t.pageFailed
+                          : !selected.guessed || finding === selected.id ? t.findingEdges
                           : findMissed.includes(selected.id) ? t.findMissed
                           : selected.found === false && !selected.edited ? t.notFoundCorners
                           : t.cornersHint}
@@ -677,14 +720,22 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     )}
                   </p>
                   {view === 'result' && (
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>
+                    <button
+                      type="button"
+                      class={workspaceStyles['quiet-button']}
+                      onClick={() => {
+                        setView('corners');
+                        focusPendingRef.current = true;
+                        announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
+                      }}
+                    >
                       {t.adjustCorners}
                     </button>
                   )}
                 </div>
                 {view === 'corners' ? (
                   selected.preview === null ? (
-                    <div class={styles['corners-wait']} style={{ aspectRatio: String(selected.aspect ?? 0.75) }}>{t.findingEdges}</div>
+                    <div class={styles['corners-wait']} style={{ aspectRatio: String(selected.aspect ?? 0.75) }}>{selected.guessed ? t.pageFailed : t.findingEdges}</div>
                   ) : (
                   <CornerEditor
                     key={selected.id}
@@ -700,7 +751,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   // Under the photo, like a scanner app's bottom bar: the quiet choices, then the one that moves on.
                   <div class={styles['corners-actions']}>
                     <div class={styles['corners-quiet']}>
-                      <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null} onClick={() => findPage(selected)}>
+                      <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null || selected.preview === null} onClick={() => findPage(selected)}>
                         {t.findPage}
                       </button>
                       <button
@@ -715,8 +766,14 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     <button
                       type="button"
                       class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
-                      disabled={!selected.guessed}
-                      onClick={selected.reviewed ? () => { captureFlatten(selected); setView('result'); topPendingRef.current = true; } : approveCorners}
+                      disabled={selected.preview === null}
+                      onClick={selected.reviewed ? () => {
+                        captureFlatten(selected);
+                        setView('result');
+                        topPendingRef.current = true;
+                        focusPendingRef.current = true;
+                        announce(t.announceResult);
+                      } : approveCorners}
                     >
                       {selected.reviewed ? t.cornersDone : t.useCorners}
                     </button>

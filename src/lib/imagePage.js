@@ -71,10 +71,10 @@ export const PAGE_SIZES = { a4: [595.28, 841.89], letter: [612, 792] };
 
 // Where an image sits on its page, in PDF points. 'fit' is the pixel-for-pixel
 // rule below, or `pointsPerPixel` points a pixel when the caller fixes a density
-// (Scan, so a scan stepped down to a size limit keeps its paper size). A named size turns landscape when the image is wider than tall,
+// (Scan: when a size limit scales the pixels down, the scan keeps its printed size, the same points per original pixel). A named size turns landscape when the image is wider than tall,
 // then scales the image (up or down) to fit inside the page, centred, aspect kept.
 export function placeImage(imageWidth, imageHeight, pageSize = 'fit', pointsPerPixel = 1) {
-  if (pageSize === 'fit') {
+  if (pageSize === 'fit' || !PAGE_SIZES[pageSize]) { // an unknown size is 'fit'
     const width = imageWidth * pointsPerPixel;
     const height = imageHeight * pointsPerPixel;
     return { pageWidth: width, pageHeight: height, x: 0, y: 0, width, height };

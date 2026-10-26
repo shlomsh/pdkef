@@ -43,6 +43,6 @@ describe('guessByScoredRegions', () => {
   it('times the corpus (informational)', () => {
     const times = corpus.map((c) => { const t = performance.now(); guessByScoredRegions(c.image); return performance.now() - t; });
     console.log(`scoredRegions ms per image: ${times.map((t) => t.toFixed(1)).join(' ')}`);
-    expect(times).toHaveLength(corpus.length);
+    for (const t of times) expect(Number.isFinite(t) && t > 0).toBe(true);
   });
 });

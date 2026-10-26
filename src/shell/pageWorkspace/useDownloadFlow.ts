@@ -144,7 +144,8 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // previously pointed at, and its work, is untouched. Nothing here needs to
   // discard anything, so there is nothing left to confirm.
   const performHandoff = useCallback(async (tool: HandoffTool) => {
-    if (!prepared.blob) return;
+    const href = hrefs[tool];
+    if (!prepared.blob || !href) return;
     const run = ++handoffRunRef.current;
     setHandoffBusy(true);
     setHandoffFailed(false);
@@ -162,7 +163,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
         return;
       }
       if (!saved) throw new Error('handoff');
-      navigate(hrefs[tool] as string);
+      navigate(href);
     } catch {
       // expected: saveHandoff reports its own failure, this shows the handoffFailed state
       setHandoffFailed(true);

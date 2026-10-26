@@ -24,6 +24,12 @@ const ARROWS: Record<string, [number, number]> = {
 };
 
 const pct = (v: number) => `${v * 100}%`;
+/** A quad a page could be: convex, and not a sliver (1% of the photo), which would warp to a line. */
+const usable = (q: Quad) => {
+  let twice = 0;
+  for (let i = 0; i < 4; i += 1) twice += q[i].x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * q[i].y;
+  return isConvexQuad(q) && Math.abs(twice) / 2 >= 0.01;
+};
 const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
 // The whole photo plus the quad, filled evenodd: dims everything outside the quad.
 const dimPath = (q: Quad) => `M0 0H1V1H0Z M${q.map((p) => `${p.x} ${p.y}`).join(' L')} Z`;
@@ -112,7 +118,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
         cancelRef.current = null;
         hideLoupe();
         if (!patch) return;
-        if (isConvexQuad(patch.quad)) onCommit(patch.quad);
+        if (usable(patch.quad)) onCommit(patch.quad);
         else restore();
       },
       cancel: () => {
@@ -130,7 +136,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     const step = event.shiftKey ? STEP_SHIFT : STEP;
     const point = clampPoint({ x: quad[index].x + dir[0] * step, y: quad[index].y + dir[1] * step });
     const next = quad.map((p, i) => (i === index ? point : p)) as Quad;
-    if (isConvexQuad(next)) onCommit(next);
+    if (usable(next)) onCommit(next);
   };
 
   return (

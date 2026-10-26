@@ -165,6 +165,6 @@ faq:
       on your device.
   - question: 'How do I make a scanned PDF smaller for an upload form?'
     answer: >-
-      In Scan to PDF, choose a size limit of 2 MB, 1 MB or 500 KB before you download, and the whole
-      PDF is made to fit. For a PDF you already have, use PDkef's Compress tool and give it a target
+      In Scan to PDF, choose a size limit of 2 MB, 1 MB or 500 KB before you download, and the quality
+      steps down until the whole PDF is under it. The final size is shown before you download. For a PDF you already have, use PDkef's Compress tool and give it a target
       size.

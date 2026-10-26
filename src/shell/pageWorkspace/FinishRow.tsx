@@ -27,6 +27,7 @@ export default function FinishRow({ ready, shareReady, onShare, busy, onHandoff,
     <div class={styles['handoff-row']} onPointerOver={onWarm} onFocusIn={onWarm} onPointerDown={onWarm}>
       {ready && <PdfShareButton visible={shareReady} onShare={onShare} label={labels.share} className={styles['handoff-button']} />}
       {tools.map((tool) => {
+        if (!labels[tool]) return null;
         const Icon = ICONS[tool];
         return (
           <button
