@@ -7,8 +7,9 @@ import { editPages } from './editPages.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 import { reportError } from '../../lib/errorReport.ts';
 
 function makePdfFile(name) {
@@ -61,14 +62,6 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
 }));
 
 const flush = (ms = 50) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-// Preact's act holds renders until it exits, so poll in short acts rather than inside one.
-const until = async (cond, timeout = 8000) => {
-  const start = Date.now();
-  while (!cond()) {
-    if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout}ms: ${cond}`);
-    await flush(10);
-  }
-};
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
 describe('PdfEditPagesTool UI flow', () => {

@@ -86,3 +86,19 @@ Replay of the last 200 non-merge commits before this change (`90690936`) through
 per-commit file lists: 93 went wide before, 77 after (16 narrowed, none the other way). 18 of the remaining 77 are
 `i18n/toolMessages.ts` (ARCH-35); the rest are root config, `vercel.json`, `public/sw.js`, `middleware.ts`,
 `api/`, and files that reach a non-tool page.
+
+## Progress (test-support)
+
+- Done: the helpers other projects' tests import moved to `src/test/support/` (Nx project `test-support`, no
+  dependencies): `setup.js`, `astroContentStub.js`, `mockFileShare.js`, `setInputFiles.js`,
+  `pdfPageTreeFixtures.ts`, `fixtures/`, plus a new shared `until.js` that replaces the three copies in the Split,
+  Edit Pages and To Image tool tests. None of them imports a src project, so none had to stay behind. The repo-wide
+  guards stay in `src/test/` (`site-test`); the module-boundaries checker still classes all of `src/test/` as
+  test-support.
+- Measured with `nx show projects --affected --files=<file>`, before and after: `src/lib/thumbnails.js` 33 to 33,
+  `src/shell/pageWorkspace/PhoneFinish.tsx` 28 to 28, `src/editor-ui/ElementToolbar.tsx` 19 to 19. The counts do not
+  move: the loop `lib -> site-test -> editor -> lib` is gone, but those files' dependents are real consumers.
+- Core edges now: lib -> test-support; shell -> lib, test-support, i18n; editor -> lib, test-support;
+  editor-ui -> lib, shell, editor; i18n -> data and data -> i18n (a two-project cycle); data -> i18n;
+  site-lib -> lib, test-support, data, i18n, site, shell, editor; site -> data, i18n, site-lib (so
+  site <-> site-lib is a cycle); site-test -> data, editor; test-support -> nothing.

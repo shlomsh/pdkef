@@ -6,8 +6,9 @@ import PdfToImageTool from './PdfToImageTool.tsx';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { hebrewToImageMessages } from './messages';
@@ -87,14 +88,6 @@ async function defaultConvert(file: File, opts: any) {
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const SLOW_QUIET = { baseMs: 400, stepMs: 0, maxMs: 400, burstWindowMs: 1 };
 const wait = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-// Preact's act holds renders until it exits, so poll in short acts rather than inside one.
-const until = async (cond, timeout = 8000) => {
-  const start = Date.now();
-  while (!cond()) {
-    if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout}ms: ${cond}`);
-    await wait(10);
-  }
-};
 const makePdfFile = (name = 'report.pdf') => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 
 describe('PdfToImageTool', () => {

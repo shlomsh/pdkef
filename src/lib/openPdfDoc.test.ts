@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { openPdfDoc } from './openPdfDoc';
-import { healthy, noPagesKey } from '../test/pdfPageTreeFixtures';
+import { healthy, noPagesKey } from '../test/support/pdfPageTreeFixtures';
 
 vi.mock('./maintenanceTelemetry', () => ({
   pdfPageTreeRepaired: () => ({}),

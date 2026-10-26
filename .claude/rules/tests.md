@@ -75,6 +75,14 @@ buttons and stopped at the first failure, so the worst button's number never pri
 - A spec whose number came only from macOS gets a Linux run before it reaches `main`: push its branch
   and `gh workflow run ci.yml --ref <branch>` (`ci.yml` runs automatically only on `main` and PRs).
 
+## `src/test/support/`
+
+The helpers other projects' tests import (`setup.js`, `astroContentStub.js`, `mockFileShare.js`,
+`setInputFiles.js`, `pdfPageTreeFixtures.ts`, `until.js`, `fixtures/`) live in `src/test/support/`, the
+Nx project `test-support`, which imports no src project. A helper that needs `lib`, `editor` or any
+other project does not belong there. The repo-wide guards stay directly under `src/test/` (`site-test`).
+That split keeps `lib -> site-test -> editor -> lib` from closing a loop.
+
 ## `src/test/cross-tool/`
 
 A test file may not launder a cross-tool import that a real edge in the same location would be

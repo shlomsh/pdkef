@@ -6,7 +6,7 @@ import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.t
 import Sortable from 'sortablejs';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
