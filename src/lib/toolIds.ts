@@ -103,6 +103,10 @@ export type UnlockReturnId = Extract<(typeof TOOL_PAGES)[number], { unlockReturn
 /** The tool ids whose protected files detour through Unlock. */
 export const UNLOCK_RETURN_IDS = TOOL_PAGES.filter((p) => 'unlockReturn' in p).map((p) => p.id) as readonly UnlockReturnId[];
 
+/** Page slugs by layout flag, for the one script that cannot call `layoutOf` (the hashed pre-paint script in ToolPageLayout.astro). */
+export const EDITOR_LAYOUT_SLUGS: readonly string[] = pages.filter((p) => p.editorLayout).map((p) => p.slug);
+export const FILE_LIST_RESTORE_SLUGS: readonly string[] = pages.filter((p) => p.restoresFileList).map((p) => p.slug);
+
 /** The registry flags for one page (layout decisions), all false for a slug that is not listed. */
 export function layoutOf(slug: string) {
   const page = pageBySlug(slug);
