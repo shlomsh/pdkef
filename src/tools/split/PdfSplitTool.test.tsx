@@ -204,6 +204,13 @@ describe('PdfSplitTool UI flow', () => {
     expect(order[order.length - 1]).toBe('Replace file');
   });
 
+  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
+    await open();
+    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
+    expect(replaces).toHaveLength(1);
+    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
+  });
+
   it('a skipped tile stays in place, the range follows, and the heading counts it', async () => {
     await open();
     await click(skipButton(2));

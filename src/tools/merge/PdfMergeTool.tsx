@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature, File as FileIcon, X as XIcon } from 'lucide-preact';
+import { Shrink, FileSignature, File as FileIcon, FilePlus, Trash2, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -1071,8 +1071,8 @@ export default function PdfMergeTool({
               phoneControls={(
                 <div class={workspaceStyles['mobile-file-controls']} data-merge-file-controls>
                   <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}><FilePlus size={16} aria-hidden="true" />{sm.addLabel}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}><Trash2 size={16} aria-hidden="true" />{sm.clearLabel}</button>
                   </div>
                   {entries.length >= 2 && (
                     <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} hideLabel />
@@ -1247,8 +1247,8 @@ export default function PdfMergeTool({
                       {/* Shlomi (2026-09-13): the two actions are bordered
                           buttons now, so the "·" that used to separate them as
                           text links is gone; the row's gap does the separating. */}
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}><FilePlus size={16} aria-hidden="true" />{sm.addLabel}</button>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}><Trash2 size={16} aria-hidden="true" />{sm.clearLabel}</button>
                     </div>
                 </>
               )}
