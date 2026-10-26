@@ -115,6 +115,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   /** One page is processed at a time, so a phone holds one full-size photo in memory, not ten. */
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   const processingRef = useRef(new Map<string, Promise<ProcessedPage>>());
+  /** Keys whose result this component is already waiting on: one handler per run. */
+  const watchingRef = useRef(new Set<string>());
+  /** Pages removed while their edge guess still waited in the queue. */
+  const removedRef = useRef(new Set<number>());
+  const resultsRef = useRef<Record<number, PageResult>>({});
   const resetDownloadFlowRef = useRef<() => void>(() => {});
 
   useHoldUpdate(pages.length > 0, 'open');
@@ -132,14 +137,33 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     return run;
   };
 
+  /** True while `key` is what the page on screen and the current look ask for. */
+  const isCurrentKey = (key: string) => {
+    const id = Number(key.slice(0, key.indexOf('|')));
+    const live = pagesRef.current.find((p) => p.id === id);
+    return !!live && resultKey(live, filterRef.current) === key;
+  };
+
+  const dropCached = (id: number, keep?: string) => {
+    for (const cachedKey of [...processingRef.current.keys()]) {
+      if (cachedKey.startsWith(`${id}|`) && cachedKey !== keep) processingRef.current.delete(cachedKey);
+    }
+  };
+
   /** The processed page for these corners and this look: cached, so the strip and the build share one run. */
   const processed = useCallback((page: ScanPage, look: ScanFilter): Promise<ProcessedPage> => {
     const key = resultKey(page, look);
     const cached = processingRef.current.get(key);
     if (cached) return cached;
-    const run = enqueue(async () => (await loadPipeline()).processPage(page.file, page.quad, look));
+    const run = enqueue(async () => {
+      // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
+      if (!isCurrentKey(key)) throw new DOMException('Superseded scan work', 'AbortError');
+      return (await loadPipeline()).processPage(page.file, page.quad, look);
+    });
     processingRef.current.set(key, run);
-    run.catch(() => {
+    run.then(() => {
+      if (!isCurrentKey(key)) processingRef.current.delete(key);
+    }, () => {
       // expected: a failed run is reported by its caller; dropping it here lets the next try run again
       processingRef.current.delete(key);
     });
@@ -160,7 +184,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
     recordAction('add_files');
     for (const page of added) {
-      enqueue(async () => (await loadPipeline()).guessPage(page.file))
+      enqueue(async () => (removedRef.current.has(page.id) ? null : (await loadPipeline()).guessPage(page.file)))
         .then((quad) => quad, (err) => {
           reportError('pdf_tool_run', err, 'scan_guess_edges');
           return null;
@@ -181,21 +205,22 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     for (const page of pages) {
       if (!page.guessed) continue;
       const key = resultKey(page, filter);
-      if (results[page.id]?.key === key) continue;
+      if (resultsRef.current[page.id]?.key === key || watchingRef.current.has(key)) continue;
+      watchingRef.current.add(key);
       processed(page, filter).then((result) => {
-        const live = pagesRef.current.find((p) => p.id === page.id);
-        if (!live || resultKey(live, filterRef.current) !== key) return;
+        watchingRef.current.delete(key);
+        if (!isCurrentKey(key) || resultsRef.current[page.id]?.key === key) return;
+        const previous = resultsRef.current[page.id];
+        if (previous) URL.revokeObjectURL(previous.url);
+        // Older corners for this page will not come back; let their bytes go.
+        dropCached(page.id, key);
+        resultsRef.current = { ...resultsRef.current, [page.id]: { key, url: URL.createObjectURL(result.blob), page: result } };
+        setResults(resultsRef.current);
         setFailedIds((ids) => ids.filter((id) => id !== page.id));
-        setResults((current) => {
-          if (current[page.id]?.key === key) return current;
-          if (current[page.id]) URL.revokeObjectURL(current[page.id].url);
-          // Older corners for this page will not come back; let their bytes go.
-          for (const cachedKey of processingRef.current.keys()) {
-            if (cachedKey.startsWith(`${page.id}|`) && cachedKey !== key) processingRef.current.delete(cachedKey);
-          }
-          return { ...current, [page.id]: { key, url: URL.createObjectURL(result.blob), page: result } };
-        });
       }, (err) => {
+        watchingRef.current.delete(key);
+        // expected: work superseded before its turn is skipped on purpose, not a failure
+        if (err?.name === 'AbortError') return;
         reportError('pdf_tool_run', err, 'scan_process_page');
         setFailedIds((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
       });
@@ -295,13 +320,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     const removed = pages[index];
     if (!removed) return;
     URL.revokeObjectURL(removed.photoUrl);
+    removedRef.current.add(id);
+    dropCached(id);
     const left = pages.filter((p) => p.id !== id);
-    setResults((current) => {
-      if (!current[id]) return current;
-      URL.revokeObjectURL(current[id].url);
-      const { [id]: _gone, ...rest } = current;
-      return rest;
-    });
+    if (resultsRef.current[id]) {
+      URL.revokeObjectURL(resultsRef.current[id].url);
+      const { [id]: _gone, ...rest } = resultsRef.current;
+      resultsRef.current = rest;
+      setResults(rest);
+    }
     setFailedIds((ids) => ids.filter((x) => x !== id));
     setPages(left);
     const neighbour = left[index] ?? left[index - 1];
@@ -315,6 +342,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const reset = () => {
     for (const url of urlsRef.current) URL.revokeObjectURL(url);
     processingRef.current.clear();
+    for (const page of pagesRef.current) removedRef.current.add(page.id);
+    resultsRef.current = {};
     setPages([]);
     setResults({});
     setFailedIds([]);
@@ -459,6 +488,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               )}
             >
               {prepared.status === 'error' && <ErrorMessage>{t.buildFailed}</ErrorMessage>}
+              {failedIds.length > 0 && (
+                <ErrorMessage>
+                  {formatMessage(t.pagesFailed, { pages: pages.filter((p) => failedIds.includes(p.id)).map((p) => pages.indexOf(p) + 1).join(', ') })}
+                </ErrorMessage>
+              )}
 
               <section class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
@@ -475,7 +509,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     {t.wholePhoto}
                   </button>
                 </div>
-                {failedIds.includes(selected.id) && <ErrorMessage>{t.pageFailed}</ErrorMessage>}
                 <CornerEditor
                   key={selected.id}
                   src={selected.photoUrl}
@@ -505,7 +538,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                           onTileKeyDown(e, page.id);
                         }}
                       >
-                        {result ? <img src={result.url} alt="" draggable={false} data-stale={!current || undefined} /> : <span class={styles.pending}>{t.processing}</span>}
+                        {result ? <img src={result.url} alt="" draggable={false} data-stale={!current || undefined} /> : <span class={styles.pending}>{failedIds.includes(page.id) ? t.pageFailed : t.processing}</span>}
                         <span class={styles.badge} aria-hidden="true">{index + 1}</span>
                       </div>
                       <button type="button" class={styles.remove} aria-label={formatMessage(t.removeLabel, { position: index + 1 })} onClick={() => removePage(page.id)}>

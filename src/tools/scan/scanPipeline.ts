@@ -91,35 +91,36 @@ const throwIfAborted = (signal?: AbortSignal) => {
   if (signal?.aborted) throw new DOMException('Scan build aborted', 'AbortError');
 };
 
-/** The PDF of every processed page, stepped down to `budgetBytes` when one is set. */
+/** Fit pages print at this density whatever the size limit did to their pixels. */
+const FIT_DPI = 200;
+
+/** The PDF of every processed page, stepped down to `budgetBytes` when one is set. Each step
+ * decodes, draws and encodes one page at a time, so a phone holds one page's canvas, not all of them. */
 export async function buildScanPdf(
   pages: ProcessedPage[],
   { pageSize, budgetBytes, onProgress, signal }: { pageSize: PageSize; budgetBytes: number | null; onProgress?: (f: number) => void; signal?: AbortSignal },
 ): Promise<FitResult> {
   let built = 0;
-  return fitScanToBudget<HTMLCanvasElement[]>({
+  return fitScanToBudget<number>({
     budgetBytes,
     deadlineMs: Date.now() + MAX_SEARCH_MS,
-    render: async (scale) => {
-      const canvases: HTMLCanvasElement[] = [];
-      for (const page of pages) {
-        throwIfAborted(signal);
-        canvases.push(drawCapped(await loadImage(page.blob), OUTPUT_LONG_EDGE, scale));
-      }
-      return canvases;
-    },
-    build: async (canvases, quality) => {
+    render: (scale) => scale,
+    build: async (scale, quality) => {
       const files: File[] = [];
-      for (let i = 0; i < canvases.length; i += 1) {
+      for (let i = 0; i < pages.length; i += 1) {
         throwIfAborted(signal);
-        files.push(new File([await canvasToBlob(canvases[i], 'image/jpeg', quality)], `page-${i + 1}.jpg`, { type: 'image/jpeg' }));
+        const canvas = drawCapped(await loadImage(pages[i].blob), OUTPUT_LONG_EDGE, scale);
+        try {
+          files.push(new File([await canvasToBlob(canvas, 'image/jpeg', quality)], `page-${i + 1}.jpg`, { type: 'image/jpeg' }));
+        } finally {
+          freeCanvas(canvas);
+        }
       }
-      const pdf = await imagesToPdf(files, undefined, signal, { pageSize });
+      const pdf = await imagesToPdf(files, undefined, signal, { pageSize, pointsPerPixel: 72 / FIT_DPI / scale });
       built += 1;
       // The search runs at most a few dozen builds; the bar moves fast, then waits on the last.
       onProgress?.(1 - 1 / (built + 1));
       return pdf;
     },
-    release: (canvases) => canvases.forEach(freeCanvas),
   });
 }
