@@ -63,6 +63,7 @@ export interface ScanMessages extends DownloadMessages {
   downloadLabel: string;
   downloadShort: string;
   downloadAgain: string;
+  clearAll: string;
   savedLabel: string;
   buildFailed: string;
   preparingPages: string;
@@ -147,6 +148,7 @@ export const englishScanMessages: ScanMessages = {
   downloadLabel: 'Download PDF',
   downloadShort: 'Download',
   downloadAgain: 'download again',
+  clearAll: 'Clear all',
   savedLabel: 'Saved',
   buildFailed: 'Could not make this PDF',
   preparingPages: 'Preparing {count} pages…',

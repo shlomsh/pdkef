@@ -36,6 +36,10 @@ export interface EditPagesMessages extends PageGridMessages, DownloadMessages, H
   handoffSign: string;
   handoffFailed: string;
   shareLabel: string;
+  /* The load-failure line: a protected PDF opens in Unlock first. */
+  failureLead: string;
+  failureUnlock: string;
+  failureTail: string;
 }
 
 export const englishEditPagesMessages: EditPagesMessages = {
@@ -107,6 +111,9 @@ export const englishEditPagesMessages: EditPagesMessages = {
   handoffSign: 'Sign',
   handoffFailed: 'Could not hand the file over. Download it instead.',
   shareLabel: 'Share',
+  failureLead: 'A protected PDF opens in',
+  failureUnlock: 'Unlock',
+  failureTail: 'first. Otherwise the file may be damaged - try another PDF.',
 };
 
 export function getEditPagesMessages(_locale: DocumentationLocaleId): EditPagesMessages {
