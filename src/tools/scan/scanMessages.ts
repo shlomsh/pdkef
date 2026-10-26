@@ -17,6 +17,7 @@ export const scanMessages = {
   corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] as [string, string, string, string],
   cornersHint: 'Drag each corner onto a corner of the page.',
   wholePhoto: 'Use the whole photo',
+  removePhoto: 'Remove this photo',
   adjustCorners: 'Adjust corners',
   findPage: 'Find the page',
   findMissed: 'No page edges were found here either. Drag the corners onto the corners of the page.',

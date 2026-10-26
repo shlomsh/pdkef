@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_QUAD, clampPoint, isConvexQuad, orderQuad, quadKey, scaleQuad, type Point, type Quad } from './quad.ts';
+import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, scaleQuad, type Point, type Quad } from './quad.ts';
 
 describe('orderQuad', () => {
   it('orders four points top-left, top-right, bottom-right, bottom-left', () => {
@@ -70,5 +70,20 @@ describe('quadKey', () => {
     const moved: Quad = [{ x: 0.12, y: 0.1 }, a[1], a[2], a[3]];
     expect(quadKey(noisy)).toBe(quadKey(a));
     expect(quadKey(moved)).not.toBe(quadKey(a));
+  });
+});
+
+describe('insetQuad', () => {
+  it('pulls every corner toward the middle by a fraction of its distance, so the crop starts inside the outline', () => {
+    const square: Quad = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 }];
+    const inset = insetQuad(square, 0.1);
+    expect(inset[0].x).toBeCloseTo(5);
+    expect(inset[0].y).toBeCloseTo(5);
+    expect(inset[2].x).toBeCloseTo(95);
+    expect(inset[2].y).toBeCloseTo(95);
+  });
+
+  it('is the same quad at zero', () => {
+    expect(insetQuad(FULL_QUAD, 0)).toEqual(FULL_QUAD);
   });
 });
