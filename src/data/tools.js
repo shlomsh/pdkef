@@ -507,8 +507,6 @@ export const tools = [
   {
     slug: 'scan-to-pdf',
     href: '/scan-to-pdf/',
-    // The home dock is laid out for ten cards; an eleventh is a home-page design change.
-    homeDock: false,
     icon: ScanLine,
     gridTitle: 'Scan to PDF',
     gridDescription:
