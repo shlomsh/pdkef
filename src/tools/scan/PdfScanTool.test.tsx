@@ -375,6 +375,23 @@ describe('PdfScanTool', () => {
     expect(container.querySelector('[data-paper]')).not.toBeNull();
   });
 
+  it('turns a page a quarter clockwise with Rotate, by handing the warp its corners one place on', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await useCorners();
+    const lastQuad = () => vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[1];
+    await act(async () => { byText('Rotate')[0].click(); });
+    await settle();
+    expect(lastQuad()).toEqual([GUESS[3], GUESS[0], GUESS[1], GUESS[2]]);
+    await act(async () => { byText('Rotate')[0].click(); });
+    await settle();
+    expect(lastQuad()).toEqual([GUESS[2], GUESS[3], GUESS[0], GUESS[1]]);
+    // The corners stay the photo's own: Adjust corners shows them where they were.
+    await adjustCorners();
+    expect(handles()[0].style.left).toBe(`${GUESS[0].x * 100}%`);
+  });
+
   it('brings a newly added photo into view, also when photos were already there: on desktop the page top, where the card is the first screen', async () => {
     // The setup's matchMedia matches every query: the desktop path.
     const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});

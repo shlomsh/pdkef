@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { Camera, Check, Crop, FileSignature, ImagePlus, Maximize, Merge, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { Camera, Check, Crop, FileSignature, ImagePlus, Maximize, Merge, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
@@ -31,7 +31,7 @@ import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
 import { playFlatten, relativeBox, type FlattenFrom } from './flattenAnimation.ts';
 import ScanVerb from './verb/ScanVerb.tsx';
-import { FULL_QUAD, quadKey, type Quad } from './quad.ts';
+import { FULL_QUAD, quadKey, rotateQuad, type Quad } from './quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
 import type { ScanFilter } from './filters.ts';
 import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
@@ -54,7 +54,10 @@ interface ScanPage {
   filter: ScanFilter;
   /** The person has seen this page's corners and used them (Use these corners). */
   reviewed: boolean;
+  /** The page's corners in the photo, as photographed: rotating never moves them. */
   quad: Quad;
+  /** Quarter turns clockwise for the page as it downloads (0 to 3): a page shot sideways stands up. */
+  turns: number;
   /** The edge guess has run (or failed); until then the corners are the whole photo. */
   guessed: boolean;
   /** The person moved a corner: their corners win, the guess never overrides them. */
@@ -71,7 +74,9 @@ interface Shown { key: string; pages: { url: string; place: Placement }[] }
 const FIT_POINTS_PER_PIXEL = 72 / 200;
 
 let nextId = 0;
-const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}`;
+const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}|${page.turns}`;
+/** The corners the warp gets: the photo's own, one place on per quarter turn (quad.ts). */
+const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
 
 type Pipeline = typeof import('./scanPipeline.ts');
 let pipelinePromise: Promise<Pipeline> | null = null;
@@ -219,7 +224,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     const run = enqueue(async () => {
       // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
       if (!isCurrentKey(key)) throw new DOMException('Superseded scan work', 'AbortError');
-      return (await loadPipeline()).processPage(page.file, page.quad, page.filter);
+      return (await loadPipeline()).processPage(page.file, pageQuad(page), page.filter);
     });
     processingRef.current.set(key, run);
     run.then(() => {
@@ -239,7 +244,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (accepted.length === 0) return;
     const added: ScanPage[] = accepted.map((file) => ({
       id: nextId++, file, preview: null, aspect: null, filter: defaultFilterRef.current, reviewed: false,
-      quad: FULL_QUAD, guessed: false, edited: false, found: null,
+      quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null,
     }));
     setPages((current) => [...current, ...added]);
     // A new photo is shown first as itself, corners on top, to approve or adjust (Use these corners).
@@ -440,7 +445,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     flattenFromRef.current = {
       photoUrl: page.preview,
       frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
-      quad: page.quad,
+      quad: pageQuad(page),
     };
   };
 
@@ -568,6 +573,14 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (!selected || next === selected.filter) return;
     setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, filter: next } : p)));
     setDefaultFilter(next);
+    recordAction('change_setting');
+    reportEdit('scan-to-pdf');
+  };
+
+  const rotatePage = () => {
+    if (!selected) return;
+    setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, turns: (p.turns + 1) % 4 } : p)));
+    announce(formatMessage(t.announceRotated, { position: selectedIndex + 1 }));
     recordAction('change_setting');
     reportEdit('scan-to-pdf');
   };
@@ -770,18 +783,24 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     )}
                   </p>
                   {view === 'result' && (
-                    <button
-                      type="button"
-                      class={workspaceStyles['quiet-button']}
-                      onClick={() => {
-                        setView('corners');
-                        focusPendingRef.current = true;
-                        announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
-                      }}
-                    >
-                      <Crop size={16} aria-hidden="true" />
-                      {t.adjustCorners}
-                    </button>
+                    <div class={styles['head-actions']}>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>
+                        <RotateCw size={16} aria-hidden="true" />
+                        {t.rotate}
+                      </button>
+                      <button
+                        type="button"
+                        class={workspaceStyles['quiet-button']}
+                        onClick={() => {
+                          setView('corners');
+                          focusPendingRef.current = true;
+                          announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
+                        }}
+                      >
+                        <Crop size={16} aria-hidden="true" />
+                        {t.adjustCorners}
+                      </button>
+                    </div>
                   )}
                 </div>
                 {view === 'corners' && (
