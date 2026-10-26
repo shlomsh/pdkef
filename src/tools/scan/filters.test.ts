@@ -53,6 +53,37 @@ describe('applyFilter', () => {
     }
   });
 
+  describe('document keeps solid dark areas', () => {
+    const PW = 1200;
+    const PH = 1600;
+    const page = (fn: (x: number, y: number) => number) =>
+      make(PW, PH, (x, y) => { const v = fn(x, y); return [v, v, v]; });
+    const inRect = (x: number, y: number) => x >= 400 && x < 800 && y >= 600 && y < 900;
+    const interior = (out: RgbaImage, x0: number, x1: number, y0: number, y1: number) => {
+      for (let y = y0; y < y1; y += 20) {
+        for (let x = x0; x < x1; x += 20) expect(out.data[(y * PW + x) * 4], `${x},${y}`).toBeLessThanOrEqual(60);
+      }
+    };
+
+    it('a 400x300 black rectangle on white stays black', () => {
+      const out = applyFilter(page((x, y) => (inRect(x, y) ? 30 : 255)), 'document');
+      interior(out, 420, 780, 620, 880);
+      expect(out.data[(300 * PW + 100) * 4]).toBe(255);
+    });
+
+    it('a full-width black header band stays black', () => {
+      const out = applyFilter(page((_x, y) => (y < 200 ? 30 : 255)), 'document');
+      interior(out, 20, 1180, 20, 180);
+    });
+
+    it('a mid-grey photo card (luma 90) on white stays dark', () => {
+      const out = applyFilter(page((x, y) => (inRect(x, y) ? 90 : 255)), 'document');
+      for (let y = 620; y < 880; y += 20) {
+        for (let x = 420; x < 780; x += 20) expect(out.data[(y * PW + x) * 4], `${x},${y}`).toBeLessThanOrEqual(100);
+      }
+    });
+  });
+
   it('grayscale of a known colour gives the known luma', () => {
     const out = applyFilter(make(2, 2, () => [200, 100, 50]), 'grayscale');
     const luma = Math.round(0.299 * 200 + 0.587 * 100 + 0.114 * 50);

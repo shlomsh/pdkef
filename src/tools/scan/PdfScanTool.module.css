@@ -28,6 +28,7 @@
 
 .editor-title {
   margin: 0;
+  outline: none;
   display: grid;
   font-weight: 600;
 }

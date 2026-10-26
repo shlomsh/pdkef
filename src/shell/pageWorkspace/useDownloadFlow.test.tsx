@@ -266,6 +266,17 @@ describe('useDownloadFlow', () => {
     expect(navigate).toHaveBeenCalledWith('/merge/');
   });
 
+  it('a hand-off with no href for its tool does nothing: no save, no navigation, no failure', async () => {
+    store.saveHandoff.mockResolvedValue(true);
+    const navigate = vi.fn();
+    mount({ ...base(ready()), hrefs: { compress: '/compress/', sign: '/sign/' }, navigate });
+    await act(async () => { await flow.requestHandoff('merge'); });
+    expect(store.saveHandoff).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(flow.handoffBusy).toBe(false);
+    expect(flow.handoffFailed).toBe(false);
+  });
+
   it('parts: requestHandoff does nothing', async () => {
     mount(base(readyParts()));
     await act(async () => { await flow.requestHandoff('compress'); });

@@ -29,39 +29,52 @@ export function playFlatten(host: HTMLElement, from: FlattenFrom, target: HTMLIm
   const to = relativeBox(target.getBoundingClientRect(), host.getBoundingClientRect());
   if (!to.width || !to.height || !from.frame.width) return () => {};
 
-  const start = scaleQuad(from.quad, from.frame.width, from.frame.height)
-    .map((p) => ({ x: p.x + from.frame.left, y: p.y + from.frame.top })) as Quad;
-  const end = rectQuad(to);
-
-  const layer = document.createElement('div');
-  layer.setAttribute('aria-hidden', 'true');
-  layer.dataset.flatten = '';
-  Object.assign(layer.style, { position: 'absolute', inset: '0', pointerEvents: 'none', zIndex: '2' });
-  const photo = layerImage(from.photoUrl, {
-    left: `${from.frame.left}px`, top: `${from.frame.top}px`, width: `${from.frame.width}px`, height: `${from.frame.height}px`,
-  });
-  const page = layerImage(target.currentSrc || target.src, {
-    width: `${to.width}px`, height: `${to.height}px`, transformOrigin: '0 0', willChange: 'transform',
-  });
-  layer.append(photo, page);
-  host.append(layer);
-  target.style.visibility = 'hidden';
-
+  let layer: HTMLDivElement | null = null;
   let frame = 0;
-  const t0 = performance.now();
   const stop = () => {
     cancelAnimationFrame(frame);
-    layer.remove();
+    layer?.remove();
     target.style.visibility = '';
   };
-  const step = (now: number) => {
-    const t = Math.min(1, (now - t0) / DURATION_MS);
-    page.style.transform = cornerPin(to.width, to.height, lerpQuad(start, end, easeOutCubic(t))).css;
-    photo.style.opacity = String(1 - Math.min(1, t / 0.7));
-    if (t < 1) frame = requestAnimationFrame(step);
-    else stop();
-  };
-  page.style.transform = cornerPin(to.width, to.height, start).css;
-  frame = requestAnimationFrame(step);
+  // A near-degenerate quad can make the homography throw: the real page must never stay hidden.
+  try {
+    const start = scaleQuad(from.quad, from.frame.width, from.frame.height)
+      .map((p) => ({ x: p.x + from.frame.left, y: p.y + from.frame.top })) as Quad;
+    const end = rectQuad(to);
+
+    layer = document.createElement('div');
+    layer.setAttribute('aria-hidden', 'true');
+    layer.dataset.flatten = '';
+    Object.assign(layer.style, { position: 'absolute', inset: '0', pointerEvents: 'none', zIndex: '2' });
+    const photo = layerImage(from.photoUrl, {
+      left: `${from.frame.left}px`, top: `${from.frame.top}px`, width: `${from.frame.width}px`, height: `${from.frame.height}px`,
+    });
+    const page = layerImage(target.currentSrc || target.src, {
+      width: `${to.width}px`, height: `${to.height}px`, transformOrigin: '0 0', willChange: 'transform',
+    });
+    layer.append(photo, page);
+    host.append(layer);
+    target.style.visibility = 'hidden';
+
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / DURATION_MS);
+      try {
+        page.style.transform = cornerPin(to.width, to.height, lerpQuad(start, end, easeOutCubic(t))).css;
+      } catch {
+        // expected: an in-between shape the homography cannot solve; end here rather than freeze
+        stop();
+        return;
+      }
+      photo.style.opacity = String(1 - Math.min(1, t / 0.7));
+      if (t < 1) frame = requestAnimationFrame(step);
+      else stop();
+    };
+    page.style.transform = cornerPin(to.width, to.height, start).css;
+    frame = requestAnimationFrame(step);
+  } catch {
+    // expected: a sliver the warp would also refuse; skip the animation, the result shows as it is
+    stop();
+  }
   return stop;
 }

@@ -30,25 +30,41 @@ export interface FitInput<H> {
 export interface FitResult { blob: Blob; metTarget: boolean; scale: number; quality: number }
 
 export async function fitScanToBudget<H>({ budgetBytes, render, build, release, deadlineMs }: FitInput<H>): Promise<FitResult> {
-  const full = await render(SCAN_SCALE_LADDER[0]);
-  const first = await build(full, SCAN_QUALITY);
-  // Under the limit already (or no limit): never degrade a scan for nothing.
-  if (budgetBytes === null || first.size <= budgetBytes) {
-    release?.(full);
-    return { blob: first, metTarget: true, scale: SCAN_SCALE_LADDER[0], quality: SCAN_QUALITY };
-  }
+  // Every rendered set the search has not released yet: a failed build must not strand them.
+  const live = new Set<H>();
+  const rendered = async (scale: number) => {
+    const handle = await render(scale);
+    live.add(handle);
+    return handle;
+  };
+  const released = (handle: H) => {
+    if (!live.delete(handle)) return;
+    release?.(handle);
+  };
+  try {
+    const full = await rendered(SCAN_SCALE_LADDER[0]);
+    const first = await build(full, SCAN_QUALITY);
+    // Under the limit already (or no limit): never degrade a scan for nothing.
+    if (budgetBytes === null || first.size <= budgetBytes) {
+      released(full);
+      return { blob: first, metTarget: true, scale: SCAN_SCALE_LADDER[0], quality: SCAN_QUALITY };
+    }
 
-  const best = await searchTargetSize({
-    scales: SCAN_SCALE_LADDER,
-    renderAtScale: (scale: number, index: number) => (index === 0 ? full : render(scale)),
-    encode: build,
-    budgetBytes,
-    minQuality: SCAN_MIN_QUALITY,
-    maxQuality: SCAN_QUALITY,
-    qualitySteps: QUALITY_SEARCH_STEPS,
-    deadlineMs,
-    releaseHandle: release,
-  });
-  release?.(best.handle);
-  return { blob: best.encoded as Blob, metTarget: best.encoded.size <= budgetBytes, scale: best.scale, quality: best.quality };
+    const best = await searchTargetSize({
+      scales: SCAN_SCALE_LADDER,
+      renderAtScale: (scale: number, index: number) => (index === 0 ? full : rendered(scale)),
+      encode: build,
+      budgetBytes,
+      minQuality: SCAN_MIN_QUALITY,
+      maxQuality: SCAN_QUALITY,
+      qualitySteps: QUALITY_SEARCH_STEPS,
+      deadlineMs,
+      releaseHandle: released,
+    });
+    released(best.handle);
+    return { blob: best.encoded as Blob, metTarget: best.encoded.size <= budgetBytes, scale: best.scale, quality: best.quality };
+  } catch (err) {
+    for (const handle of [...live]) released(handle);
+    throw err;
+  }
 }

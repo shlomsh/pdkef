@@ -112,7 +112,7 @@ function build(): CorpusCase[] {
     const img = floor(PW, PH, 28); const page = rotated(160, 210, 100, 145, 4);
     fillQuad(img, page, 232);
     const [, tr] = page;
-    fillQuad(img, [{ x: tr.x - 70, y: tr.y - 4 }, { x: tr.x + 4, y: tr.y - 4 }, { x: tr.x + 4, y: tr.y + 60 }, { x: tr.x + 4, y: tr.y + 60 }], 150);
+    fillQuad(img, [{ x: tr.x - 70, y: tr.y - 4 }, { x: tr.x + 4, y: tr.y - 4 }, { x: tr.x + 4, y: tr.y + 60 }, { x: tr.x - 60, y: tr.y + 40 }], 150);
     add('shadow across corner', img, page);
   }
   { // 12 envelope: tiled floor, black stripe, bright patches, dark object over the frame

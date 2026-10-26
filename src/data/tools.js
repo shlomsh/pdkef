@@ -547,7 +547,7 @@ export const tools = [
       { question: 'Can I scan with my phone camera?', answer: 'Yes. On a phone, Take a photo opens the camera, one page per shot. You can also pick photos you already took, or JPG and PNG files on a computer.' },
       { question: 'How do I straighten a crooked page?', answer: "Each page has four corners. They are placed on the page edges when those can be found; drag any corner onto the page's real corner and the page is flattened into a rectangle, as if it had been scanned flat." },
       { question: 'What does the Document look do?', answer: 'It evens out shadows and uneven light, then turns the page into dark text on a white background, which reads well and keeps the file small. Original keeps the colours and Grayscale drops them.' },
-      { question: 'Can I keep the PDF under 1 MB?', answer: 'Yes. Choose a size limit and the image quality, and then the resolution, steps down until the whole PDF fits. The final size is shown before you download.' },
+      { question: 'Can I keep the PDF under 1 MB?', answer: 'Yes. Choose a size limit and the image quality, and then the resolution, steps down until the whole PDF is under it. The final size is shown before you download, and if a long scan cannot get that small, it tells you so.' },
       { question: 'What page size will the PDF be?', answer: 'Fit keeps each page the size of its scan. A4 and Letter put every page on that paper size, turned to match the scan, so it prints at the size people expect.' },
       { question: 'Can I sign or merge the scan afterwards?', answer: 'Yes. Once the PDF is ready, Sign, Merge and Compress each take it with one tap, with no need to download it and open it again.' },
     ],

@@ -299,4 +299,57 @@ describe('PdfScanTool', () => {
     expect(checked('Look')).toBe('Document');
     expect(vi.mocked(pipeline.processPage).mock.calls.some(([, , look]) => look === 'original')).toBe(true);
   });
+
+  it('shows the exact page again when a setting goes back to one already built (a cached PDF)', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await useCorners();
+    await settle(1000);
+    const exact = () => container.querySelector('[data-paper]').hasAttribute('data-exact');
+    expect(exact()).toBe(true);
+    const size = (label) => Array.from(radioGroup('Page size').querySelectorAll('button')).find((b) => b.textContent === label);
+    await act(async () => { size('A4').click(); });
+    await settle(1000);
+    expect(exact()).toBe(true);
+    const builds = vi.mocked(pipeline.buildScanPdf).mock.calls.length;
+    await act(async () => { size('Fit').click(); });
+    await settle(1000);
+    // Fit was built before: no new build, and the view is the PDF's own page again.
+    expect(vi.mocked(pipeline.buildScanPdf).mock.calls.length).toBe(builds);
+    expect(exact()).toBe(true);
+  });
+
+  it('says a photo could not be read, instead of finding edges forever, and offers no corners to use', async () => {
+    vi.mocked(pipeline.inspectPhoto).mockImplementation(() => Promise.reject(new Error('decode failed')));
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    expect(container.textContent).not.toContain('Finding the page edges');
+    expect(container.textContent).toContain('Could not read this photo');
+    expect(byText('Use these corners')[0].disabled).toBe(true);
+  });
+
+  it('moves focus to the page heading when the view changes, so a keyboard is not dropped on the body', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    byText('Use these corners')[0].focus();
+    await useCorners();
+    await settle();
+    expect(document.activeElement?.hasAttribute('data-page-heading')).toBe(true);
+  });
+
+  it('drops a Find the page result for a page removed while it waited', async () => {
+    let resolveFind;
+    mount();
+    await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+    await settle();
+    vi.mocked(pipeline.guessPage).mockImplementationOnce(() => new Promise((r) => { resolveFind = r; }));
+    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { container.querySelector('[aria-label="Remove page 1"]').click(); });
+    await act(async () => { resolveFind?.(GUESS); });
+    await settle();
+    expect(container.textContent).not.toContain('Page edges found');
+  });
 });

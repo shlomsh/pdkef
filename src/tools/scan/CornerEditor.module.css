@@ -88,8 +88,11 @@
   pointer-events: none;
 }
 
+/* Hidden by visibility, not display: a display:none background never loads, and the first touch
+   showed an empty loupe until it did. Fixed position, so it takes no space either way. */
 .loupe[hidden] {
-  display: none;
+  display: block;
+  visibility: hidden;
 }
 
 .loupe-lines {

@@ -79,6 +79,10 @@ describe('addImagePage rotation', () => {
 });
 
 describe('placeImage', () => {
+  it("an unknown page size falls back to 'fit'", () => {
+    expect(placeImage(60, 40, 'a3')).toEqual(placeImage(60, 40, 'fit'));
+  });
+
   it("'fit' makes the page the image's pixel size with the image filling it", () => {
     expect(placeImage(60, 40, 'fit')).toEqual({ pageWidth: 60, pageHeight: 40, x: 0, y: 0, width: 60, height: 40 });
   });

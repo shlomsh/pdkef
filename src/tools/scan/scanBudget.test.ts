@@ -65,6 +65,23 @@ describe('fitScanToBudget', () => {
   });
 });
 
+describe('fitScanToBudget failure', () => {
+  it('rejects when a build fails and still releases every rendered handle', async () => {
+    const render = vi.fn(async (scale: number) => ({ scale }));
+    let calls = 0;
+    const build = vi.fn(async (handle: { scale: number }, quality: number) => {
+      calls += 1;
+      if (calls === 2) throw new Error('build failed');
+      return new Blob([new Uint8Array(sizeOf(handle.scale, quality))]);
+    });
+    const release = vi.fn();
+    await expect(fitScanToBudget({ budgetBytes: 1000, render, build, release, deadlineMs: Number.POSITIVE_INFINITY })).rejects.toThrow('build failed');
+    const rendered = await Promise.all(render.mock.results.map((r) => r.value));
+    expect(rendered.length).toBeGreaterThan(0);
+    for (const handle of rendered) expect(release).toHaveBeenCalledWith(handle);
+  });
+});
+
 describe('SIZE_LIMITS', () => {
   it('offers no limit, 2 MB, 1 MB and 500 KB, in that order', () => {
     expect(SIZE_LIMITS.map((limit) => [limit.id, limit.bytes])).toEqual([

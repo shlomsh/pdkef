@@ -21,7 +21,9 @@ export function orderQuad(points: Point[]): Quad {
   const byAngle = [...points].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
   let start = 0;
   for (let i = 1; i < 4; i += 1) {
-    if (byAngle[i].x + byAngle[i].y < byAngle[start].x + byAngle[start].y) start = i;
+    const diff = byAngle[i].x + byAngle[i].y - (byAngle[start].x + byAngle[start].y);
+    // A page turned 45 degrees ties two corners: prefer the higher one (smaller y).
+    if (diff < -1e-9 || (Math.abs(diff) <= 1e-9 && byAngle[i].y < byAngle[start].y)) start = i;
   }
   return [0, 1, 2, 3].map((i) => byAngle[(start + i) % 4]) as Quad;
 }

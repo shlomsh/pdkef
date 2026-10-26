@@ -7,6 +7,10 @@ export type ScanFilter = 'original' | 'grayscale' | 'document';
 const PAPER = 0.9;
 const INK = 0.5;
 const BLUR_PASSES = 2;
+/** A block whose brightest pixel is under this share of the paper level nearby shows no paper (a printed dark area). */
+const NO_PAPER = 0.6;
+/** How far, in blocks, to look for paper around a dark block; wider than the dark areas worth keeping (about 16 blocks across). */
+const PAPER_REACH = 8;
 
 function lumaPlane(image: RgbaImage): Float32Array {
   const n = image.width * image.height;
@@ -32,6 +36,31 @@ function boxBlur3(grid: Float32Array, gw: number, gh: number): Float32Array {
   return out;
 }
 
+/** Replace blocks that are dark because of print, not shade, by the paper level around them. */
+function fillNoPaper(grid: Float32Array, gw: number, gh: number): Float32Array {
+  const maxAlong = (src: Float32Array, horizontal: boolean): Float32Array => {
+    const out = new Float32Array(src.length);
+    for (let y = 0; y < gh; y += 1) {
+      for (let x = 0; x < gw; x += 1) {
+        let m = 0;
+        for (let d = -PAPER_REACH; d <= PAPER_REACH; d += 1) {
+          const xx = horizontal ? x + d : x;
+          const yy = horizontal ? y : y + d;
+          if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+          const v = src[yy * gw + xx];
+          if (v > m) m = v;
+        }
+        out[y * gw + x] = m;
+      }
+    }
+    return out;
+  };
+  const paper = maxAlong(maxAlong(grid, true), false);
+  const out = new Float32Array(grid);
+  for (let i = 0; i < out.length; i += 1) if (grid[i] < NO_PAPER * paper[i]) out[i] = paper[i];
+  return out;
+}
+
 function documentLook(image: RgbaImage): RgbaImage {
   const { width, height } = image;
   const luma = lumaPlane(image);
@@ -47,6 +76,7 @@ function documentLook(image: RgbaImage): RgbaImage {
       if (v > grid[g]) grid[g] = v;
     }
   }
+  grid = fillNoPaper(grid, gw, gh);
   for (let i = 0; i < BLUR_PASSES; i += 1) grid = boxBlur3(grid, gw, gh);
 
   const out = new Uint8ClampedArray(width * height * 4);
