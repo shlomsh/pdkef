@@ -33,6 +33,8 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
@@ -347,6 +349,27 @@ export default function PdfMergeTool({
     ? (failedEntry.error ?? (prepared.error instanceof MergeFileError ? prepared.error.reason : 'unreadable'))
     : null;
   const otherError = !failedEntry && prepared.status === 'error';
+
+  // One protected file is a precondition, not a failure: it gets the shared locked state in place of the
+  // result (src/shell/NeedsUnlock.tsx), as in every other tool. Among several files the inline error stays.
+  // The probe tells a password from an owner-only restriction; if it cannot say, the inline error shows.
+  const [lockedProbe, setLockedProbe] = useState<{ file: File; kind: NeedsUnlockKind; bytes: ArrayBuffer } | null>(null);
+  const lockedFile = entries.length === 1 && entries[0].error === 'encrypted' ? entries[0].file : null;
+  useEffect(() => {
+    if (!lockedFile) return undefined;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const bytes = await lockedFile.arrayBuffer();
+        const kind = await probeEncryption(bytes);
+        if (!cancelled && (kind === 'needs-password' || kind === 'owner-restricted')) setLockedProbe({ file: lockedFile, kind, bytes });
+      } catch (err) {
+        reportError('pdf_tool_run', err, 'check_encryption');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lockedFile]);
+  const needsUnlock = lockedFile && lockedProbe?.file === lockedFile ? lockedProbe : null;
 
   const downloadFlow = useDownloadFlow({
     prepared,
@@ -1095,7 +1118,7 @@ export default function PdfMergeTool({
                  having something worth reordering, same threshold as the
                  desktop rail's own Sort control. */
               touchHint={(entries.length > 1 || outputCount > 1) && t.touchDragHint}
-              heading={(
+              heading={needsUnlock ? null : (
                 <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
                   {/* MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the
                       visible name IS the editable output file name - one
@@ -1123,7 +1146,7 @@ export default function PdfMergeTool({
                   </OutputName>
                 </h2>
               )}
-              headerStatus={(
+              headerStatus={needsUnlock ? null : (
                 <>
                   <HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />
                   {pickedUpHintVisible ? (
@@ -1325,7 +1348,25 @@ export default function PdfMergeTool({
                 </>
               )}
             >
-              {failedEntry && failedReason && (
+              {needsUnlock && (
+                <NeedsUnlock
+                  kind={needsUnlock.kind}
+                  file={needsUnlock.file}
+                  bytes={needsUnlock.bytes}
+                  from="merge"
+                  toolName="Merge"
+                  verb="merge"
+                  replace={false}
+                  messages={{
+                    title: needsUnlock.kind === 'needs-password' ? t.protectedNeedsPasswordTitle : t.protectedOwnerOnlyTitle,
+                    body: needsUnlock.kind === 'needs-password' ? t.protectedNeedsPasswordBody : t.protectedOwnerOnlyBody,
+                    unlockIt: t.protectedUnlockIt,
+                    handoffFailed: t.protectedHandoffFailed,
+                  }}
+                />
+              )}
+
+              {!needsUnlock && failedEntry && failedReason && (
                 <ErrorMessage>
                   {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
                   {' '}
@@ -1341,9 +1382,9 @@ export default function PdfMergeTool({
                 </ErrorMessage>
               )}
 
-              {otherError && <ErrorMessage>{t.errorTooLarge}</ErrorMessage>}
+              {!needsUnlock && otherError && <ErrorMessage>{t.errorTooLarge}</ErrorMessage>}
 
-              {PageGrid && plan.length > 0 && (
+              {!needsUnlock && PageGrid && plan.length > 0 && (
                 <PageGrid
                   sources={entries}
                   plan={plan}
