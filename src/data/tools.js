@@ -587,8 +587,8 @@ export const tools = [
           heading: 'Size limit',
           caption: 'The same words at full size. Under a 500 KB limit the text stays readable.',
           items: [
-            { src: '/images/scan-guide/limit-none.jpg', label: 'No limit', width: 600, height: 400, alt: 'A few lines of text at full size' },
-            { src: '/images/scan-guide/limit-500kb.jpg', label: '500 KB', width: 600, height: 400, alt: 'The same lines of text under a 500 KB limit, still readable' },
+            { src: '/images/scan-guide/limit-none.jpg', label: 'No limit · 751 KB PDF', width: 600, height: 400, alt: 'The signature line of the sample form at full size, from the PDF made with no size limit' },
+            { src: '/images/scan-guide/limit-500kb.jpg', label: 'Under 500 KB · 495 KB PDF', width: 600, height: 400, alt: 'The same signature line from the PDF made under a 500 KB limit, still sharp and readable' },
           ],
         },
       ],
