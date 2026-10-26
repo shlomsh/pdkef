@@ -1,0 +1,74 @@
+/* Base styles are the LAST frame, so reduced motion sees the finished row: three pages, one gone. */
+.d1 {
+  translate: calc(-88 * var(--u)) 0;
+}
+
+.d2 {
+  translate: calc(-38 * var(--u)) calc(-26 * var(--u));
+  opacity: 0;
+  scale: 0.86;
+}
+
+.d3 {
+  translate: 0 0;
+}
+
+.d4 {
+  translate: calc(88 * var(--u)) 0;
+}
+
+@keyframes d1 {
+  0%,
+  56% {
+    translate: calc(-114 * var(--u)) 0;
+  }
+}
+
+@keyframes d2 {
+  0%,
+  18% {
+    translate: calc(-38 * var(--u)) 0;
+    opacity: 1;
+    scale: 1;
+  }
+  32% {
+    translate: calc(-38 * var(--u)) calc(-12 * var(--u));
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes d3 {
+  0%,
+  56% {
+    translate: calc(38 * var(--u)) 0;
+  }
+}
+
+@keyframes d4 {
+  0%,
+  56% {
+    translate: calc(114 * var(--u)) 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .d1 {
+    animation: d1 2s var(--ease-emphasized) 0.2s both;
+  }
+
+  .d2 {
+    animation: d2 2s var(--ease-emphasized) 0.2s both;
+  }
+
+  .d3 {
+    animation: d3 2s var(--ease-emphasized) 0.2s both;
+  }
+
+  .d4 {
+    animation: d4 2s var(--ease-emphasized) 0.2s both;
+  }
+}
