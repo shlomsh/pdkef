@@ -22,7 +22,7 @@ import { chooseStyle } from '../chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
-import ExportHandoffs from '../../../editor-ui/ExportHandoffs.tsx';
+import ExportHandoffs from '../../../shell/ExportHandoffs.tsx';
 import { Eraser, Shrink } from 'lucide-preact';
 import FormFieldHints from './FormFieldHints.tsx';
 import type { FormFieldRegions } from '../useFormFieldRegions.ts';

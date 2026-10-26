@@ -1,5 +1,5 @@
 import { FileSignature, Shrink } from 'lucide-preact';
-import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
+import ExportHandoffs from '../../shell/ExportHandoffs.tsx';
 import { formatFileSize } from '../../lib/format.js';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './RedactDone.module.css';
