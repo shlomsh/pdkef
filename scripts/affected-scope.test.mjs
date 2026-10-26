@@ -97,7 +97,7 @@ describe('ownerOf', () => {
     ['src/site-lib/ratingStore.ts', 'site-lib'],
     // DEBT-07: src/i18n/ got its own Nx project (same shape as site-test), so
     // this now resolves to 'i18n', not the 'site' fallback it used to.
-    ['src/i18n/toolMessages.ts', 'i18n'],
+    ['src/i18n/localizedTools.ts', 'i18n'],
     ['public/fonts/Kalam-Regular.ttf', 'font-assets'],
     ['e2e/sign/hebrew-composition-guard.spec.js', 'fonts'],
     // ARCH-23: the export render guard's baseline moved to e2e/export/,
