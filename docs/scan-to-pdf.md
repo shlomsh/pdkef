@@ -123,9 +123,6 @@ photo to the first listed type, JPEG (WebKit bug 303803 documents the conversion
 would hand HEIC over, which Chrome and Firefox cannot decode. The evidence and what is still to check on a
 real iPhone are in `backlog/tasks/SCAN-01.md` (open questions).
 
-## Not in the home dock (yet)
+## Home dock
 
-The home dock is laid out for ten 80px cards (`HomePageLayout.astro`, SITE-43's gap maths), and the home
-first screen is one composed unit. Scan's registry entry carries `homeDock: false`, so it is on every
-tool page's cross links, the sitemap and the 404 grid but not the dock. Adding an eleventh card is a home
-page design change for Shlomi to decide.
+Scan is the eleventh card on the home dock, right after Image to PDF (`HomePageLayout.astro` carries the gap maths).
