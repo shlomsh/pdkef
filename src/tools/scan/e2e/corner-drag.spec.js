@@ -49,8 +49,7 @@ test.describe('scan - corner drag', () => {
     });
 
     await waitForScrollToSettle(page);
-    // The centre shows the result; the corners are a mode.
-    await page.getByRole('button', { name: 'Adjust corners' }).click();
+    // A new photo opens in the corners view, to approve or adjust first.
     const group = page.getByRole('group', { name: 'Page corners' });
     // The group div has no box of its own (its handles are absolutely placed), so wait on a handle.
     const handle = group.getByRole('button', { name: 'Top-left corner' });
