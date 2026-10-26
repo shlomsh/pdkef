@@ -68,7 +68,7 @@
 import { test, expect } from '@playwright/test';
 import { buildFontkitBundle, removeFontkitBundle } from './fixtures/shapingGuardHarness.js';
 import { useTemporaryBundle } from './fixtures/temporaryBundle.js';
-import { WYSIWYG_STRING_BY_ID } from '../../src/test/fixtures/wysiwygStrings.js';
+import { WYSIWYG_STRING_BY_ID } from '../../src/test/support/fixtures/wysiwygStrings.js';
 
 /**
  * Strings a per-character sweep cannot cover: kerning only exists between a

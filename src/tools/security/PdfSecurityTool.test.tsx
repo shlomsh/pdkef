@@ -6,8 +6,8 @@ import PdfSecurityTool from './PdfSecurityTool.tsx';
 import * as securityLib from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 

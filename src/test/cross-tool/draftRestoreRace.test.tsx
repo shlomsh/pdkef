@@ -6,7 +6,7 @@ import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import redactStyles from '../../tools/redact/PdfRedactTool.module.css';
 import { takeHandoff } from '../../lib/drafts/draftStore.js';
-import { setInputFiles } from '../setInputFiles.js';
+import { setInputFiles } from '../support/setInputFiles.js';
 
 const REDACT_BOX = redactStyles['redact-box'];
 

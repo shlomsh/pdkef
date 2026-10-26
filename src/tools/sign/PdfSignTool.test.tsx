@@ -11,7 +11,7 @@ import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 declare const __dirname: string;

@@ -14,8 +14,8 @@ import styles from './PdfCompressTool.module.css';
 import sliderStyles from './CompareSlider.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));

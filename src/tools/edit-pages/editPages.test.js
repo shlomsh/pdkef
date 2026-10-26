@@ -3,7 +3,7 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { editPages } from './editPages.js';
-import { ORIGINAL_WIDTHS, noPagesKey } from '../../test/pdfPageTreeFixtures.ts';
+import { ORIGINAL_WIDTHS, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 
 describe('editPages library integration with real fixtures', () => {
   function getFixtureFile(name) {

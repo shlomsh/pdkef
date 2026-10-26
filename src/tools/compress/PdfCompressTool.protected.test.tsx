@@ -11,7 +11,7 @@ import * as imageLib from './compressImage.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.js';
 import { hebrewCompressMessages } from './messages';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
 // (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
