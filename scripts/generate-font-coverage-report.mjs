@@ -23,7 +23,7 @@
  * tools.js or any Preact island, so it costs zero browser page weight
  * (checked by npm run test:weight). What the Sign page's Languages card
  * actually shows stays curated prose in src/data/tools.js; a test
- * (src/editor/text/languageCoverage.test.js) keeps that prose honest against this
+ * (src/test/languageCoverage.test.js) keeps that prose honest against this
  * report instead of a runtime import doing it.
  *
  * Run with: npm run generate:font-coverage-report
@@ -166,7 +166,7 @@ function generateSource(languageCoverage, combinationCoverage, cyrillicAnchor) {
  * Not imported by any browser bundle - see the header of
  * generate-font-coverage-report.mjs for why the Sign page's Languages card
  * is instead cross-checked against this at test time
- * (src/editor/text/languageCoverage.test.js), not fed from it at runtime.
+ * (src/test/languageCoverage.test.js), not fed from it at runtime.
  */
 
 /** @typedef {{ family: string, style: 'handwriting' | 'upright' }} CoveringFamily */

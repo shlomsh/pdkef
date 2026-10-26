@@ -16,9 +16,9 @@
  * near its budget), it only fails the build when the two disagree.
  */
 import { describe, it, expect } from 'vitest';
-import { tools } from '../../data/tools.js';
-import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
-import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
+import { tools } from '../data/tools.js';
+import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from '../editor/text/fontCoverageReport.js';
 
 const signTool = tools.find((t) => t.slug === 'sign');
 const signLanguages = signTool.languages;
