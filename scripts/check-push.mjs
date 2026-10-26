@@ -179,7 +179,7 @@ export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test
 // ---------------------------------------------------------------------------
 // The pure step-plan builder: given the one computed scope, decide the
 // ordered list of steps to run, stopping early for a docs-only diff. `scope`
-// carries both affected-scope.mjs's own fields (everything, unit_paths,
+// carries both affected-scope.mjs's own fields (everything,
 // e2e_paths, fonts, export_guards) and the two this file adds (docsOnly,
 // reachesDist) - see scripts/check-push.test.mjs for the scenarios this
 // covers.

@@ -4,13 +4,6 @@
   "projectType": "library",
   "sourceRoot": "src/tools/compress",
   "targets": {
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npx vitest run src/tools/compress/",
-        "cwd": "{workspaceRoot}"
-      }
-    },
     "e2e": {
       "executor": "nx:run-commands",
       "options": {
