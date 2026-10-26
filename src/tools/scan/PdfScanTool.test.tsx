@@ -220,4 +220,37 @@ describe('PdfScanTool', () => {
     expect(container.querySelector('[data-paper]').hasAttribute('data-exact')).toBe(false);
     expect(container.textContent).toContain('Updating');
   });
+
+  it('says so when no page edges were found, instead of quietly scanning the whole photo', async () => {
+    vi.mocked(pipeline.guessPage).mockImplementation(() => Promise.resolve(null));
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    expect(container.textContent).toContain('No page edges were found in this photo');
+  });
+
+  it('finds the page on request from the corners view', async () => {
+    vi.mocked(pipeline.guessPage).mockImplementationOnce(() => Promise.resolve(null));
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await adjustCorners();
+    expect(handles()[0].style.left).toBe('0%');
+    vi.mocked(pipeline.guessPage).mockImplementationOnce(() => Promise.resolve(GUESS));
+    await act(async () => { byText('Find the page')[0].click(); });
+    await settle();
+    expect(handles()[0].style.left).toBe(`${GUESS[0].x * 100}%`);
+    expect(container.textContent).not.toContain('No page edges were found');
+  });
+
+  it('says so when Find the page finds nothing either', async () => {
+    vi.mocked(pipeline.guessPage).mockImplementation(() => Promise.resolve(null));
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await adjustCorners();
+    await act(async () => { byText('Find the page')[0].click(); });
+    await settle();
+    expect(container.textContent).toContain('Drag the corners onto the corners of the page');
+  });
 });

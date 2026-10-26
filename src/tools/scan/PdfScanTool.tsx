@@ -50,6 +50,8 @@ interface ScanPage {
   guessed: boolean;
   /** The person moved a corner: their corners win, the guess never overrides them. */
   edited: boolean;
+  /** Whether the edge guess found a page: null until it has run. */
+  found: boolean | null;
 }
 
 interface PageResult { key: string; url: string; page: ProcessedPage }
@@ -115,6 +117,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const [announcement, setAnnouncement] = useState('');
   /** The centre shows the page as it will download; corners are a mode you step into. */
   const [view, setView] = useState<'result' | 'corners'>('result');
+  /** Pages where Find the page ran on request and found nothing; and the one it is running for. */
+  const [findMissed, setFindMissed] = useState<number[]>([]);
+  const [finding, setFinding] = useState<number | null>(null);
   const [shown, setShown] = useState<Shown | null>(null);
   const shownRef = useRef<Shown | null>(null);
   const showPages = (next: Shown | null) => {
@@ -195,7 +200,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setRejectedFiles(rejected.map((f) => f.name));
     if (accepted.length === 0) return;
     const added: ScanPage[] = accepted.map((file) => ({
-      id: nextId++, file, photoUrl: URL.createObjectURL(file), quad: FULL_QUAD, guessed: false, edited: false,
+      id: nextId++, file, photoUrl: URL.createObjectURL(file), quad: FULL_QUAD, guessed: false, edited: false, found: null,
     }));
     setPages((current) => [...current, ...added]);
     setSelectedId((current) => current ?? added[0].id);
@@ -209,7 +214,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
         })
         .then((quad) => {
           setPages((current) => current.map((p) => (
-            p.id !== page.id ? p : { ...p, guessed: true, quad: p.edited || !quad ? p.quad : quad }
+            p.id !== page.id ? p : { ...p, guessed: true, found: !!quad, quad: p.edited || !quad ? p.quad : quad }
           )));
         });
     }
@@ -339,6 +344,28 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setPages(next);
     announce(formatMessage(t.announceMoved, { position: next.findIndex((p: ScanPage) => p.id === id) + 1, total: next.length }));
     recordAction('reorder');
+  };
+
+  // Find the page again, on request: the person asked, so what it finds becomes their corners.
+  const findPage = (page: ScanPage) => {
+    setFinding(page.id);
+    enqueue(async () => (await loadPipeline()).guessPage(page.file))
+      .then((quad) => quad, (err) => {
+        reportError('pdf_tool_run', err, 'scan_find_page');
+        return null;
+      })
+      .then((quad) => {
+        setFinding(null);
+        if (!quad) {
+          setFindMissed((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
+          announce(t.findMissed);
+          return;
+        }
+        setFindMissed((ids) => ids.filter((id) => id !== page.id));
+        setPages((current) => current.map((p) => (p.id === page.id ? { ...p, quad, edited: true, found: true } : p)));
+        announce(t.pageFoundAnnounce);
+        recordAction('change_setting');
+      });
   };
 
   const commitCorners = (id: number, quad: Quad) => {
@@ -543,9 +570,18 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 <div class={styles['editor-head']}>
                   <p class={styles['editor-title']}>
                     {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
-                    {view === 'corners' && <span class={styles['editor-hint']}>{selected.guessed ? t.cornersHint : t.findingEdges}</span>}
+                    {view === 'corners' && (
+                      <span class={styles['editor-hint']} role="status">
+                        {!selected.guessed || finding === selected.id ? t.findingEdges : findMissed.includes(selected.id) ? t.findMissed : t.cornersHint}
+                      </span>
+                    )}
                   </p>
                   <div class={styles['editor-actions']}>
+                    {view === 'corners' && (
+                      <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null} onClick={() => findPage(selected)}>
+                        {t.findPage}
+                      </button>
+                    )}
                     {view === 'corners' && (
                       <button
                         type="button"
@@ -575,7 +611,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     labels={{ group: t.cornersGroup, corners: t.corners }}
                   />
                 ) : (
+                  <>
+                    {selected.found === false && !selected.edited && (
+                      <p class={styles['not-found']} role="status">
+                        {t.notFound}
+                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>{t.adjustCorners}</button>
+                      </p>
+                    )}
                   <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
+                  </>
                 )}
               </section>
 

@@ -30,6 +30,21 @@
   font-weight: 600;
 }
 
+.not-found {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-paper);
+  font-size: 0.9rem;
+}
+
 .editor-actions {
   display: flex;
   flex-wrap: wrap;
