@@ -78,6 +78,8 @@ import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 import { dropCause, reportError } from '../../lib/errorReport.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
+import { englishRedactMessages as t } from './messages.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -390,7 +392,7 @@ export default function PdfRedactTool() {
     // workspace into 'loading' - saying "editing" over that would show an
     // empty editor for the file still being read.
     if (statusRef.current !== 'redacting') return;
-    dispatch({ type: 'EXPORT_CANCELLED', announcement: 'You changed something, so that download stopped. Download again when ready.' });
+    dispatch({ type: 'EXPORT_CANCELLED', announcement: t.exportSuperseded });
     // Keyed on the revision, not on `elements`, so this fires on exactly what
     // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
     // two different notions of "the document moved", an edit that bumped the
@@ -416,6 +418,7 @@ export default function PdfRedactTool() {
     status,
     setLoadStatus,
     setAnnouncement,
+    messages: { invalidPdf: t.invalidPdf, needsPassword: t.needsPassword, ownerRestricted: t.ownerRestricted },
     onNeedsUnlock: setNeedsUnlock,
     initialize: ({ file: selected, preset, restored }) => {
       setNeedsUnlock(null);
@@ -505,9 +508,9 @@ export default function PdfRedactTool() {
           ...(type === 'blackout' ? { color } : {}),
           ...(type === 'blur' ? { strength: activeBlurStrength } : {}),
         };
-        commands.add([element], { type: `ADD_${type.toUpperCase()}`, description: `Added ${type} box` });
+        commands.add([element], { type: `ADD_${type.toUpperCase()}`, description: formatMessage(t.addedBox, { type }) });
         recordAction('place_mark');
-        setAnnouncement(`Added ${type} box.`);
+        setAnnouncement(formatMessage(t.addedBoxAnnounce, { type }));
         disarmTool();
       },
       cancel: () => {
@@ -520,10 +523,10 @@ export default function PdfRedactTool() {
   // RED-32: one stroke, one history entry. The brush stays armed afterwards
   // (no disarmTool): painting is several strokes in a row.
   const addStroke = (stroke: CommittedStroke) => {
-    const word = stroke.type === 'blurStroke' ? 'blur' : 'whiteout';
-    commands.add([stroke as RedactElement], { type: 'ADD_STROKE', description: `Painted a ${word} stroke` });
+    const word = stroke.type === 'blurStroke' ? t.strokeBlur : t.strokeWhiteout;
+    commands.add([stroke as RedactElement], { type: 'ADD_STROKE', description: formatMessage(t.paintedStroke, { kind: word }) });
     recordAction('place_mark');
-    setAnnouncement(`Painted a ${word} stroke.`);
+    setAnnouncement(formatMessage(t.paintedStrokeAnnounce, { kind: word }));
   };
 
   // Registers a short-lived Undo chip for a delete/clear command already
@@ -571,7 +574,7 @@ export default function PdfRedactTool() {
     const el = elements.find(e => e.id === id);
     if (!el) return;
     commands.remove(new Set([id]), {
-      type: 'DELETE_ELEMENT', description: `Removed the ${el.type} box`, pageIndex: el.pageIndex, chipMessage: `Removed the ${el.type} box`,
+      type: 'DELETE_ELEMENT', description: formatMessage(t.removedBox, { type: el.type }), pageIndex: el.pageIndex, chipMessage: formatMessage(t.removedBox, { type: el.type }),
     });
     recordAction('delete_mark');
   };
@@ -606,7 +609,7 @@ export default function PdfRedactTool() {
   // Cmd/Ctrl+Z reverts the single newest command; the reducer reads the
   // current `past`, so two undo keydowns landing in the same task (key
   // auto-repeat) are two distinct reverts. Nothing to undo reverts nothing.
-  const undoLast = () => { dispatch({ type: 'UNDO' }); if (actionHistory.length > 0) recordAction('undo'); };
+  const undoLast = () => { dispatch({ type: 'UNDO', announceTemplate: t.undone }); if (actionHistory.length > 0) recordAction('undo'); };
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
   // it named, by id, rather than "whatever is newest" - if another action
@@ -618,13 +621,13 @@ export default function PdfRedactTool() {
     if (!undoAction) return;
     const entryId = undoAction.entryId;
     clearUndoChip();
-    dispatch({ type: 'UNDO', entryId });
+    dispatch({ type: 'UNDO', entryId, announceTemplate: t.undone });
     recordAction('undo');
   };
 
   // Shift+Cmd/Ctrl+Z or Ctrl+Y: reapplies the single most recently undone
   // command, the exact mirror of undoLast.
-  const redoLast = () => { dispatch({ type: 'REDO' }); if (canRedoOf(state)) recordAction('redo'); };
+  const redoLast = () => { dispatch({ type: 'REDO', announceTemplate: t.redone }); if (canRedoOf(state)) recordAction('redo'); };
 
   useHistoryShortcuts(undoLast, redoLast);
 
@@ -787,7 +790,7 @@ export default function PdfRedactTool() {
   const exportRedacted = async (exportAction: 'download' | 'share' | 'handoff' = 'download', overrides: ExportOverrides = {}): Promise<SavedExport | null> => {
     if (!file) return null;
     if (elements.length === 0) {
-      setAnnouncement('Draw a box or delete something first.');
+      setAnnouncement(t.drawFirst);
       return null;
     }
 
@@ -837,14 +840,14 @@ export default function PdfRedactTool() {
 
       if (exportAction === 'handoff') {
         // The chips want the file, not a download: make it, keep it, deliver nothing.
-        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Ready to hand off.' });
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: t.readyHandoff });
       } else if (exportAction === 'share' && prepare(redactedBlob, filename)) {
-        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: t.readyShare });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       } else {
         recordAction('download');
         download(redactedBlob, filename);
-        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: t.savedStarted });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       }
       return saved;
@@ -858,7 +861,7 @@ export default function PdfRedactTool() {
       if (run.isCurrent() && (name === 'EncryptedPDFError' || message.includes('is encrypted'))) {
         run.settle();
         setNeedsUnlock('owner-restricted');
-        dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: 'This PDF is protected.' });
+        dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: t.pdfProtected });
         return null;
       }
       // A failure nobody is waiting for any more: the invalidation effect has
@@ -874,9 +877,9 @@ export default function PdfRedactTool() {
       // A tab left open across a deploy asks for chunks the new deploy no longer serves, so a retry
       // fails the same way (seen 2026-10-22: one tab, four tries). A reload fixes it and restores the draft.
       const detail = dropCause(err) === 'module_load'
-        ? 'PDkef was updated while this page was open. Reload the page to continue. Your edits are kept.'
-        : 'Could not export the PDF. Your edits are still here. Try again.';
-      dispatch({ type: 'EXPORT_FAILED', detail, announcement: `The download stopped. ${detail}` });
+        ? t.exportUpdated
+        : t.exportFailed;
+      dispatch({ type: 'EXPORT_FAILED', detail, announcement: formatMessage(t.downloadStoppedDetail, { detail }) });
       return null;
     }
   };
@@ -894,7 +897,7 @@ export default function PdfRedactTool() {
   const handleDownloadPdf = () => {
     dispatch({ type: 'EXPORT_ERROR_CLEARED' });
     if (downloadPrepared()) {
-      setAnnouncement('Download started.');
+      setAnnouncement(t.downloadStarted);
       recordAction('download');
       return;
     }
@@ -904,13 +907,13 @@ export default function PdfRedactTool() {
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
-      setAnnouncement('Shared.');
+      setAnnouncement(t.shared);
       recordAction('share');
     } else if (result.status === 'canceled') {
-      setAnnouncement('Sharing canceled. Your redacted PDF is still ready to share.');
+      setAnnouncement(t.shareCanceled);
     } else if (result.status === 'error') {
       console.error(result.error);
-      setAnnouncement('Could not open the share sheet. Try again.');
+      setAnnouncement(t.shareError);
     }
   };
 
@@ -1286,7 +1289,7 @@ export default function PdfRedactTool() {
             {/* Export error - recoverable, so it renders alongside the still-mounted
                 workspace instead of replacing it (see handleSavePdf's catch). */}
             {errorDetail && (
-              <ErrorMessage title="The download stopped." fullWidth>
+              <ErrorMessage title={t.downloadStopped} fullWidth>
                 {errorDetail}
               </ErrorMessage>
             )}
@@ -1306,7 +1309,7 @@ export default function PdfRedactTool() {
 
       {/* Error */}
       {status === 'error' && !needsUnlock && (
-        <ErrorMessage title="This PDF didn't open." fullWidth>
+        <ErrorMessage title={t.didntOpen} fullWidth>
           <LoadErrorBody />
         </ErrorMessage>
       )}
@@ -1322,7 +1325,7 @@ export default function PdfRedactTool() {
 function LoadErrorBody() {
   return (
     <>
-      It may be damaged, or locked with a password. A locked PDF opens in <a href="/unlock/">Unlock</a> first.
+      {t.loadErrorLead} <a href="/unlock/">{t.loadErrorUnlock}</a> {t.loadErrorTail}
       <FileActions />
     </>
   );

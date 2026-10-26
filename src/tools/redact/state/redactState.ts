@@ -16,6 +16,7 @@
  *     and the Share bytes (`usePdfShare`), which keep their own hooks.
  */
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { formatMessage } from '../../../lib/formatMessage.ts';
 import {
   applyHistoryEntries,
   removedPlaces,
@@ -205,8 +206,9 @@ export type RedactAction =
   | { type: 'DETAIL_EDITED'; id: string; edit: DetailEdit }
   | { type: 'DETAIL_RESTORED'; id: string }
   | { type: 'DETAILS_COMMITTED' }
-  | { type: 'UNDO'; entryId?: string }
-  | { type: 'REDO' }
+  /** `announceTemplate` is the tool's "Undid: {description}" wording; without one the announcement is the description alone. */
+  | { type: 'UNDO'; entryId?: string; announceTemplate?: string }
+  | { type: 'REDO'; announceTemplate?: string }
   | { type: 'UNDO_CHIP_SHOWN'; message: string; entryId: string; extra?: RedactUndoChip['extra'] }
   | { type: 'UNDO_CHIP_DISMISSED' }
   // Tool
@@ -313,6 +315,11 @@ function selectionSurviving(state: RedactState, elements: RedactElement[]): Reda
   const selectedBoxId = keepIfAlive(state.selection.selectedBoxId, alive);
   if (activeBoxId === state.selection.activeBoxId && selectedBoxId === state.selection.selectedBoxId) return state.selection;
   return { activeBoxId, selectedBoxId };
+}
+
+/** The live-region line for an undo or redo: the tool's template with the command's description in it. */
+function announcedWith(template: string | undefined, description: string): string {
+  return template ? formatMessage(template, { description }) : description;
 }
 
 function withDocument(state: RedactState, patch: Partial<RedactState['document']>): RedactState {
@@ -452,7 +459,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           documentRevision: state.edits.documentRevision + 1,
         },
         selection: selectionSurviving(state, elements),
-        view: { ...state.view, announcement: `Undid: ${reverted[0].description}` },
+        view: { ...state.view, announcement: announcedWith(action.announceTemplate, reverted[0].description) },
       };
     }
     case 'REDO': {
@@ -468,7 +475,7 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
           documentRevision: state.edits.documentRevision + 1,
         },
         selection: selectionSurviving(state, elements),
-        view: { ...state.view, announcement: `Redid: ${step.entry.description}` },
+        view: { ...state.view, announcement: announcedWith(action.announceTemplate, step.entry.description) },
       };
     }
     case 'UNDO_CHIP_SHOWN':

@@ -56,6 +56,11 @@ function mount(overrides: Partial<EditorFileSessionOptions<any>> = {}) {
       file: null,
       pdfDocument: null,
       status: 'idle',
+      messages: {
+        invalidPdf: 'Choose a PDF file.',
+        needsPassword: 'This PDF has a password. Unlock opens it.',
+        ownerRestricted: 'This PDF is protected. Unlock takes the protection off.',
+      },
       draft: { elements: [], actionHistory: [], isDirty: false, isElement: (v: unknown): v is any => true },
       ...spies,
       ...overrides,
