@@ -109,8 +109,9 @@ own project (above) does not, by itself, remove `site` (or any tool) from `edito
 set, unlike `site-test`'s split. The reason is structural, not a missed step: `site` has a real,
 unavoidable edge to `i18n` (astro pages and layouts import the message catalogues to render at all),
 and every tool has its own real, permitted edge straight to `i18n` (module-boundaries rule 1: "a tool
-may import site's i18n/data"). `src/i18n/toolMessages.ts` still does
-`import type { SignMessages } from '../editor/registry/messages'`, so `i18n -> editor` is a real edge
+may import site's i18n/data"). `src/i18n/toolMessages.ts` then did
+`import type { SignMessages } from '../editor/registry/messages'` (ARCH-35 split that file up and
+`i18nImportsNothingAbove.test.js` now keeps `i18n` from importing the editor, shell or tools), so `i18n -> editor` was a real edge
 too - and unlike `site-test`'s five files, this one cannot be moved to a neutral test-support project,
 because it is production code that both the editor's registry and every tool's message catalogue
 consumer need. So the chain `tool -> i18n -> editor` (and `site -> i18n -> editor`) reproduces the same
@@ -251,7 +252,7 @@ that recreates the ARCH-20 problem goes red instead of silently widening every n
 ## Where the `shell -> i18n` (formerly `lib -> i18n`) coupling still applies
 
 `arch-20-prep` found `src/lib/useWorkspaceGestures.ts` had a genuine runtime import from
-`src/i18n/toolMessages.ts` (`englishSignMessages`, `formatMessage`, `signElementTypeLabel`); ARCH-17/18
+`src/i18n/toolMessages.ts` (since split by ARCH-35; `englishSignMessages`, `formatMessage`, `signElementTypeLabel`); ARCH-17/18
 later moved that file to `src/tools/sign/useWorkspaceGestures.ts` (Sign's own folder, not `lib`), and
 today it is `src/shell/` that carries the real edge instead (`RecentFiles.tsx`, `ToolShell.tsx`,
 `BasePdfTool.tsx`, `FileDropzone.tsx`, `DropzoneEmptyState.tsx` all import from `src/i18n/`). Every

@@ -185,7 +185,7 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
 
   const failure = (
     <ErrorMessage>
-      A protected PDF opens in <a href="/unlock/">Unlock</a> first. Otherwise the file may be damaged - try another PDF.
+      {t.failureLead} <a href="/unlock/">{t.failureUnlock}</a> {t.failureTail}
     </ErrorMessage>
   );
 

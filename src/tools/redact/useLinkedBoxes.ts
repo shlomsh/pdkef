@@ -3,16 +3,18 @@ import { withoutFindSet } from './findSet.ts';
 import { linkedChanges, linkMembers, type LinkedElement, type LinkKind } from './links.ts';
 import type { RedactCommands } from './useRedactCommands.ts';
 import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
+import { englishRedactMessages as t } from './messages.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
 
 /** removeLinked's history type and description for each kind, by member count. */
 const REMOVE_LINKED_LABEL: Record<LinkKind, (count: number) => { type: string; description: string }> = {
   repeatGroup: (count) => ({
     type: 'REMOVE_REPEAT_GROUP',
-    description: `Removed the box from ${count} page${count === 1 ? '' : 's'}`,
+    description: count === 1 ? t.removedFromOnePage : formatMessage(t.removedFromPages, { count }),
   }),
   findSet: (count) => ({
     type: 'REMOVE_FIND_SET',
-    description: `Removed ${count} boxes from this search`,
+    description: formatMessage(t.removedFromSearch, { count }),
   }),
 };
 
@@ -151,9 +153,9 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     const ownBoxes = onPage.some(el => !isRepeated(elements, el));
     return [
       ...(ownBoxes
-        ? [{ label: 'Keep the repeated boxes', onSelect: () => clearPage(pageIndex, { keepRepeated: true }), attrs: { 'data-editor-clear-keep-repeated': true } }]
+        ? [{ label: t.keepRepeated, onSelect: () => clearPage(pageIndex, { keepRepeated: true }), attrs: { 'data-editor-clear-keep-repeated': true } }]
         : []),
-      { label: 'Clear everything on this page', onSelect: () => clearPage(pageIndex), attrs: { 'data-editor-clear-everything': true } },
+      { label: t.clearEverything, onSelect: () => clearPage(pageIndex), attrs: { 'data-editor-clear-everything': true } },
     ];
   };
 

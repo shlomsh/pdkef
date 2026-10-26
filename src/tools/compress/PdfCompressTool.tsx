@@ -700,6 +700,8 @@ export default function PdfCompressTool({
             afterSrc={compare.fullscreen.previews.after}
             beforeLabel={t.compareBeforeLabel}
             afterLabel={t.compareAfterLabel}
+            pageAlt={t.comparePageAlt}
+            sliderLabel={t.compareSliderLabel}
           />
         )}
       </div>
@@ -716,7 +718,7 @@ export default function PdfCompressTool({
   );
   const originalBox = compare.original && (
     <div key="original" class={styles['compare-original']}>
-      <img src={compare.original} alt={`${t.compareBeforeLabel} - page 1`} draggable={false} />
+      <img src={compare.original} alt={formatMessage(t.comparePageAlt, { label: t.compareBeforeLabel })} draggable={false} />
     </div>
   );
 
@@ -764,6 +766,8 @@ export default function PdfCompressTool({
                 afterSrc={compare.previews.after}
                 beforeLabel={t.compareBeforeLabel}
                 afterLabel={t.compareAfterLabel}
+                pageAlt={t.comparePageAlt}
+                sliderLabel={t.compareSliderLabel}
               />
               <p class={styles['compare-caption']}>{compareCaption}</p>
               <button type="button" class={styles['compare-toggle-button']} onClick={() => { void compare.openFullscreen(file, last?.blob ?? null); }}>

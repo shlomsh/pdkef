@@ -13,6 +13,8 @@ import styles from '../../editor-ui/SignToolbar.module.css';
 import UndoRedoButtons from '../../editor-ui/UndoRedoButtons.tsx';
 import redactStyles from './PdfRedactTool.module.css';
 import barStyles from './RedactToolbar.module.css';
+import { englishRedactMessages as t } from './messages.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
 
 // What each tool is called in front of a user and what it is waiting for -
 // the same contract SignToolbar's TOOL_COPY holds, for the same reason: every
@@ -28,19 +30,11 @@ import barStyles from './RedactToolbar.module.css';
 // switch beside it, sized by the longest of them - the extra clause was a
 // third line that every tool's row then paid for (e2e/tool-toolbars/
 // toolbar-phone-row.spec.js).
-const TOOL_COPY: Record<RedactToolType, ToolCopy> = {
-  delete:   { action: 'Click text or an image to delete it, or drag across several.', actionTouch: 'Tap outlined text or an image to delete it.', button: 'Delete' },
-  blackout: { action: 'Click and drag to draw a blackout box.',           actionTouch: 'Drag to draw a blackout box.',                button: 'Blackout' },
-  whiteout: { action: 'Click and drag to draw a whiteout box.',           actionTouch: 'Drag to draw a whiteout box.',                button: 'Whiteout' },
-  blur:     { action: 'Click and drag to draw a blur box.',               actionTouch: 'Drag to draw a blur box.',                    button: 'Blur' },
-};
+const TOOL_COPY: Record<RedactToolType, ToolCopy> = t.toolCopy;
 
 // RED-32: the same tools armed as a brush. The brush stays on until Esc or a
 // second press of its tool, so it shows no keep-on switch (RED-42).
-const BRUSH_COPY: Record<'blur' | 'whiteout', ToolCopy> = {
-  blur:     { action: 'Click and drag to paint a blur.',    actionTouch: 'Drag to paint a blur.',    button: 'Blur' },
-  whiteout: { action: 'Click and drag to paint whiteout.', actionTouch: 'Drag to paint whiteout.', button: 'Whiteout' },
-};
+const BRUSH_COPY: Record<'blur' | 'whiteout', ToolCopy> = t.brushCopy;
 
 const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_COPY;
 
@@ -155,7 +149,7 @@ export default function RedactToolbar({
       if (next !== null && !isRedactToolType(next)) return;
       setTool(next);
       if (next) {
-        setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
+        setAnnouncement(formatMessage(t.toolActive, { tool: TOOL_COPY[next].button, action: TOOL_COPY[next].action }));
         noteArmed(next);
       }
     },
@@ -166,7 +160,7 @@ export default function RedactToolbar({
 
   const lockTool = (tool: RedactToolType) => {
     setTool(tool, true);
-    setAnnouncement(`${TOOL_COPY[tool].button} stays on after each one. Switch it off, or press Escape, when you are done.`);
+    setAnnouncement(formatMessage(t.toolStaysOn, { tool: TOOL_COPY[tool].button }));
   };
 
   // The switch's other half, and deliberately not `setTool(null)`: switching off
@@ -174,7 +168,7 @@ export default function RedactToolbar({
   // for one. Disarming here is what made the old chip a one-way door.
   const unlockTool = (tool: RedactToolType) => {
     setTool(tool, false);
-    setAnnouncement(`${TOOL_COPY[tool].button} is back to one at a time.`);
+    setAnnouncement(formatMessage(t.toolBackToOne, { tool: TOOL_COPY[tool].button }));
   };
 
   // Absent when no tool is armed, which is also what a tool missing from
@@ -223,14 +217,14 @@ export default function RedactToolbar({
               {undoAction.extra && (
                 <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={undoAction.extra.onSelect}>{undoAction.extra.label}</button>
               )}
-              <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={onUndoAction}>Undo</button>
+              <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={onUndoAction}>{t.undo}</button>
             </span>
           ) : (statusMessage ?? undefined)}
         />
       }
     >
-      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">
-        <ArmHint tool="blur" label="Blur" action={TOOL_COPY.blur.action} locked={activeStyle === 'blur' && toolLocked} autoShowTool={autoShowTool}>
+      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label={t.toolbarLabel} dir="ltr" lang="en">
+        <ArmHint tool="blur" label={TOOL_COPY.blur.button} action={TOOL_COPY.blur.action} locked={activeStyle === 'blur' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
             className={toolClass('blur')}
@@ -238,11 +232,11 @@ export default function RedactToolbar({
             aria-pressed={activeStyle === 'blur'}
           >
             <BlurToolIcon />
-            <span className={styles.label}>Blur</span>
+            <span className={styles.label}>{TOOL_COPY.blur.button}</span>
           </button>
         </ArmHint>
 
-        <ArmHint tool="blackout" label="Blackout" action={TOOL_COPY.blackout.action} locked={activeStyle === 'blackout' && toolLocked} autoShowTool={autoShowTool}>
+        <ArmHint tool="blackout" label={TOOL_COPY.blackout.button} action={TOOL_COPY.blackout.action} locked={activeStyle === 'blackout' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
             className={toolClass('blackout')}
@@ -250,11 +244,11 @@ export default function RedactToolbar({
             aria-pressed={activeStyle === 'blackout'}
           >
             <BlackoutToolIcon />
-            <span className={styles.label}>Blackout</span>
+            <span className={styles.label}>{TOOL_COPY.blackout.button}</span>
           </button>
         </ArmHint>
 
-        <ArmHint tool="whiteout" label="Whiteout" action={TOOL_COPY.whiteout.action} locked={activeStyle === 'whiteout' && toolLocked} autoShowTool={autoShowTool}>
+        <ArmHint tool="whiteout" label={TOOL_COPY.whiteout.button} action={TOOL_COPY.whiteout.action} locked={activeStyle === 'whiteout' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
             className={toolClass('whiteout')}
@@ -262,11 +256,11 @@ export default function RedactToolbar({
             aria-pressed={activeStyle === 'whiteout'}
           >
             <WhiteoutIcon />
-            <span className={styles.label}>Whiteout</span>
+            <span className={styles.label}>{TOOL_COPY.whiteout.button}</span>
           </button>
         </ArmHint>
 
-        <ArmHint tool="delete" label="Delete" action={TOOL_COPY.delete.action} locked={activeStyle === 'delete' && toolLocked} autoShowTool={autoShowTool}>
+        <ArmHint tool="delete" label={TOOL_COPY.delete.button} action={TOOL_COPY.delete.action} locked={activeStyle === 'delete' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
             className={toolClass('delete')}
@@ -274,7 +268,7 @@ export default function RedactToolbar({
             aria-pressed={activeStyle === 'delete'}
           >
             <EraserIcon />
-            <span className={styles.label}>Delete</span>
+            <span className={styles.label}>{TOOL_COPY.delete.button}</span>
           </button>
         </ArmHint>
 
@@ -286,11 +280,11 @@ export default function RedactToolbar({
             className={`${styles.button}${findOpen ? ` ${styles.active}` : ''}`}
             onClick={onToggleFind}
             aria-pressed={findOpen}
-            title="Find text to redact"
+            title={t.findTitle}
             data-redact-find-toggle
           >
             <Search size={18} aria-hidden="true" />
-            <span className={styles.label}>Find</span>
+            <span className={styles.label}>{t.find}</span>
           </button>
         )}
 
@@ -307,11 +301,11 @@ export default function RedactToolbar({
             onTouchStart={(e) => e.preventDefault()}
             ref={blockSelection}
             aria-pressed={peeking}
-            title="Hold to see what is under the boxes"
+            title={t.peekTitle}
             data-redact-peek
           >
             <Eye size={18} aria-hidden="true" />
-            <span className={styles.label}>Peek</span>
+            <span className={styles.label}>{t.peek}</span>
           </button>
         )}
 

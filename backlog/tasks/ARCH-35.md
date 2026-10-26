@@ -51,3 +51,17 @@ Done 2026-10-26 on `un-arch-35`. `src/i18n/toolMessages.ts` (2466 lines) is gone
 - Proof: `dist/` HTML (all 54 pages, including `he/`) is identical before and after apart from build stamps, hashed asset names and 97 unused Tailwind utility rules that stopped being emitted.
 
 Left for part B (conventions): Scan's `scanMessages.ts`, Edit Pages' `messages.ts` (non-localizable), inline English in Unlock/Protect and Redact, the inline-English guard, and tidying the `src/content/localized-tools/he/*.yaml` comments that still name `toolMessages.ts`.
+
+## Progress (part B: conventions)
+
+Done 2026-10-26 on `un-arch-35-conventions`.
+
+- Scan: `scanMessages.ts` is now `messages.ts` (`ScanMessages`, `englishScanMessages`, `getScanMessages`; English only, no Hebrew edition). Edit Pages' `messages.ts` gained `getEditPagesMessages`. Neither island takes a `messages` prop yet: with no second language the island reads the English table directly.
+- Unlock/Protect: `src/tools/security/messages.ts` holds all of its text (announcements, errors, form, done state, the preview tags that `planPreview` now takes as an argument, the return-tool names). `PdfSecurityTool` takes `messages?: Partial<SecurityMessages>` the way Split does.
+- Redact: `src/tools/redact/messages.ts` holds the toolbar copy, brush and find bars, delete hover titles, island announcements and errors, the done and finish rows, and the file-session announcements. `redactState.ts` no longer holds "Undid:"/"Redid:": `UNDO` and `REDO` carry an `announceTemplate` from the island and the reducer fills it with `formatMessage` (without one it announces the bare description). `useEditorFileSession` lost its English defaults; `messages` is required and Sign and Redact each pass their own.
+- Compress: two alt/aria strings in the compare slider moved into `CompressMessages` (`comparePageAlt`, `compareSliderLabel`); the Hebrew table carries the English text for both, as the Hebrew page rendered before.
+- Guard: `src/test/cross-tool/toolsHaveNoInlineEnglish.test.js` reads every non-test `.tsx` under `src/tools/` and fails on JSX text, string expression children, `aria-label`/`title`/`placeholder`/`alt` and announce-call arguments. It was red on 109 strings before this work. Allowlist: `KB`/`MB` units, the `Aa` type specimens, and Sign's `{n}px thickness` tooltip (Sign's catalogue is frozen).
+- `LOCALIZED_TOOL_ISLANDS` in `src/i18n/localizedTools.ts` is now derived from the registry's `LOCALIZED_ISLAND_SLUGS` (i18n may import lib).
+- Stale `toolMessages.ts` mentions repointed in the two Hebrew tool entries (their `reviewNotes`, not in the source hash), `docs/nx-affected-ci.md` and two synthetic test paths.
+
+Not done: Redact's copy modules that are not components (`check/checkCopy.ts`, `details/describeDetails.ts`, `find/` status lines) still hold English; the guard reads `.tsx` only. Redact's page still carries the "controls in English" notice for that reason.
