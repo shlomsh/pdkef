@@ -11,6 +11,12 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [QUAL-29](backlog/tasks/QUAL-29.md) P2 · e2e-webkit runs in Playwright's container image, so a slow Ubuntu mirror can't hold CI for 50 minutes (in progress)
 
+### Unify the tools, narrow the graph
+
+- [DEBT-62](backlog/tasks/DEBT-62.md) P1 · Every tool accepts a PDF the browser reports with no file type
+- [DEBT-63](backlog/tasks/DEBT-63.md) P2 · Compress and PDF to Image stay inside the browser's canvas limit on very large pages
+- [ARCH-34](backlog/tasks/ARCH-34.md) P1 · A change to one core project reaches only the projects that use it
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo

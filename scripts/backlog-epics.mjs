@@ -16,6 +16,10 @@ export const lanes = [
   { key: 'tool-pages', label: 'Tool pages: show the verb', why: "Every tool's first screen becomes one full-height hero where the tool acts out its job, and the same screen becomes the workspace after a drop." },
   { key: 'form-detection', label: 'Form detector accuracy', why: 'Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.' },
   { key: 'robustness', label: 'Robustness and debt', why: 'Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.' },
+  // Opened 2026-10-26 from the architecture review of the month's new tools and polish
+  // (docs/architecture-debt-review-2026-10-26.md): the tools sit on two generations of the shell,
+  // and a loop between the core projects sends a third of commits wide.
+  { key: 'unify-and-narrow', label: 'Unify the tools, narrow the graph', why: 'Every tool on one shell and one set of PDF primitives, and a change reaching only the projects that use it.' },
   { key: 'search-and-languages', label: 'Search and languages', why: 'Mostly waiting on dated Search Console reads. Two small things can ship now.' },
   { key: 'polish', label: 'Polish', why: 'Small, independent, good for a spare hour.' },
 ];

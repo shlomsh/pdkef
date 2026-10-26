@@ -144,7 +144,7 @@ describe('parseTask', () => {
 
 describe('the registry', () => {
   it('has the lanes in order, every legacy epic closed, and no key twice', () => {
-    expect(lanes.map((lane) => lane.key)).toEqual(['redact', 'sign-fill-mode', 'tool-pages', 'form-detection', 'robustness', 'search-and-languages', 'polish']);
+    expect(lanes.map((lane) => lane.key)).toEqual(['redact', 'sign-fill-mode', 'tool-pages', 'form-detection', 'robustness', 'unify-and-narrow', 'search-and-languages', 'polish']);
     expect(lanes.every((lane) => lane.why)).toBe(true);
     expect(closedEpics.length).toBeGreaterThan(0);
     expect(closedEpics.every((epic) => epic.closed)).toBe(true);
