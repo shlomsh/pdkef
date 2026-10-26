@@ -21,6 +21,7 @@ import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
+import { isPdfFile } from '../../lib/fileKind.js';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './useFormFieldRegions.ts';
@@ -537,7 +538,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // Handle PDF file selection
   const handleFilesAdded = async (fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => f.type === 'application/pdf');
+    const pdfs = incoming.filter((f) => isPdfFile(f));
 
     if (pdfs.length === 0) {
       setAnnouncement(t.invalidPdfFile);

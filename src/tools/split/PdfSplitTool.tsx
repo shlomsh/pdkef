@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
 import { FileSignature, Shrink } from 'lucide-preact';
+import { isPdfFile } from '../../lib/fileKind.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { includeAll, invert, outputPageCount, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
@@ -114,8 +115,8 @@ export default function PdfSplitTool({
 
   const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => f.type === 'application/pdf');
-    setRejectedFiles(incoming.filter((f) => f.type !== 'application/pdf').map((f) => f.name));
+    const pdfs = incoming.filter((f) => isPdfFile(f));
+    setRejectedFiles(incoming.filter((f) => !isPdfFile(f)).map((f) => f.name));
     if (pdfs.length === 0) return;
     const selectedFile = pdfs[0];
     recordAction(file ? 'replace_file' : 'add_files');
