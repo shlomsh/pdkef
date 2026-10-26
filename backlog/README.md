@@ -34,7 +34,7 @@ needs. Leave out an optional key that has no value. `phase` became `horizon` (no
 
 ## Lanes
 
-Open, in-progress and blocked tickets live in one of seven lanes (the display order below). Each is one
+Open, in-progress and blocked tickets live in one of eight lanes (the display order below). Each is one
 row in `scripts/backlog-epics.mjs`, which also registers every earlier epic as a closed epic so done
 and retired tickets keep validating. A live ticket in a closed epic fails validation.
 
@@ -45,6 +45,7 @@ and retired tickets keep validating. A live ticket in a closed epic fails valida
 | `tool-pages` | Tool pages: show the verb |
 | `form-detection` | Form detector accuracy |
 | `robustness` | Robustness and debt |
+| `unify-and-narrow` | Unify the tools, narrow the graph |
 | `search-and-languages` | Search and languages |
 | `polish` | Polish |
 
