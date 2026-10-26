@@ -70,11 +70,14 @@ const ORIENTATION_ROTATION = { 1: 0, 2: 0, 3: 180, 4: 180, 5: 90, 6: 90, 7: 270,
 export const PAGE_SIZES = { a4: [595.28, 841.89], letter: [612, 792] };
 
 // Where an image sits on its page, in PDF points. 'fit' is the pixel-for-pixel
-// rule below. A named size turns landscape when the image is wider than tall,
+// rule below, or `pointsPerPixel` points a pixel when the caller fixes a density
+// (Scan, so a scan stepped down to a size limit keeps its paper size). A named size turns landscape when the image is wider than tall,
 // then scales the image (up or down) to fit inside the page, centred, aspect kept.
-export function placeImage(imageWidth, imageHeight, pageSize = 'fit') {
+export function placeImage(imageWidth, imageHeight, pageSize = 'fit', pointsPerPixel = 1) {
   if (pageSize === 'fit') {
-    return { pageWidth: imageWidth, pageHeight: imageHeight, x: 0, y: 0, width: imageWidth, height: imageHeight };
+    const width = imageWidth * pointsPerPixel;
+    const height = imageHeight * pointsPerPixel;
+    return { pageWidth: width, pageHeight: height, x: 0, y: 0, width, height };
   }
   const [short, long] = PAGE_SIZES[pageSize];
   const [pageWidth, pageHeight] = imageWidth > imageHeight ? [long, short] : [short, long];
@@ -91,7 +94,7 @@ export function placeImage(imageWidth, imageHeight, pageSize = 'fit') {
 // out upright, as browsers show it; the MediaBox stays the stored pixel size.
 // `label` is what an UnsupportedImageError names (defaults to the MIME type).
 // `pageSize` other than 'fit' lays the image on a named page instead (see placeImage).
-export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { pageSize = 'fit' } = {}) {
+export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { pageSize = 'fit', pointsPerPixel = 1 } = {}) {
   let image;
   if (mimeType === 'image/png') {
     image = await pdfDoc.embedPng(bytes);
@@ -100,7 +103,7 @@ export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { 
   } else {
     throw new UnsupportedImageError(label);
   }
-  const { pageWidth, pageHeight, x, y, width, height } = placeImage(image.width, image.height, pageSize);
+  const { pageWidth, pageHeight, x, y, width, height } = placeImage(image.width, image.height, pageSize, pointsPerPixel);
   const page = pdfDoc.addPage([pageWidth, pageHeight]);
   page.drawImage(image, { x, y, width, height });
   // A sized page skips /Rotate: Scan only sends canvas-encoded JPEGs, which carry no EXIF.

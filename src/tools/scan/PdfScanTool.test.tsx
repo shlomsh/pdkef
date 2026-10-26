@@ -168,4 +168,33 @@ describe('PdfScanTool', () => {
     await settle(1000);
     expect(container.textContent).toContain('as small as these pages go');
   });
+
+  it('names a page that could not be read, and holds Download back until it is removed', async () => {
+    vi.mocked(pipeline.processPage).mockImplementation((file) => (file.name === 'b.jpg'
+      ? Promise.reject(new Error('decode failed'))
+      : Promise.resolve({ blob: new Blob(['x'], { type: 'image/jpeg' }), width: 100, height: 140 })));
+    mount();
+    await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+    await settle(50);
+    expect(container.textContent).toContain('Page 2 could not be read.');
+    expect(pipeline.buildScanPdf).not.toHaveBeenCalled();
+    await act(async () => { container.querySelector('[aria-label="Remove page 2"]').click(); });
+    await settle(1000);
+    expect(container.textContent).not.toContain('could not be read');
+    expect(pipeline.buildScanPdf).toHaveBeenCalled();
+  });
+
+  it('skips work a newer corner made stale before its turn came', async () => {
+    let release;
+    vi.mocked(pipeline.processPage).mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    // The first run is in flight; two corner moves queue two more, and only the last is still wanted.
+    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+    await act(async () => { release({ blob: new Blob(['x'], { type: 'image/jpeg' }), width: 100, height: 140 }); });
+    await settle(50);
+    expect(pipeline.processPage).toHaveBeenCalledTimes(2);
+  });
 });

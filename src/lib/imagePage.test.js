@@ -83,6 +83,11 @@ describe('placeImage', () => {
     expect(placeImage(60, 40, 'fit')).toEqual({ pageWidth: 60, pageHeight: 40, x: 0, y: 0, width: 60, height: 40 });
   });
 
+  it("'fit' at a set density sizes the page in points per pixel, so a downscaled scan keeps its paper size", () => {
+    expect(placeImage(2400, 1800, 'fit', 72 / 200)).toEqual({ pageWidth: 864, pageHeight: 648, x: 0, y: 0, width: 864, height: 648 });
+    expect(placeImage(720, 540, 'fit', 72 / 60)).toEqual({ pageWidth: 864, pageHeight: 648, x: 0, y: 0, width: 864, height: 648 });
+  });
+
   it('centres a portrait image on A4, scaled to fit', () => {
     const [w, h] = PAGE_SIZES.a4;
     const p = placeImage(1000, 2000, 'a4'); // narrower than the page's aspect: height-bound

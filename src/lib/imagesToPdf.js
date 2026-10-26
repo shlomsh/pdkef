@@ -9,7 +9,7 @@ export { UnsupportedImageError };
 // sized to match its image's pixel dimensions exactly (1 image pixel = 1 PDF
 // point), so the image fills the page edge-to-edge with no distortion or
 // letterboxing. Runs entirely in-memory in the browser - no network I/O.
-export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit' } = {}) {
+export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit', pointsPerPixel = 1 } = {}) {
   const throwIfAborted = () => {
     if (signal?.aborted) throw new DOMException('Conversion aborted', 'AbortError');
   };
@@ -21,7 +21,7 @@ export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit' 
     const file = files[i];
     const bytes = await file.arrayBuffer();
 
-    await addImagePage(pdf, bytes, mimeTypeOf(file), file.name, { pageSize });
+    await addImagePage(pdf, bytes, mimeTypeOf(file), file.name, { pageSize, pointsPerPixel });
     onProgress?.((i + 1) / files.length);
   }
 
