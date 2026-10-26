@@ -4,6 +4,12 @@ import { searchTargetSize, MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_S
 import { canvasToBlob } from '../../lib/canvasBlob.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { loadPdfjs } from '../../lib/loadPdfjs.js';
+import { clampScaleToCanvas } from '../../lib/canvasLimits.js';
+
+/** The level's render scale, lowered so one page canvas stays inside the browser's limits. */
+export function compressRenderScale(unitWidth, unitHeight, scale) {
+  return clampScaleToCanvas(unitWidth, unitHeight, scale);
+}
 
 let pdfjsLib;
 
@@ -53,11 +59,13 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
       
-      // Viewport for rendering to canvas at selected scale
-      const viewport = page.getViewport({ scale });
-      
       // Viewport at scale 1 to set the new PDF page size in points (1 point = 1/72 inch)
       const nativeViewport = page.getViewport({ scale: 1 });
+
+      // Viewport for rendering to canvas at selected scale (lowered on a huge page)
+      const viewport = page.getViewport({
+        scale: compressRenderScale(nativeViewport.width, nativeViewport.height, scale),
+      });
 
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
@@ -234,8 +242,10 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
       const rendered = [];
       for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
-        const viewport = page.getViewport({ scale });
         const nativeViewport = nativeViewports[pageNumber - 1];
+        const viewport = page.getViewport({
+          scale: compressRenderScale(nativeViewport.width, nativeViewport.height, scale),
+        });
 
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
