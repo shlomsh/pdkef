@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import { fitCellWidth, type FitItem } from './stageFit.ts';
+import { cardFloor } from '../pageWorkspace/useFloorHeight.ts';
 import styles from './PageGrid.module.css';
 
 /* The desktop cell is a 104 x 138 box that may grow; these are its fixed
@@ -46,18 +47,14 @@ function measureCaptionRows(grid: HTMLElement): number {
    content height, so bigger pages can never feed back into the measurement.
    No card or no min-height (jsdom has no layout) keeps today's size. */
 function measureCell(grid: HTMLElement, items: FitItem[]): number {
-  const card = grid.closest<HTMLElement>('[data-tool-loaded]');
+  const card = cardFloor(grid);
   if (!card) return MIN_CELL;
-  const cardStyle = getComputedStyle(card);
-  const minHeight = px(cardStyle.minHeight);
-  if (minHeight <= 0) return MIN_CELL;
   const gridStyle = getComputedStyle(grid);
-  const floor = card.getBoundingClientRect().top + minHeight;
   const contentTop = grid.getBoundingClientRect().top + px(gridStyle.paddingTop);
   return fitCellWidth({
     items,
     width: grid.clientWidth - px(gridStyle.paddingLeft) - px(gridStyle.paddingRight),
-    height: floor - contentTop - px(gridStyle.paddingBottom) - px(cardStyle.paddingBottom) - measureCaptionRows(grid),
+    height: card.floor - contentTop - px(gridStyle.paddingBottom) - card.paddingBottom - measureCaptionRows(grid),
     gap: GRID_GAP,
     labelHeight: measureLabelHeight(grid),
     ratio: CELL_RATIO,

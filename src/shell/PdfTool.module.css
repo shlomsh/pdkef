@@ -85,7 +85,8 @@
      the same in either view density, so the density gate above does not
      apply: a 'relaxed' saved in Sign dropped the floor and left every page at
      the grid's 104px minimum. */
-  :global(html) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded]:has([data-page-grid]) {
+  /* Scan's photo and pages (data-fills-stage) fill the same floor (useFloorHeight.ts). */
+  :global(html) :global(.tool-stage[data-layout='hero']) .tool-card[data-tool-loaded]:has([data-page-grid], [data-fills-stage]) {
     min-height: calc(max(600px, 100svh - 3.5rem) - 5.5rem);
   }
 }
