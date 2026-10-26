@@ -123,9 +123,10 @@ describe('PdfImageToPdfTool UI flow', () => {
   it('revokes every thumbnail URL on unmount, including ones added after the first render', async () => {
     let n = 0;
     const created = [];
-    window.URL.createObjectURL = vi.fn(() => {
+    window.URL.createObjectURL = vi.fn((source) => {
       const url = `blob:thumb-${++n}`;
-      created.push(url);
+      // Thumbnails only: the PDF's own URL is usePreparedOutput's, and it is revoked as soon as the order changes.
+      if (source.type.startsWith('image/')) created.push(url);
       return url;
     });
     mount();
@@ -211,6 +212,23 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(container.querySelector(`.${pdfToolStyles['is-processing']}`)).toBeNull();
     expect(downloadLink().getAttribute('href')).toBe('blob:testurl');
     expect(clicks).toHaveBeenCalledTimes(1);
+  });
+
+  it('records export on a tap that beat the build and download when it is delivered', async () => {
+    resetActionTrailForTests();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    let release;
+    build().mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(pdfBlob()); }));
+    await act(async () => { removeButtons()[1].click(); });
+    resetActionTrailForTests();
+    await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    expect(recentActions()).toEqual(['export']);
+    await act(async () => { release(); });
+    await wait(0);
+    expect(recentActions()).toEqual(['export', 'download']);
   });
 
   it('names the download from the editable output name', async () => {
@@ -415,6 +433,51 @@ describe('PdfImageToPdfTool UI flow', () => {
     await act(async () => share.click());
     expect(nativeShare.share).not.toHaveBeenCalled();
     nativeShare.restore();
+  });
+
+  describe('Share through the shared download flow', () => {
+    const shareButton = () => container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    const status = () => container.querySelector('p.sr-only[role="status"]').textContent.trim();
+
+    it('says the PDF is still ready when the share sheet is canceled, and records nothing', async () => {
+      resetActionTrailForTests();
+      const nativeShare = mockNativeFileShare();
+      nativeShare.share.mockRejectedValueOnce(Object.assign(new Error('cancel'), { name: 'AbortError' }));
+      mount();
+      await loadFiles(['a.png', 'b.png']);
+      await wait(0);
+      await act(async () => shareButton().click());
+      await wait(0);
+      expect(status()).toBe('Sharing canceled. Your PDF is still ready.');
+      expect(recentActions()).not.toContain('share');
+      nativeShare.restore();
+    });
+
+    it('says the sheet could not open when sharing fails, and records nothing', async () => {
+      resetActionTrailForTests();
+      const nativeShare = mockNativeFileShare();
+      nativeShare.share.mockRejectedValueOnce(new Error('boom'));
+      mount();
+      await loadFiles(['a.png', 'b.png']);
+      await wait(0);
+      await act(async () => shareButton().click());
+      await wait(0);
+      expect(status()).toBe('Could not open the share sheet. Please try again.');
+      expect(recentActions()).not.toContain('share');
+      nativeShare.restore();
+    });
+
+    it('records a completed share by the name "share"', async () => {
+      resetActionTrailForTests();
+      const nativeShare = mockNativeFileShare();
+      mount();
+      await loadFiles(['a.png', 'b.png']);
+      await wait(0);
+      await act(async () => shareButton().click());
+      await wait(0);
+      expect(recentActions()).toContain('share');
+      nativeShare.restore();
+    });
   });
 
   it('keeps the same focused anchor while a tapped build is busy', async () => {

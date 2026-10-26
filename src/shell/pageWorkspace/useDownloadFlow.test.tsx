@@ -266,6 +266,18 @@ describe('useDownloadFlow', () => {
     expect(navigate).toHaveBeenCalledWith('/merge/');
   });
 
+  it.each([['redact', '/redact/'], ['edit-pdf', '/organize-pdf/']] as const)(
+    'a tool with no Compress or Sign hand-off (Unlock) hands off to %s under its own id',
+    async (tool, href) => {
+      store.saveHandoff.mockResolvedValue(true);
+      const navigate = vi.fn();
+      mount({ ...base(ready()), hrefs: { redact: '/redact/', 'edit-pdf': '/organize-pdf/' }, navigate });
+      await act(async () => { await flow.requestHandoff(tool); });
+      expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe(tool);
+      expect(navigate).toHaveBeenCalledWith(href);
+    },
+  );
+
   it('a hand-off with no href for its tool does nothing: no save, no navigation, no failure', async () => {
     store.saveHandoff.mockResolvedValue(true);
     const navigate = vi.fn();
