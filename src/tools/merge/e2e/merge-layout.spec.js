@@ -270,7 +270,7 @@ test('desktop rail stays inside the viewport and only its file list scrolls', as
   const rail = page.locator('div[class*="_rail_"]:not([class*="rail-scroll"]):not([class*="rail-pinned"])').first();
   const fileList = rail.locator('ul[class*="file-list"]');
   const addFiles = rail.getByRole('button', { name: 'Add files', exact: true });
-  const clearAll = rail.getByRole('button', { name: 'Clear all', exact: true });
+  const clearAll = rail.getByRole('button', { name: 'Clear all files', exact: true });
   const download = rail.getByRole('link', { name: /Download merged PDF/ });
 
   const listMetrics = await fileList.evaluate((element) => ({

@@ -126,6 +126,21 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
 
+  it.each([
+    [undefined, 4, 0],
+    ['rotate', 3, 0],
+    ['remove', 4, 0],
+    ['numbers', 3, 3],
+  ])('shows the empty-state verb for its page job (%s)', (job, pages, numbers) => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfEditPagesTool job={job} />, container); });
+
+    const stage = container.querySelector(`.${dropzoneStyles.dropzone} [aria-hidden="true"]`);
+    expect(stage.querySelectorAll('i').length).toBe(pages);
+    expect(stage.querySelectorAll('i > b').length).toBe(numbers);
+  });
+
   it('loads the PDF into the shared grid under a heading that names the output and its pages', async () => {
     await load();
 
@@ -171,6 +186,13 @@ describe('PdfEditPagesTool UI flow', () => {
       .map((el) => (el.hasAttribute('data-state') ? 'download' : (el as HTMLInputElement).type === 'checkbox' ? 'page numbers' : el.textContent.trim()));
     expect(order.slice(0, 5)).toEqual(['page numbers', 'Include all', 'Skip all', 'Invert', 'download']);
     expect(order[order.length - 1]).toBe('Replace file');
+  });
+
+  it('offers Replace file once, as the shared quiet last line, at every width', async () => {
+    await load();
+    const replaces = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim().startsWith('Replace'));
+    expect(replaces).toHaveLength(1);
+    expect(replaces[0].closest('[data-replace-line]')).not.toBeNull();
   });
 
   it('Include all, Skip all and Invert each change the pages in one step', async () => {
@@ -252,7 +274,7 @@ describe('PdfEditPagesTool UI flow', () => {
     await load();
     await prepareNow();
     const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
-    vi.stubGlobal('location', { href: '/edit-pdf/' });
+    vi.stubGlobal('location', { href: '/organize-pdf/' });
     await act(async () => { compress.click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
     expect(saveHandoffMock).toHaveBeenCalledWith('compress', expect.objectContaining({
       fileName: 'document_modified.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),

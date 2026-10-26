@@ -182,6 +182,13 @@ export interface MergeMessages extends PageGridMessages, DownloadMessages {
   errorEncrypted: string;
   unlockLink: string;
   removeAndMergeRest: string;
+  /* A lone protected file shows the shared locked state (src/shell/NeedsUnlock.tsx) in place of the result. */
+  protectedNeedsPasswordTitle: string;
+  protectedNeedsPasswordBody: string;
+  protectedOwnerOnlyTitle: string;
+  protectedOwnerOnlyBody: string;
+  protectedUnlockIt: string;
+  protectedHandoffFailed: string;
   errorTooLarge: string;
   rowUnreadable: string;
   rowEncrypted: string;
@@ -282,6 +289,12 @@ const englishMergeMessages: MergeMessages = {
   errorEncrypted: '"{name}" is password-protected. Remove the password first, on your device, then add it again.',
   unlockLink: 'Open Unlock',
   removeAndMergeRest: 'Remove it and merge the rest',
+  protectedNeedsPasswordTitle: 'This PDF has a password',
+  protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can merge it.',
+  protectedOwnerOnlyTitle: 'This PDF is protected',
+  protectedOwnerOnlyBody: "It opens without a password, but Merge can't change it as it is. Unlock takes the protection off on your device, then you can merge it.",
+  protectedUnlockIt: 'Unlock it',
+  protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
   errorTooLarge: 'This set is too large for this device to merge in the browser. Try fewer files at a time.',
   rowUnreadable: 'Could not read',
   rowEncrypted: 'Password-protected',
@@ -401,6 +414,12 @@ const hebrewMergeMessages: MergeMessages = {
   errorEncrypted: '"{name}" מוגן בסיסמה. הסירו קודם את הסיסמה, על המכשיר שלכם, ואז הוסיפו אותו שוב.',
   unlockLink: 'לפתיחת כלי ההסרה',
   removeAndMergeRest: 'להסיר אותו ולאחד את השאר',
+  protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
+  protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לאחד אותו.',
+  protectedOwnerOnlyTitle: 'קובץ ה-PDF הזה נעול',
+  protectedOwnerOnlyBody: 'הוא נפתח בלי סיסמה, אבל אי אפשר לאחד אותו כמו שהוא. הסרת הנעילה מורידה את ההגנה במכשיר שלכם, ואז אפשר לאחד אותו.',
+  protectedUnlockIt: 'הסרת נעילה',
+  protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
   errorTooLarge: 'הסט הזה גדול מדי לאיחוד בדפדפן על המכשיר הזה. נסו פחות קבצים בכל פעם.',
   rowUnreadable: 'לא ניתן לקרוא',
   rowEncrypted: 'מוגן בסיסמה',
@@ -2131,6 +2150,10 @@ export interface ShellMessages {
   /** After 1 to 3 stars: an invitation to report what went wrong. */
   ratingThanksLow: string;
   ratingTellMe: string;
+  /** SEO-48: the optional comment after the stars. */
+  ratingCommentLabel: string;
+  ratingCommentSend: string;
+  ratingCommentThanks: string;
   /** Aria label of one star button, e.g. "3 stars". */
   ratingStarOne: string;
   ratingStarOther: string;
@@ -2161,7 +2184,7 @@ const englishShellMessages: ShellMessages = {
   replaceLabel: 'Replace file',
   replaceShort: 'Replace',
   replaceTitle: 'Replace the current file',
-  clearLabel: 'Clear all',
+  clearLabel: 'Clear all files',
   clearShort: 'Clear',
   clearTitle: 'Remove every file and start again',
   cancel: 'Cancel',
@@ -2188,13 +2211,16 @@ const englishShellMessages: ShellMessages = {
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
   cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
   oldBrowserNotice: 'This tool needs {browser} {version} or newer to open PDFs. A quick update, or another browser, will do it.',
-  ratingQuestion: 'PDkef is free and open source. If it helped, a rating helps other people find it.',
+  ratingQuestion: "You're one of PDkef's early users. It's new, free and open source, and a rating helps more people find it.",
   ratingThanksHigh: "Thank you, that really helps. Know someone who'd use it?",
   ratingShare: 'Share',
   ratingShareCopied: 'Link copied',
   ratingStarGithub: 'Star it on GitHub',
   ratingThanksLow: "Thank you. If something went wrong, I'd love to hear about it.",
   ratingTellMe: 'Tell me on GitHub',
+  ratingCommentLabel: 'Want to add a few words?',
+  ratingCommentSend: 'Send',
+  ratingCommentThanks: 'Got it, thank you.',
   ratingStarOne: '1 star',
   ratingStarOther: '{count} stars',
 };
@@ -2225,7 +2251,7 @@ const hebrewShellMessages: ShellMessages = {
   replaceLabel: 'החלפת קובץ',
   replaceShort: 'החלפה',
   replaceTitle: 'החלפת הקובץ הנוכחי',
-  clearLabel: 'ניקוי הכול',
+  clearLabel: 'ניקוי כל הקבצים',
   clearShort: 'ניקוי',
   clearTitle: 'הסרת כל הקבצים והתחלה מחדש',
   cancel: 'ביטול',
@@ -2250,13 +2276,16 @@ const hebrewShellMessages: ShellMessages = {
   cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
   oldBrowserNotice: 'כדי לפתוח קבצי PDF בכלי הזה צריך {browser} {version} ומעלה. עדכון קצר, או דפדפן אחר, יסדרו את זה.',
   // TODO(SEO-46): AI draft, not reviewed copy - pending Shlomi's read-through.
-  ratingQuestion: 'PDkef חינמי ובקוד פתוח. אם זה עזר לכם, דירוג יעזור גם לאחרים למצוא אותו.',
+  ratingQuestion: 'אתם מהמשתמשים הראשונים של PDkef. הוא חדש, חינמי ובקוד פתוח, ודירוג עוזר לאנשים נוספים למצוא אותו.',
   ratingThanksHigh: 'תודה רבה, זה עוזר מאוד. מכירים מישהו שיוכל להשתמש בזה?',
   ratingShare: 'שתפו',
   ratingShareCopied: 'הקישור הועתק',
   ratingStarGithub: 'כוכב ב-GitHub',
   ratingThanksLow: 'תודה. אם משהו השתבש, אשמח לשמוע על זה.',
   ratingTellMe: 'ספרו לי ב-GitHub',
+  ratingCommentLabel: 'רוצים להוסיף כמה מילים?',
+  ratingCommentSend: 'שליחה',
+  ratingCommentThanks: 'קיבלתי, תודה.',
   ratingStarOne: 'כוכב אחד',
   ratingStarOther: '{count} כוכבים',
 };

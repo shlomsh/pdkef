@@ -9,8 +9,9 @@
  * which makes the page behave like a Merge restore until the tool has a file.
  *
  * Callers pass the hand-off key (the draft-store key, `handoffKeyFor` in routeFiles.ts). That
- * equals the page slug for every page-grid tool but one: Compress Image is the Compress island in
- * image mode, so the `compress` hand-off opens two pages. `PAGE_SLUGS` lists the page slugs a key
+ * equals the page slug for most tools. Compress Image is the Compress island in image mode, and
+ * Organize PDF is the 'edit-pdf' island, and variant landing pages share an island, so one
+ * hand-off opens several pages. `PAGE_SLUGS` lists the page slugs a key
  * opens; the marker is written and cleared under all of them, so the pre-paint script (which only
  * knows the page slug) needs no mapping.
  * Sign and Redact get the marker too: their editor restore (useEditorDraftPersistence's
@@ -18,7 +19,11 @@
  */
 const PREFIX = 'pdkef:handoff-pending:';
 const ATTRIBUTE = 'data-handoff-pending';
-const PAGE_SLUGS: Record<string, string[]> = { compress: ['compress', 'compress-image'] };
+const PAGE_SLUGS: Record<string, string[]> = {
+  compress: ['compress', 'compress-image'],
+  'edit-pdf': ['organize-pdf', 'rotate-pdf', 'remove-pages', 'add-page-numbers-to-pdf'],
+  split: ['split', 'extract-pdf-pages'],
+};
 const slugsFor = (key: string) => PAGE_SLUGS[key] ?? [key];
 /** A load that never shows a tool must not leave the page's body hidden for good. */
 const RELEASE_CAP_MS = 8000;

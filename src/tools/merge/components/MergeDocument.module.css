@@ -221,6 +221,12 @@
   font-size: 12px;
 }
 
+/* A locked file's chip matches its rail row: a lock in place of the page count. */
+.chip[data-locked] .chip-pages {
+  display: inline-flex;
+  color: var(--color-primary);
+}
+
 /* MERGE-24: the page around a loaded Merge, outside the island. These lived in
    ToolPageLayout.astro, whose styles ship on every tool's page; here they ship
    only with Merge (the CSS family ratchet, 2026-10-24). `data-tool-slug` on
@@ -310,4 +316,56 @@
 [data-page-grid][data-insert-end]::after {
   inset-inline-end: 0.25rem;
   z-index: 3;
+}
+
+/* A locked file among several: a calm notice with the way forward, not a red error. */
+.locked-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-primary-tint) 78%, var(--color-surface));
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.locked-notice > svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.locked-notice p {
+  margin: 0;
+}
+
+.locked-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  align-items: center;
+}
+
+.locked-notice-unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.locked-notice-unlock:hover {
+  background: var(--color-primary-hover);
+}
+
+.locked-notice-unlock:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px var(--color-primary);
 }

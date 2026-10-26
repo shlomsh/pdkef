@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { tools } from './tools.js';
+import { listedTools } from './tools.js';
 
 const read = (p) => fs.readFileSync(path.join(process.cwd(), p), 'utf8');
 const skillPath = 'public/.well-known/agent-skills/pdf-tools/SKILL.md';
@@ -28,7 +28,7 @@ describe('agent discovery files', () => {
   });
 
   it('SKILL.md names every real tool page and WebMCP slug', () => {
-    for (const t of tools) {
+    for (const t of listedTools) {
       expect(skill).toContain(`https://pdkef.com${t.href}`);
       expect(skill).toContain(`\`${t.slug}\``);
     }

@@ -371,6 +371,16 @@ are current. Search Console Insights shows the titles Google holds for `/merge/`
 the ones from before their 09-12 and 09-17 edits. The 2026-09-11 baseline is in
 [SEO-01](../backlog/tasks/SEO-01.md); dates in `docs/seo-last-crawled.json`.
 
+**2026-10-26: it is not a patience game (SEO-47).** `/he/pdf-to-image/` went live 10-14 and was indexed
+within about 12 days. English `/pdf-to-image/` is still "Discovered - currently not indexed", never
+crawled, though Google now lists `/he/pdf-to-image/` as its referring page (URL Inspection, 10-26). So
+Google crawls new URLs here quickly when little else answers them, and skips English pages on crowded
+terms; the `hreflang` link helped discovery, not crawling. `/edit-pdf/` re-checked live the same day: 200,
+self canonical, no `noindex`, in the sitemap, linked from every indexed tool page. Crawl stats export
+(90 days to 10-21): about 16 requests a day, Refresh 96.8%, Discovery 3.2%, page resource load 73%
+(JavaScript 68% of all requests, HTML 15%); host status "Problems in the past", with robots.txt not
+available 0.47% and DNS unresponsive 0.2%.
+
 ### 3.5 Against the competition (refreshed 2026-10-08)
 
 "Who is above us" is manual sampling from the 2026-09 research unless dated otherwise. The softest
@@ -443,6 +453,26 @@ Full list in the script output; LOC-03 owns the read. Other scripts: 4 impressio
 
 ---
 
+### 3.8 Page tools: what people search and what competitors call it (2026-10-26)
+
+Google Trends, worldwide, past 12 months, two comparisons scaled through their shared term
+(`delete pages from pdf`, about 12 in the first and 86 in the second); averages read off the bars, so
+rough, but the order is clear: rotate pdf ~58, organize pdf ~54 (spiky; rising +140% in a related
+panel), remove pages from pdf ~27, delete pages from pdf ~12, edit pdf pages ~9, extract pages from
+pdf ~9 (its "online free" variant rising +40%), add page numbers to pdf ~3, rearrange pdf pages ~3,
+reorder pdf pages ~2. Searchers for "edit pdf pages" lean to text editing (a related panel shows "how
+to edit pdf on mac free"). No published volume numbers exist for any of these on the free keyword
+sites; Ahrefs' generator is behind a human check.
+
+Naming across eight sites (titles and H1s from the live pages, four spot-checked): every one keeps
+`edit-pdf` or `pdf-editor` for its text editor, and none names one page after remove, reorder and
+rotate together. Removal is "delete" in six slugs to "remove" in two (Trends has it the other way,
+2 to 1). Reordering is "Organize" on the three largest, and their Organize page also deletes and
+rotates; "Rearrange" or "Sort" elsewhere; "reorder" is never a slug. Rotate and page numbers are
+always their own pages, and extract is its own page on five of eight.
+
+Decision (Shlomi, 2026-10-26): one island, five named pages, see SEO-47.
+
 ## 4. The plan and its gates
 
 Gates matter more than dates. A phase that starts before its gate is met spends crawl budget the domain
@@ -458,6 +488,7 @@ does not have. Status of each ticket is in section 1, not here.
 | Weeks 7-8 (Oct 22 - Nov 4) | SEO-21's flattener code only (MOBI-02's export fix; the tool page is downgraded, see section 5), SEO-22 (extract images). | previous tool indexed |
 | Week 9 onwards | SEO-23, 24, 16, then 25, 26, 27. SEO-21's page waits behind these on a Keyword Planner read. | re-order at every boundary |
 | 2026-09-12 insert | SEO-33, 34, 35 - vocabulary on pages we already hold, no new URLs; decided from the three-instrument read in section 2. | none; the Week 4 gate is about new URLs and these add none |
+| 2026-10-26 | SEO-47: the page tool becomes five named pages (Organize, Rotate, Remove pages, Page numbers, Extract pages). | Gate lifted by Shlomi: the never-crawled pages are a crowded-term problem, not a wait (section 3.4) |
 | Throughout | SEO-03 external signals. The only work that moves the constraint; it does not live in this repo. | |
 
 ---

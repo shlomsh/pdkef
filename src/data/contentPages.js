@@ -17,7 +17,7 @@
 // `alsoHub` (optional array) adds secondary inbound links beyond the primary
 // `hub`, for SEO-06: /redact/ and /compress/ are the only two pages with real
 // accumulated authority (Search Console), and four of these pages had no path
-// from either one - reachable only from /sign/ or /edit-pdf/, which barely
+// from either one - reachable only from /sign/ or /organize-pdf/, which barely
 // rank. Rather than moving the primary hub (which would pull a card off the
 // tool page it's most relevant to), a page can additionally render on another
 // tool's RelatedGuides grid. Route link equity from where it has accumulated,
@@ -79,7 +79,7 @@ export const landingPages = [
     label: 'Open source & how to verify it',
     blurb: 'MIT licensed, plus a one-minute test that proves nothing uploads.',
     icon: Code2,
-    hub: 'edit-pdf',
+    hub: 'organize-pdf',
     alsoHub: ['redact'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',

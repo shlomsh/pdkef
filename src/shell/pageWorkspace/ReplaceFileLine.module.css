@@ -1,0 +1,43 @@
+/* UX guideline 20: Replace file ends a one-file tool's rail as a quiet line
+   (ReplaceFileLine.tsx), centred under the full-width Download and hand-off
+   row so it sits on the rail's axis. No border or fill until hover: it is a
+   way out, not a step. Its own module, not PageWorkspace.module.css: the locked-file state
+   (NeedsUnlock.tsx) shows this line in tools without the page workspace, and those pages should
+   not carry that whole sheet for it. */
+.replace-line {
+  display: flex;
+  justify-content: center;
+}
+
+.replace-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.replace-button:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+}
+
+/* The 44px hit area, as `.quiet-button` has in PageWorkspace.module.css. */
+.replace-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 44px;
+  transform: translateY(-50%);
+}

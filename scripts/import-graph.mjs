@@ -153,7 +153,7 @@ export function reverseEdgeMap(edges) {
 // The tool -> routes map is derived, never hand-written: a top-level src/pages/<slug>.astro that
 // imports `../tools/<t>/Pdf*Tool` maps route `/<slug>` to tool folder `<t>` (so /compress/ and
 // /compress-image/ both belong to `compress`, /unlock/ to `security`, /pdf-to-image/ to
-// `to-image`, /edit-pdf/ to `edit-pages`) - see docs/module-boundaries.md. Scans top-level
+// `to-image`, /organize-pdf/ to `edit-pages`) - see docs/module-boundaries.md. Scans top-level
 // src/pages/*.astro only (not src/pages/[locale]/, which renders several tools from one dynamic
 // route and so cannot name "the" tool for a slug). Returns '/<slug>' (no trailing slash) -> tool.
 const PAGE_TOOL_IMPORT = /\.\.\/tools\/([^/]+)\/Pdf[A-Za-z0-9]*Tool/;

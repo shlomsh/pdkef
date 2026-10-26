@@ -1,0 +1,11 @@
+---
+import ToolPageLayout from '../layouts/ToolPageLayout.astro';
+import PdfEditPagesTool from '../tools/edit-pages/PdfEditPagesTool.tsx';
+import { toolsBySlug } from '../data/tools.js';
+
+const tool = toolsBySlug['rotate-pdf'];
+---
+
+<ToolPageLayout tool={tool}>
+  <PdfEditPagesTool client:load job="rotate" />
+</ToolPageLayout>

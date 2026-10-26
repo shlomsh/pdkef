@@ -67,7 +67,7 @@ export const FILE_ACTIONS = {
     icon: 'M3 6h10M10.5 3.5 13 6l-2.5 2.5M13 10H3M5.5 7.5 3 10l2.5 2.5',
   },
   clear: {
-    label: 'Clear all',
+    label: 'Clear all files',
     shortLabel: 'Clear',
     title: 'Remove every file and start again',
     icon: 'M2.5 4.5h11M12 4.5V13a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 13V4.5m2 0V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5',

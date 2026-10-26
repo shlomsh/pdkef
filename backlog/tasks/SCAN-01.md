@@ -114,3 +114,9 @@ the diff's Playwright projects green (one Merge phone spec flaked once, then pas
 Still open: the two phone acceptance items (Shlomi's iPhone and an Android phone, including the HEIC
 library pick), landing on main, and whether Scan joins the home dock (`homeDock: false` for now, see the
 design record). The four-week Search Console read follows the launch.
+
+Landed on main 2026-10-26, after Shlomi's iPhone rounds the same day (review each photo first, a look
+per page, the flatten animation, the corner loupe, small previews for iPhone memory, Scan on the home
+dock). Still open: an Android phone pass, and the four-week Search Console read. A page with a dark
+band along one edge still defeats the edge guess; an edge-line detector is in its own session.
+

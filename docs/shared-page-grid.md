@@ -97,7 +97,7 @@ whole document (`{ entries, plan }`), so removing a file is undoable as it is to
 
 ### The parity guard
 
-`e2e/cross-tool/page-grid-parity.spec.js` loads the same PDF in `/merge/` and `/edit-pdf/` at a desktop
+`e2e/cross-tool/page-grid-parity.spec.js` loads the same PDF in `/merge/` and `/organize-pdf/` at a desktop
 and a phone width and asserts equal cell rects, the action cluster at the same offset from the
 thumbnail, a drag that starts on the thumbnail and reorders, R rotates, Delete skips, Enter opens the
 preview. It is the reason "identical" stays true after either tool changes.

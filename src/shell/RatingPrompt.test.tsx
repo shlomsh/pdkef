@@ -38,7 +38,7 @@ describe('RatingPrompt', () => {
     expect(container.innerHTML).toBe('');
     expect(localStorage.getItem('pdkef:rating-asked-at')).toBeNull();
     act(() => { vi.advanceTimersByTime(1500); });
-    expect(container.textContent).toContain('PDkef is free and open source. If it helped, a rating helps other people find it.');
+    expect(container.textContent).toContain("You're one of PDkef's early users. It's new, free and open source, and a rating helps more people find it.");
     expect(stars().map((b) => b.getAttribute('aria-label'))).toEqual(['1 star', '2 stars', '3 stars', '4 stars', '5 stars']);
     expect(Number(localStorage.getItem('pdkef:rating-asked-at'))).toBeGreaterThan(0);
   });
@@ -95,7 +95,7 @@ describe('RatingPrompt', () => {
     expect(localStorage.getItem('pdkef:rated:compress')).toBe('1');
     expect(container.textContent).toContain("Thank you, that really helps. Know someone who'd use it?");
     expect(stars()).toHaveLength(0);
-    expect(buttons().map((b) => b.textContent)).toEqual(['Share']);
+    expect(buttons().map((b) => b.textContent)).toEqual(['Share', 'Send']);
     const gh = container.querySelector('a') as HTMLAnchorElement;
     expect(gh.textContent).toBe('Star it on GitHub');
     expect(gh.getAttribute('href')).toBe('https://github.com/shlomsh/pdkef');
@@ -126,7 +126,90 @@ describe('RatingPrompt', () => {
     expect(a.textContent).toBe('Tell me on GitHub');
     expect(a.getAttribute('href')).toBe('https://github.com/shlomsh/pdkef/issues');
     expect(a.rel).toBe('noopener noreferrer');
-    expect(buttons()).toHaveLength(0);
+    expect(buttons().map((b) => b.textContent)).toEqual(['Send']);
+  });
+
+  describe('comment form', () => {
+    const form = () => container.querySelector('form') as HTMLFormElement | null;
+    const input = () => container.querySelector('form input') as HTMLInputElement;
+    const submit = (value: string) => {
+      act(() => { vi.advanceTimersByTime(600); }); // past the follow-up's settle window
+      act(() => { input().value = value; input().dispatchEvent(new Event('input', { bubbles: true })); });
+      act(() => { form()!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    };
+    const comments = () => vi.mocked(sendBeacon).mock.calls.filter(([e]) => (e as { name: string }).name === 'tool_rating_comment');
+
+    it('shows after a high rating, never focused', () => {
+      showAfterDelay();
+      act(() => stars()[3].click());
+      expect(input().maxLength).toBe(500);
+      expect(input().getAttribute('aria-label')).toBe('Want to add a few words?');
+      expect(document.activeElement).not.toBe(input());
+    });
+
+    it('shows after a low rating too', () => {
+      showAfterDelay();
+      act(() => stars()[1].click());
+      expect(form()).not.toBeNull();
+    });
+
+    it('whitespace sends nothing', () => {
+      showAfterDelay();
+      act(() => stars()[3].click());
+      submit('   ');
+      expect(comments()).toHaveLength(0);
+      expect(form()).not.toBeNull();
+    });
+
+    it('keeps the tapped stars when the prompt moves before the comment', () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      act(() => render(null, container));
+      mount(true);
+      vi.advanceTimersByTime(1000);
+      submit('moved');
+      expect(comments()).toHaveLength(1);
+      expect(comments()[0][0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 5, comment: 'moved' } });
+    });
+
+    it('keeps the thanks, not a fresh form, when the prompt moves after a comment', () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      submit('once');
+      act(() => render(null, container));
+      mount(true);
+      expect(form()).toBeNull();
+      expect(container.textContent).toContain('Got it, thank you.');
+      expect(comments()).toHaveLength(1);
+    });
+
+    it('keeps the form when the comment could not be sent', () => {
+      showAfterDelay();
+      act(() => stars()[4].click());
+      submit('\u0001'.repeat(500));
+      expect(comments()).toHaveLength(0);
+      expect(form()).not.toBeNull();
+    });
+
+    it('sends one comment with the tapped stars and shows thanks', () => {
+      showAfterDelay();
+      act(() => stars()[3].click());
+      submit(' lovely ');
+      expect(comments()).toHaveLength(1);
+      expect(comments()[0][0]).toEqual({ name: 'tool_rating_comment', properties: { tool: 'compress', stars: 4, comment: 'lovely' } });
+      expect(form()).toBeNull();
+      expect(container.textContent).toContain('Got it, thank you.');
+    });
+
+    it('the send button ignores a tap inside the settle window', () => {
+      showAfterDelay();
+      act(() => stars()[3].click());
+      act(() => { input().value = 'hi'; input().dispatchEvent(new Event('input', { bubbles: true })); });
+      const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+      container.querySelector('form button')!.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+      expect(comments()).toHaveLength(0);
+    });
   });
 
   describe('Share', () => {
@@ -154,7 +237,7 @@ describe('RatingPrompt', () => {
     it('swallows a rejected share', async () => {
       nav.share = vi.fn(() => Promise.reject(new DOMException('x', 'AbortError')));
       await expect(tapShare()).resolves.toBeUndefined();
-      expect(buttons().map((b) => b.textContent)).toEqual(['Share']);
+      expect(buttons().map((b) => b.textContent)).toEqual(['Share', 'Send']);
     });
 
     it('copies the link when share is missing', async () => {
@@ -170,7 +253,7 @@ describe('RatingPrompt', () => {
       await tapShare();
       const links = [...container.querySelectorAll('a')];
       expect(links[0].getAttribute('href')).toBe(location.origin + location.pathname);
-      expect(buttons()).toHaveLength(0);
+      expect(buttons().map((b) => b.textContent)).toEqual(['Send']);
     });
   });
 
