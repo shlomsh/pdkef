@@ -1,5 +1,5 @@
 import { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
-import { englishShellMessages } from '../../i18n/toolMessages';
+import { englishShellMessages } from '../shellMessages';
 import styles from './ReplaceFileLine.module.css';
 
 /**

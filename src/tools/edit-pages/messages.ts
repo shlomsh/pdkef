@@ -1,4 +1,4 @@
-import type { DownloadMessages, PageGridMessages } from '../../i18n/toolMessages';
+import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /* Edit Pages' one English catalogue: the slices the shared page grid, the

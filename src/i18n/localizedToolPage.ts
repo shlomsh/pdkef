@@ -23,7 +23,8 @@ import {
   LOCALIZED_TOOL_ISLANDS,
 } from './localizedTools';
 import { getDocumentationShellMessages } from './documentationMessages';
-import { getShellMessages, getToolMessages } from './toolMessages';
+import { getToolMessages } from './toolMessages';
+import { getShellMessages } from '../shell/shellMessages';
 import { toolsBySlug } from '../data/tools.js';
 
 export async function localizedToolPaths(toolSlug: string) {

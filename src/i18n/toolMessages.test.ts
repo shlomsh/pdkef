@@ -1,18 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  englishSignMessages,
-  hebrewSignMessages,
-  signUpdateDescription,
-  englishSplitMessages,
-  hebrewSplitMessages,
-  englishToImageMessages,
-  hebrewToImageMessages,
-  englishImageToPdfMessages,
-  hebrewImageToPdfMessages,
-  englishShellMessages,
-  hebrewShellMessages,
-  getToolMessages,
-} from './toolMessages';
+import { englishSignMessages, hebrewSignMessages, signUpdateDescription, englishSplitMessages, hebrewSplitMessages, englishToImageMessages, hebrewToImageMessages, englishImageToPdfMessages, hebrewImageToPdfMessages, getToolMessages } from './toolMessages';
+import { englishShellMessages, hebrewShellMessages } from '../shell/shellMessages';
 
 describe('sign tool messages', () => {
   // LOC-09 stage 1: the English catalogue is the contract every existing

@@ -1,4 +1,4 @@
-import type { DownloadMessages } from '../../i18n/toolMessages';
+import type { DownloadMessages } from '../../shell/shellMessages';
 
 // Scan's strings. English only at launch; a localized edition follows the languages page.
 export const scanMessages = {
