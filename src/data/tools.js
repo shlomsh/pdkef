@@ -549,6 +549,52 @@ export const tools = [
       { question: 'What page size will the PDF be?', answer: 'Fit keeps each page the size of its scan. A4 and Letter put every page on that paper size, turned to match the scan, so it prints at the size people expect.' },
       { question: 'Can I sign or merge the scan afterwards?', answer: 'Yes. Once the PDF is ready, Sign, Merge and Compress each take it with one tap, with no need to download it and open it again.' },
     ],
+    examples: {
+      heading: 'What you get',
+      lead: 'Every picture here was made by Scan to PDF from one sample photo, in a browser, the same way it runs for you.',
+      figures: [
+        {
+          kind: 'compare',
+          beforeSrc: '/images/scan-guide/photo.jpg',
+          afterSrc: '/images/scan-guide/scan.jpg',
+          beforeLabel: 'Photo',
+          afterLabel: 'Scan',
+          alt: 'A form photographed at an angle on a dark table, and the flat, even page Scan to PDF made from it',
+          width: 900,
+          height: 1200,
+          caption: 'Four corners and the Document look turn a page photographed at an angle into a flat, even scan.',
+        },
+        {
+          kind: 'row',
+          heading: 'Three looks',
+          caption: 'Original keeps the colours, Grayscale drops them, and Document evens out the light for dark text on white.',
+          items: [
+            { src: '/images/scan-guide/look-original.jpg', label: 'Original', width: 600, height: 800, alt: 'The scanned page in its original colours' },
+            { src: '/images/scan-guide/look-grayscale.jpg', label: 'Grayscale', width: 600, height: 800, alt: 'The same page in shades of gray' },
+            { src: '/images/scan-guide/look-document.jpg', label: 'Document', width: 600, height: 800, alt: 'The same page with even light, dark text on a white background' },
+          ],
+        },
+        {
+          kind: 'row',
+          heading: 'Page size',
+          caption: "Fit keeps the scan's own shape. A4 and Letter lay it on that paper, turned to match.",
+          items: [
+            { src: '/images/scan-guide/size-fit.jpg', label: 'Fit', width: 600, height: 800, alt: 'The scan as a page with exactly its own shape' },
+            { src: '/images/scan-guide/size-a4.jpg', label: 'A4', width: 600, height: 800, alt: 'The scan laid on an A4 page' },
+            { src: '/images/scan-guide/size-letter.jpg', label: 'Letter', width: 600, height: 800, alt: 'The scan laid on a Letter page' },
+          ],
+        },
+        {
+          kind: 'row',
+          heading: 'Size limit',
+          caption: 'The same words at full size. Under a 500 KB limit the text stays readable.',
+          items: [
+            { src: '/images/scan-guide/limit-none.jpg', label: 'No limit', width: 600, height: 400, alt: 'A few lines of text at full size' },
+            { src: '/images/scan-guide/limit-500kb.jpg', label: '500 KB', width: 600, height: 400, alt: 'The same lines of text under a 500 KB limit, still readable' },
+          ],
+        },
+      ],
+    },
   },
 
   {
