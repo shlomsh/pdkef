@@ -184,6 +184,34 @@
   letter-spacing: 0.08em;
 }
 
+/* Two equal ways in (Scan's Choose files and Take a photo): equal columns, one height, and a
+   larger target than a lone picker, since this pair is the whole first decision. A column whose
+   item is hidden (the camera on a mouse) drops out, leaving the picker alone and centred. */
+.pick-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 13.5rem);
+  justify-content: center;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* Zero specificity, so a tool's own rule (hiding an item on some screens) always wins. */
+:where(.pick-row) > * {
+  display: flex;
+}
+
+.pick-row .file-picker-button {
+  flex: 1;
+  justify-content: center;
+  margin-top: 0;
+  min-height: 3.5rem;
+  padding: 0.8rem 1rem;
+  font-size: 1.05rem;
+}
+
 .file-picker-button {
   position: relative;
   display: inline-flex;

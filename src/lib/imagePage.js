@@ -66,13 +66,35 @@ function tiffOrientation(view, start, end) {
 // only their rotation: the page is never flipped.
 const ORIENTATION_ROTATION = { 1: 0, 2: 0, 3: 180, 4: 180, 5: 90, 6: 90, 7: 270, 8: 270 };
 
+// Page sizes in PDF points (portrait). Scan lays its pages on these.
+export const PAGE_SIZES = { a4: [595.28, 841.89], letter: [612, 792] };
+
+// Where an image sits on its page, in PDF points. 'fit' is the pixel-for-pixel
+// rule below, or `pointsPerPixel` points a pixel when the caller fixes a density
+// (Scan, so a scan stepped down to a size limit keeps its paper size). A named size turns landscape when the image is wider than tall,
+// then scales the image (up or down) to fit inside the page, centred, aspect kept.
+export function placeImage(imageWidth, imageHeight, pageSize = 'fit', pointsPerPixel = 1) {
+  if (pageSize === 'fit') {
+    const width = imageWidth * pointsPerPixel;
+    const height = imageHeight * pointsPerPixel;
+    return { pageWidth: width, pageHeight: height, x: 0, y: 0, width, height };
+  }
+  const [short, long] = PAGE_SIZES[pageSize];
+  const [pageWidth, pageHeight] = imageWidth > imageHeight ? [long, short] : [short, long];
+  const scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+  const width = imageWidth * scale;
+  const height = imageHeight * scale;
+  return { pageWidth, pageHeight, x: (pageWidth - width) / 2, y: (pageHeight - height) / 2, width, height };
+}
+
 // The one rule for turning a photo into a PDF page, shared by Image to PDF
 // and Merge: the page is exactly the image's pixel size (1 image pixel = 1 PDF
 // point) and the image fills it edge to edge, no distortion or letterboxing.
 // A JPEG's EXIF orientation becomes the page's /Rotate, so a phone photo comes
 // out upright, as browsers show it; the MediaBox stays the stored pixel size.
 // `label` is what an UnsupportedImageError names (defaults to the MIME type).
-export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType) {
+// `pageSize` other than 'fit' lays the image on a named page instead (see placeImage).
+export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { pageSize = 'fit', pointsPerPixel = 1 } = {}) {
   let image;
   if (mimeType === 'image/png') {
     image = await pdfDoc.embedPng(bytes);
@@ -81,9 +103,11 @@ export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType) {
   } else {
     throw new UnsupportedImageError(label);
   }
-  const page = pdfDoc.addPage([image.width, image.height]);
-  page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
-  if (mimeType === 'image/jpeg') {
+  const { pageWidth, pageHeight, x, y, width, height } = placeImage(image.width, image.height, pageSize, pointsPerPixel);
+  const page = pdfDoc.addPage([pageWidth, pageHeight]);
+  page.drawImage(image, { x, y, width, height });
+  // A sized page skips /Rotate: Scan only sends canvas-encoded JPEGs, which carry no EXIF.
+  if (pageSize === 'fit' && mimeType === 'image/jpeg') {
     const angle = ORIENTATION_ROTATION[jpegOrientation(bytes)];
     if (angle) page.setRotation({ type: 'degrees', angle }); // same shape as pdf-lib's degrees(), without a static pdf-lib import
   }

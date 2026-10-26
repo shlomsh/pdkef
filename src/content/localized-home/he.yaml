@@ -19,7 +19,7 @@ title: 'כלי PDF חינמיים - פרטיים, מקומיים, בלי הרש�
 description: 'חבילת כלי PDF חינמית וקוד פתוח שרצה כולה בדפדפן שלכם. איחוד, חתימה, פיצול, טשטוש, כיווץ והמרה של קבצי PDF, בלי העלאה לשרת, בלי חשבון ובלי סימן מים. הקבצים שלכם לא עוזבים את המכשיר.'
 h1: 'כלי PDF חינמיים שרצים אך ורק על המכשיר שלכם'
 h1Accent: 'על המכשיר שלכם'
-subhead: 'איחוד, פיצול, כיווץ, חתימה, טשטוש והמרה של קבצי PDF. עשרה כלי PDF, בלי הרשמה, בלי התקנה, ושום דבר לא יוצא מהמכשיר שלכם.'
+subhead: 'איחוד, פיצול, כיווץ, חתימה, טשטוש והמרה של קבצי PDF. אחד עשר כלי PDF, בלי הרשמה, בלי התקנה, ושום דבר לא יוצא מהמכשיר שלכם.'
 faqKicker: 'כמה תשובות שימושיות'
 faq:
   - question: 'האם הכלים באמת חינמיים?'
@@ -98,4 +98,4 @@ reviewNotes: >-
   name, and approved the rest as it stands, draftPersistence included.
   Earlier: 09-17 subhead says איחוד and 10-01 closing headingStroke נסו, both
   chosen by Shlomi.
-sourceHash: 'fnv1a64:4dcb8e973cace7dd'
+sourceHash: 'fnv1a64:9675c60057ccfc99'

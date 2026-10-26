@@ -13,6 +13,7 @@ import AppBar from '../components/AppBar.astro';
 import TrustChips from '../components/TrustChips.astro';
 import ToolLanguagesCard from '../components/ToolLanguagesCard.astro';
 import ToolAboutCard from '../components/ToolAboutCard.astro';
+import ToolExamplesCard from '../components/ToolExamplesCard.astro';
 import ToolFaqCard from '../components/ToolFaqCard.astro';
 import RelatedGuides from '../components/RelatedGuides.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
@@ -22,6 +23,7 @@ import LocalePackRequest from '../components/LocalePackRequest.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
 import { toolIdOf } from '../data/tools.js';
+import { registerToolPageStyles } from '../site-lib/inlineStyles';
 import { ratingForPage, ratingText } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
 
@@ -82,6 +84,9 @@ const variants = Astro.props.variants ?? resolved.variants;
 // but only on an empty desktop stage (see `data-editor` below).
 // SEO-46: a real aggregate from the build-time read, or null (offline build, store down, under the minimum).
 const rating = await ratingForPage(toolIdOf(tool));
+// English-only like the languages card: the figures' captions are English.
+const showExamples = Boolean(tool.examples) && locale === 'en';
+if (showExamples) registerToolPageStyles(Astro.csp, tool);
 const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
@@ -584,6 +589,8 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
     iconPos={tool.aboutIconPos}
     labels={messages}
   />
+
+  {showExamples && <ToolExamplesCard examples={tool.examples} sketch={tool.aboutSketch} iconPos={tool.aboutIconPos} icon={tool.icon} />}
 
   <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} labels={{ tag: messages.faqTag, heading: messages.faqHeading }} />
 

@@ -7,7 +7,7 @@ reviewNotes: >-
   2026-10-22: AI draft with Israeli content, not a translation: the 150KB and 800KB measurements and the five portal limits
   were checked on each portal's own page and measured in a real browser. Published
   for Shlomi's own read, the way /he/split/ was.
-sourceHash: 'fnv1a64:8a2798446a8340ee'
+sourceHash: 'fnv1a64:a8b318b0afd08dba'
 title: 'הקטנת תמונה לטופס: גודל תמונה בקילובייטים | PDkef'
 description: 'מכסה של 150KB לתמונה לכרטיס סטודנט, 800KB לטופס בקופת חולים. מה קובע אם התמונה תיכנס, מה הכלי עושה, ומה לא, עם מדידות אמיתיות ומגבלות ממקורות רשמיים.'
 breadcrumb: 'גודל תמונה לטופס'
@@ -119,7 +119,7 @@ sections:
     heading: 'נסו על התמונה שלכם לפני שחותכים משהו'
     blocks:
       - kind: 'prose'
-        text: '<a href="/compress-image/">פתחו את כלי כיווץ התמונה</a>, הזינו את היעד שהטופס שלכם באמת מבקש ובדקו את התוצאה. התמונה לא עוזבת את המכשיר, ולכן אין המתנה להעלאה כדי לגלות אם היא נכנסת, ואין חשבון לפתוח קודם. אם הטופס מגביל גם מסמך סרוק, <a href="/he/pdf-wont-compress-to-100kb/">אותה שאלה על קובצי PDF</a> מסבירה את החצי הזה.'
+        text: '<a href="/compress-image/">פתחו את כלי כיווץ התמונה</a>, הזינו את היעד שהטופס שלכם באמת מבקש ובדקו את התוצאה. התמונה לא עוזבת את המכשיר, ולכן אין המתנה להעלאה כדי לגלות אם היא נכנסת, ואין חשבון לפתוח קודם. אם הטופס מגביל גם מסמך סרוק, <a href="/he/pdf-wont-compress-to-100kb/">אותה שאלה על קובצי PDF</a> מסבירה את החצי הזה, ו<a href="/how-to-scan-a-document-to-pdf/">איך לסרוק מסמך ל-PDF</a> מראה איך יוצרים את הסריקה מלכתחילה.'
 faq:
   - question: 'מה קובע אם אפשר לכווץ תמונה לגודל קטן?'
     answer: 'שני דברים, בסדר הזה: מידות התמונה בפיקסלים, ואחר כך איכות ה-JPEG. תמונה גדולה מהטלפון צריכה קודם להתכווץ בפיקסלים לפני שהורדת איכות לבדה תגיע ליעד קטן.'

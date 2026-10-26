@@ -1,0 +1,133 @@
+/* Base styles are the LAST frame: a straight white page with dark text lines, no desk, no dots. */
+.desk {
+  position: absolute;
+  inset: calc(6 * var(--u)) calc(100 * var(--u));
+  border-radius: calc(8 * var(--u));
+  background: var(--color-night);
+  opacity: 0;
+}
+
+.sheet {
+  transform: none;
+}
+
+/* The photo's scenery is not wanted here: the page's text lines replace it */
+.sheet::before {
+  inset: auto;
+  top: calc(14 * var(--u));
+  left: calc(10 * var(--u));
+  right: calc(10 * var(--u));
+  height: calc(46 * var(--u));
+  border-radius: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-night) 0 calc(3 * var(--u)),
+    transparent calc(3 * var(--u)) calc(9 * var(--u))
+  );
+}
+
+.sheet b {
+  position: absolute;
+  width: calc(9 * var(--u));
+  height: calc(9 * var(--u));
+  margin: calc(-4.5 * var(--u));
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 calc(2 * var(--u)) var(--color-surface);
+  opacity: 0;
+}
+
+.tl {
+  left: 0;
+  top: 0;
+}
+
+.tr {
+  left: 100%;
+  top: 0;
+}
+
+.br {
+  left: 100%;
+  top: 100%;
+}
+
+.bl {
+  left: 0;
+  top: 100%;
+}
+
+@keyframes deskIn {
+  0%,
+  62% {
+    opacity: 1;
+  }
+}
+
+/* A photo of a page: tilted, in perspective, a little grey; it straightens and whitens */
+@keyframes flatten {
+  0%,
+  42% {
+    transform: perspective(calc(260 * var(--u))) rotateX(26deg) rotateY(-16deg) rotate(-9deg);
+    background-color: color-mix(in srgb, var(--color-surface) 82%, var(--color-night));
+  }
+  78%,
+  100% {
+    transform: perspective(calc(260 * var(--u))) rotateX(0deg) rotateY(0deg) rotate(0deg);
+  }
+}
+
+@keyframes dots {
+  0%,
+  10% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  22%,
+  44% {
+    opacity: 1;
+    scale: 1;
+  }
+  58%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+@keyframes linesIn {
+  0%,
+  60% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .desk {
+    animation: deskIn 2s ease both;
+  }
+
+  .sheet {
+    animation: flatten 2s var(--ease-emphasized) both;
+  }
+
+  .sheet::before {
+    animation: linesIn 2s ease both;
+  }
+
+  .sheet b {
+    animation: dots 2s ease both;
+  }
+
+  .tr {
+    animation-delay: 0.08s;
+  }
+
+  .br {
+    animation-delay: 0.16s;
+  }
+
+  .bl {
+    animation-delay: 0.24s;
+  }
+}

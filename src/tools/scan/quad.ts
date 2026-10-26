@@ -1,0 +1,58 @@
+// The shapes every Scan module shares (docs/scan-to-pdf.md, "Contract"). A quad
+// a person sees or stores is normalized (0..1) in the upright photo; pixel quads
+// exist only inside the pipeline. Pure: no DOM.
+
+export interface Point { x: number; y: number }
+/** Top-left, top-right, bottom-right, bottom-left. */
+export type Quad = [Point, Point, Point, Point];
+/** ImageData-shaped: four bytes a pixel, row-major. */
+export interface RgbaImage { width: number; height: number; data: Uint8ClampedArray }
+/** One byte a pixel, row-major. */
+export interface GrayImage { width: number; height: number; data: Uint8ClampedArray }
+
+export const FULL_QUAD: Quad = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+
+/** Four points in any order, as top-left, top-right, bottom-right, bottom-left (clockwise on screen). */
+export function orderQuad(points: Point[]): Quad {
+  if (points.length !== 4) throw new Error(`orderQuad needs 4 points, got ${points.length}`);
+  const cx = points.reduce((sum, p) => sum + p.x, 0) / 4;
+  const cy = points.reduce((sum, p) => sum + p.y, 0) / 4;
+  // Clockwise on screen (y grows downwards) is increasing atan2 angle.
+  const byAngle = [...points].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+  let start = 0;
+  for (let i = 1; i < 4; i += 1) {
+    if (byAngle[i].x + byAngle[i].y < byAngle[start].x + byAngle[start].y) start = i;
+  }
+  return [0, 1, 2, 3].map((i) => byAngle[(start + i) % 4]) as Quad;
+}
+
+const cross = (o: Point, a: Point, b: Point) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+/** Strictly convex with every turn the same way: no bow tie, no dent, no three corners on a line. */
+export function isConvexQuad(quad: Quad): boolean {
+  let sign = 0;
+  for (let i = 0; i < 4; i += 1) {
+    const turn = cross(quad[i], quad[(i + 1) % 4], quad[(i + 2) % 4]);
+    if (Math.abs(turn) < 1e-9) return false;
+    const s = Math.sign(turn);
+    if (sign === 0) sign = s;
+    else if (s !== sign) return false;
+  }
+  return true;
+}
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+export function clampPoint(point: Point): Point {
+  return { x: clamp01(point.x), y: clamp01(point.y) };
+}
+
+/** A normalized quad in pixels of a `width` x `height` image. */
+export function scaleQuad(quad: Quad, width: number, height: number): Quad {
+  return quad.map((p) => ({ x: p.x * width, y: p.y * height })) as Quad;
+}
+
+/** A cache key: four decimals, a tenth of a pixel on a 1000px photo. */
+export function quadKey(quad: Quad): string {
+  return quad.map((p) => `${p.x.toFixed(4)},${p.y.toFixed(4)}`).join(';');
+}

@@ -28,7 +28,7 @@ import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
@@ -39,7 +39,7 @@ import RotatePagesVerb from './verb/RotatePagesVerb.tsx';
 type PageJob = 'organize' | 'rotate' | 'remove' | 'numbers';
 const VERBS = { organize: EditPagesVerb, rotate: RotatePagesVerb, remove: RemovePagesVerb, numbers: PageNumbersVerb };
 
-const HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
+const HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;

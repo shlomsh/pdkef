@@ -25,6 +25,8 @@ interface DropzoneEmptyStateProps {
   heading?: string;
   /** Replaces the default privacy line under the heading. */
   body?: string;
+  /** An extra action directly under the pick button (Scan's "Take a photo"). */
+  action?: ComponentChild;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -40,6 +42,7 @@ export default function DropzoneEmptyState({
   art,
   heading,
   body,
+  action,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   // `false` on the server and on this component's first client render, same
@@ -100,6 +103,24 @@ export default function DropzoneEmptyState({
     onFiles(event.dataTransfer.files, 'drop');
   };
 
+  // The input is visually hidden, not `hidden`: display:none takes it out
+  // of the tab order, so a keyboard could never reach the picker and the
+  // `:has(input:focus-visible)` ring below could never match (QUAL-22).
+  // Enter and Space on a focused file input open the picker natively.
+  const pickerEl = (
+    <label class={styles['file-picker-button']}>
+      {multiple ? messages.chooseFilesMany : messages.chooseFileOne}
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        onChange={onInputChange}
+        class={styles['file-input']}
+      />
+    </label>
+  );
+
   return (
     <div
       class={`${styles.dropzone}${isDragOver ? ` ${styles['is-dragover']}` : ''}`}
@@ -140,21 +161,8 @@ export default function DropzoneEmptyState({
         </strong>
       </p>
 
-      {/* The input is visually hidden, not `hidden`: display:none takes it out
-          of the tab order, so a keyboard could never reach the picker and the
-          `:has(input:focus-visible)` ring below could never match (QUAL-22).
-          Enter and Space on a focused file input open the picker natively. */}
-      <label class={styles['file-picker-button']}>
-        {multiple ? messages.chooseFilesMany : messages.chooseFileOne}
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          multiple={multiple}
-          onChange={onInputChange}
-          class={styles['file-input']}
-        />
-      </label>
+      {/* A tool's extra way in (Scan's "Take a photo") is an equal choice: one row, side by side. */}
+      {action ? <div class={styles['pick-row']}>{pickerEl}{action}</div> : pickerEl}
 
       <p class={styles['privacy-line']}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">

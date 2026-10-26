@@ -1,4 +1,4 @@
-import { FileSignature, Shrink } from 'lucide-preact';
+import { FileSignature, Merge, Shrink } from 'lucide-preact';
 import PdfShareButton from '../PdfShareButton.tsx';
 import type { HandoffTool } from './useDownloadFlow.ts';
 import styles from './PageWorkspace.module.css';
@@ -13,11 +13,12 @@ interface FinishRowProps {
   onHandoff: (tool: HandoffTool) => void;
   /** Hover, focus or press anywhere in the row: build now. */
   onWarm: () => void;
-  labels: { share: string; compress: string; sign: string };
+  labels: { share: string; compress: string; sign: string; merge?: string };
   /** Which hand-offs follow Share. Split's one PDF per page passes none. */
   tools?: HandoffTool[];
 }
 
+const ICONS = { compress: Shrink, sign: FileSignature, merge: Merge };
 const DEFAULT_TOOLS: HandoffTool[] = ['compress', 'sign'];
 
 /** The rail's finish row: Share, then hand-offs (Compress and Sign unless `tools` says otherwise). */
@@ -26,7 +27,7 @@ export default function FinishRow({ ready, shareReady, onShare, busy, onHandoff,
     <div class={styles['handoff-row']} onPointerOver={onWarm} onFocusIn={onWarm} onPointerDown={onWarm}>
       {ready && <PdfShareButton visible={shareReady} onShare={onShare} label={labels.share} className={styles['handoff-button']} />}
       {tools.map((tool) => {
-        const Icon = tool === 'compress' ? Shrink : FileSignature;
+        const Icon = ICONS[tool];
         return (
           <button
             key={tool}

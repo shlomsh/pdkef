@@ -1,7 +1,7 @@
 ---
 id: "SCAN-01"
 title: "Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "search-and-languages"
 horizon: "next"
@@ -93,4 +93,30 @@ file too big for a portal, a scan to sign next). Link from `remove-camscanner-wa
 ## Open questions
 
 - Does iOS Safari hand over HEIC from the photo library? `accept` today is `image/jpeg,image/png`.
+  **Answered 2026-10-26 (documented mechanism, phone check pending):** with an `accept` list that leaves
+  HEIC out, Safari converts a photo of any other type to the first listed type, so a library pick arrives
+  as JPEG (WebKit bug 303803, which documents the conversion; https://bugs.webkit.org/show_bug.cgi?id=303803).
+  Listing `image/heic` is what makes Safari hand HEIC over, and Safari 17+ then even converted JPEGs to
+  HEIC (Apple developer forums thread 743049), so Scan keeps `image/jpeg,image/png` on both the picker and
+  the camera input. Chrome on iOS is WebKit and behaves the same (inferred). A `.heic` file on a desktop
+  or an Android HEIF photo is not offered by the picker and, dropped, is skipped with a message; Chrome and
+  Firefox cannot decode HEIC anyway. To confirm on Shlomi's iPhone: a library pick of a HEIC photo
+  arrives and scans.
 - Does Hebrew get a `/he/` Scan page at launch? Follow the languages page, not this ticket.
+
+## Progress 2026-10-26 (branch `claude/scan-to-pdf-cdd83e`, not yet on main)
+
+Built as designed in `docs/scan-to-pdf.md`. Checked on a production build: three 12 MP photos of a page
+at an angle, Document, A4, 1 MB gave a three-page A4 PDF of 1,045,882 bytes that reads cleanly, ready
+about 3 s after the pick on a laptop; no sideways scroll at 375, 768, 1280 and 1440. `check:push` green;
+the diff's Playwright projects green (one Merge phone spec flaked once, then passed 3 of 3 alone).
+
+Still open: the two phone acceptance items (Shlomi's iPhone and an Android phone, including the HEIC
+library pick), landing on main, and whether Scan joins the home dock (`homeDock: false` for now, see the
+design record). The four-week Search Console read follows the launch.
+
+Landed on main 2026-10-26, after Shlomi's iPhone rounds the same day (review each photo first, a look
+per page, the flatten animation, the corner loupe, small previews for iPhone memory, Scan on the home
+dock). Still open: an Android phone pass, and the four-week Search Console read. A page with a dark
+band along one edge still defeats the edge guess; an edge-line detector is in its own session.
+

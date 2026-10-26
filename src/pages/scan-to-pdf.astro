@@ -1,0 +1,11 @@
+---
+import ToolPageLayout from '../layouts/ToolPageLayout.astro';
+import PdfScanTool from '../tools/scan/PdfScanTool.tsx';
+import { toolsBySlug } from '../data/tools.js';
+
+const tool = toolsBySlug['scan-to-pdf'];
+---
+
+<ToolPageLayout tool={tool}>
+  <PdfScanTool client:load />
+</ToolPageLayout>

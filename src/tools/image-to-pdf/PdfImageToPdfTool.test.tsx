@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
-import * as imageToPdfLib from './imageToPdf.js';
+import * as imageToPdfLib from '../../lib/imagesToPdf.js';
 import styles from './PdfImageToPdfTool.module.css';
 import outputNameStyles from '../../shell/OutputName.module.css';
 import sortMenuStyles from '../../shell/SortMenu.module.css';
@@ -27,15 +27,19 @@ function makeImageFile(name, type = 'image/png') {
 }
 
 
-const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
+const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({
+  takeHandoffMock: vi.fn(() => Promise.resolve(null)),
+  saveHandoffMock: vi.fn(() => Promise.resolve(true)),
+}));
 
 // SITE-42: the home page hands picked files over through the draft store's hand-off slot.
 vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: takeHandoffMock,
+  saveHandoff: saveHandoffMock,
 }));
 
-vi.mock('./imageToPdf.js', () => ({
+vi.mock('../../lib/imagesToPdf.js', () => ({
   imagesToPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4'], { type: 'application/pdf' }))),
   UnsupportedImageError: class UnsupportedImageError extends Error {},
 }));
@@ -72,11 +76,11 @@ describe('PdfImageToPdfTool UI flow', () => {
     vi.useRealTimers();
   });
 
-  function mount() {
+  function mount(props = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfImageToPdfTool quietPolicy={QUIET} />, container);
+      render(<PdfImageToPdfTool quietPolicy={QUIET} {...props} />, container);
     });
   }
 
@@ -504,5 +508,54 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(container.querySelector('button[aria-label="הסרת b.png"]')).not.toBeNull();
     expect(container.querySelector('#reorder-hint').textContent).toBe(hebrewImageToPdfMessages.reorderHint);
     expect(container.querySelector('[role="status"][aria-live="polite"]').textContent).toBe('2 תמונות נוספו.');
+  });
+
+  describe('Clean it up as a scan', () => {
+    const scanButton = () => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.includes('Clean it up as a scan'));
+
+    beforeEach(() => saveHandoffMock.mockReset().mockResolvedValue(true));
+
+    it('appears once images are added, not before', async () => {
+      mount();
+      expect(scanButton()).toBeUndefined();
+      await loadFiles(['a.png']);
+      await wait(0);
+      expect(scanButton()).toBeDefined();
+    });
+
+    it('saves every image in page order as a scan-to-pdf hand-off and navigates', async () => {
+      const navigate = vi.fn();
+      mount({ navigate });
+      await loadFiles(['a.png', 'b.jpg']);
+      await wait(0);
+      await act(async () => scanButton().click());
+      await wait(0);
+      expect(saveHandoffMock).toHaveBeenCalledTimes(1);
+      const [key, record] = saveHandoffMock.mock.calls[0];
+      expect(key).toBe('scan-to-pdf');
+      expect(record.files.map((f) => [f.fileName, f.fileType])).toEqual([['a.png', 'image/png'], ['b.jpg', 'image/jpeg']]);
+      expect(record.files[0].fileBytes.byteLength).toBeGreaterThan(0);
+      expect(navigate).toHaveBeenCalledWith('/scan-to-pdf/');
+    });
+
+    it('says so and stays put when the save fails', async () => {
+      saveHandoffMock.mockResolvedValue(false);
+      const navigate = vi.fn();
+      mount({ navigate });
+      await loadFiles(['a.png']);
+      await wait(0);
+      await act(async () => scanButton().click());
+      await wait(0);
+      expect(navigate).not.toHaveBeenCalled();
+      expect(container.textContent).toContain('Could not open Scan to PDF. Try again.');
+    });
+
+    it('speaks Hebrew on the Hebrew page', async () => {
+      mount({ messages: hebrewImageToPdfMessages, shellMessages: hebrewShellMessages });
+      await loadFiles(['a.png']);
+      await wait(0);
+      expect(scanButton()).toBeUndefined();
+      expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.includes(hebrewImageToPdfMessages.scanHandoff))).toBe(true);
+    });
   });
 });

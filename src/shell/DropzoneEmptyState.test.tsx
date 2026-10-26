@@ -129,6 +129,18 @@ describe('DropzoneEmptyState', () => {
     expect(line.querySelector(`.${styles['empty-desktop']}`).textContent).toBe('Desktop line.');
   });
 
+  it('puts an action in one row with the pick button, as an equal choice, and nothing extra without one', () => {
+    mount({ action: <button type="button" data-testid="extra">Take a photo</button> });
+    const picker = container.querySelector(`.${styles['file-picker-button']}`);
+    expect(picker.parentElement.className).toBe(styles['pick-row']);
+    expect(picker.nextElementSibling.getAttribute('data-testid')).toBe('extra');
+    act(() => render(null, container));
+    container.remove();
+    mount();
+    expect(container.querySelector('[data-testid="extra"]')).toBeNull();
+    expect(container.querySelector(`.${styles['file-picker-button']}`).nextElementSibling.className).toBe(styles['privacy-line']);
+  });
+
   it('renders one plain strong and line when no heading or body is given', () => {
     mount({ message: 'Drop here' });
     expect(container.querySelector('strong').children.length).toBe(0);

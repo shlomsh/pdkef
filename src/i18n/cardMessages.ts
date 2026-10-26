@@ -41,6 +41,10 @@ const hebrewToolCards: Record<string, CardCopy> = {
     title: 'תמונה ל-PDF',
     description: 'אחדו תמונות JPG או PNG לקובץ PDF אחד באיכות המקורית, בלי סימן מים.',
   },
+  'scan-to-pdf': {
+    title: 'סריקה ל-PDF',
+    description: 'הפכו צילומים של דפים ל-PDF נקי: יישור כל דף, תאורה אחידה וקובץ קטן.',
+  },
   split: {
     title: 'פיצול PDF',
     description: 'חלצו עמודים מסוימים או פצלו PDF לכמה קבצים, בלי הגבלת עמודים ובלי סימן מים.',
@@ -95,6 +99,10 @@ const hebrewGuideCards: Record<string, CardCopy> = {
   'pdf-wont-compress-to-100kb': {
     title: 'למה 100KB לא מספיק',
     description: 'דוגמאות שנמדדו באמת: כמה עמודים נכנסים לפני שהטקסט מתטשטש.',
+  },
+  'how-to-scan-a-document-to-pdf': {
+    title: 'איך לסרוק מסמך ל-PDF',
+    description: 'הסורקים המובנים באייפון, באנדרואיד ובמחשב, ומתי כדאי להשתמש בכלי הסריקה כאן.',
   },
   'photo-and-signature-size-for-forms': {
     title: 'גודל תמונה וחתימה לטפסים',

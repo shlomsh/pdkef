@@ -12,7 +12,7 @@ paths:
   - "docs/module-boundaries.md"
 ---
 
-Loaded when working on any of the ten tool islands, the shared `src/shell/` chrome, or `src/lib/`.
+Loaded when working on any of the eleven tool islands, the shared `src/shell/` chrome, or `src/lib/`.
 Sign and Redact's shared headless editor core is `editor.md` instead; fonts and text export are
 `fonts-and-text.md`; styling boundary is `styling.md`. This file holds draft persistence, the other
 tools' own logic, the cross-tool hand-off pattern, and the UX guideline that every tool review starts
