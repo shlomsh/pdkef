@@ -34,6 +34,9 @@ export interface PreparedOutputInput<M = unknown> {
   /** Default true. False withdraws on a key change as usual but builds nothing
    * until `prepareNow` (a long document builds on hover, focus or tap). */
   autoBuild?: boolean;
+  /** Identifies the document the key belongs to. When it changes, every cached result is dropped, so a
+   * hook that lives as long as its island does not hold a replaced file's blobs. */
+  cacheScope?: unknown;
 }
 
 export interface PreparedOutput<M = unknown> {
@@ -62,7 +65,7 @@ export interface PreparedOutput<M = unknown> {
 export type Built<M = unknown> = ({ blob: Blob; pageCount: number } | { parts: OutputPart[]; pageCount: number }) & { meta?: M };
 
 export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): PreparedOutput<M> {
-  const { key, build, onBuildError, onReady, quietPolicy, autoBuild = true } = input;
+  const { key, build, onBuildError, onReady, quietPolicy, autoBuild = true, cacheScope } = input;
   const { url, setBlob, clear } = useObjectUrls();
   const [state, setState] = useState<{
     status: PreparedStatus; blob: Blob | null; parts: PreparedPart[] | null; pageCount: number; meta: M | null; error: Error | null; generation: number;
@@ -132,9 +135,15 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
 
   /** Points the preparer at `nextKey`. Idempotent per key, so the render below and the effect can both call it. */
   const appliedKeyRef = useRef<string | null | undefined>(undefined);
+  const appliedScopeRef = useRef<unknown>(cacheScope);
   const applyKey = (nextKey: string | null) => {
     const preparer = preparerRef.current;
-    if (!preparer || appliedKeyRef.current === nextKey) return;
+    if (!preparer) return;
+    if (appliedScopeRef.current !== cacheScope) {
+      appliedScopeRef.current = cacheScope;
+      preparer.clearCache();
+    }
+    if (appliedKeyRef.current === nextKey) return;
     appliedKeyRef.current = nextKey;
     if (nextKey === null) {
       keyRef.current = null;

@@ -187,6 +187,30 @@ describe('usePreparedOutput', () => {
     expect(api.current.status).toBe('pending');
   });
 
+  it('forgets results built for an earlier cacheScope, so a replaced document is not retained', async () => {
+    const build = vi.fn(async () => built());
+    await mount({ key: 'a', build, cacheScope: 1 });
+    await settle();
+    await mount({ key: 'b', build, cacheScope: 2 });
+    await settle();
+    expect(build).toHaveBeenCalledTimes(2);
+    await mount({ key: 'a', build, cacheScope: 1 });
+    expect(api.current.status).toBe('pending');
+    await settle();
+    expect(build).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps cached results while the cacheScope stays the same', async () => {
+    const build = vi.fn(async () => built());
+    await mount({ key: 'a', build, cacheScope: 1 });
+    await settle();
+    await mount({ key: 'b', build, cacheScope: 1 });
+    await settle();
+    await mount({ key: 'a', build, cacheScope: 1 });
+    expect(api.current.status).toBe('ready');
+    expect(build).toHaveBeenCalledTimes(2);
+  });
+
   it('turns a failed build into error and reports it', async () => {
     const failure = new Error('boom');
     const onBuildError = vi.fn();
