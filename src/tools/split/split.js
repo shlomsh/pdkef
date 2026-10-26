@@ -1,5 +1,8 @@
 import { applyRotation } from '../../lib/pageOps.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { openPdfDoc } from '../../lib/openPdfDoc.ts';
+import { throwIfAborted } from '../../lib/abort.js';
+import { toBytes } from '../../lib/toBytes.js';
 
 // DEBT-23: parsePageSelector moved to src/lib/pageSelector.js (shared with
 // PDF to Image). Import it from there.
@@ -30,15 +33,12 @@ export function extractedFileName(base) {
 // 0|90|180|270 } map of the delta the person applied with the per-cell
 // rotate control, added on top of whatever rotation the source page already
 // carried (pageOps.js's applyRotation, shared with Merge and Edit Pages).
-function throwIfAborted(signal) {
-  if (signal?.aborted) throw new DOMException('The split was superseded.', 'AbortError');
-}
-
 export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations = {}, onProgress, signal }) {
   const { PDFDocument } = await getPdfLib();
-  const bytes = await file.arrayBuffer();
+  const bytes = await toBytes(file);
   throwIfAborted(signal);
-  const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  // The island repairs a lost page tree at intake and hands over the repaired file (ARCH-39 decision), so no repair here.
+  const { doc: source } = await openPdfDoc(bytes, { encryption: 'ignore' });
   // An owner-only file loads without a password, but its page streams are still
   // encrypted: copying them out would save a valid PDF of blank pages.
   if (source.isEncrypted) throw new Error('This PDF is password protected.');

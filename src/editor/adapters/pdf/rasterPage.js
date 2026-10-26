@@ -1,5 +1,5 @@
 import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE, clampScaleToCanvas } from '../../../lib/canvasLimits.js';
-import { getPdfRenderContext } from '../../../lib/pdfRender.js';
+import { renderPageToCanvas } from '../../../lib/renderPage.js';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
 
 /** Render scale for a rasterized page: crisp and readable. */
@@ -29,13 +29,10 @@ const base64ToBytes = (base64) => Uint8Array.from(atob(base64), (c) => c.charCod
  */
 export async function rasterizePageToJpeg(pdfjsPage, { paint } = {}) {
   const unit = pdfjsPage.getViewport({ scale: 1 });
-  const viewport = pdfjsPage.getViewport({ scale: rasterScaleFor(unit.width, unit.height) });
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.floor(viewport.width);
-  canvas.height = Math.floor(viewport.height);
-  const ctx = getPdfRenderContext(canvas);
-  await pdfjsPage.render({ canvasContext: ctx, viewport }).promise;
-  if (paint) paint(ctx, viewport, canvas);
+  const scale = rasterScaleFor(unit.width, unit.height);
+  // Paper white behind the page: JPEG has no alpha, a transparent page would come out black.
+  const canvas = await renderPageToCanvas(pdfjsPage, { scale });
+  if (paint) paint(canvas.getContext('2d'), pdfjsPage.getViewport({ scale }), canvas);
   const dataUrl = canvas.toDataURL('image/jpeg', RASTER_JPEG_QUALITY);
   const jpeg = base64ToBytes(dataUrl.split(',')[1] ?? '');
   // An over-limit or failed encode yields "data:,"; never embed that as a page.

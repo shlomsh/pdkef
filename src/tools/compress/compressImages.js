@@ -1,6 +1,7 @@
 // Compress that keeps every page as it is: text, vectors, fonts and links are
 // untouched, and only the embedded images are recompressed in place (COMP-01).
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { openPdfDoc } from '../../lib/openPdfDoc.ts';
 import { canvasToBlob } from '../../lib/canvasBlob.js';
 import { permissionsFromP, randomOwnerPassword } from './pdfPermissions.js';
 import { stripExif } from './jpegBytes.js';
@@ -110,29 +111,27 @@ export async function compressPdfImages(
     blob: file, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason, keptBytes, imageBytes,
   });
 
-  const { PDFDocument, PDFName, PDFRef, PDFRawStream, PDFDict, PDFNumber, decodePDFRawStream } = await getPdfLib();
+  const { PDFName, PDFRef, PDFRawStream, PDFDict, PDFNumber, decodePDFRawStream } = await getPdfLib();
   const { analyzePdfImages } = await import('./analyzePdf.js');
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  let doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-  const wasEncrypted = doc.isEncrypted;
-  let permissions = null;
-  if (wasEncrypted) {
-    // Most encrypted PDFs are owner-password-only: they open with an empty password and only restrict editing.
-    // Only the Standard handler with a readable /P can be carried across; anything else stays as it is.
-    const encrypt = doc.context.lookup(doc.context.trailerInfo.Encrypt);
+  // Most encrypted PDFs are owner-password-only: they open with an empty password and only restrict editing.
+  // Only the Standard handler with a readable /P can be carried across; anything else stays as it is.
+  const carriedPermissions = (encrypted) => {
+    const encrypt = encrypted.context.lookup(encrypted.context.trailerInfo.Encrypt);
     const handler = encrypt instanceof PDFDict ? encrypt.get(PDFName.of('Filter')) : null;
-    const p = encrypt instanceof PDFDict ? doc.context.lookup(encrypt.get(PDFName.of('P'))) : null;
-    if (handler !== PDFName.of('Standard') || !(p instanceof PDFNumber)) return untouched('encrypted');
-    permissions = permissionsFromP(p.asNumber());
-    try {
-      doc = await PDFDocument.load(bytes, { password: '', updateMetadata: false });
-    } catch (err) {
-      // Same wording check as security.js: a file that needs a real password goes back untouched.
-      if (/password/i.test(err?.message ?? '')) return untouched('encrypted');
-      throw err;
-    }
-  }
+    const p = encrypt instanceof PDFDict ? encrypted.context.lookup(encrypt.get(PDFName.of('P'))) : null;
+    return handler === PDFName.of('Standard') && p instanceof PDFNumber ? permissionsFromP(p.asNumber()) : null;
+  };
+  const opened = await openPdfDoc(file, {
+    encryption: 'empty-password',
+    updateMetadata: false,
+    shouldUnlock: (encrypted) => carriedPermissions(encrypted) !== null,
+  });
+  const { doc } = opened;
+  const wasEncrypted = opened.encrypted !== null;
+  // A file that needs a real password, or has no handler we can carry across, goes back untouched.
+  if (wasEncrypted && !opened.unlocked) return untouched('encrypted');
+  const permissions = opened.encrypted ? carriedPermissions(opened.encrypted) : null;
 
   const images = analyzePdfImages(doc);
   if (images.length === 0) return untouched('no-images');

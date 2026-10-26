@@ -19,6 +19,7 @@ import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../model/signGeometry.js';
 import { reportError } from '../../../lib/errorReport.ts';
+import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
 import { flattenDoc } from './flatten.js';
 
 /**
@@ -111,7 +112,7 @@ export function pageGeometryFromPdfLibPage(page) {
 // Bakes each element through its registry owner. Document loading and font caching
 // stay here because they are PDF-wide concerns, not per-element behavior.
 export async function signPdf(file, elements, onProgress) {
-  const pdfDoc = await PDFDocument.load(Object.prototype.toString.call(file) === '[object ArrayBuffer]' ? file : await file.arrayBuffer());
+  const { doc: pdfDoc } = await openPdfDoc(file);
   pdfDoc.registerFontkit(fontkit);
   const loadedFonts = {};
 

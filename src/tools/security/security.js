@@ -1,4 +1,5 @@
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { openPdfDoc } from '../../lib/openPdfDoc.ts';
 import { reportError } from '../../lib/errorReport.ts';
 
 export class SecurityError extends Error {
@@ -33,11 +34,11 @@ export async function unlockPdf(file, password) {
   const bytes = await file.arrayBuffer();
   // Outside the try below, whose catch means "wrong password": a failure to
   // load pdf-lib itself must not be reported as a bad password.
-  const { PDFDocument } = await getPdfLib();
+  await getPdfLib();
 
   let pdfDoc;
   try {
-    pdfDoc = await PDFDocument.load(bytes, { password });
+    ({ doc: pdfDoc } = await openPdfDoc(bytes, { password }));
   } catch (err) {
     throw isPasswordFailure(err) ? new WrongPasswordError() : new UnreadablePdfError(err);
   }
@@ -51,11 +52,11 @@ export async function protectPdf(file, password) {
   const bytes = await file.arrayBuffer();
   // Outside the try below for the same reason as in unlockPdf: its catch
   // blames an already-encrypted file, which a chunk-load failure is not.
-  const { PDFDocument } = await getPdfLib();
+  await getPdfLib();
 
   let pdfDoc;
   try {
-    pdfDoc = await PDFDocument.load(bytes);
+    ({ doc: pdfDoc } = await openPdfDoc(bytes));
   } catch (err) {
     throw new SecurityError('Failed to protect PDF. It might already be encrypted.');
   }
