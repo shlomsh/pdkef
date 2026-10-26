@@ -23,6 +23,7 @@ import LocalePackRequest from '../components/LocalePackRequest.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
 import { toolIdOf } from '../data/tools.js';
+import { EDITOR_LAYOUT_SLUGS, FILE_LIST_RESTORE_SLUGS, layoutOf } from '../lib/toolIds.ts';
 import { registerToolPageStyles } from '../site-lib/inlineStyles';
 import { ratingForPage, ratingText } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
@@ -87,7 +88,41 @@ const rating = await ratingForPage(toolIdOf(tool));
 // English-only like the languages card: the figures' captions are English.
 const showExamples = Boolean(tool.examples) && locale === 'en';
 if (showExamples) registerToolPageStyles(Astro.csp, tool);
-const isEditor = tool.slug === 'sign' || tool.slug === 'redact';
+const { editorLayout: isEditor, unlimitedNote } = layoutOf(tool.slug);
+// The pre-paint script below, as text, so the page-family slugs come from the registry (src/lib/toolIds.ts)
+// and the text is still the same on every tool page: one hash covers it (astro.config.mjs).
+const slugsTest = (slugs: readonly string[]) => slugs.map((s) => `slug === '${s}'`).join(' || ');
+const prePaintScript = `
+      (function () {
+        try {
+          var segments = location.pathname.split('/').filter(Boolean);
+          var slug = segments[segments.length - 1] || '';
+          var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
+          document.documentElement.setAttribute('data-view-density', density);
+          var entryId = localStorage.getItem('pdf-toolkit:workspace:current:' + slug);
+          var currentEntryIsKnown = false;
+          if (entryId) {
+            try {
+              var recentFiles = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
+              currentEntryIsKnown = Array.isArray(recentFiles) && recentFiles.some(function (entry) { return entry && entry.id === entryId; });
+            } catch (e) {
+              currentEntryIsKnown = true;
+            }
+          }
+          if (currentEntryIsKnown) {
+            document.documentElement.setAttribute('data-draft-hint', '1');
+            if (${slugsTest(EDITOR_LAYOUT_SLUGS)}) {
+              document.documentElement.setAttribute('data-editor-restore', '1');
+            } else if (${slugsTest(FILE_LIST_RESTORE_SLUGS)}) {
+              document.documentElement.setAttribute('data-merge-restore', '1');
+            }
+          }
+          if (sessionStorage.getItem('pdkef:handoff-pending:' + slug)) {
+            document.documentElement.setAttribute('data-handoff-pending', '1');
+          }
+        } catch (e) {}
+      })();
+    `;
 // Which other pages exist in this edition, so the two card grids below can
 // link to the localized page where there is one and mark the rest EN.
 const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
@@ -148,37 +183,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         of truth. Keep the pre-paint restore guard when it is corrupt; the
         IndexedDB restore will promptly clear a stale pointer before any hidden
         empty state can become visible. */}
-    <script is:inline>
-      (function () {
-        try {
-          var segments = location.pathname.split('/').filter(Boolean);
-          var slug = segments[segments.length - 1] || '';
-          var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
-          document.documentElement.setAttribute('data-view-density', density);
-          var entryId = localStorage.getItem('pdf-toolkit:workspace:current:' + slug);
-          var currentEntryIsKnown = false;
-          if (entryId) {
-            try {
-              var recentFiles = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
-              currentEntryIsKnown = Array.isArray(recentFiles) && recentFiles.some(function (entry) { return entry && entry.id === entryId; });
-            } catch (e) {
-              currentEntryIsKnown = true;
-            }
-          }
-          if (currentEntryIsKnown) {
-            document.documentElement.setAttribute('data-draft-hint', '1');
-            if (slug === 'sign' || slug === 'redact') {
-              document.documentElement.setAttribute('data-editor-restore', '1');
-            } else if (slug === 'merge') {
-              document.documentElement.setAttribute('data-merge-restore', '1');
-            }
-          }
-          if (sessionStorage.getItem('pdkef:handoff-pending:' + slug)) {
-            document.documentElement.setAttribute('data-handoff-pending', '1');
-          }
-        } catch (e) {}
-      })();
-    </script>
+    <script is:inline set:html={prePaintScript} />
   </Fragment>
 
   <AppBar toolName={tool.toolName} labels={messages} locale={locale}>
@@ -542,7 +547,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       is already held hidden while a merge restore runs. English edition only
       (LOC-02): it is hardcoded English, and a localized edition's own
       freeNoteLead already states the no-limit fact in its language. */}
-  {tool.slug === 'merge' && locale === 'en' && (
+  {unlimitedNote && locale === 'en' && (
     <p data-merge-note class="mx-auto mb-4 w-full max-w-[1080px] px-6 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)]">
       Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
     </p>
