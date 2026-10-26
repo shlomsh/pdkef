@@ -438,7 +438,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   };
 
   // The selected page stays in view inside the pages list (a capped column from 1024px), by scrolling
-  // the list alone: scrollIntoView would also move the page away from the photo on a phone.
+  // the list alone: scrollIntoView would also move the page away from the photo on a phone. On a new
+  // selection only: an added page is selected, and removing another page must leave the list where it is.
   useEffect(() => {
     const list = listRef.current;
     const tile = list?.querySelector<HTMLElement>('[data-selected]');
@@ -451,7 +452,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     else if (at.bottom > box.bottom) list.scrollTop += at.bottom - box.bottom;
     if (at.left < box.left) list.scrollLeft -= box.left - at.left;
     else if (at.right > box.right) list.scrollLeft += at.right - box.right;
-  }, [selectedId, pages.length]);
+  }, [selectedId]);
 
   useLayoutEffect(() => {
     const id = focusIdRef.current;

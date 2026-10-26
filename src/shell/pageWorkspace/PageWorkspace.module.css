@@ -523,11 +523,15 @@
   white-space: nowrap;
 }
 
-/* Four labels cannot share one line in the 320px rail, so they take two
-   equal columns, two per line. Only Scan has four. */
-.handoff-row[data-count='4'] {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Four labels cannot share one line in the 320px desktop rail or on a
+   phone, so they take two equal columns, two per line. From 768 to 1023px
+   the row is the card's full width and four fit on one line. Only Scan has
+   four. */
+@media (max-width: 767px), (min-width: 1024px) {
+  .handoff-row[data-count='4'] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Review P3: Share, Compress and Sign read
