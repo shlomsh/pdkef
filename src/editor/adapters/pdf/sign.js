@@ -17,7 +17,7 @@ import {
 import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../text/fonts.js';
-import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
+import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../model/signGeometry.js';
 import { reportError } from '../../../lib/errorReport.ts';
 import { flattenDoc } from './flatten.js';
 

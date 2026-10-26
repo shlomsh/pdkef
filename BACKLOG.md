@@ -115,7 +115,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | --- | --- | --- | --- |
 | DEBT-62 | P1 | [DEBT-62](backlog/tasks/DEBT-62.md) · Every tool accepts a PDF the browser reports with no file type | In progress |
 | DEBT-63 | P2 | [DEBT-63](backlog/tasks/DEBT-63.md) · Compress and PDF to Image stay inside the browser's canvas limit on very large pages |  |
-| ARCH-34 | P1 | [ARCH-34](backlog/tasks/ARCH-34.md) · A change to one core project reaches only the projects that use it |  |
+| ARCH-34 | P1 | [ARCH-34](backlog/tasks/ARCH-34.md) · A change to one core project reaches only the projects that use it | In progress |
 
 ### Then, in order
 

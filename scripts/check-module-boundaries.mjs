@@ -130,7 +130,6 @@ const MODULE_PREFIXES = [
   // convention for anything more specific than a broad site prefix.
   ['src/site-lib/', () => 'site'],
   ['src/lib/', () => 'lib'],
-  ['src/constants/', () => 'lib'],
   ['src/i18n/', () => 'site-i18n'],
   ['src/data/', () => 'site-data'],
   ['src/pages/', () => 'site'],
@@ -193,6 +192,11 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   }
   if (CORE_MODULES.has(fromModule) && toModule === 'site') {
     return `${fromModule} may import site-i18n and site-data but not site (pages/layouts/content/styles)`;
+  }
+  // Rule 10 (ARCH-34): lib is the bottom layer. It may import only lib, so a
+  // change to a core project never reaches back down into the shared helpers.
+  if (fromModule === 'lib' && ['editor', 'editor-ui', 'shell', 'site-i18n', 'site-data'].includes(toModule)) {
+    return `lib is the bottom layer: it may not import ${toModule}`;
   }
   // Rule 3: editor is headless.
   if (fromModule === 'editor' && (toModule === 'editor-ui' || toModule === 'shell')) {

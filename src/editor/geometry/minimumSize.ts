@@ -8,7 +8,7 @@ import {
   LINE_RESET_SPREAD_PCT,
   MIN_LINE_LENGTH_PCT,
   MIN_SHAPE_THRESHOLD_PCT,
-} from '../../constants/signGeometry.js';
+} from '../model/signGeometry.js';
 import type { EditorElement } from '../model/editorModel.ts';
 import { widthPercentToHeightPercent } from './coords.js';
 

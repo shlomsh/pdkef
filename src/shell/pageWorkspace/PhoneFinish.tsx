@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import ExportHandoffs, { type ExportHandoffItem } from '../../editor-ui/ExportHandoffs.tsx';
+import ExportHandoffs, { type ExportHandoffItem } from '../ExportHandoffs.tsx';
 import type { PreparedOutput } from '../../lib/usePreparedOutput.ts';
 import DoneStrip from '../DoneStrip.tsx';
 import FileName from '../FileName.tsx';

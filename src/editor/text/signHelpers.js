@@ -1,5 +1,5 @@
-import { FIELD_TEXT_INSET_EM } from '../constants/signGeometry.js';
-import { resolveTypography } from '../editor/text/fonts.js';
+import { FIELD_TEXT_INSET_EM } from '../model/signGeometry.js';
+import { resolveTypography } from './fonts.js';
 
 // "First strong character" (UAX #9): a run's direction comes from its first
 // character with an inherent one, and every letter has one. A Latin-and-
