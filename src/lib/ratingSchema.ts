@@ -8,24 +8,13 @@
  * no time. The server adds the request's country and region; the browser never sends a location.
  */
 
-// No imports, and none may be added: `api/report.ts` loads this file in the deployed function
-// (see errorReportSchema.ts and functionImports.test.js). The list repeats `ANALYTICS_TOOLS`;
-// a unit test keeps the two equal.
-export const RATING_TOOLS = [
-  'merge',
-  'split',
-  'edit-pdf',
-  'compress',
-  'compress-image',
-  'pdf-to-image',
-  'image-to-pdf',
-  'scan-to-pdf',
-  'sign',
-  'redact',
-  'unlock',
-  'protect',
-] as const;
-export type RatingTool = (typeof RATING_TOOLS)[number];
+// The one import is `toolIds.js` (ARCH-38), itself import-free: `api/report.ts` loads this file in the
+// deployed function (see errorReportSchema.ts and functionImports.test.js), where a `.ts` specifier fails.
+import { TOOL_IDS, type ToolId } from './toolIds.js';
+
+/** The same tools as `ANALYTICS_TOOLS`: the registry's ids (src/lib/toolIds.ts). */
+export const RATING_TOOLS = TOOL_IDS;
+export type RatingTool = ToolId;
 
 export const STARS = [1, 2, 3, 4, 5] as const;
 export type Stars = (typeof STARS)[number];

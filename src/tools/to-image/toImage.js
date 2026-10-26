@@ -8,18 +8,19 @@ import { renderPageToCanvas } from '../../lib/renderPage.js';
 import { throwIfAborted } from '../../lib/abort.js';
 import { toBytes } from '../../lib/toBytes.js';
 import { clampScaleToCanvas } from '../../lib/canvasLimits.js';
+import { outputBase, withAffixes } from '../../lib/outputName.ts';
 
 const EXTENSION_BY_FORMAT = { 'image/png': 'png', 'image/jpeg': 'jpg' };
 
 export const imageExtension = (format) => EXTENSION_BY_FORMAT[format] ?? 'png';
 
 /** The PDF's name without ".pdf"; what every image file is named after. */
-export const imageBaseName = (fileName) => fileName.replace(/\.pdf$/i, '') || 'page';
+export const imageBaseName = (fileName) => outputBase(fileName, { fallback: 'page' });
 
 /** "<base>.<ext>" for a lone image, "<base>-page-<page>.<ext>" when `page` is given (a number, or the heading's literal "N"). */
 /** @param {string} baseName @param {string} extension @param {number | string | null} [page] */
 export const imageFileName = (baseName, extension, page = null) =>
-  (page === null ? `${baseName}.${extension}` : `${baseName}-page-${page}.${extension}`);
+  withAffixes(baseName, { suffix: page === null ? '' : `-page-${page}`, ext: extension });
 
 function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {

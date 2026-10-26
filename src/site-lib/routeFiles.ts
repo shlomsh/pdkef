@@ -7,29 +7,19 @@
  */
 
 import { deriveFileKind } from '../lib/fileKind.js';
-import { toolIdOf, toolsBySlug } from '../data/tools.js';
+import { FILE_CAPABILITIES, handoffKeyOf, type FileKind } from '../lib/toolIds.ts';
 
 export type ToolSlug =
   | 'sign' | 'redact' | 'merge' | 'pdf-to-image' | 'image-to-pdf'
   | 'split' | 'compress' | 'compress-image' | 'unlock' | 'organize-pdf';
 
-type Kind = 'pdf' | 'image';
+type Kind = FileKind;
 
 /** What each tool takes, in src/data/tools.js order: the kinds of file, and whether it takes several.
     Merge takes photos too, but the toolbar offers it for photos only alongside a PDF: photos alone
-    belong to Image to PDF, which says what the person came to do (Shlomi, 2026-10-12). */
-const CAPABILITIES: readonly { slug: ToolSlug; kinds: readonly Kind[]; several: boolean; needsPdf?: boolean }[] = [
-  { slug: 'sign', kinds: ['pdf'], several: false },
-  { slug: 'redact', kinds: ['pdf'], several: false },
-  { slug: 'merge', kinds: ['pdf', 'image'], several: true, needsPdf: true },
-  { slug: 'pdf-to-image', kinds: ['pdf'], several: false },
-  { slug: 'image-to-pdf', kinds: ['image'], several: true },
-  { slug: 'split', kinds: ['pdf'], several: false },
-  { slug: 'compress', kinds: ['pdf'], several: false },
-  { slug: 'compress-image', kinds: ['image'], several: false },
-  { slug: 'unlock', kinds: ['pdf'], several: false },
-  { slug: 'organize-pdf', kinds: ['pdf'], several: false },
-];
+    belong to Image to PDF, which says what the person came to do (Shlomi, 2026-10-12).
+    The data is the registry's `accepts` (src/lib/toolIds.ts). */
+const CAPABILITIES = FILE_CAPABILITIES as readonly { slug: ToolSlug; kinds: readonly Kind[]; several: boolean; needsPdf?: boolean }[];
 
 export type FileRoute =
   | { kind: 'open'; tool: ToolSlug; files: File[]; skipped: File[] }
@@ -57,5 +47,5 @@ export function routeFiles(files: readonly File[]): FileRoute {
 /** The draft-store hand-off key a tool page collects under: its island's id (src/data/tools.js `toolId`).
     Compress Image is the Compress island in image mode, but rates and reports as itself, so it keeps its own toolId. */
 export function handoffKeyFor(slug: string): string {
-  return slug === 'compress-image' ? 'compress' : toolIdOf(toolsBySlug[slug]);
+  return handoffKeyOf(slug);
 }

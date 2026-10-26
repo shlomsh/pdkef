@@ -76,6 +76,7 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 import { dropCause, reportError } from '../../lib/errorReport.ts';
+import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
@@ -928,14 +929,7 @@ export default function PdfRedactTool() {
     try {
       const exported = exportedForHandoff ?? await exportRedacted('handoff');
       if (!exported) throw new Error('export');
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, {
-        fileName: exported.name,
-        fileType: 'application/pdf',
-        fileBytes: await exported.blob.arrayBuffer(),
-      });
-      if (!saved) throw new Error('handoff');
-      window.location.href = `/${tool}/`;
+      await sendHandoff(tool, { fileName: exported.name, fileType: 'application/pdf', fileBytes: await exported.blob.arrayBuffer() });
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the handoff-failed state
       console.error(err);

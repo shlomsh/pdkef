@@ -3,13 +3,14 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { openPdfDoc } from '../../lib/openPdfDoc.ts';
 import { throwIfAborted } from '../../lib/abort.js';
 import { toBytes } from '../../lib/toBytes.js';
+import { outputBase, withAffixes } from '../../lib/outputName.ts';
 
 // DEBT-23: parsePageSelector moved to src/lib/pageSelector.js (shared with
 // PDF to Image). Import it from there.
 
 // The source's base name, ".pdf" stripped, "split" when nothing is left.
 export function outputBaseName(fileName) {
-  return (fileName || '').replace(/\.pdf$/i, '') || 'split';
+  return outputBase(fileName || '', { fallback: 'split' });
 }
 
 // The single-file output is `extracted_<base>.pdf`, the shape Merge, Sign and
@@ -20,12 +21,12 @@ export function outputBaseName(fileName) {
 // `<base>-page-<n>.pdf`, one per page, in page order.
 export function outputFileName(fileName, mode, pageNumber) {
   const base = outputBaseName(fileName);
-  return mode === 'separate' ? `${base}-page-${pageNumber}.pdf` : extractedFileName(base);
+  return mode === 'separate' ? withAffixes(base, { suffix: `-page-${pageNumber}` }) : extractedFileName(base);
 }
 
 // The single-file name for a base the person may have renamed in the heading.
 export function extractedFileName(base) {
-  return `extracted_${base}.pdf`;
+  return withAffixes(base, { prefix: 'extracted_' });
 }
 
 // Splits the input PDF file based on the selected page numbers and mode.

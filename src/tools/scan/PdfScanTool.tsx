@@ -37,7 +37,6 @@ import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeli
 import { scanMessages as t } from './scanMessages.ts';
 import styles from './PdfScanTool.module.css';
 
-const HANDOFF_HREFS = { compress: '/compress/', sign: '/sign/', merge: '/merge/' };
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
 
 interface ScanPage {
@@ -346,7 +345,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: HANDOFF_HREFS,
     blocked: prepared.status === 'error' ? 'error' : null,
     announce: setAnnouncement,
     messages: { ready: t.readyAnnouncement, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },

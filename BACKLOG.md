@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 72 live: 16 up next, 13 then, 26 waiting, 17 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 72 live: 17 up next, 12 then, 26 waiting, 17 parked.
 
 ## Redact: finish removal
 
@@ -119,6 +119,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-34 | P1 | [ARCH-34](backlog/tasks/ARCH-34.md) · A change to one core project reaches only the projects that use it | In progress |
 | ARCH-36 | P2 | [ARCH-36](backlog/tasks/ARCH-36.md) · Compress, Image to PDF and Unlock/Protect finish through the shared flow | In progress |
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
+| ARCH-38 | P2 | [ARCH-38](backlog/tasks/ARCH-38.md) · Adding a tool edits one registry, and hand-offs go through one function | In progress |
 | ARCH-39 | P2 | [ARCH-39](backlog/tasks/ARCH-39.md) · One set of PDF primitives in lib | In progress |
 
 ### Then, in order
@@ -126,7 +127,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-35 | P2 | [ARCH-35](backlog/tasks/ARCH-35.md) · Tool text lives with each tool in one convention |  |
-| ARCH-38 | P2 | [ARCH-38](backlog/tasks/ARCH-38.md) · Adding a tool edits one registry, and hand-offs go through one function |  |
 
 ## Search and languages
 
