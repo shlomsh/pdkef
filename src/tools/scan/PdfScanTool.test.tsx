@@ -241,19 +241,19 @@ describe('PdfScanTool', () => {
     await settle();
     expect(handles()[0].style.left).toBe('0%');
     vi.mocked(pipeline.guessPage).mockImplementationOnce(() => Promise.resolve(GUESS));
-    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { byText('Auto-detect')[0].click(); });
     await settle();
     expect(handles()[0].style.left).toBe(`${GUESS[0].x * 100}%`);
     expect(container.textContent).not.toContain('No page edges were found');
   });
 
-  it('says so when Find the page finds nothing either', async () => {
+  it('says so when Auto-detect finds nothing either', async () => {
     vi.mocked(pipeline.inspectPhoto).mockImplementation(() => Promise.resolve(seen(null)));
     vi.mocked(pipeline.guessPage).mockImplementation(() => Promise.resolve(null));
     mount();
     await pick([jpeg('a.jpg')]);
     await settle();
-    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { byText('Auto-detect')[0].click(); });
     await settle();
     expect(container.textContent).toContain('Drag the corners onto the corners of the page');
   });
@@ -329,7 +329,7 @@ describe('PdfScanTool', () => {
     expect(container.textContent).toContain('Could not read this photo');
     // Nothing to straighten: the one thing offered is taking it out.
     expect(byText('Use these corners')).toHaveLength(0);
-    expect(byText('Find the page')).toHaveLength(0);
+    expect(byText('Auto-detect')).toHaveLength(0);
     await act(async () => { byText('Remove this photo')[0].click(); });
     await settle();
     expect(container.querySelector('[data-empty-state]')).not.toBeNull();
@@ -345,13 +345,13 @@ describe('PdfScanTool', () => {
     expect(document.activeElement?.hasAttribute('data-page-heading')).toBe(true);
   });
 
-  it('drops a Find the page result for a page removed while it waited', async () => {
+  it('drops an Auto-detect result for a page removed while it waited', async () => {
     let resolveFind;
     mount();
     await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
     await settle();
     vi.mocked(pipeline.guessPage).mockImplementationOnce(() => new Promise((r) => { resolveFind = r; }));
-    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { byText('Auto-detect')[0].click(); });
     await act(async () => { container.querySelector('[aria-label="Remove page 1"]').click(); });
     await act(async () => { resolveFind?.(GUESS); });
     await settle();

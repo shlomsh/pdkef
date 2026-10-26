@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { Camera, FileSignature, Merge, Shrink } from 'lucide-preact';
+import { Camera, Check, Crop, FileSignature, ImagePlus, Maximize, Merge, Shrink, Trash2, WandSparkles } from 'lucide-preact';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
@@ -79,8 +79,8 @@ const loadPipeline = () => (pipelinePromise ??= import('./scanPipeline.ts'));
 
 /** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS).
  * `primary` is the empty state's, the equal of Choose files: the same label-around-input as the shell's
- * picker, so iOS opens the camera natively. The page strip's is a quiet tile. */
-function TakePhotoButton({ onFiles, primary = false }: { onFiles: (files: File[]) => void; primary?: boolean }) {
+ * picker, so iOS opens the camera natively. The pages column's is a quiet tile, the phone bar's a bar button. */
+function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'] }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const onChange = (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
@@ -100,7 +100,7 @@ function TakePhotoButton({ onFiles, primary = false }: { onFiles: (files: File[]
   }
   return (
     <span class={styles['take-photo']}>
-      <button type="button" class={styles['take-photo-button']} onClick={() => inputRef.current?.click()}>
+      <button type="button" class={buttonClass} onClick={() => inputRef.current?.click()}>
         <Camera size={18} aria-hidden="true" />
         {t.takePhoto}
       </button>
@@ -648,6 +648,13 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               rootAttrs={{ 'data-scan-ready': prepared.status === 'ready' || undefined }}
               phoneBar={(
                 <div class={workspaceStyles['chip-bar']}>
+                  {/* The next page is one tap away however far down the page is: the camera on a phone,
+                      the picker with a mouse. The pages column carries these from 1024px. */}
+                  <TakePhotoButton onFiles={addFiles} buttonClass={styles['bar-add']} />
+                  <button type="button" class={`${styles['bar-add']} ${styles['bar-pick']}`} onClick={requestReplace}>
+                    <ImagePlus size={18} aria-hidden="true" />
+                    {t.addPhotos}
+                  </button>
                   <PhoneFinish
                     flow={downloadFlow}
                     prepared={prepared}
@@ -670,7 +677,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 <>
                   {controls('')}
                   <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? 'Clear all'}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>
+                      <Trash2 size={16} aria-hidden="true" />
+                      {englishShellMessages.clearLabel ?? 'Clear all'}
+                    </button>
                   </div>
                 </>
               )}
@@ -713,6 +723,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 </ErrorMessage>
               )}
 
+              {/* From 1024px the pages are a column beside the selected page, so both stay on the first screen. */}
+              <div class={styles.workbench}>
               <section ref={editorRef} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
                   <p class={styles['editor-title']} ref={headingRef} tabIndex={-1} data-page-heading>
@@ -737,6 +749,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                         announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
                       }}
                     >
+                      <Crop size={16} aria-hidden="true" />
                       {t.adjustCorners}
                     </button>
                   )}
@@ -759,26 +772,28 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   // An unreadable photo has nothing to straighten: the one thing to do is take it out.
                   <div class={styles['corners-actions']}>
                     <button type="button" class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`} onClick={() => removePage(selected.id)}>
+                      <Trash2 size={18} aria-hidden="true" />
                       {t.removePhoto}
                     </button>
                   </div>
                 )}
                 {view === 'corners' && !(selected.guessed && selected.preview === null) && (
                   // Under the photo, like a scanner app's bottom bar: the quiet choices, then the one that moves on.
+                  // One row where it fits; on a phone the one that moves on takes a row of its own.
                   <div class={styles['corners-actions']}>
-                    <div class={styles['corners-quiet']}>
-                      <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null || selected.preview === null} onClick={() => findPage(selected)}>
-                        {t.findPage}
-                      </button>
-                      <button
-                        type="button"
-                        class={workspaceStyles['quiet-button']}
-                        disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
-                        onClick={() => commitCorners(selected.id, FULL_QUAD)}
-                      >
-                        {t.wholePhoto}
-                      </button>
-                    </div>
+                    <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null || selected.preview === null} onClick={() => findPage(selected)}>
+                      <WandSparkles size={18} aria-hidden="true" />
+                      {t.findPage}
+                    </button>
+                    <button
+                      type="button"
+                      class={workspaceStyles['quiet-button']}
+                      disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
+                      onClick={() => commitCorners(selected.id, FULL_QUAD)}
+                    >
+                      <Maximize size={18} aria-hidden="true" />
+                      {t.wholePhoto}
+                    </button>
                     <button
                       type="button"
                       class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
@@ -791,6 +806,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                         announce(t.announceResult);
                       } : approveCorners}
                     >
+                      <Check size={18} aria-hidden="true" />
                       {selected.reviewed ? t.cornersDone : t.useCorners}
                     </button>
                   </div>
@@ -804,7 +820,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     {selected.found === false && !selected.edited && (
                       <p class={styles['not-found']} role="status">
                         {t.notFound}
-                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>{t.adjustCorners}</button>
+                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>
+                          <Crop size={16} aria-hidden="true" />
+                          {t.adjustCorners}
+                        </button>
                       </p>
                     )}
                   <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
@@ -812,6 +831,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 )}
               </section>
 
+              <div class={styles.pages}>
               <p class="sr-only" id="scan-reorder-hint">{t.reorderHint}</p>
               <ul class={styles.strip} ref={listRef} aria-label={t.pagesLabel} aria-describedby="scan-reorder-hint">
                 {pages.map((page, index) => {
@@ -843,16 +863,17 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     </li>
                   );
                 })}
-                <li class={styles['add-tile']}>
-                  <TakePhotoButton onFiles={addFiles} />
-                  <button type="button" class={styles['add-button']} onClick={requestReplace}>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                    {t.addPhotos}
-                  </button>
-                </li>
               </ul>
+              {/* Outside the list, so a long scan scrolls its pages and these stay at the end, in view. */}
+              <div class={styles['add-tile']}>
+                <TakePhotoButton onFiles={addFiles} />
+                <button type="button" class={styles['add-button']} onClick={requestReplace}>
+                  <ImagePlus size={20} aria-hidden="true" />
+                  {t.addPhotos}
+                </button>
+              </div>
+              </div>
+              </div>
 
               {/* On a phone the corners come first; the choices follow the pages they apply to. */}
               <div class={styles['phone-options']}>{controls('-phone')}</div>
