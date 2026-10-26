@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cornerPin, easeOutCubic, lerpQuad, rectQuad } from './flatten.ts';
+import { cornerPin, easeOutCubic, flattenFrame, lerpQuad, quadPin, rectQuad } from './flatten.ts';
 import { applyHomography } from './homography.ts';
 import type { Quad } from './quad.ts';
 
@@ -43,5 +43,54 @@ describe('lerpQuad and easeOutCubic', () => {
     expect(easeOutCubic(0)).toBe(0);
     expect(easeOutCubic(1)).toBe(1);
     expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
+  });
+});
+
+describe('quadPin', () => {
+  it('maps one quad onto another, so the photo itself can carry its page', () => {
+    const to: Quad = [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 520 }, { x: 0, y: 520 }];
+    const { h } = quadPin(QUAD, to);
+    QUAD.forEach((corner, i) => {
+      const p = applyHomography(h, corner);
+      expect(p.x).toBeCloseTo(to[i].x, 6);
+      expect(p.y).toBeCloseTo(to[i].y, 6);
+    });
+  });
+
+  it('is cornerPin when the first quad is the box', () => {
+    expect(quadPin(rectQuad({ left: 0, top: 0, width: 200, height: 260 }), QUAD).css).toBe(cornerPin(200, 260, QUAD).css);
+  });
+});
+
+describe('flattenFrame', () => {
+  it('starts as the photo, dimmed outside the page, the page where its corners are', () => {
+    expect(flattenFrame(0)).toEqual({ move: 0, surround: 1, photoPage: 1, page: 0, paper: 0 });
+  });
+
+  it('ends as the page alone, on its paper', () => {
+    expect(flattenFrame(1)).toEqual({ move: 1, surround: 0, photoPage: 0, page: 1, paper: 1 });
+  });
+
+  it('lets the photo go first, swaps in the made page while it moves, and shows the paper only as it lands', () => {
+    const mid = flattenFrame(0.5);
+    expect(mid.surround).toBe(0);
+    expect(mid.move).toBeGreaterThan(0.3);
+    expect(mid.move).toBeLessThan(0.7);
+    expect(mid.page).toBeGreaterThan(0);
+    expect(mid.page).toBeLessThan(1);
+    expect(mid.paper).toBe(0);
+    // The photo's page stays under the made page until the made page is whole: never see-through.
+    expect(mid.photoPage).toBe(1);
+  });
+
+  it('moves steadily forward and never past either end', () => {
+    let last = -1;
+    for (let t = 0; t <= 1.0001; t += 0.05) {
+      const { move } = flattenFrame(t);
+      expect(move).toBeGreaterThanOrEqual(last);
+      expect(move).toBeGreaterThanOrEqual(0);
+      expect(move).toBeLessThanOrEqual(1);
+      last = move;
+    }
   });
 });

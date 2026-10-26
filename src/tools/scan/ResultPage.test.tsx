@@ -67,4 +67,21 @@ describe('ResultPage', () => {
     const paper = container.querySelector('[data-paper]');
     expect(paper.style.aspectRatio.replace(/\s/g, '')).toMatch(/^595\.28\/841\.89$/);
   });
+
+  it('shows a working overlay on the page itself while updating, with no dimming', () => {
+    const place = { ...A4, x: 0, y: 0, width: 600, height: 800 };
+    mount({ src: 'a.jpg', place, exact: false });
+    const paper = container.querySelector('[data-paper]');
+    expect(paper.hasAttribute('data-updating')).toBe(true);
+    const overlay = paper.querySelector('[aria-hidden="true"]');
+    expect(overlay).not.toBeNull();
+    expect(overlay.textContent).toContain('Updating...');
+    expect(container.querySelector('img').className).not.toMatch(/stale/);
+    act(() => render(<ResultPage labels={LABELS} exact={true} src="a.jpg" place={place} />, container));
+    expect(container.querySelector('[data-updating]')).toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    act(() => render(<ResultPage labels={LABELS} exact={false} src={null} place={null} />, container));
+    expect(container.querySelector('[data-updating]')).toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
 });
