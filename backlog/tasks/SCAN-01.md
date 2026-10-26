@@ -1,7 +1,7 @@
 ---
 id: "SCAN-01"
 title: "Scan to PDF: its own tool at /scan-to-pdf/, sharing Image to PDF's engine, plus a how-to-scan-to-PDF guide"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "search-and-languages"
 horizon: "next"
