@@ -869,6 +869,18 @@ describe('PdfMergeTool UI flow', () => {
     expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.includes('Add files'))).toBe(true);
   });
 
+  it('shows no error while it is still checking how a single protected file is locked', async () => {
+    probeMock.mockReturnValue(new Promise(() => {}));
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles([new File(['%PDF-1.7'], 'locked.pdf', { type: 'application/pdf' })]);
+    await settle();
+    await act(async () => { await flush(20); });
+
+    expect(container.textContent).not.toContain("That didn't work");
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('shows the Hebrew locked-state copy on the /he/ edition', async () => {
     probeMock.mockResolvedValue('needs-password');
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
