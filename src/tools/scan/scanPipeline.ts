@@ -8,10 +8,15 @@ import { scaleQuad, type GrayImage, type Quad } from './quad.ts';
 import { fitScanToBudget, type FitResult } from './scanBudget.ts';
 import { canvasToBlob } from '../../lib/canvasBlob.js';
 import { imagesToPdf } from '../../lib/imagesToPdf.js';
+import { placeImage } from '../../lib/imagePage.js';
 import { MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
 
 export type PageSize = 'fit' | 'a4' | 'letter';
 export interface ProcessedPage { blob: Blob; width: number; height: number }
+/** placeImage's shape: PDF points, y from the page's bottom. */
+export interface Placement { pageWidth: number; pageHeight: number; x: number; y: number; width: number; height: number }
+/** One page of the built PDF: the very JPEG inside it, and where it sits on its paper. */
+export interface BuiltPage { blob: Blob; place: Placement }
 
 /** The photo is read at most this big; a 48 MP photo would not fit a phone's canvas budget. */
 const SOURCE_LONG_EDGE = 3200;
@@ -94,33 +99,49 @@ const throwIfAborted = (signal?: AbortSignal) => {
 /** Fit pages print at this density whatever the size limit did to their pixels. */
 const FIT_DPI = 200;
 
-/** The PDF of every processed page, stepped down to `budgetBytes` when one is set. Each step
- * decodes, draws and encodes one page at a time, so a phone holds one page's canvas, not all of them. */
+/** One step of the search: every page at this scale and quality, one canvas at a time. */
+async function encodePages(pages: ProcessedPage[], scale: number, quality: number, pageSize: PageSize, signal?: AbortSignal): Promise<BuiltPage[]> {
+  const out: BuiltPage[] = [];
+  for (const page of pages) {
+    throwIfAborted(signal);
+    const canvas = drawCapped(await loadImage(page.blob), OUTPUT_LONG_EDGE, scale);
+    try {
+      const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+      out.push({ blob, place: placeImage(canvas.width, canvas.height, pageSize, 72 / FIT_DPI / scale) });
+    } finally {
+      freeCanvas(canvas);
+    }
+  }
+  return out;
+}
+
+/** The PDF of every processed page, stepped down to `budgetBytes` when one is set, and its pages
+ * as they are inside it (for the result view). A phone holds one page's canvas at a time. */
 export async function buildScanPdf(
   pages: ProcessedPage[],
   { pageSize, budgetBytes, onProgress, signal }: { pageSize: PageSize; budgetBytes: number | null; onProgress?: (f: number) => void; signal?: AbortSignal },
-): Promise<FitResult> {
+): Promise<FitResult & { pages: BuiltPage[] }> {
   let built = 0;
-  return fitScanToBudget<number>({
+  // Only the latest step's pages are kept; the search may try dozens.
+  let latest: { pdf: Blob; pages: BuiltPage[] } | null = null;
+  const fit = await fitScanToBudget<number>({
     budgetBytes,
     deadlineMs: Date.now() + MAX_SEARCH_MS,
     render: (scale) => scale,
     build: async (scale, quality) => {
-      const files: File[] = [];
-      for (let i = 0; i < pages.length; i += 1) {
-        throwIfAborted(signal);
-        const canvas = drawCapped(await loadImage(pages[i].blob), OUTPUT_LONG_EDGE, scale);
-        try {
-          files.push(new File([await canvasToBlob(canvas, 'image/jpeg', quality)], `page-${i + 1}.jpg`, { type: 'image/jpeg' }));
-        } finally {
-          freeCanvas(canvas);
-        }
-      }
+      const encoded = await encodePages(pages, scale, quality, pageSize, signal);
+      const files = encoded.map((page, i) => new File([page.blob], `page-${i + 1}.jpg`, { type: 'image/jpeg' }));
       const pdf = await imagesToPdf(files, undefined, signal, { pageSize, pointsPerPixel: 72 / FIT_DPI / scale });
+      latest = { pdf, pages: encoded };
       built += 1;
       // The search runs at most a few dozen builds; the bar moves fast, then waits on the last.
       onProgress?.(1 - 1 / (built + 1));
       return pdf;
     },
   });
+  // The winner was an earlier step: the same canvas, scale and quality encode the same bytes again.
+  const shown = latest && (latest as { pdf: Blob }).pdf === fit.blob
+    ? (latest as { pages: BuiltPage[] }).pages
+    : await encodePages(pages, fit.scale, fit.quality, pageSize, signal);
+  return { ...fit, pages: shown };
 }

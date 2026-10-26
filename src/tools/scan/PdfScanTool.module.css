@@ -1,6 +1,8 @@
 /* Scan's loaded state: the selected page's corners above, the strip of finished pages below. */
 
 .editor {
+  /* Clear of the sticky phone bar when the first photos scroll it into view. */
+  scroll-margin-top: 96px;
   display: grid;
   gap: 10px;
   justify-items: center;
@@ -19,6 +21,19 @@
   margin: 0;
   display: grid;
   font-weight: 600;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Done is the way back to the result: the one primary-looking control in corners mode. */
+.editor-actions .done-button {
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .editor-hint {
