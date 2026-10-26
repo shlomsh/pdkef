@@ -208,7 +208,8 @@ sections:
           form actually asks for, and check the result. The photo never leaves your device, so
           there is no upload wait to find out whether it fits, and no account to create first. If
           the form also caps a scanned document, <a href="/pdf-wont-compress-to-100kb/">the same
-          question for PDFs</a> covers that half.
+          question for PDFs</a> covers that half, and <a href="/how-to-scan-a-document-to-pdf/">how
+          to scan a document to PDF</a> shows how to make the scan in the first place.
 faq:
   - question: 'What actually decides whether a photo can be compressed to a small size?'
     answer: >-

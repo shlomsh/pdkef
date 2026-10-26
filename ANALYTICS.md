@@ -103,7 +103,7 @@ unsampled and uses only the fixed `outcome`, `duration_bucket`, and, on failure,
 Sign performance/compatibility diagnostic, not a second product-event schema.
 
 The `tool` values are a closed list: `merge`, `split`, `edit-pdf`, `compress`,
-`pdf-to-image`, `image-to-pdf`, `sign`, `redact`, `unlock`, and `protect`.
+`pdf-to-image`, `image-to-pdf`, `scan-to-pdf`, `sign`, `redact`, `unlock`, and `protect`.
 
 ## Anonymous error reports (DEBT-17, DEBT-27)
 

@@ -14,6 +14,7 @@
     "tool-edit-pages",
     "tool-to-image",
     "tool-image-to-pdf",
+    "tool-scan",
     "tool-security"
   ],
   "targets": {

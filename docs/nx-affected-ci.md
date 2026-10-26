@@ -34,6 +34,7 @@ the repo root, `.nx/` gitignored:
 | `tool-edit-pages` | `src/tools/edit-pages` | ✓ | - |
 | `tool-to-image` | `src/tools/to-image` | ✓ | - |
 | `tool-image-to-pdf` | `src/tools/image-to-pdf` | ✓ | - |
+| `tool-scan` | `src/tools/scan` | ✓ | - |
 | `font-assets` | `public/fonts` | ✓ (`test:fonts`) | - |
 | `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | - | ✓ |
 | `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | - | ✓ |

@@ -81,7 +81,9 @@ sections:
         text: >-
           PDkef works in your browser, with no upload, no account and no watermark of its own. It is free
           and open source, and you can
-          <a href="/open-source-pdf-editor/">check that nothing leaves your device</a>.
+          <a href="/open-source-pdf-editor/">check that nothing leaves your device</a>. Next time you
+          need a scan, your phone can make one with its built-in scanner:
+          <a href="/how-to-scan-a-document-to-pdf/">how to scan a document to PDF</a>.
 faq:
   - question: 'How do I remove the CamScanner watermark from a PDF for free?'
     answer: >-

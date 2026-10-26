@@ -22,6 +22,7 @@ const routes = [
   '/compress',
   '/pdf-to-image',
   '/image-to-pdf',
+  '/scan-to-pdf',
   '/unlock',
   '/sign',
   '/sign/?next=0',

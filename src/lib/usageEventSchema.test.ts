@@ -19,8 +19,8 @@ const legit = TOOL_LIFECYCLE_EVENTS.flatMap((n) => ANALYTICS_TOOLS.map((t) => ev
 describe('parseUsageEvent accepts', () => {
   it('covers every list value', () => {
     expect(TOOL_LIFECYCLE_EVENTS).toHaveLength(6);
-    expect(ANALYTICS_TOOLS).toHaveLength(11);
-    expect(legit).toHaveLength(66);
+    expect(ANALYTICS_TOOLS).toHaveLength(12);
+    expect(legit).toHaveLength(72);
   });
   it.each(legit.map((e) => [JSON.stringify(e), e] as const))('round-trips %s', (_label, event) => {
     expect(parseUsageEvent(event)).toEqual(event);
@@ -36,7 +36,7 @@ describe('parseUsageEvent accepts', () => {
   });
   it('gives every event a distinct counter field', () => {
     const fields = legit.map((e) => usageEventField(parseUsageEvent(e)!));
-    expect(new Set(fields).size).toBe(66);
+    expect(new Set(fields).size).toBe(72);
     expect(usageEventField(parseUsageEvent(ev('tool_result_ready', 'merge'))!)).toBe('tool_result_ready|merge');
   });
 });

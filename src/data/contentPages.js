@@ -131,6 +131,15 @@ export const landingPages = [
     sitemapChangefreq: 'monthly',
   },
   {
+    href: '/how-to-scan-a-document-to-pdf/',
+    label: 'Scan a document to PDF',
+    blurb: 'The built-in ways on iPhone, Android, Windows and Mac, and when a photo is easier.',
+    icon: ScanText,
+    hub: 'scan-to-pdf',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
     href: '/sign-pdf-in-your-language/',
     label: 'Signing in your own language',
     blurb: 'Which fonts draw which languages, generated from the real font files.',

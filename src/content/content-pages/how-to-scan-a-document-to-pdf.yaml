@@ -1,0 +1,170 @@
+title: 'How to Scan a Document to PDF | PDkef'
+description: >-
+  How to scan a document to PDF with what is already on your iPhone, Android phone, Windows PC or
+  Mac, and when a photo you already took is easier to straighten and shrink in PDkef.
+breadcrumb: 'Scan to PDF'
+icon: 'ScanText'
+kicker: 'iPhone, Android, Windows, Mac'
+h1: 'How to Scan a Document to PDF'
+subhead: >-
+  Your phone and computer can already scan a document to PDF, and the steps are short. Here they are
+  for each one, taken from Apple's, Google's and Microsoft's own help pages. And if you only have a
+  photo of the page, or the PDF is too big for a form, there is a free tool for that too.
+primaryCta:
+  href: '/scan-to-pdf/'
+  label: 'Scan a photo to PDF'
+sections:
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'Smartphone'
+    iconPos: 'tr'
+    kicker: 'iPhone and iPad'
+    heading: 'Scan a document with Files or Notes'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          These steps follow Apple's help page, written for iOS 26. Files is the one to pick when you want the scan as a file in
+          a folder you choose.
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open Files and tap the More button</strong> (the three dots), then tap
+            <strong>Scan Documents</strong>.
+          - >-
+            <strong>Hold the page in front of the camera.</strong> In Auto mode the scan happens by
+            itself. Otherwise tap the shutter button or press a volume button. On iOS 26 you can
+            also choose flash or an image filter.
+          - >-
+            <strong>Drag the corners to fit the page, then tap Keep Scan.</strong> Scan more pages
+            if you have them.
+          - >-
+            <strong>Tap Done, choose a location, then tap Save.</strong>
+      - kind: 'prose'
+        text: >-
+          To scan into a note instead, open Notes, tap the attachment button (the paperclip), then
+          Scan Documents, and follow the same camera steps. The scan is added to the note when you
+          tap Done.
+  - sketch: 'waves'
+    icon: 'TabletSmartphone'
+    iconPos: 'cl'
+    kicker: 'Android'
+    heading: 'Scan a document with Google Drive'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open the Google Drive app</strong> and tap the Camera button at the bottom
+            right.
+          - >-
+            <strong>Point the camera at the page.</strong> A blue line outlines the area that will
+            be cropped. Take the photo, or switch between Manual and Auto capture.
+          - >-
+            <strong>Adjust the scan if you want to.</strong> Crop and Rotate, Filter and Clean are
+            there, and Add scans another page.
+          - >-
+            <strong>Tap Done, name the file, and choose .pdf.</strong> You can pick a Drive folder
+            under Location. Then tap Save.
+      - kind: 'prose'
+        text: >-
+          On a Pixel, the Camera app can do it as well. Point it at the document, wait for the
+          "Scan document" prompt, tap it, then tap Done and choose Save, Download or Share.
+  - sketch: 'grid'
+    icon: 'Monitor'
+    iconPos: 'br'
+    kicker: 'Windows and Mac'
+    heading: 'Scan with a flatbed or feeder scanner'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          <strong>On a Mac</strong>, the scanner is set up in System Settings. Apple's help page
+          lists these steps.
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Put the pages on the flatbed or in the feeder.</strong> Open System Settings,
+            click Printers and Scanners, select your scanner, and click Open Scanner.
+          - >-
+            <strong>Choose where the file goes</strong> with the Scan To menu, and use Document
+            Feeder if you loaded one.
+          - >-
+            <strong>Click Show Details and set Format to PDF.</strong> With PDF you can also
+            combine several scanned items into a single file.
+          - >-
+            <strong>Click Scan.</strong> Preview works too: choose File, Import from Scanner, then
+            your scanner.
+      - kind: 'prose'
+        text: >-
+          <strong>On Windows 10 and 11</strong>, the Scan app does the job, and Microsoft lists JPEG,
+          PNG, TIFF and Bitmap as its file types. PDF is not one of them. So scan each page as a JPEG,
+          then put the pages together in <a href="/scan-to-pdf/">Scan to PDF</a>, or use the PDF
+          option in your scanner maker's own software if it has one.
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Turn the scanner on, then search for Scan in the Start menu</strong> and open
+            the Scan app. If it is missing, install it from the Microsoft Store.
+          - >-
+            <strong>Put the page face down on the flatbed</strong> (or load the feeder), choose your
+            scanner, set Source, and pick a File type.
+          - >-
+            <strong>Select Show more to choose a save location, then select Scan.</strong> Without
+            one, scans go to the Scans folder inside Pictures.
+  - variant: 'highlight'
+    sketch: 'rings'
+    icon: 'FileText'
+    iconPos: 'tl'
+    kicker: 'When PDkef helps'
+    heading: 'A photo, a size limit, or a signature to add'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          I made <a href="/scan-to-pdf/">Scan to PDF</a> for the cases the built-in routes leave open.
+          It runs in your browser, so the photos stay on your device. You can take a photo with your
+          phone's camera or choose photos you already have, and each one becomes a page.
+      - kind: 'columns'
+        items:
+          - icon: 'ScanText'
+            title: 'A photo you already took'
+            body: >-
+              Drag four corners onto the page to straighten it, then choose Original, Grayscale or
+              Document, which evens out the lighting and gives a clean black on white.
+          - icon: 'HardDriveDownload'
+            title: 'A file that is too big'
+            body: >-
+              Set a size limit of 2 MB, 1 MB or 500 KB for the whole PDF. If you already have the
+              PDF, <a href="/compress/">Compress</a> can bring it down to a target size.
+          - icon: 'PenLine'
+            title: 'A scan to sign next'
+            body: >-
+              When the PDF is ready, send it on to <a href="/sign/">Sign</a> to add your name and
+              answers, or to Merge or Compress, without saving it in between.
+      - kind: 'prose'
+        text: >-
+          Pages can be Fit (the size of the scan), A4 or Letter, and there is no account to make
+          and no watermark.
+faq:
+  - question: 'How do I scan a document to PDF on my phone?'
+    answer: >-
+      On an iPhone, open Files, tap More, then Scan Documents, and save the scan to a folder. On
+      Android, open Google Drive, tap Camera, scan the page, tap Done and choose .pdf. Both also let
+      you add more pages before you save.
+  - question: 'Can I scan a document to PDF on Windows?'
+    answer: >-
+      The Windows Scan app saves JPEG, PNG, TIFF or Bitmap files, and Microsoft does not list PDF
+      there. Scan each page as a JPEG, then combine them into one PDF in PDkef's Scan to PDF, or
+      use the PDF option in your scanner maker's software.
+  - question: 'Can a Mac scan straight to PDF?'
+    answer: >-
+      Yes. In System Settings, open Printers and Scanners, select your scanner and open it, then set
+      Format to PDF under Show Details. With PDF you can combine several scanned items into one
+      file. Preview offers Import from Scanner under the File menu too.
+  - question: 'Can I turn a photo of a page into a scan?'
+    answer: >-
+      Yes. Open Scan to PDF in your browser, choose the photo, and drag the four corners onto the
+      page. Pick Document for a clean black on white look, then download the PDF. The photo stays
+      on your device.
+  - question: 'How do I make a scanned PDF smaller for an upload form?'
+    answer: >-
+      In Scan to PDF, choose a size limit of 2 MB, 1 MB or 500 KB before you download, and the whole
+      PDF is made to fit. For a PDF you already have, use PDkef's Compress tool and give it a target
+      size.
