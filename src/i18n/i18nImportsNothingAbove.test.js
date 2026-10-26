@@ -10,8 +10,8 @@ import { fileURLToPath } from 'node:url';
 const FORBIDDEN = ['shell', 'editor', 'editor-ui', 'tools', 'site-lib'];
 const dir = fileURLToPath(new URL('.', import.meta.url));
 
-function importSpecifiers(source: string): string[] {
-  const out: string[] = [];
+function importSpecifiers(source) {
+  const out = [];
   const pattern = /(?:import|export)\s[^;]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|import\s+['"]([^'"]+)['"]/g;
   for (const match of source.matchAll(pattern)) out.push(match[1] ?? match[2] ?? match[3]);
   return out;
@@ -25,7 +25,7 @@ describe('src/i18n imports', () => {
   });
 
   it('imports nothing from shell, editor, editor-ui, tools or site-lib', () => {
-    const offenders: string[] = [];
+    const offenders = [];
     for (const name of files) {
       for (const specifier of importSpecifiers(readFileSync(join(dir, name), 'utf8'))) {
         if (!specifier.startsWith('.')) continue;

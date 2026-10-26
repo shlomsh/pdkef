@@ -47,7 +47,7 @@ Done 2026-10-26 on `un-arch-35`. `src/i18n/toolMessages.ts` (2466 lines) is gone
 - Merge, Compress, Split, ToImage, ImageToPdf: `src/tools/<tool>/messages.ts`, one shape (`<Tool>Messages`, `english<Tool>Messages`, `hebrew<Tool>Messages`, `get<Tool>Messages` with English fallback).
 - Registry `getToolMessages(slug, locale)` -> `src/site-lib/toolMessageRegistry.ts`; `localizedToolPage.ts` and its test moved to `src/site-lib/` because they need it. Rule 4 of `docs/module-boundaries.md` now also lets the site reach a tool's `messages.ts`.
 - Four shell tests that render Merge's or Split's real catalogue moved to `src/test/cross-tool/` (rule 6).
-- Guard `src/i18n/i18nImportsNothingAbove.test.ts`: i18n imports nothing from shell, editor, editor-ui, tools or site-lib.
+- Guard `src/i18n/i18nImportsNothingAbove.test.js`: i18n imports nothing from shell, editor, editor-ui, tools or site-lib.
 - Proof: `dist/` HTML (all 54 pages, including `he/`) is identical before and after apart from build stamps, hashed asset names and 97 unused Tailwind utility rules that stopped being emitted.
 
 Left for part B (conventions): Scan's `scanMessages.ts`, Edit Pages' `messages.ts` (non-localizable), inline English in Unlock/Protect and Redact, the inline-English guard, and tidying the `src/content/localized-tools/he/*.yaml` comments that still name `toolMessages.ts`.
