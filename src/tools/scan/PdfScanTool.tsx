@@ -24,6 +24,7 @@ import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
+import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
 import { englishShellMessages } from '../../i18n/toolMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
@@ -159,6 +160,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   };
   const listRef = useRef<HTMLUListElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
+  /** The photo and the pages: on desktop they fill the card down to the first screen's foot. */
+  const workbenchRef = useRef<HTMLDivElement | null>(null);
+  const stageHeight = useFloorHeight(workbenchRef, pages.length > 0);
   const hadPagesRef = useRef(false);
   const focusIdRef = useRef<number | null>(null);
   const pagesRef = useRef(pages);
@@ -383,9 +387,12 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   // Bring the page's top into view: the first photos replace the tall empty state, and moving on from
   // the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
+  // On desktop the whole card is the first screen (useFloorHeight), so that is the top of the page.
   const showEditorTop = (instant = false) => {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    editorRef.current?.scrollIntoView?.({ block: 'start', behavior: reduce || instant ? 'auto' : 'smooth' });
+    const behavior = reduce || instant ? 'auto' : 'smooth';
+    if (window.matchMedia?.('(min-width: 1024px)').matches) window.scrollTo?.({ top: 0, behavior });
+    else editorRef.current?.scrollIntoView?.({ block: 'start', behavior });
   };
   useEffect(() => {
     const has = pages.length > 0;
@@ -741,7 +748,13 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               )}
 
               {/* From 1024px the pages are a column beside the selected page, so both stay on the first screen. */}
-              <div class={styles.workbench}>
+              <div
+                ref={workbenchRef}
+                class={styles.workbench}
+                data-fills-stage
+                data-fitted={stageHeight !== null || undefined}
+                style={stageHeight !== null ? { '--scan-stage-h': `${stageHeight}px` } : undefined}
+              >
               <section ref={editorRef} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
                   <p class={styles['editor-title']} ref={headingRef} tabIndex={-1} data-page-heading>
@@ -771,20 +784,28 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     </button>
                   )}
                 </div>
-                {view === 'corners' ? (
-                  selected.preview === null ? (
-                    <div class={styles['corners-wait']} style={{ aspectRatio: String(selected.aspect ?? 0.75) }}>{selected.guessed ? t.pageFailed : t.findingEdges}</div>
-                  ) : (
-                  <CornerEditor
-                    key={selected.id}
-                    src={selected.preview}
-                    aspect={selected.aspect ?? undefined}
-                    quad={selected.quad}
-                    onCommit={(quad) => commitCorners(selected.id, quad)}
-                    labels={{ group: t.cornersGroup, corners: t.corners }}
-                  />
-                  )
-                ) : null}
+                {view === 'corners' && (
+                  <div class={styles['photo-area']}>
+                    {selected.preview === null ? (
+                      // The photo's own shape and size, so nothing moves when its preview lands.
+                      <div
+                        class={styles['corners-wait']}
+                        style={{ aspectRatio: String(selected.aspect ?? 0.75), width: `min(100%, calc(var(--scan-view-h) * ${selected.aspect ?? 0.75}))` }}
+                      >
+                        {selected.guessed ? t.pageFailed : t.findingEdges}
+                      </div>
+                    ) : (
+                      <CornerEditor
+                        key={selected.id}
+                        src={selected.preview}
+                        aspect={selected.aspect ?? undefined}
+                        quad={selected.quad}
+                        onCommit={(quad) => commitCorners(selected.id, quad)}
+                        labels={{ group: t.cornersGroup, corners: t.corners }}
+                      />
+                    )}
+                  </div>
+                )}
                 {view === 'corners' && selected.guessed && selected.preview === null && (
                   // An unreadable photo has nothing to straighten: the one thing to do is take it out.
                   <div class={styles['corners-actions']}>
@@ -843,7 +864,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                         </button>
                       </p>
                     )}
-                  <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
+                    <div class={styles['paper-area']}>
+                      <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
+                    </div>
                   </>
                 )}
               </section>

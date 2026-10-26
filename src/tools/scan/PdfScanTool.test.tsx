@@ -375,10 +375,29 @@ describe('PdfScanTool', () => {
     expect(container.querySelector('[data-paper]')).not.toBeNull();
   });
 
-  it('brings a newly added photo into view, also when photos were already there', async () => {
+  it('brings a newly added photo into view, also when photos were already there: on desktop the page top, where the card is the first screen', async () => {
+    // The setup's matchMedia matches every query: the desktop path.
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      mount();
+      await pick([jpeg('a.jpg')]);
+      await settle();
+      await useCorners();
+      scrollTo.mockClear();
+      await pick([jpeg('b.jpg')]);
+      await settle();
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    } finally {
+      scrollTo.mockRestore();
+    }
+  });
+
+  it('on a phone, brings a newly added photo to the top under the bars instead', async () => {
     const scroll = vi.fn();
     const original = Element.prototype.scrollIntoView;
+    const originalMatch = window.matchMedia;
     Element.prototype.scrollIntoView = scroll;
+    window.matchMedia = ((query: string) => ({ ...originalMatch(query), matches: !query.includes('min-width: 1024px') })) as typeof window.matchMedia;
     try {
       mount();
       await pick([jpeg('a.jpg')]);
@@ -390,6 +409,7 @@ describe('PdfScanTool', () => {
       expect(scroll).toHaveBeenCalled();
     } finally {
       Element.prototype.scrollIntoView = original;
+      window.matchMedia = originalMatch;
     }
   });
 });

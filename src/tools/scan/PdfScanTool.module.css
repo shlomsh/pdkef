@@ -88,15 +88,66 @@
   max-width: 32rem;
 }
 
-/* The photo's own shape, held while its preview is made, so nothing below jumps when it lands. */
+/* The photo's own shape and size (inline), held while its preview is made, so nothing below jumps
+   when it lands. */
 .corners-wait {
   display: grid;
   place-items: center;
-  width: min(100%, 22rem);
+  max-width: 100%;
   border-radius: 6px;
   background: var(--color-surface-sunken);
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+/* Where the photo (corners) and the paper (result) sit: centred, as wide as the editor. */
+.photo-area,
+.paper-area {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Desktop, once measured (useFloorHeight.ts): the workbench is exactly the card's first screen, the
+   editor a column, and the photo or the paper takes whatever its rows leave, sized to that box
+   (container units) in both directions. */
+@media (min-width: 1024px) {
+  .workbench[data-fitted] {
+    height: max(24rem, var(--scan-stage-h));
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .workbench[data-fitted] .editor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .workbench[data-fitted] .pages {
+    align-self: stretch;
+    max-height: none;
+    min-height: 0;
+  }
+
+  .workbench[data-fitted] .photo-area,
+  .workbench[data-fitted] .paper-area {
+    flex: 1 1 0;
+    min-height: 0;
+    container-type: size;
+  }
+
+  .workbench[data-fitted] .photo-area {
+    --scan-view-h: 100cqh;
+  }
+
+  /* The caption and its gap sit under the paper. */
+  .workbench[data-fitted] .paper-area {
+    --scan-paper-h: calc(100cqh - 2rem);
+  }
 }
 
 /* Auto-detect, Whole photo, then Use these corners: one row where all three fit, and where they
