@@ -17,13 +17,13 @@ export type PreparedPart = OutputPart & { url: string };
 
 export type PreparedStatus = 'idle' | 'pending' | 'ready' | 'error';
 
-export interface PreparedOutputInput {
+export interface PreparedOutputInput<M = unknown> {
   /** Changes whenever the output would change; null puts the hook in `idle`
    * (nothing to build). */
   key: string | null;
   /** Builds the output for the current inputs; reads them through a ref the
    * caller keeps current, so it is only ever called for the latest key. */
-  build: (signal: AbortSignal, onProgress: (fraction: number) => void) => Promise<Built>;
+  build: (signal: AbortSignal, onProgress: (fraction: number) => void) => Promise<Built<M>>;
   /** Turns a failed build into a reportable cause and reports it, or ignores it. */
   onBuildError?: (error: unknown) => void;
   /** Tests shorten the wait; the tools never pass it. */
@@ -33,7 +33,7 @@ export interface PreparedOutputInput {
   autoBuild?: boolean;
 }
 
-export interface PreparedOutput {
+export interface PreparedOutput<M = unknown> {
   status: PreparedStatus;
   /** Null for a parts output. */
   blob: Blob | null;
@@ -43,6 +43,8 @@ export interface PreparedOutput {
   /** Output pages of the blob that `url` points at (or of all parts), and its size. */
   pageCount: number;
   size: number;
+  /** What the build returned beside the blob (Compress's sizes and flags); null until ready. */
+  meta: M | null;
   /** 0..1 while building. */
   progress: number;
   error: Error | null;
@@ -53,17 +55,17 @@ export interface PreparedOutput {
   prepareNow: () => void;
 }
 
-/** A build resolves one blob or several parts, never both. */
-export type Built = { blob: Blob; pageCount: number } | { parts: OutputPart[]; pageCount: number };
+/** A build resolves one blob or several parts, never both, and may carry a `meta` value the caller reads back. */
+export type Built<M = unknown> = ({ blob: Blob; pageCount: number } | { parts: OutputPart[]; pageCount: number }) & { meta?: M };
 
-export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
+export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): PreparedOutput<M> {
   const { key, build, onBuildError, quietPolicy, autoBuild = true } = input;
   const { url, setBlob, clear } = useObjectUrls();
   const [state, setState] = useState<{
-    status: PreparedStatus; blob: Blob | null; parts: PreparedPart[] | null; pageCount: number; error: Error | null; generation: number;
-  }>({ status: 'idle', blob: null, parts: null, pageCount: 0, error: null, generation: 0 });
+    status: PreparedStatus; blob: Blob | null; parts: PreparedPart[] | null; pageCount: number; meta: M | null; error: Error | null; generation: number;
+  }>({ status: 'idle', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: 0 });
   const [progress, setProgress] = useState(0);
-  const preparerRef = useRef<ReturnType<typeof createQuietPreparer<Built>> | null>(null);
+  const preparerRef = useRef<ReturnType<typeof createQuietPreparer<Built<M>>> | null>(null);
   const keyRef = useRef<string | null>(null);
   const autoBuildRef = useRef(autoBuild);
   autoBuildRef.current = autoBuild;
@@ -78,7 +80,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
   callbacksRef.current = { build, onBuildError };
 
   useEffect(() => {
-    const preparer = createQuietPreparer<Built>({
+    const preparer = createQuietPreparer<Built<M>>({
       policy: quietPolicy,
       build: async (_key, signal) => {
         setProgress(0);
@@ -93,7 +95,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
           : null;
         partUrlsRef.current = parts?.map((part) => part.url) ?? [];
         setBlob(blob);
-        setState((current) => ({ status: 'ready', blob, parts, pageCount: built.pageCount, error: null, generation: current.generation + 1 }));
+        setState((current) => ({ status: 'ready', blob, parts, pageCount: built.pageCount, meta: built.meta ?? null, error: null, generation: current.generation + 1 }));
       },
       onError: (errorKey, error) => {
         // expected: a superseded build is aborted on purpose and is not a failure
@@ -101,7 +103,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
         callbacksRef.current.onBuildError?.(error);
         console.error(error);
         revokePartUrls();
-        setState((current) => ({ status: 'error', blob: null, parts: null, pageCount: 0, error: error as Error, generation: current.generation }));
+        setState((current) => ({ status: 'error', blob: null, parts: null, pageCount: 0, meta: null, error: error as Error, generation: current.generation }));
       },
     });
     preparerRef.current = preparer;
@@ -119,7 +121,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
     if (key === null) {
       keyRef.current = null;
       preparer.dispose();
-      setState((current) => (current.status === 'idle' && !current.blob && !current.parts ? current : { status: 'idle', blob: null, parts: null, pageCount: 0, error: null, generation: current.generation }));
+      setState((current) => (current.status === 'idle' && !current.blob && !current.parts ? current : { status: 'idle', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: current.generation }));
       clear();
       revokePartUrls();
       setProgress(0);
@@ -129,7 +131,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
     // never hand out a result for an order the person has since changed. A
     // cache hit inside change() restores a built state in the same commit.
     keyRef.current = key;
-    setState((current) => ({ status: 'pending', blob: null, parts: null, pageCount: 0, error: null, generation: current.generation }));
+    setState((current) => ({ status: 'pending', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: current.generation }));
     clear();
     revokePartUrls();
     setProgress(0);
@@ -154,7 +156,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
     const preparer = preparerRef.current;
     if (!preparer) return;
     if (failed && keyRef.current !== null) {
-      setState((current) => ({ status: 'pending', blob: null, parts: null, pageCount: 0, error: null, generation: current.generation }));
+      setState((current) => ({ status: 'pending', blob: null, parts: null, pageCount: 0, meta: null, error: null, generation: current.generation }));
       setProgress(0);
       preparer.change(keyRef.current, false);
     }
@@ -167,6 +169,7 @@ export function usePreparedOutput(input: PreparedOutputInput): PreparedOutput {
     url,
     parts: state.parts,
     pageCount: state.pageCount,
+    meta: state.meta,
     size: state.blob?.size ?? state.parts?.reduce((total, part) => total + part.blob.size, 0) ?? 0,
     progress,
     error: state.error,
