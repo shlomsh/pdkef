@@ -231,7 +231,7 @@
   margin-top: var(--space-4);
   padding: 0.9rem 1.05rem;
   background: var(--color-danger-soft);
-  color: #8a221c;
+  color: var(--color-danger-ink);
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   line-height: 1.5;
@@ -256,7 +256,7 @@
 }
 
 .error-message strong {
-  color: #6b1813;
+  color: var(--color-danger-ink-strong);
   font-weight: 600;
 }
 
