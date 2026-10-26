@@ -184,6 +184,19 @@
   letter-spacing: 0.08em;
 }
 
+.pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--space-2);
+}
+
+.pick-row > .file-picker-button {
+  margin-top: 0;
+}
+
 .file-picker-button {
   position: relative;
   display: inline-flex;

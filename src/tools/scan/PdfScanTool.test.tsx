@@ -80,9 +80,11 @@ describe('PdfScanTool', () => {
     .find((g) => (g.getAttribute('aria-label') ?? container.querySelector(`#${g.getAttribute('aria-labelledby')}`)?.textContent) === label);
   const checked = (label) => radioGroup(label).querySelector('[aria-checked="true"]').textContent.trim();
 
-  it('offers Take a photo on the empty state, wired to the rear camera', () => {
+  it('offers Take a photo on the empty state as an equal of Choose files, wired to the rear camera', () => {
     mount();
-    expect(byText('Take a photo')).toHaveLength(1);
+    const take = Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Take a photo');
+    const choose = Array.from(container.querySelectorAll('label')).find((l) => l.textContent.trim() === 'Choose files');
+    expect(take.className.split(' ')).toContain(choose.className);
     const input = container.querySelector('input[capture]');
     expect(input.getAttribute('capture')).toBe('environment');
     expect(input.getAttribute('accept')).toBe('image/jpeg,image/png');
