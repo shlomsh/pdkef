@@ -41,7 +41,7 @@ describe('precache manifest delivery policy', () => {
     expect(shouldPrecache('split/index.html', names)).toBe(true);
     expect(shouldPrecache('compress/index.html', names)).toBe(true);
     expect(shouldPrecache('unlock/index.html', names)).toBe(true);
-    expect(shouldPrecache('edit-pdf/index.html', names)).toBe(true);
+    expect(shouldPrecache('organize-pdf/index.html', names)).toBe(true);
     expect(shouldPrecache('install-pdf-app/index.html', names)).toBe(true);
     expect(shouldPrecache('open-source-pdf-editor/index.html', names)).toBe(true);
     expect(shouldPrecache('how-to-sign-a-pdf-on-iphone/index.html', names)).toBe(true);

@@ -363,7 +363,7 @@ function main() {
 // src/pages/<slug>.astro that imports `../tools/<t>/Pdf*Tool` maps route
 // `/<slug>` to tool folder `<t>` (so /compress/ and /compress-image/ both
 // belong to `compress`, /unlock/ to `security`, /pdf-to-image/ to `to-image`,
-// /edit-pdf/ to `edit-pages`) - see docs/module-boundaries.md and
+// /organize-pdf/ to `edit-pages`) - see docs/module-boundaries.md and
 // buildToolRouteMap() below.
 
 const SPEC_FILE = /\.spec\.[cm]?[jt]sx?$/;

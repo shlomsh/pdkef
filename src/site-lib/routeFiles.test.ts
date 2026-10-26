@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { tools } from '../data/tools.js';
+import { listedTools } from '../data/tools.js';
 import { handoffKeyFor, routeFiles } from './routeFiles';
 
 const f = (name: string, type = '') => new File(['x'], name, { type });
-const PDF_TOOLS = ['sign', 'redact', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'edit-pdf'];
+const PDF_TOOLS = ['sign', 'redact', 'merge', 'pdf-to-image', 'split', 'compress', 'unlock', 'organize-pdf'];
 const names = (files: File[]) => files.map((x) => x.name);
 
 describe('routeFiles', () => {
@@ -33,7 +33,7 @@ describe('routeFiles', () => {
   });
 
   it('lists choices in src/data/tools.js order', () => {
-    const order = tools.map((t: { slug: string }) => t.slug);
+    const order = listedTools.map((t: { slug: string }) => t.slug);
     for (const input of [[f('a.pdf')], [f('p.jpg')]]) {
       const r = routeFiles(input);
       if (r.kind !== 'choose') throw new Error('expected choose');
@@ -45,6 +45,7 @@ describe('routeFiles', () => {
 describe('handoffKeyFor', () => {
   it('maps compress-image to compress and leaves other slugs alone', () => {
     expect(handoffKeyFor('compress-image')).toBe('compress');
+    expect(handoffKeyFor('organize-pdf')).toBe('edit-pdf');
     expect(handoffKeyFor('sign')).toBe('sign');
     expect(handoffKeyFor('image-to-pdf')).toBe('image-to-pdf');
   });

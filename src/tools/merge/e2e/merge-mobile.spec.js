@@ -251,7 +251,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
 
     await expect(body.getByRole('button', { name: 'Add files', exact: true })).toBeVisible();
-    await expect(body.getByRole('button', { name: 'Clear all', exact: true })).toBeVisible();
+    await expect(body.getByRole('button', { name: 'Clear all files', exact: true })).toBeVisible();
     await expect(body.locator('button[aria-haspopup="listbox"]')).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'Add page numbers' })).toBeVisible();
     await expect(page.locator('summary', { hasText: '⋯' })).toHaveCount(0);

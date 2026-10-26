@@ -27,7 +27,9 @@ const routes = [
   '/sign',
   '/sign/?next=0',
   '/redact',
-  '/edit-pdf',
+  '/organize-pdf',
+  '/rotate-pdf',
+  '/extract-pdf-pages',
   '/licenses',
 ];
 

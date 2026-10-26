@@ -29,7 +29,7 @@ import TheO from '../components/TheO.astro';
 import '../styles/homePage.css';
 
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
-import { tools } from '../data/tools.js';
+import { listedTools } from '../data/tools.js';
 import FileDropzone from '../site-lib/FileDropzone.tsx';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getFileDropzoneMessages, getRecentFilesMessages } from '../i18n/toolMessages';
@@ -131,8 +131,8 @@ const recentFilesMessages = getRecentFilesMessages(locale as any);
 // Keep the landing toolbar's priority distinct: Compress is intentionally the
 // third shortcut without changing the shared registry or sitemap ordering.
 //
-// The home dock holds every registry tool (eleven cards; see the gap maths on `.home-dock`).
-const homeToolsOrder = [...tools];
+// The home dock holds every listed tool (eleven cards; see the gap maths on `.home-dock`).
+const homeToolsOrder = [...listedTools];
 const compressToolIndex = homeToolsOrder.findIndex((tool) => tool.slug === 'compress');
 if (compressToolIndex !== -1) {
   const [compressTool] = homeToolsOrder.splice(compressToolIndex, 1);

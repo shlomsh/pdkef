@@ -1,0 +1,68 @@
+/* Base styles are the LAST frame, so reduced motion sees the finished row: three numbered pages.
+   The digits are CSS content, not text, so the stage stays free of text like every verb. */
+.p1 {
+  translate: calc(-88 * var(--u)) 0;
+}
+
+.p3 {
+  translate: calc(88 * var(--u)) 0;
+}
+
+.num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(8 * var(--u));
+  text-align: center;
+  font: var(--font-weight-semibold) calc(11 * var(--u)) / 1 var(--font-sans);
+  color: var(--color-primary-text);
+}
+
+.n1::before {
+  content: '1';
+}
+
+.n2::before {
+  content: '2';
+}
+
+.n3::before {
+  content: '3';
+}
+
+/* paper.module.css mirrors the whole stage on RTL pages; the digits read the right way round.
+   transform, not scale: the landing animation owns scale. */
+:global([dir='rtl']) .num {
+  transform: scaleX(-1);
+}
+
+@keyframes land {
+  0% {
+    opacity: 0;
+    translate: 0 calc(-10 * var(--u));
+    scale: 1.6;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .num {
+    animation: land 0.5s var(--ease-emphasized) both;
+  }
+
+  .n1 {
+    animation-delay: 0.5s;
+  }
+
+  .n2 {
+    animation-delay: 0.85s;
+  }
+
+  .n3 {
+    animation-delay: 1.2s;
+  }
+}

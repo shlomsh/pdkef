@@ -29,20 +29,42 @@ export function applyRotation(page, deltaDegrees) {
   page.setRotation(pdfDegrees(currentAngle + deltaDegrees));
 }
 
-// Stamps a bottom-centre page number label. Geometry (size 12, y = 22, colour
-// rgb(0.2, 0.2, 0.2), horizontally centred by measuring the label at that
-// size) is pinned exactly to what merge.js and editPages.js each drew before
-// this file existed - changing any of these numbers changes what every
-// existing "add page numbers" export looks like.
+// Where to draw a page-number label so that, once a viewer applies the page's
+// /Rotate (clockwise, per the PDF spec), it reads upright and is centred on the
+// visual bottom edge, `inset` points up. Text is drawn in unrotated user space,
+// so the label is rotated and moved to whichever unrotated edge ends up at the
+// bottom: right for 90, top for 180, left for 270. `box` is the visible box
+// (CropBox, else MediaBox) and may have a non-zero origin.
+export function pageNumberPlacement({ box, rotation, textWidth, inset = 22 }) {
+  const { x, y, width, height } = box;
+  const angle = ((Math.round(rotation / 90) * 90) % 360 + 360) % 360;
+  if (angle === 90) return { x: x + width - inset, y: y + height / 2 - textWidth / 2, rotate: 90 };
+  if (angle === 180) return { x: x + width / 2 + textWidth / 2, y: y + height - inset, rotate: 180 };
+  if (angle === 270) return { x: x + inset, y: y + height / 2 + textWidth / 2, rotate: 270 };
+  return { x: x + width / 2 - textWidth / 2, y: y + inset, rotate: 0 };
+}
+
+// Stamps a bottom-centre page number label. Size 12, colour rgb(0.2, 0.2, 0.2)
+// and the 22pt inset are pinned to what merge.js and editPages.js each drew
+// before this file existed - changing them changes every existing "add page
+// numbers" export. Rotation and the box origin are accounted for because many
+// source PDFs (landscape scans) carry /Rotate: a label placed in unrotated
+// space would land on a side or top edge, sideways or upside down. An
+// unrotated page with a (0,0) origin yields the historic x/y exactly.
 export function stampPageNumber(page, label, font) {
   const textSize = 12;
   const textWidth = font.widthOfTextAtSize(label, textSize);
-  const { width } = page.getSize();
+  const { x, y, rotate } = pageNumberPlacement({
+    box: page.getCropBox(),
+    rotation: page.getRotation().angle,
+    textWidth,
+  });
   page.drawText(label, {
-    x: width / 2 - textWidth / 2,
-    y: 22,
+    x,
+    y,
     size: textSize,
     font,
     color: rgb(0.2, 0.2, 0.2),
+    rotate: pdfDegrees(rotate),
   });
 }

@@ -53,10 +53,13 @@ export default function PageWorkspace({
 
       <div class={styles.main} ref={layoutRef}>
         <div class={styles.document} ref={documentRef}>
-          <div class={styles['doc-header']}>
-            <div class={styles['heading-row']}>{heading}</div>
-            <div class={styles['doc-header-right']}>{headerStatus}</div>
-          </div>
+          {/* A state that stands in for the document (a locked file) has no heading: no empty row above it. */}
+          {(heading != null || headerStatus != null) && (
+            <div class={styles['doc-header']}>
+              <div class={styles['heading-row']}>{heading}</div>
+              <div class={styles['doc-header-right']}>{headerStatus}</div>
+            </div>
+          )}
           {children}
         </div>
 

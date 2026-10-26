@@ -18,7 +18,7 @@ async function makeFixture() {
 }
 
 async function openAndEdit(page) {
-  await page.goto('/edit-pdf/');
+  await page.goto('/organize-pdf/');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await page.locator('input[type="file"]').setInputFiles({ name: 'six.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });
   const cells = page.locator('ul[data-page-grid] > li[data-key]');
@@ -55,7 +55,7 @@ test.describe('phone', () => {
       Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
       Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
     });
-    await page.goto('/edit-pdf/');
+    await page.goto('/organize-pdf/');
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await page.locator('input[type="file"]').setInputFiles({ name: 'six.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });
     const cells = page.locator('ul[data-page-grid] > li[data-key]');

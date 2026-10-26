@@ -11,7 +11,7 @@ subhead: >-
   sounds: it means the claim that your files never leave your device is something you can check for
   yourself rather than something you have to believe.
 primaryCta:
-  href: '/edit-pdf/'
+  href: '/organize-pdf/'
   label: 'Try the PDF editor'
 sections:
   - sketch: 'arcs'

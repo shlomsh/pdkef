@@ -340,8 +340,11 @@
   white-space: nowrap;
 }
 
+/* Row one's own buttons wrap too: Merge's Add files and Clear all files
+   with their icons fill 262px of 262 at 320px on macOS, and Linux fonts
+   draw wider, so a nowrap row spilled out of the card in CI. */
 .mobile-file-controls > :first-child {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .mobile-file-controls > :nth-child(2) {
@@ -441,6 +444,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* For a leading icon (Merge's Add files and Clear all files). */
+  gap: 0.3rem;
   min-height: 36px;
   padding: 0.35rem 0.7rem;
   font: inherit;
@@ -454,7 +459,8 @@
   text-decoration: none;
 }
 
-.quiet-button::before {
+.quiet-button::before,
+.replace-button::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -472,6 +478,37 @@
 .quiet-button:focus-visible {
   outline-offset: 0;
   border-color: var(--color-primary);
+}
+
+/* UX guideline 20: Replace file ends a one-file tool's rail as a quiet line
+   (ReplaceFileLine.tsx), centred under the full-width Download and hand-off
+   row so it sits on the rail's axis. No border or fill until hover: it is a
+   way out, not a step. The 44px hit area is `.quiet-button`'s ::before. */
+.replace-line {
+  display: flex;
+  justify-content: center;
+}
+
+.replace-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.replace-button:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
 }
 
 /* Shlomi (2026-09-13): the Options disclosure is gone entirely - a plain
@@ -496,6 +533,13 @@
 .handoff-row {
   display: flex;
   gap: 0.5rem;
+}
+
+/* PDF to Image and Split's one PDF per page have no hand-offs, and Share
+   only shows where the browser can share files: an empty row would add a
+   second rail gap above Replace file. */
+.handoff-row:empty {
+  display: none;
 }
 
 /* Every child of the row is a hand-off button, the Share button included

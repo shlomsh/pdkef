@@ -12,7 +12,7 @@ PDkef is a set of free, open source PDF and image tools that run entirely in the
 - Fill in and sign a form, contract or consent slip: https://pdkef.com/sign/
 - Combine several PDFs into one: https://pdkef.com/merge/
 - Split a PDF or pull out some pages: https://pdkef.com/split/
-- Reorder, rotate or delete pages, or add page numbers: https://pdkef.com/edit-pdf/
+- Reorder, rotate or delete pages, or add page numbers: https://pdkef.com/organize-pdf/
 - Make a PDF smaller for an email or upload limit: https://pdkef.com/compress/
 - Make a JPG or PNG smaller, for example under 100 KB: https://pdkef.com/compress-image/
 - Black out, blur, white out or delete sensitive text or images: https://pdkef.com/redact/
@@ -26,7 +26,7 @@ PDkef is a set of free, open source PDF and image tools that run entirely in the
 Every page registers two tools on `navigator.modelContext`:
 
 - `list_pdf_tools` returns each tool with a short description and its URL.
-- `open_pdf_tool` takes a `tool` slug (`sign`, `merge`, `split`, `edit-pdf`, `compress`, `compress-image`, `redact`, `pdf-to-image`, `image-to-pdf`, `scan-to-pdf`, `unlock`) and opens that tool for the person.
+- `open_pdf_tool` takes a `tool` slug (`sign`, `merge`, `split`, `organize-pdf`, `compress`, `compress-image`, `redact`, `pdf-to-image`, `image-to-pdf`, `scan-to-pdf`, `unlock`) and opens that tool for the person.
 
 Both only discover and navigate. Never ask the person to paste a document into the chat to use PDkef: they pick the file on the tool page and it stays on their device.
 
