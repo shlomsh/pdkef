@@ -8,7 +8,8 @@
  * PdfSignTool.tsx pass their own resolved `t` through so a Hebrew page gets
  * Hebrew text-policy sentences too.
  */
-import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import type { SignMessages } from '../../../editor/registry/messages';
 import { formatMessage } from '../../../lib/formatMessage';
 
 /** Bounded, direction-isolated text excerpts for UI sentences - script-agnostic, so this needs no locale parameter. */

@@ -34,7 +34,9 @@ import { placeSymbolOnRegion } from '../../editor/registry/symbol.ts';
 import { DESIGN_BOX, markInkExtent } from '../../editor/registry/symbolMarks.ts';
 import { dateFormatForComb, formatDate, isDateFormatId, toIsoDateString } from '../../editor/text/dateFormat.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
-import { englishSignMessages, signElementTypeLabel, type SignMessages } from '../../i18n/toolMessages';
+import { englishSignMessages } from './messages';
+import { signElementTypeLabel } from '../../editor/registry/signLabels';
+import type { SignMessages } from '../../editor/registry/messages';
 import { formatMessage } from '../../lib/formatMessage';
 import {
   DEFAULT_COLOR_BLUE,

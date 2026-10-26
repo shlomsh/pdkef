@@ -1,6 +1,6 @@
 import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
 // Type-only import, same non-cycle reasoning as registry/types.ts's own.
-import type { SignMessages } from '../../../i18n/toolMessages';
+import type { SignMessages } from '../../../editor/registry/messages';
 // ElementResizers (editor-ui, shared with Redact) owns this contract now;
 // re-exported here so Sign's node components keep one import surface.
 export type { EditorPointerEvent, NodeResizeStart } from '../../../editor-ui/nodeResizeTypes.ts';

@@ -25,7 +25,8 @@ import type { EditorElement, EditorElementPatch } from '../../../editor/model/ed
 import type { NodeResizeStart } from './nodeProps.ts';
 // Type-only import kept separate from the value import below for the same
 // non-cycle reasoning as nodeProps.ts's own.
-import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import type { SignMessages } from '../../../editor/registry/messages';
 
 // How far a coarse-pointer `.element-button`'s 44px hit area overhangs the
 // button itself: `::before { inset: -8px }` in EditorControls.module.css. Kept

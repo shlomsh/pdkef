@@ -3,7 +3,8 @@ import WhiteoutColorGroup from '../../../editor-ui/whiteout/WhiteoutColorGroup.t
 import { useEyedropper } from '../../../editor-ui/whiteout/pageSampling.ts';
 import { useRecentWhiteoutColors } from '../../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
 import type { ColorMode } from '../../../editor/model/editorModel.ts';
-import { whiteoutColorLabels, type SignMessages } from '../../../i18n/toolMessages';
+import { whiteoutColorLabels } from '../../../editor/registry/signLabels';
+import type { SignMessages } from '../../../editor/registry/messages';
 import { SIGN_PAGE_SURFACE } from '../whiteoutPageColor.ts';
 
 /** Paints a colour on a whiteout's DOM only: the picker's live preview. */
