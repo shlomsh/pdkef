@@ -44,7 +44,7 @@ const DEFAULT_PAGE_MESSAGES = {
 // browser's own scrollbar for orientation.
 //
 // `messages` is an optional `{ pageCountOne, pageCountOther, pageOf, dir }` table
-// (see `ShellMessages` in src/i18n/toolMessages.ts) for localizing that
+// (see `ShellMessages` in src/shell/shellMessages.ts) for localizing that
 // clause; in an RTL catalogue the size is isolated as one LTR run, or "2.5 KB"
 // reads "KB 2.5" inside the Hebrew line. It defaults to the English literals above, so every call site that
 // doesn't pass one keeps behaving byte-identically.

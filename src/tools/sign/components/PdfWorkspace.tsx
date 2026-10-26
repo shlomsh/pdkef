@@ -43,7 +43,10 @@ import {
 } from '../../../editor/model/actionHistory.ts';
 import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import { uniqueId } from '../../../editor/model/ids.ts';
-import { englishSignMessages, formatMessage, signElementTypeLabel, signUpdateDescription, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import { signElementTypeLabel, signUpdateDescription } from '../../../editor/registry/signLabels';
+import type { SignMessages } from '../../../editor/registry/messages';
+import { formatMessage } from '../../../lib/formatMessage';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import formFieldHintStyles from './FormFieldHints.module.css';
@@ -209,7 +212,7 @@ export default function PdfWorkspace({
    * hasNext/hasPrevious and one goToNext/goToPrevious. */
   fieldNavigation?: FieldNavigation;
   /** LOC-09 stage 1: the toolbar row's own catalogue, passed straight through
-   * from PdfSignTool.tsx to SignToolbar.tsx - see src/i18n/toolMessages.ts's
+   * from PdfSignTool.tsx to SignToolbar.tsx - see src/editor/registry/messages.ts's
    * SignMessages. Optional and English-default so PdfWorkspace.test.tsx (which
    * never passes it) is unaffected. Also supplies EditorPageHeader's lang/dir
    * (bidi-isolation wrapper, 5a1af03) for each rendered page. */

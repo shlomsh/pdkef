@@ -11,7 +11,7 @@ import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { englishShellMessages as sm } from '../../i18n/toolMessages';
+import { englishShellMessages as sm } from '../../shell/shellMessages';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';

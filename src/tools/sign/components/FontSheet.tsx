@@ -19,7 +19,7 @@ export const FILL_KEEP_SESSION_ATTR = 'data-fill-keep-session';
  * `SignMessages` catalogue: every other string this file shows already comes
  * through `t` (the same merged messages object `FontPickerMenu` builds), and
  * these three are new. Kept local and English-only, as the brief allows,
- * rather than growing `SignMessages`/`toolMessages.ts` - both are outside
+ * rather than growing `SignMessages`/`signMessages.ts` - both are outside
  * this change's file set and are edited by no one else, so widening them is
  * a separate, deliberate change, not a side effect of this one. */
 const SHEET_COPY = {

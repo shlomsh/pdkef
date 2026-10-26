@@ -7,7 +7,7 @@ import {
   filterFontOptions,
   FontOptionsList,
 } from './FontOptionsList.tsx';
-import { englishSignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
 
 describe('filterFontOptions', () => {
   const options = [{ value: 'Arimo' }, { value: 'Caveat' }, { value: 'Noto Sans JP' }];

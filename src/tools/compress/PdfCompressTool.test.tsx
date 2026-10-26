@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
-import { englishCompressMessages, hebrewCompressMessages } from '../../i18n/toolMessages';
+import { englishCompressMessages, hebrewCompressMessages } from './messages';
 import * as compressLib from './compress.js';
 import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';

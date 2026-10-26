@@ -33,7 +33,8 @@
 //   4. `site` (pages, layouts, content, data, i18n, styles, and the .astro
 //      files still under `src/components/`) may reach a tool only through
 //      that tool's island entry point, a `Pdf*Tool.tsx` directly under
-//      `src/tools/<name>/`.
+//      `src/tools/<name>/`, or its text, `src/tools/<name>/messages.ts`
+//      (ARCH-35).
 //   5. `components` (today's flat `src/components/`: since ARCH-18 landed,
 //      only `.astro` site components - which classify as `site`, not
 //      `components` - and `HeroDemo/` remain) must never import a tool.
@@ -166,11 +167,11 @@ const isTool = (m) => typeof m === 'string' && m.startsWith('tool:');
 const isSite = (m) => m === 'site' || m === 'site-i18n' || m === 'site-data';
 const CORE_MODULES = new Set(['shell', 'editor-ui', 'editor', 'lib']);
 
-// A tool's own island entry point: src/tools/<name>/Pdf*Tool.tsx. Every tool
-// moved out of the flat src/components/ under ARCH-17/18, so this is the only
-// shape rule 4 recognizes now.
+// What a tool shows the site (rule 4): its island entry point, src/tools/<name>/Pdf*Tool.tsx,
+// and (ARCH-35) its text, src/tools/<name>/messages.ts, which the site's message registry
+// picks per locale without loading the island.
 function isToolEntryPoint(relPath) {
-  return /^src\/tools\/[^/]+\/Pdf[A-Za-z0-9]*Tool\.tsx$/.test(relPath);
+  return /^src\/tools\/[^/]+\/(Pdf[A-Za-z0-9]*Tool\.tsx|messages\.ts)$/.test(relPath);
 }
 
 export function ruleViolation(fromModule, toModule, toRelPath) {
@@ -204,7 +205,7 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   }
   // Rule 4: site may reach a tool only through its island entry point.
   if (isSite(fromModule) && isTool(toModule) && !isToolEntryPoint(toRelPath)) {
-    return 'site may reach a tool only through its Pdf*Tool.tsx island entry point';
+    return 'site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts';
   }
   // Rule 5: `components` (HeroDemo/, compareFigure.css) may not import a tool.
   if (fromModule === 'components' && isTool(toModule)) {
