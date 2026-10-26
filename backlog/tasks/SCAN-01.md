@@ -103,3 +103,14 @@ file too big for a portal, a scan to sign next). Link from `remove-camscanner-wa
   Firefox cannot decode HEIC anyway. To confirm on Shlomi's iPhone: a library pick of a HEIC photo
   arrives and scans.
 - Does Hebrew get a `/he/` Scan page at launch? Follow the languages page, not this ticket.
+
+## Progress 2026-10-26 (branch `claude/scan-to-pdf-cdd83e`, not yet on main)
+
+Built as designed in `docs/scan-to-pdf.md`. Checked on a production build: three 12 MP photos of a page
+at an angle, Document, A4, 1 MB gave a three-page A4 PDF of 1,045,882 bytes that reads cleanly, ready
+about 3 s after the pick on a laptop; no sideways scroll at 375, 768, 1280 and 1440. `check:push` green;
+the diff's Playwright projects green (one Merge phone spec flaked once, then passed 3 of 3 alone).
+
+Still open: the two phone acceptance items (Shlomi's iPhone and an Android phone, including the HEIC
+library pick), landing on main, and whether Scan joins the home dock (`homeDock: false` for now, see the
+design record). The four-week Search Console read follows the launch.
