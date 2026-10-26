@@ -28,6 +28,7 @@ import { englishShellMessages } from '../../i18n/toolMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
+import { playFlatten, relativeBox, type FlattenFrom } from './flattenAnimation.ts';
 import ScanVerb from './verb/ScanVerb.tsx';
 import { FULL_QUAD, quadKey, type Quad } from './quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
@@ -353,9 +354,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   // Bring the page's top into view: the first photos replace the tall empty state, and moving on from
   // the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
-  const showEditorTop = () => {
+  const showEditorTop = (instant = false) => {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    editorRef.current?.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+    editorRef.current?.scrollIntoView?.({ block: 'start', behavior: reduce || instant ? 'auto' : 'smooth' });
   };
   useEffect(() => {
     const has = pages.length > 0;
@@ -364,11 +365,38 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   }, [pages.length > 0]);
   // Asked for by a view change, run once the new view is laid out (the scroll target moves with it).
   const topPendingRef = useRef(false);
+  /** The photo and corners just approved, for the flatten animation into the result. */
+  const flattenFromRef = useRef<FlattenFrom | null>(null);
+  const stopFlattenRef = useRef<() => void>(() => {});
   useEffect(() => {
-    if (!topPendingRef.current) return;
-    topPendingRef.current = false;
-    showEditorTop();
+    const from = flattenFromRef.current;
+    flattenFromRef.current = null;
+    const host = editorRef.current;
+    const target = host?.querySelector<HTMLImageElement>('[data-paper] img');
+    // Only when the page is already made: an empty paper has nothing to land.
+    const flatten = !!(from && view === 'result' && host && target);
+    // One motion at a time: with a flatten to play, the scroll jumps first and the page moves alone.
+    if (topPendingRef.current) {
+      topPendingRef.current = false;
+      showEditorTop(flatten);
+    }
+    if (flatten) {
+      stopFlattenRef.current();
+      stopFlattenRef.current = playFlatten(host as HTMLElement, from as FlattenFrom, target as HTMLImageElement);
+    }
   }, [view, selectedId]);
+  useEffect(() => () => stopFlattenRef.current(), []);
+
+  const captureFlatten = (page: ScanPage) => {
+    const host = editorRef.current;
+    const frame = host?.querySelector('[data-corner-frame]');
+    if (!host || !frame || !page.preview) return;
+    flattenFromRef.current = {
+      photoUrl: page.preview,
+      frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
+      quad: page.quad,
+    };
+  };
 
   useLayoutEffect(() => {
     const id = focusIdRef.current;
@@ -480,7 +508,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, reviewed: true } : p)));
     const next = pages.find((p) => !p.reviewed && p.id !== selected.id);
     if (next) setSelectedId(next.id);
-    else setView('result');
+    else {
+      captureFlatten(selected);
+      setView('result');
+    }
     topPendingRef.current = true;
     recordAction('move_mark');
   };
@@ -685,7 +716,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                       type="button"
                       class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
                       disabled={!selected.guessed}
-                      onClick={selected.reviewed ? () => { setView('result'); topPendingRef.current = true; } : approveCorners}
+                      onClick={selected.reviewed ? () => { captureFlatten(selected); setView('result'); topPendingRef.current = true; } : approveCorners}
                     >
                       {selected.reviewed ? t.cornersDone : t.useCorners}
                     </button>
