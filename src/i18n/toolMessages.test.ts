@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { englishSignMessages, hebrewSignMessages, signUpdateDescription, englishSplitMessages, hebrewSplitMessages, englishToImageMessages, hebrewToImageMessages, englishImageToPdfMessages, hebrewImageToPdfMessages, getToolMessages } from './toolMessages';
+import { englishSplitMessages, hebrewSplitMessages, englishToImageMessages, hebrewToImageMessages, englishImageToPdfMessages, hebrewImageToPdfMessages, getToolMessages } from './toolMessages';
+import { englishSignMessages, hebrewSignMessages } from '../editor/registry/signMessages';
+import { signUpdateDescription } from '../editor/registry/signLabels';
 import { englishShellMessages, hebrewShellMessages } from '../shell/shellMessages';
 
 describe('sign tool messages', () => {

@@ -43,7 +43,9 @@ import {
 } from '../../../editor/model/actionHistory.ts';
 import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import { uniqueId } from '../../../editor/model/ids.ts';
-import { englishSignMessages, signElementTypeLabel, signUpdateDescription, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import { signElementTypeLabel, signUpdateDescription } from '../../../editor/registry/signLabels';
+import type { SignMessages } from '../../../editor/registry/messages';
 import { formatMessage } from '../../../lib/formatMessage';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';

@@ -10,7 +10,7 @@ import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState 
 import { FillContext, FILL_OFF, type FillContextValue } from '../fill/FillContext.tsx';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
-import { hebrewSignMessages } from '../../../i18n/toolMessages';
+import { hebrewSignMessages } from '../messages';
 import styles from '../../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../../shell/ToolShell.module.css';
 
