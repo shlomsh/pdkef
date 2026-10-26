@@ -44,6 +44,7 @@ describe('PdfScanTool', () => {
     }));
     vi.mocked(pipeline.buildScanPdf).mockReset().mockImplementation(() => Promise.resolve({
       blob: new Blob(['%PDF'], { type: 'application/pdf' }), metTarget: true, scale: 1, quality: 0.82,
+      pages: [{ blob: new Blob(['j'], { type: 'image/jpeg' }), place: { pageWidth: 595.28, pageHeight: 841.89, x: 0, y: 0, width: 595.28, height: 841.89 } }],
     }));
   });
 
@@ -72,6 +73,7 @@ describe('PdfScanTool', () => {
   }
   const tiles = () => Array.from(container.querySelectorAll('[data-page]'));
   const tileLabels = () => tiles().map((el) => el.getAttribute('aria-label'));
+  const adjustCorners = () => act(async () => { byText('Adjust corners')[0].click(); });
   const handles = () => Array.from(container.querySelectorAll('[role="group"] button'));
   const byText = (text) => Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === text);
   const radioGroup = (label) => Array.from(container.querySelectorAll('[role="radiogroup"]'))
@@ -96,6 +98,7 @@ describe('PdfScanTool', () => {
   it('puts the corner handles on the guessed quad', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
+    await adjustCorners();
     expect(handles()).toHaveLength(4);
     handles().forEach((h, i) => {
       expect(h.style.left).toBe(`${GUESS[i].x * 100}%`);
@@ -108,6 +111,7 @@ describe('PdfScanTool', () => {
     vi.mocked(pipeline.guessPage).mockImplementation(() => new Promise((r) => { resolveGuess = r; }));
     mount();
     await pick([jpeg('a.jpg')]);
+    await adjustCorners();
     // Still finding edges: the corners are the whole photo.
     expect(handles()[0].style.left).toBe('0%');
     await act(async () => {
@@ -190,11 +194,30 @@ describe('PdfScanTool', () => {
     mount();
     await pick([jpeg('a.jpg')]);
     await settle();
+    await adjustCorners();
     // The first run is in flight; two corner moves queue two more, and only the last is still wanted.
     await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
     await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
     await act(async () => { release({ blob: new Blob(['x'], { type: 'image/jpeg' }), width: 100, height: 140 }); });
     await settle(50);
     expect(pipeline.processPage).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the page as it will download once the PDF is built, and corners only on request', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    expect(handles()).toHaveLength(0);
+    await settle(1000);
+    const paper = container.querySelector('[data-paper]');
+    expect(paper.hasAttribute('data-exact')).toBe(true);
+    expect(container.textContent).toContain('Exactly as it will download');
+    await adjustCorners();
+    expect(handles()).toHaveLength(4);
+    await act(async () => { byText('Done')[0].click(); });
+    expect(handles()).toHaveLength(0);
+    // A new choice: the old pages stay on screen, marked as updating, until the new build lands.
+    await act(async () => { radioGroup('Page size').querySelectorAll('[role="radio"]')[1].click(); });
+    expect(container.querySelector('[data-paper]').hasAttribute('data-exact')).toBe(false);
+    expect(container.textContent).toContain('Updating');
   });
 });

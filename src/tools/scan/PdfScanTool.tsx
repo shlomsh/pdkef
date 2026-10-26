@@ -25,11 +25,13 @@ import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/use
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import { englishShellMessages } from '../../i18n/toolMessages';
 import CornerEditor from './CornerEditor.tsx';
+import ResultPage from './ResultPage.tsx';
+import { placeImage } from '../../lib/imagePage.js';
 import ScanVerb from './verb/ScanVerb.tsx';
 import { FULL_QUAD, quadKey, type Quad } from './quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
 import type { ScanFilter } from './filters.ts';
-import type { PageSize, ProcessedPage } from './scanPipeline.ts';
+import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
 import { scanMessages as t } from './scanMessages.ts';
 import styles from './PdfScanTool.module.css';
 
@@ -51,6 +53,11 @@ interface ScanPage {
 }
 
 interface PageResult { key: string; url: string; page: ProcessedPage }
+/** The pages of the last built PDF, in its order: what Download saves, page for page. */
+interface Shown { key: string; pages: { url: string; place: Placement }[] }
+
+/** Fit pages print at 200 dpi (scanPipeline.ts); the same rule places a page before the build lands. */
+const FIT_POINTS_PER_PIXEL = 72 / 200;
 
 let nextId = 0;
 const resultKey = (page: ScanPage, filter: ScanFilter) => `${page.id}|${quadKey(page.quad)}|${filter}`;
@@ -106,7 +113,18 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [missed, setMissed] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  /** The centre shows the page as it will download; corners are a mode you step into. */
+  const [view, setView] = useState<'result' | 'corners'>('result');
+  const [shown, setShown] = useState<Shown | null>(null);
+  const shownRef = useRef<Shown | null>(null);
+  const showPages = (next: Shown | null) => {
+    for (const page of shownRef.current?.pages ?? []) URL.revokeObjectURL(page.url);
+    shownRef.current = next;
+    setShown(next);
+  };
   const listRef = useRef<HTMLUListElement | null>(null);
+  const editorRef = useRef<HTMLElement | null>(null);
+  const hadPagesRef = useRef(false);
   const focusIdRef = useRef<number | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -229,7 +247,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   // Revoke every live object URL on unmount.
   const urlsRef = useRef<string[]>([]);
-  urlsRef.current = [...pages.map((p) => p.photoUrl), ...Object.values(results).map((r) => r.url)];
+  urlsRef.current = [...pages.map((p) => p.photoUrl), ...Object.values(results).map((r) => r.url), ...(shown?.pages.map((p) => p.url) ?? [])];
   useEffect(() => () => urlsRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
   const allGuessed = pages.length > 0 && pages.every((p) => p.guessed) && failedIds.length === 0;
@@ -247,7 +265,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       if (signal.aborted) throw new DOMException('Scan build aborted', 'AbortError');
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
       const fit = await (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal });
-      if (inputsRef.current.key === builtKey) setMissed(fit.metTarget ? null : builtKey);
+      if (inputsRef.current.key === builtKey) {
+        setMissed(fit.metTarget ? null : builtKey);
+        showPages({ key: builtKey as string, pages: fit.pages.map((page: BuiltPage) => ({ url: URL.createObjectURL(page.blob), place: page.place })) });
+      }
       return { blob: fit.blob, pageCount: current.length };
     },
     onBuildError: (err) => reportError('pdf_tool_run', err, 'prepare_scan'),
@@ -287,6 +308,17 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       },
     });
     return () => sortable.destroy();
+  }, [pages.length > 0]);
+
+  // The first photos replace the tall empty state, and the page was scrolled to reach its picker:
+  // bring the result into view instead of leaving the person somewhere under it.
+  useEffect(() => {
+    const has = pages.length > 0;
+    if (has && !hadPagesRef.current) {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      editorRef.current?.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+    }
+    hadPagesRef.current = has;
   }, [pages.length > 0]);
 
   useLayoutEffect(() => {
@@ -344,6 +376,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     processingRef.current.clear();
     for (const page of pagesRef.current) removedRef.current.add(page.id);
     resultsRef.current = {};
+    showPages(null);
+    setView('result');
     setPages([]);
     setResults({});
     setFailedIds([]);
@@ -398,6 +432,17 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     { tool: 'compress' as HandoffTool, label: t.handoffCompress, Icon: Shrink },
   ];
   const analyticsStatus = prepared.status === 'error' ? 'error' : tap;
+
+  // The page as it will download: the built PDF's own JPEG once it matches what is on screen,
+  // otherwise this page's newest result laid on its paper by the same rule, shown as updating.
+  const exact = shown !== null && shown.key === key && prepared.status === 'ready';
+  const resultView = (page: ScanPage, index: number) => {
+    if (exact && shown?.pages[index]) return { src: shown.pages[index].url, place: shown.pages[index].place, exact: true };
+    const result = results[page.id];
+    if (!result) return { src: null, place: null, exact: false };
+    return { src: result.url, place: placeImage(result.page.width, result.page.height, pageSize, FIT_POINTS_PER_PIXEL), exact: false };
+  };
+  const exactDetail = exact ? formatMessage(t.resultDetail, { size: formatFileSize(prepared.size), pages: pagesLabel(pages.length, englishShellMessages) }) : undefined;
 
   return (
     <BasePdfTool
@@ -494,28 +539,44 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 </ErrorMessage>
               )}
 
-              <section class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
+              <section ref={editorRef} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
                   <p class={styles['editor-title']}>
                     {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
-                    <span class={styles['editor-hint']}>{selected.guessed ? t.cornersHint : t.findingEdges}</span>
+                    {view === 'corners' && <span class={styles['editor-hint']}>{selected.guessed ? t.cornersHint : t.findingEdges}</span>}
                   </p>
-                  <button
-                    type="button"
-                    class={workspaceStyles['quiet-button']}
-                    disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
-                    onClick={() => commitCorners(selected.id, FULL_QUAD)}
-                  >
-                    {t.wholePhoto}
-                  </button>
+                  <div class={styles['editor-actions']}>
+                    {view === 'corners' && (
+                      <button
+                        type="button"
+                        class={workspaceStyles['quiet-button']}
+                        disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
+                        onClick={() => commitCorners(selected.id, FULL_QUAD)}
+                      >
+                        {t.wholePhoto}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      class={`${workspaceStyles['quiet-button']} ${view === 'corners' ? styles['done-button'] : ''}`}
+                      aria-pressed={view === 'corners'}
+                      onClick={() => setView(view === 'corners' ? 'result' : 'corners')}
+                    >
+                      {view === 'corners' ? t.cornersDone : t.adjustCorners}
+                    </button>
+                  </div>
                 </div>
-                <CornerEditor
-                  key={selected.id}
-                  src={selected.photoUrl}
-                  quad={selected.quad}
-                  onCommit={(quad) => commitCorners(selected.id, quad)}
-                  labels={{ group: t.cornersGroup, corners: t.corners }}
-                />
+                {view === 'corners' ? (
+                  <CornerEditor
+                    key={selected.id}
+                    src={selected.photoUrl}
+                    quad={selected.quad}
+                    onCommit={(quad) => commitCorners(selected.id, quad)}
+                    labels={{ group: t.cornersGroup, corners: t.corners }}
+                  />
+                ) : (
+                  <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
+                )}
               </section>
 
               <p class="sr-only" id="scan-reorder-hint">{t.reorderHint}</p>
