@@ -306,6 +306,22 @@ describe('useDownloadFlow', () => {
     expect(flow.handoffBusy).toBe(false);
   });
 
+  it('a superseded hand-off whose save fails later leaves the newer hand-off busy', async () => {
+    let failA!: (saved: boolean) => void;
+    store.saveHandoff
+      .mockReturnValueOnce(new Promise<boolean>((resolve) => { failA = resolve; }))
+      .mockReturnValueOnce(new Promise<boolean>(() => {}));
+    mount({ ...base(ready()), navigate: vi.fn() });
+    let runA!: Promise<void>;
+    await act(async () => { runA = flow.requestHandoff('compress'); await Promise.resolve(); });
+    act(() => flow.reset());
+    await act(async () => { void flow.requestHandoff('merge'); await Promise.resolve(); });
+    expect(flow.handoffBusy).toBe(true);
+    await act(async () => { failA(false); await runA; });
+    expect(flow.handoffBusy).toBe(true);
+    expect(flow.handoffFailed).toBe(false);
+  });
+
   it('a completed Share counts as a tap (processing, then done); a canceled one does not', async () => {
     mount(base(ready()));
     const taps: string[] = [flow.tap];
