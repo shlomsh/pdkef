@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Camera, FileSignature, Merge, Shrink } from 'lucide-preact';
+import { throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -209,7 +210,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (cached) return cached;
     const run = enqueue(async () => {
       // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
-      if (!isCurrentKey(key)) throw new DOMException('Superseded scan work', 'AbortError');
+      throwIfAborted({ aborted: !isCurrentKey(key) });
       return (await loadPipeline()).processPage(page.file, page.quad, page.filter);
     });
     processingRef.current.set(key, run);
@@ -325,11 +326,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     build: async (signal, onProgress) => {
       const { pages: current, pageSize: size, limit: chosen, key: builtKey } = inputsRef.current;
       const made = await Promise.all(current.map((page) => processed(page)));
-      if (signal.aborted) throw new DOMException('Scan build aborted', 'AbortError');
+      throwIfAborted(signal);
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
       // Through the queue like every decode: a phone holds one photo's worth of pixels at a time.
       const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
-      if (signal.aborted || unmountedRef.current) throw new DOMException('Scan build aborted', 'AbortError');
+      throwIfAborted(unmountedRef.current ? { aborted: true } : signal);
       const builtAs = builtKey as string;
       if (fit.metTarget) missedKeysRef.current.delete(builtAs);
       else missedKeysRef.current.add(builtAs);

@@ -19,11 +19,6 @@ function walk(dir, out = []) {
 
 const stripComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
-// Files that still carry an offence and belong to the island pass (ARCH-39 follow-up).
-// The follow-up empties these lists; nothing may be added.
-const FENCED_ABORT_ERROR = ['tools/scan/PdfScanTool.tsx'];
-const FENCED_PDFJS_LOADER = [];
-
 function offenders(pattern, { allowed = [] } = {}) {
   return walk(srcRoot)
     .filter((file) => !/\/e2e\//.test(file) && !rel(file).includes('/corpus/'))
@@ -36,21 +31,21 @@ function offenders(pattern, { allowed = [] } = {}) {
 describe('one set of PDF primitives (ARCH-39)', () => {
   it('imports pdfjs-dist in exactly one module (lib/loadPdfjs.js)', () => {
     const found = offenders(/(?<!typeof )import\(\s*['"]pdfjs-dist['"]\s*\)/, {
-      allowed: ['lib/loadPdfjs.js', ...FENCED_PDFJS_LOADER],
+      allowed: ['lib/loadPdfjs.js'],
     });
     expect(found).toEqual([]);
   });
 
   it('declares no second getPdfjs memo', () => {
     const found = offenders(/function getPdfjs\b|(?:const|let) getPdfjs\b/, {
-      allowed: ['lib/loadPdfjs.js', ...FENCED_PDFJS_LOADER],
+      allowed: ['lib/loadPdfjs.js'],
     });
     expect(found).toEqual([]);
   });
 
   it('builds no AbortError by hand (use signal.throwIfAborted() or lib/abort.js)', () => {
     const found = offenders(/new DOMException\([^)]*['"]AbortError['"]|\.name\s*=\s*['"]AbortError['"]/, {
-      allowed: ['lib/abort.js', ...FENCED_ABORT_ERROR],
+      allowed: ['lib/abort.js'],
     });
     expect(found).toEqual([]);
   });
