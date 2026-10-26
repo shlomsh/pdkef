@@ -11,9 +11,6 @@ import {
   popGraphicsState,
   pushGraphicsState,
 } from '@cantoo/pdf-lib';
-import { getPdfjs } from './pdfjsLoader.js';
-import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
-import { buildImageOnlyPage, rasterizePageToJpeg } from './rasterPage.js';
 
 /**
  * Thrown when a source PDF's annotations or form fields cannot all be baked
@@ -213,41 +210,4 @@ export function flattenDoc(pdfDoc) {
   removeFields(pdfDoc, removed);
   for (const ref of removed.values()) if (ref instanceof PDFRef) context.delete(ref);
   return true;
-}
-
-/**
- * Image mode: every page becomes one picture at Redact's raster settings, so
- * fields, comments and text are all baked in and nothing stays selectable.
- */
-async function rasterizeAllPages(source) {
-  const pdfjs = await getPdfjs();
-  const loadingTask = pdfjs.getDocument({ data: source.slice(0), wasmUrl: PDFJS_WASM_URL });
-  try {
-    const pdfjsDoc = await loadingTask.promise;
-    const out = await PDFDocument.create();
-    for (let i = 1; i <= pdfjsDoc.numPages; i += 1) {
-      const { jpeg, width, height } = await rasterizePageToJpeg(await pdfjsDoc.getPage(i));
-      await buildImageOnlyPage(out, jpeg, width, height);
-    }
-    return out.save();
-  } finally {
-    await loadingTask.destroy();
-  }
-}
-
-/**
- * Flattens a PDF's annotations and form fields into page content.
- * 'keep-text' (default) bakes annotations and fields in and keeps vector text;
- * 'image' turns every page into a picture and loses selectable text.
- *
- * @param {ArrayBuffer | Uint8Array} bytes
- * @param {{ mode?: 'keep-text' | 'image' }} [options]
- * @returns {Promise<Uint8Array>}
- */
-export async function flattenPdf(bytes, { mode = 'keep-text' } = {}) {
-  if (mode !== 'keep-text' && mode !== 'image') throw new Error(`Unknown flatten mode "${mode}"`);
-  const source = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  if (mode === 'image') return rasterizeAllPages(source);
-  const pdfDoc = await PDFDocument.load(source);
-  return flattenDoc(pdfDoc) ? pdfDoc.save() : source;
 }
