@@ -93,7 +93,7 @@ const LAZY_ONLY = [
 const PAGES = [
   '', 'he',
   'sign', 'redact', 'merge', 'compress', 'compress-image', 'split',
-  'unlock', 'image-to-pdf', 'edit-pdf', 'pdf-to-image',
+  'unlock', 'image-to-pdf', 'scan-to-pdf', 'edit-pdf', 'pdf-to-image',
   'he/sign', 'he/merge', 'he/compress',
 ];
 

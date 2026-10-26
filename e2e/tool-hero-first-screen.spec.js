@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 // Playwright may spread them across workers and shards.
 test.describe.configure({ mode: 'parallel' });
 
-const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/unlock/', '/edit-pdf/', '/sign/', '/redact/'];
+const ROUTES = ['/merge/', '/split/', '/compress/', '/compress-image/', '/pdf-to-image/', '/image-to-pdf/', '/scan-to-pdf/', '/unlock/', '/edit-pdf/', '/sign/', '/redact/'];
 // Compress joined the other tools' sheet on 2026-10-15: its quality choices moved to after a file is
 // picked, so the side-by-side compact column they needed is gone.
 const ALL_SIZES = new Set(['/merge/', '/image-to-pdf/', '/split/', '/sign/', '/compress/', '/compress-image/']);

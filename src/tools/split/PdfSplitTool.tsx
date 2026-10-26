@@ -32,7 +32,7 @@ import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import SplitVerb from './verb/SplitVerb.tsx';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
@@ -40,7 +40,7 @@ import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import { buildSplit, type SplitMode } from './splitOutput.ts';
 import { outputBaseName, extractedFileName } from './split.js';
 
-const HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
+const HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;

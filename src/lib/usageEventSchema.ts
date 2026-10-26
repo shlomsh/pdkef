@@ -24,6 +24,7 @@ export const ANALYTICS_TOOLS = [
   'compress-image',
   'pdf-to-image',
   'image-to-pdf',
+  'scan-to-pdf',
   'sign',
   'redact',
   'unlock',

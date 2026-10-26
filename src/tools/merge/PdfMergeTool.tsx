@@ -33,7 +33,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
@@ -194,7 +194,7 @@ interface PdfMergeToolProps {
   navigate?: (href: string) => void;
 }
 
-const DEFAULT_HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
+const DEFAULT_HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
 
 export default function PdfMergeTool({
   messages: messagesProp,
@@ -204,7 +204,7 @@ export default function PdfMergeTool({
   quietPolicy,
   navigate = (href) => { window.location.href = href; },
 }: PdfMergeToolProps = {}) {
-  const hrefs: Record<HandoffTool, string> = { ...DEFAULT_HANDOFF_HREFS, ...handoffHrefs };
+  const hrefs: HandoffHrefs = { ...DEFAULT_HANDOFF_HREFS, ...handoffHrefs };
   const t: MergeMessages = { ...englishMergeMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   /* GRID-03: one Undo/Redo stack over the whole document. A user edit is a

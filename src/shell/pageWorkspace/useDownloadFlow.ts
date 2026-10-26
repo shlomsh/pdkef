@@ -7,11 +7,13 @@ import { recordAction } from '../../lib/actionTrail.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
 export type HandoffTool = 'compress' | 'sign' | 'merge';
+/** Where each hand-off goes; Merge is optional, only Scan offers it. */
+export type HandoffHrefs = Record<'compress' | 'sign', string> & Partial<Record<'merge', string>>;
 
 export interface DownloadFlowInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;
-  hrefs: Record<'compress' | 'sign', string> & Partial<Record<'merge', string>>;
+  hrefs: HandoffHrefs;
   /** Why Download cannot run at all: too few files, or a file/build error. */
   blocked: 'one-file' | 'error' | null;
   /** The plan leaves no page to export (every page skipped). */

@@ -50,5 +50,5 @@ export async function fitScanToBudget<H>({ budgetBytes, render, build, release, 
     releaseHandle: release,
   });
   release?.(best.handle);
-  return { blob: best.encoded, metTarget: best.encoded.size <= budgetBytes, scale: best.scale, quality: best.quality };
+  return { blob: best.encoded as Blob, metTarget: best.encoded.size <= budgetBytes, scale: best.scale, quality: best.quality };
 }

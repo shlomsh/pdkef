@@ -14,6 +14,7 @@ const toolRoutes = [
   '/compress-image/',
   '/pdf-to-image/',
   '/image-to-pdf/',
+  '/scan-to-pdf/',
   '/unlock/',
   '/sign/?next=0',
   '/redact/',

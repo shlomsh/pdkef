@@ -75,6 +75,11 @@
       "permanent": true
     },
     {
+      "source": "/scan-to-pdf",
+      "destination": "/scan-to-pdf/",
+      "permanent": true
+    },
+    {
       "source": "/licenses",
       "destination": "/licenses/",
       "permanent": true
@@ -117,6 +122,11 @@
     {
       "source": "/how-to-sign-a-pdf-on-android",
       "destination": "/how-to-sign-a-pdf-on-android/",
+      "permanent": true
+    },
+    {
+      "source": "/how-to-scan-a-document-to-pdf",
+      "destination": "/how-to-scan-a-document-to-pdf/",
       "permanent": true
     },
     {

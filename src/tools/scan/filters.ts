@@ -38,7 +38,7 @@ function documentLook(image: RgbaImage): RgbaImage {
   const bs = Math.max(8, Math.round(Math.max(width, height) / 48));
   const gw = Math.ceil(width / bs);
   const gh = Math.ceil(height / bs);
-  let grid = new Float32Array(gw * gh);
+  let grid: Float32Array = new Float32Array(gw * gh);
   for (let y = 0; y < height; y += 1) {
     const row = Math.floor(y / bs) * gw;
     for (let x = 0; x < width; x += 1) {

@@ -9,7 +9,7 @@ const MIN_AREA = 0.15;
 const MIN_FILL = 0.85;
 const FRAME_MARGIN = 0.02;
 
-function blur3(src: Uint8Array | Float32Array, w: number, h: number): Float32Array {
+function blur3(src: ArrayLike<number>, w: number, h: number): Float32Array {
   const out = new Float32Array(w * h);
   for (let y = 0; y < h; y += 1) {
     const y0 = Math.max(0, y - 1);
