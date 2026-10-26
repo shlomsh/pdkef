@@ -214,6 +214,23 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(clicks).toHaveBeenCalledTimes(1);
   });
 
+  it('records export on a tap that beat the build and download when it is delivered', async () => {
+    resetActionTrailForTests();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mount();
+    await loadFiles(['a.png', 'b.png']);
+    await wait(0);
+    let release;
+    build().mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(pdfBlob()); }));
+    await act(async () => { removeButtons()[1].click(); });
+    resetActionTrailForTests();
+    await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
+    expect(recentActions()).toEqual(['export']);
+    await act(async () => { release(); });
+    await wait(0);
+    expect(recentActions()).toEqual(['export', 'download']);
+  });
+
   it('names the download from the editable output name', async () => {
     mount();
     await loadFiles(['holiday.jpg', 'b.png']);

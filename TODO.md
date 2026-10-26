@@ -17,6 +17,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ARCH-40](backlog/tasks/ARCH-40.md) P3 · Small seams from the October review (in progress)
 - [DEBT-63](backlog/tasks/DEBT-63.md) P2 · Compress and PDF to Image stay inside the browser's canvas limit on very large pages (in progress)
 - [ARCH-34](backlog/tasks/ARCH-34.md) P1 · A change to one core project reaches only the projects that use it (in progress)
+- [ARCH-36](backlog/tasks/ARCH-36.md) P2 · Compress, Image to PDF and Unlock/Protect finish through the shared flow (in progress)
 
 ### Search and languages
 
