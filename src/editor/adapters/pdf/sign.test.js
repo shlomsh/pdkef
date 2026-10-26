@@ -12,7 +12,7 @@ import {
 } from './sign.js';
 import { mockFontFetch } from './fontFetch.test-helper.js';
 import { hasFillableAcroForm } from './pdfObjects.js';
-import { hexToRgbFractions, getEffectiveTextDirection } from '../../../lib/signHelpers.js';
+import { hexToRgbFractions, getEffectiveTextDirection } from '../../text/signHelpers.js';
 import { percentToPoints } from '../../geometry/coords.js';
 import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../../geometry/coords.js';
 import { combCellCount, combCharacters } from '../../text/comb.js';

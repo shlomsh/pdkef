@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
-import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
+import { getEffectiveTextDirection } from '../../editor/text/signHelpers.js';
 import {
   DEFAULT_START_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,

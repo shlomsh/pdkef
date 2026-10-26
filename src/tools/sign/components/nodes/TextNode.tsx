@@ -2,7 +2,7 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import useCoarsePointer from '../../useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { fieldTextInset, strongTextDirection, textElementLayout } from '../../../../lib/signHelpers.js';
+import { fieldTextInset, strongTextDirection, textElementLayout } from '../../../../editor/text/signHelpers.js';
 import { resolveFontSubstitution } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';

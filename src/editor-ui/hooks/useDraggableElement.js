@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
-import { textAnchorsRightEdge } from '../../lib/signHelpers.js';
+import { textAnchorsRightEdge } from '../../editor/text/signHelpers.js';
 import { touchClaimsElement } from '../../editor/gestures/touchClaim.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
