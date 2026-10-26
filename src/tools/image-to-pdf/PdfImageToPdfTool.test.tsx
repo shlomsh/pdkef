@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
-import * as imageToPdfLib from './imageToPdf.js';
+import * as imageToPdfLib from '../../lib/imagesToPdf.js';
 import styles from './PdfImageToPdfTool.module.css';
 import outputNameStyles from '../../shell/OutputName.module.css';
 import sortMenuStyles from '../../shell/SortMenu.module.css';
@@ -35,7 +35,7 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   takeHandoff: takeHandoffMock,
 }));
 
-vi.mock('./imageToPdf.js', () => ({
+vi.mock('../../lib/imagesToPdf.js', () => ({
   imagesToPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4'], { type: 'application/pdf' }))),
   UnsupportedImageError: class UnsupportedImageError extends Error {},
 }));
