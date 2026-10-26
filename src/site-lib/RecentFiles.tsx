@@ -1,4 +1,4 @@
-import { tools } from '../data/tools.js';
+import { pageForToolId } from '../data/tools.js';
 import styles from './RecentFiles.module.css';
 import { englishRecentFilesMessages, formatMessage, type RecentFilesMessages } from '../i18n/toolMessages';
 import { getDraftExpiry } from '../lib/drafts/draftPolicy.js';
@@ -37,7 +37,7 @@ export default function RecentFiles({
       <h2 class="sr-only" id="recent-files-heading">{messages.heading}</h2>
       <ul class={styles.list}>
         {files.map((file, index) => {
-          const meta = tools.find(t => t.slug === file.tool);
+          const meta = pageForToolId(file.tool);
           if (!meta) return null;
           const isBundledSample = file.bundledSample === true;
           const notice = retentionNotice(file, index, files.length, messages);

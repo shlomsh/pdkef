@@ -10,7 +10,7 @@ const toolRoutes = [
   '/unlock',
   '/sign/?next=0',
   '/redact',
-  '/edit-pdf',
+  '/organize-pdf',
 ];
 
 // Sign and Redact keep the original side-by-side hero below 1024px and once a file is open; on an

@@ -3,7 +3,7 @@ import { reportEdit } from '../../lib/productAnalytics.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import type { ComponentType } from 'preact';
 import Sortable from 'sortablejs';
-import { Shrink, FileSignature, File as FileIcon, X as XIcon } from 'lucide-preact';
+import { Shrink, FileSignature, File as FileIcon, FilePlus, Trash2, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
@@ -33,6 +33,8 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
 import railStyles from './components/MergeRail.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
@@ -347,6 +349,34 @@ export default function PdfMergeTool({
     ? (failedEntry.error ?? (prepared.error instanceof MergeFileError ? prepared.error.reason : 'unreadable'))
     : null;
   const otherError = !failedEntry && prepared.status === 'error';
+
+  // One protected file is a precondition, not a failure: it gets the shared locked state in place of the
+  // result (src/shell/NeedsUnlock.tsx), as in every other tool. Among several files the inline error stays.
+  // The probe tells a password from an owner-only restriction; if it cannot say, the inline error shows.
+  const [lockedProbe, setLockedProbe] = useState<{ file: File; kind: NeedsUnlockKind | null; bytes: ArrayBuffer | null } | null>(null);
+  const lockedFile = entries.length === 1 && entries[0].error === 'encrypted' ? entries[0].file : null;
+  useEffect(() => {
+    if (!lockedFile) return undefined;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const bytes = await lockedFile.arrayBuffer();
+        const kind = await probeEncryption(bytes);
+        const locked = kind === 'needs-password' || kind === 'owner-restricted';
+        if (!cancelled) setLockedProbe({ file: lockedFile, kind: locked ? kind : null, bytes: locked ? bytes : null });
+      } catch (err) {
+        reportError('pdf_tool_run', err, 'check_encryption');
+        if (!cancelled) setLockedProbe({ file: lockedFile, kind: null, bytes: null });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lockedFile]);
+  // Settled once the probe has answered for this file; until then nothing shows, so the inline error never
+  // flashes before the locked state replaces it.
+  const probeSettled = !lockedFile || lockedProbe?.file === lockedFile;
+  const needsUnlock = lockedFile && probeSettled && lockedProbe?.kind && lockedProbe.bytes
+    ? { file: lockedFile, kind: lockedProbe.kind, bytes: lockedProbe.bytes }
+    : null;
 
   const downloadFlow = useDownloadFlow({
     prepared,
@@ -1071,8 +1101,8 @@ export default function PdfMergeTool({
               phoneControls={(
                 <div class={workspaceStyles['mobile-file-controls']} data-merge-file-controls>
                   <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}><FilePlus size={16} aria-hidden="true" />{sm.addLabel}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}><Trash2 size={16} aria-hidden="true" />{sm.clearLabel}</button>
                   </div>
                   {entries.length >= 2 && (
                     <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} hideLabel />
@@ -1095,7 +1125,7 @@ export default function PdfMergeTool({
                  having something worth reordering, same threshold as the
                  desktop rail's own Sort control. */
               touchHint={(entries.length > 1 || outputCount > 1) && t.touchDragHint}
-              heading={(
+              heading={needsUnlock ? null : (
                 <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
                   {/* MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the
                       visible name IS the editable output file name - one
@@ -1123,7 +1153,7 @@ export default function PdfMergeTool({
                   </OutputName>
                 </h2>
               )}
-              headerStatus={(
+              headerStatus={needsUnlock ? null : (
                 <>
                   <HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />
                   {pickedUpHintVisible ? (
@@ -1247,8 +1277,8 @@ export default function PdfMergeTool({
                       {/* Shlomi (2026-09-13): the two actions are bordered
                           buttons now, so the "·" that used to separate them as
                           text links is gone; the row's gap does the separating. */}
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace}><FilePlus size={16} aria-hidden="true" />{sm.addLabel}</button>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}><Trash2 size={16} aria-hidden="true" />{sm.clearLabel}</button>
                     </div>
                 </>
               )}
@@ -1325,7 +1355,25 @@ export default function PdfMergeTool({
                 </>
               )}
             >
-              {failedEntry && failedReason && (
+              {needsUnlock && (
+                <NeedsUnlock
+                  kind={needsUnlock.kind}
+                  file={needsUnlock.file}
+                  bytes={needsUnlock.bytes}
+                  from="merge"
+                  toolName="Merge"
+                  verb="merge"
+                  replace={false}
+                  messages={{
+                    title: needsUnlock.kind === 'needs-password' ? t.protectedNeedsPasswordTitle : t.protectedOwnerOnlyTitle,
+                    body: needsUnlock.kind === 'needs-password' ? t.protectedNeedsPasswordBody : t.protectedOwnerOnlyBody,
+                    unlockIt: t.protectedUnlockIt,
+                    handoffFailed: t.protectedHandoffFailed,
+                  }}
+                />
+              )}
+
+              {!needsUnlock && probeSettled && failedEntry && failedReason && (
                 <ErrorMessage>
                   {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: isolateName(failedEntry.file.name, t.dir) })}
                   {' '}
@@ -1341,9 +1389,9 @@ export default function PdfMergeTool({
                 </ErrorMessage>
               )}
 
-              {otherError && <ErrorMessage>{t.errorTooLarge}</ErrorMessage>}
+              {!needsUnlock && otherError && <ErrorMessage>{t.errorTooLarge}</ErrorMessage>}
 
-              {PageGrid && plan.length > 0 && (
+              {!needsUnlock && PageGrid && plan.length > 0 && (
                 <PageGrid
                   sources={entries}
                   plan={plan}

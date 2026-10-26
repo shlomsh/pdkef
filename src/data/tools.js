@@ -29,6 +29,10 @@ import {
   FileEdit,
   Eraser,
   ImageMinus,
+  RotateCw,
+  FileMinus,
+  ListOrdered,
+  FileOutput,
 } from 'lucide-preact';
 
 export const tools = [
@@ -618,7 +622,7 @@ export const tools = [
     aboutLead:
       'Extract pages or split a PDF file into separate documents, right in your browser. No upload, no server. Your files never leave your device.',
     freeNoteLead:
-      "Extract pages or split a PDF into separate files as often as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration. Want to remove a few pages and keep the rest of the original document? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/edit-pdf/\">Edit PDF Pages</a> instead: Split pulls the pages you pick out into a new file, Edit Pages deletes them and keeps everything else.",
+      "Extract pages or split a PDF into separate files as often as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration. Want to remove a few pages and keep the rest of the original document? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/remove-pages/\">Remove PDF pages</a> instead: Split pulls the pages you pick out into a new file, Remove pages deletes them and keeps everything else.",
     aboutSketch: 'grid',
     aboutIconPos: 'tr',
     faqSketch: 'arcs',
@@ -637,7 +641,54 @@ export const tools = [
       { question: 'Is there a limit on file size or number of pages?', answer: "There is no artificial limit. The tool can handle any file size and page count, constrained only by your device's system memory." },
       { question: 'Can I pull a single chapter or receipt out of a large PDF?', answer: 'Yes. Type the page range for just the chapter, invoice, or receipt you need, and Split extracts exactly those pages into their own file.' },
       { question: 'Can I compress the pages I extracted?', answer: 'Yes. With One PDF chosen, the Compress button opens the extracted pages in Compress PDF on your device, with nothing to open again.' },
-      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose "One PDF per page" to pull each one out as its own file, or "One PDF" to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Edit PDF Pages.' },
+      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose "One PDF per page" to pull each one out as its own file, or "One PDF" to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Remove PDF pages.' },
+    ],
+  },
+
+  {
+    slug: 'extract-pdf-pages',
+    href: '/extract-pdf-pages/',
+    variantOf: 'split',
+    icon: FileOutput,
+    gridTitle: 'Extract PDF Pages',
+    gridDescription:
+      'Pull the pages you need out of a PDF into a new file, and leave the original as it was.',
+    sitemapPriority: '0.8',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Extract PDF Pages Online Free - No Upload or Signup | PDkef',
+    seoDescription:
+      'Extract pages from a PDF online for free. Pick the pages you need and save them as a new file in your browser. No upload, no signup, no watermark.',
+    schemaName: 'PDkef - Extract PDF Pages',
+    toolName: 'Extract PDF Pages',
+    h1: 'Extract PDF Pages Online Free: Keep Just the Pages You Need',
+    h1Name: 'Extract PDF Pages',
+    subhead:
+      'Pick the pages you want from a PDF and save them as a new file, or as one file per page. Your original stays as it was. Free, open source, and your file stays on your device.',
+    ariaLabel: 'Extract PDF pages tool',
+    aboutHeading: 'How to extract pages from a PDF online for free',
+    aboutLead:
+      'Pull a chapter, a receipt or a single signature page out of a longer PDF, right in your browser. You choose the pages, and they come out as a new PDF in their original order.',
+    freeNoteLead:
+      "Extract pages from as many PDFs as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration. Want to break a whole document into many files instead? <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/split/\">Split PDF</a> is the same tool, set up for that. And if it is easier to name the pages you do not want, <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/remove-pages/\">Remove PDF Pages</a> drops them and keeps the rest of the document.",
+    aboutSketch: 'grid',
+    aboutIconPos: 'tr',
+    faqSketch: 'arcs',
+    faqIconPos: 'bl',
+    steps: [
+      { title: 'Open your PDF', text: 'Select the PDF you want pages from, or drag it into the tool. Every page appears in a grid, all of them included to begin with.' },
+      { title: 'Pick the pages to keep', text: 'Type them in the Pages box, like 2-4, 9 or 8- for page 8 to the end, or tap Skip all and bring back just the ones you want with the eye button on each page. The preview shows what is in and what is left out.' },
+      { title: 'Check them over', text: 'Open any page larger to be sure it is the right one, and rotate it if it came out sideways. The new file keeps the rotation.' },
+      { title: 'Download your new PDF', text: 'Tap Download 1 PDF for all the pages together, or choose One PDF per page and tap Download N PDFs. The file is built while you choose, so it is ready when you are.' },
+    ],
+    faq: [
+      { question: 'How do I extract pages from a PDF for free?', answer: 'Open the PDF, type the pages you want in the Pages box (or skip the others with the eye button on each page), and tap Download. The pages you picked arrive as a new PDF. It is free, with no signup and no watermark.' },
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your file never leaves it, which is a comfort when the pages are a contract, a medical letter or an ID. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
+      { question: 'How do I write which pages to extract?', answer: 'Separate pages with commas and use a dash for a range: 3 is one page, 2-4 is pages 2 to 4, and 1-3, 5, 8- is pages 1 to 3, page 5, and page 8 to the end. A range with nothing before the dash, like -4, means the first page to page 4. Pages always come out in their original order, and a page number past the end of the document shows a message under the box instead of guessing.' },
+      { question: 'Does extracting change my original PDF?', answer: 'No. The tool reads your file and builds a new one from the pages you picked, so the original is untouched. The new file is named extracted_ followed by the original name, and you can click the name above the pages to change it before you download.' },
+      { question: 'Can I save each extracted page as its own file?', answer: 'Yes. Choose One PDF per page instead of One PDF, and each page you picked becomes a separate file named after the original with the page number added, like report-page-3.pdf. You get one download per page.' },
+      { question: 'Can I rotate or look at a page before I extract it?', answer: 'Yes. Every page can be opened larger, and each one has a Rotate button for pages that came out sideways. The rotation is saved into the extracted file. Undo and Redo are there if you change your mind about a pick.' },
+      { question: 'Can I compress or sign the pages I extracted?', answer: 'Yes. With One PDF chosen, the Compress and Sign buttons open the extracted pages in those tools on your device, with nothing to open again. That is handy when a portal wants a smaller file or a form page needs your signature.' },
+      { question: 'What if my PDF has a password?', answer: 'A protected PDF shows an Unlock button instead of its pages. Unlock takes the protection off on your device, and then you can pick your pages.' },
     ],
   },
 
@@ -782,49 +833,198 @@ export const tools = [
   },
 
   {
-    slug: 'edit-pdf',
-    href: '/edit-pdf/',
+    slug: 'organize-pdf',
+    href: '/organize-pdf/',
+    toolId: 'edit-pdf',
     icon: FileEdit,
-    gridTitle: 'Edit PDF Pages',
+    gridTitle: 'Organize PDF',
     gridDescription:
-      'Remove, rotate, and reorder pages, and add page numbers, all in a single pass.',
+      'Put pages in order, remove the ones you do not need, turn them upright, and add page numbers, all in a single pass.',
     sitemapPriority: '0.9',
     sitemapChangefreq: 'monthly',
-    seoTitle: 'Edit PDF Online Free - Rotate, Reorder, Remove Pages | PDkef',
+    seoTitle: 'Organize PDF Online Free - Reorder, Remove, Rotate | PDkef',
     seoDescription:
-      'Edit a PDF online for free: remove, rotate and reorder pages by drag and drop, and add page numbers. Nothing is uploaded, your file stays on your device.',
-    schemaName: 'PDkef - Edit PDF Pages',
-    toolName: 'Edit PDF',
-    h1: 'Edit PDF Online Free: Rotate, Reorder, Remove Pages',
-    h1Name: 'Edit PDF',
+      'Organize PDF pages online for free: drag to reorder, remove pages you do not need, rotate sideways scans and add page numbers. Nothing is uploaded.',
+    schemaName: 'PDkef - Organize PDF',
+    toolName: 'Organize PDF',
+    h1: 'Organize PDF Online Free: Reorder, Remove, Rotate Pages',
+    h1Name: 'Organize PDF',
     subhead:
-      'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF. Free, open source, and your file stays on your device.',
-    ariaLabel: 'Edit PDF pages tool',
-    aboutHeading: 'How to edit a PDF online for free',
+      'Drag pages into the order you want, skip the ones you do not need, turn sideways pages upright, and number them. Free, open source, and your file stays on your device.',
+    ariaLabel: 'Organize PDF pages tool',
+    aboutHeading: 'How to organize PDF pages online for free',
     aboutLead:
-      'Edit, rotate, reorder, and delete pages from your PDF, right in your browser. Your file stays on your device; PDF processing never uploads it.',
+      'Put the pages of a PDF in the order you want, right in your browser. You see every page as a thumbnail, so you can sort, drop and turn them by eye. Your file stays on your device.',
     freeNoteLead:
-      "Remove, rotate, reorder, and number pages in as many PDFs as you like, with no watermark or daily cap. Because every edit runs on your device, there's nothing to upload and no usage to ration. Want to pull a few pages out into their own file instead, leaving the original untouched? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/split/\">Split PDF</a> to extract them.",
+      "Organize as many PDFs as you like, with no watermark or daily cap. Because everything happens on your device, there's nothing to upload and no usage to ration. If you only need one job done, there are pages for each: <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/rotate-pdf/\">Rotate PDF</a>, <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/remove-pages/\">Remove PDF pages</a> and <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/add-page-numbers-to-pdf/\">Add page numbers</a>. They open the same page grid. And to pull a few pages out into their own file, leaving the original untouched, use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/extract-pdf-pages/\">Extract PDF pages</a>.",
     aboutSketch: 'arcs',
     aboutIconPos: 'br',
     faqSketch: 'waves',
     faqIconPos: 'tl',
     steps: [
-      { title: 'Open your PDF', text: 'Click Choose file or drag and drop any PDF into the tool. Your file stays on your device, nothing is uploaded.' },
-      { title: 'Make your edits', text: 'Click a page to see its actions. Use the eye button to skip a page (it stays in place, dimmed, and is left out of the download), Rotate to turn it 90 degrees at a time, and Open to see it larger. Drag a page to reorder, or tick "Add page numbers" to stamp sequential numbers at the bottom of each page. Undo and Redo are there if you change your mind.' },
-      { title: 'Apply and download', text: 'Download the edited PDF. It is built on your device while you work, so it is ready when you are.' },
+      { title: 'Open your PDF', text: 'Click Choose file or drag and drop a PDF into the tool. Every page appears as a thumbnail, in its current order. Nothing is uploaded.' },
+      { title: 'Sort the pages', text: 'Drag a page to where it belongs, or focus it and press the left or right arrow key to move it one place. Click a page to see its buttons: the eye skips a page you do not want, Rotate turns it 90 degrees at a time, and Open shows it larger. Tick "Add page numbers" if you want them, and use Undo and Redo if you change your mind.' },
+      { title: 'Download the new order', text: 'Download the organized PDF. The pages come out in exactly the order you see, without the skipped ones. It is built on your device while you work, so it is ready when you are.' },
     ],
     faq: [
-      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your file never leaves it. Every operation, page removal, rotation, reordering, and numbering, happens there. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
-      { question: 'How do I remove pages from a PDF?', answer: 'Load your PDF, then click a page and press its eye button (or select it and press Delete) to skip it. A skipped page stays in place, dimmed, and is left out of the edited PDF. Press the eye again to include it, or use Include all, Skip all and Invert for the whole document.' },
-      { question: 'How do I rotate pages in a PDF?', answer: 'Click a page and press its Rotate button (or select it and press R). Each press turns that page 90 degrees, and the thumbnail updates straight away so you can see the result before you download.' },
-      { question: 'How do I reorder pages in a PDF?', answer: 'Drag a page to a new position, or focus a page and press the left or right arrow keys to move it. The grid updates in real time. The final order you see is exactly the order in the edited PDF.' },
-      { question: 'How do I add page numbers to a PDF?', answer: 'Check the "Add page numbers" box before you download. Page numbers are printed at the bottom centre of each output page, numbered sequentially from 1.' },
-      { question: 'Can I do all edits at once - rotate, remove, and reorder?', answer: 'Yes. All edits are applied together in a single pass when you download. You can freely mix skipping pages, rotating individual pages, reordering, and adding page numbers, and Undo and Redo step back and forward through them.' },
+      { question: 'How do I organize the pages of a PDF?', answer: 'Open the PDF and every page shows as a thumbnail. Drag pages into the order you want, skip the ones you do not need, and turn any that are sideways. When the grid looks right, download. The pages in the new file follow the grid exactly, and all of your changes are applied together in one pass.' },
+      { question: 'How do I put the pages of a PDF in a different order?', answer: 'Drag a page to a new position, or focus a page and press the left or right arrow keys to move it one place. On a phone or tablet, touch and hold a page, then drag. The grid updates as you go, and the final order you see is the order of the downloaded PDF.' },
+      { question: 'How do I delete pages while I organize?', answer: 'Click a page and press its eye button, or select it and press Delete, to skip it. A skipped page stays in place, dimmed, so you can still see it and change your mind, and it is left out of the download. Include all, Skip all and Invert work on the whole document. Your original file is never changed.' },
+      { question: 'How do I turn sideways or upside-down pages upright?', answer: 'Click the page and press Rotate, or select it and press R. Each press turns that page 90 degrees, and the thumbnail updates straight away so you can check it before you download. Only the pages you rotate change, the rest stay as they were.' },
+      { question: 'Can I add page numbers once the order is right?', answer: 'Yes. Tick "Add page numbers" before you download. The numbers are printed at the bottom centre of each page and count from 1 in the new order, so skipped pages are not counted.' },
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your file never leaves it. Every step, reordering, skipping, rotating and numbering, happens there. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
+      { question: 'Can I organize a password-protected PDF?', answer: 'A protected PDF shows an Unlock it button instead of the page grid. Unlock removes the protection on your device, and then you can organize the file. You need to know the password yourself, nothing is guessed or recovered for you.' },
+      { question: 'Can I remove every page, or is there a file size limit?', answer: "There is no artificial size limit. The only constraint is your device's available memory, since everything runs in the browser. A PDF needs at least one page, so if every page is skipped there is nothing to download until you include one again." },
+    ],
+  },
+
+  {
+    slug: 'rotate-pdf',
+    href: '/rotate-pdf/',
+    variantOf: 'organize-pdf',
+    icon: RotateCw,
+    gridTitle: 'Rotate PDF',
+    gridDescription: 'Turn a sideways or upside-down page upright, one page or several, and save the result.',
+    sitemapPriority: '0.8',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Rotate PDF Online Free - Turn Pages Upright | PDkef',
+    seoDescription:
+      'Rotate a PDF online for free: turn a sideways or upside-down page upright, one page or several, then save it. Nothing is uploaded, it stays on your device.',
+    schemaName: 'PDkef - Rotate PDF',
+    toolName: 'Rotate PDF',
+    h1: 'Rotate PDF Online Free: Turn Pages Upright',
+    h1Name: 'Rotate PDF',
+    subhead:
+      'Fix a sideways or upside-down scan by turning the page a quarter turn at a time. You see each page change as you go. Free, open source, and your file stays on your device.',
+    ariaLabel: 'Rotate PDF pages tool',
+    aboutHeading: 'How to rotate a PDF online for free',
+    aboutLead:
+      'Open your PDF, turn the pages that are the wrong way round, and save a corrected copy. It all happens in your browser, so the file stays with you.',
+    freeNoteLead:
+      "Rotate as many pages in as many PDFs as you like, with no watermark or daily cap. Because the turning happens on your device, there's nothing to upload and no usage to ration. The same tool can also remove, reorder and number pages in the same pass, if the document needs more than a quarter turn: see <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/organize-pdf/\">Organize PDF</a>.",
+    aboutSketch: 'arcs',
+    aboutIconPos: 'br',
+    faqSketch: 'waves',
+    faqIconPos: 'tl',
+    steps: [
+      { title: 'Open your PDF', text: 'Click Choose file or drag and drop the PDF into the tool. Every page appears as a thumbnail, so you can spot the ones lying on their side.' },
+      { title: 'Turn the pages that need it', text: 'Click a page (on a phone, tap it) and press its Rotate button, or select it and press R. Each press turns that page a quarter turn clockwise, and its thumbnail turns with it, so you can see it upright before you save. Pages you leave alone stay exactly as they were.' },
+      { title: 'Download the corrected PDF', text: 'Download the new file. It is built on your device while you work, so it is ready when you are, and the original on your device is not touched.' },
+    ],
+    faq: [
+      { question: 'How do I rotate a page in a PDF?', answer: 'Open the PDF, click the page and press its Rotate button (or select it and press R). The page turns a quarter turn and the thumbnail shows it straight away. When every page looks right, download the corrected PDF.' },
+      { question: 'Can I rotate just one page, or only some pages?', answer: 'Yes. Rotation is per page: turn the ones that are the wrong way round and leave the rest. Only the pages you turned change in the saved file.' },
+      { question: 'Which way does a page turn, and how do I go back?', answer: 'Each press turns the page 90 degrees clockwise. For a counterclockwise turn, press three times. Four presses bring the page back to where it started, and Undo and Redo step back and forward through everything you have done.' },
+      { question: 'Does rotating a PDF lower its quality?', answer: "No. Rotating changes the page's rotation setting in the new file. The text, images and drawings on the page are copied as they are, not re-drawn or recompressed, so nothing gets blurrier or bigger." },
+      { question: 'Will the pages stay rotated when I open the PDF elsewhere?', answer: "Yes. The turn is saved inside the PDF as the page's own rotation, the setting PDF viewers and printers read, so the page opens the way you left it. If a page already had a rotation, your turn is added to it." },
+      { question: 'My scan came out sideways. Can I fix it?', answer: 'Yes, that is the most common reason to rotate. Open the scanned PDF, turn the sideways pages until they stand upright in the thumbnails, and download the new file. The pages are turned, not retyped or re-scanned, so the scan looks just as it did, only the right way up.' },
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your file never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
+    ],
+  },
+
+  {
+    slug: 'remove-pages',
+    href: '/remove-pages/',
+    variantOf: 'organize-pdf',
+    icon: FileMinus,
+    gridTitle: 'Remove PDF Pages',
+    gridDescription:
+      'Delete the pages you do not need and keep the rest of your PDF, with no page limit or watermark.',
+    sitemapPriority: '0.8',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Remove Pages from PDF - Delete Pages Online Free | PDkef',
+    seoDescription:
+      "Remove pages from a PDF online for free. Click the pages you don't need, delete them and download the rest. Nothing is uploaded, it stays on your device.",
+    schemaName: 'PDkef - Remove PDF Pages',
+    toolName: 'Remove PDF Pages',
+    h1: "Remove PDF Pages Online Free: Delete the Ones You Don't Need",
+    h1Name: 'Remove PDF Pages',
+    subhead:
+      'Click the pages you want gone, check the thumbnails, and download everything else as a new PDF. Free, open source, and your file stays on your device.',
+    ariaLabel: 'Remove PDF pages tool',
+    aboutHeading: 'How to remove pages from a PDF online for free',
+    aboutLead:
+      'Delete one page, a handful, or most of a document, right in your browser. You see every page as a thumbnail before you decide, and the file never leaves your device.',
+    freeNoteLead:
+      "Remove pages from as many PDFs as you like, with no watermark or daily cap. Because it all happens on your device, there's nothing to upload and no usage to ration. This is the same page tool as <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/organize-pdf/\">Organize PDF</a>, which also reorders, rotates and numbers pages. Want the opposite, pulling the pages you want into a new file? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/extract-pdf-pages/\">Extract PDF pages</a>: extract takes the pages you pick into a new file, while remove drops the ones you don't and keeps the rest.",
+    aboutSketch: 'arcs',
+    aboutIconPos: 'br',
+    faqSketch: 'waves',
+    faqIconPos: 'tl',
+    steps: [
+      { title: 'Open your PDF', text: 'Click Choose file or drag and drop a PDF into the tool. Every page appears as a thumbnail, so you can spot the ones to remove by eye.' },
+      { title: 'Skip the pages you want removed', text: 'Click a page and press its eye button, or select it and press Delete. A skipped page stays in place, dimmed and marked "Skipped", and is left out of the download. The heading keeps count, for example "3 pages skipped". Changed your mind? Press the eye again, or use Undo.' },
+      { title: 'Download what is left', text: 'Tap Download edited PDF. The new file keeps every page you did not skip, in their original order, and is built on your device while you work, so it is ready when you are.' },
+    ],
+    faq: [
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your file never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
+      { question: 'How do I remove a single page from a PDF?', answer: 'Open the PDF, click the page and press its eye button (or select it and press Delete). The page is dimmed and marked "Skipped", and the heading says "1 page skipped". Download edited PDF gives you a copy without it.' },
+      { question: 'How do I delete several pages at once?', answer: 'Skip them one after another with the eye button or the Delete key. For a long run, Skip all puts every page out of the file, and you then press the eye on the few you want to keep. Invert swaps what is kept and what is skipped, and Include all brings everything back.' },
+      { question: 'Can I find and remove blank pages?', answer: "Yes, by eye. Every page is shown as a thumbnail, so a blank page is easy to spot. Click it and skip it. Open shows any page larger if you want a closer look before deciding. The tool doesn't detect blank pages on its own." },
+      { question: 'I skipped the wrong page. Can I undo it?', answer: 'Yes. Press the eye on that page again to include it, or use Undo to step back through your changes, and Redo to step forward. Nothing is removed until you download, so you can change your mind as often as you like.' },
+      { question: 'Does it change my original PDF?', answer: 'No. The tool builds a new file from the pages you kept and offers it as a download, named with "_modified" after your original file name, which you can rename before downloading. The PDF you opened is left exactly as it was.' },
+      { question: 'Can I remove every page?', answer: 'No. A PDF needs at least one page. If every page is skipped, the download shows "Every page is skipped" and stays unavailable until you include a page again.' },
+      { question: 'What is the difference between removing pages and extracting them?', answer: 'They are two sides of the same job. Removing drops the pages you do not want and keeps the rest of the document. Extracting pulls the pages you do want into a new file. Use Extract PDF pages for that; this page is for taking pages out.' },
+    ],
+  },
+
+  {
+    slug: 'add-page-numbers-to-pdf',
+    href: '/add-page-numbers-to-pdf/',
+    variantOf: 'organize-pdf',
+    icon: ListOrdered,
+    gridTitle: 'Add Page Numbers to PDF',
+    gridDescription: 'Number every page of a PDF at the bottom centre, in the order the pages end up.',
+    sitemapPriority: '0.8',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Add Page Numbers to PDF Online Free - No Upload | PDkef',
+    seoDescription:
+      'Add page numbers to a PDF online for free. Tick one box and every page is numbered at the bottom centre, in its final order. Nothing is uploaded.',
+    schemaName: 'PDkef - Add Page Numbers to PDF',
+    toolName: 'Add Page Numbers to PDF',
+    h1: 'Add Page Numbers to PDF Online Free: Number Every Page in One Tick',
+    h1Name: 'Add Page Numbers to PDF',
+    subhead:
+      'Tick one box and every page gets its number at the bottom centre. Free, open source, and your file stays on your device.',
+    ariaLabel: 'Add page numbers to PDF tool',
+    aboutHeading: 'How to add page numbers to a PDF online for free',
+    aboutLead:
+      'A report, a scanned stack or a set of slides is easier to refer to once every page has a number. Open the PDF, tick "Add page numbers", and download. Each page gets a plain 1, 2, 3 at the bottom centre, counted in the order the pages appear in the file you download.',
+    freeNoteLead:
+      'Number as many PDFs as you like, with no watermark and no daily cap. The same tool also removes, reorders and rotates pages, and the numbers are added after those changes, so they always follow the final order. That side of it is covered on the <a class="font-medium text-[var(--color-primary-text)]" href="/organize-pdf/">Organize PDF</a> page.',
+    aboutSketch: 'arcs',
+    aboutIconPos: 'br',
+    faqSketch: 'waves',
+    faqIconPos: 'tl',
+    steps: [
+      { title: 'Open your PDF', text: 'Click Choose file or drag and drop a PDF into the tool. You will see all of its pages as thumbnails.' },
+      { title: 'Tick "Add page numbers"', text: 'The checkbox sits at the top of the side panel, above the page actions. It starts unticked, so nothing is stamped until you choose it.' },
+      { title: 'Download', text: 'Download the numbered PDF. It is built on your device while you work, so it is ready as soon as you are. The file is named after yours with _modified added (you can rename it), and your original is untouched.' },
+    ],
+    faq: [
+      { question: 'How do I add page numbers to a PDF?', answer: 'Open the PDF, tick "Add page numbers" in the side panel, and download. Every page is stamped with its number, starting at 1 on the first page, and the result is a new file.' },
+      { question: 'Where do the page numbers appear, and what do they look like?', answer: 'Each number is printed at the bottom centre of its page, about 22 points (roughly a third of an inch) up from the bottom edge. It is a plain number in 12 point Helvetica, in dark grey.' },
+      { question: 'What happens if I skip, remove or move pages as well?', answer: 'The numbers are added last. A skipped page is left out of the download and is not counted, and a page you drag to a new place is numbered by where it lands, so the numbers always run 1, 2, 3 through the final file.' },
+      { question: 'Does it change my original PDF?', answer: 'No. You download a separate copy, named like yourfile_modified.pdf, and the file you opened stays as it was.' },
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The numbering runs in your browser, on your device, and your file never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'Is there a file size limit?', answer: "There are no artificial file size limits. The only constraint is your device's available memory, since all processing runs locally in the browser." },
-      { question: 'Can I remove all pages from a PDF?', answer: 'No. A valid PDF must contain at least one page, so there is nothing to download while every page is skipped.' },
     ],
   },
 ];
 
 export const toolsBySlug = Object.fromEntries(tools.map((tool) => [tool.slug, tool]));
+
+// A page's URL is always /<slug>/, but the island behind it keeps the id it
+// stores drafts, recents, ratings and hand-offs under. `toolId` names that id
+// when it differs from the slug (organize-pdf stores as 'edit-pdf'); a
+// `variantOf` landing page shares its parent's island, so it shares the id.
+export const toolIdOf = (entry) =>
+  entry.toolId ?? (entry.variantOf ? toolIdOf(toolsBySlug[entry.variantOf]) : entry.slug);
+
+// Lists a person picks from show each tool once; variants are extra doors in.
+export const listedTools = tools.filter((tool) => !tool.variantOf);
+
+// The listed page for an id a tool stored (a recent saved as 'edit-pdf').
+export const pageForToolId = (id) => listedTools.find((tool) => toolIdOf(tool) === id);
+
+export const variantsOf = (slug) => tools.filter((tool) => tool.variantOf === slug);

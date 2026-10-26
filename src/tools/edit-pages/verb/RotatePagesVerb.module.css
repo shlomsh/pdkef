@@ -1,0 +1,42 @@
+/* Base styles are the LAST frame, so reduced motion sees the finished row: three pages upright. */
+.r1 {
+  translate: calc(-88 * var(--u)) 0;
+}
+
+.r2 {
+  translate: 0 0;
+}
+
+.r3 {
+  translate: calc(88 * var(--u)) 0;
+}
+
+@keyframes r2 {
+  0%,
+  14% {
+    translate: 0 0;
+    rotate: -90deg;
+    scale: 0.76;
+  }
+  30% {
+    translate: 0 calc(-18 * var(--u));
+    rotate: -90deg;
+    scale: 0.86;
+  }
+  52% {
+    translate: 0 calc(-18 * var(--u));
+    rotate: 0deg;
+    scale: 1;
+  }
+  66% {
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .r2 {
+    animation: r2 2s var(--ease-emphasized) 0.2s both;
+  }
+}

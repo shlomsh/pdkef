@@ -1,10 +1,10 @@
 /**
  * Star ratings (SEO-46), the browser half: the once-per-device marker and the beacon.
  * Pure over an injected storage; `RatingPrompt.tsx` is the thin view on top.
- * Payload is `{tool, stars}` and nothing else (see ratingSchema.ts).
+ * Payload is `{tool, stars}` and nothing else, plus an optional short `comment` sent as its own event (see ratingSchema.ts).
  */
 import { sendBeacon } from './errorReport.ts';
-import { parseRatingEvent, type RatingTool, type Stars } from './ratingSchema.ts';
+import { parseRatingCommentEvent, parseRatingEvent, type RatingTool, type Stars } from './ratingSchema.ts';
 
 export type RatingStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
@@ -54,6 +54,17 @@ export function reportRating(tool: RatingTool, stars: Stars): boolean {
     return event !== null && sendBeacon(event);
   } catch {
     // expected: a rating must never alter the tool
+    return false;
+  }
+}
+
+/** Hands the optional comment to `/api/report` by beacon; false when invalid (empty, too long) or not sent. Never throws. */
+export function reportRatingComment(tool: RatingTool, stars: Stars, comment: string): boolean {
+  try {
+    const event = parseRatingCommentEvent({ name: 'tool_rating_comment', properties: { tool, stars, comment } });
+    return event !== null && sendBeacon(event);
+  } catch {
+    // expected: a comment must never alter the tool
     return false;
   }
 }

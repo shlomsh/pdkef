@@ -7,7 +7,7 @@ import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 import { withFillModeParam } from './withFillModeParam.ts';
-import { tools } from '../data/tools.js';
+import { tools, pageForToolId } from '../data/tools.js';
 import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
 import type { RecentFilesMessages } from '../i18n/toolMessages';
 
@@ -271,7 +271,7 @@ export default function FileDropzone({
     setBusy(true);
     setCurrentEntry(recent.tool, recent.cacheId);
     noteRecentOpen(recent.tool);
-    window.location.href = withFillModeParam(toolHref(recent.tool), window.location.search);
+    window.location.href = withFillModeParam(toolHref(pageForToolId(recent.tool)?.slug ?? recent.tool), window.location.search);
   };
 
   useEffect(() => {

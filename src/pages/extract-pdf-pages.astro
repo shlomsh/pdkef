@@ -1,11 +1,11 @@
 ---
 import ToolPageLayout from '../layouts/ToolPageLayout.astro';
-import PdfEditPagesTool from '../tools/edit-pages/PdfEditPagesTool.tsx';
+import PdfSplitTool from '../tools/split/PdfSplitTool.tsx';
 import { toolsBySlug } from '../data/tools.js';
 
-const tool = toolsBySlug['edit-pdf'];
+const tool = toolsBySlug['extract-pdf-pages'];
 ---
 
 <ToolPageLayout tool={tool}>
-  <PdfEditPagesTool client:load />
+  <PdfSplitTool client:load />
 </ToolPageLayout>

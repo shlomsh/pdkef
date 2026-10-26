@@ -22,6 +22,7 @@ import OfflineProof from '../components/OfflineProof.astro';
 import LocalePackRequest from '../components/LocalePackRequest.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext, getPublishedEditionPaths } from '../i18n/localizedTools';
+import { toolIdOf } from '../data/tools.js';
 import { registerToolPageStyles } from '../site-lib/inlineStyles';
 import { ratingForPage, ratingText } from '../site-lib/ratingAggregate';
 import '../styles/toolPage.css';
@@ -82,7 +83,7 @@ const variants = Astro.props.variants ?? resolved.variants;
 // Sign and Redact are the editors. They share the desktop first screen of the page-grid tools (HERO-05),
 // but only on an empty desktop stage (see `data-editor` below).
 // SEO-46: a real aggregate from the build-time read, or null (offline build, store down, under the minimum).
-const rating = await ratingForPage(tool.slug);
+const rating = await ratingForPage(toolIdOf(tool));
 // English-only like the languages card: the figures' captions are English.
 const showExamples = Boolean(tool.examples) && locale === 'en';
 if (showExamples) registerToolPageStyles(Astro.csp, tool);

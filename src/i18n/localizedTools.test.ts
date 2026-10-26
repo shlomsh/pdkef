@@ -87,8 +87,8 @@ describe('mergeLocalizedTool', () => {
 describe('isPublishedEditionLink', () => {
   const heEditionPaths = ['/he/', '/he/sign/', '/he/install-pdf-app/'];
 
-  it('flags a fallback: a Hebrew page whose CTA target has no Hebrew edition (the open-source guide -> /edit-pdf/)', () => {
-    expect(isPublishedEditionLink('/edit-pdf/', 'he', heEditionPaths)).toBe(false);
+  it('flags a fallback: a Hebrew page whose CTA target has no Hebrew edition (the open-source guide -> /organize-pdf/)', () => {
+    expect(isPublishedEditionLink('/organize-pdf/', 'he', heEditionPaths)).toBe(false);
   });
 
   it('does not flag a Hebrew page whose CTA target already has a Hebrew edition (-> /he/sign/)', () => {
@@ -96,7 +96,7 @@ describe('isPublishedEditionLink', () => {
   });
 
   it('never flags an English page, whatever the href', () => {
-    expect(isPublishedEditionLink('/edit-pdf/', 'en', heEditionPaths)).toBe(true);
+    expect(isPublishedEditionLink('/organize-pdf/', 'en', heEditionPaths)).toBe(true);
     expect(isPublishedEditionLink('/sign/', 'en', [])).toBe(true);
   });
 });

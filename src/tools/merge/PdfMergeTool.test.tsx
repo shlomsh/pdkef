@@ -27,6 +27,8 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   reportToolLifecycleEvent: vi.fn(),
   reportEdit: vi.fn(),
 }));
+const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
 vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   reportError: vi.fn(),
@@ -768,7 +770,22 @@ describe('PdfMergeTool UI flow', () => {
     expect(quiet.getAttribute('download')).toBe(main.getAttribute('download'));
   });
 
-  it('exposes mobile file controls in order: Add files, Clear all, Sort, Reset order', async () => {
+  it('gives Add files and Clear all files an icon each, in the rail and the phone controls, and Clear all files still asks first', async () => {
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    await settle();
+    const fileButtons = Array.from(container.querySelectorAll('button'))
+      .filter((b) => ['Add files', 'Clear all files'].includes(b.textContent.trim()));
+    expect(fileButtons.map((b) => b.textContent.trim())).toEqual(['Add files', 'Clear all files', 'Add files', 'Clear all files']);
+    for (const b of fileButtons) expect(b.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+
+    await act(async () => fileButtons[1].click());
+    const dialog = Array.from(container.querySelectorAll('dialog')).find((d) => d.open);
+    expect(dialog?.textContent).toContain('Clear all files?');
+    expect(container.querySelector(`ul.${railStyles['file-list']}`)).not.toBeNull();
+  });
+
+  it('exposes mobile file controls in order: Add files, Clear all files, Sort, Reset order', async () => {
     mount();
     await loadFiles(['b.pdf', 'a.pdf']);
     await settle();
@@ -782,7 +799,7 @@ describe('PdfMergeTool UI flow', () => {
     };
     expect(Array.from(controls().children).flatMap((el) => el.matches(`.${workspaceStyles['quiet-row']}`)
       ? Array.from(el.children).map(describe)
-      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort']);
+      : [describe(el)])).toEqual(['Add files', 'Clear all files', 'sort']);
 
     // Force the rearranged state (a plan interleaved across files) the same
     // way the draft-restore test above does, rather than fighting a real
@@ -805,7 +822,7 @@ describe('PdfMergeTool UI flow', () => {
     // rearrangement, same as Reset order (team lead, second follow-up).
     expect(Array.from(controls().children).flatMap((el) => el.matches(`.${workspaceStyles['quiet-row']}`)
       ? Array.from(el.children).map(describe)
-      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'reset-order']);
+      : [describe(el)])).toEqual(['Add files', 'Clear all files', 'sort', 'reset-order']);
   });
 
   it('names an encrypted file, links to Unlock, and merges the rest on the one offered action (MERGE-04)', async () => {
@@ -829,6 +846,60 @@ describe('PdfMergeTool UI flow', () => {
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     expect(mergeLib.mergePdfs.mock.calls[0][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf']);
     expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it.each([
+    ['owner-only.pdf', 'owner-restricted'],
+    ['needs-password.pdf', 'needs-password'],
+  ])('a single protected file (%s) shows the locked state in place of the result area', async (fixture, kind) => {
+    const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', fixture));
+    probeMock.mockResolvedValue(kind);
+    pageCounts.set(fixture, { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles([new File([bytes], fixture, { type: 'application/pdf' })]);
+    await settle();
+    await act(async () => { await flush(20); });
+
+    expect(container.querySelector('[data-needs-unlock]').getAttribute('data-needs-unlock')).toBe(kind);
+    expect(container.textContent).not.toContain("That didn't work");
+    expect(container.textContent).not.toContain('0 pages');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Undo last change"]')).toBeNull();
+    expect(fileNames()).toEqual([fixture]);
+    expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.includes('Add files'))).toBe(true);
+  });
+
+  it('shows no error while it is still checking how a single protected file is locked', async () => {
+    probeMock.mockReturnValue(new Promise(() => {}));
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles([new File(['%PDF-1.7'], 'locked.pdf', { type: 'application/pdf' })]);
+    await settle();
+    await act(async () => { await flush(20); });
+
+    expect(container.textContent).not.toContain("That didn't work");
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('shows the Hebrew locked-state copy on the /he/ edition', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
+    await loadFiles(['locked.pdf']);
+    await settle();
+    await act(async () => { await flush(20); });
+    expect(container.textContent).toContain(hebrewMergeMessages.protectedNeedsPasswordTitle);
+    expect(container.textContent).toContain(hebrewMergeMessages.protectedUnlockIt);
+  });
+
+  it('keeps the inline error when a protected file sits among several (MERGE-04)', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles(['a.pdf', 'locked.pdf']);
+    await settle();
+    expect(container.querySelector('[data-needs-unlock]')).toBeNull();
+    expect(container.querySelector('[role="alert"]').textContent).toContain('is password-protected');
   });
 
   it('reports an unreadable file by name when the merge itself rejects it (MERGE-04)', async () => {
@@ -1276,7 +1347,7 @@ describe('PdfMergeTool UI flow', () => {
       mount();
       await loadFiles(['a.pdf', 'b.pdf']);
 
-      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
       await act(async () => clearTrigger.click());
       const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
       await act(async () => clearButtons.at(-1).click());
@@ -1301,7 +1372,7 @@ describe('PdfMergeTool UI flow', () => {
   it('records what the person did, in order, through Clear all and adding again (DEBT-31)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+    const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
     await act(async () => clearTrigger.click());
     const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
     await act(async () => clearButtons.at(-1).click());
@@ -1468,11 +1539,10 @@ describe('PdfMergeTool UI flow', () => {
       await act(async () => removeButtons[0].click());
       expect(nameEl().textContent).toBe('My renamed merge');
 
-      // Clear all resets it - the next set of files gets the automatic name.
-      // The trigger opens a confirm dialog first (BasePdfTool's requestClear);
-      // both it and the dialog's own confirm button read "Clear all", so the
-      // second match once the dialog is open is the one to click.
-      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+      // Clear all files resets it - the next set of files gets the automatic name.
+      // The trigger opens a confirm dialog first (BasePdfTool's requestClear),
+      // whose own confirm button reads "Clear all".
+      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
       await act(async () => clearTrigger.click());
       const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
       await act(async () => clearButtons.at(-1).click());
@@ -1807,7 +1877,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
       await act(async () => pageNumbersBox().click());
       await advance(200);
       await act(async () => { container.querySelector('[data-quiet-download]').click(); });
-      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
       await act(async () => clearTrigger.click());
       const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
       await act(async () => clearButtons.at(-1).click());

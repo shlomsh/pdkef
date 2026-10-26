@@ -81,7 +81,7 @@ const tools = [
   },
   {
     name: 'Edit Pages',
-    path: '/edit-pdf',
+    path: '/organize-pdf',
     file: { name: 'source.pdf', mimeType: 'application/pdf', bufferFn: makePdfBuffer },
     // Ticking "Add page numbers" is the cheapest way to make hasEdits true -
     // no drag/rotate/remove gesture required - which is exactly why it's the

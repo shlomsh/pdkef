@@ -26,6 +26,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
@@ -309,9 +310,9 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   );
 
   // The phone row shares its line with the bulk buttons, so it takes the shell's short label.
-  const replaceRow = (requestReplace: () => void, label = sm.replaceLabel) => (
+  const replaceRow = (requestReplace: () => void) => (
     <div class={workspaceStyles['quiet-row']}>
-      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace} title={sm.replaceLabel}>{label}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={requestReplace} title={sm.replaceTitle}>{sm.replaceLabel}</button>
     </div>
   );
 
@@ -368,110 +369,104 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
       )}
 
       {file && loadStatus === 'idle' && !needsUnlock && (
-        <ToolShellBridge>
-          {({ requestReplace }) => (
-            <PageWorkspace
-              phoneBar={(
-                <div class={workspaceStyles['chip-bar']}>
-                  {/* The format defines the output, so it stays in view; the quiet Download sits at the bar's end. */}
-                  {formatRow('format-bar', true)}
-                  <PhoneFinish
-                    flow={downloadFlow}
-                    prepared={prepared}
-                    fileName={outputName}
-                    detail={detail}
-                    handoffs={[]}
-                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: '', nothing: t.allSkipped }}
-                  />
-                </div>
-              )}
-              phoneControls={(
-                <div class={workspaceStyles['mobile-file-controls']}>
-                  {/* The bulk row starts the line and Replace file takes its end, as Split's do;
-                      the range field gets the next line, then the quality and output choices. */}
-                  {bulkRow}
-                  {replaceRow(requestReplace, sm.replaceShort)}
-                  {rangeField('page-selector-input-phone')}
-                  <div class={styles['phone-options']}>
-                    {qualityRow('quality-phone')}
-                    {layoutRow('layout-phone')}
-                  </div>
-                </div>
-              )}
-              heading={(
-                <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
-                  <span class="sr-only">{t.documentHeading}</span>
-                  <bdi dir="ltr">{outputName}</bdi>
-                  <span class={workspaceStyles['doc-heading-count']}>
-                    {' · '}{imagesLabel(imageCount)}
-                    {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
-                  </span>
-                </h2>
-              )}
-              headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
-              railContent={(
-                <>
-                  {/* In order of consequence (UX guideline 20): what the images are, then which pages. */}
-                  {formatRow('format')}
-                  {qualityRow('quality')}
-                  {layoutRow('layout')}
-                  {rangeField()}
-                  {bulkRow}
-                </>
-              )}
-              railPinned={(
-                <>
-                  <DownloadElement
-                    state={downloadState}
-                    href={prepared.status === 'ready' ? prepared.url : null}
-                    fileName={fileName}
-                    detail={detail}
-                    renderedCount={renderedCount}
-                    totalCount={plan.length}
-                    pageCount={includedCount}
-                    progress={prepared.progress}
-                    errorMessage={t.buildFailed}
-                    messages={downloadMessages}
-                    onPreparingTap={onRowPreparingTap}
-                    onWarm={prepared.prepareNow}
-                    onDownloadClick={onDownloadTap}
-                  />
-
-                  <FinishRow
-                    ready={prepared.status === 'ready'}
-                    shareReady={shareReady}
-                    onShare={handleShare}
-                    busy={false}
-                    onHandoff={() => {}}
-                    onWarm={prepared.prepareNow}
-                    labels={{ share: t.shareLabel, compress: '', sign: '' }}
-                    tools={[]}
-                  />
-
-                  {/* Starting over with another file ends the rail. */}
-                  {replaceRow(requestReplace)}
-                </>
-              )}
-            >
-              {PageGrid && plan.length > 0 && (
-                <PageGrid
-                  sources={sources}
-                  plan={plan}
-                  onPlanChange={onPlanChange}
-                  announce={setAnnouncement}
-                  messages={t}
-                  labelledBy="page-grid-heading"
-                  reorderable={false}
-                  grouped
-                  labelSources={false}
-                  gridRef={gridRef}
-                  onRenderedCountChange={setRenderedCount}
-                  cellAction={cellAction}
-                />
-              )}
-            </PageWorkspace>
+        <PageWorkspace
+          phoneBar={(
+            <div class={workspaceStyles['chip-bar']}>
+              {/* The format defines the output, so it stays in view; the quiet Download sits at the bar's end. */}
+              {formatRow('format-bar', true)}
+              <PhoneFinish
+                flow={downloadFlow}
+                prepared={prepared}
+                fileName={outputName}
+                detail={detail}
+                handoffs={[]}
+                labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: '', nothing: t.allSkipped }}
+              />
+            </div>
           )}
-        </ToolShellBridge>
+          phoneControls={(
+            <div class={workspaceStyles['mobile-file-controls']}>
+              {/* The bulk row, then the range field, then the quality and output choices. */}
+              {bulkRow}
+              {rangeField('page-selector-input-phone')}
+              <div class={styles['phone-options']}>
+                {qualityRow('quality-phone')}
+                {layoutRow('layout-phone')}
+              </div>
+            </div>
+          )}
+          heading={(
+            <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
+              <span class="sr-only">{t.documentHeading}</span>
+              <bdi dir="ltr">{outputName}</bdi>
+              <span class={workspaceStyles['doc-heading-count']}>
+                {' · '}{imagesLabel(imageCount)}
+                {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
+              </span>
+            </h2>
+          )}
+          headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
+          railContent={(
+            <>
+              {/* In order of consequence (UX guideline 20): what the images are, then which pages. */}
+              {formatRow('format')}
+              {qualityRow('quality')}
+              {layoutRow('layout')}
+              {rangeField()}
+              {bulkRow}
+            </>
+          )}
+          railPinned={(
+            <>
+              <DownloadElement
+                state={downloadState}
+                href={prepared.status === 'ready' ? prepared.url : null}
+                fileName={fileName}
+                detail={detail}
+                renderedCount={renderedCount}
+                totalCount={plan.length}
+                pageCount={includedCount}
+                progress={prepared.progress}
+                errorMessage={t.buildFailed}
+                messages={downloadMessages}
+                onPreparingTap={onRowPreparingTap}
+                onWarm={prepared.prepareNow}
+                onDownloadClick={onDownloadTap}
+              />
+
+              <FinishRow
+                ready={prepared.status === 'ready'}
+                shareReady={shareReady}
+                onShare={handleShare}
+                busy={false}
+                onHandoff={() => {}}
+                onWarm={prepared.prepareNow}
+                labels={{ share: t.shareLabel, compress: '', sign: '' }}
+                tools={[]}
+              />
+
+              {/* Starting over with another file ends the rail, at every width (UX guideline 20). */}
+              <ReplaceFileLine />
+            </>
+          )}
+        >
+          {PageGrid && plan.length > 0 && (
+            <PageGrid
+              sources={sources}
+              plan={plan}
+              onPlanChange={onPlanChange}
+              announce={setAnnouncement}
+              messages={t}
+              labelledBy="page-grid-heading"
+              reorderable={false}
+              grouped
+              labelSources={false}
+              gridRef={gridRef}
+              onRenderedCountChange={setRenderedCount}
+              cellAction={cellAction}
+            />
+          )}
+        </PageWorkspace>
       )}
 
       <p class="sr-only" role="status" aria-live="polite">
