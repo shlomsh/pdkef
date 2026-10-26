@@ -29,6 +29,7 @@ describe('toolIds.ts and src/data/tools.js agree', () => {
 
   it('the localized-island set in i18n is the registry flag', () => {
     expect([...LOCALIZED_TOOL_ISLANDS].sort()).toEqual([...LOCALIZED_ISLAND_SLUGS].sort());
+    expect(LOCALIZED_ISLAND_SLUGS.length).toBeGreaterThan(0);
   });
 
   it('a hand-off key is the island id, except Compress Image, which is the Compress island in image mode', () => {
