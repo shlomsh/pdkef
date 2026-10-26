@@ -54,3 +54,10 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
   latest-options ref.
 - Unit tests: `useOpenPageDocument.test.tsx` (ordinary PDF, repaired copy, encrypted, owner-restricted
   pass-through, stale pick, damaged PDF, replace vs add).
+
+## Progress (part B: editor session)
+
+- `useEditorFileSession` (`src/editor-ui/hooks/`) owns load, add, recents, unique ids, draft persistence and `launchQueue` for Sign and Redact. Redact now handles "Open with" in the page. Redact's English announcements default inside the hook (`messages`), one place.
+- Sign's export invalidation uses `lib/useLatestRun`; the hand-rolled request ids are gone.
+- One `UndoRedoButtons`, one `toggleWorkspaceFullscreen` / `useFullscreenChange`, one `useCoarsePointer` (`(pointer: coarse)`, read on the first render) in `editor-ui`.
+- Still open for this outcome: the manifest's `file_handlers` routes only to `/sign/`, so the installed app's "Open with" never reaches `/redact/`; see the manifest finding in the commit report.

@@ -5,26 +5,6 @@ import type { ComponentChildren, RefObject } from 'preact';
 import styles from './RedactBoxBar.module.css';
 import toolbarStyles from './RedactBoxToolbar.module.css';
 
-// Asked as "is this a mouse?" - the same query ArmHint gates its hover tooltip
-// on - so anything that is not a fine, hovering pointer gets the fixed bar.
-const FINE_QUERY = '(hover: hover) and (pointer: fine)';
-
-/** Reactive `(pointer: coarse)`. False where matchMedia is missing. */
-export function useCoarsePointer(): boolean {
-  const [coarse, setCoarse] = useState(
-    () => typeof window !== 'undefined' && !!window.matchMedia && !window.matchMedia(FINE_QUERY).matches,
-  );
-  useEffect(() => {
-    const mql = window.matchMedia?.(FINE_QUERY);
-    if (!mql) return undefined;
-    const onChange = () => setCoarse(!mql.matches);
-    onChange();
-    mql.addEventListener?.('change', onChange);
-    return () => mql.removeEventListener?.('change', onChange);
-  }, []);
-  return coarse;
-}
-
 /** The element to portal into: see overlayHost. Re-read on each render and on fullscreenchange. */
 function useHost(): HTMLElement {
   const [, bump] = useState(0);

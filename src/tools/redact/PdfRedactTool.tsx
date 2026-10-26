@@ -2,16 +2,13 @@ import { useReducer, useRef, useEffect, useCallback, useState, useMemo } from 'p
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import RedactVerb from './verb/RedactVerb.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
-import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
-import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
-import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
-import { isPdfFile } from '../../lib/fileKind.js';
+import { uniqueId } from '../../editor/model/ids.ts';
+import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
-import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
 import { useRecentWhiteoutColors } from '../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
 import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
@@ -284,13 +281,7 @@ export default function PdfRedactTool() {
 
   const workspaceRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      dispatch({ type: 'FULLSCREEN_CHANGED', active: document.fullscreenElement === workspaceRef.current });
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  useFullscreenChange(workspaceRef, (active) => dispatch({ type: 'FULLSCREEN_CHANGED', active }));
 
   // Escape disarms the tool and drops the selection, matching the Sign editor.
   // It is a shortcut for the status line's Stop chip, not the only way out: a
@@ -337,26 +328,11 @@ export default function PdfRedactTool() {
     return () => document.removeEventListener('click', onDocumentClick);
   }, []);
 
-  const toggleFullscreen = () => {
-    if (isPseudoFullscreen) {
-      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: false });
-      recordAction('fullscreen');
-      return;
-    }
-
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
-      const promise = workspaceRef.current.requestFullscreen();
-      if (promise) {
-        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
-        promise.catch(() => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true }));
-      }
-    } else {
-      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true });
-    }
-    recordAction('fullscreen');
-  };
+  const toggleFullscreen = () => toggleWorkspaceFullscreen(
+    workspaceRef.current,
+    isPseudoFullscreen,
+    (active) => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active }),
+  );
 
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
   // RED-51: the page's colour just outside a box, read from that page's canvas.
@@ -368,25 +344,13 @@ export default function PdfRedactTool() {
   // This is deliberately Redact-local; Sign's workspace has its own render
   // path and this is not a layout contract shared with Merge.
   const renderedPageNumbersRef = useRef(new Set<number>());
-  const fileBytesRef = useRef<ArrayBuffer | null>(null);
   // ENC-02: a protected PDF is not a failed load. It gets one quiet state in place of the editor
   // (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
-  const retireDocument = useDocumentRetirement(pdfDocument);
-  const loadIdRef = useRef(0);
-  const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
-  // Whichever of {manual file pick, draft restore} happens first (in call order) wins
-  // outright; the other is skipped entirely. This closes the gap the loadId guard alone
-  // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has
-  // already finished editing would otherwise still be "the newer call" and clobber it.
-  const loadStartedRef = useRef(false);
-
   useEffect(() => () => {
-    loadIdRef.current++;
-    loadControllerRef.current?.cancel();
     // An export resolving after the editor has left the tree must not fire a
     // download for a tool the person walked away from (Sign does the same
-    // with activeExportRequestRef).
+    // with its own useLatestRun).
     exportRun.invalidate();
   }, []);
 
@@ -443,97 +407,46 @@ export default function PdfRedactTool() {
   const setLoadStatus = (next: 'loading' | 'editing' | 'error') =>
     dispatch({ type: next === 'loading' ? 'FILE_LOAD_STARTED' : next === 'editing' ? 'FILE_LOADED' : 'FILE_LOAD_FAILED' });
 
-  // Core loader shared by fresh file picks and draft restore. `bytes` is the source
-  // PDF's ArrayBuffer; `presetElements` seeds restored redaction boxes.
-  //
-  // Draft restore reads from IndexedDB asynchronously, so it can still be in flight
-  // when the user drops/picks a fresh file — two overlapping loadPdf calls would
-  // otherwise race, and whichever's awaits happened to resolve last would silently
-  // clobber the other's state. Tag each call with an id and ignore any state updates
-  // from a call that's been superseded by a newer one.
-  const loadPdf = async (
-    selected: File,
-    bytes: ArrayBuffer,
-    preset: EditorDraftInitialState<RedactElement> = { elements: [], actionHistory: [] },
-    restored = false,
-  ) => {
-    // Restored drafts arrive already migrated (legacy `style`-keyed elements
-    // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
-    const presetElements = preset.elements || [];
-    await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, loadControllerRef, retireDocument, clearDraft, setStatus: setLoadStatus, setAnnouncement,
-      onNeedsUnlock: (kind) => {
-        setNeedsUnlock(kind);
-        setAnnouncement(kind === 'needs-password' ? 'This PDF has a password. Unlock opens it.' : 'This PDF is protected. Unlock takes the protection off.');
-      },
-      initialize: () => {
-        setNeedsUnlock(null);
-        renderedPageNumbersRef.current = new Set();
-        deleteTool.clearLifts(); // a lift from the last file must never show over this one
-        // RED-39: a new file starts clean - no tool armed, nothing selected, Find
-        // closed with its term. None of that belongs to the file just left.
-        find.setOpen(false);
-        find.setTerm('');
-        find.setPreset(null);
-        // RED-40: a restored document keeps its own colour and strength.
-        const brush = resolveBrush(preset.carried, getAppStyle());
-        const color = resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor'));
-        const strength = resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength'));
-        // A restored draft has no redoable future - future is never persisted.
-        dispatch({
-          type: 'FILE_INITIALIZED', file: selected, restored, elements: presetElements, past: preset.actionHistory,
-          carried: preset.carried, details: preset.details ?? {}, brush, activeColor: color, activeBlurStrength: strength,
-        });
-        seedUniqueId(presetElements);
-        fileBytesRef.current = bytes;
-      },
-      onDocument: (doc, isCurrent) => {
-        if (!isCurrent()) return;
-        dispatch({ type: 'DOCUMENT_READY', pdfDocument: doc, numPages: doc.numPages });
-        void cacheRecentFile('redact', {
-          fileName: selected.name,
-          fileType: selected.type || 'application/pdf',
-          fileBytes: bytes,
-        });
-      },
-    });
-  };
-
-  const handleFilesAdded = async (fileList: FileList | File[]) => {
-    const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => isPdfFile(f));
-
-    if (pdfs.length === 0) {
-      setAnnouncement('Choose a PDF file.');
-      return;
-    }
-
-    // BasePdfTool has already asked about anything a replacement would cost, so
-    // reaching here means the swap is agreed. Claim the load slot synchronously,
-    // before the arrayBuffer() await, so a draft restore resolving in that gap
-    // sees the claim and backs off instead of racing us.
-    loadStartedRef.current = true;
-
-    const replacing = !!file;
-    const selected = pdfs[0];
-    const bytes = await selected.arrayBuffer();
-    recordAction(replacing ? 'replace_file' : 'add_files');
-    await loadPdf(selected, bytes);
-  };
-
-  const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
+  // The file session (load, add, recents, unique ids, draft, "Open with") is shared with Sign.
+  const { handleFilesAdded, fileBytesRef, draftSaveState, isRestoring } = useEditorFileSession<RedactElement>({
     tool: 'redact',
     file,
-    fileBytes: fileBytesRef.current,
-    elements,
-    actionHistory,
-    carried,
-    details: state.edits.details,
+    pdfDocument,
     status,
-    isDirty: isDirty(state),
-    loadStartedRef,
-    loadPdf,
-    isElement: isRedactElement,
+    setLoadStatus,
+    setAnnouncement,
+    onNeedsUnlock: setNeedsUnlock,
+    initialize: ({ file: selected, preset, restored }) => {
+      setNeedsUnlock(null);
+      renderedPageNumbersRef.current = new Set();
+      deleteTool.clearLifts(); // a lift from the last file must never show over this one
+      // RED-39: a new file starts clean - no tool armed, nothing selected, Find
+      // closed with its term. None of that belongs to the file just left.
+      find.setOpen(false);
+      find.setTerm('');
+      find.setPreset(null);
+      // RED-40: a restored document keeps its own colour and strength.
+      const brush = resolveBrush(preset.carried, getAppStyle());
+      const color = resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor'));
+      const strength = resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength'));
+      // A restored draft has no redoable future - future is never persisted.
+      dispatch({
+        type: 'FILE_INITIALIZED', file: selected, restored, elements: preset.elements || [], past: preset.actionHistory,
+        carried: preset.carried, details: preset.details ?? {}, brush, activeColor: color, activeBlurStrength: strength,
+      });
+    },
+    onDocument: (doc, isCurrent) => {
+      if (!isCurrent()) return;
+      dispatch({ type: 'DOCUMENT_READY', pdfDocument: doc, numPages: doc.numPages });
+    },
+    draft: {
+      elements,
+      actionHistory,
+      carried,
+      details: state.edits.details,
+      isDirty: isDirty(state),
+      isElement: isRedactElement,
+    },
   });
 
   const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {

@@ -185,6 +185,11 @@ describe('PdfRedactTool UI flow', () => {
 
   beforeEach(() => {
     resetActionTrailForTests();
+    // jsdom's default answers every media query "yes". The editor tests mean a desktop with a
+    // mouse, so the one query that says "finger" (useCoarsePointer) answers no.
+    window.matchMedia = ((q: string) => ({
+      matches: !q.includes('coarse'), media: q, addEventListener: () => {}, removeEventListener: () => {},
+    })) as any;
   });
 
   afterEach(() => {

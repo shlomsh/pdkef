@@ -5,7 +5,7 @@ import styles from '../../../editor-ui/EditorControls.module.css';
 import { englishSignMessages, formatMessage } from '../../../i18n/toolMessages';
 import type { SignMessages } from '../../../editor/registry/messages';
 import visualViewportClamp, { getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
-import useCoarsePointer from '../useCoarsePointer.ts';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
 import FontSheet, { FILL_KEEP_SESSION_ATTR } from './FontSheet.tsx';
 

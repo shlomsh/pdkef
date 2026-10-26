@@ -17,12 +17,23 @@ const COARSE_POINTER_QUERY = '(pointer: coarse)';
  * wider than any phone breakpoint and just as broken. Width is not the question
  * being asked.
  *
- * SSR-safe by defaulting to `false`, and that default is never visibly wrong:
- * every caller renders only once a document is open, which cannot happen during
+ * One meaning for both editors (ARCH-37). Sign and Redact each had their own:
+ * Sign asked `(pointer: coarse)`, Redact asked "not `(hover: hover) and
+ * (pointer: fine)`", to choose between its floating pill and the bottom bar.
+ * Those differ only on a device whose primary pointer is fine but cannot hover
+ * (stylus-only, some TVs), which neither call site is for, so Redact takes the
+ * narrower, browser-worded query too.
+ *
+ * Read synchronously on the first client render, so a selected Redact box does not
+ * draw its pill and then swap it for the bar. SSR-safe by defaulting to `false`
+ * where there is no `matchMedia`, and that default is never visibly wrong: every
+ * caller renders only once a document is open, which cannot happen during
  * prerender, so there is no hydration flash to mismatch.
  */
 export default function useCoarsePointer(): boolean {
-  const [coarse, setCoarse] = useState(false);
+  const [coarse, setCoarse] = useState(
+    () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(COARSE_POINTER_QUERY).matches,
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
