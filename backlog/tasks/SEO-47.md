@@ -85,13 +85,19 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
   and Merge do. Unchanged by this ticket.
 - For Shlomi: the Hebrew Split text now names הסרת עמודי PDF and links /remove-pages/ (`he/split.yaml`), and
   the Hebrew dock tile for /organize-pdf/ still reads עריכת עמודי PDF (`src/i18n/cardMessages.ts`).
+- Each landing page's empty state shows its own job (`job` prop on the island: rotate, remove, numbers).
+- Shlomi's QA the same day turned up two more pieces, shipped on this branch: the locked-file state
+  (`src/shell/NeedsUnlock.tsx`) was one small heading easy to miss and is now a full, visual panel in every
+  tool; and Merge, the one tool not using it, showed a single locked file as "That didn't work" over a 0-page
+  result. Merge now shows the same state, and Unlock leads back to it. Hebrew strings for Merge's locked state
+  (לאחד) await Shlomi's read.
 - `/split/`'s title also says "Extract Pages". If Google serves `/split/` for "extract pages from pdf" after
   `/extract-pdf-pages/` is indexed, drop the phrase from Split's title.
 
 ## Acceptance
 
-- [ ] Five pages live with distinct copy; `/edit-pdf/` and `/remove-pages` 308 to their new homes in one hop
-- [ ] Every internal link points at the new URLs; sitemap carries the five
+- [ ] Five pages live with distinct copy; `/edit-pdf/` 308s to `/organize-pdf/` in one hop, `/remove-pages/` is a page again
+- [x] Every internal link points at the new URLs; sitemap carries the five (checked in `dist/`, 2026-10-26)
 - [ ] Full CI chain green (`check:push`, then CI)
 - [ ] Shlomi requests indexing for the five after deploy
 - [ ] 2026-11-23 read: URL Inspection on the five (crawled or not), and Search Console impressions per page
