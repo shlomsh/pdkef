@@ -417,7 +417,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   /** The photo and corners just approved, for the flatten animation into the result. */
   const flattenFromRef = useRef<FlattenFrom | null>(null);
   const stopFlattenRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  // Before paint: the result's first frame already has the flatten over it. After paint, the empty paper
+  // showed for one frame before the photo came back over it (Scan QA, Pixel 7).
+  useLayoutEffect(() => {
     // Whatever was playing belongs to the view that just went.
     stopFlattenRef.current();
     stopFlattenRef.current = () => {};
@@ -923,7 +925,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 {view === 'corners' && selected.guessed && selected.preview === null && (
                   // An unreadable photo has nothing to straighten: the one thing to do is take it out.
                   <div class={styles['corners-actions']}>
-                    <button type="button" class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`} onClick={() => removePage(selected.id)}>
+                    <button
+                      type="button"
+                      class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
+                      onClick={() => {
+                        // The next photo comes into view: this one's error box was not its height.
+                        topPendingRef.current = true;
+                        removePage(selected.id);
+                      }}
+                    >
                       <Trash2 size={18} aria-hidden="true" />
                       {t.removePhoto}
                     </button>

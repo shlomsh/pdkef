@@ -301,9 +301,13 @@
   color: var(--color-muted);
 }
 
-.chip-download:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
+/* Hover tints only where something hovers: on touch a tap left them stuck until the next tap
+   elsewhere (Scan QA, 2026-10-27). The same guard on every hover in this file. */
+@media (hover: hover) {
+  .chip-download:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
 }
 
 .chip-download[aria-disabled='true'] {
@@ -469,9 +473,11 @@
   transform: translateY(-50%);
 }
 
-.quiet-button:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
+@media (hover: hover) {
+  .quiet-button:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
 }
 
 .quiet-button:focus-visible {
@@ -565,8 +571,10 @@
   text-align: center;
 }
 
-.handoff-button:hover {
-  background: var(--color-primary-soft);
+@media (hover: hover) {
+  .handoff-button:hover {
+    background: var(--color-primary-soft);
+  }
 }
 
 /* Unavailable follow-up actions should recede from the status above them,
@@ -578,8 +586,10 @@
   cursor: not-allowed;
 }
 
-.handoff-button:disabled:hover {
-  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-primary-tint));
+@media (hover: hover) {
+  .handoff-button:disabled:hover {
+    background: color-mix(in srgb, var(--color-surface) 72%, var(--color-primary-tint));
+  }
 }
 
 /* Shlomi's iPhone 15 screenshot: the Compress icon rendered as a tiny dot
