@@ -29,7 +29,7 @@ export function clampIndex(index: number, length: number): number {
 // Moves a single entry from one position to another (a single-page drag
 // within the grid). Both indexes are clamped into range rather than
 // throwing, since a UI drag can report an index one past the end.
-export function moveEntry(plan: PlanEntry[], fromIndex: number, toIndex: number): PlanEntry[] {
+export function movePlanEntry(plan: PlanEntry[], fromIndex: number, toIndex: number): PlanEntry[] {
   if (plan.length === 0) return [...plan];
   const from = clampIndex(fromIndex, plan.length - 1);
   const next = [...plan];
