@@ -161,6 +161,7 @@ export default function PdfCompressTool({
   // Guideline §2, "Quiet means quiet": usePreparedOutput builds once the person goes quiet and caches
   // by key, so a state already built is instant. The first build of a file starts at once (below).
   const prepared = usePreparedOutput<CompressMeta>({
+    cacheScope: fileSeq,
     // Registered at once so the gate can start it with no render in between; behind a closed gate nothing builds.
     key: file ? buildKey(fileSeq, level, targetKB, flatten) : null,
     autoBuild: runnable,

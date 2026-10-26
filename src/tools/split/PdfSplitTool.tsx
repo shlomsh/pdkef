@@ -141,6 +141,7 @@ export default function PdfSplitTool({
   const inputsRef = useRef({ workingFile, plan, mode });
   inputsRef.current = { workingFile, plan, mode };
   const prepared = usePreparedOutput({
+    cacheScope: loadId,
     key,
     quietPolicy,
     build: (signal, onProgress) => {
