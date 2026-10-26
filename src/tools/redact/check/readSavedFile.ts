@@ -16,7 +16,7 @@ import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { fieldValueTexts, isNonBlank } from './placeText.ts';
 import { unusedPartsText } from './unusedParts.ts';
-import { PDFDocument, ParseSpeeds } from '@cantoo/pdf-lib';
+import { openPdfDoc } from '../../../lib/openPdfDoc';
 import { reportError } from '../../../lib/errorReport.ts';
 
 interface ReadSavedFileOptions {
@@ -129,7 +129,7 @@ async function attachmentPlaces(pdfDoc: any): Promise<{ places: SavedPlace[]; at
 async function unusedPlaces(doc: any, bytes: Uint8Array | undefined): Promise<SavedPlace[]> {
   try {
     const data = bytes ?? (await doc.getData());
-    const lib = await PDFDocument.load(data, { updateMetadata: false, ignoreEncryption: true, parseSpeed: ParseSpeeds.Fastest });
+    const { doc: lib } = await openPdfDoc(data, { updateMetadata: false, encryption: 'ignore', fast: true });
     const text = unusedPartsText(lib);
     return isNonBlank(text) ? [{ kind: 'unused', text, removable: true }] : [];
   } catch (err) {

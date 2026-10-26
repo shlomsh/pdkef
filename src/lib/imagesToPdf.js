@@ -1,6 +1,7 @@
 import { getPdfLib } from './pdfLib.js';
 import { addImagePage, UnsupportedImageError } from './imagePage.js';
 import { mimeTypeOf } from './fileKind.js';
+import { throwIfAborted } from './abort.js';
 
 export { UnsupportedImageError };
 
@@ -10,14 +11,11 @@ export { UnsupportedImageError };
 // point), so the image fills the page edge-to-edge with no distortion or
 // letterboxing. Runs entirely in-memory in the browser - no network I/O.
 export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit', pointsPerPixel = 1 } = {}) {
-  const throwIfAborted = () => {
-    if (signal?.aborted) throw new DOMException('Conversion aborted', 'AbortError');
-  };
   const { PDFDocument } = await getPdfLib();
   const pdf = await PDFDocument.create();
 
   for (let i = 0; i < files.length; i += 1) {
-    throwIfAborted();
+    throwIfAborted(signal);
     const file = files[i];
     const bytes = await file.arrayBuffer();
 
@@ -25,7 +23,7 @@ export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit',
     onProgress?.((i + 1) / files.length);
   }
 
-  throwIfAborted();
+  throwIfAborted(signal);
   const pdfBytes = await pdf.save();
   return new Blob([pdfBytes], { type: 'application/pdf' });
 }

@@ -19,6 +19,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ARCH-34](backlog/tasks/ARCH-34.md) P1 · A change to one core project reaches only the projects that use it (in progress)
 - [ARCH-36](backlog/tasks/ARCH-36.md) P2 · Compress, Image to PDF and Unlock/Protect finish through the shared flow (in progress)
 - [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
+- [ARCH-39](backlog/tasks/ARCH-39.md) P2 · One set of PDF primitives in lib (in progress)
 
 ### Search and languages
 
