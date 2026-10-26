@@ -1,3 +1,4 @@
+import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE, clampScaleToCanvas } from '../../../lib/canvasLimits.js';
 import { getPdfRenderContext } from '../../../lib/pdfRender.js';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
 
@@ -5,10 +6,7 @@ import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
 export const RASTER_SCALE = 2.5;
 /** JPEG quality for a rasterized page. */
 export const RASTER_JPEG_QUALITY = 0.95;
-/** Largest canvas area in pixels (4096 x 4096): iOS Safari's limit, the smallest we support. */
-export const MAX_CANVAS_AREA = 16_777_216;
-/** Longest canvas side in pixels. */
-export const MAX_CANVAS_SIDE = 16_384;
+export { MAX_CANVAS_AREA, MAX_CANVAS_SIDE };
 
 /**
  * The render scale for a page of the given size at scale 1 (CSS px): the
@@ -16,12 +14,7 @@ export const MAX_CANVAS_SIDE = 16_384;
  * them toDataURL returns an empty "data:," and the picture is lost.
  */
 export function rasterScaleFor(width, height) {
-  return Math.min(
-    RASTER_SCALE,
-    Math.sqrt(MAX_CANVAS_AREA / (width * height)),
-    MAX_CANVAS_SIDE / width,
-    MAX_CANVAS_SIDE / height,
-  );
+  return clampScaleToCanvas(width, height, RASTER_SCALE);
 }
 
 const base64ToBytes = (base64) => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
