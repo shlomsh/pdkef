@@ -135,7 +135,7 @@ export async function GET({ site }) {
       priority: toolsBySlug[variant.toolSlug].sitemapPriority,
       lastmod: lastmodFor([
         `src/content/localized-tools/${variant.locale}/${variant.toolSlug}.yaml`,
-        'src/pages/[locale]/[tool].astro',
+        `src/pages/[locale]/${variant.toolSlug}.astro`,
       ]),
       alternates: toolAlternates(variant.toolSlug),
     })),
