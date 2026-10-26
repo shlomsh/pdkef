@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { imagesToPdf, UnsupportedImageError } from './imageToPdf.js';
+import { imagesToPdf, UnsupportedImageError } from './imagesToPdf.js';
 
 // A real, valid 1x1 transparent PNG (67 bytes).
 const PNG_1X1_BASE64 =

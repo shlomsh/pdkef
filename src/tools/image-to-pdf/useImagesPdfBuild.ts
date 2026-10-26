@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { createQuietPreparer, type QuietPolicy } from '../../lib/quietPrepare.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import { reportError } from '../../lib/errorReport.ts';
-import { imagesToPdf } from './imageToPdf.js';
-import { orderKey } from './pageOrder.js';
+import { imagesToPdf } from '../../lib/imagesToPdf.js';
+import { orderKey } from '../../lib/pageOrder.js';
 
 export interface ImageEntry {
   id: number;

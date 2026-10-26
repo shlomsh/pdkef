@@ -1,5 +1,5 @@
-import { canvasToBlob, MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_SEARCH_MS } from './compress.js';
-import { searchTargetSize } from './targetSizeSearch.js';
+import { MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_SEARCH_MS, searchTargetSize } from '../../lib/targetSizeSearch.js';
+import { canvasToBlob } from '../../lib/canvasBlob.js';
 
 // Scale ladder tried in order, highest fidelity first. The floor, 0.15, is
 // deliberately conservative rather than matching the PDF ladder's lowest

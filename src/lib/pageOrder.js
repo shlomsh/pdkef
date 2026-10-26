@@ -1,5 +1,5 @@
-import { sortByDate, sortByName } from '../../lib/sort.js';
-import { sanitizeOutputName } from '../../lib/sanitizeOutputName.ts';
+import { sortByDate, sortByName } from './sort.js';
+import { sanitizeOutputName } from './sanitizeOutputName.ts';
 
 // Pure helpers over the ordered list of image entries ({ id, file, ... }).
 

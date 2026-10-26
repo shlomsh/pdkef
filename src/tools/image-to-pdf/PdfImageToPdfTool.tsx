@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from './pageOrder.js';
+import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from '../../lib/pageOrder.js';
 import { useImagesPdfBuild, type ImageEntry } from './useImagesPdfBuild.ts';
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';

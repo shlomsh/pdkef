@@ -1,3 +1,17 @@
+// Quality bounds and search budget are exported so every tool's search
+// uses the exact same numbers - the FAQ describes one search behaviour for
+// both tools, and they must not drift apart.
+export const MIN_QUALITY = 0.05;
+export const MAX_QUALITY = 0.92;
+export const QUALITY_SEARCH_STEPS = 6;
+// Hard wall-clock budget for the whole DPI-tier x quality search. The loops
+// in compress.js are already finite (5 tiers x 6 steps), but each step's cost scales
+// with page count and resolution, so a large/adversarial PDF could still
+// take a very long time to exhaust every tier. Once the budget is spent we
+// stop searching and ship the best-effort result found so far rather than
+// let the tab hang.
+export const MAX_SEARCH_MS = 20000;
+
 /**
  * Generic byte-budget search shared by every "compress to a target size" tool
  * (`compressPdfToTarget` in compress.js, `compressImageToTarget` in
