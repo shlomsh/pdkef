@@ -111,6 +111,26 @@ export async function inspectPhoto(photo: Blob): Promise<InspectedPhoto> {
   }
 }
 
+/** The preview turned `turns` quarters clockwise, for setting corners on a page shot sideways. */
+export async function turnImage(image: Blob, turns: number): Promise<Blob> {
+  const n = ((turns % 4) + 4) % 4;
+  const img = await loadImage(image);
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = n % 2 ? h : w;
+  canvas.height = n % 2 ? w : h;
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((n * Math.PI) / 2);
+  ctx.drawImage(img, -w / 2, -h / 2);
+  try {
+    return await canvasToBlob(canvas, 'image/jpeg', 0.85);
+  } finally {
+    freeCanvas(canvas);
+  }
+}
+
 /** One page: flattened to its corners, given its look, kept as a high-quality JPEG. */
 export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): Promise<ProcessedPage> {
   const source = drawCapped(await loadImage(photo), SOURCE_LONG_EDGE);

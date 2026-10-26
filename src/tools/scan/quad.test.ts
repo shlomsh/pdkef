@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyHomography, homography } from './homography.ts';
 import { warpSize } from './warp.ts';
-import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, rotateQuad, scaleQuad, type Point, type Quad } from './quad.ts';
+import { FULL_QUAD, clampPoint, insetQuad, isConvexQuad, orderQuad, quadKey, rotateQuad, scaleQuad, turnedQuad, unturnedQuad, type Point, type Quad } from './quad.ts';
 
 describe('orderQuad', () => {
   it('orders four points top-left, top-right, bottom-right, bottom-left', () => {
@@ -121,5 +121,35 @@ describe('rotateQuad', () => {
     const p = applyHomography(homography(rotateQuad(q, 1), rect), q[3]);
     expect(p.x).toBeCloseTo(0, 6);
     expect(p.y).toBeCloseTo(0, 6);
+  });
+});
+
+describe('turnedQuad / unturnedQuad', () => {
+  const q: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.8, y: 0.05 }, { x: 0.9, y: 0.85 }, { x: 0.15, y: 0.9 }];
+
+  it('shows the corners on the photo turned clockwise, the page top-left first', () => {
+    // A clockwise turn moves a photo point (x, y) to (1 - y, x); the photo's bottom-left is the page's top-left.
+    expect(turnedQuad(q, 1)).toEqual([
+      { x: 1 - q[3].y, y: q[3].x },
+      { x: 1 - q[0].y, y: q[0].x },
+      { x: 1 - q[1].y, y: q[1].x },
+      { x: 1 - q[2].y, y: q[2].x },
+    ]);
+    expect(turnedQuad(FULL_QUAD, 1)).toEqual(FULL_QUAD);
+  });
+
+  it('is the photo itself at no turn', () => {
+    expect(turnedQuad(q, 0)).toEqual(q);
+    expect(unturnedQuad(q, 0)).toEqual(q);
+  });
+
+  it('comes back to the photo corners from any turn', () => {
+    for (const turns of [1, 2, 3, 5, -1]) {
+      const back = unturnedQuad(turnedQuad(q, turns), turns);
+      back.forEach((p, i) => {
+        expect(p.x).toBeCloseTo(q[i].x, 10);
+        expect(p.y).toBeCloseTo(q[i].y, 10);
+      });
+    }
   });
 });

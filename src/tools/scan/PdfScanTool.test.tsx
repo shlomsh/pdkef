@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './scanPipeline.ts';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { rotateQuad, turnedQuad } from './quad.ts';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -21,6 +22,7 @@ vi.mock('./scanPipeline.ts', () => ({
   inspectPhoto: vi.fn(),
   processPage: vi.fn(),
   buildScanPdf: vi.fn(),
+  turnImage: vi.fn(),
 }));
 
 const QUIET = { baseMs: 100, stepMs: 50, maxMs: 300, burstWindowMs: 1000 };
@@ -45,6 +47,7 @@ describe('PdfScanTool', () => {
     vi.mocked(pipeline.processPage).mockReset().mockImplementation(() => Promise.resolve({
       blob: new Blob(['x'], { type: 'image/jpeg' }), width: 100, height: 140, thumb: new Blob(['t'], { type: 'image/jpeg' }),
     }));
+    vi.mocked(pipeline.turnImage).mockReset().mockImplementation(() => Promise.resolve(new Blob(['r'], { type: 'image/jpeg' })));
     vi.mocked(pipeline.buildScanPdf).mockReset().mockImplementation(() => Promise.resolve({
       blob: new Blob(['%PDF'], { type: 'application/pdf' }), metTarget: true, scale: 1, quality: 0.82,
       pages: [{ blob: new Blob(['j'], { type: 'image/jpeg' }), place: { pageWidth: 595.28, pageHeight: 841.89, x: 0, y: 0, width: 595.28, height: 841.89 } }],
@@ -391,6 +394,28 @@ describe('PdfScanTool', () => {
     expect(byText('Full screen')).toHaveLength(0);
   });
 
+  it('turns the photo with Rotate while setting corners, and keeps the corners in the photo as photographed', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await act(async () => { byText('Rotate')[0].click(); });
+    await settle();
+    expect(pipeline.turnImage).toHaveBeenCalledWith(expect.any(Blob), 1);
+    // The handles sit on the turned photo, the page's top-left first.
+    const shown = turnedQuad(GUESS, 1);
+    expect(handles()[0].style.left).toBe(`${shown[0].x * 100}%`);
+    expect(handles()[0].style.top).toBe(`${shown[0].y * 100}%`);
+    // Nudge the shown top-left right: on the photo as photographed that corner (its bottom-left) moves up.
+    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+    await useCorners();
+    const moved = GUESS.map((p, i) => (i === 3 ? { x: p.x, y: p.y - 0.005 } : p));
+    const sent = vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[1];
+    rotateQuad(moved, 1).forEach((p, i) => {
+      expect(sent[i].x).toBeCloseTo(p.x, 10);
+      expect(sent[i].y).toBeCloseTo(p.y, 10);
+    });
+  });
+
   it('turns a page a quarter clockwise with Rotate, by handing the warp its corners one place on', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
@@ -403,9 +428,10 @@ describe('PdfScanTool', () => {
     await act(async () => { byText('Rotate')[0].click(); });
     await settle();
     expect(lastQuad()).toEqual([GUESS[2], GUESS[3], GUESS[0], GUESS[1]]);
-    // The corners stay the photo's own: Adjust corners shows them where they were.
+    // Adjust corners shows the photo turned with the page, its corners turned with it.
     await adjustCorners();
-    expect(handles()[0].style.left).toBe(`${GUESS[0].x * 100}%`);
+    await settle();
+    expect(handles()[0].style.left).toBe(`${turnedQuad(GUESS, 2)[0].x * 100}%`);
   });
 
   it('brings a newly added photo into view, also when photos were already there: on desktop the page top, where the card is the first screen', async () => {

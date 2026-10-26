@@ -74,3 +74,27 @@ export function rotateQuad(quad: Quad, turns: number): Quad {
   const n = ((turns % 4) + 4) % 4;
   return [0, 1, 2, 3].map((i) => quad[(i - n + 4) % 4]) as Quad;
 }
+
+const quarters = (turns: number) => ((turns % 4) + 4) % 4;
+/** A photo point on the photo turned one quarter clockwise. */
+const turnOnce = (p: Point): Point => ({ x: 1 - p.y, y: p.x });
+/** Back again: one quarter anticlockwise. */
+const unturnOnce = (p: Point): Point => ({ x: p.y, y: 1 - p.x });
+const repeat = (p: Point, step: (p: Point) => Point, n: number) => {
+  let out = p;
+  for (let i = 0; i < n; i += 1) out = step(out);
+  return out;
+};
+
+/** The page's corners as the corner editor shows them on the photo turned `turns` quarters clockwise:
+ * normalized in the turned photo, the page's top-left first, so its handles read the right way up. */
+export function turnedQuad(quad: Quad, turns: number): Quad {
+  const n = quarters(turns);
+  return rotateQuad(quad, n).map((p) => repeat(p, turnOnce, n)) as Quad;
+}
+
+/** The corners a person placed on the turned photo, back in the photo as photographed. */
+export function unturnedQuad(shown: Quad, turns: number): Quad {
+  const n = quarters(turns);
+  return rotateQuad(shown.map((p) => repeat(p, unturnOnce, n)) as Quad, -n);
+}
