@@ -516,6 +516,20 @@
   }
 }
 
+.rating-slot {
+  /* Its own height, never squeezed by the column, with the ask's margin inside it, so
+     useFloorHeight measures all of it. */
+  flex: none;
+  display: flow-root;
+}
+
+/* The ask's box is a fixed one-line height above a 40rem viewport (RatingPrompt), but in this
+   column the question wraps over its stars and they spilled out of it (1024x700). Here its own
+   height: the photo above already makes the room. */
+.rating-slot > div {
+  height: auto;
+}
+
 .phone-options {
   display: grid;
   gap: 14px;
