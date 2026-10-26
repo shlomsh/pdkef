@@ -26,7 +26,7 @@ function below(el: HTMLElement): number {
   for (let next = el.nextElementSibling; next; next = next.nextElementSibling) {
     const style = getComputedStyle(next);
     if (style.display === 'none' || style.position === 'absolute' || style.position === 'fixed') continue;
-    total += next.getBoundingClientRect().height + gap;
+    total += next.getBoundingClientRect().height + px(style.marginTop) + px(style.marginBottom) + gap;
   }
   return total;
 }
