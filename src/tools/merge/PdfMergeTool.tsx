@@ -17,7 +17,7 @@ import {
 } from './mergePlan.ts';
 import { outputPageCount, planForFile, type PlanEntry } from '../../lib/pagePlan.ts';
 import { deriveFileKind } from '../../lib/fileKind.js';
-import { sortByDate, sortByName } from '../../lib/sort.js';
+import { moveEntry, sortEntries } from '../../lib/pageOrder.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize, isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -741,12 +741,10 @@ export default function PdfMergeTool({
 
   const moveFileEntry = useCallback((id: number, delta: number) => {
     commitModel((current: Model) => {
-      const index = current.entries.findIndex((e) => e.id === id);
-      const newIndex = index + delta;
-      if (index === -1 || newIndex < 0 || newIndex >= current.entries.length) return current;
-      const next = [...current.entries];
-      const [moved] = next.splice(index, 1);
-      next.splice(newIndex, 0, moved);
+      const next: FileEntry[] = moveEntry(current.entries, id, delta);
+      if (next === current.entries) return current;
+      const newIndex = next.findIndex((e) => e.id === id);
+      const moved = next[newIndex];
       setAnnouncement(formatMessage(t.fileMovedTo, { name: moved.file.name, position: newIndex + 1, total: next.length }));
       return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)), sortMode: 'added' };
     });
@@ -770,17 +768,11 @@ export default function PdfMergeTool({
 
   const onSortChange = useCallback((value: string) => {
     const mode = value as SortMode;
-    const sorted = mode === 'nameAsc'
-      ? sortByName(entries, 'asc')
-      : mode === 'nameDesc'
-        ? sortByName(entries, 'desc')
-        : mode === 'dateAsc'
-          ? sortByDate(entries, 'asc')
-          : mode === 'dateDesc'
-            ? sortByDate(entries, 'desc')
-            : mode === 'reversed'
-              ? [...entries].reverse()
-              : [...entries].sort((a, b) => a.id - b.id);
+    const sorted = mode === 'reversed'
+      ? [...entries].reverse()
+      : mode === 'added'
+        ? [...entries].sort((a, b) => a.id - b.id)
+        : sortEntries(entries, mode);
     reorderEntries(sorted, mode, t.filesReordered);
     recordAction('sort');
   }, [entries, reorderEntries, t.filesReordered]);

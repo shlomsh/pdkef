@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { includeAll, includedPageNumbers, invert, moveEntry, outputPageCount, skipAll, withIncludedPages, planForFile, planKey, rotateEntry, rotationsOf, updateEntry, type PlanEntry } from './pagePlan.ts';
+import { includeAll, includedPageNumbers, invert, movePlanEntry, outputPageCount, skipAll, withIncludedPages, planForFile, planKey, rotateEntry, rotationsOf, updateEntry, type PlanEntry } from './pagePlan.ts';
 
 describe('planForFile', () => {
   it('builds one entry per page, in order, unrotated and unskipped', () => {
@@ -15,41 +15,41 @@ describe('planForFile', () => {
   });
 });
 
-describe('moveEntry', () => {
+describe('movePlanEntry', () => {
   it('moves a page from one index to another', () => {
     const plan = planForFile(1, 3); // pages 0,1,2
-    const moved = moveEntry(plan, 0, 2);
+    const moved = movePlanEntry(plan, 0, 2);
     expect(moved.map((e) => e.pageIndex)).toEqual([1, 2, 0]);
   });
 
   it('clamps an out-of-range fromIndex', () => {
     const plan = planForFile(1, 3);
-    const moved = moveEntry(plan, 99, 0);
+    const moved = movePlanEntry(plan, 99, 0);
     // Clamped fromIndex lands on the last entry (pageIndex 2), moved to front.
     expect(moved.map((e) => e.pageIndex)).toEqual([2, 0, 1]);
   });
 
   it('clamps a negative fromIndex', () => {
     const plan = planForFile(1, 3);
-    const moved = moveEntry(plan, -5, 2);
+    const moved = movePlanEntry(plan, -5, 2);
     expect(moved.map((e) => e.pageIndex)).toEqual([1, 2, 0]);
   });
 
   it('clamps an out-of-range toIndex to the end', () => {
     const plan = planForFile(1, 3);
-    const moved = moveEntry(plan, 0, 99);
+    const moved = movePlanEntry(plan, 0, 99);
     expect(moved.map((e) => e.pageIndex)).toEqual([1, 2, 0]);
   });
 
   it('is a no-op returning a copy for an empty plan', () => {
-    const moved = moveEntry([], 0, 1);
+    const moved = movePlanEntry([], 0, 1);
     expect(moved).toEqual([]);
   });
 
   it('never mutates the input array', () => {
     const plan = planForFile(1, 3);
     const before = JSON.stringify(plan);
-    moveEntry(plan, 0, 2);
+    movePlanEntry(plan, 0, 2);
     expect(JSON.stringify(plan)).toBe(before);
   });
 });
@@ -116,7 +116,7 @@ describe('planKey', () => {
 
   it('changes when pages are reordered, and not when the plan is the same', () => {
     const plan = planForFile(1, 3);
-    expect(planKey(moveEntry(plan, 0, 2))).not.toBe(planKey(plan));
+    expect(planKey(movePlanEntry(plan, 0, 2))).not.toBe(planKey(plan));
     expect(planKey([...plan])).toBe(planKey(plan));
   });
 });
@@ -158,7 +158,7 @@ describe('includedPageNumbers and withIncludedPages', () => {
 
   it('lists the 1-based source page numbers of the kept entries, in plan order', () => {
     expect(includedPageNumbers(mixed)).toEqual([1, 3, 4]);
-    expect(includedPageNumbers(moveEntry(mixed, 0, 3))).toEqual([3, 4, 1]);
+    expect(includedPageNumbers(movePlanEntry(mixed, 0, 3))).toEqual([3, 4, 1]);
     expect(includedPageNumbers([])).toEqual([]);
   });
 
