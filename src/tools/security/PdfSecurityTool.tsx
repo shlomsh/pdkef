@@ -16,7 +16,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
-import { useDownloadFlow, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
@@ -37,8 +37,6 @@ const RETURN_TO = Object.fromEntries(
   UNLOCK_RETURN_IDS.map((id) => [id, { ...RETURN_LOOK[id], href: handoffHrefOf(id) as string }]),
 ) as Record<UnlockReturnId, { name: string; Icon: typeof Eraser; href: string }>;
 type ReturnTool = UnlockReturnId;
-// The same ids and pages, in the shape the shared finish flow hands off by.
-const HANDOFF_HREFS: HandoffHrefs = Object.fromEntries(Object.entries(RETURN_TO).map(([tool, { href }]) => [tool, href]));
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
 
 // One name for the Download button, the share sheet and the hand-off, so they cannot drift.
@@ -90,7 +88,6 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       prepareNow: () => {},
     },
     fileName: file && mode ? outputFileName(file.name, mode) : '',
-    hrefs: HANDOFF_HREFS,
     blocked: null,
     announce: setAnnouncement,
     messages: {

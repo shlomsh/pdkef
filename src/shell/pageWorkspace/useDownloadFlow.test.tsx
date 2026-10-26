@@ -68,7 +68,6 @@ describe('useDownloadFlow', () => {
   const base = (prepared: Prepared, blocked: DownloadFlowInput['blocked'] = null): DownloadFlowInput => ({
     prepared,
     fileName: 'out.pdf',
-    hrefs: { compress: '/compress/', sign: '/sign/', merge: '/merge/' },
     blocked,
     announce,
     messages: { ready: 'Ready', shared: 'Shared', canceled: 'Canceled', shareError: 'Failed' },
@@ -271,22 +270,20 @@ describe('useDownloadFlow', () => {
     async (tool, href) => {
       store.saveHandoff.mockResolvedValue(true);
       const navigate = vi.fn();
-      mount({ ...base(ready()), hrefs: { redact: '/redact/', 'edit-pdf': '/organize-pdf/' }, navigate });
+      mount({ ...base(ready()), navigate });
       await act(async () => { await flow.requestHandoff(tool); });
       expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe(tool);
       expect(navigate).toHaveBeenCalledWith(href);
     },
   );
 
-  it('a hand-off with no href for its tool does nothing: no save, no navigation, no failure', async () => {
+  it('a hand-off goes to the page the caller names instead of the registry page (a locale edition)', async () => {
     store.saveHandoff.mockResolvedValue(true);
     const navigate = vi.fn();
-    mount({ ...base(ready()), hrefs: { compress: '/compress/', sign: '/sign/' }, navigate });
-    await act(async () => { await flow.requestHandoff('merge'); });
-    expect(store.saveHandoff).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
-    expect(flow.handoffBusy).toBe(false);
-    expect(flow.handoffFailed).toBe(false);
+    mount({ ...base(ready()), hrefs: { compress: '/he/compress/' }, navigate });
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('compress');
+    expect(navigate).toHaveBeenCalledWith('/he/compress/');
   });
 
   it('parts: requestHandoff does nothing', async () => {

@@ -66,6 +66,7 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
+import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './exportHandoff.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
@@ -891,14 +892,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // (draftStore's saveHandoff, taken by useHandoffIntake on the other end), as Redact does.
   const carryOn = async (tool: string, current: SignedExport) => {
     try {
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, {
-        fileName: current.name,
-        fileType: 'application/pdf',
-        fileBytes: await current.blob.arrayBuffer(),
-      });
-      if (!saved) throw new Error('handoff');
-      window.location.href = handoffHref(tool, window.location.pathname);
+      await sendHandoff(
+        tool,
+        { fileName: current.name, fileType: 'application/pdf', fileBytes: await current.blob.arrayBuffer() },
+        { href: handoffHref(tool, window.location.pathname) },
+      );
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the quiet line
       console.error(err);

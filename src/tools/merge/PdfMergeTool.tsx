@@ -35,7 +35,7 @@ import railStyles from './components/MergeRail.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
@@ -196,8 +196,6 @@ interface PdfMergeToolProps {
   navigate?: (href: string) => void;
 }
 
-const DEFAULT_HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
-
 export default function PdfMergeTool({
   messages: messagesProp,
   shellMessages,
@@ -206,7 +204,6 @@ export default function PdfMergeTool({
   quietPolicy,
   navigate = (href) => { window.location.href = href; },
 }: PdfMergeToolProps = {}) {
-  const hrefs: HandoffHrefs = { ...DEFAULT_HANDOFF_HREFS, ...handoffHrefs };
   const t: MergeMessages = { ...englishMergeMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   /* GRID-03: one Undo/Redo stack over the whole document. A user edit is a
@@ -386,7 +383,7 @@ export default function PdfMergeTool({
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs,
+    hrefs: handoffHrefs,
     blocked: entries.length < 2 ? 'one-file' : (failedEntry || otherError) ? 'error' : null,
     // Page counts still arriving leave the plan empty; that is not "every page skipped".
     nothing: plan.length > 0 && outputPageCount(plan) === 0,
