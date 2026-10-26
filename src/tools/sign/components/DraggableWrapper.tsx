@@ -9,7 +9,7 @@ import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
-import useCoarsePointer from '../useCoarsePointer.ts';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';

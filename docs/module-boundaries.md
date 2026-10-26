@@ -121,7 +121,7 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
    and thickness pickers (`FontPickerMenu`, `FontOptionsList`, `FontSheet`, `ThicknessPickerMenu`)
    and `useCoarsePointer` moved into `src/tools/sign/` and `BlurStrengthSlider` into
-   `src/tools/redact/`, by this rule. An `.astro` file's `<script src="...">` is invisible to the main
+   `src/tools/redact/`, by this rule. ARCH-37 (2026-10-26) moved `useCoarsePointer` back into `src/editor-ui/hooks/` once Sign and Redact both used one meaning of it. An `.astro` file's `<script src="...">` is invisible to the main
    edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
    consumes a given module.
 10. **`lib` is the bottom layer: it may import only `lib`** (ARCH-34). A `src/lib/` module that imports `editor`, `editor-ui`, `shell`, `i18n` or `data` fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.

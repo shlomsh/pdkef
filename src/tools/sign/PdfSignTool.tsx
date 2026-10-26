@@ -14,26 +14,23 @@ import { SignToolProvider, useDocumentStyle, useSignTool } from './components/Si
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
 import SignatureDialog from './components/SignatureDialog.tsx';
-import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
+import { uniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/signGeometry.js';
-import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
-import { useDocumentRetirement } from '../../editor-ui/hooks/useDocumentRetirement.ts';
-import { isPdfFile } from '../../lib/fileKind.js';
-import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
+import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
-import useCoarsePointer from './useCoarsePointer.ts';
+import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
 import { viewportContent, zoomsOnFocus } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';
 import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
 import { useFillFocus } from './fill/useFillFocus.ts';
 import type { PagePoint } from './fill/fillTypes.ts';
-import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
   getAppStyle,
@@ -50,6 +47,7 @@ import {
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
+import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { getSignExportReadiness } from './signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import {
@@ -276,28 +274,15 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
   const copiedElementRef = useRef<EditorElement | null>(null);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
-  const fileBytesRef = useRef<ArrayBuffer | null>(null);
-  // RED-56: the old document is destroyed after the pdfDocument prop has swapped, not at cancel.
-  const retireDocument = useDocumentRetirement(pdfDocument);
-  const loadIdRef = useRef(0);
-  const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
-  const activeExportRequestRef = useRef<number | null>(null);
-  // Whether the export currently tracked by activeExportRequestRef is a
+  // Whether the export currently tracked by `exportRun` is a
   // background speculative one (MOBI-07) rather than a real, user-initiated
   // one. The invalidation effect below reads this to decide whether getting
   // superseded is user-visible news or routine background churn.
   const activeExportSpeculativeRef = useRef(false);
-  const nextExportRequestRef = useRef(0);
   const documentRevisionRef = useRef(documentRevision);
-  const currentFileRef = useRef(file);
   documentRevisionRef.current = documentRevision;
-  currentFileRef.current = file;
-  // Whichever of {manual file pick, draft restore} happens first (in call order) wins
-  // outright; the other is skipped entirely. This closes the gap the loadId guard alone
-  // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has
-  // already finished editing would otherwise still be "the newer call" and clobber it.
-  const loadStartedRef = useRef(false);
-
+  // An export is only wanted while the file and revision it started from are still on screen.
+  const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [tempPlacement, setTempPlacement] = useState<PendingSignaturePlacement | null>(null);
@@ -310,21 +295,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   });
 
   // Track fullscreen state (also covers exiting via Esc, not just our own button)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === workspaceRef.current);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  useFullscreenChange(workspaceRef, setIsFullscreen);
 
   // pdf.js owns worker and document resources outside Preact. Release the
   // active one when the editor leaves the tree, rather than letting a late
   // loading/render completion write into an unmounted workspace.
   useEffect(() => () => {
-    loadIdRef.current++;
-    loadControllerRef.current?.cancel();
-    activeExportRequestRef.current = null;
+    exportRun.invalidate();
   }, []);
 
   // A prepared export is only valid for the current annotation state. An edit
@@ -335,41 +312,21 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     preparedExportRef.current = null;
     setSignedExport(null);
     setHandoffFailed(false);
-    if (activeExportRequestRef.current === null) return;
+    // Retires the export in flight (if any) and says whether one was live.
+    const wasLive = exportRun.invalidate();
+    if (!wasLive) return;
     // A speculative background export getting superseded by a further edit is
     // routine (MOBI-07) - it never surfaced as "preparing" in the first place,
     // so silently discarding it (runExport's own guards handle that) is
     // correct. Only a real, user-initiated export in flight is worth telling
     // the user their edit invalidated it.
-    if (activeExportSpeculativeRef.current) {
-      activeExportRequestRef.current = null;
-      return;
-    }
-    activeExportRequestRef.current = null;
+    if (activeExportSpeculativeRef.current) return;
     setStatus('editing');
     setProgress(0);
     setAnnouncement(t.editsChangedWhilePreparing);
-  }, [file, documentRevision, clearPrepared]);
+  }, [file, documentRevision, clearPrepared, exportRun]);
 
-  const toggleFullscreen = () => {
-    recordAction('fullscreen');
-    if (isPseudoFullscreen) {
-      setIsPseudoFullscreen(false);
-      return;
-    }
-
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
-      const promise = workspaceRef.current.requestFullscreen();
-      if (promise) {
-        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
-        promise.catch(() => setIsPseudoFullscreen(true));
-      }
-    } else {
-      setIsPseudoFullscreen(true);
-    }
-  };
+  const toggleFullscreen = () => toggleWorkspaceFullscreen(workspaceRef.current, isPseudoFullscreen, setIsPseudoFullscreen);
 
   const logAction: HistoryLogger<EditorElement> = (operation, type, pageIndex, description, snapshots) => {
     dispatch({
@@ -463,107 +420,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       : t.signatureDeletedNotSaved);
   };
 
-  // Core loader shared by fresh file picks and draft restore. `bytes` is the source
-  // PDF's ArrayBuffer; `preset` seeds restored elements/action history.
-  const loadPdf = async (
-    selected: File,
-    bytes: ArrayBuffer,
-    preset: EditorDraftInitialState<EditorElement> = { elements: [], actionHistory: [] },
-    restored = false,
-  ) => {
-    const presetElements = preset.elements;
-    await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, loadControllerRef, retireDocument, clearDraft, setStatus, setAnnouncement,
-      messages: {
-        timeout: t.pdfLoadTimeout,
-        loadFailed: t.pdfLoadFailedGeneric,
-        restoredTemplate: t.pdfRestoredTemplate,
-        loadedTemplate: t.pdfLoadedTemplate,
-      },
-      onNeedsUnlock: (kind) => {
-        setNeedsUnlock(kind);
-        setAnnouncement(kind === 'needs-password' ? t.protectedNeedsPasswordTitle : t.protectedOwnerOnlyTitle);
-      },
-      initialize: () => {
-        setNeedsUnlock(null);
-        setFile(selected);
-        setPdfDocument(null);
-        setNumPages(0);
-        setPageSizes([]);
-        setErrorDetail(null);
-        setProgress(0);
-        dispatch({
-          type: 'LOAD_DOCUMENT',
-          payload: {
-            elements: presetElements,
-            actionHistory: preset.actionHistory,
-            // Absent for a fresh pick or a pre-SIGN-33 draft - the reducer
-            // treats that the same as an explicit null, resetting to `{}` so
-            // a new document never inherits another document's own choices.
-            carried: preset.carried,
-            // SIGN-35: read again whenever a document opens, so a choice made
-            // in another tab applies to the next document.
-            appStyle: getAppStyle(),
-          },
-        });
-        dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-        dispatch({ type: 'SET_TOOL', payload: null });
-        seedUniqueId(presetElements);
-        fileBytesRef.current = bytes;
-        setSourceBytes(bytes);
-      },
-      onDocument: async (doc, isCurrent) => {
-        setPdfDocument(doc);
-        setNumPages(doc.numPages);
-        const sizes = [];
-        for (let i = 1; i <= doc.numPages; i++) {
-          const page = await doc.getPage(i);
-          if (!isCurrent()) return;
-          sizes.push(pageGeometryFromPdfJsPage(page));
-        }
-        if (!isCurrent()) return;
-        setPageSizes(sizes);
-        // The cache contains source bytes only, never the editable document
-        // state. Saving after pdf.js accepts the file avoids advertising a
-        // corrupt PDF on the home page.
-        void cacheRecentFile('sign', {
-          fileName: selected.name,
-          fileType: selected.type || 'application/pdf',
-          fileBytes: bytes,
-        });
-      },
-    });
-  };
-
-  // Handle PDF file selection
-  const handleFilesAdded = async (fileList: FileList | File[]) => {
-    const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => isPdfFile(f));
-
-    if (pdfs.length === 0) {
-      setAnnouncement(t.invalidPdfFile);
-      return;
-    }
-
-    // No confirmation branch here: BasePdfTool asks before a replacement that
-    // would cost anything, so by the time a file reaches this handler the user
-    // has already agreed to it (or there was nothing to agree to).
-    await loadFreshFile(pdfs[0]);
-  };
-
-  // Shared by a manual pick and a File Handling API launch (see the
-  // launchQueue effect below) - both already hold a real File, with no
-  // cross-navigation handoff involved. Sets loadStartedRef synchronously,
-  // before the first await, so it wins the mount-time draft-restore race the
-  // same way a manual pick always has (see useEditorDraftPersistence.ts).
-  const loadFreshFile = async (selected: File) => {
-    loadStartedRef.current = true;
-    const replacing = file !== null;
-    const bytes = await selected.arrayBuffer();
-    recordAction(replacing ? 'replace_file' : 'add_files');
-    await loadPdf(selected, bytes);
-  };
-
   // Printed grids and free-text cells on the loaded form, so placing a text
   // box on one takes its span and cell count instead of needing a
   // side-handle drag (MOBI-04), or at least starts centred on the field
@@ -624,42 +480,72 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     messages: t,
   });
 
-  // Setup draft persistence hook
-  const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
+  // The file session (load, add, recents, unique ids, draft, "Open with") is shared with Redact.
+  const { handleFilesAdded, fileBytesRef, draftSaveState, isRestoring } = useEditorFileSession<EditorElement>({
     tool: 'sign',
     file,
-    fileBytes: fileBytesRef.current,
-    elements,
-    actionHistory,
-    carried,
+    pdfDocument,
     status,
-    isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
-    loadStartedRef,
-    loadPdf,
-    isElement: isEditorElement,
-  });
-
-  // File Handling API (manifest.webmanifest's file_handlers, DEMO-03): an
-  // installed PDkef launched directly with a PDF, e.g. from a desktop/
-  // ChromeOS file manager's "Open with". Unlike Web Share Target (see
-  // public/sw.js's SHARE_TARGET_PATH), the browser hands the file straight to
-  // this page's JS - no POST, no service worker, no handoff record - so it
-  // loads exactly like a manual pick rather than going through takeHandoff().
-  useEffect(() => {
-    const launchQueue = (window as any).launchQueue;
-    if (!launchQueue) return;
-    launchQueue.setConsumer(async (launchParams: { files?: any[] }) => {
-      if (loadStartedRef.current || !launchParams.files || launchParams.files.length === 0) return;
-      try {
-        const selected: File = await launchParams.files[0].getFile();
-        await loadFreshFile(selected);
-      } catch (error) {
-        // expected: loadFreshFile has its own failure UI, the launch-queue file is external
-        console.error(error);
+    setLoadStatus: setStatus,
+    setAnnouncement,
+    messages: {
+      invalidPdf: t.invalidPdfFile,
+      needsPassword: t.protectedNeedsPasswordTitle,
+      ownerRestricted: t.protectedOwnerOnlyTitle,
+      load: {
+        timeout: t.pdfLoadTimeout,
+        loadFailed: t.pdfLoadFailedGeneric,
+        restoredTemplate: t.pdfRestoredTemplate,
+        loadedTemplate: t.pdfLoadedTemplate,
+      },
+    },
+    onNeedsUnlock: setNeedsUnlock,
+    initialize: ({ file: selected, bytes, preset }) => {
+      setNeedsUnlock(null);
+      setFile(selected);
+      setPdfDocument(null);
+      setNumPages(0);
+      setPageSizes([]);
+      setErrorDetail(null);
+      setProgress(0);
+      dispatch({
+        type: 'LOAD_DOCUMENT',
+        payload: {
+          elements: preset.elements,
+          actionHistory: preset.actionHistory,
+          // Absent for a fresh pick or a pre-SIGN-33 draft - the reducer
+          // treats that the same as an explicit null, resetting to `{}` so
+          // a new document never inherits another document's own choices.
+          carried: preset.carried,
+          // SIGN-35: read again whenever a document opens, so a choice made
+          // in another tab applies to the next document.
+          appStyle: getAppStyle(),
+        },
+      });
+      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+      dispatch({ type: 'SET_TOOL', payload: null });
+      setSourceBytes(bytes);
+    },
+    onDocument: async (doc, isCurrent) => {
+      setPdfDocument(doc);
+      setNumPages(doc.numPages);
+      const sizes = [];
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        if (!isCurrent()) return;
+        sizes.push(pageGeometryFromPdfJsPage(page));
       }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      if (!isCurrent()) return;
+      setPageSizes(sizes);
+    },
+    draft: {
+      elements,
+      actionHistory,
+      carried,
+      isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
+      isElement: isEditorElement,
+    },
+  });
 
   // Helper to place a signature at a specific location
   const placeSignatureAt = (dataUrl: string, aspectRatio: number, pageIdx: number, leftPercent: number, topPercent: number) => {
@@ -896,9 +782,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // DEBT-51: the bytes read at load time, so a file moved on disk after
     // picking cannot fail the export (the browser rejects a second read).
     const sourceBytes = fileBytesRef.current ?? sourceFile;
-    const sourceRevision = documentRevisionRef.current;
-    const requestId = ++nextExportRequestRef.current;
-    activeExportRequestRef.current = requestId;
+    const ticket = exportRun.begin();
     activeExportSpeculativeRef.current = speculative;
     if (!speculative) {
       setErrorDetail(null);
@@ -915,20 +799,18 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     try {
       const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
       const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
-        if (!speculative && activeExportRequestRef.current === requestId && documentRevisionRef.current === sourceRevision) setProgress(p);
+        if (!speculative && ticket.isCurrent()) setProgress(p);
       });
-      if (activeExportRequestRef.current !== requestId
-        || documentRevisionRef.current !== sourceRevision
-        || currentFileRef.current !== sourceFile) return;
-      activeExportRequestRef.current = null;
+      if (!ticket.isCurrent()) return;
+      ticket.settle();
       if (!speculative) {
         reportMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
         reportToolLifecycleEvent('tool_result_ready', 'sign');
       }
       onSigned(signedBlob, `signed_${sourceFile.name}`);
     } catch (err) {
-      if (activeExportRequestRef.current !== requestId) return;
-      activeExportRequestRef.current = null;
+      if (!ticket.isCurrent()) return;
+      ticket.settle();
       if (speculative) {
         console.error(err);
         return;
