@@ -1,7 +1,7 @@
 ---
 id: "ARCH-36"
 title: "Compress, Image to PDF and Unlock/Protect finish through the shared flow"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
@@ -37,3 +37,12 @@ passes dummy props to `FinishRow` (`PdfToImageTool.tsx:441-446`).
 - [ ] Each of the three tools' existing e2e and unit tests pass unchanged, plus a unit test per tool
       for share-cancelled and share-failed through the shared flow.
 - [ ] Verified on a production build on a phone width and a desktop width for each of the three.
+
+## Progress (part B: Image to PDF, Unlock/Protect, FinishRow)
+
+- Done: `FinishRow` takes only what a tool has: `busy`, `onHandoff` and the Compress/Sign labels are
+  optional, and the row is just Share when there is no `onHandoff`. PDF to Image no longer passes
+  placeholders. Unit test seen red first.
+- Not done, needs a design call: moving Image to PDF and Unlock/Protect onto `DownloadElement` changes
+  their visible Download control and breaks existing unit assertions on the `DownloadButton` markup (see
+  the lead's report).

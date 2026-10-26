@@ -44,4 +44,18 @@ describe('FinishRow', () => {
     const { merge: _omit, ...noMerge } = labels;
     expect(mount(['merge', 'compress'], noMerge)).toEqual(['Share', 'Compress it']);
   });
+
+  it('is just Share for a tool with no hand-offs: no onHandoff, busy or hand-off labels needed', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FinishRow ready shareReady onShare={vi.fn()} onWarm={vi.fn()} labels={{ share: 'Share' }} />, container));
+    expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
+  });
+
+  it('renders no hand-off button when there is no onHandoff, whatever the labels say', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FinishRow ready shareReady onShare={vi.fn()} onWarm={vi.fn()} labels={labels} />, container));
+    expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
+  });
 });
