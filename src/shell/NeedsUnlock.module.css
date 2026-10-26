@@ -1,16 +1,16 @@
 /* A locked file stands where the workspace would be: a centred panel with a locked page, the
-   title, the file's name, why, and Unlock as the primary action. Replace stays the shell's quiet chip. */
+   title, the file's name, why, and Unlock as the primary action. Replace is the quiet line below. */
 .state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  min-height: min(34rem, 64vh);
+  min-height: 22rem;
   padding: var(--space-7) var(--space-4);
   text-align: center;
   border-radius: var(--radius-2xl);
-  background: var(--color-primary-tint);
+  background: color-mix(in srgb, var(--color-primary-tint) 78%, var(--color-surface));
 }
 
 /* Fill the tool card it stands in (a block with a min-height): the card becomes a column and the
@@ -70,7 +70,8 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.4rem, 1.15rem + 1vw, 1.85rem);
+  font-size: clamp(1.2rem, 1.05rem + 0.5vw, 1.5rem);
+  text-wrap: balance;
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -96,16 +97,17 @@
   color: var(--color-muted);
 }
 
+/* `start`, not the panel's centring: a centred head leaves a gap between its ellipsis and the tail. */
 .name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
   max-width: 22rem;
+  text-align: start;
 }
 
 .body {
   margin: 0;
   max-width: 32rem;
+  text-wrap: balance;
   color: var(--color-muted);
 }
 
@@ -140,7 +142,7 @@
 
 .unlock:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-focus);
+  box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px var(--color-primary);
 }
 
 .unlock:disabled {

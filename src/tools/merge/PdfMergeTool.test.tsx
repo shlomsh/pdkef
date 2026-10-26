@@ -832,20 +832,30 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
 
     expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
-    const alert = container.querySelector('[role="alert"]');
-    expect(alert.textContent).toContain('"locked.pdf" is password-protected');
-    expect(alert.querySelector('a').getAttribute('href')).toBe('/unlock/');
-    expect(container.querySelector(`.${railStyles['file-row']}[data-error="encrypted"] .${railStyles['file-name']}`).textContent).toBe('locked.pdf');
+    const notice = container.querySelector('[data-locked-notice]');
+    expect(notice.textContent).toContain('"locked.pdf" is password-protected');
+    expect(notice.querySelector('a').getAttribute('href')).toBe('/unlock/');
+    expect(container.textContent).not.toContain("That didn't work");
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    const row = container.querySelector(`.${railStyles['file-row']}[data-locked]`);
+    expect(row.querySelector(`.${railStyles['file-name']}`).textContent).toBe('locked.pdf');
+    expect(row.hasAttribute('data-error')).toBe(false);
+    expect(row.querySelector(`.${railStyles['file-pages']}`).textContent).not.toMatch(/\d/);
+    // The lock is read out, not only drawn: true of a password and an owner-only lock alike.
+    expect(row.querySelector(`.${railStyles['file-pages']}`).textContent).toBe('This PDF is protected');
+    // The phone chip agrees with the rail row: a lock, not a page count.
+    const chip = container.querySelector(`.${docStyles.chip}[data-locked]`);
+    expect(chip.querySelector(`.${docStyles['chip-pages']}`).textContent).toBe('This PDF is protected');
     expect(downloadBox().getAttribute('data-state')).toBe('error');
 
     await act(async () => {
-      alert.querySelector('button').click();
+      notice.querySelector('button').click();
     });
     await settle();
     expect(fileNames()).toEqual(['a.pdf', 'b.pdf']);
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     expect(mergeLib.mergePdfs.mock.calls[0][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf']);
-    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[data-locked-notice]')).toBeNull();
   });
 
   it.each([
@@ -879,6 +889,9 @@ describe('PdfMergeTool UI flow', () => {
 
     expect(container.textContent).not.toContain("That didn't work");
     expect(container.querySelector('[role="alert"]')).toBeNull();
+    // Nor the one-file box and the output heading, which would flash away once the panel comes.
+    expect(container.querySelector('[data-state="one-file"]')).toBeNull();
+    expect(container.querySelector('#page-grid-heading')).toBeNull();
   });
 
   it('shows the Hebrew locked-state copy on the /he/ edition', async () => {
@@ -899,7 +912,27 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['a.pdf', 'locked.pdf']);
     await settle();
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
-    expect(container.querySelector('[role="alert"]').textContent).toContain('is password-protected');
+    expect(container.querySelector('[data-locked-notice]').textContent).toContain('is password-protected');
+  });
+
+  it('names the output after the first readable file, not a locked one that leads', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles(['locked.pdf', 'plain.pdf']);
+    await settle();
+    expect(container.querySelector(`.${outputNameStyles.name}`).textContent).toBe('merged_plain');
+  });
+
+  it('offers no "add one more file" box beside the locked state of a single protected file', async () => {
+    probeMock.mockResolvedValue('needs-password');
+    pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
+    mount();
+    await loadFiles(['locked.pdf']);
+    await settle();
+    await act(async () => { await flush(20); });
+    expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
+    expect(container.querySelector('[data-state="one-file"]')).toBeNull();
   });
 
   it('reports an unreadable file by name when the merge itself rejects it (MERGE-04)', async () => {
@@ -1668,7 +1701,7 @@ describe('PdfMergeTool UI flow', () => {
       mount(hebrew);
       await loadFiles(['a.pdf', name, 'b.pdf']);
       await settle();
-      expect(container.querySelector('[role="alert"]').textContent).toContain(isolated(name));
+      expect(container.querySelector('[role="alert"], [data-locked-notice]').textContent).toContain(isolated(name));
     });
   });
 });

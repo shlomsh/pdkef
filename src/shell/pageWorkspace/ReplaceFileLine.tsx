@@ -1,6 +1,6 @@
 import { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
 import { englishShellMessages } from '../../i18n/toolMessages';
-import styles from './PageWorkspace.module.css';
+import styles from './ReplaceFileLine.module.css';
 
 /**
  * Replace file as the rail's quiet last line, for every one-file page tool
