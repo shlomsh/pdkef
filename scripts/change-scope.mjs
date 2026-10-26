@@ -68,6 +68,7 @@ export const DOCS_ONLY = [
   /^TODO\.md$/,
   /^README\.md$/,
   /^CLAUDE\.md$/,
+  /^ANALYTICS\.md$/, // ARCH-34: a hand-written doc; no test, build step or page reads it
   /^LICENSE$/,
   /^\.claude\//,
   /^\.impeccable\//,
