@@ -3,7 +3,6 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NeedsUnlock from './NeedsUnlock.tsx';
 import { ToolShellContext } from './ToolShell.tsx';
-import shellStyles from './ToolShell.module.css';
 import styles from './NeedsUnlock.module.css';
 
 describe('NeedsUnlock', () => {
@@ -31,14 +30,30 @@ describe('NeedsUnlock', () => {
     });
   };
 
-  it('leads with "Unlock it" as the primary button, with Replace as the quiet chip beside it', () => {
+  it('leads with "Unlock it" as the only button in the action row, Replace the quiet line after it', () => {
     mount();
-    const buttons = [...container.querySelectorAll('button')];
-    const unlock = buttons.find((b) => b.textContent?.includes('Unlock it'))!;
-    const replace = buttons.find((b) => b !== unlock)!;
-    expect(unlock.classList.contains(styles.unlock)).toBe(true);
-    expect(unlock.classList.contains(shellStyles.action)).toBe(false);
-    expect(replace.classList.contains(shellStyles.action)).toBe(true);
+    const actions = container.querySelector(`.${styles.actions}`)!;
+    const buttons = [...actions.querySelectorAll('button')];
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].classList.contains(styles.unlock)).toBe(true);
+    expect(container.querySelector('[data-replace-line]')).not.toBeNull();
+    expect(actions.querySelector('[data-replace-line]')).toBeNull();
+  });
+
+  it('keeps the end of a long file name in the chip', () => {
+    const name = 'a-very-long-quarterly-financial-statement-and-supporting-schedules-final-2026.pdf';
+    const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+    act(() => {
+      render(
+        <ToolShellContext.Provider value={{ requestReplace: vi.fn(), requestClear: vi.fn(), file, multiple: false } as never}>
+          <NeedsUnlock kind="needs-password" file={file} bytes={new ArrayBuffer(8)} from="redact" toolName="Redact" verb="redact" />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+    const chip = container.querySelector(`.${styles.file}`)!;
+    expect(chip.querySelector(`[title="${name}"]`)).not.toBeNull();
+    expect(chip.textContent!.endsWith('-2026.pdf')).toBe(true);
   });
 
   it('names the file it is about, under a heading, with a decorative lock', () => {
@@ -67,5 +82,6 @@ describe('NeedsUnlock', () => {
     const buttons = [...container.querySelectorAll('button')];
     expect(buttons).toHaveLength(1);
     expect(buttons[0].textContent).toContain('Unlock it');
+    expect(container.querySelector('[data-replace-line]')).toBeNull();
   });
 });

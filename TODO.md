@@ -6,6 +6,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Robustness and debt
+
+- [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+
 ### Search and languages
 
 - [SEO-03](backlog/tasks/SEO-03.md) P1 · External signals: the work that moves the constraint and does not live in this repo
