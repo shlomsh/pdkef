@@ -5,6 +5,7 @@ import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { loadPdfjs } from '../../lib/loadPdfjs.js';
+import { clampScaleToCanvas } from '../../lib/canvasLimits.js';
 
 let pdfjsLib;
 
@@ -46,8 +47,26 @@ function fillWhiteIfJpeg(context, width, height, format) {
 // The page's own /Rotate plus the turn the person gave it, kept in [0, 360).
 const turnedBy = (page, turn = 0) => (((page.rotate + turn) % 360) + 360) % 360;
 
+/** The chosen scale, lowered so one page canvas stays inside the browser's limits. */
+export function pageRenderScale(unitWidth, unitHeight, scale) {
+  return clampScaleToCanvas(unitWidth, unitHeight, scale);
+}
+
+/**
+ * The scale for a stacked image of pages (each `{ width, height }` at scale 1,
+ * turned sizes): the chosen scale, lowered uniformly for every page when the
+ * combined canvas (widest page by summed heights) would pass the limits.
+ */
+export function stackedRenderScale(unitSizes, scale) {
+  const width = Math.max(...unitSizes.map((p) => p.width));
+  const height = unitSizes.reduce((sum, p) => sum + p.height, 0);
+  return clampScaleToCanvas(width, height, scale);
+}
+
 async function renderPageToCanvas(page, scale, format, turn) {
-  const viewport = page.getViewport({ scale, rotation: turnedBy(page, turn) });
+  const rotation = turnedBy(page, turn);
+  const unit = page.getViewport({ scale: 1, rotation });
+  const viewport = page.getViewport({ scale: pageRenderScale(unit.width, unit.height, scale), rotation });
   const canvas = document.createElement('canvas');
   canvas.width = viewport.width;
   canvas.height = viewport.height;
@@ -123,12 +142,22 @@ export async function convertPdfToImages(
 
   try {
     const stacked = layout === 'concatenated' && pageNumbers.length > 1;
+    // A stack renders every page at one scale chosen from the combined size.
+    let renderScale = scale;
+    if (stacked) {
+      const unitSizes = [];
+      for (const pageNumber of pageNumbers) {
+        const page = await pdf.getPage(pageNumber);
+        unitSizes.push(page.getViewport({ scale: 1, rotation: turnedBy(page, rotations[pageNumber]) }));
+      }
+      renderScale = stackedRenderScale(unitSizes, scale);
+    }
     const canvases = [];
     const images = [];
     for (let i = 0; i < pageNumbers.length; i += 1) {
       throwIfAborted(signal);
       const page = await pdf.getPage(pageNumbers[i]);
-      const canvas = await renderPageToCanvas(page, scale, format, rotations[pageNumbers[i]]);
+      const canvas = await renderPageToCanvas(page, renderScale, format, rotations[pageNumbers[i]]);
       if (stacked) {
         canvases.push(canvas);
       } else {
