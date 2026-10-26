@@ -157,11 +157,13 @@ export function useDownloadFlow(input: DownloadFlowInput) {
         { fileName, fileType: 'application/pdf', fileBytes: await prepared.blob.arrayBuffer() },
         { href: hrefs?.[tool], navigate, proceed: () => run === handoffRunRef.current },
       );
-      if (!sent) setHandoffBusy(false);
+      if (!sent && run === handoffRunRef.current) setHandoffBusy(false);
     } catch {
       // expected: saveHandoff reports its own failure, this shows the handoffFailed state
-      if (run === handoffRunRef.current) setHandoffFailed(true);
-      setHandoffBusy(false);
+      if (run === handoffRunRef.current) {
+        setHandoffFailed(true);
+        setHandoffBusy(false);
+      }
     }
   }, [prepared.blob, fileName, hrefs, navigate]);
 
@@ -248,6 +250,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   const reset = useCallback(() => {
     clearPrepared();
     handoffRunRef.current += 1;
+    setHandoffBusy(false);
     setTap('idle');
     setPendingDownload(false);
     quietPendingRef.current = false;
