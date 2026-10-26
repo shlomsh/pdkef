@@ -418,8 +418,8 @@ own text layer, not a site-only helper, even though neither is imported by a bro
 | `security.js` | `PdfSecurityTool` | `security` |
 | `split.js` | `PdfSplitTool` | `split` |
 | `toImage.js` | `PdfToImageTool`, `toImageOutput.ts` | `to-image` |
-| `imagesToPdf.js` | `useImagesPdfBuild.ts` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
-| `pageOrder.js` | `PdfImageToPdfTool`, `useImagesPdfBuild.ts` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
+| `imagesToPdf.js` | `PdfImageToPdfTool` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
+| `pageOrder.js` | `PdfImageToPdfTool`, Scan | `image-to-pdf`, `scan` |
 | `useDeletableObjects.js` | `PdfRedactTool` | `redact` |
 | `useViewDensity.js` | `ViewControl.tsx` | `editor-ui`, not a tool - see the `editor-ui` section above |
 | `fontCoverageTable.js` | `src/editor/text/fonts.js` (the editor core) | moved to `src/editor/text/` (DEBT-04) - the core itself was the sole consumer |

@@ -385,11 +385,8 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
                 ready={prepared.status === 'ready'}
                 shareReady={shareReady}
                 onShare={handleShare}
-                busy={false}
-                onHandoff={() => {}}
                 onWarm={prepared.prepareNow}
-                labels={{ share: t.shareLabel, compress: '', sign: '' }}
-                tools={[]}
+                labels={{ share: t.shareLabel }}
               />
 
               {/* Starting over with another file ends the rail, at every width (UX guideline 20). */}

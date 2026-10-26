@@ -6,9 +6,10 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
-export type HandoffTool = 'compress' | 'sign' | 'merge';
-/** Where each hand-off goes; Merge is optional, only Scan offers it. */
-export type HandoffHrefs = Record<'compress' | 'sign', string> & Partial<Record<'merge', string>>;
+/** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */
+export type HandoffTool = 'compress' | 'sign' | 'merge' | 'redact' | 'edit-pdf';
+/** Where each hand-off goes; a tool lists only the targets it offers (Scan adds Merge, Unlock offers Redact). */
+export type HandoffHrefs = Partial<Record<HandoffTool, string>>;
 
 export interface DownloadFlowInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
@@ -169,7 +170,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
       setHandoffFailed(true);
       setHandoffBusy(false);
     }
-  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign, hrefs.merge]);
+  }, [prepared.blob, fileName, hrefs]);
 
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
