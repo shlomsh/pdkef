@@ -27,7 +27,8 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { isolateLtr, isolateName } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
-import { getPdfLib } from '../../lib/pdfLib.js';
+import { throwIfAborted } from '../../lib/abort.js';
+import { openPdfDoc } from '../../lib/openPdfDoc.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
@@ -84,7 +85,10 @@ interface CompressMeta {
 }
 
 /** The build is superseded: usePreparedOutput drops an AbortError without reporting it. */
-const superseded = () => new DOMException('Superseded', 'AbortError');
+const superseded = (): never => {
+  throwIfAborted({ aborted: true });
+  throw new Error('unreachable');
+};
 
 // Compress offers no hand-offs from its Download.
 const NO_HANDOFFS: DownloadFlowInput['hrefs'] = {};
@@ -265,18 +269,10 @@ export default function PdfCompressTool({
     let doc;
     let totalBytes = 0;
     try {
-      const bytes = await pdf.arrayBuffer();
-      const { PDFDocument } = await getPdfLib();
-      totalBytes = bytes.byteLength;
-      doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-      if (doc.isEncrypted) {
-        // A restricted PDF opens with an empty password; read it that way so text detection sees plaintext, not ciphertext.
-        try {
-          doc = await PDFDocument.load(bytes, { password: '', updateMetadata: false });
-        } catch {
-          // expected: a file that needs a real password is the person's file; keep the first read
-        }
-      }
+      // A restricted PDF opens with an empty password so text detection sees plaintext, not ciphertext.
+      const opened = await openPdfDoc(pdf, { encryption: 'empty-password', updateMetadata: false });
+      doc = opened.doc;
+      totalBytes = opened.bytes.byteLength;
     } catch {
       // expected: a PDF pdf-lib can't parse just gets no analysis note
       return;
