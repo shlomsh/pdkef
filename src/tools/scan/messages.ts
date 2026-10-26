@@ -1,8 +1,92 @@
+import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { DownloadMessages } from '../../shell/shellMessages';
 
-// Scan's strings. English only at launch; a localized edition follows the languages page.
-export const scanMessages = {
-  dir: 'ltr' as 'ltr' | 'rtl',
+/** Scan's strings. English only at launch; a localized edition follows the languages page. */
+export interface ScanMessages extends DownloadMessages {
+  dir: 'ltr' | 'rtl';
+  dropHere: string;
+  takePhoto: string;
+  addPhotos: string;
+  skippedOne: string;
+  skippedMany: string;
+  documentHeading: string;
+  fileNameLabel: string;
+  defaultName: string;
+  pageOf: string;
+  findingEdges: string;
+  cornersGroup: string;
+  corners: [string, string, string, string];
+  cornersHint: string;
+  wholePhoto: string;
+  removePhoto: string;
+  adjustCorners: string;
+  findPage: string;
+  findMissed: string;
+  pageFoundAnnounce: string;
+  announceResult: string;
+  announceCornersOf: string;
+  notFoundCorners: string;
+  notFound: string;
+  cornersDone: string;
+  useCorners: string;
+  resultExact: string;
+  resultDetail: string;
+  resultUpdating: string;
+  pagesLabel: string;
+  reorderHint: string;
+  tileLabel: string;
+  removeLabel: string;
+  processing: string;
+  pageFailed: string;
+  pagesFailed: string;
+  lookLabel: string;
+  lookOriginal: string;
+  lookGrayscale: string;
+  lookDocument: string;
+  lookOriginalHint: string;
+  lookGrayscaleHint: string;
+  lookDocumentHint: string;
+  pageSizeLabel: string;
+  pageSizeFit: string;
+  pageSizeA4: string;
+  pageSizeLetter: string;
+  pageSizeFitHint: string;
+  pageSizePaperHint: string;
+  limitLabel: string;
+  limitNone: string;
+  limit2mb: string;
+  limit1mb: string;
+  limit500kb: string;
+  limitNoneHint: string;
+  limitHint: string;
+  limitMissed: string;
+  downloadLabel: string;
+  downloadShort: string;
+  downloadAgain: string;
+  savedLabel: string;
+  buildFailed: string;
+  preparingPages: string;
+  renderProgress: string;
+  allSkipped: string;
+  readyAnnouncement: string;
+  closeStrip: string;
+  shareLabel: string;
+  sharedSuccessfully: string;
+  sharingCanceled: string;
+  shareError: string;
+  handoffSign: string;
+  handoffMerge: string;
+  handoffCompress: string;
+  handoffFailed: string;
+  announceAddedOne: string;
+  announceAddedMany: string;
+  announceRemoved: string;
+  announceMoved: string;
+  announceCleared: string;
+}
+
+export const englishScanMessages: ScanMessages = {
+  dir: 'ltr',
   dropHere: 'Drop photos of your pages here',
   takePhoto: 'Take a photo',
   addPhotos: 'Add photos',
@@ -14,7 +98,7 @@ export const scanMessages = {
   pageOf: 'Page {position} of {total}',
   findingEdges: 'Finding the page edges…',
   cornersGroup: 'Page corners',
-  corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] as [string, string, string, string],
+  corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'],
   cornersHint: 'Drag each corner onto a corner of the page.',
   wholePhoto: 'Use the whole photo',
   removePhoto: 'Remove this photo',
@@ -83,6 +167,8 @@ export const scanMessages = {
   announceRemoved: 'Removed page {position}.',
   announceMoved: 'Page moved to position {position} of {total}.',
   announceCleared: 'All pages cleared.',
-} satisfies DownloadMessages & Record<string, unknown>;
+};
 
-export type ScanMessages = typeof scanMessages;
+export function getScanMessages(_locale: DocumentationLocaleId): ScanMessages {
+  return englishScanMessages;
+}
