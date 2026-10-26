@@ -93,4 +93,13 @@ file too big for a portal, a scan to sign next). Link from `remove-camscanner-wa
 ## Open questions
 
 - Does iOS Safari hand over HEIC from the photo library? `accept` today is `image/jpeg,image/png`.
+  **Answered 2026-10-26 (documented mechanism, phone check pending):** with an `accept` list that leaves
+  HEIC out, Safari converts a photo of any other type to the first listed type, so a library pick arrives
+  as JPEG (WebKit bug 303803, which documents the conversion; https://bugs.webkit.org/show_bug.cgi?id=303803).
+  Listing `image/heic` is what makes Safari hand HEIC over, and Safari 17+ then even converted JPEGs to
+  HEIC (Apple developer forums thread 743049), so Scan keeps `image/jpeg,image/png` on both the picker and
+  the camera input. Chrome on iOS is WebKit and behaves the same (inferred). A `.heic` file on a desktop
+  or an Android HEIF photo is not offered by the picker and, dropped, is skipped with a message; Chrome and
+  Firefox cannot decode HEIC anyway. To confirm on Shlomi's iPhone: a library pick of a HEIC photo
+  arrives and scans.
 - Does Hebrew get a `/he/` Scan page at launch? Follow the languages page, not this ticket.
