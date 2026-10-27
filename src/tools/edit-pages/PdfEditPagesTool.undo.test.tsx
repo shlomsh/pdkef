@@ -2,51 +2,55 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/actionTrail.ts';
 import Sortable from 'sortablejs';
-import { reportEdit } from '../../lib/productAnalytics.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
+import { healthy } from '../../test/support/pdfPageTreeFixtures.ts';
+import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 
+// A real three-page PDF.
 function makePdfFile(name) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+  return new File([healthy()], name, { type: 'application/pdf' });
 }
 
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportEdit: vi.fn(),
-}));
+// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it.
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
 
-const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 3 } }));
-
-vi.mock('@cantoo/pdf-lib', () => ({
-  PDFDocument: {
-    load: vi.fn(() => Promise.resolve({
-      getPageCount: () => mockState.numPages,
-    })),
-  },
-}));
-
+// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
 vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => ({
-    file,
-    pageCount: mockState.numPages,
-    render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-    destroy: vi.fn(async () => {}),
-  })),
+  openThumbnailSource: vi.fn(async (file) => {
+    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
+    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
+    return {
+      file,
+      pageCount,
+      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
+      destroy: vi.fn(async () => {}),
+    };
+  }),
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
-}));
-
-vi.mock('./lib/editPages.js', () => ({
-  editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
+  renderPdfThumbnails: vi.fn(async () => 0),
 }));
 
 describe('PdfEditPagesTool undo/redo', () => {
   let container;
+  let harness;
 
   beforeEach(() => {
-    resetActionTrailForTests();
-    reportEdit.mockClear();
+    harness = installToolHarness();
+    // jsdom's Blob has no arrayBuffer().
+    if (!Blob.prototype.arrayBuffer) {
+      Blob.prototype.arrayBuffer = function arrayBuffer() {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
   });
 
   afterEach(() => {
@@ -55,8 +59,8 @@ describe('PdfEditPagesTool undo/redo', () => {
       container.remove();
       container = null;
     }
-    mockState.numPages = 3;
     vi.restoreAllMocks();
+    harness.restore();
   });
 
   async function loadPdf() {
@@ -64,7 +68,7 @@ describe('PdfEditPagesTool undo/redo', () => {
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await until(() => cells().length > 0);
   }
 
   const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
@@ -80,14 +84,18 @@ describe('PdfEditPagesTool undo/redo', () => {
   const keydown = (init) => act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, ...init })); });
 
   it('DEBT-58: loading a file is not an edit; a rotate is, and an unchanged Include all is not', async () => {
+    const firstEdits = async () => {
+      await harness.flush();
+      return harness.usageEvents('tool_first_edit').map((event) => event.properties.tool);
+    };
     await loadPdf();
-    expect(reportEdit).not.toHaveBeenCalled();
+    expect(await firstEdits()).toEqual([]);
 
     await click(bulkButton('Include all'));
-    expect(reportEdit).not.toHaveBeenCalled();
+    expect(await firstEdits()).toEqual([]);
 
     await click(rotateButton(1));
-    expect(reportEdit).toHaveBeenCalledWith('edit-pdf');
+    expect(await firstEdits()).toEqual(['edit-pdf']);
   });
 
   it('starts with Undo and Redo both disabled', async () => {
