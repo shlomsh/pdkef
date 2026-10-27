@@ -76,9 +76,9 @@
 //      single-tool module other `editor` code imports. `SignatureDialog.tsx` was the
 //      one module this genuinely miscategorized, moved into `src/tools/sign/`
 //      in the same change that added this rule, alongside `useCoarsePointer.ts`
-//      (its only real consumer was always Sign). No exception list of any
-//      kind: unlike the allowlist in rules 1-5, this holds at zero
-//      violations like rules 6 and 8, so a module that fails it moves into
+//      (its only real consumer was always Sign). Only `{ rule: 9, file, reason }`
+//      allowlist entries (ARCH-46: files only tests/scripts read) are excepted;
+//      otherwise it holds at zero violations like rules 6 and 8, so a module that fails it moves into
 //      the tool that actually uses it, or is deleted if nothing does.
 //
 // An `.astro` file's own `<script src="...">` tag is an edge the main scan
@@ -311,11 +311,21 @@ function edgeKey(from, to) {
   return `${from} -> ${to}`;
 }
 
-function loadAllowlist() {
+function readAllowlistFile() {
   if (!fs.existsSync(ALLOWLIST_PATH)) return [];
   const parsed = JSON.parse(fs.readFileSync(ALLOWLIST_PATH, 'utf8'));
   if (!Array.isArray(parsed)) throw new Error(`${relOf(ALLOWLIST_PATH)} must be a JSON array`);
   return parsed;
+}
+
+// Edge entries ({ from, to, reason }) belong to rules 1-5; rule 9 entries
+// ({ rule: 9, file, reason }) are read by loadRule9Allowlist() below.
+function loadAllowlist() {
+  return readAllowlistFile().filter((entry) => entry.rule === undefined);
+}
+
+function loadRule9Allowlist() {
+  return readAllowlistFile().filter((entry) => entry.rule === 9);
 }
 
 function main() {
@@ -338,13 +348,14 @@ function main() {
   const specRouteIssues = toolSpecRouteViolations();
   const scriptsViolations = scriptsImportViolations();
   const consumerViolations = commonLayerConsumerViolations();
+  const staleRule9 = staleRule9Allowlist();
   const unknownSrc = unclassifiedSrcEntries(fs.readdirSync(path.join(ROOT, 'src')));
   const { projects, edgeCount, cycles } = projectCycleCheck();
 
   if (
     unknownSrc.length > 0 || unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
     || specRouteIssues.length > 0 || scriptsViolations.length > 0 || consumerViolations.length > 0
-    || cycles.length > 0
+    || staleRule9.length > 0 || cycles.length > 0
   ) {
     console.error('Module boundary check failed:');
     if (unknownSrc.length > 0) {
@@ -374,11 +385,15 @@ function main() {
       for (const v of scriptsViolations) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);
     }
     if (consumerViolations.length > 0) {
-      console.error('\nCommon-layer module with fewer than two consumers (rule 9, shell/editor-ui/lib, no exceptions):');
+      console.error('\nCommon-layer module with fewer than two consumers (rule 9, shell/editor-ui/editor/lib):');
       for (const v of consumerViolations) {
         const named = v.consumers.length > 0 ? v.consumers.join(', ') : 'none';
         console.error(`  ${v.file} (${v.module}): ${v.consumers.length} consumer(s) - ${named}`);
       }
+    }
+    if (staleRule9.length > 0) {
+      console.error('\nStale rule 9 allowlist entries (the file is gone or has two consumers now; remove them from scripts/module-boundaries-allowlist.json):');
+      for (const entry of staleRule9) console.error(`  ${entry.file}`);
     }
     for (const cycle of cycles) {
       console.error(`\nProject cycle: ${[...cycle, cycle[0]].join(' -> ')}`);
@@ -638,9 +653,9 @@ export function commonLayerConsumers(target, reverseEdges) {
 
 // The file-walking wrapper main() calls: every non-test file classified
 // shell/editor-ui/editor/lib (RULE9_LAYERS), checked against the combined reverse graph (ordinary
-// imports plus `<script src>`). No allowlist, like rules 6 and 8, and no
-// exception list either: ARCH-25 moved `SignatureDialog.tsx` into
-// `src/tools/sign/` and ARCH-46 moved seven single-tool editor modules, so it
+// imports plus `<script src>`). The allowlist holds only `{ rule: 9 }` entries
+// (staleRule9Allowlist()): ARCH-25 moved `SignatureDialog.tsx` into
+// `src/tools/sign/` and ARCH-46 moved the single-tool editor modules, so it
 // holds at zero. A module that later fails this check belongs in a
 // tool instead, or should be deleted if nothing uses it - not exempted.
 const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'editor', 'lib']);
@@ -649,11 +664,15 @@ const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'editor', 'lib']);
 // serves a single tool but is imported by other code inside `src/editor/`
 // (which can never import a tool, so the module cannot move under it). The
 // folder name states the single-tool intent, so rule 9 does not count it.
+// A `*.test-helper.js` is test support, not a module with consumers to count.
+const TEST_HELPER = /\.test-helper\.[jt]sx?$/;
+
 const SINGLE_TOOL_ADAPTERS = /^src\/editor\/[a-z]+(?:-[a-z]+)*-adapters\//;
 
 // `plant` lets a test hand in a literal `{ files, reverseEdges }` instead of
 // the real tree.
 export function commonLayerConsumerViolations(plant) {
+  const allowed = new Set(loadRule9Allowlist().map((entry) => entry.file));
   let files = plant?.files;
   let reverseEdges = plant?.reverseEdges;
   if (!plant) {
@@ -667,10 +686,23 @@ export function commonLayerConsumerViolations(plant) {
     const moduleOf = classify(rel);
     if (!RULE9_LAYERS.has(moduleOf)) continue;
     if (SINGLE_TOOL_ADAPTERS.test(rel)) continue;
+    if (TEST_HELPER.test(rel)) continue;
+    if (!plant && allowed.has(rel)) continue;
     const consumers = commonLayerConsumers(rel, reverseEdges);
     if (consumers.size < 2) violations.push({ file: rel, module: moduleOf, consumers: [...consumers] });
   }
   return violations;
+}
+
+// Rule 9 allowlist entries that no longer point at a violating file (the file
+// moved, was deleted, or gained a second consumer): they must be removed.
+export function staleRule9Allowlist() {
+  const { edges } = buildEdges();
+  const reverseEdges = reverseEdgeMap([...edges, ...astroScriptSrcEdges()]);
+  return loadRule9Allowlist().filter((entry) => {
+    if (!fs.existsSync(path.join(ROOT, entry.file))) return true;
+    return commonLayerConsumers(entry.file, reverseEdges).size >= 2;
+  });
 }
 
 // Kept last so every helper above (including rule 7's) is defined before
