@@ -165,6 +165,7 @@ export const ALWAYS_GUARD_STEPS = [
   'test:module-boundaries',
   'test:ratchet-raises',
   'test:size-ratchet',
+  'test:e2e-sleeps',
   'test:gesture-golden-rule',
   'test:swallowed-errors',
   'test:navigating-away',

@@ -159,6 +159,9 @@ jobs:
     - name: Verify size ratchet
       run: npm run test:size-ratchet
 
+    - name: Verify e2e sleep ratchet
+      run: npm run test:e2e-sleeps
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
