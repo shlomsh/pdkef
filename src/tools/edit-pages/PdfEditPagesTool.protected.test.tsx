@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
+import * as editPagesLib from './lib/editPages.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -90,6 +91,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     ['needs-password', 'This PDF has a password'],
     ['owner-only', 'This PDF is protected'],
   ])('%s shows the unlock state and no page grid', async (name, title) => {
+    const editPagesSpy = vi.spyOn(editPagesLib, 'editPages');
     await pick(fixtureFile(name));
 
     expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
@@ -98,8 +100,10 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     expect(buttons()).toContain('Unlock it');
     expect(container.querySelector('ul[data-page-grid]')).toBeNull();
     expect(container.textContent).not.toMatch(/Could not edit|Undo|Download/);
-    // Nothing was built.
+    // Nothing was built, and the export never ran.
+    expect(editPagesSpy).not.toHaveBeenCalled();
     expect(harness.createdBlobs()).toHaveLength(0);
+    editPagesSpy.mockRestore();
   });
 
   it('records the kind each protected fixture gets', async () => {
