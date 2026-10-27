@@ -10,6 +10,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+- [QUAL-30](backlog/tasks/QUAL-30.md) P2 · merge-ready-time guards the wait and the poll, not the merge (in progress)
 
 ### Unify the tools, narrow the graph
 
