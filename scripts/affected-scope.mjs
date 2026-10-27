@@ -101,7 +101,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
-import { buildReachGraph } from './import-graph.mjs';
+import { buildReachGraph, importSpecifiers } from './import-graph.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -126,6 +126,54 @@ export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib', 'data', 
 // scripts/affected-scope.test.mjs and scripts/change-scope.test.mjs may
 // narrow like any other tooling file.
 export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs', 'scripts/import-graph.mjs']);
+
+// QUAL-32 follow-up: a file the production build executes shapes dist/ (the precache manifest, the
+// service worker build id, repo-only pruning), which e2e/offline and the rest of the suite exercise,
+// yet it lives in the `tooling` project that no e2e project depends on. So it is wide, like the
+// oracle. The set is derived, not listed: every `node <file>` in package.json's `build` script, plus
+// everything those reach through relative imports, transitively. `readFile(rel)` returns the text or
+// null/undefined when the file does not exist.
+export function buildPipelineFiles(packageJsonText, readFile) {
+  let build = '';
+  try {
+    build = JSON.parse(packageJsonText)?.scripts?.build ?? '';
+  } catch {
+    return new Set();
+  }
+  const found = new Set();
+  const queue = [...build.matchAll(/\bnode\s+((?:\.\/)?[\w./-]+\.[cm]?[jt]s)\b/g)].map((m) => m[1].replace(/^\.\//, ''));
+  const resolve = (from, spec) => {
+    const base = join(dirname(from), spec).split('\\').join('/');
+    const stem = base.replace(/\.[cm]?[jt]sx?$/, '');
+    const candidates = [base, ...['.mjs', '.js', '.ts', '.tsx', '.jsx'].flatMap((e) => [stem + e, base + e, `${base}/index${e}`])];
+    return candidates.find((c) => readFile(c) != null) ?? null;
+  };
+  while (queue.length > 0) {
+    const file = queue.pop();
+    if (found.has(file)) continue;
+    const source = readFile(file);
+    if (source == null) continue;
+    found.add(file);
+    for (const spec of importSpecifiers(source, file)) {
+      if (!spec.startsWith('.')) continue;
+      const target = resolve(file, spec);
+      if (target) queue.push(target);
+    }
+  }
+  return found;
+}
+
+let realBuildFiles = null;
+function realBuildPipelineFiles() {
+  realBuildFiles ??= buildPipelineFiles(readFileSync(join(ROOT, 'package.json'), 'utf8'), (rel) => {
+    try {
+      return readFileSync(join(ROOT, rel), 'utf8');
+    } catch {
+      return null;
+    }
+  });
+  return realBuildFiles;
+}
 
 // ARCH-23 (2026-09-18, owner's decision on backlog/tasks/ARCH-23.md): the 27
 // font screening guards (now 25 - the export render guard and language
@@ -369,7 +417,7 @@ export function narrowByReachability({
 // run. No `nx`/`git` call in here - scripts/affected-scope.test.mjs exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
-export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null }) {
+export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null }) {
   // An empty list means "none were found", never "no site-wide spec exists": use the old floor.
   const siteE2eProjects = projectList?.length ? projectList : null;
   const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f));
@@ -380,6 +428,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   const oracleFiles = files.filter((f) => ORACLE_FILES.has(f));
   if (oracleFiles.length > 0) {
     return wide(affected, `CI oracle changed: ${oracleFiles.join(', ')}`);
+  }
+
+  const pipeline = changedBuildFiles(buildFiles, files);
+  if (pipeline.length > 0) {
+    return wide(affected, `build pipeline: ${pipeline.join(', ')}`);
   }
 
   const affectedSet = new Set(affected);
@@ -420,6 +473,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     exportGuards: affectedSet.has('export-guards'),
     reason: `narrowed to ${toolProjects.join(', ') || '(no tool project; site-e2e/fonts only)'}`,
   });
+}
+
+function changedBuildFiles(buildFiles, files) {
+  const set = buildFiles ?? realBuildPipelineFiles();
+  return files.filter((f) => set.has(f));
 }
 
 // ARCH-34: the floor of a narrowed core verdict used to be every site-wide spec. `projects` is the
