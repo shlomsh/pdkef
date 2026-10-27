@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 107 live: 12 up next, 22 then, 26 waiting, 47 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 106 live: 11 up next, 22 then, 26 waiting, 47 parked.
 
 ## Redact: finish removal
 
@@ -70,7 +70,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 | MEM-21 | P3 | [MEM-21](backlog/tasks/MEM-21.md) · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB | In progress |
@@ -243,7 +242,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 66 done, 4 retired
+- Robustness and debt: 67 done, 4 retired
 - Unify the tools, narrow the graph: 57 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 19 done, 1 retired
