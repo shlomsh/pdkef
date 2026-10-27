@@ -1,5 +1,6 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
+import type { PageToolMessages } from '../../shell/pageWorkspace/pageGridMessages.ts';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /* Edit Pages' one English catalogue: the slices the shared page grid, the
@@ -8,34 +9,18 @@ import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
    and say "skip" / "edited" where Merge says "merged"; the grid's sentence
    shapes are unchanged. English only until a Hebrew edition exists. */
 
-export interface EditPagesMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
-  includeAll: string;
-  skipAll: string;
+export interface EditPagesMessages extends PageGridMessages, PageToolMessages, DownloadMessages, HistoryButtonsMessages {
   invert: string;
   addPageNumbers: string;
   touchDragHint: string;
-  documentHeading: string;
   fileNameEditableLabel: string;
-  downloadShort: string;
   editedReady: string;
-  sharedSuccessfully: string;
-  sharingCanceled: string;
-  shareError: string;
-  undoneAnnouncement: string;
-  redoneAnnouncement: string;
-  allIncluded: string;
   allSkipped: string;
-  inverted: string;
   loadingStructure: string;
-  loaded: string;
-  loadFailed: string;
-  announceNeedsPassword: string;
   announceRestricted: string;
-  closeStrip: string;
   handoffCompress: string;
   handoffSign: string;
   handoffFailed: string;
-  shareLabel: string;
   /* The load-failure line: a protected PDF opens in Unlock first. */
   failureLead: string;
   failureUnlock: string;

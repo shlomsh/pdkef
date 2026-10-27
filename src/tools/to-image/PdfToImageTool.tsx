@@ -1,10 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
-import { isPdfFile } from '../../lib/fileKind.js';
-import { includeAll, includedPageNumbers, invert, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
-import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
+import { useMemo, useRef, useState } from 'preact/hooks';
+import { includedPageNumbers, planKey, type PlanEntry } from '../../lib/pagePlan.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
@@ -29,7 +26,8 @@ import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/use
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import type { CellAction } from '../../shell/pageGrid/PageGrid.tsx';
-import { thumbnailPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { thumbnailPdfLoader } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { usePageToolSession } from '../../shell/pageWorkspace/usePageToolSession.ts';
 import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
 import { imageBaseName, imageExtension, imageFileName } from './toImage.js';
@@ -43,12 +41,6 @@ import styles from './PdfToImageTool.module.css';
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
-
-interface ImageDocument {
-  plan: PlanEntry[];
-}
-
-const EMPTY_DOCUMENT: ImageDocument = { plan: [] };
 
 export interface PdfToImageToolProps {
   /** Server-rendered by its src/pages/[locale]/<tool>.astro route for a localized
@@ -71,40 +63,28 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
 
-  const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<ImageDocument>(
-    EMPTY_DOCUMENT,
-    { tool: 'pdf-to-image', announce: setAnnouncement, messages: { undone: t.undoneAnnouncement, redone: t.redoneAnnouncement } },
-  );
-  const { plan } = present;
-
-  // The one open path (src/shell/pageWorkspace/useOpenPageDocument.ts). Only a password stops
-  // pdf.js; an owner-restricted file renders and converts as it is.
-  const { file, pageCount, loadId, loadStatus, needsUnlock, open } = useOpenPageDocument({
+  // The shared page-tool session (src/shell/pageWorkspace/usePageToolSession.ts): history, the one
+  // open path, PDF filtering, hand-off intake and the bulk actions. Only a password stops pdf.js;
+  // an owner-restricted file renders and converts as it is.
+  const {
+    present, canUndo, canRedo, onPlanChange, handleUndo, handleRedo,
+    file, pageCount, loadId, loadStatus, needsUnlock,
+    handleFilesAdded, onIncludeAll, onSkipAll, onInvert, onSelectPages,
+  } = usePageToolSession({
+    tool: 'pdf-to-image',
     loader: thumbnailPdfLoader,
     unlockKinds: ['needs-password'],
-    messages: { needsPassword: t.announceNeedsPassword, loaded: t.loaded, loadFailed: t.loadFailed },
+    messages: t,
     announce: setAnnouncement,
     onPick: () => {
       resetDownloadFlowRef.current();
       setRenderedCount(0);
       // Format, quality and output are the person's choices and outlast a replaced file.
-      // A new file starts a fresh document: reset (not commit) so the previous
-      // file's undo/redo stacks don't leak across files.
-      reset(EMPTY_DOCUMENT);
     },
-    onLoaded: ({ pageCount: count }) => reset({ plan: planForFile(FILE_ID, count) }),
   });
+  const { plan } = present;
   useHoldUpdate(file !== null, 'open');
   const PageGrid = useLazyPageGrid(file !== null);
-
-  const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
-    const pdfs = Array.from(fileList).filter((f) => isPdfFile(f));
-    if (pdfs.length === 0) return;
-    await open(pdfs[0]);
-  }, [open]);
-
-  // SITE-42: a PDF picked on the home page arrives as a hand-off and takes the path a manual pick takes.
-  useHandoffIntake('pdf-to-image', (f) => handleFilesAdded([f]));
 
   const sources = useMemo(
     () => (file ? [{ id: FILE_ID, file, pageCount, error: null }] : []),
@@ -154,21 +134,6 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
     tap, downloadState, shareReady, onDownloadTap, onPartSaved, onRowPreparingTap, handleShare, reset: resetDownloadFlow,
   } = downloadFlow;
   resetDownloadFlowRef.current = resetDownloadFlow;
-
-  // A bulk action is one step, and none at all when it changes nothing.
-  const bulk = (update: (current: PlanEntry[]) => PlanEntry[], message: string) => () => {
-    if (update(plan) === plan) return;
-    onPlanChange(update);
-    recordAction('select_pages');
-    setAnnouncement(message);
-  };
-  const onIncludeAll = bulk(includeAll, t.allIncluded);
-  const onSkipAll = bulk(skipAll, t.allSkipped);
-  const onInvert = bulk(invert, t.inverted);
-
-  const onSelectPages = useCallback((numbers: number[], options: { merge: boolean }) => {
-    onPlanChange((current) => withIncludedPages(current, numbers), options);
-  }, [onPlanChange]);
 
   const changeSetting = <T,>(current: T, next: T, set: (value: T) => void) => {
     if (next === current) return;
