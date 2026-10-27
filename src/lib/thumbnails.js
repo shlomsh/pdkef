@@ -147,6 +147,14 @@ function openPhotoSource(file) {
   let destroyed = false;
   return {
     pageCount: 1,
+    async aspects() {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      try {
+        return [bitmap.width / bitmap.height];
+      } finally {
+        bitmap.close();
+      }
+    },
     async render(pageIndex, opts = {}) {
       if (destroyed) throw new Error('openThumbnailSource: render() called after destroy()');
       if (pageIndex !== 0) throw new RangeError(`A photo has one page, asked for index ${pageIndex}`);
@@ -278,6 +286,17 @@ export async function openThumbnailSource(file) {
 
   return {
     pageCount: pdf.numPages,
+    /* Each page's width / height as its thumbnail will show it (the viewport
+       carries /Rotate), read without rendering, so a grid can lay out its
+       final cells before the first thumbnail lands. */
+    async aspects() {
+      const result = [];
+      for (let number = 1; number <= pdf.numPages && !destroyed; number += 1) {
+        const { width, height } = (await pdf.getPage(number)).getViewport({ scale: 1 });
+        result.push(width / height);
+      }
+      return result;
+    },
     async render(pageIndex, opts = {}) {
       // A destroyed source's loading task is gone; rendering against it would
       // hand pdf.js a torn-down document instead of failing loudly here.

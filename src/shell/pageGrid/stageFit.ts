@@ -77,15 +77,20 @@ export function rasterWidthForItem(cell: number, span: 1 | 2, gap: number, devic
   return rasterWidthFor(span === 2 ? 2 * cell + gap : cell, devicePixelRatio);
 }
 
-export const FIT_PATIENCE_MS = 400;
+/* A safety cap, not the usual way out: page sizes are read for every page, so the fit settles
+   when that read ends. It was 400ms while aspects only came from thumbnails near the viewport;
+   a slow device took longer than that to boot pdf.js, and the refit that followed shifted the
+   grid (DEBT-65, 0.05). */
+export const FIT_PATIENCE_MS = 3000;
 
 /* MERGE-24 (2026-10-23, every width 2026-10-24): whether the page grid may show. Page aspects
    arrive after the PDFs are inspected, and each one can change a span and so the
    fitted cell, so a grid shown earlier shifts twice. It shows once every page's
-   aspect is known and the cell is measured for them, or after the patience runs
-   out (a long plan never learns the aspects of pages that stay off screen). */
-export function fitSettled(input: { known: number; total: number; elapsed: number; measured: boolean }): boolean {
+   aspect is known and the cell is measured for them, or once the page-size read
+   has ended (`probing` false: an unreadable file never reports sizes) or after
+   the patience runs out. */
+export function fitSettled(input: { known: number; total: number; elapsed: number; measured: boolean; probing?: boolean }): boolean {
   if (input.total <= 0) return false;
   if (input.elapsed >= FIT_PATIENCE_MS) return true;
-  return input.measured && input.known >= input.total;
+  return input.measured && (input.known >= input.total || input.probing === false);
 }

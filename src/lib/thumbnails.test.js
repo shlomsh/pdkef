@@ -225,6 +225,15 @@ describe('thumbnails.js', () => {
       expect(await second.render(0)).toBe('data:image/png;base64,x');
     });
 
+    it('reports every page\'s aspect from its size, without rendering (DEBT-65)', async () => {
+      const { openThumbnailSource } = await import('./thumbnails.js');
+      const source = await openThumbnailSource(new File([], 'a.pdf'));
+      mockState.getPageCalls.length = 0;
+
+      expect(await source.aspects()).toEqual([PAGE_WIDTH / PAGE_HEIGHT, PAGE_WIDTH / PAGE_HEIGHT, PAGE_WIDTH / PAGE_HEIGHT]);
+      expect(mockState.getPageCalls).toEqual([1, 2, 3]);
+    });
+
     it('rejects a render() call made after destroy()', async () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
       const file = new File([], 'test.pdf');
