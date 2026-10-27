@@ -1,10 +1,10 @@
-import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
-import { searchTargetSize, MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
-import { canvasToBlob } from '../../lib/canvasBlob.js';
-import { getPdfLib } from '../../lib/pdfLib.js';
-import { getPdfjs } from '../../lib/loadPdfjs.js';
-import { renderPageToCanvas } from '../../lib/renderPage.js';
-import { toBytes } from '../../lib/toBytes.js';
+import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
+import { searchTargetSize, MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_SEARCH_MS } from '../../../lib/targetSizeSearch.js';
+import { canvasToBlob } from '../../../lib/canvasBlob.js';
+import { getPdfLib } from '../../../lib/pdfLib.js';
+import { getPdfjs } from '../../../lib/loadPdfjs.js';
+import { renderPageToCanvas } from '../../../lib/renderPage.js';
+import { toBytes } from '../../../lib/toBytes.js';
 
 /**
  * Compresses a PDF file 100% client-side by rasterizing its pages.

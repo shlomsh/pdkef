@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { startGesture } from '../../lib/gestures/controller.ts';
-import { formatMessage } from '../../lib/formatMessage';
-import { englishCompressMessages } from './messages';
+import { startGesture } from '../../../lib/gestures/controller.ts';
+import { formatMessage } from '../../../lib/formatMessage';
+import { englishCompressMessages } from '../messages';
 import styles from './CompareSlider.module.css';
 
 interface CompareSliderProps {

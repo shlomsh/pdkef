@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { mergedFileName } from '../../tools/merge/mergePlan.ts';
+import { mergedFileName } from '../../tools/merge/lib/mergePlan.ts';
 import { outputFileName as splitName } from '../../tools/split/lib/split.js';
-import { compressedFileName } from '../../tools/compress/outputName.ts';
+import { compressedFileName } from '../../tools/compress/lib/outputName.ts';
 import { modifiedTitle } from '../../tools/edit-pages/lib/outputName.ts';
 import { outputFileName as securityName } from '../../tools/security/lib/outputName.ts';
 import { signedFileName } from '../../tools/sign/lib/signedFileName.ts';

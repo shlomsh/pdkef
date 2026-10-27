@@ -21,7 +21,7 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/tools/split/PdfSplitTool.tsx:277 | Load PDF into split tool | DEFECT | pdf.js load threw; filter PasswordException/InvalidPDFException by name; [surfaced: status error + console.error] | pdf_render |
 | src/tools/split/PdfSplitTool.tsx:293 | Destroy abandoned pdf.js loading task | EXPECTED | best-effort cleanup, comment says nothing actionable | |
 | src/tools/split/PdfSplitTool.tsx:464 | Hand split result to Compress | EXPECTED | failure origin is saveHandoff (reports itself); catch mostly fires on its synthetic `Error('handoff')`; [surfaced: handoffFailed state] | |
-| src/tools/compress/compressImage.js:63 | Decode image via ImageBitmap | EXPECTED | feature fallback to <img> decode path | |
+| src/tools/compress/lib/compressImage.js:63 | Decode image via ImageBitmap | EXPECTED | feature fallback to <img> decode path | |
 | src/tools/compress/PdfCompressTool.tsx:224 | Render before/after compare previews | DEFECT | renderer threw on our own output; [surfaced: compareStatus error + console.error] | pdf_render |
 | src/tools/compress/PdfCompressTool.tsx:365 | Compress PDF or image | DEFECT | compression step threw; [surfaced: status error + console.error] | pdf_tool_run |
 | src/tools/merge/PdfMergeTool.tsx:63 | Detect contentEditable plaintext-only | EXPECTED | feature detect | |
@@ -35,10 +35,10 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/tools/merge/PdfMergeTool.tsx:636 | Render first-page thumbnail of added file | EXPECTED | decoration; encrypted/malformed user PDFs fail pdf.js by design (see unsure) | |
 | src/tools/merge/PdfMergeTool.tsx:1065 | Show PWA install prompt | EXPECTED | optional browser API, user may dismiss | |
 | src/tools/merge/PdfMergeTool.tsx:1095 | Hand merged PDF to Compress/Sign | EXPECTED | origin is saveHandoff (reports itself) or its synthetic throw; [surfaced: handoffFailed state] | |
-| src/tools/merge/merge.js:95 | Read PDF creation date for sorting | EXPECTED | contract is resolve-null; unreadable file just sorts without a date | |
+| src/tools/merge/lib/merge.js:95 | Read PDF creation date for sorting | EXPECTED | contract is resolve-null; unreadable file just sorts without a date | |
 | src/tools/merge/components/PagePreviewDialog.tsx:93 | Render large page preview | DEFECT | renderer threw on a loaded doc; must skip AbortError (signal aborted on close) | pdf_render |
-| src/tools/merge/components/usePreparedMerge.ts:98 | Build merged PDF | DEFECT | export step threw (AbortError already filtered); [surfaced: state error + console.error] | merge |
-| src/tools/merge/components/useMergeDraft.ts:260 | Save merge draft | DEFECT | saveDraft rejected (it normally returns false); a throw here is our code; result becomes "not saved" | drafts |
+| src/tools/merge/hooks/usePreparedMerge.ts:98 | Build merged PDF | DEFECT | export step threw (AbortError already filtered); [surfaced: state error + console.error] | merge |
+| src/tools/merge/hooks/useMergeDraft.ts:260 | Save merge draft | DEFECT | saveDraft rejected (it normally returns false); a throw here is our code; result becomes "not saved" | drafts |
 | src/tools/merge/components/PageStrip.tsx:167 | Destroy released pdf.js source | EXPECTED | best-effort cleanup | |
 | src/tools/merge/components/PageStrip.tsx:214 | Render one page thumbnail in strip | DEFECT | pdf.js page render threw on a doc that loaded; skip aborts (check aborted before) | pdf_render |
 | src/tools/merge/components/PageStrip.tsx:379 | Lazy-load PagePreviewDialog chunk | DEFECT | dynamic import failed, preview never opens | chunk_load |

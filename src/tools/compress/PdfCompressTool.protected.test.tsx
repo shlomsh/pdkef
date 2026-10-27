@@ -5,9 +5,9 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfCompressTool from './PdfCompressTool.tsx';
-import * as compressLib from './compress.js';
-import * as imagesLib from './compressImages.js';
-import * as imageLib from './compressImage.js';
+import * as compressLib from './lib/compress.js';
+import * as imagesLib from './lib/compressImages.js';
+import * as imageLib from './lib/compressImage.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { hebrewCompressMessages } from './messages';
@@ -26,16 +26,16 @@ vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   takeHandoff: vi.fn(async () => null),
   saveHandoff: vi.fn(async () => true),
 }));
-vi.mock('./compress.js', () => ({
+vi.mock('./lib/compress.js', () => ({
   compressPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }))),
   compressPdfToTarget: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }), metTarget: true })),
 }));
-vi.mock('./compressImage.js', () => ({
+vi.mock('./lib/compressImage.js', () => ({
   compressImageToTarget: vi.fn(() => Promise.resolve({
     blob: new Blob(['jpeg'], { type: 'image/jpeg' }), metTarget: true, width: 8, height: 6, originalWidth: 16, originalHeight: 12,
   })),
 }));
-vi.mock('./compressImages.js', () => ({
+vi.mock('./lib/compressImages.js', () => ({
   IMAGE_LEVELS: { high: { maxLongSidePx: 1000, quality: 0.4 }, medium: { maxLongSidePx: 1600, quality: 0.6 }, low: { maxLongSidePx: 2400, quality: 0.8 } },
   compressPdfImages: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-images'], { type: 'application/pdf' }), reason: 'smaller' })),
   compressPdfImagesToTarget: vi.fn(),
