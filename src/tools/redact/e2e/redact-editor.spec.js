@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
-import { PDFDocument, StandardFonts, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
+import { PDFDocument, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
 import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
-import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { makePdfBuffer as buildPdf, helveticaWidth, makeHelveticaLinesPdf, makeRedHalfConfidentialPdf, makeMarkedPdf } from '../../../../e2e/support/pdf.js';
 import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // Reads a saved page's own content stream the same way deleteObjects.js does,
@@ -867,15 +867,11 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
   // stubbed canvas. A covered page is saved as one picture with no text
   // layer at all (2026-09-28), whether or not a box lands on any of its text.
   test('download after a blackout over a middle word saves the covered page with no text at all', async ({ page }) => {
-    const doc = await PDFDocument.create();
-    const pdfPage = doc.addPage([612, 792]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
     const size = 24;
     const baseline = 400;
-    pdfPage.drawText('LEFT MIDDLE RIGHT', { x: 72, y: baseline, size, font });
-    const x0 = 72 + font.widthOfTextAtSize('LEFT ', size) + 2;
-    const x1 = 72 + font.widthOfTextAtSize('LEFT MIDDLE', size) + 1;
-    await openRedactTool(page, Buffer.from(await doc.save()));
+    const x0 = 72 + await helveticaWidth('LEFT ', size) + 2;
+    const x1 = 72 + await helveticaWidth('LEFT MIDDLE', size) + 1;
+    await openRedactTool(page, await makeHelveticaLinesPdf([{ text: 'LEFT MIDDLE RIGHT', x: 72, y: baseline, size }]));
 
     await drawRedaction(
       page,
@@ -903,17 +899,15 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
   // term, offer "Cover it", and clear itself once that cover makes the export
   // stale again.
   test('the saved-file check finds an uncovered repeat of a boxed word and Cover it covers it', async ({ page }) => {
-    const doc = await PDFDocument.create();
-    const pdfPage = doc.addPage([612, 792]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
     const size = 18;
     const baseline1 = 700;
     const baseline2 = 660;
-    pdfPage.drawText('SECRET alpha', { x: 72, y: baseline1, size, font });
-    pdfPage.drawText('bravo SECRET charlie', { x: 72, y: baseline2, size, font });
     const x0 = 72 - 2;
-    const x1 = 72 + font.widthOfTextAtSize('SECRET', size) + 1;
-    await openRedactTool(page, Buffer.from(await doc.save()));
+    const x1 = 72 + await helveticaWidth('SECRET', size) + 1;
+    await openRedactTool(page, await makeHelveticaLinesPdf([
+      { text: 'SECRET alpha', x: 72, y: baseline1, size },
+      { text: 'bravo SECRET charlie', x: 72, y: baseline2, size },
+    ]));
 
     await drawRedaction(
       page,
@@ -952,12 +946,7 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
   // black; only the blur-over-red region, which the Blackout never touched,
   // may show red through.
   test('exported picture: a blur overlapping a blackout leaves the blackout solid', async ({ page }) => {
-    const doc = await PDFDocument.create();
-    const pdfPage = doc.addPage([612, 792]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    pdfPage.drawRectangle({ x: 0, y: 396, width: 612, height: 396, color: rgb(1, 0, 0) });
-    pdfPage.drawText('CONFIDENTIAL', { x: 420, y: 750, size: 20, font, color: rgb(0, 0, 0) });
-    await openRedactTool(page, Buffer.from(await doc.save()));
+    await openRedactTool(page, await makeRedHalfConfidentialPdf());
 
     // Blackout, then a Blur whose right half overlaps it and extends past it.
     // The drag must start off the just-drawn (and now selected) Blackout box,
@@ -1023,21 +1012,12 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     // guard disabled). That guard is for a file that arrives with deletions
     // already queued, a reopened draft. The colour square is the only difference between the two fixtures, and
     // is what proves which file's bytes the canvas is actually showing.
-    async function makeMarkedPdfBuffer(markerColor) {
-      const doc = await PDFDocument.create();
-      const pdfPage = doc.addPage([300, 400]);
-      const font = await doc.embedFont(StandardFonts.Helvetica);
-      pdfPage.drawText('AAAA 111', { x: 40, y: 320, size: 20, font, color: rgb(0, 0, 0) });
-      pdfPage.drawText('BBBB 222', { x: 40, y: 80, size: 20, font, color: rgb(0, 0, 0) });
-      pdfPage.drawRectangle({ x: 220, y: 20, width: 40, height: 40, color: markerColor });
-      return Buffer.from(await doc.save());
-    }
     // Fixed from the fixtures' own known PDF-point geometry (not a delete
     // candidate, so there is no DOM element to measure).
     const MARKER_RATIO = { left: 220 / 300, top: (400 - 60) / 400, width: 40 / 300, height: 40 / 400 };
 
-    const fileA = await makeMarkedPdfBuffer(rgb(0.8, 0, 0));
-    const fileB = await makeMarkedPdfBuffer(rgb(0, 0, 0.8));
+    const fileA = await makeMarkedPdf(rgb(0.8, 0, 0));
+    const fileB = await makeMarkedPdf(rgb(0, 0, 0.8));
 
     await openRedactTool(page, fileA);
     await selectRedactStyle(page, 'Delete');
