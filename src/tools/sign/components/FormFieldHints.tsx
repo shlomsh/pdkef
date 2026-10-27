@@ -58,13 +58,14 @@ export default function FormFieldHints({ regions, kind, pageIndex, aimedKey = nu
   return (
     <div className={styles['field-hints']} aria-hidden="true">
       {pageRegions.map((region) => {
+        const hintKind = kind === 'comb' && (region as CombRegion).boxed ? undefined : kind;
         const aimed = aimedKey !== null && boxKey(region) === aimedKey;
         return (
           <span
             key={`${region.left}-${region.top}-${region.width}`}
             className={`${styles['field-hint']} ${modifierClass(region)}${aimed ? ` ${styles['field-hint-aimed']}` : ''}`}
             data-aimed={aimed || undefined}
-            data-hint-kind={kind === 'comb' && (region as CombRegion).boxed ? undefined : kind}
+            data-hint-kind={hintKind}
             style={{
               left: `${region.left}%`,
               top: `${region.top}%`,
