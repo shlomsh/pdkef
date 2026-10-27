@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* Direction A (2026-09-13): MERGE-06, re-measured at 375 x 812 (the size the
    critique used) against the rebuilt phone layout - a horizontally
@@ -18,13 +19,6 @@ async function useMobileViewport(page, testInfo) {
   if (testInfo.project.name === 'chromium') {
     await page.setViewportSize({ width: 375, height: 812 });
   }
-}
-
-async function makePdfBuffer(label) {
-  const document = await PDFDocument.create();
-  document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
 }
 
 async function makeMultiPagePdfBuffer(label, pageCount) {

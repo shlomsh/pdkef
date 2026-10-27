@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* MEM-02: mirrors sign-draft-restore.spec.js - see its header comment for why
    this needs a real browser rather than jsdom, and for the shape of what it
@@ -10,14 +10,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
    pointer moved. */
 test.use({ serviceWorkers: 'block' });
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText(label, { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  page.drawText('Hide this: 1234-5678', { x: 72, y: 690, size: 12, font, color: rgb(0.25, 0.25, 0.25) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label }, { text: 'Hide this: 1234-5678', y: 690, size: 12, gray: 0.25 }] });
 
 async function openRedactTool(page, buffer, fileName) {
   await page.addInitScript(() => { localStorage.clear(); });

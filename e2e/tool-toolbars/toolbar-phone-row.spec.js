@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { openTool as openSharedTool } from '../support/tool.js';
 
 /* The editor card on a phone (Shlomi, 2026-09-17: "the app toolbar is taking
    too much space in mobile"). It is sticky, so its height comes straight off
@@ -21,23 +22,11 @@ const PHONE = { width: 390, height: 844 };
 // card's own padding. Before the phone row landed the same card measured ~250.
 const MAX_CARD_HEIGHT = 170;
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Phone toolbar row fixture', { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Phone toolbar row fixture' }] });
 
-async function openTool(page, toolPath, fixtureName) {
-  await page.goto(toolPath);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Choose file', { exact: true }).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles({ name: fixtureName, mimeType: 'application/pdf', buffer: await makePdfBuffer() });
-  await expect(page.locator('[role="toolbar"]')).toBeVisible();
-}
+const openTool = async (page, toolPath, fixtureName) => {
+  await openSharedTool(page, toolPath, { file: { name: fixtureName, buffer: await makePdfBuffer() }, expectToolbar: true });
+};
 
 const rect = (locator) => locator.evaluate((el) => {
   const r = el.getBoundingClientRect();

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from './support/pdf.js';
 
 /*
  * Split, Compress, PDF to Image, Image to PDF and Edit Pages are only ever
@@ -19,11 +19,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  doc.addPage([300, 300]);
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, size: [300, 300] });
 
 // A real PNG (not just a file with an image/png MIME type) so Image to PDF's
 // pdf.embedPng() - which parses the bytes - has something valid to embed.

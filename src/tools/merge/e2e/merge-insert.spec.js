@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* Direction A (2026-09-13): MERGE-07's insertion line still paints, on the
    rail's file rows, at 1024px and up. The rail's file list is now a plain
@@ -10,13 +10,6 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    `dragover`/`drop` handling in PdfMergeTool.tsx that paints
    `data-insert-before` is unchanged. Synthesized here with an in-page
    DataTransfer per docs/troubleshooting.md's drag-and-drop guidance. */
-
-async function makePdfBuffer(label) {
-  const document = await PDFDocument.create();
-  document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
 
 function rows(page) {
   return page.locator('ul[class*="file-list"] > li[class*="file-row"]');

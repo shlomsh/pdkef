@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 // RED-66: the toolbar Download finishes where the person is looking. The strip
 // hangs under the sticky toolbar card, so whether the result, both hand-offs and
@@ -7,15 +7,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 // offset, the strip's absolute placement, the phone toolbar's height), which
 // jsdom cannot measure.
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  for (let i = 0; i < 2; i += 1) {
-    const page = doc.addPage([612, 792]);
-    page.drawText(`Done strip fixture, page ${i + 1}`, { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  }
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, pages: 2, lines: (i) => [{ text: `Done strip fixture, page ${i + 1}` }] });
 
 async function openWithOneBox(page) {
   // A fresh device: the rating ask's 14-day cadence allows it.
