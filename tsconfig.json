@@ -1,6 +1,6 @@
 {
   "extends": "astro/tsconfigs/base",
-  "compilerOptions": { "strict": true },
+  "compilerOptions": { "strict": true, "noUnusedLocals": true, "noUnusedParameters": true },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "public/pdfjs-dist-wasm"]
 }

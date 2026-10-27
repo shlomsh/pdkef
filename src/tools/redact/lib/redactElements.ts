@@ -1,4 +1,4 @@
-import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, RedactToolType, ColorMode } from '../../../editor/model/editorModel.ts';
+import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, ColorMode } from '../../../editor/model/editorModel.ts';
 import type { DeleteElement } from '../../../editor/registry/draftValidation.ts';
 
 /**

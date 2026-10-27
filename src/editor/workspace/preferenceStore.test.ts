@@ -353,8 +353,7 @@ describe('recent whiteout colours (RED-53)', () => {
 
   it('remembers colours across reads, most recent first, capped at three', () => {
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
-    let list: string[] = [];
-    for (const c of ['#111111', '#222222', '#333333', '#444444']) list = rememberRecentWhiteoutColor(c, getRecentWhiteoutColors({ userScope: scope }), { userScope: scope });
+    for (const c of ['#111111', '#222222', '#333333', '#444444']) rememberRecentWhiteoutColor(c, getRecentWhiteoutColors({ userScope: scope }), { userScope: scope });
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#444444', '#333333', '#222222']);
     expect(JSON.parse(localStorage.getItem(key) as string).schemaVersion).toBe(1);
   });

@@ -4,7 +4,6 @@ import { reportEdit } from '../../../lib/productAnalytics.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
 import { deriveFileKind } from '../../../lib/fileKind.js';
 import { moveEntry } from '../../../lib/pageOrder.js';
-import { planForFile } from '../../../lib/pagePlan.ts';
 import { renderThumbnail } from '../../../lib/thumbnails.js';
 import { formatMessage } from '../../../lib/formatMessage';
 import { reportError } from '../../../lib/errorReport.ts';

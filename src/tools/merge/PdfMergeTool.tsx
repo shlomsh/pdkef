@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
+import { useCallback, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { markArrival } from '../../lib/fileArrival.ts';
 import { MergeFileError } from './lib/merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.ts';

@@ -3023,7 +3023,7 @@ describe('PdfRedactTool UI flow', () => {
     // both the other found box on this page AND its own copies on other
     // pages, as one undo step.
     it('a found box that is also repeated: changing it updates the other found boxes and its copies on other pages, as one undo step', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea();
       await openFindAndSearch('jane doe');
       await chooseRedactStyle('Blur');
       await clickRedactAll();

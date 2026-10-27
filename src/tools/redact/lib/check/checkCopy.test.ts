@@ -5,8 +5,6 @@ import {
   canCover,
   canRemove,
   removedMessage,
-  COVER_IT,
-  COVER_IT_NOTE,
   findingText,
   pageList,
   picturePagesNote,
