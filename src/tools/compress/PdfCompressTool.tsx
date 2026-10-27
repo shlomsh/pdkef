@@ -236,10 +236,8 @@ export default function PdfCompressTool({
       encryptionCheck.invalidate();
       setAnalysis(null);
       if (deriveFileKind(next) === 'pdf') {
-        // reason: checkEncryption catches and reports its own failure
-        void checkEncryption(next);
-        // reason: analyze catches and reports its own failure
-        void analyze(next);
+        void checkEncryption(next); // reason: checkEncryption catches and reports its own failure
+        void analyze(next); // reason: analyze catches and reports its own failure
       } else {
         compare.loadOriginal(next);
         openGate();

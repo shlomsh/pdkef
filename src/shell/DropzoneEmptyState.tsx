@@ -98,9 +98,7 @@ export default function DropzoneEmptyState({
     // MERGE-10: a dropped folder yields its files (walked, sorted by name);
     // a plain drop keeps the synchronous path.
     if (dropHasDirectory(event.dataTransfer)) {
-      filesFromDataTransfer(event.dataTransfer)
-        .then((files) => onFiles(files, 'drop'))
-        .catch((err) => reportError('pdf_tool_run', err, 'read_dropped_folder'));
+      filesFromDataTransfer(event.dataTransfer).then((files) => onFiles(files, 'drop')).catch((err) => reportError('pdf_tool_run', err, 'read_dropped_folder'));
       return;
     }
     onFiles(event.dataTransfer.files, 'drop');

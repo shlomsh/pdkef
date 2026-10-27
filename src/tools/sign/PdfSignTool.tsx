@@ -857,8 +857,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       return;
     }
 
-    // reason: runExport catches its own failure and shows it
-    void runExport((signedBlob, filename) => {
+    void runExport((signedBlob, filename) => { // reason: runExport catches its own failure and shows it
       recordAction('download');
       download(signedBlob, filename);
       lifecycleDispatch({
@@ -920,8 +919,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       handedOn = true;
       const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
       lifecycleDispatch({ type: 'EXPORT_FINISHED', signedExport: made });
-      // reason: carryOn catches its own failure and shows the hand-off error
-      void carryOn(tool, made);
+      void carryOn(tool, made); // reason: carryOn catches its own failure and shows the hand-off error
     });
     // A failed or superseded export hands nothing on: runExport shows its own error.
     if (!handedOn) setHandoffBusy(false);
@@ -947,8 +945,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   useEffect(() => {
     if (!file || !signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })) return;
     const timer = setTimeout(() => {
-      // reason: runExport catches its own failure and shows it
-      void runExport((signedBlob, filename) => {
+      void runExport((signedBlob, filename) => { // reason: runExport catches its own failure and shows it
         if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
       }, { speculative: true });
     }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
@@ -1031,10 +1028,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
                 handoffExport={handoffBusy || signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })}
                 handoffBusy={handoffBusy}
                 handoffFailed={handoffFailed}
-                onHandoff={(tool) => {
-                  // reason: requestHandoff catches its own failure and shows the hand-off error
-                  void requestHandoff(tool);
-                }}
+                onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
                 errorDetail={errorDetail}
                 fieldNavigation={fieldNavigation}
                 messages={t}

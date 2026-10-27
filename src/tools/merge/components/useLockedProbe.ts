@@ -24,8 +24,7 @@ export function useLockedProbe(entries: FileEntry[], lockedProbe: LockedProbe | 
   useEffect(() => {
     if (!lockedFile) return undefined;
     let cancelled = false;
-    // reason: the async body catches and reports its own failure
-    void (async () => {
+    void (async () => { // reason: the async body catches and reports its own failure
       try {
         const bytes = await lockedFile.arrayBuffer();
         const kind = await probeEncryption(bytes);

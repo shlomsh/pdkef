@@ -77,8 +77,7 @@ export function useHandoffFilesIntake(tool: string, onFiles: (files: File[], fro
     // does, and leave the rest for the page it was meant for (handoffKinds.ts).
     const kinds = handoffKindsForPage(tool, location.pathname);
     const taken = kinds ? takeHandoff(tool, (r: HandoffRecord) => handoffFitsPage(r, kinds)) : takeHandoff(tool);
-    // reason: takeHandoff reports its own failure and resolves null
-    void taken.then((value) => {
+    void taken.then((value) => { // reason: takeHandoff reports its own failure and resolves null
       clearHandoffPending(tool);
       if (cancelled) {
         // The hook went away before the read settled: nobody is left to show the file, so

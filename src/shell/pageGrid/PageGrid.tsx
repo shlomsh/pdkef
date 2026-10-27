@@ -364,8 +364,7 @@ export default function PageGrid({
     if (fitPendingRef.current || hasCurrent(key) || queued.current.has(key)) return;
     queued.current.add(key);
     queue.current.push(key);
-    // reason: processQueue catches and reports each render failure
-    void processQueue();
+    void processQueue(); // reason: processQueue catches and reports each render failure
   }, [processQueue, hasCurrent]);
 
   // Release thumbnails and cancel pending renders for files that left the list.

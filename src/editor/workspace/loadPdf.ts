@@ -130,8 +130,7 @@ export async function loadPdf({
   const isCurrent = () => !cancelled && loadIdRef.current === loadId && loadControllerRef.current === controller;
   const fail = (message: string) => {
     if (!isCurrent()) return;
-    // reason: clearDraft goes through draftStore, which reports its own failure
-    if (restored) void clearDraft();
+    if (restored) void clearDraft(); // reason: clearDraft goes through draftStore, which reports its own failure
     setStatus('error');
     setAnnouncement(message);
   };
@@ -139,8 +138,7 @@ export async function loadPdf({
   const timeoutId = window.setTimeout(() => {
     if (!isCurrent()) return;
     loadIdRef.current++;
-    // reason: clearDraft goes through draftStore, which reports its own failure
-    if (restored) void clearDraft();
+    if (restored) void clearDraft(); // reason: clearDraft goes through draftStore, which reports its own failure
     setStatus('error');
     setAnnouncement(t.timeout);
   }, 20_000);

@@ -10,7 +10,7 @@ import ts from 'typescript';
 //   (b) a bare call to a name this file declares async (async function, async
 //       arrow / function expression bound to a const, async method) or to a
 //       promise-returning DOM method (exitFullscreen, requestFullscreen), or
-//   (c) `void <call>` (not a chain carrying a handler) without a `// reason: <why>` comment on the same line or
+//   (c) `void <call>` (not a chain carrying a handler) without a `// reason: <why>` (or `/* reason: <why> */`) comment on the same line or
 //       the line directly above.
 // Not flagged: awaited, returned, assigned, or passed-along promises (they are not
 // expression statements), and a chain that carries a handler. Heuristic only: no type
@@ -23,7 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const root = path.join(path.dirname(__filename), '..');
 const srcDir = path.join(root, 'src');
 
-const REASON = /\/\/\s*reason:/;
+const REASON = /(\/\/|\/\*)\s*reason:/;
 // Promise-returning DOM methods, called bare as often as not.
 const DOM_ASYNC = new Set(['exitFullscreen', 'requestFullscreen']);
 const CHAIN = new Set(['then', 'catch', 'finally']);

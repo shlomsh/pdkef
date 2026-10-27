@@ -209,8 +209,7 @@ export default function PdfMergeTool({
     resetModel({ entries: restoredEntries, plan: restoredPlan, sortMode: 'added' });
     dispatch({ type: 'DRAFT_RESTORED', addPageNumbers: restored.options.addPageNumbers, outputName: restored.outputName });
     startPickedUpTimer();
-    // reason: allSettled never rejects
-    void Promise.allSettled(restoredEntries.map((entry) => inspectEntry(entry)))
+    void Promise.allSettled(restoredEntries.map((entry) => inspectEntry(entry))) // reason: allSettled never rejects
       .then(() => dispatch({ type: 'RESTORE_HYDRATED' }));
   }, [resetModel, inspectEntry, startPickedUpTimer]);
 
@@ -240,8 +239,7 @@ export default function PdfMergeTool({
 
   const reset = useCallback(() => {
     clearWorkspace();
-    // reason: clearDraft goes through draftStore, which reports its own failure
-    void clearDraftRef.current?.();
+    void clearDraftRef.current?.(); // reason: clearDraft goes through draftStore, which reports its own failure
     setAnnouncement(t.cleared);
     recordAction('clear_all');
   }, [clearWorkspace, t.cleared]);

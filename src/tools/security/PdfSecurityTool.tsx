@@ -222,10 +222,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
     }
   };
 
-  useHandoffIntake('unlock', (handedOff, from) => {
-    // reason: handleFilesAdded catches and shows its own failure
-    void handleFilesAdded([handedOff], from ?? null);
-  });
+  useHandoffIntake('unlock', (handedOff, from) => { void handleFilesAdded([handedOff], from ?? null); /* reason: handleFilesAdded catches and shows its own failure */ });
 
   const handlePasswordChange = (event: Event) => {
     setPassword((event.currentTarget as HTMLInputElement).value);
@@ -324,10 +321,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
           {mode && status === 'done' && downloadUrl && (
             returnTool && mode === 'unlock' && outputBlob ? (
               <>
-                <ContinueButton tool={returnTool} name={t[RETURN_NAME_KEY[returnTool]]} label={t.continueIn} disabled={handoffBusy} onClick={() => {
-                  // reason: requestHandoff catches its own failure and shows the hand-off error
-                  void requestHandoff(returnTool);
-                }} />
+                <ContinueButton tool={returnTool} name={t[RETURN_NAME_KEY[returnTool]]} label={t.continueIn} disabled={handoffBusy} onClick={() => { void requestHandoff(returnTool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }} />
                 <div class={styles['handoff-row']}>
                   <a class={styles['handoff-button']} href={downloadUrl} download={outputFileName(file.name, mode)} onClick={onDownloadTap}>
                     <Download size={16} aria-hidden="true" />
@@ -347,17 +341,11 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                 <PdfShareButton visible={shareReady} onShare={handleShare} label={t.share} />
                 {mode === 'unlock' && outputBlob && (
                   <div class={styles['handoff-row']}>
-                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => {
-                      // reason: requestHandoff catches its own failure and shows the hand-off error
-                      void requestHandoff('redact');
-                    }}>
+                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => { void requestHandoff('redact'); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}>
                       <Eraser size={16} aria-hidden="true" />
                       {t.redactIt}
                     </button>
-                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => {
-                      // reason: requestHandoff catches its own failure and shows the hand-off error
-                      void requestHandoff('sign');
-                    }}>
+                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => { void requestHandoff('sign'); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}>
                       <FileSignature size={16} aria-hidden="true" />
                       {t.signIt}
                     </button>

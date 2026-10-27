@@ -844,10 +844,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     shareReady={shareReady}
                     onShare={handleShare}
                     busy={handoffBusy}
-                    onHandoff={(tool) => {
-                      // reason: requestHandoff catches its own failure and shows the hand-off error
-                      void requestHandoff(tool);
-                    }}
+                    onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
                     onWarm={prepared.prepareNow}
                     labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, merge: t.handoffMerge }}
                     tools={HANDOFF_TOOLS}

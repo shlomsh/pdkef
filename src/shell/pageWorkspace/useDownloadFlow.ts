@@ -119,8 +119,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
       quietPendingRef.current = false;
       setStripOpen(true);
     }
-    // reason: deliverParts only waits on a timer between plain downloads
-    if (prepared.parts) void deliverParts(prepared.parts, download);
+    if (prepared.parts) void deliverParts(prepared.parts, download); // reason: deliverParts only waits on a timer between plain downloads
     else if (prepared.blob) download(prepared.blob, fileName);
     setTap('done');
     setDownloadedOnce(true);

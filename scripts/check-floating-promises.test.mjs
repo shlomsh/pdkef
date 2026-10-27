@@ -14,6 +14,7 @@ describe('findFloating', () => {
   it('flags a bare call to an async arrow bound in the file', () =>
     expect(n('const load = async () => {};\nfunction run() {\n  load();\n}')).toBe(1));
   it('accepts void with a reason comment', () => expect(n('void doThing(); // reason: best effort')).toBe(0));
+  it('accepts a block reason comment on the same line', () => expect(n('f(() => { void doThing(); /* reason: best effort */ });')).toBe(0));
   it('accepts void with a reason comment on the line above', () =>
     expect(n('// reason: best effort\nvoid doThing();')).toBe(0));
   it('flags void without a reason', () => expect(n('void doThing();')).toBe(1));
