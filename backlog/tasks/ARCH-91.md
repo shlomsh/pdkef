@@ -1,11 +1,9 @@
 ---
 id: "ARCH-91"
 title: "The runtime-scope zod alert has an override or an owned, expiring exception"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 12
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Supporting. Criterion: Dependency hygiene. Structure only: no behaviour ch
 
 ## Acceptance
 
-- [ ] The alert is closed or listed as an owned exception; the advisory script passes.
+- [x] The alert is closed or listed as an owned exception; the advisory script passes.
+
+## Done (2026-10-27)
+
+zod via @vercel/cli-config is pinned exactly to 4.1.11, so no override fits; an owned exception is in security/dependency-advisory-exceptions.json (owner Shlomi, server-only reason). The validator caps expiry at 30 days, so it expires 2026-11-26.

@@ -1,11 +1,9 @@
 ---
 id: "ARCH-58"
 title: "The three page tools share one usePageToolSession hook and one messages base"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 4
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Code. Criterion: Duplication. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] The three islands call the hook; the clone groups are gone.
-- [ ] The hook has its own unit test.
+- [x] The three islands call the hook; the clone groups are gone.
+- [x] The hook has its own unit test.
+
+## Done (2026-10-27)
+
+usePageToolSession (src/shell/pageWorkspace/) owns history, the open path, the PDF filter, hand-off intake and the bulk actions for Split, Edit Pages and PDF to Image; PageToolMessages in pageToolMessages.ts (PageGridMessages already named the grid slice). Per-island differences kept as options.

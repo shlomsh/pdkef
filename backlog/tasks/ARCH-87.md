@@ -1,11 +1,9 @@
 ---
 id: "ARCH-87"
 title: "CSS Modules with no importer and classes never referenced fail the class check"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 10
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Supporting. Criterion: Styling architecture. Structure only: no behaviour 
 
 ## Acceptance
 
-- [ ] `FileList.module.css` is gone; the reverse check runs in `test:css`.
+- [x] `FileList.module.css` is gone; the reverse check runs in `test:css`.
+
+## Done (2026-10-27)
+
+check-class-resolution.js also fails on a CSS Module with no importer and on a class no production file reads (tests excluded, template-literal prefixes read, scripts/css-module-class-allowlist.json for dynamic keys). FileList.module.css and 27 never-rendered classes deleted.

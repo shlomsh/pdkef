@@ -1,11 +1,9 @@
 ---
 id: "ARCH-76"
 title: "Ratchet limits live in one committed file that CI refuses to raise"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Acceptance
 
-- [ ] Raising a limit fails CI; lowering it passes.
-- [ ] No ratchet literal remains in the CSS scripts.
+- [x] Raising a limit fails CI; lowering it passes.
+- [x] No ratchet literal remains in the CSS scripts.
+
+## Done (2026-10-27)
+
+scripts/ratchet-limits.json holds the CSS limits; scripts/check-ratchet-raises.mjs fails CI when a value rises or an entry is added to an existing section (planted raise 10000 -> 10001 failed, 9999 passed). Wired in ci.yml and check:push.
