@@ -1,0 +1,11 @@
+.chooser { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.lead { margin: 0; text-align: center; color: var(--color-muted); font-size: 1.05rem; line-height: 1.6; }
+.fileName { color: var(--color-text); font-weight: 500; overflow-wrap: anywhere; }
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 440px; }
+.choice { box-sizing: border-box; min-height: 96px; border: 1.5px solid var(--color-border-strong); border-radius: 18px; padding: 16px; background: var(--color-paper); color: var(--color-primary-text); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font: inherit; text-decoration: none; cursor: pointer; transition: border-color 160ms var(--ease-out), transform 160ms var(--ease-out); }
+.choice strong { color: var(--color-text); font-size: 1rem; font-weight: 500; }
+.choice span { font-size: 0.8rem; color: var(--color-muted); text-align: center; }
+.choice:hover:not(:disabled) { border-color: var(--color-primary); transform: translateY(-2px); }
+.choice:disabled { opacity: 0.6; cursor: default; }
+.error { margin: 0; color: var(--color-danger-ink); font-size: 0.9rem; }
+@media (max-width: 380px) { .choices { grid-template-columns: 1fr; } }

@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/Footer.astro';
+import OpenWithChooser from '../site-lib/OpenWithChooser.tsx';
+import '../styles/openPage.css';
+
+// ARCH-37: where the installed app's "Open with" lands (manifest.webmanifest's file_handlers). Not a
+// tool and not a search landing page, so it stays out of tools.js, the sitemap and the index.
+const title = 'Open a PDF - PDkef';
+const description = 'Choose what to do with the PDF you opened: sign it or redact it, on your device.';
+---
+
+<BaseLayout title={title} description={description} noindex={true}>
+  <header class="mx-auto max-w-[540px] px-6 pb-8 pt-[4.5rem] text-center">
+    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">Open a PDF</h1>
+  </header>
+
+  <main class="mx-auto mb-16 max-w-[540px] px-6">
+    <OpenWithChooser client:load />
+  </main>
+
+  <Footer />
+</BaseLayout>
