@@ -1,4 +1,7 @@
 import { useReducer, useRef, useEffect, useCallback, useState, useMemo } from 'preact/hooks';
+import useFinishStrip from './hooks/useFinishStrip.ts';
+import useSelectionDismiss from './hooks/useSelectionDismiss.ts';
+import useRedactExport, { type ExportOverrides } from './hooks/useRedactExport.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import RedactVerb from './verb/RedactVerb.tsx';
@@ -44,22 +47,18 @@ import type { DetailEdits } from './lib/detailEdits.js';
 import useSavedFileCheck, { traceLocale } from './hooks/useSavedFileCheck.ts';
 import { deletedTerms } from './lib/check/deletedTerms.ts';
 import { uncoveredMatches } from './lib/find/findMatches.ts';
-import type { CheckBox, CheckTerm, SavedPlace } from './lib/check/types.ts';
+import type { CheckBox, CheckTerm } from './lib/check/types.ts';
 import FindHighlights from './components/FindHighlights.tsx';
 import useFind from './hooks/useFind.ts';
-import { useTapOutsideDeselect } from './hooks/useTapOutsideDeselect.ts';
 import type { FindMatch } from './lib/find/types.ts';
-import type { ActionHistoryEntry, HistoryPlace, PlaceHistoryEntry } from '../../editor/model/actionHistory.ts';
+import type { ActionHistoryEntry, PlaceHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
   initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
-  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces, selectDetailEdits, type SavedExport,
+  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces,
 } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
-import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { useLatestRun } from '../../lib/useLatestRun.ts';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { FileActions } from '../../shell/ToolShell.tsx';
 import RedactFinish from './components/RedactFinish.tsx';
@@ -74,9 +73,6 @@ import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
-import { dropCause, reportError } from '../../lib/errorReport.ts';
-import { sendHandoff } from '../../lib/sendHandoff.ts';
-import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import { formatMessage } from '../../lib/formatMessage.ts';
 import { englishRedactMessages as t } from './messages.ts';
 
@@ -109,9 +105,6 @@ type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLEleme
 // stacking a second one.
 const UNDO_WINDOW_MS = 5000;
 
-/** A call right after a dispatch passes the fresh values the closure has not seen yet (removedPlaces newest first). */
-type ExportOverrides = { removedPlaces?: HistoryPlace[]; details?: DetailEdits };
-
 export default withIslandBoundary(function PdfRedactTool() {
   // SNG-08: the island's state lives in redactState.ts; the preferences it
   // starts from are read once, here.
@@ -132,33 +125,6 @@ export default withIslandBoundary(function PdfRedactTool() {
   useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
   const { exportedForHandoff, handoffFailed, removing, removedNote } = state.finish;
 
-  // A returning person already knows this editor contains saved work. Do not
-  // spend the identity row repeating the neutral newcomer tip after that work
-  // restores; tool-specific instructions remain available whenever a tool is
-  // armed. Manual picks deliberately reset this to the welcoming default.
-  // Draft persistence needs an editor-owned baseline, not a guess based on
-  // when a File object first appeared. A load/restoration captures the current
-  // revision; every real document operation advances it.
-  const documentRevisionRef = useRef(documentRevision);
-  documentRevisionRef.current = documentRevision;
-  // DEBT-18: an export is only wanted while the document it was started from
-  // is still the document on screen. Both keys are read fresh on every check,
-  // so a file swap or any edit that bumps the revision - including an undo or
-  // redo arriving by keyboard while `.is-processing` blocks the pointer -
-  // retires the run in flight.
-  const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
-  // Read by the invalidation effect below, which fires after the render that
-  // already moved status on (a replacement file sets 'loading' in the same
-  // batch as `file`), so it must ask what the workspace is showing now.
-  const statusRef = useRef(status);
-  statusRef.current = status;
-  // Export errors are recoverable without unmounting the editor - status stays
-  // 'editing' and this renders alongside the workspace. A failed document load
-  // still uses status='error', which unmounts the workspace (see below).
-  // RED-36: an edit retired a running export. Said where it is seen (the
-  // status line and the finish row), not only to a screen reader; cleared by
-  // the next export or the next file.
-  const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
   // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
@@ -266,69 +232,11 @@ export default withIslandBoundary(function PdfRedactTool() {
   // clicked (see runUndoChip below).
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Redact design-review finding #4: the exported (redacted) bytes an
-  // in-toolbar "Compress" hand-off can act on, set once a save actually
-  // succeeds and cleared - same as usePdfShare's own prepared file - whenever
-  // the source or the boxes change under it (see the clearPrepared effect
-  // below).
-  //
-  // That effect only ever cleared what had already landed, which left one
-  // window open (DEBT-18): an edit during the export's await cleared this,
-  // and then the export resolved and put the pre-edit bytes straight back.
-  // The effect now also retires the run in flight (`exportRun.invalidate()`)
-  // and handleSavePdf checks its ticket before committing anything, so the
-  // hand-off and the Share sheet only ever carry an export of the boxes
-  // currently on the page.
-  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-
   const workspaceRef = useRef<HTMLDivElement | null>(null);
 
   useFullscreenChange(workspaceRef, (active) => dispatch({ type: 'FULLSCREEN_CHANGED', active }));
 
-  // Escape disarms the tool and drops the selection, matching the Sign editor.
-  // It is a shortcut for the status line's Stop chip, not the only way out: a
-  // phone has no Escape key, which is exactly why that chip exists.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (!activeStyle && !activeBoxId && !selectedBoxId) return;
-      dispatch({ type: 'ESCAPED' });
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeStyle, activeBoxId, selectedBoxId]);
-
-  // With no tool armed, a tap on blank page area is the phone's way out of a
-  // selection (the tool disarms after one placement, so this is the usual state
-  // right after drawing a box). An armed tool's own page handler deselects.
-  const tapOutside = useTapOutsideDeselect({
-    onDeselect: () => dispatch({ type: 'SELECTION_CLEARED' }),
-    isArmed: () => !!activeStyle,
-    excludedSelector: [
-      `.${styles['redact-box']}`,
-      '[data-editor-actions]',
-      '[data-editor-resizer]',
-      '[data-editor-color-menu]',
-      '[data-redact-find-match]',
-      'button',
-      'a',
-      'input',
-    ].join(', '),
-  });
-
-  // A click anywhere outside the selected box drops the selection, not only on
-  // blank page area: the page header, the margin and the rest of the screen
-  // too. A document listener, so it is one path wherever the click lands; the
-  // container keeps the touch handlers for iOS's jittery taps (MOBI-30). Read
-  // through a ref so the listener is added once and still sees this render's
-  // `isArmed`.
-  const tapOutsideRef = useRef(tapOutside);
-  tapOutsideRef.current = tapOutside;
-  useEffect(() => {
-    const onDocumentClick = (e: MouseEvent) => tapOutsideRef.current.onClick(e);
-    document.addEventListener('click', onDocumentClick);
-    return () => document.removeEventListener('click', onDocumentClick);
-  }, []);
+  const tapOutside = useSelectionDismiss({ activeStyle, activeBoxId, selectedBoxId, dispatch });
 
   const toggleFullscreen = () => toggleWorkspaceFullscreen(
     workspaceRef.current,
@@ -349,13 +257,6 @@ export default withIslandBoundary(function PdfRedactTool() {
   // ENC-02: a protected PDF is not a failed load. It gets one quiet state in place of the editor
   // (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
-  useEffect(() => () => {
-    // An export resolving after the editor has left the tree must not fire a
-    // download for a tool the person walked away from (Sign does the same
-    // with its own useLatestRun).
-    exportRun.invalidate();
-  }, []);
-
   const handlePageViewportReady = useCallback((pageNum: number) => {
     // PdfPageCanvas calls this immediately after it gives the canvas its real
     // viewport dimensions. A Set makes repeated React effects harmless and
@@ -373,33 +274,9 @@ export default withIslandBoundary(function PdfRedactTool() {
     numPages,
   });
 
-  // A generated PDF must match the current source and redaction boxes - the
-  // "Compress" hand-off's own prepared bytes go stale on exactly the same
-  // change, so it is cleared alongside usePdfShare's own prepared file.
-  useEffect(() => {
-    clearPrepared();
-    dispatch({ type: 'SAVED_EXPORT_DISCARDED' });
-    // An export still running was started from boxes that no longer exist.
-    // Retiring it here rather than in handleSavePdf's own bail is what lets
-    // the workspace come back out of `.is-processing`: only this effect knows
-    // the difference between "the user changed the document" and "a second
-    // export superseded the first", and only the first case should hand the
-    // editor back. Mirrors PdfSignTool.tsx's own invalidation effect.
-    if (!exportRun.invalidate()) return;
-    // Only the export's own screen is ours to take down. A replacement file
-    // invalidates the export too, and its loader has already put the
-    // workspace into 'loading' - saying "editing" over that would show an
-    // empty editor for the file still being read.
-    if (statusRef.current !== 'redacting') return;
-    dispatch({ type: 'EXPORT_CANCELLED', announcement: t.exportSuperseded });
-    // Keyed on the revision, not on `elements`, so this fires on exactly what
-    // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
-    // two different notions of "the document moved", an edit that bumped the
-    // revision without replacing the elements array would retire the run
-    // while leaving this effect asleep, and the workspace would stay behind
-    // `.is-processing` with no way out but a reload. Sign keys on the
-    // revision for the same reason (PdfSignTool.tsx).
-  }, [file, documentRevision, clearPrepared, exportRun]);
+  const { canSharePdf, shareReady, handoffBusy, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff } = useRedactExport({
+    state, dispatch, setAnnouncement, setNeedsUnlock, getFileBytes: () => fileBytesRef.current,
+  });
 
   useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -786,160 +663,6 @@ export default withIslandBoundary(function PdfRedactTool() {
     return reexport(commit, { details: state.edits.details });
   };
 
-  const exportRedacted = async (exportAction: 'download' | 'share' | 'handoff' = 'download', overrides: ExportOverrides = {}): Promise<SavedExport | null> => {
-    if (!file) return null;
-    if (elements.length === 0) {
-      setAnnouncement(t.drawFirst);
-      return null;
-    }
-
-    const hasBoxes = elements.some((el) => el.type !== 'delete');
-    dispatch({
-      type: 'EXPORT_STARTED',
-      announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
-    });
-    recordAction('export');
-    reportToolLifecycleEvent('tool_operation_started', 'redact');
-
-    // DEBT-18: everything this run is an export *of*, captured before the
-    // first await. `sourceFile` is used below instead of `file` so the name
-    // on the result can never be a newer file's.
-    const run = exportRun.begin();
-    const sourceFile = file;
-    // DEBT-51: the bytes read at load time, so a file moved on disk after
-    // picking cannot fail the export (the browser rejects a second read).
-    const sourceBytes = fileBytesRef.current ?? sourceFile;
-
-    try {
-      // DEBT-20: applyPageEdits pulls in @cantoo/pdf-lib, which is only needed
-      // to write the export. Importing it here instead of at module scope keeps
-      // it out of everything /redact/ downloads and compiles before a file is
-      // even open. A failed chunk load lands in the same catch as a failed
-      // export, which is the right outcome: the boxes stay, the message is
-      // "try again". Repeat exports reuse the module registry's copy.
-      const [{ applyPageEdits }, { removePlaces }] = await Promise.all([
-        import('./lib/applyPageEdits.js'),
-        import('./lib/check/removePlaces.ts'),
-      ]);
-      // RED-60: every removal replays, oldest first, onto the new document.
-      const places = [...(overrides.removedPlaces ?? selectRemovedPlaces(state))].reverse();
-      const { blob: redactedBlob } = await applyPageEdits(sourceBytes, elements, (p) => {
-        if (run.isCurrent()) dispatch({ type: 'EXPORT_PROGRESS', progress: p });
-      }, {
-        finish: (doc) => removePlaces(doc, places as SavedPlace[]),
-        details: overrides.details ?? selectDetailEdits(state),
-      });
-      if (!run.isCurrent()) return null;
-      run.settle();
-      const filename = redactedFileName(sourceFile.name);
-      // Finding #4: a successful export (either export path - Download or
-      // Share - counts) is what unlocks the "Compress" hand-off below.
-      const saved = { blob: redactedBlob, name: filename };
-      dispatch({ type: 'EXPORT_SAVED', saved });
-
-      if (exportAction === 'handoff') {
-        // The chips want the file, not a download: make it, keep it, deliver nothing.
-        dispatch({ type: 'EXPORT_DELIVERED', announcement: t.readyHandoff });
-      } else if (exportAction === 'share' && prepare(redactedBlob, filename)) {
-        dispatch({ type: 'EXPORT_DELIVERED', announcement: t.readyShare });
-        reportToolLifecycleEvent('tool_result_ready', 'redact');
-      } else {
-        recordAction('download');
-        download(redactedBlob, filename);
-        dispatch({ type: 'EXPORT_DELIVERED', announcement: t.savedStarted });
-        reportToolLifecycleEvent('tool_result_ready', 'redact');
-      }
-      return saved;
-    } catch (err) {
-      reportError('redact', err, 'export');
-      console.error(err);
-      // ENC-02: the load gate should have caught a protected file, so this is reported above (a gate
-      // miss), but the person gets the way on rather than a Try again that can never work.
-      const name = Reflect.get(Object(err), 'name');
-      const message = String(Reflect.get(Object(err), 'message') ?? '');
-      if (run.isCurrent() && (name === 'EncryptedPDFError' || message.includes('is encrypted'))) {
-        run.settle();
-        setNeedsUnlock('owner-restricted');
-        dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: t.pdfProtected });
-        return null;
-      }
-      // A failure nobody is waiting for any more: the invalidation effect has
-      // already put the editor back, and reporting it would blame the user's
-      // current boxes for a run they replaced.
-      if (!run.isCurrent()) return null;
-      run.settle();
-      reportToolLifecycleEvent('tool_operation_failed', 'redact');
-      // Recoverable: keep the workspace mounted so the boxes that caused the
-      // failure are still there to fix, instead of unmounting the editor
-      // behind a dead-end error screen (status='error' is reserved for a
-      // failed document load, which never gets this far).
-      // A tab left open across a deploy asks for chunks the new deploy no longer serves, so a retry
-      // fails the same way (seen 2026-10-22: one tab, four tries). A reload fixes it and restores the draft.
-      const detail = dropCause(err) === 'module_load'
-        ? t.exportUpdated
-        : t.exportFailed;
-      dispatch({ type: 'EXPORT_FAILED', detail, announcement: formatMessage(t.downloadStoppedDetail, { detail }) });
-      return null;
-    }
-  };
-
-  // The export Download, Share and the hand-off chips all run: makes the redacted file
-  // and keeps it as exportedForHandoff. Saving it to the device is exportRedacted's
-  // delivery step, chosen by exportAction, so a hand-off never triggers a download.
-  const handleSavePdf = async (exportAction: 'download' | 'share' = 'download', overrides: ExportOverrides = {}): Promise<boolean> =>
-    (await exportRedacted(exportAction, overrides)) !== null;
-
-  // Skips regenerating the redacted PDF when a Share-prepared file already
-  // matches the current elements (usePdfShare.downloadPrepared - cleared
-  // automatically by the effect above whenever file/elements change, so this
-  // never serves a stale export). Mirrors PdfSignTool's handleDownloadPdf.
-  const handleDownloadPdf = () => {
-    dispatch({ type: 'EXPORT_ERROR_CLEARED' });
-    if (downloadPrepared()) {
-      setAnnouncement(t.downloadStarted);
-      recordAction('download');
-      return;
-    }
-    void handleSavePdf('download'); // reason: exportRedacted catches and reports its own failure
-  };
-
-  const handleSharePdf = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') {
-      setAnnouncement(t.shared);
-      recordAction('share');
-    } else if (result.status === 'canceled') {
-      setAnnouncement(t.shareCanceled);
-    } else if (result.status === 'error') {
-      console.error(result.error);
-      setAnnouncement(t.shareError);
-    }
-  };
-
-  // Finding #4: hands the redacted bytes to Compress or Sign without
-  // re-picking, the same one-shot baton Merge's own hand-off uses
-  // (draftStore.js's saveHandoff/takeHandoff, consumed on the other end by
-  // useHandoffIntake.ts) - reused here rather than copied, since Redact is
-  // a tool and cannot import another tool's PdfMergeTool.tsx (module
-  // boundaries). The chips show whenever Download is enabled: an export that
-  // still matches the document (any edit drops it) is handed on as is, else
-  // the same export Download runs is made first, without saving it to the device.
-  const requestHandoff = async (tool: import('../../lib/toolIds.ts').RedactHandoffTarget) => {
-    if (handoffBusy) return;
-    setHandoffBusy(true);
-    dispatch({ type: 'HANDOFF_STARTED' });
-    try {
-      const exported = exportedForHandoff ?? await exportRedacted('handoff');
-      if (!exported) throw new Error('export');
-      await sendHandoff(tool, { fileName: exported.name, fileType: 'application/pdf', fileBytes: await exported.blob.arrayBuffer() });
-    } catch (err) {
-      // expected: saveHandoff reports its own failure, this shows the handoff-failed state
-      console.error(err);
-      dispatch({ type: 'HANDOFF_FAILED' });
-      setHandoffBusy(false);
-    }
-  };
-
   // RED-36: everything the finish row and the status line say, from state
   // that already exists. A page with any box is saved as a picture; a page
   // with only deletions keeps its text (applyPageEdits.js).
@@ -955,40 +678,10 @@ export default withIslandBoundary(function PdfRedactTool() {
     fileSize: exportedForHandoff?.blob.size ?? null,
   };
 
-  // RED-66: the toolbar Download finishes where the person is looking. It asks
-  // for the strip under the sticky toolbar; the strip shows once the save lands,
-  // stays up through a re-export (Download again, Remove it) so the rating ask in
-  // it is not lost, and goes with the next edit (which ends the 'saved' phase), a
-  // failed save or the ✕. The toolbar button says "Saved" for a moment after each
-  // of its own clicks lands, never after a save started elsewhere.
-  const [stripOpen, setStripOpen] = useState(false);
-  const [toolbarSaves, setToolbarSaves] = useState(0);
-  const [downloadConfirmed, setDownloadConfirmed] = useState(false);
-  const confirmedSaveRef = useRef(0);
-  const showStrip = stripOpen && (finishPhase === 'saved' || (finishPhase === 'exporting' && exportedForHandoff !== null));
-  useEffect(() => {
-    if (finishPhase !== 'exporting' && finishPhase !== 'saved') setStripOpen(false);
-  }, [finishPhase]);
-  // An edit discards the saved export (and a Remove it re-export starts from
-  // there): that is the next edit, so the strip goes even if a save follows.
-  const hadExportRef = useRef(false);
-  useEffect(() => {
-    if (hadExportRef.current && exportedForHandoff === null) setStripOpen(false);
-    hadExportRef.current = exportedForHandoff !== null;
-  }, [exportedForHandoff]);
-  useEffect(() => {
-    if (!stripOpen || finishPhase !== 'saved' || confirmedSaveRef.current === toolbarSaves) return;
-    confirmedSaveRef.current = toolbarSaves;
-    setDownloadConfirmed(true);
-  }, [stripOpen, finishPhase, toolbarSaves]);
-  useEffect(() => {
-    if (!downloadConfirmed) return;
-    const timer = setTimeout(() => setDownloadConfirmed(false), 2000);
-    return () => clearTimeout(timer);
-  }, [downloadConfirmed]);
+  const finishStrip = useFinishStrip(finishPhase, exportedForHandoff);
+  const { showStrip, downloadConfirmed } = finishStrip;
   const handleToolbarDownload = () => {
-    setStripOpen(true);
-    setToolbarSaves((n) => n + 1);
+    finishStrip.startToolbarSave();
     handleDownloadPdf();
   };
   // SEO-46's ask, mounted once: in the strip while it is open, else last in the
@@ -1104,7 +797,7 @@ export default withIslandBoundary(function PdfRedactTool() {
                   handoffBusy={handoffBusy}
                   handoffFailed={handoffFailed}
                   onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
-                  onClose={() => setStripOpen(false)}
+                  onClose={finishStrip.closeStrip}
                 >
                   {rating}
                 </RedactDoneStrip>
