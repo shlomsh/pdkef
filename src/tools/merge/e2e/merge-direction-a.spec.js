@@ -137,7 +137,8 @@ test('a clicked cell lets go of its action buttons when the pointer moves on', a
     { name: 'six.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('six', 6) },
   ]);
   await page.locator('[data-state="one-file"]').waitFor({ timeout: 10_000 });
-  // The grid is hidden until the fit settles, and a hover before then retries with Playwright's rotating scroll alignment (DEBT-67).
+  // The grid is hidden until the fit settles, and a hover before then retries with
+  // Playwright's rotating scroll alignment (DEBT-67).
   await page.locator('ul[data-page-grid][data-fit-settled]').waitFor({ timeout: 10_000 });
 
   const cells = page.locator('ul[class*="grid"] > li[data-key]');
@@ -171,11 +172,15 @@ test('a page cell scrolled to its start clears the sticky app bar', async ({ pag
   await page.locator('ul[data-page-grid][data-fit-settled]').waitFor({ timeout: 10_000 });
 
   const cell = page.locator('ul[class*="grid"] > li[data-key]').nth(2);
-  await cell.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   const barBottom = await page.evaluate(() => document.querySelector('div.sticky.top-0').getBoundingClientRect().bottom);
-  const box = await cell.boundingBox();
-  if (!box) throw new Error('Cell has no bounding box');
-  expect(box.y).toBeGreaterThanOrEqual(barBottom - 1);
+  // The cell, and a button inside it (keyboard focus scrolls the button, not its cell).
+  for (const target of [cell, cell.getByRole('button', { name: /^Rotate page/, includeHidden: true })]) {
+    const top = await target.evaluate((el) => {
+      el.scrollIntoView({ block: 'start' });
+      return el.getBoundingClientRect().top;
+    });
+    expect(top).toBeGreaterThanOrEqual(barBottom - 1);
+  }
 });
 
 test('a phone-width window with a mouse: a click on a page reveals its controls', async ({ page }) => {
@@ -194,7 +199,8 @@ test('a phone-width window with a mouse: a click on a page reveals its controls'
     { name: 'three.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('three', 3) },
   ]);
   await page.locator('[data-state="one-file"]').waitFor({ timeout: 10_000 });
-  // The grid is hidden until the fit settles, and a hover before then retries with Playwright's rotating scroll alignment (DEBT-67).
+  // The grid is hidden until the fit settles, and a hover before then retries with
+  // Playwright's rotating scroll alignment (DEBT-67).
   await page.locator('ul[data-page-grid][data-fit-settled]').waitFor({ timeout: 10_000 });
 
   const first = page.locator('ul[class*="grid"] > li[data-key]').first();
