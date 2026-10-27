@@ -9,32 +9,19 @@ import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/actionTrail.ts';
+import { saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { hebrewToImageMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
-const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportToolLifecycleEvent: lifecycleSpy,
-  reportEdit: editSpy,
-}));
-
-const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: takeHandoffMock,
-}));
-
-const { probeMock, reportErrorMock } = vi.hoisted(() => ({ probeMock: vi.fn(), reportErrorMock: vi.fn() }));
+// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
+// (analytics, error reports, draftStore, action trail) runs for real over the harness.
+const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
-vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportError: reportErrorMock,
-}));
 
-// The page count and the grid's thumbnails come through this source; no real pdf.js here.
+// EDGE: pdf.js cannot render in jsdom. The page count and the grid's thumbnails come through this source.
 const { mockState, openMock, sourceState } = vi.hoisted(() => ({
   mockState: { numPages: 5 },
   openMock: { fail: false },
@@ -55,6 +42,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderPdfThumbnails: vi.fn(async () => 0),
 }));
 
+// EDGE: the conversion renders every page through pdf.js onto a canvas, neither of which jsdom has.
 // Counts every conversion and lets a test swap in a slow or failing one. The default makes one fake
 // blob per included page (or one for a tall image), sized by scale so a different setting is a different result.
 const { convertCalls, convertOverride } = vi.hoisted(() => ({
@@ -92,24 +80,18 @@ const makePdfFile = (name = 'report.pdf') => new File(['%PDF-1.4'], name, { type
 
 describe('PdfToImageTool', () => {
   let container;
+  let harness: ToolHarness;
 
   beforeEach(() => {
-    resetActionTrailForTests();
+    harness = installToolHarness();
     probeMock.mockReset();
     probeMock.mockResolvedValue('open');
-    reportErrorMock.mockClear();
-    lifecycleSpy.mockClear();
-    editSpy.mockClear();
-    takeHandoffMock.mockClear();
     convertCalls.n = 0;
     convertOverride.fn = null;
     openMock.fail = false;
     sourceState.destroyed = 0;
     sourceState.opened = 0;
     mockState.numPages = 5;
-    let n = 0;
-    URL.createObjectURL = vi.fn(() => `blob:img-${++n}`);
-    URL.revokeObjectURL = vi.fn();
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {
@@ -130,6 +112,7 @@ describe('PdfToImageTool', () => {
       container = null;
     }
     vi.restoreAllMocks();
+    harness.restore();
   });
 
   function mount(props = {}) {
@@ -142,6 +125,7 @@ describe('PdfToImageTool', () => {
   const pick = async (file) => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
     await wait(50);
+    await harness.flush();
   };
   const replaceWith = async (file) => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
@@ -159,6 +143,7 @@ describe('PdfToImageTool', () => {
     const buildsAlone = !props.quietPolicy && pages <= 30;
     await until(() => cells().length > 0 && downloadElement()
       && (!buildsAlone || (convertOverride.fn ? convertCalls.n > 0 : /\d(\.\d)? ?(KB|MB)|B⁩/.test(downloadElement().textContent) || downloadElement().getAttribute('data-state') === 'error')));
+    await harness.flush();
   }
 
   const rail = () => container.querySelector(`.${workspaceStyles.rail}`);
@@ -170,14 +155,20 @@ describe('PdfToImageTool', () => {
   const saveLinks = () => Array.from(container.querySelectorAll('ul[data-page-grid] a[download]'));
   const skipButton = (n) => cells()[n - 1].querySelector('[aria-label^="Skip page"], [aria-label^="Include page"]');
   const isSkipped = (n) => skipButton(n).getAttribute('aria-label').startsWith('Include');
-  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  const click = async (el) => {
+    await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await harness.flush();
+  };
   const radio = (label) => Array.from(rail().querySelectorAll('[role="radio"]')).find((r) => r.textContent === label);
-  const type = (value) => act(async () => {
-    field().value = value;
-    field().dispatchEvent(new Event('input', { bubbles: true }));
-  });
+  const type = async (value) => {
+    await act(async () => {
+      field().value = value;
+      field().dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await harness.flush();
+  };
   const undo = () => click(container.querySelector('[aria-label="Undo last change"]'));
-  const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
+  const events = (name) => harness.usageEvents(name).length;
 
   it('renders the initial file dropper zone', () => {
     mount();
@@ -317,7 +308,7 @@ describe('PdfToImageTool', () => {
     expect(downloadElement().textContent).toMatch(/\d(\.\d)? KB/);
     await wait(150);
     expect(convertCalls.n).toBe(2);
-    expect(editSpy).toHaveBeenCalledWith('pdf-to-image');
+    expect(harness.usageEvents('tool_first_edit').map((event) => event.properties.tool)).toEqual(['pdf-to-image']);
   });
 
   it('never auto-builds above 30 pages, says it is made on tap, and builds when Download is approached', async () => {
@@ -498,7 +489,8 @@ describe('PdfToImageTool', () => {
     await open(2);
     expect(downloadElement().getAttribute('data-state')).toBe('error');
     expect(downloadElement().textContent).toContain('Could not make the images. Tap to try again.');
-    expect(reportErrorMock).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'convert');
+    await harness.flush();
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'convert', type: 'Error' }]);
     expect(events('tool_operation_failed')).toBe(1);
     fail = false;
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
@@ -531,7 +523,8 @@ describe('PdfToImageTool', () => {
     expect(sourceState.opened).toBe(0);
     expect(convertCalls.n).toBe(0);
     expect(downloadElement()).toBeNull();
-    expect(reportErrorMock).not.toHaveBeenCalled();
+    await harness.flush();
+    expect(harness.reports()).toEqual([]);
     expect(events('tool_operation_failed')).toBe(0);
   });
 
@@ -544,24 +537,29 @@ describe('PdfToImageTool', () => {
   });
 
   it('loads a PDF handed off from the home page as if picked', async () => {
-    takeHandoffMock.mockResolvedValueOnce({
+    await saveHandoff('pdf-to-image', {
       fileName: 'handed.pdf',
       fileType: 'application/pdf',
       fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
     });
     mount();
     await until(() => heading()?.textContent.includes('handed-page-N.png'));
-    expect(takeHandoffMock).toHaveBeenCalledWith('pdf-to-image');
+    // The island collected it: nothing is left parked under its key.
+    expect(await harness.takeHandoff('pdf-to-image')).toBeNull();
     expect(heading().textContent).toContain('handed-page-N.png');
   });
 
   it('revokes every image URL on unmount', async () => {
+    // Wraps the harness's recording URL functions to keep the URLs handed out and the URLs given back.
+    const created: string[] = [];
+    const revoked: string[] = [];
+    const recordingCreate = URL.createObjectURL;
+    URL.createObjectURL = (blob) => { const url = recordingCreate(blob); created.push(url); return url; };
+    URL.revokeObjectURL = (url) => { revoked.push(url); };
     await open(2);
-    const created = URL.createObjectURL.mock.results.map((r) => r.value);
     expect(created.length).toBeGreaterThanOrEqual(2);
-    URL.revokeObjectURL.mockClear();
+    revoked.length = 0;
     act(() => render(null, container));
-    const revoked = URL.revokeObjectURL.mock.calls.map((c) => c[0]);
     for (const url of created) expect(revoked).toContain(url);
   });
 
