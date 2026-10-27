@@ -149,6 +149,43 @@ describe('compareSize', () => {
   });
 });
 
+describe('same-named functions are matched by size, not position (ARCH-105)', () => {
+  const th = { fileThreshold: 800, functionThreshold: 150, nestingCap: 4 };
+  const r = (functionLines) => ({ fileLines: {}, functionLines, nesting: {} });
+  const k = (n) => `f.ts#F.(anonymous)~${n}`;
+
+  it('a small callback inserted earlier renames the big one without failing or lowering it', () => {
+    expect(compareSize(r({ [k(2)]: 200 }), r({ [k(2)]: 20, [k(3)]: 200 }), th)).toEqual({ failures: [], lowered: [] });
+  });
+
+  it('the same insert fails when the big one grew', () => {
+    const { failures } = compareSize(r({ [k(2)]: 200 }), r({ [k(2)]: 20, [k(3)]: 201 }), th);
+    expect(failures).toEqual([{ key: k(3), kind: 'function', recorded: 200, current: 201 }]);
+  });
+
+  it('lowers the recorded key of the one that shrank', () => {
+    const { failures, lowered } = compareSize(r({ [k(2)]: 200, [k(3)]: 180 }), r({ [k(2)]: 200, [k(3)]: 170 }), th);
+    expect(failures).toEqual([]);
+    expect(lowered).toEqual([{ key: k(3), kind: 'function', from: 180, to: 170 }]);
+  });
+
+  it('fails a new unrecorded anonymous function over the threshold beside an unchanged one', () => {
+    const { failures, lowered } = compareSize(r({ [k(2)]: 200 }), r({ [k(2)]: 200, [k(3)]: 151 }), th);
+    expect(failures).toEqual([{ key: k(3), kind: 'function', recorded: 150, current: 151 }]);
+    expect(lowered).toEqual([]);
+  });
+
+  it('drops the recorded key with no partner, and keeps named functions exact', () => {
+    expect(compareSize(r({ [k(2)]: 200, [k(3)]: 180 }), r({ [k(2)]: 200 }), th).lowered).toEqual([{ key: k(3), kind: 'function', from: 180, to: null }]);
+    expect(compareSize(r({ 'f.ts#a': 200, 'f.ts#b': 180 }), r({ 'f.ts#a': 180, 'f.ts#b': 200 }), th).failures).toEqual([{ key: 'f.ts#b', kind: 'function', recorded: 180, current: 200 }]);
+  });
+
+  it('nextRecords writes the lowered value under the recorded key and adds no key', () => {
+    const next = nextRecords(r({ [k(2)]: 200, [k(3)]: 180 }), r({ [k(2)]: 20, [k(4)]: 200, [k(5)]: 170 }), th);
+    expect(next.functionLines).toEqual({ [k(2)]: 200, [k(3)]: 170 });
+  });
+});
+
 describe('nextRecords', () => {
   const th = { fileThreshold: 800, functionThreshold: 300, nestingCap: 4 };
   const rec = (fileLines = {}, functionLines = {}) => ({ fileLines, functionLines, nesting: {} });
