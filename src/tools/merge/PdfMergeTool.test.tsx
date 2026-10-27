@@ -1,12 +1,17 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
+import fs from 'fs';
+import path from 'path';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
-import * as mergeLib from './lib/merge.js';
+import { mergePdfs } from './lib/merge.js';
+import { MERGE_DRAFT_SCHEMA_VERSION } from './hooks/useMergeDraft.ts';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
-import * as draftStore from '../../lib/drafts/draftStore.ts';
+import { saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { getPdfLib } from '../../lib/pdfLib.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import railStyles from './components/MergeRail.module.css';
@@ -16,80 +21,21 @@ import outputNameStyles from '../../shell/OutputName.module.css';
 import downloadStyles from '../../shell/DownloadElement.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { buildPdf, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 import { hebrewMergeMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
-import { reportEdit, reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
-import { reportError } from '../../lib/errorReport.ts';
+import { recentActions } from '../../lib/actionTrail.ts';
 
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportToolLifecycleEvent: vi.fn(),
-  reportEdit: vi.fn(),
-}));
+// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
+// (analytics, error reports, draftStore, the merge itself, the draft hook, the hand-off intake) runs for
+// real over the harness.
 const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
-vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportError: vi.fn(),
-}));
 
-function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
-  return new File(['%PDF-1.4'.padEnd(size, ' ')], name, { type });
-}
-
-// Every fixture "has" two pages unless a test says otherwise, so the plan
-// and the identity line have real counts to show.
-const pageCounts = new Map();
-
-vi.mock('./lib/merge.js', () => {
-  class MergeFileError extends Error {
-    constructor(message, { fileIndex, reason, cause } = {}) {
-      super(message);
-      this.name = 'MergeFileError';
-      this.fileIndex = fileIndex;
-      this.reason = reason;
-      this.cause = cause;
-    }
-  }
-  return {
-    MergeFileError,
-    mergePdfs: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-merged'], { type: 'application/pdf' }))),
-    inspectPdf: vi.fn((file) => {
-      const spec = pageCounts.get(file.name) ?? { pageCount: 2, encrypted: false };
-      if (spec.crash) return Promise.reject(new Error('boom'));
-      if (spec.unreadable) return Promise.reject(new MergeFileError('bad', { fileIndex: 0, reason: 'unreadable', cause: spec.cause }));
-      return Promise.resolve({ pageCount: spec.pageCount, encrypted: spec.encrypted, creationDate: null });
-    }),
-    resolvePdfCreationDate: vi.fn(() => Promise.resolve(null)),
-  };
-});
-
-// The island's own hand-off calls plus what the MERGE-13 draft component
-// (loaded through a dynamic import) needs to mount quietly with no draft.
-vi.mock('../../lib/drafts/draftStore.ts', () => ({
-  saveHandoff: vi.fn(async () => true),
-  takeHandoff: vi.fn(async () => null),
-  loadDraft: vi.fn(async () => null),
-  deleteDraft: vi.fn(async () => true),
-  saveDraft: vi.fn(async () => true),
-  hasDraftHint: vi.fn(() => false),
-  subscribeToDraftChanges: vi.fn(() => () => {}),
-  attachDraftPreview: vi.fn(() => false),
-  readDraftMeta: vi.fn(() => null),
-}));
-
-// The MERGE-13 draft component is exercised through its props here; the hook
-// itself has its own suite (useMergeDraft.test.tsx).
-const draftProbe = { props: null };
-vi.mock('./components/MergeDraftPersistence.tsx', () => ({
-  default: (props) => {
-    draftProbe.props = props;
-    return null;
-  },
-}));
-
+// EDGE: pdf.js cannot render a thumbnail in jsdom.
 vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
   renderThumbnailWithMeta: vi.fn(() => Promise.resolve({ dataUrl: 'data:image/png;base64,mock', pageCount: 2, width: 150, height: 194 })),
@@ -97,42 +43,148 @@ vi.mock('../../lib/thumbnails.js', () => ({
   openThumbnailSource: vi.fn(),
 }));
 
+/* The fixtures are real files. Every page of every fixture PDF is told apart by its MediaBox: the
+   width names the file (a registry, reset per test) and the height the page number in it, so a merged
+   output read back with pdf-lib says which page came from where. A test steers a fixture's shape
+   through `pageCounts` below. */
+const FIXTURES = path.resolve(__dirname, '../../lib/__fixtures__');
+const readFixture = (...parts) => new Uint8Array(fs.readFileSync(path.join(FIXTURES, ...parts)));
+const JPEG_BYTES = readFixture('photo-1.jpg');
+const PNG_BYTES = readFixture('photo-2.png');
+const OWNER_ONLY_BYTES = readFixture('encrypted', 'owner-only.pdf');
+
+const widthOf = new Map();
+const widthFor = (name) => {
+  if (!widthOf.has(name)) widthOf.set(name, 100 + 10 * widthOf.size);
+  return widthOf.get(name);
+};
+const labelOfWidth = (width) => {
+  const found = [...widthOf].find(([, w]) => w === width);
+  return found ? found[0].replace('.pdf', '') : `?${width}`;
+};
+
+function pagesPdf(name, count) {
+  const width = widthFor(name);
+  const kids = Array.from({ length: count }, (_, i) => `${i + 3} 0 R`).join(' ');
+  const objs = {
+    1: '<< /Type /Catalog /Pages 2 0 R >>',
+    2: `<< /Type /Pages /Kids [${kids}] /Count ${count} >>`,
+  };
+  for (let i = 0; i < count; i += 1) objs[i + 3] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${300 + 10 * i}] >>`;
+  return buildPdf(objs);
+}
+
+// Every fixture "has" two pages unless a test says otherwise, so the plan
+// and the identity line have real counts to show. A spec can also make the
+// file protected (`encrypted`), garbage that pdf-lib cannot parse (`unreadable`),
+// or a PDF whose page list is lost, which only fails once its pages are counted (`crash`).
+const pageCounts = new Map();
+
+function fixtureBytes(name) {
+  const spec = pageCounts.get(name) ?? {};
+  if (/\.jpe?g$/i.test(name)) return JPEG_BYTES;
+  if (/\.png$/i.test(name)) return PNG_BYTES;
+  if (spec.encrypted) return OWNER_ONLY_BYTES;
+  if (spec.unreadable) return new TextEncoder().encode('%PDF-1.4 this is not a PDF');
+  if (spec.crash) return noPagesKey();
+  return pagesPdf(name, spec.pageCount ?? 2);
+}
+
+function makePdfFile(name, { type = 'application/pdf' } = {}) {
+  return new File([fixtureBytes(name)], name, { type });
+}
+
+/* Steers when a File gives up its bytes, so a test can hold one stage of the real pipeline open.
+   Merge reads a file once to inspect it and once to merge it: `holdFrom(1)` lets the inspection through
+   and blocks the merge's read until `release()`, `failFrom(1)` rejects it. Without a number the
+   first read still to come is the one. */
+function controlReads(file) {
+  const real = file.arrayBuffer.bind(file);
+  let reads = 0;
+  let holdAt = Infinity;
+  let failAt = Infinity;
+  let blocked = false;
+  let release = () => {};
+  const gate = new Promise((resolve) => { release = resolve; });
+  file.arrayBuffer = async () => {
+    const nth = reads;
+    reads += 1;
+    if (nth >= failAt) throw new Error('could not read');
+    if (nth >= holdAt) { blocked = true; await gate; }
+    return real();
+  };
+  return {
+    holdFrom(nth = reads) { holdAt = nth; },
+    failFrom(nth = reads) { failAt = nth; },
+    release() { holdAt = Infinity; release(); },
+    isBlocked: () => blocked,
+  };
+}
+
+const bufferOf = (bytes) => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+
+// The real draft store, holding Merge's multi-file draft the way an earlier visit left it.
+async function seedMergeDraft(names, { plan, options = { addPageNumbers: false }, outputName = null, title } = {}) {
+  const files = names.map((fileName) => ({ fileName, fileType: 'application/pdf', fileBytes: bufferOf(fixtureBytes(fileName)) }));
+  const entries = plan ?? names.flatMap((_, i) => [0, 1].map((p) => ({ key: `${i}:${p}`, fileId: i, pageIndex: p, rotation: 0, skipped: false })));
+  const saved = await saveDraft('merge', {
+    files,
+    plan: entries,
+    options,
+    fileName: title ?? `merged_${names[0].replace('.pdf', '')}`,
+    outputName,
+    pageCount: entries.filter((e) => !e.skipped).length,
+    fileCount: names.length,
+    schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+  });
+  expect(saved).toBe(true);
+}
+
+const handoffOf = (...names) => ({
+  files: names.map((fileName) => ({
+    fileName,
+    fileType: /\.jpe?g$/i.test(fileName) ? 'image/jpeg' : 'application/pdf',
+    fileBytes: bufferOf(fixtureBytes(fileName)),
+  })),
+});
+
+// A merged output read back with pdf-lib: one `name:page:rotation` per page, and the document title.
+async function readOutput(blob) {
+  const { PDFDocument } = await getPdfLib();
+  const doc = await PDFDocument.load(await blob.arrayBuffer());
+  const pages = doc.getPages().map((page) => `${labelOfWidth(page.getSize().width)}:${(page.getSize().height - 300) / 10}:${page.getRotation().angle}`);
+  return { pages, title: doc.getTitle() };
+}
+
+// What each output page says in text: only the stamped page numbers are text in these fixtures.
+async function pageTexts(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const loadingTask = pdfjs.getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false });
+  const pdf = await loadingTask.promise;
+  const texts = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    texts.push(textContent.items.map((item) => item.str).join('').trim());
+  }
+  await loadingTask.destroy();
+  return texts;
+}
+
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('PdfMergeTool UI flow', () => {
   let container;
-  let originalCreateObjectURL;
+  let harness: ToolHarness;
   let originalScrollTo;
 
   beforeEach(() => {
-    resetActionTrailForTests();
+    harness = installToolHarness();
     pageCounts.clear();
-    localStorage.clear();
-    draftProbe.props = null;
-    // vi.mock factories keep their call history across tests; restoreAllMocks
-    // only touches spies.
-    mergeLib.mergePdfs.mockClear();
-    mergeLib.inspectPdf.mockClear();
-    reportToolLifecycleEvent.mockClear();
-    reportEdit.mockClear();
-    reportError.mockClear();
-    draftStore.saveHandoff.mockClear();
-    draftStore.deleteDraft.mockClear();
-    draftStore.takeHandoff.mockReset();
-    draftStore.takeHandoff.mockImplementation(async () => null);
-    draftStore.loadDraft.mockReset();
-    draftStore.loadDraft.mockImplementation(async () => null);
-    // Same reason loadDraft gets reset above: vi.mock factory mocks keep
-    // whatever a previous test left them at (restoreAllMocks only touches
-    // real spies), and the one test below that needs hasMergeDraftHint() to
-    // read true sets it explicitly - every other test needs it back at false.
-    draftStore.hasDraftHint.mockReset();
-    draftStore.hasDraftHint.mockReturnValue(false);
-    originalCreateObjectURL = window.URL.createObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
+    widthOf.clear();
+    probeMock.mockReset();
     originalScrollTo = window.scrollTo;
     window.scrollTo = vi.fn();
   });
@@ -143,8 +195,8 @@ describe('PdfMergeTool UI flow', () => {
       container.remove();
       container = null;
     }
-    window.URL.createObjectURL = originalCreateObjectURL;
     window.scrollTo = originalScrollTo;
+    harness.restore();
     vi.restoreAllMocks();
     // Safety net: if a fake-timers test above threw before reaching its own
     // vi.useRealTimers(), don't leak the fake clock into the next test.
@@ -159,18 +211,31 @@ describe('PdfMergeTool UI flow', () => {
     });
   }
 
-  async function loadFiles(files) {
+  // Every row has been read: a page count, or the lock or error it turned out to carry.
+  const rowsRead = () => Array.from(container.querySelectorAll(`.${railStyles['file-row']}`)).every((row) => (
+    row.hasAttribute('data-error') || row.hasAttribute('data-locked') || !row.querySelector(`.${railStyles['file-pages']}`).textContent.includes('\u2026')
+  ));
+
+  async function loadFiles(files, { wait = true } = {}) {
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, files.map((f) => (typeof f === 'string' ? makePdfFile(f) : f)));
-      await flush(10); // let inspection and thumbnails resolve
+      await flush(10);
     });
+    if (wait) await until(rowsRead); // inspection is real work now
   }
 
-  // Waits out the pre-merge debounce (5ms in tests) and the merge itself.
+  // Waits out the pre-merge debounce (5ms in tests) and the merge itself: until the Download element
+  // is ready with its link, or has settled into a state with nothing to build.
   async function settle() {
     await act(async () => {
       await flush(30);
+    });
+    await until(() => {
+      const box = downloadBox();
+      if (!box) return true;
+      const state = box.getAttribute('data-state');
+      return box.hasAttribute('href') || (state !== 'ready' && state !== 'preparing');
     });
   }
 
@@ -181,6 +246,34 @@ describe('PdfMergeTool UI flow', () => {
   // A real download only exists once the Download element carries an href
   // (state 'ready' or 'saved'); every other state is a plain trigger.
   const downloadLink = () => container.querySelector(`.${downloadStyles.box}[href]`);
+  // The merged file the Download link points at, read back through the real object URL.
+  const outputOfLink = () => readOutput(harness.blobForUrl(downloadLink().getAttribute('href')));
+
+  // The page plan as the grid shows it: `name:page:rotation:skipped` per cell, in order.
+  const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
+  const planOf = () => {
+    const names = new Map(Array.from(container.querySelectorAll(`.${railStyles['file-row']}`))
+      .map((row) => [row.getAttribute('data-file-id'), row.querySelector(`.${railStyles['file-name']}`).textContent]));
+    return cells().map((cell) => `${names.get(cell.getAttribute('data-file-id')).replace('.pdf', '')}:${cell.getAttribute('data-key').split(':')[1]}:${cell.getAttribute('data-rotation') ?? 0}:${cell.hasAttribute('data-skipped') ? 's' : '-'}`);
+  };
+  const clearAll = async () => {
+    const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all files');
+    await act(async () => clearTrigger.click());
+    const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
+    await act(async () => clearButtons.at(-1).click());
+  };
+  // Resolves once the real autosave has written a draft (the rail says so).
+  const draftSaved = () => until(() => container.textContent.includes('Draft saved'));
+  // Waits on an async read, for example the stored draft.
+  const untilAsync = async (read, timeout = 8000) => {
+    const start = Date.now();
+    for (;;) {
+      const value = await read();
+      if (value) return value;
+      if (Date.now() - start > timeout) throw new Error('condition not met');
+      await act(async () => { await flush(20); });
+    }
+  };
 
   it('renders the initial file dropper zone', () => {
     mount();
@@ -214,7 +307,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(box.hasAttribute('disabled')).toBe(false);
     expect(box.textContent).toContain('Add one more file to merge');
     expect(downloadLink()).toBeNull();
-    expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
+    expect(harness.createdBlobs()).toHaveLength(0);
 
     // Review P1: no dead hand-off row or Options disclosure before there is
     // a merge to hand off - only the Download element's own text-plus-button
@@ -282,17 +375,15 @@ describe('PdfMergeTool UI flow', () => {
 
     await settle();
 
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
-    const [files, options] = mergeLib.mergePdfs.mock.calls[0];
-    expect(files.map((f) => f.name)).toEqual(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
-    expect(options.title).toBe('merged_Invoice 2024-03-01');
-    expect(options.plan).toHaveLength(4);
-    expect(options.plan[2]).toEqual({ fileIndex: 1, pageIndex: 0, rotation: 0, skipped: false });
+    expect(harness.createdBlobs()).toHaveLength(1);
+    const output = await outputOfLink();
+    expect(output.title).toBe('merged_Invoice 2024-03-01');
+    expect(output.pages).toEqual(['Invoice 2024-03-01:0:0', 'Invoice 2024-03-01:1:0', 'doc2:0:0', 'doc2:1:0']);
 
     const link = downloadLink();
     expect(link).not.toBeNull();
     expect(link.getAttribute('data-state')).toBe('ready');
-    expect(link.getAttribute('href')).toBe('blob:testurl');
+    expect(harness.blobForUrl(link.getAttribute('href'))).toBe(harness.createdBlobs()[0]);
     expect(link.getAttribute('download')).toBe('merged_Invoice 2024-03-01.pdf');
     expect(link.textContent).toContain('4 pages');
     // Exactly one Download element, same node throughout: no separate
@@ -358,12 +449,13 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('a tap while the pre-merge is still running shows progress and delivers the file when it lands (MERGE-12)', async () => {
-    let resolveMerge;
-    mergeLib.mergePdfs.mockImplementationOnce(() => new Promise((resolve) => { resolveMerge = resolve; }));
+    // The merge reads each file once more after its inspection: hold that read open, so the build is in flight.
+    const a = makePdfFile('a.pdf');
+    const reads = controlReads(a);
+    reads.holdFrom(1);
     mount();
-    await loadFiles(['a.pdf', 'b.pdf']);
-    await act(async () => { await flush(8); });
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
+    await loadFiles([a, 'b.pdf']);
+    await until(reads.isBlocked);
 
     // The Download element is itself an <a> in every state now (MERGE-18),
     // so the click spy below (which stands in for the browser's own download
@@ -378,30 +470,31 @@ describe('PdfMergeTool UI flow', () => {
     expect(downloadBox().getAttribute('aria-busy')).toBe('true');
     expect(downloadBox().textContent).toContain('Preparing');
 
-    await act(async () => {
-      resolveMerge(new Blob(['%PDF'], { type: 'application/pdf' }));
-      await flush(5);
-    });
+    await act(async () => { reads.release(); });
+    await until(() => downloadLink() !== null);
     expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(downloadLink()).not.toBeNull();
+    expect((await outputOfLink()).pages).toHaveLength(4);
     expect(container.textContent).toContain('Start again');
     clickSpy.mockRestore();
   });
 
   it('any change to the list cancels the pending pre-merge and starts a new one', async () => {
+    // The first build is held in flight when the list changes, so the abort is what has to stop it.
+    const a = makePdfFile('a.pdf');
+    const reads = controlReads(a);
+    reads.holdFrom(1);
     mount();
-    await loadFiles(['a.pdf', 'b.pdf']);
-    await settle();
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
-    const firstSignal = mergeLib.mergePdfs.mock.calls[0][3];
-    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    await loadFiles([a, 'b.pdf']);
+    await until(reads.isBlocked);
 
     await loadFiles(['c.pdf']);
-    // The blob for the old order is withdrawn at once, before the new one exists.
+    // Nothing is on offer for the old order while the new one is still to come.
     expect(downloadLink()).toBeNull();
+    await act(async () => { reads.release(); });
     await settle();
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(2);
-    expect(mergeLib.mergePdfs.mock.calls[1][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
+    // Only the build for the new list landed: the held one was cancelled and never produced a file.
+    expect(harness.createdBlobs()).toHaveLength(1);
+    expect((await outputOfLink()).pages).toEqual(['a:0:0', 'a:1:0', 'b:0:0', 'b:1:0', 'c:0:0', 'c:1:0']);
     expect(downloadLink().getAttribute('download')).toBe('merged_a.pdf');
   });
 
@@ -412,11 +505,11 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
-    await act(async () => { await flush(30); });
+    expect(harness.createdBlobs()).toHaveLength(1);
+    await act(async () => { await flush(60); });
     // The late thumbnail resolves (renderThumbnail is used for the rail's
     // internal entry state) without ever restarting the pre-merge.
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
+    expect(harness.createdBlobs()).toHaveLength(1);
     expect(downloadLink()).not.toBeNull();
   });
 
@@ -436,9 +529,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('takes a mixed pick in pick order and gives each photo one plan page (MERGE-22)', async () => {
-    pageCounts.set('b.pdf', { pageCount: 3, encrypted: false });
-    pageCounts.set('shot.jpg', { pageCount: 1, encrypted: false });
-    pageCounts.set('pic.png', { pageCount: 1, encrypted: false });
+    pageCounts.set('b.pdf', { pageCount: 3 });
     mount();
     await loadFiles([
       makePdfFile('a.pdf'),
@@ -448,8 +539,9 @@ describe('PdfMergeTool UI flow', () => {
     ]);
     await settle();
     expect(fileNames()).toEqual(['a.pdf', 'shot.jpg', 'b.pdf', 'pic.png']);
-    const planned = draftProbe.props.plan.map((p) => draftProbe.props.entries.find((e) => e.id === p.fileId).file.name);
-    expect(planned).toEqual(['a.pdf', 'a.pdf', 'shot.jpg', 'b.pdf', 'b.pdf', 'b.pdf', 'pic.png']);
+    await until(() => cells().length === 7);
+    expect(planOf()).toEqual(['a:0:0:-', 'a:1:0:-', 'shot.jpg:0:0:-', 'b:0:0:-', 'b:1:0:-', 'b:2:0:-', 'pic.png:0:0:-']);
+    expect((await outputOfLink()).pages).toHaveLength(7);
   });
 
   it('lets the file picker choose JPEG and PNG photos beside PDFs (MERGE-22)', () => {
@@ -475,9 +567,7 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => undoButton().click());
     expect(fileNames()).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
     await settle();
-    const lastCall = mergeLib.mergePdfs.mock.calls.at(-1);
-    expect(lastCall[0].map((f) => f.name)).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
-    expect(lastCall[1].plan.map((p) => p.fileIndex)).toEqual([0, 0, 1, 1, 2, 2]);
+    expect((await outputOfLink()).pages).toEqual(['one:0:0', 'one:1:0', 'two:0:0', 'two:1:0', 'three:0:0', 'three:1:0']);
 
     await act(async () => redoButton().click());
     expect(fileNames()).toEqual(['one.pdf', 'three.pdf']);
@@ -487,10 +577,6 @@ describe('PdfMergeTool UI flow', () => {
   // GRID-03: one Undo/Redo stack over { entries, plan }.
   describe('undo and redo', () => {
     const pageButton = (label) => container.querySelector(`button[aria-label="${label}"]`);
-    const planOf = () => draftProbe.props.plan.map((p) => {
-      const name = draftProbe.props.entries.find((e) => e.id === p.fileId).file.name.replace('.pdf', '');
-      return `${name}:${p.pageIndex}:${p.rotation}:${p.skipped ? 's' : '-'}`;
-    });
     const press = (init) => act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
     });
@@ -499,7 +585,7 @@ describe('PdfMergeTool UI flow', () => {
       mount();
       await loadFiles(['a.pdf', 'b.pdf']);
       await settle();
-      await act(async () => { await flush(20); });
+      await until(() => cells().length === 4);
     }
 
     it('skips a page, then Undo includes it and Redo skips it again', async () => {
@@ -559,9 +645,14 @@ describe('PdfMergeTool UI flow', () => {
 
     it.each([['after', true], ['before', false]])('a file removed before its inspection finished still gets its pages when it finishes %s Undo', async (_, afterUndo) => {
       mount();
-      let finish;
-      mergeLib.inspectPdf.mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve({ pageCount: 3, encrypted: false, creationDate: null }); }));
-      await loadFiles(['slow.pdf', 'b.pdf']);
+      // slow.pdf's inspection is held open: its bytes are not given up until it is released.
+      pageCounts.set('slow.pdf', { pageCount: 3 });
+      const slow = makePdfFile('slow.pdf');
+      const reads = controlReads(slow);
+      reads.holdFrom(0);
+      const finish = () => reads.release();
+      await loadFiles([slow, 'b.pdf'], { wait: false });
+      await until(() => cells().length === 2);
       expect(planOf()).toEqual(['b:0:0:-', 'b:1:0:-']);
       await act(async () => {
         container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -571,6 +662,7 @@ describe('PdfMergeTool UI flow', () => {
       await act(async () => undoButton().click());
       expect(fileNames()).toEqual(['slow.pdf', 'b.pdf']);
       if (afterUndo) await act(async () => { finish(); await flush(10); });
+      await until(() => planOf().filter((p) => p.startsWith('slow:')).length === 3);
       expect(planOf().filter((p) => p.startsWith('slow:'))).toHaveLength(3);
     });
 
@@ -588,20 +680,9 @@ describe('PdfMergeTool UI flow', () => {
     });
 
     it('a restored draft is not a step', async () => {
+      await seedMergeDraft(['x.pdf', 'y.pdf']);
       mount();
-      await act(async () => { await flush(10); });
-      await act(async () => {
-        draftProbe.props.onRestore({
-          files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
-          plan: [
-            { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
-            { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
-          ],
-          options: { addPageNumbers: false },
-          outputName: null,
-        });
-        await flush(10);
-      });
+      await until(() => fileNames().length === 2 && rowsRead());
       expect(fileNames()).toEqual(['x.pdf', 'y.pdf']);
       expect(undoButton().disabled).toBe(true);
     });
@@ -640,21 +721,28 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('DEBT-58: the first files arriving are not an edit; a remove and a later add are', async () => {
+    // A first edit is sent once per accepted file, so each kind of change starts from a fresh page load.
+    const firstEdits = async () => { await harness.flush(); return harness.usageEvents('tool_first_edit').map((event) => event.properties.tool); };
     mount();
     await loadFiles(['one.pdf', 'two.pdf']);
     await settle();
-    expect(reportEdit).not.toHaveBeenCalled();
+    expect(await firstEdits()).toEqual([]);
 
     const removeBtns = container.querySelectorAll(`.${railStyles['file-remove']}`);
     await act(async () => {
       removeBtns[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(reportEdit).toHaveBeenCalledTimes(1);
-    expect(reportEdit).toHaveBeenCalledWith('merge');
+    expect(await firstEdits()).toEqual(['merge']);
 
-    reportEdit.mockClear();
+    act(() => render(null, container));
+    container.remove();
+    harness.resetUsage();
+    harness.clearBeacons();
+    mount();
+    await loadFiles(['one.pdf', 'two.pdf']);
+    expect(await firstEdits()).toEqual([]);
     await loadFiles(['three.pdf']);
-    expect(reportEdit).toHaveBeenCalledWith('merge');
+    expect(await firstEdits()).toEqual(['merge']);
   });
 
   it('nudges on a duplicate (same name and size) and lets it be added anyway (MERGE-07)', async () => {
@@ -692,9 +780,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(fileNames()).toEqual(['c.pdf', 'b.pdf', 'a.pdf']);
 
     await settle();
-    const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
-    expect(files.map((f) => f.name)).toEqual(['c.pdf', 'b.pdf', 'a.pdf']);
-    expect(options.plan.map((p) => p.fileIndex)).toEqual([0, 0, 1, 1, 2, 2]);
+    expect((await outputOfLink()).pages).toEqual(['c:0:0', 'c:1:0', 'b:0:0', 'b:1:0', 'a:0:0', 'a:1:0']);
   });
 
   it('undoing a sort brings back the file order and the sort choice together', async () => {
@@ -728,7 +814,7 @@ describe('PdfMergeTool UI flow', () => {
       checkbox.dispatchEvent(new Event('change', { bubbles: true }));
     });
     await settle();
-    expect(mergeLib.mergePdfs.mock.calls.at(-1)[1].addPageNumbers).toBe(true);
+    expect(await pageTexts(harness.blobForUrl(downloadLink().getAttribute('href')))).toEqual(['1', '2', '3', '4']);
     expect(JSON.parse(localStorage.getItem('pdf-toolkit:merge:options'))).toEqual({ addPageNumbers: true });
 
     act(() => render(null, container));
@@ -802,22 +888,11 @@ describe('PdfMergeTool UI flow', () => {
       ? Array.from(el.children).map(describe)
       : [describe(el)])).toEqual(['Add files', 'Clear all files', 'sort']);
 
-    // Force the rearranged state (a plan interleaved across files) the same
-    // way the draft-restore test above does, rather than fighting a real
-    // drag in jsdom.
-    await act(async () => {
-      draftProbe.props.onRestore({
-        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
-        plan: [
-          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
-          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
-          { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
-        ],
-        options: { addPageNumbers: false },
-        outputName: null,
-      });
-      await flush(10);
-    });
+    // Reach the rearranged state (a plan interleaved across files) with the keyboard move the page
+    // grid offers, rather than fighting a real drag in jsdom: b's last page moves one place right.
+    await until(() => cells().length === 4);
+    await act(async () => { cells()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
+    expect(planOf().slice(0, 3)).toEqual(['b:0:0:-', 'a:0:0:-', 'b:1:0:-']);
     // Unlike the desktop rail, Sort stays in the mobile controls even once
     // rearranged - it regroups the plan and would itself resolve the
     // rearrangement, same as Reset order (team lead, second follow-up).
@@ -832,7 +907,7 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['a.pdf', 'locked.pdf', 'b.pdf']);
     await settle();
 
-    expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
+    expect(harness.createdBlobs()).toHaveLength(0);
     const notice = container.querySelector('[data-locked-notice]');
     expect(notice.textContent).toContain('"locked.pdf" is password-protected');
     expect(notice.querySelector('a').getAttribute('href')).toBe('/unlock/');
@@ -854,8 +929,8 @@ describe('PdfMergeTool UI flow', () => {
     });
     await settle();
     expect(fileNames()).toEqual(['a.pdf', 'b.pdf']);
-    expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
-    expect(mergeLib.mergePdfs.mock.calls[0][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf']);
+    expect(harness.createdBlobs()).toHaveLength(1);
+    expect((await outputOfLink()).pages).toEqual(['a:0:0', 'a:1:0', 'b:0:0', 'b:1:0']);
     expect(container.querySelector('[data-locked-notice]')).toBeNull();
   });
 
@@ -865,7 +940,6 @@ describe('PdfMergeTool UI flow', () => {
   ])('a single protected file (%s) shows the locked state in place of the result area', async (fixture, kind) => {
     const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', fixture));
     probeMock.mockResolvedValue(kind);
-    pageCounts.set(fixture, { pageCount: 1, encrypted: true });
     mount();
     await loadFiles([new File([bytes], fixture, { type: 'application/pdf' })]);
     await settle();
@@ -884,7 +958,7 @@ describe('PdfMergeTool UI flow', () => {
     probeMock.mockReturnValue(new Promise(() => {}));
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
     mount();
-    await loadFiles([new File(['%PDF-1.7'], 'locked.pdf', { type: 'application/pdf' })]);
+    await loadFiles(['locked.pdf']);
     await settle();
     await act(async () => { await flush(20); });
 
@@ -937,9 +1011,12 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('reports an unreadable file by name when the merge itself rejects it (MERGE-04)', async () => {
-    mergeLib.mergePdfs.mockImplementationOnce(() => Promise.reject(new mergeLib.MergeFileError('bad', { fileIndex: 1, reason: 'unreadable' })));
+    // broken.pdf is readable when it is inspected and gives out when the merge reads it.
+    const broken = makePdfFile('broken.pdf');
+    const reads = controlReads(broken);
+    reads.failFrom(1);
     mount();
-    await loadFiles(['a.pdf', 'broken.pdf']);
+    await loadFiles(['a.pdf', broken]);
     await settle();
 
     const alert = container.querySelector('[role="alert"]');
@@ -947,7 +1024,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(alert.querySelector('a')).toBeNull();
   });
 
-  const failedEvents = () => reportToolLifecycleEvent.mock.calls.filter(([event]) => event === 'tool_operation_failed');
+  const failedEvents = async () => { await harness.flush(); return harness.usageEvents('tool_operation_failed'); };
 
   it('does not count a file flagged encrypted by inspection as a failed operation (DEBT-44)', async () => {
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
@@ -956,19 +1033,19 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
 
     expect(downloadBox().getAttribute('data-state')).toBe('error');
-    expect(failedEvents()).toEqual([]);
+    expect(await failedEvents()).toEqual([]);
   });
 
   it('does not count a file inspection finds unreadable, but reports the library error behind it', async () => {
-    const cause = new Error('pdf-lib could not parse');
-    pageCounts.set('broken.pdf', { unreadable: true, cause });
+    pageCounts.set('broken.pdf', { unreadable: true });
     mount();
     await loadFiles(['a.pdf', 'broken.pdf']);
     await settle();
 
     expect(container.querySelector('[role="alert"]').textContent).toContain('"broken.pdf" could not be read');
-    expect(failedEvents()).toEqual([]);
-    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', cause, 'inspect_pdf');
+    expect(await failedEvents()).toEqual([]);
+    // The report is of the library's own error behind it, not of the wrapper merge.js puts around it.
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'inspect_pdf', type: 'TypeError' }]);
   });
 
   it('reports an unexpected inspection failure and still shows the file unreadable (DEBT-44)', async () => {
@@ -977,18 +1054,21 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['a.pdf', 'odd.pdf']);
     await settle();
 
-    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'inspect_pdf');
+    await harness.flush();
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'inspect_pdf' }]);
     expect(container.querySelector('[role="alert"]').textContent).toContain('"odd.pdf" could not be read');
-    expect(failedEvents()).toEqual([]);
+    expect(await failedEvents()).toEqual([]);
   });
 
   it('still counts a failure of the merge run itself (DEBT-44)', async () => {
-    mergeLib.mergePdfs.mockImplementationOnce(() => Promise.reject(new mergeLib.MergeFileError('bad', { fileIndex: 1, reason: 'unreadable' })));
+    const b = makePdfFile('b.pdf');
+    const reads = controlReads(b);
+    reads.failFrom(1);
     mount();
-    await loadFiles(['a.pdf', 'b.pdf']);
+    await loadFiles(['a.pdf', b]);
     await settle();
 
-    expect(failedEvents()).toHaveLength(1);
+    expect(await failedEvents()).toHaveLength(1);
   });
 
   it('hands the merged result to Compress without re-picking, keeping the merge draft (MERGE-14)', async () => {
@@ -996,6 +1076,7 @@ describe('PdfMergeTool UI flow', () => {
     mount({ navigate });
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
+    await draftSaved();
 
     // Buttons, not links, and no Split: the row is Compress and Sign only.
     expect(container.querySelector('a[href="/compress/"]')).toBeNull();
@@ -1005,12 +1086,14 @@ describe('PdfMergeTool UI flow', () => {
       button.click();
       await flush(10);
     });
-    expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
-    const [tool, record] = draftStore.saveHandoff.mock.calls[0];
-    expect(tool).toBe('compress');
+    await until(() => navigate.mock.calls.length > 0);
+    // The hand-off is what Compress will find: the merged file, whole.
+    const record = await harness.takeHandoff('compress');
     expect(record.fileName).toBe('merged_a.pdf');
-    expect(record.fileBytes).toBeInstanceOf(ArrayBuffer);
-    expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+    expect(Object.prototype.toString.call(record.fileBytes)).toBe('[object ArrayBuffer]');
+    expect((await readOutput(new Blob([record.fileBytes]))).pages).toEqual(['a:0:0', 'a:1:0', 'b:0:0', 'b:1:0']);
+    // Merge's own draft is still stored.
+    expect((await harness.storedDraft('merge'))?.files.map((f) => f.fileName)).toEqual(['a.pdf', 'b.pdf']);
     expect(navigate).toHaveBeenCalledWith('/compress/');
   });
 
@@ -1055,10 +1138,9 @@ describe('PdfMergeTool UI flow', () => {
   // or to discard, so the hand-off now goes straight through, exactly like the
   // Compress case above.
   it('hands the merged result to Sign without asking, even when Sign already has a draft of its own (MEM-01/02)', async () => {
-    // Still returns a 'sign' record so this test would catch a regression
-    // that brings the old ask-first check back; performHandoff no longer
-    // calls loadDraft('sign') at all, so this is never actually read.
-    draftStore.loadDraft.mockImplementation(async (tool) => (tool === 'sign' ? { fileName: 'contract.pdf', fileBytes: new ArrayBuffer(4) } : null));
+    // Sign has a draft of its own, so this test would catch a regression that brings the old
+    // ask-first check back.
+    expect(await saveDraft('sign', { fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: bufferOf(pagesPdf('contract.pdf', 1)) })).toBe(true);
     const navigate = vi.fn();
     mount({ navigate });
     await loadFiles(['a.pdf', 'b.pdf']);
@@ -1069,10 +1151,10 @@ describe('PdfMergeTool UI flow', () => {
       button.click();
       await flush(10);
     });
-    expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
-    expect(draftStore.saveHandoff.mock.calls[0][0]).toBe('sign');
+    await until(() => navigate.mock.calls.length > 0);
+    expect((await harness.takeHandoff('sign'))?.fileName).toBe('merged_a.pdf');
     // Sign's existing entry (and its work) is never touched by this hand-off.
-    expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+    expect((await harness.storedDraft('sign'))?.fileName).toBe('contract.pdf');
     expect(Array.from(container.querySelectorAll('dialog')).find((d) => d.textContent.includes('contract.pdf'))).toBeUndefined();
     expect(navigate).toHaveBeenCalledWith('/sign/');
   });
@@ -1103,14 +1185,13 @@ describe('PdfMergeTool UI flow', () => {
     // draftStore refuses a multi-file draft over its byte cap by resolving
     // false (draftStore.test.js) and the hook turns that into 'error'
     // (useMergeDraft.test.tsx); this is the last link, the island showing a
-    // state for it instead of silently not saving.
+    // state for it instead of silently not saving. The cap is 200 MB, so the failed
+    // write here is the other way a save fails: there is no IndexedDB.
+    globalThis.indexedDB = undefined;
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
-    await act(async () => {
-      draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'error' });
-      await flush(10);
-    });
+    await until(() => container.querySelector(`.${railStyles['draft-status-row']}`)?.textContent === 'Draft not saved');
     const statusRow = container.querySelector(`.${railStyles['draft-status-row']}`);
     expect(statusRow).not.toBeNull();
     expect(statusRow.textContent).toBe('Draft not saved');
@@ -1121,42 +1202,39 @@ describe('PdfMergeTool UI flow', () => {
 
   it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
     // The picked-up-sentence-to-chip flip below advances virtual time via
-    // fake timers instead of waiting out a real 5s timer.
-    const clearDraft = vi.fn(async () => true);
-    // MEM-01: hasMergeDraftHint() now goes through draftStore's own
-    // hasDraftHint (a pointer + recency-index check) instead of reading a
-    // localStorage key directly, so the mocked module is what needs to say
-    // "yes, there's something to check" here.
-    draftStore.hasDraftHint.mockReturnValue(true);
+    // fake timers instead of waiting out a real 5s timer; the real IndexedDB and the lazy
+    // chunks answer on the real event loop, so each wait gives it a turn between advances.
+    const untilFake = async (cond, timeout = 8000) => {
+      const start = Date.now();
+      while (!cond()) {
+        if (Date.now() - start > timeout) throw new Error(`condition not met within ${timeout}ms: ${cond}`);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10);
+          await new Promise((resolve) => setImmediate(resolve));
+        });
+      }
+    };
+    await seedMergeDraft(['x.pdf', 'y.pdf'], {
+      plan: [
+        { key: '0:0', fileId: 0, pageIndex: 0, rotation: 90, skipped: false },
+        { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: true },
+        { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
+        { key: '1:1', fileId: 1, pageIndex: 1, rotation: 0, skipped: false },
+      ],
+      options: { addPageNumbers: true },
+    });
+    // The pre-paint script sets this when the pointer to a draft exists (hasDraftHint is true here, for real).
     document.documentElement.setAttribute('data-draft-hint', '1');
+    // Fake timers from here on: the restore starts the component's own 5s "picked up" -> chip
+    // setTimeout, so it must already be running under the fake clock for the advance further down to
+    // move it. The pre-merge debounce that fires during this window is also driven by advancing
+    // virtual time (in place of settle()'s real flush).
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     mount();
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
     // The hint alone holds the empty state back before the module has loaded.
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
-    await act(async () => { await flush(10); });
-    expect(draftProbe.props).not.toBeNull();
-
-    // Fake timers from here on: the onRestore call below is what starts the
-    // component's own 5s "picked up" -> chip setTimeout, so it must already
-    // be running under the fake clock for the advance further down to move
-    // it. The pre-merge debounce that fires during this window is also
-    // driven by advancing virtual time (in place of settle()'s real flush).
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await act(async () => {
-      draftProbe.props.registerClear(clearDraft);
-      draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'saved' });
-      draftProbe.props.onRestore({
-        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
-        plan: [
-          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 90, skipped: false },
-          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: true },
-          { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
-          { key: '1:1', fileId: 1, pageIndex: 1, rotation: 0, skipped: false },
-        ],
-        options: { addPageNumbers: true },
-      });
-      await vi.advanceTimersByTimeAsync(10);
-    });
+    await untilFake(() => fileNames().length === 2);
     expect(fileNames()).toEqual(['x.pdf', 'y.pdf']);
     // The pre-paint hint attribute is gone once the check settled, so a later
     // Clear all shows the dropzone instead of a blank card.
@@ -1165,116 +1243,108 @@ describe('PdfMergeTool UI flow', () => {
     // The restored-draft sentence shows first, for its five seconds; only
     // after that does the small "Draft saved" chip take its place.
     expect(container.textContent).toContain('Picked up where you left off');
-    // Equivalent to settle() (pre-merge debounce + merge), advanced virtually.
-    await act(async () => { await vi.advanceTimersByTimeAsync(30); });
+    await untilFake(() => downloadLink() !== null);
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
-    const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
-    expect(files.map((f) => f.name)).toEqual(['x.pdf', 'y.pdf']);
-    expect(options.plan).toEqual([
-      { fileIndex: 0, pageIndex: 0, rotation: 90, skipped: false },
-      { fileIndex: 1, pageIndex: 0, rotation: 0, skipped: true },
-      { fileIndex: 0, pageIndex: 1, rotation: 0, skipped: false },
-      { fileIndex: 1, pageIndex: 1, rotation: 0, skipped: false },
-    ]);
-    expect(options.addPageNumbers).toBe(true);
+    const blob = harness.blobForUrl(downloadLink().getAttribute('href'));
+    expect((await readOutput(blob)).pages).toEqual(['x:0:90', 'x:1:0', 'y:1:0']);
+    expect(await pageTexts(blob)).toEqual(['1', '2', '3']);
     // Pages were interleaved across files, so the list shows the rearranged note.
     expect(container.textContent).toContain('Pages moved across files');
 
     // After its five seconds the sentence gives way to the small chip for
     // the rest of the session.
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-    vi.useRealTimers();
     expect(container.textContent).not.toContain('Picked up where you left off');
-    expect(container.textContent).toContain('Draft saved');
+    // A restored workspace is not saved again until the person changes it; the first change is.
+    await act(async () => container.querySelector('button[aria-label="Rotate page 3"]').click());
+    await untilFake(() => container.textContent.includes('Draft saved'));
+    vi.useRealTimers();
     // MEM-11: the retention hint's trigger rides along with the saved chip.
     const statusRow = container.querySelector(`.${railStyles['draft-status-row']}`);
     expect(statusRow.querySelector('[tabindex="0"][aria-describedby]')).not.toBeNull();
+    expect((await harness.storedDraft('merge')).plan.map((p) => p.rotation)).toEqual([90, 0, 0, 90]);
 
+    await until(() => downloadLink() !== null);
     await act(async () => downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
     const startAgain = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Start again');
     await act(async () => startAgain.click());
-    expect(clearDraft).toHaveBeenCalledTimes(1);
+    await untilAsync(async () => (await harness.storedDraft('merge')) === null);
     expect(fileNames()).toEqual([]);
   });
 
   // SITE-42: the home launcher hands several files to Merge as a fresh set.
   describe('a hand-off from the home page (SITE-42)', () => {
-    const handoffRecord = (...names) => ({
-      files: names.map((fileName) => ({ fileName, fileType: 'application/pdf', fileBytes: new ArrayBuffer(8) })),
-    });
-    const restoreOf = (...names) => ({
-      files: names.map((n) => makePdfFile(n)),
-      plan: names.flatMap((_, i) => [0, 1].map((p) => ({ key: `${i}:${p}`, fileId: i, pageIndex: p, rotation: 0, skipped: false }))),
-      options: { addPageNumbers: false },
-      outputName: null,
-    });
+    // EDGE: an IndexedDB that is slow to answer its first request, which is the hand-off read (the
+    // draft restore only starts once its lazy module has loaded). `release()` lets that answer through.
+    function slowFirstOpen() {
+      const realOpen = indexedDB.open.bind(indexedDB);
+      let opened = 0;
+      let release = () => {};
+      const gate = new Promise((resolve) => { release = resolve; });
+      indexedDB.open = (...args) => {
+        const request = realOpen(...args);
+        opened += 1;
+        if (opened > 1) return request;
+        let handler = null;
+        Object.defineProperty(request, 'onsuccess', {
+          configurable: true,
+          get: () => (handler ? (event) => { gate.then(() => handler(event)); } : handler),
+          set: (fn) => { handler = fn; },
+        });
+        return request;
+      };
+      return release;
+    }
 
     it('loads the handed-off files as the set, in pick order, named like a manual pick', async () => {
-      draftStore.takeHandoff.mockResolvedValueOnce(handoffRecord('c.pdf', 'a.pdf', 'b.pdf'));
+      expect(await saveHandoff('merge', handoffOf('c.pdf', 'a.pdf', 'b.pdf'))).toBe(true);
       mount();
-      await act(async () => { await flush(20); });
-      expect(draftStore.takeHandoff).toHaveBeenCalledWith('merge');
+      await until(() => fileNames().length === 3);
       expect(fileNames()).toEqual(['c.pdf', 'a.pdf', 'b.pdf']);
+      // It was taken, not copied: the hand-off is gone.
+      expect(await harness.takeHandoff('merge')).toBeNull();
       await settle();
       expect(container.textContent).toContain('merged_c.pdf');
     });
 
     it('lands a PDF and a photo from the home page in order (MERGE-22)', async () => {
-      draftStore.takeHandoff.mockResolvedValueOnce({
-        files: [
-          { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(8) },
-          { fileName: 'snap.jpg', fileType: 'image/jpeg', fileBytes: new ArrayBuffer(8) },
-        ],
-      });
+      expect(await saveHandoff('merge', handoffOf('a.pdf', 'snap.jpg'))).toBe(true);
       mount();
-      await act(async () => { await flush(20); });
+      await until(() => fileNames().length === 2);
       expect(fileNames()).toEqual(['a.pdf', 'snap.jpg']);
     });
 
     it('wins over a restore that lands after it, and leaves the saved set alone', async () => {
-      draftStore.takeHandoff.mockResolvedValueOnce(handoffRecord('new1.pdf', 'new2.pdf'));
-      const clearDraft = vi.fn(async () => true);
+      await seedMergeDraft(['old1.pdf', 'old2.pdf']);
+      expect(await saveHandoff('merge', handoffOf('new1.pdf', 'new2.pdf'))).toBe(true);
       mount();
-      await act(async () => { await flush(20); });
-      await act(async () => {
-        draftProbe.props.registerClear(clearDraft);
-        draftProbe.props.onRestore(restoreOf('old1.pdf', 'old2.pdf'));
-        await flush(10);
-      });
+      await until(() => fileNames().length === 2 && rowsRead());
+      await act(async () => { await flush(60); });
       expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
-      expect(draftProbe.props.entries.map((e) => e.file.name)).toEqual(['new1.pdf', 'new2.pdf']);
-      expect(clearDraft).not.toHaveBeenCalled();
-      expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+      // The saved set is still stored, with its work, in the recents.
+      expect(harness.recents().filter((entry) => entry.hasWork.includes('merge')).map((entry) => entry.fileName)).toContain('merged_old1');
     });
 
     it('replaces a restore that landed first instead of appending to it', async () => {
-      let release;
-      draftStore.takeHandoff.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
-      const clearDraft = vi.fn(async () => true);
+      await seedMergeDraft(['old1.pdf', 'old2.pdf']);
+      expect(await saveHandoff('merge', handoffOf('new1.pdf', 'new2.pdf'))).toBe(true);
+      const release = slowFirstOpen();
       mount();
-      await act(async () => { await flush(10); });
-      await act(async () => {
-        draftProbe.props.registerClear(clearDraft);
-        draftProbe.props.onRestore(restoreOf('old1.pdf', 'old2.pdf'));
-        await flush(10);
-      });
+      await until(() => fileNames().length === 2 && rowsRead());
       expect(fileNames()).toEqual(['old1.pdf', 'old2.pdf']);
-      await act(async () => { release(handoffRecord('new1.pdf', 'new2.pdf')); await flush(20); });
+      await act(async () => { release(); });
+      await until(() => fileNames().join() === 'new1.pdf,new2.pdf');
       expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
       expect(container.textContent).not.toContain('Picked up where you left off');
-      expect(clearDraft).not.toHaveBeenCalled();
-      expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+      expect(harness.recents().filter((entry) => entry.hasWork.includes('merge')).map((entry) => entry.fileName)).toContain('merged_old1');
     });
 
     it('clears everything else the replaced set left behind: sort mode and history', async () => {
-      let release;
-      draftStore.takeHandoff.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+      await seedMergeDraft(['b.pdf', 'a.pdf', 'c.pdf']);
+      expect(await saveHandoff('merge', handoffOf('z.pdf', 'y.pdf'))).toBe(true);
+      const release = slowFirstOpen();
       mount();
-      await act(async () => { await flush(10); });
-      await act(async () => {
-        draftProbe.props.onRestore(restoreOf('b.pdf', 'a.pdf', 'c.pdf'));
-        await flush(10);
-      });
+      await until(() => fileNames().length === 3 && rowsRead());
       const trigger = () => container.querySelector(`button.${sortMenuStyles['sort-trigger']}`);
       await act(async () => { trigger().click(); });
       const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === 'Name A to Z');
@@ -1285,7 +1355,8 @@ describe('PdfMergeTool UI flow', () => {
       expect(trigger().textContent).toContain('Name A to Z');
       expect(undoButton().disabled).toBe(false);
 
-      await act(async () => { release(handoffRecord('z.pdf', 'y.pdf')); await flush(20); });
+      await act(async () => { release(); });
+      await until(() => fileNames().join() === 'z.pdf,y.pdf');
       expect(fileNames()).toEqual(['z.pdf', 'y.pdf']);
       expect(trigger().textContent).not.toContain('Name A to Z');
       expect(undoButton().disabled).toBe(true);
@@ -1323,23 +1394,9 @@ describe('PdfMergeTool UI flow', () => {
   // phone. The document header's right slot (where the Undo chip also
   // lives) now carries the same sentence for that placement.
   it('shows the restored-draft sentence in the document header, for phones (MERGE-13)', async () => {
-    const clearDraft = vi.fn(async () => true);
+    await seedMergeDraft(['x.pdf', 'y.pdf']);
     mount();
-    await act(async () => { await flush(10); });
-    expect(draftProbe.props).not.toBeNull();
-    await act(async () => {
-      draftProbe.props.registerClear(clearDraft);
-      draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'saved' });
-      draftProbe.props.onRestore({
-        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
-        plan: [
-          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
-          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
-        ],
-        options: { addPageNumbers: false },
-      });
-      await flush(10);
-    });
+    await until(() => fileNames().length === 2);
 
     const headerChip = container.querySelector(`.${workspaceStyles['doc-header-right']} .${docStyles['header-draft-chip']}`);
     expect(headerChip).not.toBeNull();
@@ -1424,19 +1481,9 @@ describe('PdfMergeTool UI flow', () => {
     const railOptions = createSpy.mock.calls[railCallIndex][1];
     const railSortable = createSpy.mock.results[railCallIndex].value;
 
-    await act(async () => {
-      draftProbe.props.onRestore({
-        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
-        plan: [
-          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
-          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
-          { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
-        ],
-        options: { addPageNumbers: false },
-        outputName: null,
-      });
-      await flush(10);
-    });
+    // A page moves across the file boundary with the grid's own keyboard move.
+    await until(() => cells().length === 4);
+    await act(async () => { cells()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
 
     expect(container.textContent).toContain('Pages moved across files');
     expect(container.querySelectorAll(`.${railStyles.grip}`)).toHaveLength(2);
@@ -1446,7 +1493,7 @@ describe('PdfMergeTool UI flow', () => {
       railOptions.onEnd({ oldIndex: 0, newIndex: 1 });
       await flush(0);
     });
-    expect(fileNames()).toEqual(['y.pdf', 'x.pdf']);
+    expect(fileNames()).toEqual(['b.pdf', 'a.pdf']);
     expect(container.textContent).not.toContain('Pages moved across files');
   });
 
@@ -1503,8 +1550,7 @@ describe('PdfMergeTool UI flow', () => {
       expect(container.querySelector(`.${outputNameStyles['doc-heading-ext']}`).textContent).toBe('.pdf');
       const link = downloadLink();
       expect(link.getAttribute('download')).toBe('March invoices.pdf');
-      const [, options] = mergeLib.mergePdfs.mock.calls.at(-1);
-      expect(options.title).toBe('March invoices');
+      expect((await outputOfLink()).title).toBe('March invoices');
     });
 
     it('Escape cancels the rename, restoring the previous text and leaving edit mode', async () => {
@@ -1589,27 +1635,20 @@ describe('PdfMergeTool UI flow', () => {
       mount();
       await loadFiles(['a.pdf', 'b.pdf']);
       await settle();
-      expect(draftProbe.props.outputName).toBeNull();
+      await draftSaved();
+      expect((await harness.storedDraft('merge')).outputName).toBeNull();
 
       await beginEdit();
       await type('Persisted name');
       await act(async () => { nameEl().blur(); });
-      expect(draftProbe.props.outputName).toBe('Persisted name');
+      await untilAsync(async () => (await harness.storedDraft('merge')).outputName === 'Persisted name');
 
-      // A restore that carries an outputName brings the renamed heading back,
-      // and it is still "theirs" (a later file add does not regenerate it).
-      await act(async () => {
-        draftProbe.props.onRestore({
-          files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
-          plan: [
-            { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
-            { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
-          ],
-          options: { addPageNumbers: false },
-          outputName: 'Restored name',
-        });
-        await flush(10);
-      });
+      // A restore that carries an outputName brings the renamed heading back.
+      act(() => render(null, container));
+      container.remove();
+      await seedMergeDraft(['x.pdf', 'y.pdf'], { outputName: 'Restored name' });
+      mount();
+      await until(() => fileNames().length === 2);
       expect(nameEl().textContent).toBe('Restored name');
     });
   });
@@ -1707,38 +1746,14 @@ describe('PdfMergeTool UI flow', () => {
   });
 });
 
-import fs from 'fs';
-import path from 'path';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-
 describe('merge.js library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
-    const buffer = fs.readFileSync(filePath);
-    return new File([buffer], name, { type: 'application/pdf' });
+    return new File([fs.readFileSync(path.join(FIXTURES, name))], name, { type: 'application/pdf' });
   }
 
-  async function extractTextFromPdfBlob(blob) {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const loadingTask = pdfjs.getDocument({
-      data: bytes,
-      useWorkerFetch: false,
-      isEvalSupported: false,
-    });
-    const pdf = await loadingTask.promise;
-    const pageTexts = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map(item => item.str).join('').trim();
-      pageTexts.push(pageText);
-    }
-    await loadingTask.destroy();
-    return pageTexts;
-  }
+  const extractTextFromPdfBlob = pageTexts;
 
   it('merges num-1, num-2, num-3, num-4 in order', async () => {
-    const { mergePdfs } = await vi.importActual('./lib/merge.js');
     const files = [
       getFixtureFile('num-1.pdf'),
       getFixtureFile('num-2.pdf'),
@@ -1755,7 +1770,6 @@ describe('merge.js library integration with real fixtures', () => {
   });
 
   it('merges in a reordered input to preserve input order, not sorted order', async () => {
-    const { mergePdfs } = await vi.importActual('./lib/merge.js');
     const files = [
       getFixtureFile('num-3.pdf'),
       getFixtureFile('num-1.pdf'),
@@ -1773,30 +1787,40 @@ describe('merge.js library integration with real fixtures', () => {
 // editing. These run the real 1500/2500ms policy under fake timers.
 describe('PdfMergeTool quiet-time prepare', () => {
   let container;
-  const advance = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   const box = () => container.querySelector(`.${downloadStyles.box}`);
   const pageNumbersBox = () => container.querySelector(`.${workspaceStyles['page-numbers-row']} input`);
-  const built = () => mergeLib.mergePdfs.mock.calls.length;
+  let harness: ToolHarness;
+  let sources;
+  let builtBefore;
+  // Builds that have landed since the set was first built: distinct blobs, because a cached result
+  // handed back for a state seen before is the same blob again.
+  const built = () => new Set(harness.createdBlobs()).size - builtBefore;
+  // The real IndexedDB, pdf-lib and the lazy chunks answer on the real event loop, and pdf-lib
+  // yields on timers: move the fake clock in small steps and give the real loop a few turns after each.
+  const advance = (ms) => act(async () => {
+    for (let left = ms; left > 0; left -= 10) {
+      await vi.advanceTimersByTimeAsync(Math.min(10, left));
+      for (let turn = 0; turn < 3; turn += 1) await new Promise((resolve) => setImmediate(resolve));
+    }
+  });
 
   beforeEach(async () => {
-    vi.useFakeTimers();
+    harness = installToolHarness();
     pageCounts.clear();
-    localStorage.clear();
-    mergeLib.mergePdfs.mockClear();
-    mergeLib.mergePdfs.mockImplementation(() => Promise.resolve(new Blob(['%PDF-1.4-merged'], { type: 'application/pdf' })));
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
+    widthOf.clear();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     window.scrollTo = vi.fn();
+    sources = ['a.pdf', 'b.pdf', 'c.pdf'].map((n) => makePdfFile(n));
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(<PdfMergeTool />, container));
     await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), ['a.pdf', 'b.pdf', 'c.pdf'].map((n) => makePdfFile(n)));
+      setInputFiles(container.querySelector('input[type="file"]'), sources);
     });
-    await advance(100);
-    // Settle the first build, past the 3s burst window, so each test starts from a built set.
+    // Settle the inspection and the first build, past the 3s burst window, so each test starts from a built set.
+    for (let i = 0; i < 60 && !(box()?.hasAttribute('href')); i += 1) await advance(100);
     await advance(4500);
-    mergeLib.mergePdfs.mockClear();
+    builtBefore = new Set(harness.createdBlobs()).size;
   });
 
   afterEach(() => {
@@ -1804,6 +1828,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     container.remove();
     container = null;
     vi.useRealTimers();
+    harness.restore();
     vi.restoreAllMocks();
   });
 
@@ -1844,12 +1869,14 @@ describe('PdfMergeTool quiet-time prepare', () => {
   });
 
   it('shows preparing only after a tap before the build is done, then delivers', async () => {
-    let finish;
-    mergeLib.mergePdfs.mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve(new Blob(['%PDF'], { type: 'application/pdf' })); }));
+    // The next build starts reading its files and is held there until the test lets it go.
+    const reads = controlReads(sources[0]);
+    reads.holdFrom();
+    const finish = () => reads.release();
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await act(async () => pageNumbersBox().click());
     await advance(1700);
-    expect(built()).toBe(1);
+    expect(reads.isBlocked()).toBe(true);
     expect(box().getAttribute('data-state')).toBe('ready');
     await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     expect(box().getAttribute('data-state')).toBe('preparing');
@@ -1864,6 +1891,8 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await advance(200);
     expect(built()).toBe(0);
     await act(async () => { box().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    // Well inside the quiet wait, the build is already under way and lands.
+    await advance(300);
     expect(built()).toBe(1);
   });
   // MERGE-24 review: the done strip's pending tap and wide screens.
@@ -1907,7 +1936,8 @@ describe('PdfMergeTool quiet-time prepare', () => {
     const media = stubMedia(true);
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     try {
-      mergeLib.mergePdfs.mockImplementationOnce(() => new Promise(() => {}));
+      // The build the page-numbers change starts never finishes.
+      controlReads(sources[0]).holdFrom();
       await act(async () => pageNumbersBox().click());
       await advance(200);
       await act(async () => { container.querySelector('[data-quiet-download]').click(); });
