@@ -43,8 +43,6 @@
       "src/tools/redact/components/details/DetailsSheet.tsx#DetailsSheet": 152,
       "src/tools/redact/hooks/useRedactExport.ts#useRedactExport": 218,
       "src/tools/redact/state/redactState.ts#redactReducer": 244,
-      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 646,
-      "src/tools/scan/PdfScanTool.tsx#PdfScanTool.(anonymous)~17": 165,
       "src/tools/scan/components/CornerEditor.tsx#CornerEditor": 156,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 934,
@@ -98,10 +96,6 @@
       "src/tools/redact/PdfRedactTool.tsx": {
         "effects": 4,
         "hooks": 26
-      },
-      "src/tools/scan/PdfScanTool.tsx": {
-        "effects": 6,
-        "hooks": 24
       },
       "src/tools/security/PdfSecurityTool.tsx": {
         "effects": 1,
