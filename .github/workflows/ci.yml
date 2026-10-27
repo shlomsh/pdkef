@@ -177,6 +177,9 @@ jobs:
     - name: Verify every tool folder follows the template
       run: npm run test:tool-shape
 
+    - name: Verify typed JavaScript folders and the .js file ratchet
+      run: npm run test:js-typed
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
