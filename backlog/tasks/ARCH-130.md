@@ -1,10 +1,9 @@
 ---
 id: "ARCH-130"
 title: "Exports only tests use, and exports nothing uses, are deleted"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
 depends_on: []
 ---
 
@@ -24,4 +23,8 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] None of the 26 is left untagged, and the unused-exports record is lowered.
+- [x] None of the 26 is left untagged, and the unused-exports record is lowered.
+
+## Closed 2026-10-28
+
+Of the 26: 13 tagged `@testSeam` (the four reset/set hooks, the seven corpus and coverage tables, `hasFillableAcroForm`, which the detection-purity allowlist names, and `IslandErrorBoundary`'s default export, which tests render), 6 test-only functions deleted with their test cases (percentToPx, strokeSvgPath, isUpdateWaiting, reportCommands, variantsOf, sanitizeAnalyticsPath), and the 6 never-used constants and `HistoryOperation` deleted; their design values stay in docs/sign-next-gen-guidelines.md §2.5 and a comment in constants.ts. The font coverage generator now writes the tags it reports. unusedExports {7, 155, 212} -> {0, 155, 192}.
