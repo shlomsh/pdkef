@@ -32,8 +32,27 @@ late layout change) leaves the pointer off cell 2 and the button hidden.
 - If the grid really does move after `one-file` in a way a person would see, that is fixed in Merge,
   not in the spec.
 
+## Cause (measured 2026-10-28)
+
+- After `one-file` the grid is `visibility: hidden` until PageGrid's fit settles
+  (`.grid:not([data-fit-settled])`, MERGE-24). This test hovers before that, so `hover()` logs "element is
+  not visible" and retries.
+- Playwright counts those retries, and it picks each retry's scroll alignment as the retry count
+  modulo 4: none, `end`, `center`, `start` (`_retryPointerAction`, playwright-core 1.64.1). When the
+  grid shows on the 4th attempt, the cell is scrolled to `block: 'start'`. Cell 2's top lands at y 0, so
+  its Rotate button (31 to 63 px) sits under the 57 px sticky app bar.
+- The click then hits the bar ("intercepts pointer events"). Its own retry scrolls with `end`, the
+  pointer leaves cell 2, the hover-only cluster hides, and the click waits on "not visible" until the
+  45 s timeout. This matches both CI call logs; `DEBUG=pw:api` reproduced the sequence locally.
+- The grid itself does not move: every cell stays 254 px tall and scrollY stays 0 in every measured
+  frame. Overlap rate by load: 1/70 at base, 3-4/40 at 6x CPU throttle, 14/40 with 4 parallel pages,
+  16/48 with 8 parallel pages at 6x throttle (10 of them click timeouts).
+- Product gap found on the way: nothing in a page grid sets `scroll-margin-top`, so anything scrolling a
+  cell to its start (Tab onto a cell partly under the bar does) leaves the cell's top and its action
+  buttons under the app bar.
+
 ## Acceptance
 
-- [ ] The cause is named from a trace or a measurement, not assumed.
+- [x] The cause is named from a trace or a measurement, not assumed.
 - [ ] `npx playwright test src/tools/merge/e2e/merge-direction-a.spec.js --repeat-each=30` passes on
       chromium and webkit locally, with no new `waitForTimeout`.
