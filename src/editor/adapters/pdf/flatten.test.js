@@ -1,23 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFString, degrees } from '@cantoo/pdf-lib';
-import { FormFlattenError, appearanceToRectMatrix, flattenPdf } from './flatten.js';
+import { FormFlattenError, appearanceToRectMatrix, flattenDoc } from './flatten.js';
 import { getPageContentBytes } from './pdfObjects.js';
 
-vi.mock('./pdfjsLoader.js', () => ({
-  getPdfjs: async () => ({
-    getDocument: () => ({
-      promise: Promise.resolve({ numPages: 2, getPage: async (n) => ({ n }) }),
-      destroy: async () => {},
-    }),
-  }),
-}));
-vi.mock('./rasterPage.js', async (importOriginal) => ({
-  ...(await importOriginal()),
-  rasterizePageToJpeg: vi.fn(async () => ({ jpeg: TINY_JPEG, width: 120, height: 80 })),
-}));
-
-// A 1x1 JPEG, enough for pdf-lib to embed.
-const TINY_JPEG = Uint8Array.from(atob('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='), (c) => c.charCodeAt(0));
+/** Loads, flattens and saves; returns the input bytes untouched when there was nothing to flatten. */
+async function flattenPdf(bytes) {
+  const source = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const pdfDoc = await PDFDocument.load(source);
+  return flattenDoc(pdfDoc) ? pdfDoc.save() : source;
+}
 
 const text = (bytes) => new TextDecoder().decode(bytes);
 
@@ -38,7 +29,7 @@ function addAnnot(doc, page, { subtype, rect, bbox = [0, 0, 100, 50], paint = '0
 
 const annotCount = (doc, index = 0) => doc.getPage(index).node.Annots()?.size() ?? 0;
 
-describe('flattenPdf keep-text', () => {
+describe('flattenDoc', () => {
   it('bakes a stamp into the page and removes it and a sticky-note comment', async () => {
     const doc = await PDFDocument.create();
     const page = doc.addPage([300, 300]);
@@ -163,20 +154,6 @@ describe('flattenPdf keep-text', () => {
     doc.addPage([200, 200]);
     const bytes = await doc.save();
     expect(await flattenPdf(bytes)).toEqual(bytes);
-  });
-
-  it('image mode makes one picture page per source page, with no text or annotations', async () => {
-    const source = await PDFDocument.create();
-    source.addPage([200, 200]);
-    source.addPage([200, 200]);
-    const out = await PDFDocument.load(await flattenPdf(await source.save(), { mode: 'image' }));
-    expect(out.getPageCount()).toBe(2);
-    expect(out.getPage(0).getSize()).toEqual({ width: 120, height: 80 });
-    expect(out.getPage(0).node.Annots()?.size() ?? 0).toBe(0);
-  });
-
-  it('rejects an unknown mode', async () => {
-    await expect(flattenPdf(new Uint8Array(), { mode: 'sepia' })).rejects.toThrow('Unknown flatten mode');
   });
 });
 

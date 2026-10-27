@@ -88,7 +88,7 @@ Everything needed is exported from the `@cantoo/pdf-lib` package root - `setText
 dependency and already runs on this path.
 
 **This design is validated, not proposed.** It was run against the real `src/lib/comb.js`,
-`src/lib/fonts.js`, `src/lib/signHelpers.js` and `src/constants/signGeometry.js`, through a port of
+`src/lib/fonts.js`, `src/editor/text/signHelpers.js` and `src/editor/model/signGeometry.js`, through a port of
 `text.ts`'s `serialize`, covering multi-line RTL pointed Hebrew, Latin, both comb paths, and the
 Latin-only-font substitution path (Pacifico asked to render Hebrew, which `resolveFontFamily` sends to
 Gveret Levin). All produced correct PDFs. What is left is implementation, not investigation.
@@ -377,7 +377,7 @@ page.drawText('Arimo: שלום', { x: 300 - width, y: 700, size: 24, font, color
 Same glyph order, same bug. `drawShapedRun` changed **how each glyph's position is computed** (shaped
 offsets instead of `/W`-table advances); it did not touch **which glyphs come out of `layout()` or in
 what order** - that was already wrong before this epic, for any element whose text mixes scripts on one
-line. `getEffectiveTextDirection()`/`detectTextDirection()` (`src/lib/signHelpers.js`) already computes
+line. `getEffectiveTextDirection()`/`detectTextDirection()` (`src/editor/text/signHelpers.js`) already computes
 a single overall direction per *element* (first-strong-character heuristic, used to decide which edge is
 the anchored one) - what's missing is running that same idea at the *run* level, inside a line, before
 handing text to fontkit.
@@ -425,7 +425,7 @@ The single easiest way to build this wrong, so it is recorded before anyone buil
 
 The editor renders text in a `<textarea>` carrying **`dir={textDirection}`**
 (`src/components/SignTool/nodes/TextNode.tsx`), and that value comes from
-`getEffectiveTextDirection(element)` in `src/lib/signHelpers.js`:
+`getEffectiveTextDirection(element)` in `src/editor/text/signHelpers.js`:
 
 ```js
 detectTextDirection(element.text) || element.textDirection || 'ltr'

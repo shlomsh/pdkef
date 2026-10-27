@@ -6,11 +6,13 @@ import PdfToImageTool from './PdfToImageTool.tsx';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { parsePageSelector } from '../../lib/pageSelector.js';
-import { hebrewShellMessages, hebrewToImageMessages } from '../../i18n/toolMessages';
+import { hebrewToImageMessages } from './messages';
+import { hebrewShellMessages } from '../../shell/shellMessages';
 
 const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
@@ -145,14 +147,18 @@ describe('PdfToImageTool', () => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
-    await wait(150);
+    const stem = file.name.replace(/\.pdf$/, '');
+    await until(() => heading()?.textContent.includes(stem) && downloadElement()?.getAttribute('data-state') !== 'preparing');
   };
   // Mounts, picks a file and waits for the quiet build.
   async function open(pages = 5, props = {}) {
     mockState.numPages = pages;
     mount(props);
     await pick(makePdfFile());
-    await wait(150);
+    // A slow quiet policy and a long document do not build on their own; otherwise wait for the result or the failure.
+    const buildsAlone = !props.quietPolicy && pages <= 30;
+    await until(() => cells().length > 0 && downloadElement()
+      && (!buildsAlone || (convertOverride.fn ? convertCalls.n > 0 : /\d(\.\d)? ?(KB|MB)|B⁩/.test(downloadElement().textContent) || downloadElement().getAttribute('data-state') === 'error')));
   }
 
   const rail = () => container.querySelector(`.${workspaceStyles.rail}`);
@@ -218,7 +224,7 @@ describe('PdfToImageTool', () => {
     expect(convertCalls.n).toBe(0);
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().getAttribute('aria-busy')).toBeNull();
-    await wait(500);
+    await until(() => convertCalls.n === 1);
     expect(convertCalls.n).toBe(1);
     await wait(600);
     expect(convertCalls.n).toBe(1);
@@ -227,7 +233,7 @@ describe('PdfToImageTool', () => {
   it('keeps the ready look with no size, and the size joins when the build lands', async () => {
     await open(5, { quietPolicy: SLOW_QUIET });
     expect(downloadElement().textContent).not.toMatch(/KB|MB|bytes/);
-    await wait(900);
+    await until(() => /\d(\.\d)? KB/.test(downloadElement().textContent));
     expect(downloadElement().textContent).toMatch(/\d(\.\d)? KB/);
   });
 
@@ -251,7 +257,7 @@ describe('PdfToImageTool', () => {
     expect(field().value).toBe('1, 3-5');
     expect(heading().textContent).toContain('4 images');
     expect(heading().textContent).toContain('1 page skipped');
-    await wait(100);
+    await until(() => downloadElement().textContent.includes('Download 4 PNGs'));
     expect(downloadElement().textContent).toContain('Download 4 PNGs');
     await click(skipButton(2));
     expect(field().value).toBe('1-5');
@@ -261,7 +267,7 @@ describe('PdfToImageTool', () => {
     await open();
     await type('2-3');
     expect([1, 2, 3, 4, 5].map(isSkipped)).toEqual([true, false, false, true, true]);
-    await wait(100);
+    await until(() => convertCalls.last?.pages === '2-3');
     expect(convertCalls.last.pages).toBe('2-3');
     await undo();
     expect(field().value).toBe('1-5');
@@ -292,7 +298,7 @@ describe('PdfToImageTool', () => {
   it('rotating a page is a step and reaches the build as a rotation of that page number', async () => {
     await open();
     await click(container.querySelector('[aria-label="Rotate page 2"]'));
-    await wait(100);
+    await until(() => convertCalls.last?.rotations?.[2] === 90);
     expect(convertCalls.last.rotations).toEqual({ 2: 90 });
     expect(recentActions()).toEqual(['add_files', 'rotate']);
     expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
@@ -303,7 +309,7 @@ describe('PdfToImageTool', () => {
     expect(convertCalls.n).toBe(1);
     await click(radio('JPG'));
     expect(downloadElement().textContent).toContain('Download 5 JPGs');
-    await wait(100);
+    await until(() => convertCalls.n === 2);
     expect(convertCalls.n).toBe(2);
     expect(convertCalls.last.format).toBe('image/jpeg');
     await click(radio('PNG'));
@@ -321,7 +327,7 @@ describe('PdfToImageTool', () => {
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Made when you tap');
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    await wait(100);
+    await until(() => convertCalls.n === 1 && /KB|MB/.test(downloadElement().textContent));
     expect(convertCalls.n).toBe(1);
     expect(downloadElement().textContent).toMatch(/KB|MB/);
     expect(downloadElement().textContent).not.toContain('Made when you tap');
@@ -341,7 +347,8 @@ describe('PdfToImageTool', () => {
     await click(downloadElement());
     expect(downloadElement().getAttribute('data-state')).toBe('preparing');
     expect(events('tool_operation_started')).toBe(1);
-    await act(async () => { finish(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { finish(); });
+    await until(() => downloadElement().getAttribute('data-state') === 'saved');
     expect(downloadElement().getAttribute('data-state')).toBe('saved');
     expect(events('tool_result_ready')).toBe(1);
   });
@@ -350,7 +357,7 @@ describe('PdfToImageTool', () => {
     await open();
     expect(events('tool_operation_started')).toBe(0);
     await click(downloadElement());
-    await wait(50);
+    await until(() => events('tool_result_ready') === 1);
     expect(events('tool_operation_started')).toBe(1);
     expect(events('tool_result_ready')).toBe(1);
   });
@@ -361,13 +368,13 @@ describe('PdfToImageTool', () => {
       mount({ quietPolicy: SLOW_QUIET });
       await pick(makePdfFile());
       expect(saveLinks()).toHaveLength(0);
-      await wait(700);
+      await until(() => saveLinks().length === 3);
       expect(saveLinks().map((a) => a.getAttribute('aria-label'))).toEqual(['Download page 1', 'Download page 2', 'Download page 3']);
       expect(saveLinks().map((a) => a.getAttribute('download'))).toEqual(['report-page-1.png', 'report-page-2.png', 'report-page-3.png']);
       expect(saveLinks()[1].getAttribute('href')).toMatch(/^blob:/);
       await click(skipButton(2));
       expect(saveLinks()).toHaveLength(0);
-      await wait(700);
+      await until(() => saveLinks().length === 2);
       expect(saveLinks().map((a) => a.getAttribute('download'))).toEqual(['report-page-1.png', 'report-page-3.png']);
       expect(saveLinks().map((a) => a.getAttribute('aria-label'))).toEqual(['Download page 1', 'Download page 2']);
     });
@@ -383,7 +390,7 @@ describe('PdfToImageTool', () => {
     it('is not offered for the tall image or for a single image', async () => {
       await open(3);
       await click(radio('One tall image'));
-      await wait(100);
+      await until(() => convertCalls.last?.layout === 'concatenated' && /KB/.test(downloadElement().textContent));
       expect(saveLinks()).toHaveLength(0);
       act(() => render(null, container));
       container.remove();
@@ -408,7 +415,7 @@ describe('PdfToImageTool', () => {
   it('One tall image names one file, builds the stacked layout, and counts one image', async () => {
     await open(3);
     await click(radio('One tall image'));
-    await wait(100);
+    await until(() => convertCalls.last?.layout === 'concatenated' && downloadElement().getAttribute('download') === 'report.png');
     expect(convertCalls.last.layout).toBe('concatenated');
     expect(heading().textContent).toContain('report.png');
     expect(heading().textContent).toContain('1 image');
@@ -421,7 +428,7 @@ describe('PdfToImageTool', () => {
     const saved = [];
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function save() { if (this.download) saved.push(this.download); });
     await click(downloadElement());
-    await wait(700);
+    await until(() => saved.length === 3 && downloadElement().getAttribute('data-state') === 'saved');
     expect(saved).toEqual(['report-page-1.png', 'report-page-2.png', 'report-page-3.png']);
     expect(downloadElement().getAttribute('data-state')).toBe('saved');
     expect(downloadElement().textContent).toContain('Saved 3 PNGs');
@@ -457,12 +464,12 @@ describe('PdfToImageTool', () => {
     await open(3);
     const quiet = () => container.querySelector('[data-quiet-download]');
     await click(quiet());
-    await wait(700);
+    await until(() => stripName().includes('report-page-N.png'));
     expect(stripName()).toContain('report-page-N.png');
     await click(radio('One tall image'));
-    await wait(100);
+    await until(() => convertCalls.last?.layout === 'concatenated' && /KB/.test(downloadElement().textContent));
     await click(quiet());
-    await wait(700);
+    await until(() => stripName().includes('report.png'));
     expect(stripName()).toContain('report.png');
     expect(stripName()).not.toContain('page-N');
     window.matchMedia = original;
@@ -495,7 +502,7 @@ describe('PdfToImageTool', () => {
     expect(events('tool_operation_failed')).toBe(1);
     fail = false;
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    await wait(100);
+    await until(() => downloadElement().getAttribute('data-state') === 'ready' && /KB/.test(downloadElement().textContent));
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toMatch(/KB/);
   });
@@ -505,7 +512,7 @@ describe('PdfToImageTool', () => {
     openMock.fail = true;
     mount();
     await pick(makePdfFile());
-    await wait(100);
+    await until(() => container.textContent.includes('The file may be damaged. Try another PDF.'));
     expect(container.textContent).toContain('The file may be damaged. Try another PDF.');
     expect(cells()).toHaveLength(0);
     await click(button('Replace file'));
@@ -517,7 +524,7 @@ describe('PdfToImageTool', () => {
     probeMock.mockResolvedValue('needs-password');
     mount();
     await pick(makePdfFile('locked.pdf'));
-    await wait(100);
+    await until(() => button('Unlock it'));
     expect(container.textContent).toContain('This PDF has a password');
     expect(container.textContent).toContain('then you can turn it into images');
     expect(button('Unlock it')).toBeDefined();
@@ -543,7 +550,7 @@ describe('PdfToImageTool', () => {
       fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
     });
     mount();
-    await wait(100);
+    await until(() => heading()?.textContent.includes('handed-page-N.png'));
     expect(takeHandoffMock).toHaveBeenCalledWith('pdf-to-image');
     expect(heading().textContent).toContain('handed-page-N.png');
   });
@@ -584,7 +591,7 @@ describe('PdfToImageTool', () => {
       await open(3, hebrew);
       expect(downloadElement().textContent).toContain('הורדת 3 קובצי PNG');
       await click(downloadElement());
-      await wait(700);
+      await until(() => downloadElement().textContent.includes('נשמרו 3 קובצי PNG'));
       expect(downloadElement().textContent).toContain('נשמרו 3 קובצי PNG');
     });
 
@@ -592,7 +599,7 @@ describe('PdfToImageTool', () => {
       probeMock.mockResolvedValue('needs-password');
       mount(hebrew);
       await pick(makePdfFile('locked.pdf'));
-      await wait(100);
+      await until(() => container.textContent.includes(hebrewToImageMessages.protectedUnlockIt));
       expect(container.textContent).toContain(hebrewToImageMessages.protectedNeedsPasswordTitle);
       expect(container.textContent).toContain(hebrewToImageMessages.protectedUnlockIt);
       expect(container.textContent).not.toContain('This PDF');

@@ -12,7 +12,7 @@ import {
   sanitizeOutputName,
   toMergeMap,
 } from './mergePlan.ts';
-import { moveEntry, planForFile } from '../../lib/pagePlan.ts';
+import { movePlanEntry, planForFile } from '../../lib/pagePlan.ts';
 
 describe('fileOrder', () => {
   it('returns distinct file ids in first-appearance order', () => {
@@ -38,7 +38,7 @@ describe('isGrouped', () => {
   it('is false once a cross-file move interleaves pages', () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     // Move file 2's first page in between file 1's two pages.
-    const moved = moveEntry(plan, 2, 1);
+    const moved = movePlanEntry(plan, 2, 1);
     expect(isGrouped(moved)).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe('isInListOrder', () => {
 
   it('is false when the plan is interleaved', () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
-    const interleaved = moveEntry(plan, 2, 1);
+    const interleaved = movePlanEntry(plan, 2, 1);
     expect(isInListOrder(interleaved, [1, 2])).toBe(false);
   });
 
@@ -91,7 +91,7 @@ describe('regroupPlan', () => {
 
   it('regroups an interleaved (ungrouped) plan back into blocks', () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
-    const interleaved = moveEntry(plan, 2, 1); // file 2's page in between file 1's pages
+    const interleaved = movePlanEntry(plan, 2, 1); // file 2's page in between file 1's pages
     expect(isGrouped(interleaved)).toBe(false);
     const grouped = regroupPlan(interleaved, fileOrder(interleaved));
     expect(isGrouped(grouped)).toBe(true);

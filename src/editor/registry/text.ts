@@ -3,7 +3,7 @@
 import type { ElementDefinition, TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
 import type { TextElement } from '../model/editorModel.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
-import { COMB_MIN_CELL_EM, COMB_NATURAL_WIDTH_TOLERANCE_PX, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
+import { COMB_MIN_CELL_EM, COMB_NATURAL_WIDTH_TOLERANCE_PX, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../model/signGeometry.js';
 import { combCellCenterFraction, combCellCount } from '../text/comb.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting, findMissingGlyphs } from '../text/textTransforms.js';
 import { fontkitFont, unrepresentableCharacters } from '../text/textMetrics.ts';

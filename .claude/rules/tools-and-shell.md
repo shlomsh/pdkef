@@ -58,10 +58,18 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
   reading `/CreationDate`. `src/lib/sort.js`: `sortByName` (locale-numeric) and `sortByDate`, a
   cascade of filename date → PDF creation date → `File.lastModified`. The File API cannot read OS
   birth time and `lastModified` changes on copy/download, so it is deliberately last.
-- `src/lib/thumbnails.js`: lazy `pdfjs-dist` page-1 render. Every `import('pdfjs-dist')` goes through
-  `src/lib/loadPdfjs.js` (the caller keeps its own `import()` so test mocks reach it), which installs
-  the built-ins old browsers lack (`pdfjsPolyfills.js`, DEBT-42) and points pdf.js at `pdfjsWorker.js`,
-  a Vite `?worker&url` wrapper that installs them in the worker first. Bundled same-origin, never a CDN.
+- `src/lib/thumbnails.js`: page-1 and per-page thumbnails over pdf.js, nothing else. The PDF primitives
+  every tool shares live beside it in `src/lib/` (ARCH-39), each with one owner and a guard
+  (`pdfPrimitives.test.js`):
+  `loadPdfjs.js` `getPdfjs()` is the only `import('pdfjs-dist')` (memoized; it installs the built-ins old
+  browsers lack, `pdfjsPolyfills.js`, DEBT-42, and points pdf.js at `pdfjsWorker.js`, a Vite `?worker&url`
+  wrapper that installs them in the worker first; bundled same-origin, never a CDN; `vi.mock('pdfjs-dist')`
+  reaches it by module id). `renderPage.js` `renderPageToCanvas(page, { scale, rotation, background, signal })`
+  is the one page-to-canvas render (white fill, the DEBT-63 canvas cap). `openPdfDoc.ts`
+  `openPdfDoc(input, { encryption, password, repair, updateMetadata, fast })` is the one way to open a
+  document with pdf-lib, `loadPdfWithPages` being its page-tree-repair preset. `toBytes.js` turns a
+  File/Blob/ArrayBuffer/typed array into a Uint8Array without `instanceof`. `abort.js` `throwIfAborted(signal)`
+  throws the signal's own AbortError; never build one by hand.
 
 ## Catching errors
 

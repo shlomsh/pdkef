@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { startGesture } from '../../lib/gestures/controller.ts';
-import { clampPoint, isConvexQuad, type Quad } from './quad.ts';
+import { clampPoint, isPagelike, type Quad } from './quad.ts';
 import { LOUPE_SIZE, loupeView, placeLoupe } from './loupe.ts';
 import styles from './CornerEditor.module.css';
 
@@ -24,11 +24,12 @@ const ARROWS: Record<string, [number, number]> = {
 };
 
 const pct = (v: number) => `${v * 100}%`;
-/** A quad a page could be: convex, and not a sliver (1% of the photo), which would warp to a line. */
+/** A quad a page could be: every corner a real page's (isPagelike), and not a sliver (1% of the
+ * photo), which would warp to a line. */
 const usable = (q: Quad) => {
   let twice = 0;
   for (let i = 0; i < 4; i += 1) twice += q[i].x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * q[i].y;
-  return isConvexQuad(q) && Math.abs(twice) / 2 >= 0.01;
+  return isPagelike(q) && Math.abs(twice) / 2 >= 0.01;
 };
 const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
 // The whole photo plus the quad, filled evenodd: dims everything outside the quad.
@@ -99,6 +100,9 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     const touch = 'touches' in event && !!event.touches;
     const restore = () => paint(start);
     if (touch) paintLoupe(start, index, clientPoint(event), rect);
+    // The corner stops where the shape would turn invalid (a bow tie, a dent, a sliver): the outline
+    // only ever shows a usable quad, and release commits the last one.
+    let lastValid = start;
 
     cancelRef.current = startGesture<{ quad: Quad; client: { x: number; y: number } }>({
       computePatch: (moveEvent: any) => {
@@ -108,7 +112,9 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
           x: rect.width ? (c.x - rect.left) / rect.width : start[index].x,
           y: rect.height ? (c.y - rect.top) / rect.height : start[index].y,
         });
-        return { quad: start.map((p, i) => (i === index ? point : p)) as Quad, client: c };
+        const candidate = start.map((p, i) => (i === index ? point : p)) as Quad;
+        if (usable(candidate)) lastValid = candidate;
+        return { quad: lastValid, client: c };
       },
       writeDOM: (patch) => {
         paint(patch.quad);
@@ -118,7 +124,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
         cancelRef.current = null;
         hideLoupe();
         if (!patch) return;
-        if (usable(patch.quad)) onCommit(patch.quad);
+        if (patch.quad !== start) onCommit(patch.quad);
         else restore();
       },
       cancel: () => {
@@ -144,7 +150,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
       class={styles['frame']}
       ref={frameRef}
       data-corner-frame
-      style={aspect ? { aspectRatio: String(aspect), width: `min(100%, calc(62svh * ${aspect}))` } : undefined}
+      style={aspect ? { aspectRatio: String(aspect), width: `min(100%, calc(var(--scan-view-h, 62svh) * ${aspect}))` } : undefined}
     >
       <img class={styles['photo']} src={src} alt="" draggable={false} />
       <svg class={styles['overlay']} viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">

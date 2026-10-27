@@ -4,7 +4,8 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './scanPipeline.ts';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { rotateQuad, turnedQuad } from './quad.ts';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -21,6 +22,7 @@ vi.mock('./scanPipeline.ts', () => ({
   inspectPhoto: vi.fn(),
   processPage: vi.fn(),
   buildScanPdf: vi.fn(),
+  turnImage: vi.fn(),
 }));
 
 const QUIET = { baseMs: 100, stepMs: 50, maxMs: 300, burstWindowMs: 1000 };
@@ -45,6 +47,7 @@ describe('PdfScanTool', () => {
     vi.mocked(pipeline.processPage).mockReset().mockImplementation(() => Promise.resolve({
       blob: new Blob(['x'], { type: 'image/jpeg' }), width: 100, height: 140, thumb: new Blob(['t'], { type: 'image/jpeg' }),
     }));
+    vi.mocked(pipeline.turnImage).mockReset().mockImplementation(() => Promise.resolve(new Blob(['r'], { type: 'image/jpeg' })));
     vi.mocked(pipeline.buildScanPdf).mockReset().mockImplementation(() => Promise.resolve({
       blob: new Blob(['%PDF'], { type: 'application/pdf' }), metTarget: true, scale: 1, quality: 0.82,
       pages: [{ blob: new Blob(['j'], { type: 'image/jpeg' }), place: { pageWidth: 595.28, pageHeight: 841.89, x: 0, y: 0, width: 595.28, height: 841.89 } }],
@@ -183,6 +186,9 @@ describe('PdfScanTool', () => {
     await settle(50);
     expect(container.textContent).toContain('Page 2 could not be read.');
     expect(pipeline.buildScanPdf).not.toHaveBeenCalled();
+    // Download says what holds it back, instead of preparing for good.
+    expect(container.textContent).toContain('Remove page 2 to make the PDF');
+    expect(container.textContent).not.toMatch(/Preparing \d+ pages/);
     await act(async () => { container.querySelector('[aria-label="Remove page 2"]').click(); });
     await settle(1000);
     expect(container.textContent).not.toContain('could not be read');
@@ -241,19 +247,19 @@ describe('PdfScanTool', () => {
     await settle();
     expect(handles()[0].style.left).toBe('0%');
     vi.mocked(pipeline.guessPage).mockImplementationOnce(() => Promise.resolve(GUESS));
-    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { byText('Auto-detect')[0].click(); });
     await settle();
     expect(handles()[0].style.left).toBe(`${GUESS[0].x * 100}%`);
     expect(container.textContent).not.toContain('No page edges were found');
   });
 
-  it('says so when Find the page finds nothing either', async () => {
+  it('says so when Auto-detect finds nothing either', async () => {
     vi.mocked(pipeline.inspectPhoto).mockImplementation(() => Promise.resolve(seen(null)));
     vi.mocked(pipeline.guessPage).mockImplementation(() => Promise.resolve(null));
     mount();
     await pick([jpeg('a.jpg')]);
     await settle();
-    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { byText('Auto-detect')[0].click(); });
     await settle();
     expect(container.textContent).toContain('Drag the corners onto the corners of the page');
   });
@@ -329,7 +335,7 @@ describe('PdfScanTool', () => {
     expect(container.textContent).toContain('Could not read this photo');
     // Nothing to straighten: the one thing offered is taking it out.
     expect(byText('Use these corners')).toHaveLength(0);
-    expect(byText('Find the page')).toHaveLength(0);
+    expect(byText('Auto-detect')).toHaveLength(0);
     await act(async () => { byText('Remove this photo')[0].click(); });
     await settle();
     expect(container.querySelector('[data-empty-state]')).not.toBeNull();
@@ -345,13 +351,13 @@ describe('PdfScanTool', () => {
     expect(document.activeElement?.hasAttribute('data-page-heading')).toBe(true);
   });
 
-  it('drops a Find the page result for a page removed while it waited', async () => {
+  it('drops an Auto-detect result for a page removed while it waited', async () => {
     let resolveFind;
     mount();
     await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
     await settle();
     vi.mocked(pipeline.guessPage).mockImplementationOnce(() => new Promise((r) => { resolveFind = r; }));
-    await act(async () => { byText('Find the page')[0].click(); });
+    await act(async () => { byText('Auto-detect')[0].click(); });
     await act(async () => { container.querySelector('[aria-label="Remove page 1"]').click(); });
     await act(async () => { resolveFind?.(GUESS); });
     await settle();
@@ -375,10 +381,136 @@ describe('PdfScanTool', () => {
     expect(container.querySelector('[data-paper]')).not.toBeNull();
   });
 
-  it('brings a newly added photo into view, also when photos were already there', async () => {
+  it('opens the corners full screen, as a full-page layer where the browser has no element full screen, and leaves it for the result', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    const editor = () => container.querySelector('[data-page-heading]').closest('section');
+    // jsdom has no requestFullscreen: the full-page layer.
+    await act(async () => { byText('Full screen')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(true);
+    await act(async () => { byText('Exit full screen')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(false);
+    await act(async () => { byText('Full screen')[0].click(); });
+    await useCorners();
+    expect(editor().hasAttribute('data-full')).toBe(false);
+    expect(byText('Full screen')).toHaveLength(0);
+  });
+
+  it('turns the photo with Rotate while setting corners, and keeps the corners in the photo as photographed', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await act(async () => { byText('Rotate')[0].click(); });
+    await settle();
+    expect(pipeline.turnImage).toHaveBeenCalledWith(expect.any(Blob), 1);
+    // The handles sit on the turned photo, the page's top-left first.
+    const shown = turnedQuad(GUESS, 1);
+    expect(handles()[0].style.left).toBe(`${shown[0].x * 100}%`);
+    expect(handles()[0].style.top).toBe(`${shown[0].y * 100}%`);
+    // Nudge the shown top-left right: on the photo as photographed that corner (its bottom-left) moves up.
+    await act(async () => { handles()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+    await useCorners();
+    const moved = GUESS.map((p, i) => (i === 3 ? { x: p.x, y: p.y - 0.005 } : p));
+    const sent = vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[1];
+    rotateQuad(moved, 1).forEach((p, i) => {
+      expect(sent[i].x).toBeCloseTo(p.x, 10);
+      expect(sent[i].y).toBeCloseTo(p.y, 10);
+    });
+  });
+
+  it('turns a page a quarter clockwise with Rotate, by handing the warp its corners one place on', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await useCorners();
+    const lastQuad = () => vi.mocked(pipeline.processPage).mock.calls.at(-1)?.[1];
+    await act(async () => { byText('Rotate')[0].click(); });
+    await settle();
+    expect(lastQuad()).toEqual([GUESS[3], GUESS[0], GUESS[1], GUESS[2]]);
+    await act(async () => { byText('Rotate')[0].click(); });
+    await settle();
+    expect(lastQuad()).toEqual([GUESS[2], GUESS[3], GUESS[0], GUESS[1]]);
+    // Adjust corners shows the photo turned with the page, its corners turned with it.
+    await adjustCorners();
+    await settle();
+    expect(handles()[0].style.left).toBe(`${turnedQuad(GUESS, 2)[0].x * 100}%`);
+  });
+
+  it('brings the next new photo into view when the one under review is removed from the strip', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      mount();
+      await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+      await settle();
+      scrollTo.mockClear();
+      await act(async () => { container.querySelector('[aria-label="Remove page 1"]').click(); });
+      await settle();
+      expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 1 of 1');
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    } finally {
+      scrollTo.mockRestore();
+    }
+  });
+
+  it('goes back to the default name when the file name is emptied', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    const nameEl = () => container.querySelector('h2 [contenteditable]') as HTMLElement;
+    const rename = async (text: string) => {
+      await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+      await act(async () => { nameEl().textContent = text; });
+      await act(async () => { nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
+    };
+    await rename('Contract');
+    expect(nameEl().textContent).toBe('Contract');
+    await rename('');
+    expect(nameEl().textContent).toBe('scan');
+  });
+
+  it('takes a tap on the held-back Download to the photo that could not be read', async () => {
+    vi.mocked(pipeline.inspectPhoto).mockImplementation((file) => (file.name === 'b.jpg'
+      ? Promise.reject(new Error('decode failed'))
+      : Promise.resolve(seen(GUESS))));
+    mount();
+    await pick([jpeg('a.jpg'), jpeg('b.jpg')]);
+    await settle();
+    await useCorners();
+    await settle();
+    // On page 1 again, away from the photo that could not be read.
+    await act(async () => { tiles()[0].click(); });
+    expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 1 of 2');
+    const blocked = Array.from(container.querySelectorAll('a, button')).find((el) => el.textContent.includes('Remove page 2 to make the PDF'));
+    await act(async () => { blocked.click(); });
+    await settle();
+    expect(container.querySelector('[data-page-heading]').textContent).toContain('Page 2 of 2');
+    expect(container.textContent).toContain('Could not read this photo');
+  });
+
+  it('brings a newly added photo into view, also when photos were already there: on desktop the page top, where the card is the first screen', async () => {
+    // The setup's matchMedia matches every query: the desktop path.
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      mount();
+      await pick([jpeg('a.jpg')]);
+      await settle();
+      await useCorners();
+      scrollTo.mockClear();
+      await pick([jpeg('b.jpg')]);
+      await settle();
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    } finally {
+      scrollTo.mockRestore();
+    }
+  });
+
+  it('on a phone, brings a newly added photo to the top under the bars instead', async () => {
     const scroll = vi.fn();
     const original = Element.prototype.scrollIntoView;
+    const originalMatch = window.matchMedia;
     Element.prototype.scrollIntoView = scroll;
+    window.matchMedia = ((query: string) => ({ ...originalMatch(query), matches: !query.includes('min-width: 1024px') })) as typeof window.matchMedia;
     try {
       mount();
       await pick([jpeg('a.jpg')]);
@@ -390,6 +522,7 @@ describe('PdfScanTool', () => {
       expect(scroll).toHaveBeenCalled();
     } finally {
       Element.prototype.scrollIntoView = original;
+      window.matchMedia = originalMatch;
     }
   });
 });

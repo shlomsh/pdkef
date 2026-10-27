@@ -43,6 +43,21 @@ export function isConvexQuad(quad: Quad): boolean {
   return true;
 }
 
+/** The sine of 15 degrees: no corner of a photographed page is sharper than that, or flatter than 165. */
+const MIN_CORNER_SINE = Math.sin((15 * Math.PI) / 180);
+
+/** Convex, and every corner a real page could have: a corner on, or all but on, the line between its
+ * neighbours (near 180 degrees) passes isConvexQuad by a hair, and the warp fans the page out. */
+export function isPagelike(quad: Quad): boolean {
+  if (!isConvexQuad(quad)) return false;
+  return quad.every((p, i) => {
+    const a = quad[(i + 1) % 4];
+    const b = quad[(i + 3) % 4];
+    const lengths = Math.hypot(a.x - p.x, a.y - p.y) * Math.hypot(b.x - p.x, b.y - p.y);
+    return lengths > 0 && Math.abs(cross(p, a, b)) / lengths >= MIN_CORNER_SINE;
+  });
+}
+
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 export function clampPoint(point: Point): Point {
@@ -65,4 +80,36 @@ export function insetQuad(quad: Quad, fraction: number): Quad {
 /** A cache key: four decimals, a tenth of a pixel on a 1000px photo. */
 export function quadKey(quad: Quad): string {
   return quad.map((p) => `${p.x.toFixed(4)},${p.y.toFixed(4)}`).join(';');
+}
+
+/** The corners for the page turned `turns` quarter turns clockwise (any integer; 4 is a full turn,
+ * negative turns go the other way). The warp maps quad[0] to the output's top-left, so one turn
+ * makes the photo's bottom-left corner the page's top-left: [q3, q0, q1, q2]. */
+export function rotateQuad(quad: Quad, turns: number): Quad {
+  const n = ((turns % 4) + 4) % 4;
+  return [0, 1, 2, 3].map((i) => quad[(i - n + 4) % 4]) as Quad;
+}
+
+const quarters = (turns: number) => ((turns % 4) + 4) % 4;
+/** A photo point on the photo turned one quarter clockwise. */
+const turnOnce = (p: Point): Point => ({ x: 1 - p.y, y: p.x });
+/** Back again: one quarter anticlockwise. */
+const unturnOnce = (p: Point): Point => ({ x: p.y, y: 1 - p.x });
+const repeat = (p: Point, step: (p: Point) => Point, n: number) => {
+  let out = p;
+  for (let i = 0; i < n; i += 1) out = step(out);
+  return out;
+};
+
+/** The page's corners as the corner editor shows them on the photo turned `turns` quarters clockwise:
+ * normalized in the turned photo, the page's top-left first, so its handles read the right way up. */
+export function turnedQuad(quad: Quad, turns: number): Quad {
+  const n = quarters(turns);
+  return rotateQuad(quad, n).map((p) => repeat(p, turnOnce, n)) as Quad;
+}
+
+/** The corners a person placed on the turned photo, back in the photo as photographed. */
+export function unturnedQuad(shown: Quad, turns: number): Quad {
+  const n = quarters(turns);
+  return rotateQuad(shown.map((p) => repeat(p, unturnOnce, n)) as Quad, -n);
 }

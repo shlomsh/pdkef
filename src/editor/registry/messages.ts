@@ -1,9 +1,9 @@
 /**
  * DEBT-04: the message shape the editor's registry (`NodeRenderContext.messages`
  * in `./types.ts`) and the Sign/Redact chrome (`tools/sign/components/FontPickerMenu.tsx`,
- * Sign's own toolbar and dialogs) render from. `src/i18n/toolMessages.ts`
- * supplies the actual English/Hebrew values and re-exports this type, so the
- * editor core itself never imports from `src/i18n/`.
+ * Sign's own toolbar and dialogs) render from. The English and Hebrew
+ * values live beside it in `signMessages.ts`, so the editor core itself never
+ * imports from `src/i18n/`.
  */
 
 /**
@@ -290,7 +290,7 @@ export interface SignMessages {
   duplicatedElementDescriptionTemplate: string;
   /** UNDO-04: labels for the move/resize/text/style update entries `updateElement`
    * (PdfWorkspace.tsx) logs at its one choke point, via `signUpdateDescription`
-   * in src/i18n/toolMessages.ts. */
+   * in src/editor/registry/signMessages.ts. */
   movedElementDescriptionTemplate: string;
   resizedElementDescriptionTemplate: string;
   editedTextDescription: string;

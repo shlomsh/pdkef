@@ -119,6 +119,9 @@
   --color-success-soft: #ebffd8; /* Trust color for pill and privacy caption */
   --color-danger: #b84c58; /* Muted berry red to complement the cool teal theme */
   --color-danger-soft: #fcf1f3;
+  /* Readable error text on --color-danger-soft: the message, then its bold lead. */
+  --color-danger-ink: #8a221c;
+  --color-danger-ink-strong: #6b1813;
   /* The theme's highlight accent: the one control in a crowded row that should
      catch the eye without claiming primary-action status. It is deliberately a
      token of its own rather than a reference to --color-success: the control

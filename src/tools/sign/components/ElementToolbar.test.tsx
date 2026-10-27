@@ -13,7 +13,7 @@ describe('ElementToolbar font picker wiring', () => {
 
   // These tests are about the desktop popover path (FontPickerMenu.tsx's
   // `[data-font-picker-menu]`), not the phone sheet SNG-17 added. Without
-  // this, src/test/setup.js's blanket `matchMedia` stub (matches: true for
+  // this, src/test/support/setup.js's blanket `matchMedia` stub (matches: true for
   // any query, tuned for ArmHint's `pointer: fine` query) would also make
   // `(pointer: coarse)` match, and the font trigger would open the sheet
   // instead - see FontPickerMenu.test.tsx's own `installMatchMedia` for the

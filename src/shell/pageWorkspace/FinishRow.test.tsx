@@ -4,18 +4,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import FinishRow from './FinishRow.tsx';
 
 vi.mock('../PdfShareButton.tsx', () => ({
-  default: ({ label }: { label: string }) => <button type="button">{label}</button>,
+  default: ({ label, visible }: { label: string; visible: boolean }) => (visible ? <button type="button">{label}</button> : null),
 }));
 
 const labels = { share: 'Share', compress: 'Compress it', sign: 'Sign it', merge: 'Merge it' };
 
 describe('FinishRow', () => {
   let container: HTMLElement;
-  const mount = (tools?: ('compress' | 'sign' | 'merge')[], rowLabels: Parameters<typeof FinishRow>[0]['labels'] = labels) => {
+  const mount = (tools?: ('compress' | 'sign' | 'merge')[], rowLabels: Parameters<typeof FinishRow>[0]['labels'] = labels, shareReady = true) => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(
-      <FinishRow ready shareReady onShare={vi.fn()} busy={false} onHandoff={vi.fn()} onWarm={vi.fn()} labels={rowLabels} tools={tools} />,
+      <FinishRow ready shareReady={shareReady} onShare={vi.fn()} busy={false} onHandoff={vi.fn()} onWarm={vi.fn()} labels={rowLabels} tools={tools} />,
       container,
     ));
     return [...container.querySelectorAll('button')].map((b) => b.textContent);
@@ -43,5 +43,38 @@ describe('FinishRow', () => {
   it('renders no button for a tool whose label is missing', () => {
     const { merge: _omit, ...noMerge } = labels;
     expect(mount(['merge', 'compress'], noMerge)).toEqual(['Share', 'Compress it']);
+  });
+
+  it('marks the row with how many buttons it renders, so the CSS can lay out four', () => {
+    const count = () => container.querySelector('div')!.getAttribute('data-count');
+    let rendered: (string | null)[];
+    rendered = mount(['sign', 'merge', 'compress']);
+    expect(Number(count())).toBe(rendered.length);
+    expect(count()).toBe('4');
+    render(null, container);
+    container.remove();
+    rendered = mount();
+    expect(Number(count())).toBe(rendered.length);
+    expect(count()).toBe('3');
+    render(null, container);
+    container.remove();
+    rendered = mount(['sign', 'merge', 'compress'], labels, false);
+    expect(Number(count())).toBe(rendered.length);
+    expect(count()).toBe('3');
+  });
+
+  it('is just Share for a tool with no hand-offs: no onHandoff, busy or hand-off labels needed', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FinishRow ready shareReady onShare={vi.fn()} onWarm={vi.fn()} labels={{ share: 'Share' }} />, container));
+    expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
+  });
+
+  it('renders no hand-off button when there is no onHandoff, whatever the labels say', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FinishRow ready shareReady onShare={vi.fn()} onWarm={vi.fn()} labels={labels} />, container));
+    expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
+    expect(container.querySelector('div')!.getAttribute('data-count')).toBe('1');
   });
 });

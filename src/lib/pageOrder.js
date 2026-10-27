@@ -1,5 +1,5 @@
 import { sortByDate, sortByName } from './sort.js';
-import { sanitizeOutputName } from './sanitizeOutputName.ts';
+import { outputBase } from './outputName.ts';
 
 // Pure helpers over the ordered list of image entries ({ id, file, ... }).
 
@@ -38,6 +38,5 @@ export function sortEntries(entries, mode) {
 /** The PDF's default name, without the extension: the first image's name. */
 export function defaultOutputName(entries) {
   if (entries.length === 0) return 'images';
-  const base = sanitizeOutputName(entries[0].file.name.replace(/\.[^./\\]*$/, ''));
-  return base || 'images';
+  return outputBase(entries[0].file.name, { strip: 'extension-or-bare-dot', sanitize: true, fallback: 'images' });
 }

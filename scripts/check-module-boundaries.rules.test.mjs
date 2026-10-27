@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   classify, ruleViolation, specRouteViolation, testImportViolation,
   scriptSrcSpecifiers, commonLayerConsumers, commonLayerConsumerViolations,
-  astroScriptSrcEdges, buildEdges,
+  astroScriptSrcEdges, buildEdges, unclassifiedSrcEntries,
 } from './check-module-boundaries.mjs';
 
 function check(from, to) {
@@ -21,7 +21,7 @@ describe('module boundaries: classify()', () => {
     expect(classify('src/editor/model/element.ts')).toBe('editor');
     expect(classify('src/lib/format.js')).toBe('lib');
     expect(classify('src/site-lib/markdownRender.js')).toBe('site');
-    expect(classify('src/constants/signGeometry.js')).toBe('lib');
+    expect(classify('src/editor/model/signGeometry.js')).toBe('editor');
     expect(classify('src/i18n/translate.js')).toBe('site-i18n');
     expect(classify('src/data/tools.js')).toBe('site-data');
     expect(classify('src/pages/tools/merge.astro')).toBe('site');
@@ -70,11 +70,27 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
     ['src/editor-ui/ColorPicker.tsx'],
     ['src/editor/model/element.ts'],
     ['src/lib/format.js'],
-    ['src/constants/signGeometry.js'],
+    ['src/editor/model/signGeometry.js'],
     ['src/i18n/translate.js'],
     ['src/data/tools.js'],
   ])('may import %s', (to) => {
     expect(check('src/tools/merge/mergePlan.ts', to)).toBeNull();
+  });
+});
+
+describe('module boundaries: ruleViolation() - rule 10, lib is the bottom layer (ARCH-34)', () => {
+  it.each([
+    ['src/editor/text/fonts.js', 'editor'],
+    ['src/editor-ui/ColorPicker.tsx', 'editor-ui'],
+    ['src/shell/BasePdfTool.tsx', 'shell'],
+    ['src/i18n/translate.js', 'site-i18n'],
+    ['src/data/tools.js', 'site-data'],
+  ])('lib may not import %s (%s)', (to, toName) => {
+    expect(check('src/lib/format.js', to)).toBe(`lib is the bottom layer: it may not import ${toName}`);
+  });
+
+  it('lib may import lib', () => {
+    expect(check('src/lib/format.js', 'src/lib/other.js')).toBeNull();
   });
 });
 
@@ -135,12 +151,21 @@ describe('module boundaries: ruleViolation() - rule 4, site reaches a tool only 
 
   it('forbids a page reaching past the entry point into tool internals', () => {
     expect(check('src/pages/tools/merge.astro', 'src/tools/merge/mergePlan.ts'))
-      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point');
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
   it('forbids site-i18n reaching past the entry point the same way', () => {
     expect(check('src/i18n/translate.js', 'src/tools/merge/mergePlan.ts'))
-      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point');
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
+  });
+
+  it('allows the site importing a tool\'s messages.ts (ARCH-35)', () => {
+    expect(check('src/site-lib/toolMessageRegistry.ts', 'src/tools/merge/messages.ts')).toBeNull();
+  });
+
+  it('forbids the site importing a differently named module in a tool', () => {
+    expect(check('src/site-lib/toolMessageRegistry.ts', 'src/tools/merge/components/messages.ts'))
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
   it('allows site-data importing the entry point itself', () => {
@@ -355,7 +380,7 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
 
   it('i18n and data modules count as site too, crediting the same single identity', () => {
     const graph = reverseGraph([
-      ['src/lib/platform.ts', 'src/i18n/toolMessages.ts'],
+      ['src/lib/platform.ts', 'src/i18n/localizedTools.ts'],
       ['src/lib/platform.ts', 'src/tools/merge/PdfMergeTool.tsx'],
     ]);
     expect(commonLayerConsumers('src/lib/platform.ts', graph))
@@ -428,5 +453,17 @@ describe('rule 9: commonLayerConsumerViolations() on the real tree', () => {
     // src/site-lib/ once the chain reaches it - shares the single `site`
     // identity, so the real tree gives exactly one consumer, not two.
     expect(commonLayerConsumers('src/site-lib/homeWorkspace.ts', withScriptSrc)).toEqual(new Set(['site']));
+  });
+});
+
+describe('module boundaries: unknown src/ folders fail loudly (ARCH-34)', () => {
+  it('reports a new top-level src/ folder that classify() has no row for', () => {
+    expect(classify('src/constants/x.js')).toBeNull();
+    expect(unclassifiedSrcEntries(['constants'])).toEqual(['constants']);
+  });
+
+  it('accepts every real top-level src/ entry today', () => {
+    const real = ['assets', 'components', 'content', 'content.config.ts', 'data', 'editor', 'editor-ui', 'i18n', 'layouts', 'lib', 'pages', 'project.json', 'shell', 'site-lib', 'styles', 'test', 'tools'];
+    expect(unclassifiedSrcEntries(real)).toEqual([]);
   });
 });

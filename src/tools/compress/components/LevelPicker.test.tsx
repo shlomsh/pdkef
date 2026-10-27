@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import LevelPicker, { type Level } from './LevelPicker.tsx';
-import { englishCompressMessages, hebrewCompressMessages } from '../../../i18n/toolMessages';
+import { englishCompressMessages, hebrewCompressMessages } from '../messages';
 
 let host: HTMLElement;
 afterEach(() => {

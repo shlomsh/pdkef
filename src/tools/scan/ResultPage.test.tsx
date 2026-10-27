@@ -48,7 +48,7 @@ describe('ResultPage', () => {
     act(() => render(<ResultPage labels={LABELS} exact={true} src="a.jpg" place={place} />, container));
     expect(container.querySelector('figcaption').textContent).toBe('Exactly as it downloads');
     act(() => render(<ResultPage labels={LABELS} exact={false} src="a.jpg" place={place} detail="x" />, container));
-    expect(container.querySelector('figcaption').textContent).toBe('Updating...');
+    expect(container.querySelector('figcaption').textContent).toContain('Updating...');
     act(() => render(<ResultPage labels={LABELS} exact={false} src={null} place={null} />, container));
     expect(container.querySelector('figcaption').textContent).toBe('Making your page...');
   });
@@ -66,5 +66,31 @@ describe('ResultPage', () => {
     expect(container.querySelector('img')).toBeNull();
     const paper = container.querySelector('[data-paper]');
     expect(paper.style.aspectRatio.replace(/\s/g, '')).toMatch(/^595\.28\/841\.89$/);
+  });
+
+  it('shows a working overlay on the page itself while updating, with no dimming', () => {
+    const place = { ...A4, x: 0, y: 0, width: 600, height: 800 };
+    mount({ src: 'a.jpg', place, exact: false });
+    const paper = container.querySelector('[data-paper]');
+    expect(paper.hasAttribute('data-updating')).toBe(true);
+    const overlay = paper.querySelector('[aria-hidden="true"]');
+    expect(overlay).not.toBeNull();
+    expect(overlay.textContent).toContain('Updating...');
+    expect(container.querySelector('img').className).not.toMatch(/stale/);
+    act(() => render(<ResultPage labels={LABELS} exact={true} src="a.jpg" place={place} />, container));
+    expect(container.querySelector('[data-updating]')).toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    act(() => render(<ResultPage labels={LABELS} exact={false} src={null} place={null} />, container));
+    expect(container.querySelector('[data-updating]')).toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('says Updating once, on the page: the caption keeps it for screen readers only', () => {
+    mount({ src: 'a.jpg', place: { ...A4, x: 0, y: 0, width: 600, height: 800 }, exact: false });
+    const caption = container.querySelector('figcaption');
+    expect(caption.textContent).toContain(LABELS.updating);
+    const visible = Array.from(caption.childNodes).filter((n) => !(n.nodeType === 1 && n.classList.contains('sr-only'))).map((n) => n.textContent).join('').trim();
+    expect(visible).toBe('');
+    expect(caption.getAttribute('aria-live')).toBe('polite');
   });
 });

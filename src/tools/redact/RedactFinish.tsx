@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './RedactFinish.module.css';
+import { englishRedactMessages as t } from './messages.ts';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
 import { finishCountText, finishStatusText, type FinishFacts } from './finishState.ts';
 
@@ -39,8 +40,8 @@ export default function RedactFinish({
         onDownload={onDownload}
         onPrepareShare={onPrepareShare}
         onShare={onShare}
-        downloadTitle="Download the redacted PDF"
-        shareTitle={shareReady ? 'Share the redacted PDF' : 'Prepare the redacted PDF for sharing'}
+        downloadTitle={t.downloadTitle}
+        shareTitle={shareReady ? t.shareTitleReady : t.shareTitlePrepare}
       />
       {count && <p class={styles.caption} data-redact-count>{count}</p>}
     </div>
@@ -49,7 +50,7 @@ export default function RedactFinish({
   return (
     <div class={styles.finish}>
       {phase === 'empty' ? (
-        <p class={styles.empty}>Draw a box or delete something, then download it here.</p>
+        <p class={styles.empty}>{t.emptyFinish}</p>
       ) : (
         <>
           {saved && <DoneResult facts={facts} />}

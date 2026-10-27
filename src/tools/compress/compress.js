@@ -1,16 +1,10 @@
-import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { searchTargetSize, MIN_QUALITY, MAX_QUALITY, QUALITY_SEARCH_STEPS, MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
 import { canvasToBlob } from '../../lib/canvasBlob.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
-import { loadPdfjs } from '../../lib/loadPdfjs.js';
-
-let pdfjsLib;
-
-async function getPdfjs() {
-  pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
-  return pdfjsLib;
-}
+import { getPdfjs } from '../../lib/loadPdfjs.js';
+import { renderPageToCanvas } from '../../lib/renderPage.js';
+import { toBytes } from '../../lib/toBytes.js';
 
 /**
  * Compresses a PDF file 100% client-side by rasterizing its pages.
@@ -41,7 +35,7 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
 
   const lib = await getPdfjs();
   const { PDFDocument } = await getPdfLib();
-  const bytes = await file.arrayBuffer();
+  const bytes = await toBytes(file);
   const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdf = await loadingTask.promise;
 
@@ -53,22 +47,11 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
       
-      // Viewport for rendering to canvas at selected scale
-      const viewport = page.getViewport({ scale });
-      
       // Viewport at scale 1 to set the new PDF page size in points (1 point = 1/72 inch)
       const nativeViewport = page.getViewport({ scale: 1 });
 
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const context = getPdfRenderContext(canvas);
-
-      // JPEG has no transparency - fill white first to prevent black background
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      await page.render({ canvasContext: context, viewport }).promise;
+      // Rendered at the selected scale (lowered on a huge page) over white: JPEG has no transparency
+      const canvas = await renderPageToCanvas(page, { scale });
       const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
       const imgBytes = await blob.arrayBuffer();
 
@@ -201,7 +184,7 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
 
   const lib = await getPdfjs();
   const { PDFDocument } = await getPdfLib();
-  const bytes = await file.arrayBuffer();
+  const bytes = await toBytes(file);
   const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdf = await loadingTask.promise;
 
@@ -234,16 +217,8 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
       const rendered = [];
       for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
-        const viewport = page.getViewport({ scale });
         const nativeViewport = nativeViewports[pageNumber - 1];
-
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const context = getPdfRenderContext(canvas);
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: context, viewport }).promise;
+        const canvas = await renderPageToCanvas(page, { scale });
 
         rendered.push({ canvas, nativeViewport });
         onProgress?.((scaleIndex + pageNumber / totalPages) / (scales.length + 1));

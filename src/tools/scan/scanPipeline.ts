@@ -7,6 +7,7 @@ import { applyFilter, type ScanFilter } from './filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad } from './quad.ts';
 import { fitScanToBudget, type FitResult } from './scanBudget.ts';
 import { canvasToBlob } from '../../lib/canvasBlob.js';
+import { throwIfAborted } from '../../lib/abort.js';
 import { imagesToPdf } from '../../lib/imagesToPdf.js';
 import { placeImage } from '../../lib/imagePage.js';
 import { MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
@@ -99,15 +100,38 @@ export async function guessPage(photo: Blob): Promise<Quad | null> {
   return guessCorners(grayOf(img, img.naturalWidth, img.naturalHeight));
 }
 
-/** One decode of a new photo: its corners, its upright size, and the preview the screen shows. */
+/** One decode of a new photo: its corners, its upright size, and the preview the screen shows. The
+ * corners are guessed from the preview's own JPEG, exactly as Auto-detect guesses them (guessPage on
+ * the same bytes), so the first corners and Auto-detect's are the same corners. */
 export async function inspectPhoto(photo: Blob): Promise<InspectedPhoto> {
   const img = await loadImage(photo);
-  const preview = drawCapped(img, PREVIEW_LONG_EDGE);
+  const canvas = drawCapped(img, PREVIEW_LONG_EDGE);
+  let preview: Blob;
   try {
-    const quad = guessCorners(grayOf(preview, preview.width, preview.height));
-    return { quad, width: img.naturalWidth, height: img.naturalHeight, preview: await canvasToBlob(preview, 'image/jpeg', 0.85) };
+    preview = await canvasToBlob(canvas, 'image/jpeg', 0.85);
   } finally {
-    freeCanvas(preview);
+    freeCanvas(canvas);
+  }
+  return { quad: await guessPage(preview), width: img.naturalWidth, height: img.naturalHeight, preview };
+}
+
+/** The preview turned `turns` quarters clockwise, for setting corners on a page shot sideways. */
+export async function turnImage(image: Blob, turns: number): Promise<Blob> {
+  const n = ((turns % 4) + 4) % 4;
+  const img = await loadImage(image);
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = n % 2 ? h : w;
+  canvas.height = n % 2 ? w : h;
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((n * Math.PI) / 2);
+  ctx.drawImage(img, -w / 2, -h / 2);
+  try {
+    return await canvasToBlob(canvas, 'image/jpeg', 0.85);
+  } finally {
+    freeCanvas(canvas);
   }
 }
 
@@ -140,10 +164,6 @@ export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): 
     freeCanvas(small);
   }
 }
-
-const throwIfAborted = (signal?: AbortSignal) => {
-  if (signal?.aborted) throw new DOMException('Scan build aborted', 'AbortError');
-};
 
 /** Fit pages print at this density whatever the size limit did to their pixels. */
 const FIT_DPI = 200;

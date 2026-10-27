@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import Sortable from 'sortablejs';
-import { Camera, FileSignature, Merge, Shrink } from 'lucide-preact';
+import { Camera, Check, Crop, Expand, FileSignature, ImagePlus, Maximize, Merge, Minimize2, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
+import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -10,11 +11,12 @@ import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize } from '../../lib/format.js';
-import { formatMessage } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -24,22 +26,21 @@ import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
-import { englishShellMessages } from '../../i18n/toolMessages';
+import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
+import { useMediaQuery } from './useMediaQuery.ts';
+import { englishShellMessages } from '../../shell/shellMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
 import { playFlatten, relativeBox, type FlattenFrom } from './flattenAnimation.ts';
 import ScanVerb from './verb/ScanVerb.tsx';
-import { FULL_QUAD, quadKey, type Quad } from './quad.ts';
+import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } from './quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
 import type { ScanFilter } from './filters.ts';
 import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
-import { scanMessages as t } from './scanMessages.ts';
+import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
-const ACCEPT = ACCEPTED_TYPES.join(',');
-const HANDOFF_HREFS = { compress: '/compress/', sign: '/sign/', merge: '/merge/' };
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
 
 interface ScanPage {
@@ -53,7 +54,10 @@ interface ScanPage {
   filter: ScanFilter;
   /** The person has seen this page's corners and used them (Use these corners). */
   reviewed: boolean;
+  /** The page's corners in the photo, as photographed: rotating never moves them. */
   quad: Quad;
+  /** Quarter turns clockwise for the page as it downloads (0 to 3): a page shot sideways stands up. */
+  turns: number;
   /** The edge guess has run (or failed); until then the corners are the whole photo. */
   guessed: boolean;
   /** The person moved a corner: their corners win, the guess never overrides them. */
@@ -70,7 +74,9 @@ interface Shown { key: string; pages: { url: string; place: Placement }[] }
 const FIT_POINTS_PER_PIXEL = 72 / 200;
 
 let nextId = 0;
-const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}`;
+const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}|${page.turns}`;
+/** The corners the warp gets: the photo's own, one place on per quarter turn (quad.ts). */
+const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
 
 type Pipeline = typeof import('./scanPipeline.ts');
 let pipelinePromise: Promise<Pipeline> | null = null;
@@ -79,8 +85,8 @@ const loadPipeline = () => (pipelinePromise ??= import('./scanPipeline.ts'));
 
 /** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS).
  * `primary` is the empty state's, the equal of Choose files: the same label-around-input as the shell's
- * picker, so iOS opens the camera natively. The page strip's is a quiet tile. */
-function TakePhotoButton({ onFiles, primary = false }: { onFiles: (files: File[]) => void; primary?: boolean }) {
+ * picker, so iOS opens the camera natively. The pages column's is a quiet tile, the phone bar's a bar button. */
+function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'] }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const onChange = (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
@@ -100,7 +106,7 @@ function TakePhotoButton({ onFiles, primary = false }: { onFiles: (files: File[]
   }
   return (
     <span class={styles['take-photo']}>
-      <button type="button" class={styles['take-photo-button']} onClick={() => inputRef.current?.click()}>
+      <button type="button" class={buttonClass} onClick={() => inputRef.current?.click()}>
         <Camera size={18} aria-hidden="true" />
         {t.takePhoto}
       </button>
@@ -125,6 +131,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const [customName, setCustomName] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [results, setResults] = useState<Record<number, PageResult>>({});
+  /** Each turned page's preview, turned the same way for the corner editor, by `${id}|${turns}`. */
+  const [turnedPreviews, setTurnedPreviews] = useState<Record<string, string>>({});
   const [failedIds, setFailedIds] = useState<number[]>([]);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   /** Bumped when a build lands, so the per-key maps below are read again. */
@@ -157,10 +165,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     shownByKeyRef.current.clear();
     missedKeysRef.current.clear();
   };
-  const listRef = useRef<HTMLUListElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
+  /** The photo and the pages: on desktop they fill the card down to the first screen's foot. */
+  const workbenchRef = useRef<HTMLDivElement | null>(null);
+  const stageHeight = useFloorHeight(workbenchRef, pages.length > 0);
   const hadPagesRef = useRef(false);
-  const focusIdRef = useRef<number | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
   const defaultFilterRef = useRef(defaultFilter);
@@ -180,6 +189,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const resetDownloadFlowRef = useRef<() => void>(() => {});
 
   useHoldUpdate(pages.length > 0, 'open');
+  const downloaded = useDownloaded();
+  /** One rating ask, in the place that has room for it: two would both try to ask (RatingPrompt). */
+  const wide = useMediaQuery('(min-width: 1024px)');
+  const rating = <RatingPrompt tool="scan-to-pdf" downloaded={downloaded} messages={englishShellMessages} />;
 
   const announce = useCallback((text: string) => {
     setAnnouncement((previous) => (previous === text ? `${text} ` : text));
@@ -214,8 +227,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (cached) return cached;
     const run = enqueue(async () => {
       // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
-      if (!isCurrentKey(key)) throw new DOMException('Superseded scan work', 'AbortError');
-      return (await loadPipeline()).processPage(page.file, page.quad, page.filter);
+      throwIfAborted({ aborted: !isCurrentKey(key) });
+      return (await loadPipeline()).processPage(page.file, pageQuad(page), page.filter);
     });
     processingRef.current.set(key, run);
     run.then(() => {
@@ -235,7 +248,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (accepted.length === 0) return;
     const added: ScanPage[] = accepted.map((file) => ({
       id: nextId++, file, preview: null, aspect: null, filter: defaultFilterRef.current, reviewed: false,
-      quad: FULL_QUAD, guessed: false, edited: false, found: null,
+      quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null,
     }));
     setPages((current) => [...current, ...added]);
     // A new photo is shown first as itself, corners on top, to approve or adjust (Use these corners).
@@ -311,11 +324,17 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   urlsRef.current = [
     ...pages.flatMap((p) => (p.preview ? [p.preview] : [])),
     ...Object.values(results).flatMap((r) => [r.url, r.thumbUrl]),
+    ...Object.values(turnedPreviews),
     ...[...shownByKeyRef.current.values()].flatMap((kept) => kept.pages.map((p) => p.url)),
   ];
-  useEffect(() => () => {
-    unmountedRef.current = true;
-    urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  useEffect(() => {
+    // Set on mount too: a dev server's hot swap runs this cleanup on a live island, then mounts it again.
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      // A dev server's hot swap keeps the island's state, photos included: only a real unmount frees them.
+      if (!import.meta.hot) urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
   }, []);
 
   const allGuessed = pages.length > 0 && pages.every((p) => p.guessed) && failedIds.length === 0;
@@ -330,11 +349,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     build: async (signal, onProgress) => {
       const { pages: current, pageSize: size, limit: chosen, key: builtKey } = inputsRef.current;
       const made = await Promise.all(current.map((page) => processed(page)));
-      if (signal.aborted) throw new DOMException('Scan build aborted', 'AbortError');
+      throwIfAborted(signal);
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
       // Through the queue like every decode: a phone holds one photo's worth of pixels at a time.
       const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
-      if (signal.aborted || unmountedRef.current) throw new DOMException('Scan build aborted', 'AbortError');
+      throwIfAborted(unmountedRef.current ? { aborted: true } : signal);
       const builtAs = builtKey as string;
       if (fit.metTarget) missedKeysRef.current.delete(builtAs);
       else missedKeysRef.current.add(builtAs);
@@ -350,8 +369,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: HANDOFF_HREFS,
-    blocked: prepared.status === 'error' ? 'error' : null,
+    // A photo that could not be read holds the PDF back: Download says so instead of preparing for good.
+    blocked: prepared.status === 'error' || failedIds.length > 0 ? 'error' : null,
     announce: setAnnouncement,
     messages: { ready: t.readyAnnouncement, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
     navigate,
@@ -359,33 +378,24 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const { tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
   resetDownloadFlowRef.current = resetDownloadFlow;
 
-  // Drag to reorder: SortableJS owns the DOM order during a drag; on drop the order is read back into state.
-  useEffect(() => {
-    if (!listRef.current) return undefined;
-    const sortable = Sortable.create(listRef.current, {
-      animation: 220,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      draggable: '[data-id]',
-      filter: 'button',
-      preventOnFilter: false,
-      delay: 150,
-      delayOnTouchOnly: true,
-      ghostClass: styles['is-ghost'],
-      onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        const { oldIndex, newIndex } = evt;
-        setPages((current) => reorderEntries(current, oldIndex, newIndex));
-        recordAction('reorder');
-      },
-    });
-    return () => sortable.destroy();
-  }, [pages.length > 0]);
+  const { listRef, focusIdRef } = usePhotoTileList({
+    active: pages.length > 0,
+    items: pages,
+    ghostClass: styles['is-ghost'],
+    onReorder: (oldIndex, newIndex) => {
+      setPages((current) => reorderEntries(current, oldIndex, newIndex));
+      recordAction('reorder');
+    },
+  });
 
   // Bring the page's top into view: the first photos replace the tall empty state, and moving on from
   // the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
+  // On desktop the whole card is the first screen (useFloorHeight), so that is the top of the page.
   const showEditorTop = (instant = false) => {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    editorRef.current?.scrollIntoView?.({ block: 'start', behavior: reduce || instant ? 'auto' : 'smooth' });
+    const behavior = reduce || instant ? 'auto' : 'smooth';
+    if (window.matchMedia?.('(min-width: 1024px)').matches) window.scrollTo?.({ top: 0, behavior });
+    else editorRef.current?.scrollIntoView?.({ block: 'start', behavior });
   };
   useEffect(() => {
     const has = pages.length > 0;
@@ -397,7 +407,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   /** The photo and corners just approved, for the flatten animation into the result. */
   const flattenFromRef = useRef<FlattenFrom | null>(null);
   const stopFlattenRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  // Before paint: the result's first frame already has the flatten over it. After paint, the empty paper
+  // showed for one frame before the photo came back over it (Scan QA, Pixel 7).
+  useLayoutEffect(() => {
     // Whatever was playing belongs to the view that just went.
     stopFlattenRef.current();
     stopFlattenRef.current = () => {};
@@ -422,6 +434,49 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   }, [view, selectedId]);
   useEffect(() => () => stopFlattenRef.current(), []);
 
+  /** The corners full screen: the browser's own, on the editor (Sign's pattern, PdfSignTool), or a
+   * fixed full-page layer where it has none for an element (iPhone Safari). */
+  const [full, setFull] = useState<'native' | 'layer' | null>(null);
+  useEffect(() => {
+    const onChange = () => setFull((mode) => (document.fullscreenElement === editorRef.current ? 'native' : mode === 'native' ? null : mode));
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const enterFull = () => {
+    recordAction('fullscreen');
+    const el = editorRef.current;
+    if (el?.requestFullscreen && document.fullscreenEnabled !== false) {
+      // expected: element full screen is optional, the layer stands in
+      el.requestFullscreen()?.catch(() => setFull('layer'));
+    } else setFull('layer');
+  };
+  const exitFull = () => {
+    // expected: the browser may already have left full screen (Esc), nothing to undo
+    if (document.fullscreenElement === editorRef.current) document.exitFullscreen?.()?.catch(() => {});
+    setFull(null);
+  };
+  // Full screen is for the corners: the page as it downloads comes back in the card.
+  useEffect(() => {
+    if (view !== 'corners') exitFull();
+  }, [view]);
+  useEffect(() => () => {
+    // expected: leaving the page while full screen, nothing to report
+    if (document.fullscreenElement && document.fullscreenElement === editorRef.current) document.exitFullscreen?.()?.catch(() => {});
+  }, []);
+  // The layer: the page behind keeps still, and Esc leaves it as it leaves the browser's own.
+  useEffect(() => {
+    if (full !== 'layer') return undefined;
+    const root = document.documentElement;
+    const overflow = root.style.overflow;
+    root.style.overflow = 'hidden';
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setFull(null); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      root.style.overflow = overflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [full]);
+
   const headingRef = useRef<HTMLParagraphElement | null>(null);
   /** Set by a view switch the person made: the page heading takes focus once the new view is up. */
   const focusPendingRef = useRef(false);
@@ -429,20 +484,32 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const captureFlatten = (page: ScanPage) => {
     const host = editorRef.current;
     const frame = host?.querySelector('[data-corner-frame]');
-    if (!host || !frame || !page.preview) return;
+    // The editor's own photo, already decoded: the flatten paints from it on its first frame.
+    const photo = frame?.querySelector<HTMLImageElement>('img');
+    if (!host || !frame || !photo) return;
     flattenFromRef.current = {
-      photoUrl: page.preview,
+      photo,
       frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
-      quad: page.quad,
+      quad: turnedQuad(page.quad, page.turns),
     };
   };
 
-  useLayoutEffect(() => {
-    const id = focusIdRef.current;
-    if (id === null) return;
-    focusIdRef.current = null;
-    listRef.current?.querySelector<HTMLElement>(`[data-id="${id}"] [data-page]`)?.focus();
-  }, [pages]);
+  // The selected page stays in view inside the pages list (a capped column from 1024px), by scrolling
+  // the list alone: scrollIntoView would also move the page away from the photo on a phone. On a new
+  // selection only: an added page is selected, and removing another page must leave the list where it is.
+  useEffect(() => {
+    const list = listRef.current;
+    const tile = list?.querySelector<HTMLElement>('[data-selected]');
+    if (!list || !tile) return;
+    // Inset by the strip's 10px padding, which keeps the selected ring and the remove disc in the clear.
+    const { top, bottom, left, right } = list.getBoundingClientRect();
+    const box = { top: top + 10, bottom: bottom - 10, left: left + 10, right: right - 10 };
+    const at = tile.getBoundingClientRect();
+    if (at.top < box.top) list.scrollTop -= box.top - at.top;
+    else if (at.bottom > box.bottom) list.scrollTop += at.bottom - box.bottom;
+    if (at.left < box.left) list.scrollLeft -= box.left - at.left;
+    else if (at.right > box.right) list.scrollLeft += at.right - box.right;
+  }, [selectedId]);
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
@@ -481,6 +548,19 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       });
   };
 
+  const forgetTurned = (match: (key: string) => boolean) => {
+    setTurnedPreviews((map) => {
+      const left: Record<string, string> = {};
+      for (const [k, url] of Object.entries(map)) {
+        if (match(k)) URL.revokeObjectURL(url);
+        else left[k] = url;
+      }
+      return left;
+    });
+  };
+  /** The photo the corner editor shows: as photographed, or turned with the page (null while turning). */
+  const shownPhoto = (page: ScanPage) => (page.turns === 0 ? page.preview : turnedPreviews[`${page.id}|${page.turns}`] ?? null);
+
   const commitCorners = (id: number, quad: Quad) => {
     setPages((current) => current.map((p) => (p.id === id ? { ...p, quad, edited: true } : p)));
     recordAction('move_mark');
@@ -492,6 +572,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     const removed = pages[index];
     if (!removed) return;
     if (removed.preview) URL.revokeObjectURL(removed.preview);
+    forgetTurned((k) => k.startsWith(`${id}|`));
     previewBlobsRef.current.delete(id);
     removedRef.current.add(id);
     dropCached(id);
@@ -511,6 +592,8 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       const nextNew = view === 'corners' ? left.find((p) => !p.reviewed) : undefined;
       setSelectedId(nextNew?.id ?? neighbour?.id ?? null);
       if (view === 'corners' && !nextNew) setView('result');
+      // A new photo opens in view, whether this one went from its own box or from the strip.
+      if (nextNew) topPendingRef.current = true;
     }
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
@@ -525,6 +608,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     resultsRef.current = {};
     forgetShown();
     previewBlobsRef.current.clear();
+    forgetTurned(() => true);
     setView('result');
     setPages([]);
     setResults({});
@@ -538,6 +622,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
 
   const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
   const selectedIndex = selected ? pages.indexOf(selected) : -1;
+  const shownAspect = selected && selected.turns % 2 === 1 ? 1 / (selected.aspect ?? 0.75) : selected?.aspect ?? 0.75;
 
   // The look is the selected page's own; it also becomes the look for the next new photo.
   const chooseLook = (next: ScanFilter) => {
@@ -546,6 +631,38 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setDefaultFilter(next);
     recordAction('change_setting');
     reportEdit('scan-to-pdf');
+  };
+
+  const rotatePage = () => {
+    if (!selected) return;
+    setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, turns: (p.turns + 1) % 4 } : p)));
+    announce(formatMessage(t.announceRotated, { position: selectedIndex + 1 }));
+    recordAction('change_setting');
+    reportEdit('scan-to-pdf');
+  };
+
+  // A turned page shows its preview turned the same way while its corners are set (scanPipeline's turnImage).
+  // Outside the queue: it is one preview-sized image, and it should not wait behind a build.
+  const turnKey = selected && selected.turns !== 0 ? `${selected.id}|${selected.turns}` : null;
+  useEffect(() => {
+    if (view !== 'corners' || !selected || !turnKey || turnedPreviews[turnKey]) return;
+    const blob = previewBlobsRef.current.get(selected.id);
+    if (!blob) return;
+    const { id, turns } = selected;
+    loadPipeline().then((pipeline) => pipeline.turnImage(blob, turns)).then((turned) => {
+      if (unmountedRef.current || removedRef.current.has(id)) return;
+      setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: URL.createObjectURL(turned) }));
+    }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
+  }, [view, turnKey, selected?.preview]);
+
+  // A tap on the held-back Download: to the first photo that could not be read, where Remove is.
+  const showFailedPage = () => {
+    const failed = pages.find((p) => failedIds.includes(p.id));
+    if (!failed) return;
+    setSelectedId(failed.id);
+    setView('corners');
+    topPendingRef.current = true;
+    focusPendingRef.current = true;
   };
 
   // Use these corners: on to the next new photo still waiting for a look, or to the result.
@@ -631,6 +748,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       onClearAll={reset}
       clearSummary={pagesLabel(pages.length, englishShellMessages)}
       hideIdentity
+      ownsRating
       needsPdfjs={false}
     >
       {rejectedFiles.length > 0 && (
@@ -648,6 +766,13 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
               rootAttrs={{ 'data-scan-ready': prepared.status === 'ready' || undefined }}
               phoneBar={(
                 <div class={workspaceStyles['chip-bar']}>
+                  {/* The next page is one tap away however far down the page is: the camera on a phone,
+                      the picker with a mouse. The pages column carries these from 1024px. */}
+                  <TakePhotoButton onFiles={addFiles} buttonClass={styles['bar-add']} />
+                  <button type="button" class={`${styles['bar-add']} ${styles['bar-pick']}`} onClick={requestReplace}>
+                    <ImagePlus size={18} aria-hidden="true" />
+                    {t.addPhotos}
+                  </button>
                   <PhoneFinish
                     flow={downloadFlow}
                     prepared={prepared}
@@ -670,7 +795,10 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 <>
                   {controls('')}
                   <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>{englishShellMessages.clearLabel ?? 'Clear all'}</button>
+                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>
+                      <Trash2 size={16} aria-hidden="true" />
+                      {englishShellMessages.clearLabel ?? t.clearAll}
+                    </button>
                   </div>
                 </>
               )}
@@ -683,9 +811,12 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     detail={detail}
                     pageCount={pages.length}
                     progress={prepared.progress}
-                    errorMessage={t.buildFailed}
+                    errorMessage={failedIds.length > 0
+                      ? formatMessage(t.removeToMake, { pages: pages.filter((p) => failedIds.includes(p.id)).map((p) => pages.indexOf(p) + 1).join(', ') })
+                      : t.buildFailed}
                     messages={t}
                     onPreparingTap={onRowPreparingTap}
+                    onErrorTap={failedIds.length > 0 ? showFailedPage : undefined}
                     onWarm={prepared.prepareNow}
                     onDownloadClick={onDownloadTap}
                     isOutputNameBeingRenamed={isRenaming}
@@ -703,6 +834,9 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   {handoffFailed && (
                     <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
                   )}
+                  {/* On a phone the ask follows the next steps; on desktop it sits under the page instead
+                      (below), where the photo gives it the room: the rail had none (Scan QA). */}
+                  {!wide && rating}
                 </>
               )}
             >
@@ -713,7 +847,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                 </ErrorMessage>
               )}
 
-              <section ref={editorRef} class={styles.editor} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
+              {/* From 1024px the pages are a column beside the selected page, so both stay on the first screen. */}
+              <div
+                ref={workbenchRef}
+                class={styles.workbench}
+                data-fills-stage
+                data-fitted={stageHeight !== null || undefined}
+                style={stageHeight !== null ? { '--scan-stage-h': `${stageHeight}px` } : undefined}
+              >
+              <section ref={editorRef} class={styles.editor} data-full={full ?? undefined} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
                 <div class={styles['editor-head']}>
                   <p class={styles['editor-title']} ref={headingRef} tabIndex={-1} data-page-heading>
                     {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
@@ -727,58 +869,97 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                       </span>
                     )}
                   </p>
+                  {view === 'corners' && selected.preview !== null && (
+                    <div class={styles['head-actions']}>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>
+                        <RotateCw size={16} aria-hidden="true" />
+                        {t.rotate}
+                      </button>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={full ? exitFull : enterFull}>
+                        {full ? <Minimize2 size={16} aria-hidden="true" /> : <Expand size={16} aria-hidden="true" />}
+                        {full ? t.exitFullScreen : t.fullScreen}
+                      </button>
+                    </div>
+                  )}
                   {view === 'result' && (
-                    <button
-                      type="button"
-                      class={workspaceStyles['quiet-button']}
-                      onClick={() => {
-                        setView('corners');
-                        focusPendingRef.current = true;
-                        announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
-                      }}
-                    >
-                      {t.adjustCorners}
-                    </button>
+                    <div class={styles['head-actions']}>
+                      <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>
+                        <RotateCw size={16} aria-hidden="true" />
+                        {t.rotate}
+                      </button>
+                      <button
+                        type="button"
+                        class={workspaceStyles['quiet-button']}
+                        onClick={() => {
+                          setView('corners');
+                          focusPendingRef.current = true;
+                          announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
+                        }}
+                      >
+                        <Crop size={16} aria-hidden="true" />
+                        {t.adjustCorners}
+                      </button>
+                    </div>
                   )}
                 </div>
-                {view === 'corners' ? (
-                  selected.preview === null ? (
-                    <div class={styles['corners-wait']} style={{ aspectRatio: String(selected.aspect ?? 0.75) }}>{selected.guessed ? t.pageFailed : t.findingEdges}</div>
-                  ) : (
-                  <CornerEditor
-                    key={selected.id}
-                    src={selected.preview}
-                    aspect={selected.aspect ?? undefined}
-                    quad={selected.quad}
-                    onCommit={(quad) => commitCorners(selected.id, quad)}
-                    labels={{ group: t.cornersGroup, corners: t.corners }}
-                  />
-                  )
-                ) : null}
+                {view === 'corners' && (
+                  <div class={styles['photo-area']}>
+                    {shownPhoto(selected) === null ? (
+                      // The photo's own shape and size, so nothing moves when its preview lands.
+                      <div
+                        class={styles['corners-wait']}
+                        style={{ aspectRatio: String(shownAspect), width: `min(100%, calc(var(--scan-view-h) * ${shownAspect}))` }}
+                      >
+                        {/* The head already says a photo could not be read; the box stays quiet. */}
+                        {selected.preview !== null || selected.guessed ? '' : t.findingEdges}
+                      </div>
+                    ) : (
+                      // On a turned page the photo, its shape and its corners are all shown turned (quad.ts).
+                      <CornerEditor
+                        key={`${selected.id}|${selected.turns}`}
+                        src={shownPhoto(selected) as string}
+                        aspect={selected.aspect === null ? undefined : shownAspect}
+                        quad={turnedQuad(selected.quad, selected.turns)}
+                        onCommit={(quad) => commitCorners(selected.id, unturnedQuad(quad, selected.turns))}
+                        labels={{ group: t.cornersGroup, corners: t.corners }}
+                      />
+                    )}
+                  </div>
+                )}
                 {view === 'corners' && selected.guessed && selected.preview === null && (
                   // An unreadable photo has nothing to straighten: the one thing to do is take it out.
                   <div class={styles['corners-actions']}>
-                    <button type="button" class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`} onClick={() => removePage(selected.id)}>
+                    <button
+                      type="button"
+                      class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
+                      onClick={() => {
+                        // The next photo comes into view: this one's error box was not its height.
+                        topPendingRef.current = true;
+                        removePage(selected.id);
+                      }}
+                    >
+                      <Trash2 size={18} aria-hidden="true" />
                       {t.removePhoto}
                     </button>
                   </div>
                 )}
                 {view === 'corners' && !(selected.guessed && selected.preview === null) && (
                   // Under the photo, like a scanner app's bottom bar: the quiet choices, then the one that moves on.
+                  // One row where it fits; on a phone the one that moves on takes a row of its own.
                   <div class={styles['corners-actions']}>
-                    <div class={styles['corners-quiet']}>
-                      <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null || selected.preview === null} onClick={() => findPage(selected)}>
-                        {t.findPage}
-                      </button>
-                      <button
-                        type="button"
-                        class={workspaceStyles['quiet-button']}
-                        disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
-                        onClick={() => commitCorners(selected.id, FULL_QUAD)}
-                      >
-                        {t.wholePhoto}
-                      </button>
-                    </div>
+                    <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null || selected.preview === null} onClick={() => findPage(selected)}>
+                      <WandSparkles size={18} aria-hidden="true" />
+                      {t.findPage}
+                    </button>
+                    <button
+                      type="button"
+                      class={workspaceStyles['quiet-button']}
+                      disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
+                      onClick={() => commitCorners(selected.id, FULL_QUAD)}
+                    >
+                      <Maximize size={18} aria-hidden="true" />
+                      {t.wholePhoto}
+                    </button>
                     <button
                       type="button"
                       class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
@@ -791,6 +972,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                         announce(t.announceResult);
                       } : approveCorners}
                     >
+                      <Check size={18} aria-hidden="true" />
                       {selected.reviewed ? t.cornersDone : t.useCorners}
                     </button>
                   </div>
@@ -804,14 +986,20 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     {selected.found === false && !selected.edited && (
                       <p class={styles['not-found']} role="status">
                         {t.notFound}
-                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>{t.adjustCorners}</button>
+                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>
+                          <Crop size={16} aria-hidden="true" />
+                          {t.adjustCorners}
+                        </button>
                       </p>
                     )}
-                  <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
+                    <div class={styles['paper-area']}>
+                      <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
+                    </div>
                   </>
                 )}
               </section>
 
+              <div class={styles.pages}>
               <p class="sr-only" id="scan-reorder-hint">{t.reorderHint}</p>
               <ul class={styles.strip} ref={listRef} aria-label={t.pagesLabel} aria-describedby="scan-reorder-hint">
                 {pages.map((page, index) => {
@@ -843,19 +1031,22 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                     </li>
                   );
                 })}
-                <li class={styles['add-tile']}>
-                  <TakePhotoButton onFiles={addFiles} />
-                  <button type="button" class={styles['add-button']} onClick={requestReplace}>
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                    {t.addPhotos}
-                  </button>
-                </li>
               </ul>
+              {/* Outside the list, so a long scan scrolls its pages and these stay at the end, in view. */}
+              <div class={styles['add-tile']}>
+                <TakePhotoButton onFiles={addFiles} />
+                <button type="button" class={styles['add-button']} onClick={requestReplace}>
+                  <ImagePlus size={20} aria-hidden="true" />
+                  {t.addPhotos}
+                </button>
+              </div>
+              </div>
+              </div>
 
               {/* On a phone the corners come first; the choices follow the pages they apply to. */}
               <div class={styles['phone-options']}>{controls('-phone')}</div>
+              {/* Desktop: under the page, inside the first screen (useFloorHeight leaves it the room). */}
+              {wide && <div class={styles['rating-slot']}>{rating}</div>}
             </PageWorkspace>
           )}
         </ToolShellBridge>

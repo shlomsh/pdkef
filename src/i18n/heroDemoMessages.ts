@@ -1,11 +1,11 @@
 /**
  * LOC-16 item 1: message catalogue for HeroDemo.astro, the home page's
- * scroll-driven Sign/Redact story. Mirrors toolMessages.ts's shape (a typed
+ * scroll-driven Sign/Redact story. Mirrors the tools' messages.ts shape (a typed
  * English-default object per locale, in one file the reviewer pass touches)
  * rather than forking HeroDemo.astro per locale - docs/home-page-
  * localization-plan.md section 5.5: strings get extracted to a typed object,
  * default to English, get validated by a build-time check (this file's own
- * test, mirroring toolMessages.test.ts), and never fork the .astro file
+ * test, mirroring the tools' messages.test.ts), and never fork the .astro file
  * itself. HeroDemo.astro is plain static Astro markup with zero client JS of
  * its own (ScrollDriver is the only island on the page), so this catalogue
  * ships no JavaScript to the browser either - it is read at build time only.
@@ -231,7 +231,7 @@ export const englishHeroDemoMessages: HeroDemoMessages = {
 };
 
 // LOC-16: an AI draft, not yet reviewed by a native speaker - the same
-// caveat hebrewSignMessages (toolMessages.ts) and hebrewFileDropzoneMessages
+// caveat hebrewSignMessages (src/editor/registry/signMessages.ts) and hebrewFileDropzoneMessages
 // carry. Pending Shlomi's read-through. Story one is an Israeli school
 // setting (a parents' class group, a field-trip permission slip, an
 // Israeli-style class name and date); story two keeps the same Front

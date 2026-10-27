@@ -33,7 +33,8 @@
 //   4. `site` (pages, layouts, content, data, i18n, styles, and the .astro
 //      files still under `src/components/`) may reach a tool only through
 //      that tool's island entry point, a `Pdf*Tool.tsx` directly under
-//      `src/tools/<name>/`.
+//      `src/tools/<name>/`, or its text, `src/tools/<name>/messages.ts`
+//      (ARCH-35).
 //   5. `components` (today's flat `src/components/`: since ARCH-18 landed,
 //      only `.astro` site components - which classify as `site`, not
 //      `components` - and `HeroDemo/` remain) must never import a tool.
@@ -90,7 +91,7 @@
 // its own separate astroScriptSrcEdges() pass below, since otherwise a
 // module loaded only this way would misread as having no site consumer.
 //
-// Anything not covered by these nine rules is not checked here (test
+// Anything not covered by these ten rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
 // its own, below, because it is not part of the target layout
 // docs/module-boundaries.md describes); this file is deliberately narrower
@@ -130,7 +131,6 @@ const MODULE_PREFIXES = [
   // convention for anything more specific than a broad site prefix.
   ['src/site-lib/', () => 'site'],
   ['src/lib/', () => 'lib'],
-  ['src/constants/', () => 'lib'],
   ['src/i18n/', () => 'site-i18n'],
   ['src/data/', () => 'site-data'],
   ['src/pages/', () => 'site'],
@@ -163,15 +163,25 @@ export function classify(relPath) {
   return null; // src/assets, src/content.config.ts, ...: outside the module graph
 }
 
+// A top-level src/ entry that classify() has no row for would classify as null and so escape every
+// rule. These are the only ones allowed to: not part of the module graph on purpose. Anything else
+// (a new src/foo/ folder) fails loudly until it gets a MODULE_PREFIXES row or is listed here.
+const OUTSIDE_THE_GRAPH = new Set(['assets', 'content.config.ts', 'project.json']);
+const CLASSIFIED_TOP_LEVEL = new Set(['components', 'tools', ...MODULE_PREFIXES.map(([p]) => p.split('/')[1])]);
+
+export function unclassifiedSrcEntries(entries) {
+  return entries.filter((e) => !CLASSIFIED_TOP_LEVEL.has(e) && !OUTSIDE_THE_GRAPH.has(e)).sort();
+}
+
 const isTool = (m) => typeof m === 'string' && m.startsWith('tool:');
 const isSite = (m) => m === 'site' || m === 'site-i18n' || m === 'site-data';
 const CORE_MODULES = new Set(['shell', 'editor-ui', 'editor', 'lib']);
 
-// A tool's own island entry point: src/tools/<name>/Pdf*Tool.tsx. Every tool
-// moved out of the flat src/components/ under ARCH-17/18, so this is the only
-// shape rule 4 recognizes now.
+// What a tool shows the site (rule 4): its island entry point, src/tools/<name>/Pdf*Tool.tsx,
+// and (ARCH-35) its text, src/tools/<name>/messages.ts, which the site's message registry
+// picks per locale without loading the island.
 function isToolEntryPoint(relPath) {
-  return /^src\/tools\/[^/]+\/Pdf[A-Za-z0-9]*Tool\.tsx$/.test(relPath);
+  return /^src\/tools\/[^/]+\/(Pdf[A-Za-z0-9]*Tool\.tsx|messages\.ts)$/.test(relPath);
 }
 
 export function ruleViolation(fromModule, toModule, toRelPath) {
@@ -194,13 +204,18 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   if (CORE_MODULES.has(fromModule) && toModule === 'site') {
     return `${fromModule} may import site-i18n and site-data but not site (pages/layouts/content/styles)`;
   }
+  // Rule 10 (ARCH-34): lib is the bottom layer. It may import only lib, so a
+  // change to a core project never reaches back down into the shared helpers.
+  if (fromModule === 'lib' && ['editor', 'editor-ui', 'shell', 'site-i18n', 'site-data'].includes(toModule)) {
+    return `lib is the bottom layer: it may not import ${toModule}`;
+  }
   // Rule 3: editor is headless.
   if (fromModule === 'editor' && (toModule === 'editor-ui' || toModule === 'shell')) {
     return 'editor is headless: it may not import editor-ui or shell';
   }
   // Rule 4: site may reach a tool only through its island entry point.
   if (isSite(fromModule) && isTool(toModule) && !isToolEntryPoint(toRelPath)) {
-    return 'site may reach a tool only through its Pdf*Tool.tsx island entry point';
+    return 'site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts';
   }
   // Rule 5: `components` (HeroDemo/, compareFigure.css) may not import a tool.
   if (fromModule === 'components' && isTool(toModule)) {
@@ -303,12 +318,17 @@ function main() {
   const specRouteIssues = toolSpecRouteViolations();
   const scriptsViolations = scriptsImportViolations();
   const consumerViolations = commonLayerConsumerViolations();
+  const unknownSrc = unclassifiedSrcEntries(fs.readdirSync(path.join(ROOT, 'src')));
 
   if (
-    unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
+    unknownSrc.length > 0 || unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
     || specRouteIssues.length > 0 || scriptsViolations.length > 0 || consumerViolations.length > 0
   ) {
     console.error('Module boundary check failed:');
+    if (unknownSrc.length > 0) {
+      console.error('\nUnclassified top-level src/ entries (they would escape every rule; add a MODULE_PREFIXES row or list them in OUTSIDE_THE_GRAPH):');
+      for (const e of unknownSrc) console.error(`  src/${e}`);
+    }
     if (unallowed.length > 0) {
       console.error('\nNew violations (not on the allowlist):');
       for (const v of unallowed) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);

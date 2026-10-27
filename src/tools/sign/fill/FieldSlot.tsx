@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.js';
-import { fieldTextInset, textElementLayout } from '../../../lib/signHelpers.js';
+import { fieldTextInset, textElementLayout } from '../../../editor/text/signHelpers.js';
 import { combLayout, isComb } from '../../../editor/text/comb.js';
 import CombCells from '../components/nodes/CombCells.tsx';
 import { useCombCaret } from '../components/nodes/useCombCaret.ts';
