@@ -8,9 +8,9 @@ import { planForFile } from '../../../lib/pagePlan.ts';
 import { renderThumbnail } from '../../../lib/thumbnails.js';
 import { formatMessage } from '../../../lib/formatMessage';
 import { reportError } from '../../../lib/errorReport.ts';
-import { inspectPdf } from '../merge.js';
-import { reportableCause } from '../reportableCause.ts';
-import { toEntry, type FileEntry, type Model, type SortMode } from '../mergeModel.ts';
+import { inspectPdf } from '../lib/merge.js';
+import { reportableCause } from '../lib/reportableCause.ts';
+import { toEntry, type FileEntry, type Model, type SortMode } from '../lib/mergeModel.ts';
 import {
   applyInspection,
   fileIndexForPlanDrop,
@@ -22,7 +22,7 @@ import {
   settlePendingPlanIndexes,
   sortFiles,
   withFileOrder,
-} from '../mergePlan.ts';
+} from '../lib/mergePlan.ts';
 import type { MergeAction } from '../state/mergeState.ts';
 import type { MergeMessages } from '../messages';
 

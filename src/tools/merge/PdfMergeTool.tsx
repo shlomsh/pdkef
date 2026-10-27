@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { markArrival } from '../../lib/fileArrival.ts';
-import { MergeFileError } from './merge.js';
+import { MergeFileError } from './lib/merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.ts';
-import { isGrouped, isInListOrder, mergedTitle } from './mergePlan.ts';
+import { isGrouped, isInListOrder, mergedTitle } from './lib/mergePlan.ts';
 import { outputPageCount } from '../../lib/pagePlan.ts';
 import { isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -14,26 +14,26 @@ import MergeVerb from './verb/MergeVerb.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
+import { useLinkedHighlight, useMergeMoment } from './hooks/useLinkedHighlight.ts';
 import PageWorkspace from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { downloadDetail } from '../../shell/pageWorkspace/pageCounts.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import { usePreparedMerge } from './components/usePreparedMerge.ts';
-import type { MergeDraftRestore } from './components/useMergeDraft.ts';
+import { usePreparedMerge } from './hooks/usePreparedMerge.ts';
+import type { MergeDraftRestore } from './hooks/useMergeDraft.ts';
 import { englishMergeMessages, type MergeMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
-import { EMPTY_MODEL, toEntry, type Model } from './mergeModel.ts';
+import { EMPTY_MODEL, toEntry, type Model } from './lib/mergeModel.ts';
 import { initialMergeState, mergeReducer, type MergeState } from './state/mergeState.ts';
 import { readRememberedOptions, rememberOptions } from './components/rememberedOptions.ts';
-import { useRailSortables } from './components/useRailSortables.ts';
-import { useFileDropTargets } from './components/useFileDropTargets.ts';
-import { useMergeFiles } from './components/useMergeFiles.ts';
-import { useTransientHints } from './components/useTransientHints.ts';
-import { useInstallPrompt } from './components/useInstallPrompt.ts';
-import { useLockedProbe } from './components/useLockedProbe.ts';
-import { useLazySurfaces, useRestoreSettling } from './components/useDraftSurface.ts';
+import { useRailSortables } from './hooks/useRailSortables.ts';
+import { useFileDropTargets } from './hooks/useFileDropTargets.ts';
+import { useMergeFiles } from './hooks/useMergeFiles.ts';
+import { useTransientHints } from './hooks/useTransientHints.ts';
+import { useInstallPrompt } from './hooks/useInstallPrompt.ts';
+import { useLockedProbe } from './hooks/useLockedProbe.ts';
+import { useLazySurfaces, useRestoreSettling } from './hooks/useDraftSurface.ts';
 import MergeChipBar from './components/MergeChipBar.tsx';
 import MergePhoneControls from './components/MergePhoneControls.tsx';
 import { MergeHeading, MergeHeaderStatus } from './components/MergeHeading.tsx';
@@ -41,7 +41,7 @@ import MergeRailContent from './components/MergeRailContent.tsx';
 import MergeRailPinned from './components/MergeRailPinned.tsx';
 import MergeNotices from './components/MergeNotices.tsx';
 
-export type { FileEntry } from './mergeModel.ts';
+export type { FileEntry } from './lib/mergeModel.ts';
 
 /* MERGE-14: Compress and Sign only. Split was in the first cut and came out
    on Shlomi's read: after page-level reorder and skip in the grid, splitting

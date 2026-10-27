@@ -285,7 +285,7 @@ export function useDraftPersistence({
     // restore" through this hook's params just to save one decode; not worth
     // it against the restore path staying this thin.
     let cancelled = false;
-    import('../../lib/thumbnails.js')
+    import('../thumbnails.js')
       .then(({ renderDraftPreview }) => renderDraftPreview(file))
       .then((dataUrl) => {
         if (cancelled) return;

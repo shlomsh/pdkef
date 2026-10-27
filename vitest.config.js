@@ -34,6 +34,7 @@ const DOM_TESTS = [
   'src/lib/{compress,compressImage,thumbnails,toImage}.test.js',
   'src/tools/*/{compress,compressImage,toImage}.test.js',
   'src/tools/to-image/lib/toImage.test.js',
+  'src/tools/compress/lib/{compress,compressImage}.test.js',
   // ARCH-18: Sign's own use*.test.js/.test.ts moved out of src/lib/ (the
   // 'src/lib/use*' line above no longer reaches them) into src/tools/sign/,
   // flat and under components/. Only this one drives real gesture/pointer

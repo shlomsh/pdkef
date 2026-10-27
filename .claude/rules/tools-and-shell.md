@@ -54,7 +54,7 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
   Preact state, which stays the single source of truth.
 - **FAQ disclosure** on tool pages is a details/summary whose summary holds the hero text; a click
   interceptor makes only the styled `.faq-toggle` link toggle it.
-- `src/tools/merge/merge.js` (`@cantoo/pdf-lib`): `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)`
+- `src/tools/merge/lib/merge.js` (`@cantoo/pdf-lib`): `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)`
   reading `/CreationDate`. `src/lib/sort.js`: `sortByName` (locale-numeric) and `sortByDate`, a
   cascade of filename date → PDF creation date → `File.lastModified`. The File API cannot read OS
   birth time and `lastModified` changes on copy/download, so it is deliberately last.

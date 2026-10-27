@@ -104,10 +104,10 @@ export const WIDEN_RULES = [
     tests: [
       'src/editor/adapters/pdf/redact.test.js',
       'src/editor/adapters/pdf/sign.test.js',
-      'src/tools/compress/compress.test.js',
+      'src/tools/compress/lib/compress.test.js',
       'src/tools/edit-pages/editPages.test.js',
       'src/tools/merge/PdfMergeTool.test.tsx',
-      'src/tools/merge/merge.test.js',
+      'src/tools/merge/lib/merge.test.js',
       'src/tools/redact/PdfRedactTool.test.tsx',
       'src/tools/security/security.test.js',
       'src/tools/sign/PdfSignTool.test.tsx',
@@ -119,7 +119,7 @@ export const WIDEN_RULES = [
     id: 'compress-fixtures',
     reason: 'the COMP-01 corpus under src/tools/compress/__fixtures__/ is read by path, not imported',
     match: (f) => f.startsWith('src/tools/compress/__fixtures__/'),
-    tests: ['src/tools/compress/analyzePdf.test.js'],
+    tests: ['src/tools/compress/lib/analyzePdf.test.js'],
   },
   {
     id: 'sign-field-fixtures',
