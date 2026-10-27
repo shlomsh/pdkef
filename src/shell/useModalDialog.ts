@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact';
 
 export interface ModalDialogOptions {
@@ -15,6 +15,8 @@ export interface ModalDialogOptions {
   closeWhenHidden?: boolean;
   /** Also re-run the open/close sync when this value changes. SignatureDialog passes its onClose, keeping the effect's old [isOpen, onClose] deps. */
   syncOn?: unknown;
+  /** Default false: when the dialog closes on its own (closedby="any": Escape, light dismiss) while `open` is still true, call onClose so state follows. */
+  reportNativeClose?: boolean;
 }
 
 /**
@@ -26,8 +28,10 @@ export function useModalDialog(
   ref: RefObject<HTMLDialogElement>,
   open: boolean,
   onClose: () => void,
-  { escape = 'capture', fallback = true, closeWhenHidden = true, syncOn }: ModalDialogOptions = {},
+  { escape = 'capture', fallback = true, closeWhenHidden = true, syncOn, reportNativeClose = false }: ModalDialogOptions = {},
 ): void {
+  const openRef = useRef(open);
+  openRef.current = open;
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -61,4 +65,15 @@ export function useModalDialog(
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
   }, [open, onClose, escape]);
+
+  // A close Sign itself caused (open already false) is not reported again.
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!reportNativeClose || !dialog) return undefined;
+    const onNativeClose = () => {
+      if (openRef.current) onClose();
+    };
+    dialog.addEventListener('close', onNativeClose);
+    return () => dialog.removeEventListener('close', onNativeClose);
+  }, [reportNativeClose, onClose]);
 }
