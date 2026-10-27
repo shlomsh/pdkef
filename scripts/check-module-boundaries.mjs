@@ -62,8 +62,8 @@
 //      allowlist, and deliberately covers test files too: a checker's own
 //      unit test (e.g. `check-editor-dependency-directions.test.mjs`) lives
 //      beside the script it tests, in `scripts/`, never under `src/test/`.
-//   9. A module in a common layer (`shell`, `editor-ui`, `lib`) needs two or
-//      more distinct consumers (ARCH-25): a tool (`src/tools/<name>/`, one
+//   9. A module in a common layer (`shell`, `editor-ui`, `editor`, `lib`) needs two
+//      or more distinct consumers (ARCH-25): a tool (`src/tools/<name>/`, one
 //      identity per tool) or the site (ARCH-26: a page, a layout, an
 //      `.astro` component, an `i18n`/`data` module, a `src/site-lib/`
 //      helper, or a file a layout loads via `<script src>` - every site
@@ -71,10 +71,9 @@
 //      identity no matter how many of its own files import the module). A
 //      consumer reached only through a chain of other common-layer modules
 //      still counts, credited to whichever tool or the site the chain
-//      eventually reaches. `editor` is out of scope for this rule: it is a
-//      layered headless core whose adapters serve one tool by design, and
-//      its shape is already governed by `check-editor-dependency-directions.mjs`
-//      and, for field detection, by ARCH-24. `SignatureDialog.tsx` was the
+//      eventually reaches. `editor` is in scope (ARCH-46); the one
+//      exemption is an explicit `src/editor/<tool>-adapters/` folder, for a
+//      single-tool module other `editor` code imports. `SignatureDialog.tsx` was the
 //      one module this genuinely miscategorized, moved into `src/tools/sign/`
 //      in the same change that added this rule, alongside `useCoarsePointer.ts`
 //      (its only real consumer was always Sign). No exception list of any
@@ -393,8 +392,8 @@ function main() {
     `Module boundary check passed: ${files.length} files scanned, ${edges.length} relative import edges, `
     + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new); `
     + `${testFileCount} test files scanned for rule 6, every tool e2e spec for rule 7, `
-    + `src/, public/, e2e/ scanned for rule 8, and every shell/editor-ui/lib module `
-    + `checked for two or more consumers (rule 9, editor out of scope), 0 violations; `
+    + `src/, public/, e2e/ scanned for rule 8, and every shell/editor-ui/editor/lib module `
+    + `checked for two or more consumers (rule 9), 0 violations; `
     + `${projects} projects, ${edgeCount} project edges, no cycle.`,
   );
 }
@@ -555,15 +554,9 @@ export function scriptsImportViolations() {
 // --- rule 9: a common-layer module needs two or more consumers ---------------
 // ARCH-25: docs/module-boundaries.md defines "common" - a shell/editor-ui/lib
 // module earns its place only when two or more distinct consumers use it.
-// `editor` is out of scope for this rule: it is a layered headless core whose
-// per-tool adapters (form detection, the signing adapter, the redaction
-// adapter, and the like) serve one tool by design, not by oversight, and its
-// shape is already governed by `check-editor-dependency-directions.mjs` and,
-// for field detection specifically, by ARCH-24 - a second "two consumers"
-// check on top of that one would only be fighting the same layer with two
-// rules. `editor` modules are still walked when computing another layer's
-// consumers (see the CORE_MODULES chain-walk below): an `editor` module is
-// simply never itself checked for a consumer count.
+// `editor` is in scope since ARCH-46: a module only one tool uses moves under
+// that tool, or into an explicit `src/editor/<tool>-adapters/` folder when
+// other `editor` code imports it (see SINGLE_TOOL_ADAPTERS below).
 //
 // A consumer is a tool (`src/tools/<name>/`: one identity per tool, no
 // matter how many of its own files import the module) or the site - ARCH-26:
@@ -600,9 +593,7 @@ const SITE_CONSUMER = 'site';
 // `target`. Walks backwards from `target` and keeps walking through any
 // core-module node (shell/editor-ui/editor/lib) it reaches, the
 // "common-layer-internal chain" the doc describes - `editor` included, even
-// though rule 9 never checks an `editor` file's own consumer count (see the
-// rule 9 header comment above), because a chain can still legitimately pass
-// through it on the way to a tool; a tool or a qualifying site file stops
+// though a chain can legitimately pass through it on the way to a tool; a tool or a qualifying site file stops
 // that branch and is recorded (by `tool:<name>`, or by the fixed
 // `SITE_CONSUMER` identity - every site file credits the same one, since the
 // site is one consumer, exactly like a tool is, no matter how many of its own
@@ -646,26 +637,36 @@ export function commonLayerConsumers(target, reverseEdges) {
 }
 
 // The file-walking wrapper main() calls: every non-test file classified
-// shell/editor-ui/lib (RULE9_LAYERS - editor is out of scope, see the header
-// comment above), checked against the combined reverse graph (ordinary
+// shell/editor-ui/editor/lib (RULE9_LAYERS), checked against the combined reverse graph (ordinary
 // imports plus `<script src>`). No allowlist, like rules 6 and 8, and no
-// exception list either: ARCH-25 measured the tree at exactly one violation
-// once editor was taken out of scope, `SignatureDialog.tsx`, moved into
-// `src/tools/sign/` in the same change that added this rule, so it holds at
-// zero from the start. A module that later fails this check belongs in a
+// exception list either: ARCH-25 moved `SignatureDialog.tsx` into
+// `src/tools/sign/` and ARCH-46 moved seven single-tool editor modules, so it
+// holds at zero. A module that later fails this check belongs in a
 // tool instead, or should be deleted if nothing uses it - not exempted.
-const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'lib']);
+const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'editor', 'lib']);
 
-export function commonLayerConsumerViolations() {
-  const { edges } = buildEdges();
-  const allEdges = [...edges, ...astroScriptSrcEdges()];
-  const reverseEdges = reverseEdgeMap(allEdges);
+// `src/editor/<tool>-adapters/` is the one explicit home for a module that
+// serves a single tool but is imported by other code inside `src/editor/`
+// (which can never import a tool, so the module cannot move under it). The
+// folder name states the single-tool intent, so rule 9 does not count it.
+const SINGLE_TOOL_ADAPTERS = /^src\/editor\/[a-z]+(?:-[a-z]+)*-adapters\//;
+
+// `plant` lets a test hand in a literal `{ files, reverseEdges }` instead of
+// the real tree.
+export function commonLayerConsumerViolations(plant) {
+  let files = plant?.files;
+  let reverseEdges = plant?.reverseEdges;
+  if (!plant) {
+    const { edges } = buildEdges();
+    reverseEdges = reverseEdgeMap([...edges, ...astroScriptSrcEdges()]);
+    files = collectSourceFiles(SRC).map((f) => relOf(f));
+  }
 
   const violations = [];
-  for (const file of collectSourceFiles(SRC)) {
-    const rel = relOf(file);
+  for (const rel of files) {
     const moduleOf = classify(rel);
     if (!RULE9_LAYERS.has(moduleOf)) continue;
+    if (SINGLE_TOOL_ADAPTERS.test(rel)) continue;
     const consumers = commonLayerConsumers(rel, reverseEdges);
     if (consumers.size < 2) violations.push({ file: rel, module: moduleOf, consumers: [...consumers] });
   }

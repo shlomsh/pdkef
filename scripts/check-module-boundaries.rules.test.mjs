@@ -400,32 +400,27 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
 });
 
 describe('rule 9: commonLayerConsumerViolations() on the real tree', () => {
-  it('is green: every shell/editor-ui/lib module has two or more consumers', () => {
+  it('is green: every shell/editor-ui/editor/lib module has two or more consumers', () => {
     expect(commonLayerConsumerViolations()).toEqual([]);
   });
 
-  it('never flags an editor module: editor is out of rule 9\'s scope entirely', () => {
-    const flaggedEditorFiles = commonLayerConsumerViolations().filter((v) => v.module === 'editor');
-    expect(flaggedEditorFiles).toEqual([]);
+  it('a planted editor module with exactly one consuming tool is reported (ARCH-46)', () => {
+    const planted = 'src/editor/model/plantedSingleTool.ts';
+    const reverse = new Map([[planted, new Set(['src/tools/sign/PdfSignTool.tsx'])]]);
+    expect(commonLayerConsumerViolations({ files: [planted], reverseEdges: reverse }))
+      .toEqual([{ file: planted, module: 'editor', consumers: ['tool:sign'] }]);
   });
 
-  it('a real single-consumer editor module is not flagged (editor is out of scope, not merely allowed a pass)', () => {
-    // src/editor/adapters/pdf/sign.js is Sign's own PDF export/signing
-    // adapter: genuinely one tool's worth of consumer (tool:sign), the same
-    // shape rule 9 would flag in shell/editor-ui/lib. It stays unflagged
-    // because classify() puts it in 'editor', which commonLayerConsumerViolations()
-    // no longer checks at all - not because of a per-file exception.
-    const { edges } = buildEdges();
-    const allEdges = [...edges, ...astroScriptSrcEdges()];
-    const reverseEdges = new Map();
-    for (const { from, to } of allEdges) {
-      if (!reverseEdges.has(to)) reverseEdges.set(to, new Set());
-      reverseEdges.get(to).add(from);
-    }
-    const target = 'src/editor/adapters/pdf/sign.js';
-    expect(classify(target)).toBe('editor');
-    expect(commonLayerConsumers(target, reverseEdges).size).toBe(1);
-    expect(commonLayerConsumerViolations().some((v) => v.file === target)).toBe(false);
+  it('a planted editor module reached by two tools is not reported', () => {
+    const planted = 'src/editor/model/plantedShared.ts';
+    const reverse = new Map([[planted, new Set(['src/tools/sign/PdfSignTool.tsx', 'src/tools/redact/PdfRedactTool.tsx'])]]);
+    expect(commonLayerConsumerViolations({ files: [planted], reverseEdges: reverse })).toEqual([]);
+  });
+
+  it('a module in an explicit src/editor/<tool>-adapters/ folder is single-tool by design and not reported', () => {
+    const planted = 'src/editor/sign-adapters/plantedAdapter.js';
+    const reverse = new Map([[planted, new Set(['src/tools/sign/PdfSignTool.tsx'])]]);
+    expect(commonLayerConsumerViolations({ files: [planted], reverseEdges: reverse })).toEqual([]);
   });
 
   it('SignatureDialog.tsx is no longer in editor-ui to check (ARCH-25 moved it into src/tools/sign/)', () => {
