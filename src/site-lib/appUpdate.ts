@@ -34,7 +34,6 @@ import {
   onExportInFlightChange,
   onUpdateHoldChange,
 } from '../lib/appUpdate/updateHolds.ts';
-import { reportError } from '../lib/errorReport.ts';
 
 export const CHANNEL_NAME = 'pdkef:app-update';
 export const BUSY_QUERY = 'pdkef:busy-query';
@@ -250,7 +249,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
       setTimeout: deps.setTimeout,
       clearTimeout: deps.clearTimeout,
     });
-    forcing.then((reply) => port?.postMessage?.(reply)).catch((err) => reportError('drafts', err, 'critical_update_reply'));
+    void forcing.then((reply) => port?.postMessage?.(reply)); // reason: runs on every page, so it must not pull in the reporter; a rejection reaches the uncaught handler where a page installs one
   }
 
   function waitForRelease(): Promise<void> {
