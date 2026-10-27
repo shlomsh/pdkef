@@ -1,0 +1,17 @@
+[
+  {
+    "path": "src/shell/Dialog.module.css",
+    "literal": "rgba(0,0,0,.4)",
+    "reason": "::backdrop does not inherit custom properties before Safari 17.4 (iOS 17.0-17.3), so a token here would drop the scrim there"
+  },
+  {
+    "path": "src/tools/redact/details/Details.module.css",
+    "literal": "rgba(0, 0, 0, 0.4)",
+    "reason": "::backdrop does not inherit custom properties before Safari 17.4 (iOS 17.0-17.3), so a token here would drop the scrim there"
+  },
+  {
+    "path": "src/tools/sign/components/FontSheet.module.css",
+    "literal": "rgba(0, 0, 0, .32)",
+    "reason": "::backdrop does not inherit custom properties before Safari 17.4 (iOS 17.0-17.3), so a token here would drop the scrim there"
+  }
+]

@@ -53,14 +53,14 @@
      of the translucent highlight this is meant to be, hiding exactly the
      content the user is trying to identify before deleting it. rgba() over
      the danger color, at low alpha, is the actual tint. */
-  background: rgba(184, 76, 88, 0.1);
+  background: var(--color-danger-wash);
   border-color: var(--color-danger);
 }
 
 /* RED-33: a target the drag box currently covers by half or more. Same look
    as hover, toggled straight on the element during the gesture. */
 .delete-candidate-hot {
-  background: rgba(184, 76, 88, 0.1);
+  background: var(--color-danger-wash);
   border-color: var(--color-danger);
 }
 
@@ -110,7 +110,7 @@
 }
 
 .delete-lift-fly {
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12));
+  filter: drop-shadow(0 2px 2px var(--color-black-12));
 }
 
 .delete-lift-fold {

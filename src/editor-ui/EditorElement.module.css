@@ -28,7 +28,7 @@
    click once the touch is let through) drops `data-touch-scroll`, and the
    `.element` rule above - single-finger drag JS-owned - applies again. */
 .element[data-touch-scroll] { touch-action: pan-x pan-y pinch-zoom; }
-.element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: rgba(238, 243, 255, .4); }
+.element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: var(--color-element-active-fill); }
 .symbol { padding: 0; }
 .element:hover { outline-color: var(--color-muted-light); }
 .element.line.active, .element.line:hover { outline-color: transparent; box-shadow: none; background: transparent; }
@@ -87,7 +87,7 @@
    records the same bug on that copy. Guarded in a real engine by
    src/tools/sign/e2e/field-nav-arrow-direction.spec.js - jsdom applies no CSS. */
 .quick-field-nav[dir="rtl"] svg { transform: scaleX(-1); }
-.text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
+.text-display { display: grid; position: relative; align-items: start; justify-items: start; color: var(--color-black); line-height: 1.05; }
 /* `pre`, not `pre-wrap`: a box only ever grows to fit its content (no width the
    user chose to wrap at), so a line should never auto-wrap - only an explicit
    Enter should start a new one, and `pre` preserves that while refusing every

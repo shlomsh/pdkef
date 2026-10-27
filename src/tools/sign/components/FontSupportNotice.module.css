@@ -3,6 +3,6 @@
 .detail.warning { border-color: var(--color-danger); }
 .detail p { margin: 0; }
 .marker { width: 24px; height: 24px; }
-.marker-button { display: grid; place-items: center; width: 24px; height: 24px; margin: 0; padding: 0; border: 2px solid var(--color-surface); border-radius: 50%; background: var(--color-danger); color: var(--color-surface); box-shadow: 0 2px 7px rgba(106, 23, 31, .28); cursor: pointer; }
+.marker-button { display: grid; place-items: center; width: 24px; height: 24px; margin: 0; padding: 0; border: 2px solid var(--color-surface); border-radius: 50%; background: var(--color-danger); color: var(--color-surface); box-shadow: var(--shadow-danger-pin); cursor: pointer; }
 .marker-button:hover { transform: scale(1.08); }
 .marker-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
