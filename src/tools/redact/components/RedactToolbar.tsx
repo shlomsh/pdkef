@@ -226,12 +226,12 @@ export default function RedactToolbar({
           // rows that are reserved: one line, ellipsised, never wrapped
           // (`.undo-chip-text`).
           override={undoAction ? (
-            <span className={redactStyles['undo-chip']}>
+            <span data-testid="undo-chip" className={redactStyles['undo-chip']}>
               <span className={redactStyles['undo-chip-text']}>{undoAction.message}</span>
               {undoAction.extra && (
-                <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={undoAction.extra.onSelect}>{undoAction.extra.label}</button>
+                <button type="button" data-testid="undo-chip-btn" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={undoAction.extra.onSelect}>{undoAction.extra.label}</button>
               )}
-              <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={onUndoAction}>{t.undo}</button>
+              <button type="button" data-testid="undo-chip-btn" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={onUndoAction}>{t.undo}</button>
             </span>
           ) : (statusMessage ?? undefined)}
         />

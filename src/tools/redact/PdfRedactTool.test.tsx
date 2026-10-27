@@ -11,6 +11,7 @@ import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
+// Asserts the selected-box state class.
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '../../lib/actionTrail.ts';
@@ -23,7 +24,6 @@ import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentW
 
 declare const __dirname: string;
 
-const REDACT_BOX = redactStyles['redact-box'];
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -248,7 +248,7 @@ describe('PdfRedactTool UI flow', () => {
     expect(header.textContent).toContain('pick a tool');
     
     // Verify toolbar modes exist
-    const toolbar = query(container, `.${toolbarStyles.toolbar}`);
+    const toolbar = query(container, '[role="toolbar"]');
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
@@ -312,12 +312,12 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
-      await selectBox(query<HTMLElement>(container, `.${REDACT_BOX}`));
+      await selectBox(query<HTMLElement>(container, '[data-redact-box-id]'));
       return drawArea;
     }
     // Drags the box body by (50, 100) px: 10% right, 10% down on the 500x1000 draw area.
     async function nudgeDown(): Promise<void> {
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
       await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
@@ -343,14 +343,14 @@ describe('PdfRedactTool UI flow', () => {
 
     it('moving an auto whiteout re-samples it, and one Undo restores the position and the colour together', async () => {
       await drawWhiteoutAndSelect();
-      const topBefore = parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top);
+      const topBefore = parseFloat(query<HTMLElement>(container, '[data-redact-box-id]').style.top);
       await nudgeDown();
       expect(surfaceColor()).toBe(rgb(BLUE));
-      expect(parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top)).toBeGreaterThan(topBefore);
+      expect(parseFloat(query<HTMLElement>(container, '[data-redact-box-id]').style.top)).toBeGreaterThan(topBefore);
 
       await undo();
       expect(surfaceColor()).toBe(rgb(CREAM));
-      expect(parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top)).toBeCloseTo(topBefore);
+      expect(parseFloat(query<HTMLElement>(container, '[data-redact-box-id]').style.top)).toBeCloseTo(topBefore);
       expect(announced()).toContain('Undid: Moved whiteout box');
       expect(announced()).not.toContain('color');
     });
@@ -472,8 +472,8 @@ describe('PdfRedactTool UI flow', () => {
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfRedactTool />, container); });
-      await settleUntil('the restored whiteout', () => container.querySelector(`.${REDACT_BOX}`) !== null);
-      await selectBox(query<HTMLElement>(container, `.${REDACT_BOX}`));
+      await settleUntil('the restored whiteout', () => container.querySelector('[data-redact-box-id]') !== null);
+      await selectBox(query<HTMLElement>(container, '[data-redact-box-id]'));
       expect(surfaceColor()).toBe(rgb('#abcdef'));
 
       pageSampler.calls.length = 0;
@@ -541,7 +541,7 @@ describe('PdfRedactTool UI flow', () => {
       await setSelectedBoxColor('#112233');
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 600, 200, 800);
-      const boxes = Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const boxes = Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
       expect(boxes).toHaveLength(2);
       await selectBox(required(boxes[1], 'second box'));
       expect(autoPressed()).toBe('true');
@@ -612,7 +612,7 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const generateButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      const generateButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
 
       await act(async () => {
@@ -627,7 +627,7 @@ describe('PdfRedactTool UI flow', () => {
       );
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
-      expect(container.querySelector(`.${REDACT_BOX}`)).not.toBeNull();
+      expect(container.querySelector('[data-redact-box-id]')).not.toBeNull();
       expect(container.querySelector('.download-button')).toBeNull();
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
       // DEBT-28: a file in, then one started and one ready, nothing failed.
@@ -677,7 +677,7 @@ describe('PdfRedactTool UI flow', () => {
         promise: Promise.reject(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js')),
         destroy: async () => {},
       })) as never);
-      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
       await act(async () => { downloadButton.click(); });
       await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
@@ -700,7 +700,7 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
-      const downloadButton = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      const downloadButton = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
       await act(async () => { downloadButton().click(); });
       await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
@@ -740,7 +740,7 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const drawArea = await loadFileAndGetDrawArea(makePdfFile('titled.pdf', await buildPdf(2, { title: 'Secret title' })));
       await drawBox(drawArea, 50, 200, 200, 500);
-      const buttons = () => Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`));
+      const buttons = () => Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'));
       const download = () => required(buttons().find((button) => button.textContent.includes('Download')), 'Download button');
       await act(async () => { download().click(); });
       await settleUntil('the export', () => container.querySelector('[data-saved-file-check]') !== null);
@@ -798,7 +798,7 @@ describe('PdfRedactTool UI flow', () => {
         const drawArea = await loadFileAndGetDrawArea(await authored());
         await settleUntil('the details footer', () => container.querySelector('[data-details-footer]') !== null);
         await drawBox(drawArea, 50, 200, 200, 500);
-        const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         await act(async () => { download().click(); });
         await settleUntil('the untouched export', () => downloads.length === 1);
@@ -834,7 +834,7 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
-      const box = query(container, `.${REDACT_BOX}`);
+      const box = query(container, '[data-redact-box-id]');
       const peekButton = query(container, '[data-redact-peek]');
       expect(peekButton.getAttribute('aria-pressed')).toBe('false');
       expect(box.hasAttribute('data-peeking')).toBe(false);
@@ -843,7 +843,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.hasAttribute('data-peeking')).toBe(true);
       expect(peekButton.getAttribute('aria-pressed')).toBe('true');
 
-      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
       const revokedBefore = (window.URL.revokeObjectURL as Mock).mock.calls.length;
       canvasEdge.fills = [];
@@ -879,7 +879,7 @@ describe('PdfRedactTool UI flow', () => {
   it('RED-31: holding a box for 250ms peeks it, release covers it, and it never moves', async () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
-    const box = query(container, `.${REDACT_BOX}`);
+    const box = query(container, '[data-redact-box-id]');
     const style = box.getAttribute('style');
     vi.useFakeTimers();
     try {
@@ -899,7 +899,7 @@ describe('PdfRedactTool UI flow', () => {
   it('RED-31: moving 5px before 250ms is a normal move, not a peek', async () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
-    const box = query(container, `.${REDACT_BOX}`);
+    const box = query(container, '[data-redact-box-id]');
     vi.useFakeTimers();
     try {
       act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
@@ -923,7 +923,7 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       const pageBefore = container.querySelector('.redact-draw-area');
-      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
 
       // The export's own pdf.js read is held open, so the export is in flight.
@@ -960,7 +960,7 @@ describe('PdfRedactTool UI flow', () => {
       // Moved or deleted on disk after picking: Chromium rejects the re-read.
       picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
       await drawBox(drawArea, 50, 200, 200, 500);
-      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((button) => button.textContent.includes('Download')), 'Download button');
 
       // A re-read of the File would fail the export; both exports deliver a real two-page PDF instead.
@@ -1051,14 +1051,14 @@ describe('PdfRedactTool UI flow', () => {
       await armTool('Delete');
       // useDeletableObjects loads pdf-lib on demand and parses the real file,
       // so wait for the fixture's one object rather than a fixed 50ms.
-      await settleUntil('the fixture\'s deletable object', () => container.querySelector(`.${redactStyles['delete-candidate']}`) !== null);
+      await settleUntil('the fixture\'s deletable object', () => container.querySelector('[data-delete-id]') !== null);
 
       return drawArea;
     }
 
     it('highlights the one object the fixture contains', async () => {
       await loadRealPdfAndSwitchToDelete();
-      const candidates = container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
+      const candidates = container.querySelectorAll('[data-delete-id]');
       expect(candidates).toHaveLength(1);
     });
 
@@ -1067,25 +1067,25 @@ describe('PdfRedactTool UI flow', () => {
     it('marks an object for deletion on click, and the toolbar Undo brings it back', async () => {
       await loadRealPdfAndSwitchToDelete();
 
-      const candidate = query<HTMLElement>(container, `.${redactStyles['delete-candidate']}`);
+      const candidate = query<HTMLElement>(container, '[data-delete-id]');
       await act(async () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
       // Marking spent the tool's one arming, so the highlights are gone with it:
       // the same one-shot contract every other tool in both editors follows.
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
+      expect(container.querySelectorAll('[data-delete-id]')).toHaveLength(0);
       await armTool('Delete');
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
+      expect(container.querySelectorAll('[data-delete-id]')).toHaveLength(0);
 
       const undo = required(
-        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === 'Undo'),
+        Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')).find((btn) => btn.title === 'Undo'),
         'Undo button',
       );
       await act(async () => {
         undo.click();
       });
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-delete-id]')).toHaveLength(1);
     });
 
     // RED-33: a pointer event by name, since jsdom has no PointerEvent.
@@ -1102,9 +1102,9 @@ describe('PdfRedactTool UI flow', () => {
       // The release's own click is swallowed until the next task.
       await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
     }
-    const candidates = () => container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
+    const candidates = () => container.querySelectorAll('[data-delete-id]');
     const toolbarBtn = (title: string) => required(
-      Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === title),
+      Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')).find((btn) => btn.title === title),
       `${title} button`,
     );
 
@@ -1128,9 +1128,9 @@ describe('PdfRedactTool UI flow', () => {
       // Drag across the row of nine.
       await dragBox(drawArea, [10, 40], [490, 140]);
       expect(candidates()).toHaveLength(0); // deleting spent the arming
-      const chip = required(container.querySelector(`.${redactStyles['undo-chip-btn']}`)?.parentElement, 'undo chip');
+      const chip = required(container.querySelector('[data-testid="undo-chip-btn"]')?.parentElement, 'undo chip');
       expect(chip.textContent).toContain('Deleted 9 pieces of text');
-      const chipUndo = () => required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo');
+      const chipUndo = () => required(container.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo');
 
       // The chip restores all nine together.
       await act(async () => { chipUndo().click(); });
@@ -1169,13 +1169,13 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      expect(container.querySelector(`.${redactStyles['redact-box']}`)).toBeNull();
+      expect(container.querySelector('[data-redact-box-id]')).toBeNull();
     });
 
     it('produces a smaller, still-valid PDF with the marked object actually removed', async () => {
       await loadRealPdfAndSwitchToDelete();
 
-      const candidate = query<HTMLElement>(container, `.${redactStyles['delete-candidate']}`);
+      const candidate = query<HTMLElement>(container, '[data-delete-id]');
       await act(async () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -1190,7 +1190,7 @@ describe('PdfRedactTool UI flow', () => {
       window.URL.revokeObjectURL = vi.fn();
 
       try {
-        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         await act(async () => {
           downloadButton.click();
@@ -1263,7 +1263,7 @@ describe('PdfRedactTool UI flow', () => {
   }
 
   async function armTool(label: string, { lock = false }: { lock?: boolean } = {}): Promise<HTMLButtonElement> {
-    const button = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+    const button = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
       .find((b) => b.textContent.includes(label)), `${label} tool button`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
@@ -1315,7 +1315,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     expectLatestGestureToCommitOnce();
-    expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+    expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
   });
 
   describe('RED-32 brushes', () => {
@@ -1347,12 +1347,12 @@ describe('PdfRedactTool UI flow', () => {
       await paint(drawArea, points);
 
       expectLatestGestureToCommitOnce();
-      const strokes = container.querySelectorAll(`.${REDACT_BOX}`);
+      const strokes = container.querySelectorAll('[data-redact-box-id]');
       expect(strokes).toHaveLength(1);
       // Still armed for the next stroke, with the brush layer on the page.
       expect(container.querySelector('[data-brush-layer]')).not.toBeNull();
       await paint(drawArea, [[100, 300], [160, 320]]);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
     });
 
     it('Escape disarms the brush', async () => {
@@ -1379,7 +1379,7 @@ describe('PdfRedactTool UI flow', () => {
 
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector(`.${REDACT_BOX}`);
+    const box = container.querySelector('[data-redact-box-id]');
     expect(box).not.toBeNull();
 
     const startLeft = pxToPercent(50, 500);
@@ -1399,7 +1399,7 @@ describe('PdfRedactTool UI flow', () => {
     // Draw a box first so there's something to drag.
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector(`.${REDACT_BOX}`);
+    const box = container.querySelector('[data-redact-box-id]');
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
 
@@ -1437,7 +1437,7 @@ describe('PdfRedactTool UI flow', () => {
     // Default activeStyle is 'blackout'.
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector(`.${REDACT_BOX}`);
+    const box = container.querySelector('[data-redact-box-id]');
     // Select the box so the shared floating toolbar renders.
     await act(async () => {
       box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1472,7 +1472,7 @@ describe('PdfRedactTool UI flow', () => {
 
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector(`.${REDACT_BOX}`);
+    const box = container.querySelector('[data-redact-box-id]');
     const startWidthPercent = parseFloat(box.style.width);
     const startHeightPercent = parseFloat(box.style.height);
 
@@ -1510,7 +1510,7 @@ describe('PdfRedactTool UI flow', () => {
   it('DEBT-31: a resize release records resize_mark once, after the box was placed', async () => {
     const drawArea = await loadFileAndGetDrawArea();
     await drawBox(drawArea, 50, 200, 200, 500);
-    const box = required(container.querySelector(`.${REDACT_BOX}`), 'box');
+    const box = required(container.querySelector('[data-redact-box-id]'), 'box');
     await act(async () => {
       box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
     });
@@ -1560,7 +1560,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Switch to whiteout mode — all redaction box styles now get the
       // 8-direction ElementResizers handles.
-      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
         whiteoutBtn.click();
@@ -1570,7 +1570,7 @@ describe('PdfRedactTool UI flow', () => {
       // wrapper (100,300) -> (250,500) in px. Mirrors the diagnosed repro
       // (left:20, width:30).
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       expect(parseFloat(box.style.left)).toBeCloseTo(20);
       expect(parseFloat(box.style.top)).toBeCloseTo(30);
       expect(parseFloat(box.style.width)).toBeCloseTo(30);
@@ -1664,13 +1664,13 @@ describe('PdfRedactTool UI flow', () => {
     // assertions.
     it('whiteout shows the shared floating toolbar, with a delete control, only once selected', async () => {
       const drawArea = await loadFileAndGetDrawArea();
-      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
         whiteoutBtn.click();
       });
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
 
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
@@ -1689,7 +1689,7 @@ describe('PdfRedactTool UI flow', () => {
     it('a click anywhere outside the selected box drops the selection, a click on the box keeps it', async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       const select = async () => {
         await act(async () => {
           box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1725,7 +1725,7 @@ describe('PdfRedactTool UI flow', () => {
       // Default activeStyle is 'blackout'.
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const box = container.querySelector(`.${REDACT_BOX}`);
+      const box = container.querySelector('[data-redact-box-id]');
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
@@ -1749,7 +1749,7 @@ describe('PdfRedactTool UI flow', () => {
     it('blur shows the shared floating toolbar, with a delete control, only once selected', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
-      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
       await act(async () => {
         blurBtn.click();
@@ -1757,7 +1757,7 @@ describe('PdfRedactTool UI flow', () => {
 
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const box = container.querySelector(`.${REDACT_BOX}`);
+      const box = container.querySelector('[data-redact-box-id]');
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
@@ -1780,7 +1780,7 @@ describe('PdfRedactTool UI flow', () => {
     it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength and redo reapplies it', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
-      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
       await act(async () => {
         blurBtn.click();
@@ -1788,7 +1788,7 @@ describe('PdfRedactTool UI flow', () => {
 
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const box = required(container.querySelector(`.${REDACT_BOX}`), 'blur box');
+      const box = required(container.querySelector('[data-redact-box-id]'), 'blur box');
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1819,12 +1819,12 @@ describe('PdfRedactTool UI flow', () => {
     it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
-      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
       await act(async () => { blurBtn.click(); });
 
       await drawBox(drawArea, 50, 200, 200, 500);
-      const firstBox = required(container.querySelector(`.${REDACT_BOX}`), 'first blur box');
+      const firstBox = required(container.querySelector('[data-redact-box-id]'), 'first blur box');
 
       await act(async () => {
         firstBox.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1835,7 +1835,7 @@ describe('PdfRedactTool UI flow', () => {
 
       await act(async () => { blurBtn.click(); });
       await drawBox(drawArea, 50, 550, 200, 700);
-      const boxes = container.querySelectorAll(`.${REDACT_BOX}`);
+      const boxes = container.querySelectorAll('[data-redact-box-id]');
       const secondBox = boxes[boxes.length - 1] as HTMLElement;
       const secondBlurLayer = required(secondBox.querySelector<HTMLElement>('.redact-surface__blur'), 'second blur layer');
 
@@ -1899,7 +1899,7 @@ describe('PdfRedactTool UI flow', () => {
     async function setupSelectedBox(styleLabel: string | null): Promise<HTMLElement> {
       const drawArea = await loadFileAndGetDrawArea();
       if (styleLabel) {
-        const btn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        const btn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((b) => b.textContent.includes(styleLabel)), `${styleLabel} button`);
         await act(async () => {
           btn.click();
@@ -1907,7 +1907,7 @@ describe('PdfRedactTool UI flow', () => {
       }
       // left=20%, top=30%, width=30%, height=20% on the 500x1000 wrapper.
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       expect(box).not.toBeNull();
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -2020,7 +2020,7 @@ describe('PdfRedactTool UI flow', () => {
   }
 
   function findToolButton(label: string): HTMLButtonElement {
-    return required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+    return required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
       .find((b) => b.textContent.includes(label)), `${label} tool button`);
   }
 
@@ -2123,23 +2123,23 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, unlocked
 
       await drawBox(drawArea, 50, 200, 200, 500);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
 
       // Same gesture, nothing re-armed in between: handlePointerDown bails out
       // immediately because activeStyle is back to null.
       await drawBox(drawArea, 60, 220, 220, 520);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
     });
 
     it('draws a second box once the tool is re-armed', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
       await drawBox(drawArea, 50, 200, 200, 500);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
 
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
     });
 
     // A drag that never actually moved the pointer draws nothing (width/height
@@ -2150,11 +2150,11 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
 
       await drawBox(drawArea, 50, 200, 50, 200); // zero-delta drag, no box
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
       expect(drawArea.style.touchAction).toBe('none'); // still armed
 
       await drawBox(drawArea, 50, 200, 200, 500); // now actually draw
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
     });
   });
 
@@ -2167,13 +2167,13 @@ describe('PdfRedactTool UI flow', () => {
       expect(blackoutBtn.className).toContain(toolbarStyles.locked);
 
       await drawBox(drawArea, 50, 200, 200, 500);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
       // The lock survived the commit - still locked, no re-arm needed for the
       // second box.
       expect(blackoutBtn.className).toContain(toolbarStyles.locked);
 
       await drawBox(drawArea, 60, 220, 220, 520);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
     });
   });
 
@@ -2354,11 +2354,11 @@ describe('PdfRedactTool UI flow', () => {
     it('announces and offers Undo when a single box is deleted, and Undo restores it', async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
 
       // The delete control only exists in the shared floating toolbar once
       // the box is selected.
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
       });
@@ -2371,11 +2371,11 @@ describe('PdfRedactTool UI flow', () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
       expect(announcementRegion().textContent).toContain('Removed the blackout box');
 
       const chip = statusSlot();
-      expect(chip.querySelector(`.${redactStyles['undo-chip']}`)).not.toBeNull();
+      expect(chip.querySelector('[data-testid="undo-chip"]')).not.toBeNull();
       expect(chip.textContent).toContain('Removed the blackout box');
       // The chip did not replace the stack: every tool's hidden reservation is
       // still there under it, holding the row's height, and the shell is told
@@ -2384,12 +2384,12 @@ describe('PdfRedactTool UI flow', () => {
       expect(help.hasAttribute('data-status-active')).toBe(true);
       expect(help.querySelectorAll(`.${toolbarStyles['help-spare']}`).length).toBeGreaterThanOrEqual(4);
 
-      const undoButton = required(chip.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      const undoButton = required(chip.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
 
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
       expect(announcementRegion().textContent).toContain('Undid: Removed the blackout box');
     });
 
@@ -2398,7 +2398,7 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
 
       const clearBtn = required(
         container.querySelector<HTMLButtonElement>('button[title="Clear every box on this page"]'),
@@ -2408,18 +2408,18 @@ describe('PdfRedactTool UI flow', () => {
         clearBtn.click();
       });
 
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
       expect(announcementRegion().textContent).toContain('Cleared 2 boxes on page 1');
 
       const chip = statusSlot();
       expect(chip.textContent).toContain('Cleared 2 boxes on page 1');
 
-      const undoButton = required(chip.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      const undoButton = required(chip.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
 
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
     });
 
     it('a second delete before the first chip clears replaces it rather than stacking', async () => {
@@ -2427,7 +2427,7 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
-      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
       expect(boxes()).toHaveLength(2);
 
       // The shared toolbar only ever renders on the selected box, so each
@@ -2446,7 +2446,7 @@ describe('PdfRedactTool UI flow', () => {
       };
 
       await selectAndDeleteFirstBox();
-      expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-testid="undo-chip"]')).toHaveLength(1);
       expect(boxes()).toHaveLength(1);
 
       // Select and delete the one remaining box before the first chip's
@@ -2455,7 +2455,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Still exactly one chip in the one status slot - the second delete's
       // chip replaced the first's, it did not join it.
-      expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-testid="undo-chip"]')).toHaveLength(1);
       expect(boxes()).toHaveLength(0);
     });
   });
@@ -2493,7 +2493,7 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     async function selectFirstBox(): Promise<HTMLElement> {
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       await selectBox(box);
       return box;
     }
@@ -2550,9 +2550,9 @@ describe('PdfRedactTool UI flow', () => {
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       expect(pageCards).toHaveLength(3);
       pageCards.forEach((card) => {
-        expect(card.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+        expect(card.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
       });
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(3);
 
       const announcementRegion = required(
         container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
@@ -2570,20 +2570,20 @@ describe('PdfRedactTool UI flow', () => {
           repeatButtonAgain.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
       }
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(3);
 
       // One undo removes every copy this action added, leaving only the original.
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
 
       // One redo puts every copy back, one per page again.
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
       });
       pageCards.forEach((card) => {
-        expect(card.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+        expect(card.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
       });
     });
 
@@ -2604,12 +2604,12 @@ describe('PdfRedactTool UI flow', () => {
       await selectFirstBox();
       await repeatSelectedBox();
 
-      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
       const widthBefore = parseFloat(boxes()[0].style.width);
       expect(boxes().every((box) => parseFloat(box.style.width) === widthBefore)).toBe(true);
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      const secondPageBox = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      const secondPageBox = query<HTMLElement>(pageCards[1], '[data-redact-box-id]');
       await selectBox(secondPageBox);
       await resizeBox(secondPageBox, 100, 100);
 
@@ -2645,12 +2645,12 @@ describe('PdfRedactTool UI flow', () => {
       await repeatSelectedBox();
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      const secondPageBox = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      const secondPageBox = query<HTMLElement>(pageCards[1], '[data-redact-box-id]');
       await selectBox(secondPageBox);
       await pickFromBoxMenu('[data-editor-repeat-group-trigger]', '[data-editor-repeat-group-unlink]');
 
-      const firstPageBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
-      const thirdPageBox = query<HTMLElement>(pageCards[2], `.${REDACT_BOX}`);
+      const firstPageBox = query<HTMLElement>(pageCards[0], '[data-redact-box-id]');
+      const thirdPageBox = query<HTMLElement>(pageCards[2], '[data-redact-box-id]');
       const widthBefore = parseFloat(firstPageBox.style.width);
 
       await selectBox(firstPageBox);
@@ -2671,14 +2671,14 @@ describe('PdfRedactTool UI flow', () => {
       await selectFirstBox();
       await repeatSelectedBox();
 
-      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
       expect(boxes()).toHaveLength(3);
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      await selectBox(query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`));
+      await selectBox(query<HTMLElement>(pageCards[1], '[data-redact-box-id]'));
       await pickFromBoxMenu('[data-editor-repeat-group-trigger]', '[data-editor-repeat-group-keep-only]');
 
       expect(boxes()).toHaveLength(1);
-      expect(pageCards[1].querySelector(`.${REDACT_BOX}`)).not.toBeNull();
+      expect(pageCards[1].querySelector('[data-redact-box-id]')).not.toBeNull();
 
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
@@ -2696,7 +2696,7 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 60, 600, 220, 700); // a box only page 1 has
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      const counts = () => pageCards.map((card) => card.querySelectorAll(`.${REDACT_BOX}`).length);
+      const counts = () => pageCards.map((card) => card.querySelectorAll('[data-redact-box-id]').length);
       expect(counts()).toEqual([2, 1, 1]);
 
       const clearTrigger = query<HTMLButtonElement>(pageCards[0], '[data-editor-clear-page-trigger]');
@@ -2736,9 +2736,9 @@ describe('PdfRedactTool UI flow', () => {
 
       await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-this-page]');
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      expect(pageCards.map((card) => card.querySelectorAll(`.${REDACT_BOX}`).length)).toEqual([0, 1, 1]);
+      expect(pageCards.map((card) => card.querySelectorAll('[data-redact-box-id]').length)).toEqual([0, 1, 1]);
 
-      await selectBox(query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`));
+      await selectBox(query<HTMLElement>(pageCards[1], '[data-redact-box-id]'));
       const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-repeat-group-trigger]');
       expect(trigger.textContent).toContain('2');
     });
@@ -2749,10 +2749,10 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(3);
 
       await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-all-pages]');
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
 
       const announcementRegion = required(
         container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
@@ -2763,13 +2763,13 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(3);
     });
 
     it('duplicating a linked box gives a second set on every page; changing the duplicate leaves the original set unchanged', async () => {
       harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
-      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
         whiteoutBtn.click();
@@ -2777,10 +2777,10 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
       await repeatSelectedBox();
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(3);
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      const firstBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
+      const firstBox = query<HTMLElement>(pageCards[0], '[data-redact-box-id]');
       await selectBox(firstBox);
       const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => {
@@ -2788,9 +2788,9 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       pageCards.forEach((card) => {
-        expect(card.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+        expect(card.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
       });
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(6);
+      expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(6);
 
       // duplicateElement selects the duplicate of the box that was pressed
       // (page 0's), so its own toolbar/color trigger is already on screen.
@@ -2810,7 +2810,7 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
-      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
       expect(boxes()).toHaveLength(2);
 
       const secondWidthBefore = parseFloat(boxes()[1].style.width);
@@ -2880,7 +2880,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { choice.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     }
 
-    const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+    const boxes = () => Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'));
 
     it('checks only deleted words automatically, never a Find search (RED-66)', async () => {
       restoreCanvas = installCanvasEdge();
@@ -2890,7 +2890,7 @@ describe('PdfRedactTool UI flow', () => {
         await loadFileAndGetDrawArea();
         await openFindAndSearch('jane doe');
         await clickRedactAll();
-        const download = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        const download = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         await act(async () => { download.click(); });
         // The saved file is checked on its own once it exists; no row is made for the search that found the boxes.
@@ -3002,9 +3002,9 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes()).toHaveLength(3); // the found box's copy landed on page 1
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      const boxesOnPage1 = Array.from(pageCards[0].querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const boxesOnPage1 = Array.from(pageCards[0].querySelectorAll<HTMLElement>('[data-redact-box-id]'));
       const otherFoundBox = required(boxesOnPage1.find((box) => box !== boxes()[0]), 'the other found box on page 1');
-      const copyOnPage2 = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      const copyOnPage2 = query<HTMLElement>(pageCards[1], '[data-redact-box-id]');
       const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
       const before = filterOf(boxes()[0]);
       expect(filterOf(otherFoundBox)).toBe(before);
@@ -3045,8 +3045,8 @@ describe('PdfRedactTool UI flow', () => {
 
       // Both found boxes on page 0 are gone; the repeated copy on page 1 stays.
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      expect(pageCards[0].querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
-      expect(pageCards[1].querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(pageCards[0].querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
+      expect(pageCards[1].querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
       expect(boxes()).toHaveLength(1);
     });
 
@@ -3062,7 +3062,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes()).toHaveLength(3);
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
-      const copyOnPage2 = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      const copyOnPage2 = query<HTMLElement>(pageCards[1], '[data-redact-box-id]');
       await selectBox(copyOnPage2);
       const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-delete-scope-trigger]');
       await act(async () => { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -3077,7 +3077,7 @@ describe('PdfRedactTool UI flow', () => {
   // coordinates) as a stand-in for identity and stacking order - the same
   // proxy the resize-invariant tests above already read box geometry through.
   describe('undo/redo history', () => {
-    const boxLefts = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`))
+    const boxLefts = () => Array.from(container.querySelectorAll<HTMLElement>('[data-redact-box-id]'))
       .map((box) => parseFloat(box.style.left));
 
     async function pressUndoShortcut(): Promise<void> {
@@ -3149,7 +3149,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
 
       const toolbarButton = (title: string) => required(
-        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((b) => b.title === title),
         `${title} button`,
       );
@@ -3180,7 +3180,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Delete box A: a direct actionHistory push (deleteElement, not
       // logAction) that registers the 5s undo chip targeting this exact entry.
-      const boxA = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const boxA = query<HTMLElement>(container, '[data-redact-box-id]');
       await act(async () => {
         boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
       });
@@ -3204,7 +3204,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts()).toHaveLength(0);
 
       // Click the still-live chip: it reverts the delete-box-A entry, restoring A.
-      const undoButton = required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      const undoButton = required(container.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
@@ -3228,7 +3228,7 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
 
-      const boxA = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const boxA = query<HTMLElement>(container, '[data-redact-box-id]');
       await act(async () => {
         boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
       });
@@ -3250,7 +3250,7 @@ describe('PdfRedactTool UI flow', () => {
       const afterB = boxLefts().map((n) => Math.round(n));
       expect(afterB).toHaveLength(1); // B really is on the stack above the chip's entry
 
-      const undoButton = required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      const undoButton = required(container.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
@@ -3317,7 +3317,7 @@ describe('PdfRedactTool UI flow', () => {
       await pressUndoShortcut();
       expect(boxLefts()).toEqual([]);
       const undoControl = required(
-        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === 'Undo'),
+        Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')).find((btn) => btn.title === 'Undo'),
         'toolbar Undo button',
       );
       expect(undoControl.disabled).toBe(true);
@@ -3332,7 +3332,7 @@ describe('PdfRedactTool UI flow', () => {
     it('moving a box is undoable: Undo restores its old position, Redo moves it again', async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%, top ~20%
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       const originalLeft = Math.round(parseFloat(box.style.left));
       const originalTop = Math.round(parseFloat(box.style.top));
 
@@ -3364,13 +3364,13 @@ describe('PdfRedactTool UI flow', () => {
 
     it('changing a whiteout box color is undoable: Undo restores its old color', async () => {
       const drawArea = await loadFileAndGetDrawArea();
-      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
         whiteoutBtn.click();
       });
       await drawBox(drawArea, 50, 200, 200, 500);
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, '[data-redact-box-id]');
       // Fill color lives on the surface child (renderRedactionSurface via
       // createElementRenderers), not on the box's own geometry-only style -
       // same selector the "remembered whiteout color" test above uses.
@@ -3449,9 +3449,9 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
         });
-        expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+        expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
 
-        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         const exportRead = holdNextDocumentRead();
         await act(async () => {
@@ -3466,7 +3466,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
         });
-        expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+        expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
 
         createObjectURL.mockClear();
         await exportRead.runToEnd();
@@ -3505,7 +3505,7 @@ describe('PdfRedactTool UI flow', () => {
         const drawArea = await loadFileAndGetDrawArea();
         await drawBox(drawArea, 50, 200, 200, 500);
 
-        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         const exportRead = holdNextDocumentRead();
         await act(async () => {
@@ -3555,7 +3555,7 @@ describe('PdfRedactTool UI flow', () => {
         });
         await waitUntil(() => expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull());
         expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
-        expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+        expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
 
         // And the export started from the file that is no longer open commits
         // nothing when it finally resolves.
@@ -3585,7 +3585,7 @@ describe('PdfRedactTool UI flow', () => {
         const drawArea = await loadFileAndGetDrawArea();
         await drawBox(drawArea, 50, 200, 200, 500);
 
-        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         const exportRead = holdNextDocumentRead();
         await act(async () => {
