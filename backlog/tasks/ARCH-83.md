@@ -1,11 +1,9 @@
 ---
 id: "ARCH-83"
 title: "Every CI run reports how far affected-scope narrowed it"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 17
 depends_on: []
 ---
 
@@ -25,8 +23,12 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Acceptance
 
-- [ ] Every CI run shows the narrowing summary; a docs-only run shows zero e2e.
+- [x] Every CI run shows the narrowing summary; a docs-only run shows zero e2e.
 
 ## Progress (2026-10-27)
 
 The scope-summary job writes narrowed and full counts (projects, specs, unit files) and the reason for any widening to the job summary; docs-only shows zero e2e (unit-tested). Open: confirm on the first real CI run after landing.
+
+## Closed
+
+Closed 2026-10-27. Seen on main: run 40537583054 (a code push) wrote the narrowing summary with its counts and widening reasons; run 40544865241 (a backlog-only push) reported verdict docs-only, 0 unit files, and skipped every e2e, build and unit job.
