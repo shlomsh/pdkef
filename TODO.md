@@ -15,7 +15,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Unify the tools, narrow the graph
 
 - [ARCH-82](backlog/tasks/ARCH-82.md) P3 · Behaviour tests find elements by role and label, not CSS Module class names (in progress)
-- [ARCH-89](backlog/tasks/ARCH-89.md) P3 · Repeated CSS blocks and static inline styles move to shared rules (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 - [ARCH-103](backlog/tasks/ARCH-103.md) P2 · No tool island function is over 300 lines (in progress)
 - [ARCH-105](backlog/tasks/ARCH-105.md) P2 · The size ratchet also records functions over 150 lines and nesting depth (in progress)
