@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { throwIfAborted } from './abort.js';
+import { isAbortError, throwIfAborted } from './abort.js';
 
 describe('throwIfAborted', () => {
   it('does nothing without a signal or while the signal is live', () => {
@@ -22,5 +22,20 @@ describe('throwIfAborted', () => {
 
   it('still throws an AbortError for a bare { aborted } stand-in', () => {
     expect(() => throwIfAborted({ aborted: true })).toThrow(expect.objectContaining({ name: 'AbortError' }));
+  });
+});
+
+describe('isAbortError', () => {
+  it('is true for an AbortError DOMException and for any error named AbortError', () => {
+    expect(isAbortError(new DOMException('x', 'AbortError'))).toBe(true);
+    const err = new Error('x');
+    err.name = 'AbortError';
+    expect(isAbortError(err)).toBe(true);
+  });
+
+  it('is false for other errors, null and undefined', () => {
+    expect(isAbortError(new TypeError('x'))).toBe(false);
+    expect(isAbortError(null)).toBe(false);
+    expect(isAbortError(undefined)).toBe(false);
   });
 });
