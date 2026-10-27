@@ -14,7 +14,7 @@
     "functions": {
       "scripts/seo-refresh.mjs#main": 151,
       "scripts/serve-backlog-board.mjs#client": 260,
-      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 249,
+      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 242,
       "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement": 264,
       "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement.handlePointerDown": 225,
       "src/editor-ui/hooks/useElementResize.js#useElementResize": 263,
