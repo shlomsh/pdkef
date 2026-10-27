@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { useObjectUrls } from './useObjectUrls.js';
+import { isAbortError } from './abort.js';
 import { createQuietPreparer, type QuietPolicy } from './quietPrepare.ts';
 
 /* Guideline §2, "Quiet means quiet": the output blob is built in the
@@ -111,7 +112,7 @@ export function usePreparedOutput<M = unknown>(input: PreparedOutputInput<M>): P
         // expected: a superseded build is aborted on purpose and is not a failure. A supersede that did not
         // change the key (a tool bumped its own token) would leave the key pending for good, so the current
         // key is armed again, once per key change: a build that always aborts must not spin.
-        if ((error as DOMException)?.name === 'AbortError') {
+        if (isAbortError(error)) {
           if (rearmedKeyRef.current !== errorKey) {
             rearmedKeyRef.current = errorKey;
             preparerRef.current?.change(errorKey, autoBuildRef.current);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { Camera, Check, Crop, Expand, FileSignature, ImagePlus, Maximize, Merge, Minimize2, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
-import { throwIfAborted } from '../../lib/abort.js';
+import { isAbortError, throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -237,7 +237,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       }, (err) => {
         work.watching.delete(key);
         // expected: work superseded before its turn is skipped on purpose, not a failure
-        if (err?.name === 'AbortError') return;
+        if (isAbortError(err)) return;
         reportError('pdf_tool_run', err, 'scan_process_page');
         dispatch({ type: 'pageFailed', id: page.id });
       });
@@ -276,7 +276,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
       // Through the queue like every decode: a phone holds one photo's worth of pixels at a time.
       const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
-      throwIfAborted(unmountedRef.current ? { aborted: true } : signal);
+      throwIfAborted(unmountedRef.current ? AbortSignal.abort() : signal);
       const builtAs = builtKey as string;
       if (fit.metTarget) work.missedKeys.delete(builtAs);
       else work.missedKeys.add(builtAs);

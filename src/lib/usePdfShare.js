@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { isAbortError } from './abort.js';
 
 function canShareFiles(files) {
   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
@@ -81,7 +82,7 @@ export function usePdfShare() {
       return { status: 'shared' };
     } catch (error) {
       // expected: the error is returned to the caller in the result, not discarded
-      return { status: error?.name === 'AbortError' ? 'canceled' : 'error', error };
+      return { status: isAbortError(error) ? 'canceled' : 'error', error };
     } finally {
       sharingRef.current = false;
     }

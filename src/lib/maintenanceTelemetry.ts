@@ -10,6 +10,7 @@
  */
 
 import { sendBeacon } from './errorReport';
+import { isAbortError } from './abort.js';
 import {
   parseMaintenanceEvent,
 } from './maintenanceEventSchema';
@@ -50,7 +51,7 @@ function bucketDuration(durationMs: number): ExportDurationBucket {
 export function classifyExportError(error: unknown): ExportErrorCode {
   if (error instanceof Error) {
     if (error.name === 'UnrepresentableTextError') return 'unsupported_text';
-    if (error.name === 'AbortError') return 'cancelled';
+    if (isAbortError(error)) return 'cancelled';
     if (error.name === 'InvalidPDFException' || error.name === 'InvalidPdfError') return 'invalid_document';
   }
   return 'processing_failed';
