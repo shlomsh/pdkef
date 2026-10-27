@@ -33,10 +33,11 @@ describe('module boundaries: classify()', () => {
     expect(classify('src/tools/sign/components/DraggableWrapper.tsx')).toBe('tool:sign');
   });
 
-  it('splits flat src/components/ into site (.astro) and components (everything else)', () => {
+  it('classifies everything under src/components/ as site (ARCH-48)', () => {
     expect(classify('src/components/ToolHero.astro')).toBe('site');
-    expect(classify('src/components/HeroDemo/ScrollDriver.tsx')).toBe('components');
-    expect(classify('src/components/compareFigure.css')).toBe('components');
+    expect(classify('src/components/inlineStyles.ts')).toBe('site');
+    expect(classify('src/components/HeroDemo/ScrollDriver.tsx')).toBe('site');
+    expect(classify('src/components/compareFigure.css')).toBe('site');
   });
 
   it('leaves paths outside the target layout unclassified', () => {
@@ -57,12 +58,12 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
 
   it('may not import the site surface', () => {
     expect(check('src/tools/merge/lib/mergePlan.ts', 'src/pages/tools/merge.astro'))
-      .toBe('a tool may import site-i18n and site-data but not site (pages/layouts/content/styles) or the flat components module');
+      .toBe('a tool may import site-i18n and site-data but not site (pages/layouts/content/styles/components)');
   });
 
   it('may not import the flat components module', () => {
     expect(check('src/tools/merge/lib/mergePlan.ts', 'src/components/HeroDemo/ScrollDriver.tsx'))
-      .toBe('a tool may import site-i18n and site-data but not site (pages/layouts/content/styles) or the flat components module');
+      .toBe('a tool may import site-i18n and site-data but not site (pages/layouts/content/styles/components)');
   });
 
   it.each([
@@ -107,9 +108,9 @@ describe('module boundaries: ruleViolation() - rule 2, core modules', () => {
   it.each([
     ['src/shell/BasePdfTool.tsx', 'shell'],
     ['src/editor/model/element.ts', 'editor'],
-  ])('%s (%s) may not import the components module', (from, moduleName) => {
+  ])('%s (%s) may not import src/components/ (site)', (from, moduleName) => {
     expect(check(from, 'src/components/HeroDemo/ScrollDriver.tsx'))
-      .toBe(`${moduleName} may not import the components module`);
+      .toBe(`${moduleName} may import site-i18n and site-data but not site (pages/layouts/content/styles)`);
   });
 
   it.each([
@@ -173,10 +174,11 @@ describe('module boundaries: ruleViolation() - rule 4, site reaches a tool only 
   });
 });
 
-describe('module boundaries: ruleViolation() - rule 5, components', () => {
-  it('may not import a tool', () => {
-    expect(check('src/components/HeroDemo/ScrollDriver.tsx', 'src/tools/merge/PdfMergeTool.tsx'))
-      .toBe('the components module may not import a tool');
+describe('module boundaries: ruleViolation() - rule 5 retired, src/components/ is site (ARCH-48)', () => {
+  it('may reach a tool only through its island entry point (rule 4)', () => {
+    expect(check('src/components/HeroDemo/ScrollDriver.tsx', 'src/tools/merge/PdfMergeTool.tsx')).toBeNull();
+    expect(check('src/components/HeroDemo/ScrollDriver.tsx', 'src/tools/merge/lib/mergePlan.ts'))
+      .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
   it('may import a core module', () => {
@@ -387,14 +389,11 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
       .toEqual(new Set(['site', 'tool:merge']));
   });
 
-  it('a dead end (components, test-support, unclassified) is not counted and not walked past', () => {
+  it('a dead end (test-support, unclassified) is not counted and not walked past', () => {
     const graph = reverseGraph([
-      ['src/lib/onlyComponents.js', 'src/components/HeroDemo/ScrollDriver.tsx'],
-      ['src/components/HeroDemo/ScrollDriver.tsx', 'src/tools/merge/PdfMergeTool.tsx'], // would count if walked past
       ['src/lib/onlyTest.js', 'src/test/setup.js'],
       ['src/test/setup.js', 'src/tools/sign/PdfSignTool.tsx'], // would count if walked past
     ]);
-    expect(commonLayerConsumers('src/lib/onlyComponents.js', graph)).toEqual(new Set());
     expect(commonLayerConsumers('src/lib/onlyTest.js', graph)).toEqual(new Set());
   });
 });
