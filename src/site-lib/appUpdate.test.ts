@@ -93,7 +93,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?:
     line, reg, sw, doc, win, reload,
     dismiss: line.querySelector('[data-app-update-dismiss]') as HTMLButtonElement,
     advanceClock: (ms: number) => { clock += ms; },
-    start: (extra: { ready?: Promise<void>; page?: string } = {}) => startAppUpdates({
+    start: (extra: { ready?: Promise<void> } = {}) => startAppUpdates({
       serviceWorker: sw,
       line,
       createChannel: () => new FakeChannel(bus),
@@ -456,87 +456,6 @@ describe('registration', () => {
     await expect(tab.start()).resolves.toBeUndefined();
     expect(tab.line.hidden).toBe(true);
     expect(tab.win.count('online')).toBe(0);
-  });
-});
-
-describe('page pack provisioning (MEM-15)', () => {
-  const PROVISION = 'pdkef:page-pack-provision';
-  function activeWorker(reply: unknown = { ok: true, ready: { '/merge/': true } }) {
-    const worker: any = new Emitter();
-    worker.postMessage = vi.fn((message: any, transfer: any[]) => {
-      if (message.type === PROVISION && reply !== 'silent') transfer[0].postMessage(reply);
-    });
-    return worker;
-  }
-  const provisions = (worker: any) => worker.postMessage.mock.calls.filter((c: any[]) => c[0].type === PROVISION);
-
-  it('posts the provision message for the page once, after the worker is ready', async () => {
-    const worker = activeWorker();
-    const tab = makeTab(new Bus());
-    let ready!: (value: unknown) => void;
-    tab.sw.ready = new Promise((resolve) => { ready = resolve; });
-    void tab.start({ page: '/merge/' });
-    await settle();
-    expect(provisions(worker)).toHaveLength(0);
-    ready({ active: worker });
-    await settle();
-    expect(provisions(worker).map((c: any[]) => c[0])).toEqual([{ type: PROVISION, page: '/merge/' }]);
-    tab.doc.emit('visibilitychange');
-    tab.win.emit('online');
-    await settle();
-    expect(provisions(worker)).toHaveLength(1);
-  });
-
-  it('waits for registration readiness before registering, then provisions', async () => {
-    const worker = activeWorker();
-    const tab = makeTab(new Bus());
-    tab.sw.ready = Promise.resolve({ active: worker });
-    let release!: () => void;
-    void tab.start({ page: '/merge/', ready: new Promise<void>((r) => { release = r; }) });
-    await settle();
-    expect(tab.sw.register).not.toHaveBeenCalled();
-    expect(provisions(worker)).toHaveLength(0);
-    release();
-    await settle();
-    expect(provisions(worker)).toHaveLength(1);
-  });
-
-  it('defaults the page to the location pathname', async () => {
-    const worker = activeWorker();
-    const tab = makeTab(new Bus());
-    tab.sw.ready = Promise.resolve({ active: worker });
-    await tab.start();
-    await settle();
-    expect(provisions(worker)[0][0].page).toBe(window.location.pathname);
-  });
-
-  it('swallows a rejected ready, a throwing worker and a worker that never answers', async () => {
-    const rejected = makeTab(new Bus());
-    rejected.sw.ready = Promise.reject(new Error('no worker'));
-    await expect(rejected.start({ page: '/merge/' })).resolves.toBeUndefined();
-
-    const throwing = activeWorker();
-    throwing.postMessage = vi.fn(() => { throw new Error('gone'); });
-    const thrown = makeTab(new Bus());
-    thrown.sw.ready = Promise.resolve({ active: throwing });
-    await expect(thrown.start({ page: '/merge/' })).resolves.toBeUndefined();
-
-    const silent = activeWorker('silent');
-    const quiet = makeTab(new Bus());
-    quiet.sw.ready = Promise.resolve({ active: silent });
-    await expect(quiet.start({ page: '/merge/' })).resolves.toBeUndefined();
-    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
-    expect(provisions(silent)).toHaveLength(1);
-  });
-
-  it('a failed provision reply changes nothing for the page', async () => {
-    const worker = activeWorker({ ok: false, error: 'Unknown page.' });
-    const tab = makeTab(new Bus());
-    tab.sw.ready = Promise.resolve({ active: worker });
-    await expect(tab.start({ page: '/nope/' })).resolves.toBeUndefined();
-    await settle();
-    expect(tab.line.hidden).toBe(true);
-    expect(provisions(worker)).toHaveLength(1);
   });
 });
 
