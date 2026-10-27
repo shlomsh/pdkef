@@ -151,7 +151,7 @@
       "src/data/tools.js": 1015,
       "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 882,
-      "src/tools/sign/components/SignToolbar.tsx": 833,
+      "src/tools/sign/components/SignToolbar.tsx": 826,
       "src/tools/sign/lib/fields/formCells.js": 1061
     },
     "fileThreshold": 800
