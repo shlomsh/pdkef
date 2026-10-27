@@ -3,10 +3,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
-import * as pipeline from './scanPipeline.ts';
+import * as pipeline from './lib/scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { rotateQuad, turnedQuad } from './quad.ts';
-import { playFlatten } from './flattenAnimation.ts';
+import { rotateQuad, turnedQuad } from './lib/quad.ts';
+import { playFlatten } from './lib/flattenAnimation.ts';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -18,12 +18,12 @@ vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   takeHandoff: vi.fn(() => Promise.resolve(null)),
 }));
 
-vi.mock('./flattenAnimation.ts', async (importOriginal) => ({
+vi.mock('./lib/flattenAnimation.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   playFlatten: vi.fn(() => () => {}),
 }));
 
-vi.mock('./scanPipeline.ts', () => ({
+vi.mock('./lib/scanPipeline.ts', () => ({
   guessPage: vi.fn(),
   inspectPhoto: vi.fn(),
   processPage: vi.fn(),
