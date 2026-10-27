@@ -1,4 +1,4 @@
-import { render } from 'preact';
+import { render, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import RecentFiles, { retentionNotice } from './RecentFiles.tsx';
@@ -17,7 +17,7 @@ describe('RecentFiles', () => {
     }
   });
 
-  function mount(files, props = {}) {
+  function mount(files: ComponentProps<typeof RecentFiles>["files"], props: Record<string, unknown> = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {

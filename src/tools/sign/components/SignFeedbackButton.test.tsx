@@ -27,7 +27,7 @@ describe('SignFeedbackButton', () => {
     expect(link.getAttribute('title')).toBe('Report a bug or share feedback about Sign & Fill PDF (opens GitHub)');
     expect(link.textContent).toBe('Feedback');
 
-    const url = new URL(link.href);
+    const url = new URL((link as HTMLAnchorElement).href);
     expect(url.origin + url.pathname).toBe('https://github.com/shlomsh/pdkef/issues/new');
     expect(url.searchParams.get('title')).toBe('[Sign & Fill PDF] Bug report or feedback');
     const body = url.searchParams.get('body');

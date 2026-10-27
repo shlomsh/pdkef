@@ -14,7 +14,7 @@ describe('OptionRow', () => {
   let host: HTMLElement | null = null;
   afterEach(() => { act(() => render(null, host!)); host!.remove(); });
 
-  const mount = (props = {}) => {
+  const mount = (props: Record<string, unknown> & { onChange?: (next: string) => void } = {}) => {
     host = document.createElement('div');
     document.body.appendChild(host);
     const onChange = props.onChange ?? vi.fn();
@@ -22,7 +22,7 @@ describe('OptionRow', () => {
     return onChange;
   };
   const radios = () => Array.from(host!.querySelectorAll('[role="radio"]'));
-  const press = (key, index = 0) => act(() => radios()[index].dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })));
+  const press = (key: string, index = 0) => { act(() => { radios()[index].dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); }); };
 
   it('is a radiogroup named by the caller with the choices, one tab stop', () => {
     mount({ showLabel: false });
@@ -87,6 +87,6 @@ describe('OptionRow', () => {
 
   it('marks the compact form for the phone bar', () => {
     mount({ compact: true });
-    expect(host!.firstElementChild.hasAttribute('data-compact')).toBe(true);
+    expect(host!.firstElementChild!.hasAttribute('data-compact')).toBe(true);
   });
 });

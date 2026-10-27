@@ -13,7 +13,7 @@ describe('shared PagePreviewDialog', () => {
   let container: HTMLElement | null = null;
   afterEach(() => { act(() => render(null, container!)); container!.remove(); });
 
-  function mount(props) {
+  function mount(props: Record<string, unknown> = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(<PagePreviewDialog target={target} onClose={() => {}} onStep={() => {}} messages={messages} {...props} />, container!));
