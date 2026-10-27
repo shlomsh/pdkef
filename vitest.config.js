@@ -51,6 +51,17 @@ const DOM_TESTS = [
   'src/tools/redact/lib/redact.test.js',
 ];
 
+// ARCH-78: the island tests (a tool's Pdf*Tool*.test.tsx) fake the pdf.js edge once, in the harness
+// (src/test/harness/pdfjsEdges.ts), registered by a setup file that only these projects load, so no
+// other test sees those mocks. Redact fakes `pdfjs-dist` itself and runs the thumbnail module for real;
+// the other tools fake the probe and the thumbnail module. Sign, Scan and Image to PDF keep their own.
+const ISLAND_REDACT = ['src/tools/redact/Pdf*Tool*.test.tsx'];
+const ISLAND_WORKER = ['src/tools/{merge,split,to-image,security,edit-pages}/Pdf*Tool*.test.tsx', 'src/tools/compress/PdfCompressTool.protected.test.tsx'];
+// Compress's main test also fakes its three engines (canvas, createImageBitmap and image codecs jsdom lacks);
+// its protected-PDF test runs them for real.
+const ISLAND_COMPRESS = ['src/tools/compress/PdfCompressTool.test.tsx'];
+const ISLAND_TESTS = [...ISLAND_REDACT, ...ISLAND_WORKER, ...ISLAND_COMPRESS];
+
 export default defineConfig({
   plugins: [preact()],
   resolve: {
@@ -78,7 +89,37 @@ export default defineConfig({
           name: 'dom',
           environment: 'jsdom',
           include: DOM_TESTS,
+          exclude: [...NEVER, ...ISLAND_TESTS],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'island',
+          environment: 'jsdom',
+          include: ISLAND_WORKER,
           exclude: NEVER,
+          setupFiles: ['./src/test/harness/setup/workerEdges.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'island-compress',
+          environment: 'jsdom',
+          include: ISLAND_COMPRESS,
+          exclude: NEVER,
+          setupFiles: ['./src/test/harness/setup/workerEdges.ts', './src/test/harness/setup/compressEngines.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'island-redact',
+          environment: 'jsdom',
+          include: ISLAND_REDACT,
+          exclude: NEVER,
+          setupFiles: ['./src/test/harness/setup/pdfjsDistEdge.ts'],
         },
       },
       {

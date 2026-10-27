@@ -12,35 +12,14 @@ import { until } from '../../test/support/until.js';
 import { recentActions } from '../../lib/actionTrail.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+// The same object as harness.pdfjs.source: the conversion fake below sits outside any test and reads the page count.
+import { pdfjsEdges } from '../../test/harness/pdfjsEdges.ts';
 import { parsePageSelector } from '../../lib/pageSelector.js';
 import { hebrewToImageMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
-// (analytics, error reports, draftStore, action trail) runs for real over the harness.
-const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
-
-// EDGE: pdf.js cannot render in jsdom. The page count and the grid's thumbnails come through this source.
-const { mockState, openMock, sourceState } = vi.hoisted(() => ({
-  mockState: { numPages: 5 },
-  openMock: { fail: false },
-  sourceState: { destroyed: 0, opened: 0 },
-}));
-vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => {
-    sourceState.opened += 1;
-    if (openMock.fail) throw new Error('bad pdf');
-    return {
-      file,
-      pageCount: mockState.numPages,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-      destroy: vi.fn(async () => { sourceState.destroyed += 1; }),
-    };
-  }),
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-}));
+// The pdf.js edge (the encryption probe, the thumbnail source with its page count) is the harness's:
+// harness.pdfjs. Everything else (analytics, error reports, draftStore, action trail) runs for real over it.
 
 // EDGE: the conversion renders every page through pdf.js onto a canvas, neither of which jsdom has.
 // Counts every conversion and lets a test swap in a slow or failing one. The default makes one fake
@@ -59,7 +38,7 @@ vi.mock('./lib/toImage.js', async (importOriginal) => ({
 }));
 
 async function defaultConvert(file: File, opts: any) {
-  const numbers = parsePageSelector(opts.pages, mockState.numPages);
+  const numbers = parsePageSelector(opts.pages, pdfjsEdges.source.pageCount);
   const ext = opts.format === 'image/jpeg' ? 'jpg' : 'png';
   const bytes = 'x'.repeat(1000 * opts.scale);
   if (opts.layout === 'concatenated' && numbers.length > 1) {
@@ -84,14 +63,9 @@ describe('PdfToImageTool', () => {
 
   beforeEach(() => {
     harness = installToolHarness();
-    probeMock.mockReset();
-    probeMock.mockResolvedValue('open');
     convertCalls.n = 0;
     convertOverride.fn = null;
-    openMock.fail = false;
-    sourceState.destroyed = 0;
-    sourceState.opened = 0;
-    mockState.numPages = 5;
+    harness.pdfjs.source.pageCount = 5;
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
       Blob.prototype.arrayBuffer = function arrayBuffer() {
@@ -136,7 +110,7 @@ describe('PdfToImageTool', () => {
   };
   // Mounts, picks a file and waits for the quiet build.
   async function open(pages = 5, props = {}) {
-    mockState.numPages = pages;
+    harness.pdfjs.source.pageCount = pages;
     mount(props);
     await pick(makePdfFile());
     // A slow quiet policy and a long document do not build on their own; otherwise wait for the result or the failure.
@@ -188,7 +162,7 @@ describe('PdfToImageTool', () => {
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
     expect(convertCalls.last.pages).toBe('1-5');
     // The tool's own document is let go; the grid keeps the one it read the page sizes from until it unmounts.
-    expect(sourceState.opened - sourceState.destroyed).toBe(1);
+    expect(harness.pdfjs.source.opened - harness.pdfjs.source.destroyed).toBe(1);
     expect(button('Convert')).toBeUndefined();
   });
 
@@ -356,7 +330,7 @@ describe('PdfToImageTool', () => {
 
   describe('saving one page', () => {
     it('appears on each included page only once the images are built, and is not there for a skipped page', async () => {
-      mockState.numPages = 3;
+      harness.pdfjs.source.pageCount = 3;
       mount({ quietPolicy: SLOW_QUIET });
       await pick(makePdfFile());
       expect(saveLinks()).toHaveLength(0);
@@ -502,7 +476,7 @@ describe('PdfToImageTool', () => {
 
   it('a document that cannot be read says so, still offers Replace file, and counts as a failed operation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    openMock.fail = true;
+    harness.pdfjs.source.failOpen = true;
     mount();
     await pick(makePdfFile());
     await until(() => container.textContent.includes('The file may be damaged. Try another PDF.'));
@@ -514,14 +488,14 @@ describe('PdfToImageTool', () => {
   });
 
   it('a password-locked PDF shows NeedsUnlock, never opens in pdf.js or builds, and is not a failed operation', async () => {
-    probeMock.mockResolvedValue('needs-password');
+    harness.pdfjs.probeAs('needs-password');
     mount();
     await pick(makePdfFile('locked.pdf'));
     await until(() => button('Unlock it'));
     expect(container.textContent).toContain('This PDF has a password');
     expect(container.textContent).toContain('then you can turn it into images');
     expect(button('Unlock it')).toBeDefined();
-    expect(sourceState.opened).toBe(0);
+    expect(harness.pdfjs.source.opened).toBe(0);
     expect(convertCalls.n).toBe(0);
     expect(downloadElement()).toBeNull();
     await harness.flush();
@@ -530,7 +504,7 @@ describe('PdfToImageTool', () => {
   });
 
   it('an owner-restricted PDF still renders and converts as it is', async () => {
-    probeMock.mockResolvedValue('owner-restricted');
+    harness.pdfjs.probeAs('owner-restricted');
     await open(2);
     expect(container.textContent).not.toContain('This PDF is protected');
     expect(cells()).toHaveLength(2);
@@ -595,7 +569,7 @@ describe('PdfToImageTool', () => {
     });
 
     it('shows the Hebrew protected-file copy', async () => {
-      probeMock.mockResolvedValue('needs-password');
+      harness.pdfjs.probeAs('needs-password');
       mount(hebrew);
       await pick(makePdfFile('locked.pdf'));
       await until(() => container.textContent.includes(hebrewToImageMessages.protectedUnlockIt));

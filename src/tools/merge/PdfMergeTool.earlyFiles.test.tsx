@@ -9,14 +9,6 @@ import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
-// EDGE: pdf.js cannot render a thumbnail in jsdom. The merge, the draft store and the rest run for real.
-vi.mock('../../lib/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
-  renderThumbnailWithMeta: vi.fn(),
-  renderPdfThumbnails: vi.fn(() => Promise.resolve(0)),
-  openThumbnailSource: vi.fn(),
-}));
-
 const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 const FIXTURE = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-2.pdf'));
 const pdf = (name) => new File([FIXTURE], name, { type: 'application/pdf' });

@@ -4,7 +4,6 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
 import * as securityLib from './lib/security.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -16,22 +15,16 @@ import path from 'node:path';
 const fixtureBytes = (name: string) => new Uint8Array(readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`)));
 const fixtureFile = (name: string) => new File([fixtureBytes(name)], `${name}.pdf`, { type: 'application/pdf' });
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the probe cannot ask it; a test says what it answers
-// (`probeAs`) and loads a real file of that kind. `realProbe` is the real classifier over pdf.js's Node
+// EDGE: pdf.js cannot run its worker in jsdom, so the probe (the harness's, `harness.pdfjs`) cannot ask it; a
+// test says what it answers (`probeAs`) and loads a real file of that kind. `realProbe` is the real classifier over pdf.js's Node
 // build, for checking output bytes. Every other module (security.js, draftStore, analytics, error
 // reports) runs for real.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
 const realProbe = async (bytes: ArrayBuffer | Uint8Array) => {
   const actual: any = await vi.importActual('../../lib/pdfEncryption.ts');
   return actual.probeEncryption(bytes, () => import('pdfjs-dist/legacy/build/pdf.mjs'));
 };
 
-// EDGE: pdf.js cannot render in jsdom, so the page preview cannot be drawn.
-const { renderPreviewMock } = vi.hoisted(() => ({ renderPreviewMock: vi.fn() }));
-vi.mock('../../lib/thumbnails.js', async (importOriginal) => ({
-  ...(await importOriginal()),
-  renderComparePreview: renderPreviewMock,
-}));
+// The page preview (pdf.js painting) is the harness's too: harness.pdfjs.thumbnails.renderComparePreview.
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 // What each protection answer looks like as a real file, so unlock and protect run for real on it.
@@ -51,7 +44,7 @@ describe('PdfSecurityTool', () => {
   let harness: ToolHarness;
   // What the probe answers, and so which real file `loadFile` picks by default.
   let state: Protection = 'open';
-  const probeAs = (next: Protection) => { state = next; probeEncryption.mockResolvedValue(next); };
+  const probeAs = (next: Protection) => { state = next; harness.pdfjs.probeAs(next); };
   const goodPassword = () => (state === 'needs-password' ? UNLOCK_PASSWORD : 'secret');
   const realFile = (name = 'test.pdf', kind: Protection = state) => new File([BYTES[kind]], name, { type: 'application/pdf' });
   // A real file whose next read (the one unlock or protect makes) can be held or failed.
@@ -71,7 +64,7 @@ describe('PdfSecurityTool', () => {
   beforeEach(() => {
     harness = installToolHarness();
     probeAs('open');
-    renderPreviewMock.mockResolvedValue('data:image/png;base64,AAAA');
+    harness.pdfjs.thumbnails.renderComparePreview.mockResolvedValue('data:image/png;base64,AAAA');
   });
 
   afterEach(() => {
@@ -168,10 +161,7 @@ describe('PdfSecurityTool', () => {
 
   it('ignores a stale read failure after the file was replaced', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    let rejectFirst;
-    probeEncryption
-      .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
-      .mockResolvedValue('open');
+    const firstProbe = harness.pdfjs.holdNextProbe();
     mount();
 
     await loadFile('slow-broken.pdf');
@@ -181,7 +171,7 @@ describe('PdfSecurityTool', () => {
     await act(async () => { confirm.click(); await new Promise((r) => setTimeout(r, 10)); });
 
     await act(async () => {
-      rejectFirst(new Error('probe died'));
+      firstProbe.reject(new Error('probe died'));
       await new Promise((r) => setTimeout(r, 10));
     });
 
@@ -464,7 +454,7 @@ describe('PdfSecurityTool', () => {
 
   describe('Unlock with the real fixtures', () => {
     // The probe classifies the fixture bytes themselves (pdf.js's Node build) instead of answering a fixed state.
-    const useRealProbe = () => probeEncryption.mockImplementation((bytes) => realProbe(bytes));
+    const useRealProbe = () => harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes));
     const type = async (value) => {
       const input = container.querySelector('input[type="password"]');
       await act(async () => {
@@ -775,10 +765,7 @@ describe('PdfSecurityTool', () => {
     }
 
     it('keeps the mode of the file that is actually loaded', async () => {
-      let resolveFirstCheck;
-      probeEncryption
-        .mockImplementationOnce(() => new Promise((resolve) => { resolveFirstCheck = resolve; }))
-        .mockResolvedValue('open');
+      const firstCheck = harness.pdfjs.holdNextProbe();
       mount();
 
       await loadFile('big-encrypted.pdf');
@@ -791,7 +778,7 @@ describe('PdfSecurityTool', () => {
 
       // Only now does the replaced file's check answer, with the other answer.
       await act(async () => {
-        resolveFirstCheck('needs-password');
+        firstCheck.release('needs-password');
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
@@ -875,7 +862,7 @@ describe('PdfSecurityTool', () => {
       expect(container.querySelector('[data-security-preview]')).not.toBeNull();
       expect(tagOf()).toBe('Locked');
       expect(container.querySelector('[data-security-preview] img')).toBeNull();
-      expect(renderPreviewMock).not.toHaveBeenCalled();
+      expect(harness.pdfjs.thumbnails.renderComparePreview).not.toHaveBeenCalled();
     });
 
     it('renders page 1 of the input, tagged Not protected, in protect mode', async () => {
@@ -884,8 +871,8 @@ describe('PdfSecurityTool', () => {
       await loadFile();
       await flush();
       expect(tagOf()).toBe('Not protected');
-      expect(renderPreviewMock).toHaveBeenCalledTimes(1);
-      expect(renderPreviewMock.mock.calls[0][0]).toBeInstanceOf(File);
+      expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(1);
+      expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls[0][0]).toBeInstanceOf(File);
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,AAAA');
     });
 
@@ -896,7 +883,7 @@ describe('PdfSecurityTool', () => {
       await submitWith(goodPassword());
       await flush();
       expect(tagOf()).toBe('Unlocked');
-      const last = renderPreviewMock.mock.calls.at(-1)[0];
+      const last = harness.pdfjs.thumbnails.renderComparePreview.mock.calls.at(-1)[0];
       expect(last).not.toBeInstanceOf(File);
       // What is drawn is the unlocked output, which no longer asks for a password.
       expect(await realProbe(await last.arrayBuffer())).toBe('open');
@@ -915,7 +902,7 @@ describe('PdfSecurityTool', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       probeAs('open');
       const boom = new Error('render failed');
-      renderPreviewMock.mockRejectedValue(boom);
+      harness.pdfjs.thumbnails.renderComparePreview.mockRejectedValue(boom);
       mount();
       await loadFile();
       await flush();
@@ -932,8 +919,8 @@ describe('PdfSecurityTool', () => {
       gate.armed = true;
       gate.skip = 1;
       let resolveNew;
-      renderPreviewMock.mockReset();
-      renderPreviewMock
+      harness.pdfjs.thumbnails.renderComparePreview.mockReset();
+      harness.pdfjs.thumbnails.renderComparePreview
         .mockResolvedValueOnce('data:image/png;base64,OLD')
         .mockReturnValueOnce(new Promise((resolve) => { resolveNew = resolve; }));
       mount();
@@ -942,8 +929,8 @@ describe('PdfSecurityTool', () => {
       await act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
       await act(async () => { gate.release(); });
-      for (let i = 0; i < 10 && renderPreviewMock.mock.calls.length < 2; i += 1) await flush();
-      expect(renderPreviewMock).toHaveBeenCalledTimes(2);
+      for (let i = 0; i < 10 && harness.pdfjs.thumbnails.renderComparePreview.mock.calls.length < 2; i += 1) await flush();
+      expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
       expect(container.querySelector('[data-page-frame]').getAttribute('aria-busy')).toBe('true');
       await act(async () => { resolveNew('data:image/png;base64,NEW'); });
@@ -954,7 +941,7 @@ describe('PdfSecurityTool', () => {
     it('does not report the preview when the tool run already failed for the same file', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       probeAs('owner-restricted');
-      renderPreviewMock.mockImplementation(() => new Promise((_, reject) => setTimeout(() => reject(new Error('render failed')), 5)));
+      harness.pdfjs.thumbnails.renderComparePreview.mockImplementation(() => new Promise((_, reject) => setTimeout(() => reject(new Error('render failed')), 5)));
       mount();
       // The unlock reads damaged bytes and fails; the preview render failing for the same file adds no second report.
       await loadFile('test.pdf', realFile('test.pdf', 'unreadable'));
@@ -979,7 +966,7 @@ describe('PdfSecurityTool', () => {
 
     it('shows the file name while the encryption check is pending', async () => {
       let resolveProbe;
-      probeEncryption.mockReturnValue(new Promise((resolve) => { resolveProbe = resolve; }));
+      harness.pdfjs.probe.mockReturnValue(new Promise((resolve) => { resolveProbe = resolve; }));
       mount();
       await loadFile('slow.pdf');
       expect(stripText()).toContain('slow.pdf');
