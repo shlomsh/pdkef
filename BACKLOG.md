@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 16 up next, 12 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 89 live: 15 up next, 12 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -118,7 +118,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ARCH-100 | P1 | [ARCH-100](backlog/tasks/ARCH-100.md) · Island tests wait for what they assert, not for a fixed sleep | In progress |
 | ARCH-83 | P2 | [ARCH-83](backlog/tasks/ARCH-83.md) · Every CI run reports how far affected-scope narrowed it | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 
@@ -222,7 +221,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 58 done, 4 retired
-- Unify the tools, narrow the graph: 47 done, 0 retired
+- Unify the tools, narrow the graph: 48 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 18 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
