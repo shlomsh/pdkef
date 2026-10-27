@@ -86,6 +86,10 @@ describe('validateRegistry', () => {
     const fp = describeFingerprint('uncaught|NotFoundError|preact.module.D1NPFmCi.js:1:2990|unhandled_rejection|chromium-154', { tool: '/sign/' });
     expect(findEntry(REGISTRY, fp)?.id).toBe('SIGN-40');
   });
+  it('reads the same error reported by the island boundary (island_render) as SIGN-40 too', () => {
+    const fp = describeFingerprint('uncaught|NotFoundError|preact.module.D1NPFmCi.js:1:2990|island_render|chromium-154', { tool: '/sign/' });
+    expect(findEntry(REGISTRY, fp)?.id).toBe('SIGN-40');
+  });
   it('rejects a match with a single key, which would swallow a whole area', () => {
     expect(validateRegistry([{ ...ok, match: { area: 'uncaught' } }]).join()).toMatch(/at least two/i);
   });
