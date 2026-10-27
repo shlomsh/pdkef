@@ -77,8 +77,41 @@ function defaultSavedSignatures(overrides: Partial<SavedSignaturesContextValue> 
   };
 }
 
-function defaultProps(overrides: Partial<ComponentProps<typeof PdfWorkspace>> = {}): ComponentProps<typeof PdfWorkspace> {
-  return {
+// The flat shape the tests were written against; defaultProps maps it onto PdfWorkspace's groups.
+type FlatProps = {
+  status: ComponentProps<typeof PdfWorkspace>['status'];
+  isPseudoFullscreen: boolean;
+  workspaceRef: { current: HTMLDivElement | null };
+  numPages: number;
+  pageSizes: (typeof pageSize)[];
+  formRegions?: ComponentProps<typeof PdfWorkspace>['document']['formRegions'];
+  pdfDocument: ComponentProps<typeof PdfWorkspace>['document']['pdfDocument'];
+  pageWrapperRefs: { current: (HTMLDivElement | null)[] };
+  setTempPlacement: ComponentProps<typeof PdfWorkspace>['signature']['hold'];
+  onUndo: () => void;
+  onRedo: () => void;
+  setDialogOpen: (open: boolean) => void;
+  logAction: ComponentProps<typeof PdfWorkspace>['history']['log'];
+  handleSavePdf: () => void;
+  handleDownloadPdf: () => void;
+  handleSharePdf: () => void;
+  setAnnouncement: (msg: string) => void;
+  toggleFullscreen: () => void;
+  isFullscreen: boolean;
+  placeSignatureAt: ComponentProps<typeof PdfWorkspace>['signature']['placeAt'];
+  canSharePdf?: boolean;
+  shareReady?: boolean;
+  handoffExport?: boolean;
+  handoffBusy?: boolean;
+  handoffFailed?: boolean;
+  onHandoff?: (tool: string) => void;
+  errorDetail?: string | null;
+  fieldNavigation?: ComponentProps<typeof PdfWorkspace>['fieldNavigation'];
+  messages?: ComponentProps<typeof PdfWorkspace>['messages'];
+};
+
+function defaultProps(overrides: Partial<FlatProps> = {}): ComponentProps<typeof PdfWorkspace> {
+  const f: FlatProps = {
     status: 'editing',
     isPseudoFullscreen: false,
     workspaceRef: { current: null },
@@ -100,6 +133,20 @@ function defaultProps(overrides: Partial<ComponentProps<typeof PdfWorkspace>> = 
     placeSignatureAt: vi.fn(),
     ...overrides
   };
+  return {
+    status: f.status,
+    errorDetail: f.errorDetail,
+    fieldNavigation: f.fieldNavigation,
+    messages: f.messages,
+    document: { numPages: f.numPages, pageSizes: f.pageSizes, formRegions: f.formRegions, pdfDocument: f.pdfDocument },
+    refs: { workspace: f.workspaceRef, pageWrappers: f.pageWrapperRefs },
+    fullscreen: { isPseudo: f.isPseudoFullscreen, active: f.isFullscreen, toggle: f.toggleFullscreen },
+    history: { log: f.logAction, undo: f.onUndo, redo: f.onRedo },
+    output: { save: f.handleSavePdf, download: f.handleDownloadPdf, share: f.handleSharePdf, canShare: f.canSharePdf, shareReady: f.shareReady },
+    handoff: { exportReady: f.handoffExport, busy: f.handoffBusy, failed: f.handoffFailed, onHandoff: f.onHandoff },
+    signature: { hold: f.setTempPlacement, showDialog: f.setDialogOpen, placeAt: f.placeSignatureAt },
+    announce: f.setAnnouncement
+  };
 }
 
 // Builds (without mounting) the tree PdfWorkspace now needs: SignToolContext
@@ -111,7 +158,7 @@ function defaultProps(overrides: Partial<ComponentProps<typeof PdfWorkspace>> = 
 interface WorkspaceTreeOptions {
   state: SignToolState;
   dispatch?: (action: SignToolAction) => void;
-  props?: Partial<ComponentProps<typeof PdfWorkspace>>;
+  props?: Partial<FlatProps>;
   savedSignatures?: Partial<SavedSignaturesContextValue>;
 }
 
@@ -137,7 +184,7 @@ function mountWorkspace(args: WorkspaceTreeOptions): HTMLDivElement {
 interface StatefulWorkspaceOptions {
   initialState: SignToolState;
   stateRef: { current: SignToolState };
-  props?: Partial<ComponentProps<typeof PdfWorkspace>>;
+  props?: Partial<FlatProps>;
   savedSignatures?: Partial<SavedSignaturesContextValue>;
   // SIGN-39: the undo/redo test below needs to dispatch 'UNDO' directly
   // (PdfWorkspace's real Undo button only calls the mocked `onUndo` prop),
