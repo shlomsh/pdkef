@@ -35,31 +35,48 @@ import {
   onUpdateHoldChange,
 } from '../lib/appUpdate/updateHolds.ts';
 
-export const CHANNEL_NAME = 'pdkef:app-update';
+const CHANNEL_NAME = 'pdkef:app-update';
+/** @testSeam */
 export const BUSY_QUERY = 'pdkef:busy-query';
-export const CHECK_AFTER_MS = 30 * 60 * 1000;
+const CHECK_AFTER_MS = 30 * 60 * 1000;
+/** @testSeam */
 export const CHECK_EVERY_MS = 60 * 60 * 1000;
+/** @testSeam */
 export const STATUS_TIMEOUT_MS = 2000;
+/** @testSeam */
 export const TAB_CLOSED_RECHECK_MS = 1000;
+/** @testSeam */
 export const LEAVING_RESET_MS = 1000;
+/** @testSeam */
 export const RECHECK_SHOWN_MS = 5000;
-export const REFRESH_EVERY_MS = 60 * 1000;
-/** MEM-13: the most a forced update waits in this tab for an export to finish. */
+const REFRESH_EVERY_MS = 60 * 1000;
+/**
+ * MEM-13: the most a forced update waits in this tab for an export to finish.
+ * @testSeam
+ */
 export const CRITICAL_PAGE_CAP_MS = 60_000;
-/** MEM-13: a force that no controllerchange followed is dropped after this. */
+/**
+ * MEM-13: a force that no controllerchange followed is dropped after this.
+ * @testSeam
+ */
 export const CRITICAL_ABANDON_MS = 90_000;
-/** MEM-13: a tab coming back to the foreground asks for a new build at most this often. */
+/**
+ * MEM-13: a tab coming back to the foreground asks for a new build at most this often.
+ * @testSeam
+ */
 export const VISIBLE_CHECK_MIN_MS = 60 * 1000;
+/** @testSeam */
 export const CRITICAL_UPDATE = 'pdkef:critical-update';
+/** @testSeam */
 export const CRITICAL_CHECK = 'pdkef:critical-check';
 
 /** 'waiting': another tab is working. 'blocked': another tab does not answer. */
-export type LineState = 'waiting' | 'blocked';
+type LineState = 'waiting' | 'blocked';
 
-export type UpdateMessage = { type: 'busy-changed' } | { type: 'tab-closed' };
+type UpdateMessage = { type: 'busy-changed' } | { type: 'tab-closed' };
 
 /** The waiting worker's answer to `pdkef:update-status`, about the other tabs. */
-export interface StatusReply { ready?: boolean; windows?: number; busy?: number; silent?: number }
+interface StatusReply { ready?: boolean; windows?: number; busy?: number; silent?: number }
 
 /** An update, never a first install: a waiting worker beside a controller. */
 export function isUpdateWaiting(reg: { waiting?: unknown } | null | undefined, controller: unknown): boolean {
@@ -70,6 +87,7 @@ export function isUpdateWaiting(reg: { waiting?: unknown } | null | undefined, c
  * The line only for a ready build that another tab holds up. Nothing when the
  * build is not ready (it would cost offline coverage) or nothing holds it: the
  * next navigation in any tab updates every tab silently.
+ * @testSeam
  */
 export function lineStateFor(reply: StatusReply | null): LineState | null {
   if (!reply?.ready) return null;
@@ -78,11 +96,12 @@ export function lineStateFor(reply: StatusReply | null): LineState | null {
   return null;
 }
 
+/** @testSeam */
 export function shouldCheckForUpdate(lastCheck: number, now: number, afterMs = CHECK_AFTER_MS): boolean {
   return now - lastCheck >= afterMs;
 }
 
-export interface CriticalResponseDeps {
+interface CriticalResponseDeps {
   /** Resolves once pending draft saves are written (never rejects past its own timeout). */
   flushDrafts: () => Promise<void>;
   exportInFlight: () => boolean;
@@ -97,6 +116,7 @@ export interface CriticalResponseDeps {
  * The tab's answer to a forced update: flush draft saves, then wait while an
  * export is in flight, at most `capMs`, then say ready. Only an export holds:
  * a file open in a tool without drafts is overridden by design.
+ * @testSeam
  */
 export async function respondToCriticalUpdate(deps: CriticalResponseDeps): Promise<{ ready: true }> {
   await deps.flushDrafts();
@@ -130,7 +150,7 @@ interface PortLike {
   onmessage?: ((event: { data: StatusReply }) => void) | null;
   postMessage?(message: unknown): void;
 }
-export interface WorkerMessageEvent { data?: { type?: string }; ports?: readonly PortLike[] }
+interface WorkerMessageEvent { data?: { type?: string }; ports?: readonly PortLike[] }
 interface ContainerLike {
   controller: unknown;
   register(url: string): Promise<RegistrationLike>;
@@ -145,7 +165,7 @@ interface ChannelLike {
 }
 interface MessageChannelLike { port1: PortLike; port2: unknown }
 
-export interface AppUpdateDeps {
+interface AppUpdateDeps {
   serviceWorker: ContainerLike;
   line: HTMLElement | null;
   createChannel: (name: string) => ChannelLike | null;

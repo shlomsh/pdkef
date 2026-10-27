@@ -19,8 +19,12 @@ export function ratingCommands(event: RatingEvent): Command[] {
   return [['HINCRBY', `rating:${event.properties.tool}`, String(event.properties.stars), 1]];
 }
 
-/** The record of ratings and comments (SEO-48): one JSON list, newest last, trimmed to the latest entries. */
+/**
+ * The record of ratings and comments (SEO-48): one JSON list, newest last, trimmed to the latest entries.
+ * @testSeam
+ */
 export const RATING_ENTRIES_KEY = 'rating:entries';
+/** @testSeam */
 export const RATING_ENTRIES_KEEP = 10000;
 
 /** The country and region Vercel reports for the request; a key is absent unless its value looks right. */

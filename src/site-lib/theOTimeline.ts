@@ -3,6 +3,7 @@
 // holds the shapes, colours and structure; this holds when things happen, and
 // theOTimelineCss() turns it into the percentages of the pin that the keyframes
 // and animation ranges need. A slower wipe or a longer rest is one number here.
+/** @testSeam */
 export const PACE = {
   // The first card's words light as soon as the stage pins.
   settle: 3,
@@ -34,10 +35,10 @@ export const PACE = {
   landed: 128,
 };
 
-export type Pace = typeof PACE;
+type Pace = typeof PACE;
 type Span = readonly [number, number];
 
-export interface TheOTimeline {
+interface TheOTimeline {
   total: number;
   // lit[n - 1]: when card n's words light.
   lit: number[];
@@ -55,6 +56,7 @@ export interface TheOTimeline {
   swap: number;
 }
 
+/** @testSeam */
 export function theOTimeline(pace: Pace = PACE): TheOTimeline {
   const lit = [pace.settle];
   const nextChange = () => lit[lit.length - 1] + pace.rest;

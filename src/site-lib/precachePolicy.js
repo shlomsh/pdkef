@@ -47,6 +47,7 @@ import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../lib/fonts/fontManifest.ts
  * like any other page: each is cached with its own closure.
  */
 const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
+/** @testSeam */
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 
 // The Scan guide's photos (about 750 KB) are shown only on a controlled page and cached then, at runtime.
