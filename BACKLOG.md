@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 16 up next, 12 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 89 live: 16 up next, 11 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -115,17 +115,11 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
+| ARCH-61 | P2 | [ARCH-61](backlog/tasks/ARCH-61.md) · Unused exports and locals are a CI ratchet | In progress |
 | ARCH-78 | P2 | [ARCH-78](backlog/tasks/ARCH-78.md) · Island tests mock only the storage and network edge, through one harness | In progress |
 | ARCH-79 | P2 | [ARCH-79](backlog/tasks/ARCH-79.md) · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet | In progress |
 | ARCH-83 | P2 | [ARCH-83](backlog/tasks/ARCH-83.md) · Every CI run reports how far affected-scope narrowed it | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
-| ARCH-94 | P2 | [ARCH-94](backlog/tasks/ARCH-94.md) · Guidance and source comments cite only paths that exist | In progress |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| ARCH-61 | P2 | [ARCH-61](backlog/tasks/ARCH-61.md) · Unused exports and locals are a CI ratchet |  |
 
 ### Parked
 
@@ -227,7 +221,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 57 done, 4 retired
-- Unify the tools, narrow the graph: 38 done, 0 retired
+- Unify the tools, narrow the graph: 39 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 18 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
