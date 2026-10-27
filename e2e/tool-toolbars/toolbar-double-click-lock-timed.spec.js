@@ -57,6 +57,7 @@ async function timedDoubleClick(page, locator, gapMs) {
   await page.mouse.move(x, y);
   await page.mouse.down({ clickCount: 1 });
   await page.mouse.up({ clickCount: 1 });
+  // Time on purpose: the gap between the two clicks is the thing under test.
   await page.waitForTimeout(gapMs);
   await page.mouse.move(x, y);
   await page.mouse.down({ clickCount: 2 });

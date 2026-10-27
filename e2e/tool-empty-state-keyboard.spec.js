@@ -93,6 +93,7 @@ test('the focus ring shows for keyboard focus only, not after a mouse click', as
   await (await chooser).setFiles([]);
   await page.mouse.move(0, 0);
   // Settle past the transition before asserting absence, or it passes vacuously.
+  // Time on purpose: a CSS transition must have finished, or the absence check passes vacuously.
   await page.waitForTimeout(400);
   expect(await ringOf(page), 'a mouse click leaves no ring').not.toContain(RING);
 });

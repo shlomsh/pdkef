@@ -116,6 +116,7 @@ test('one navigation moves two idle tabs onto the new build, work intact, with n
   await checkForUpdate(tabB);
   await waitForWaitingWorker(tabB);
   // Sign keeps its work in drafts, so neither tab holds: nothing to say.
+  // Time on purpose: a negative check, no update line may appear.
   await tabB.waitForTimeout(1500);
   for (const tab of [tabA, tabB]) await expect(line(tab)).toBeHidden();
 
@@ -186,6 +187,7 @@ test('no update line without a waiting worker', async () => {
   await tab.goto('/merge/');
   await waitControlled(tab);
   await checkForUpdate(tab);
+  // Time on purpose: a negative check, no waiting worker may appear.
   await tab.waitForTimeout(1000);
   expect(await tab.evaluate(async () => (await navigator.serviceWorker.getRegistration()).waiting)).toBeNull();
   await expect(tab.locator('[data-app-update]')).toBeHidden();
@@ -203,6 +205,7 @@ test('a single tab never sees the line and lands on the new build at its next re
   server.setPhase('new');
   await checkForUpdate(tab);
   await waitForWaitingWorker(tab);
+  // Time on purpose: a negative check, no update line may appear.
   await tab.waitForTimeout(1500);
   await expect(line(tab)).toBeHidden();
 
@@ -310,6 +313,7 @@ test('offline, a critical build does nothing and shows nothing until back online
   // A tab's discovery fails quietly offline (the page swallows it); the test's
   // own call rejects, which is the same failure.
   await checkForUpdate(other).catch(() => {});
+  // Time on purpose: a negative check while offline, nothing may happen.
   await other.waitForTimeout(4000);
   expect(seen.size).toBe(0);
   for (const tab of [busy, other]) await expect(line(tab)).toBeHidden();

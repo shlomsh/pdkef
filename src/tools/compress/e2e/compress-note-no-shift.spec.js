@@ -45,6 +45,7 @@ async function load(page, c) {
   await page.locator('[data-empty-state] input[type="file"]').first().setInputFiles({ name: c.name, mimeType: 'application/pdf', buffer: c.buf });
   await expect(page.getByRole('radiogroup')).toBeVisible();
   await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 30_000 });
+  // Time on purpose: the note settles over this window and the layout samples cover it.
   await page.waitForTimeout(600);
 }
 
@@ -77,6 +78,7 @@ test.describe('compress note does not shift the options (DEBT-52)', () => {
       for (const level of ['Smallest', 'Balanced']) {
         await page.getByRole('radio', { name: level }).click();
         await waitForDone(page, level);
+        // Time on purpose: lets the note settle before the options are measured.
         await page.waitForTimeout(300);
         expect(Math.abs((await groupY(page)) - before)).toBeLessThanOrEqual(1);
       }

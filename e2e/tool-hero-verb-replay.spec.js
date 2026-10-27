@@ -67,9 +67,13 @@ test('hovering the sheet rewinds the verb and plays it again without a jump', as
   await page.evaluate(RECORDER);
   const box = await page.locator(SHEET).boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
-  await page.waitForTimeout(300);
+  // The rewind has started (an animation is running) before waiting for it to finish.
+  await page.waitForFunction(() => {
+    const box = document.querySelector('[data-empty-state] i')?.closest('[aria-hidden="true"]');
+    return (box?.getAnimations({ subtree: true }) ?? []).some((a) => a.playState === 'running');
+  });
   await allFinished(page);
-  await page.waitForTimeout(100);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const replay = stats(await page.evaluate(() => (window.__stop = true, window.__samples)));
 
   console.log(`largest step: forward on load ${load.maxStep.toFixed(2)}px, replay ${replay.maxStep.toFixed(2)}px`);

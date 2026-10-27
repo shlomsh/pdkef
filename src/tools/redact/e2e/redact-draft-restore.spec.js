@@ -27,7 +27,6 @@ async function selectRedactStyle(page, name) {
   const tool = page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name, exact: true });
   if ((await tool.getAttribute('aria-pressed')) !== 'true') await tool.click();
   await expect(tool).toHaveAttribute('aria-pressed', 'true');
-  await page.waitForTimeout(50);
 }
 
 async function drawRedaction(page, styleName, startRatio, endRatio) {
@@ -41,7 +40,7 @@ async function drawRedaction(page, styleName, startRatio, endRatio) {
   await page.mouse.down();
   await expect(page.locator('.redact-drawing-preview')).toHaveCount(1);
   await page.mouse.move(box.x + box.width * endRatio.x, box.y + box.height * endRatio.y, { steps: 6 });
-  await page.waitForTimeout(50);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.mouse.up();
   await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
 }
@@ -144,7 +143,7 @@ test('a reopened tab restores blur and whiteout boxes, not only blackout', async
   await page.mouse.move(box.x + box.width * 0.12, box.y + box.height * 0.30);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.34, box.y + box.height * 0.36, { steps: 6 });
-  await page.waitForTimeout(50);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.mouse.up();
   await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
 
