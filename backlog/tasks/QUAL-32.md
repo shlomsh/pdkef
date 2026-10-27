@@ -45,5 +45,12 @@ chromium, webkit and perf Playwright steps of the `e2e` and `e2e-webkit` jobs ru
 e2e is skipped. Unit tests cover the rule, the printed output and the five gates in ci.yml. A dry run on
 084d5cbb (a scripts-only commit) prints `product_e2e=false`.
 
+A fresh review found that the gate exposed a gap the old accidental full run had covered: a diff
+touching only a build-pipeline script (`tooling`, which no e2e project depends on) narrowed to no e2e;
+replaying faffe930 (MEM-22's manifest generator) gave `product_e2e=false`. `buildPipelineFiles` now
+derives, from package.json's `build` script, every step that shapes dist/ (not `--check` steps) and
+everything it imports, and a change to any of them is wide with the reason `build pipeline: <file>`.
+faffe930 now replays as everything; 084d5cbb (a check script only) still skips product e2e.
+
 Closes when a scripts-only push to main shows the e2e steps skipped and a full-run push still runs all
 four shards.

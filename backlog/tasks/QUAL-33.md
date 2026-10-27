@@ -51,4 +51,9 @@ workflow `run:` that touches apt without the script or uses `--with-deps`. The s
 including one that a grandchild dies at the bound, run only on Linux (macOS has no GNU timeout), so CI's
 `units` job is their first run.
 
+After review: the retry gets a longer bound than the first attempt (`120 300`), so a mirror that stays
+slow fails a job only after about seven minutes rather than turning every slow green into a red; root
+npx runs with `HOME=/root` so it never leaves root-owned files in the runner user's `~/.npm`; the
+workflow test requires each apt `run:` to start with the bounded call and two integers.
+
 Closes once 20 main runs show no job spending more than 120 s installing system packages.
