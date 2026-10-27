@@ -6,7 +6,7 @@
 }
 
 .button {
-  position: relative;
+  composes: hit-target from './hitTarget.module.css';
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -20,16 +20,6 @@
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   cursor: pointer;
-}
-
-.button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 44px;
-  transform: translateY(-50%);
 }
 
 .button:hover:not(:disabled) {
