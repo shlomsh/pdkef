@@ -1,68 +1,31 @@
-import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
-import { Eraser, FileSignature, ImagePlus, Shrink, Trash2 } from 'lucide-preact';
-import { isAbortError, throwIfAborted } from '../../lib/abort.js';
-import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
-import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
-import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
+import { useReducer, useState } from 'preact/hooks';
+import { PHOTO_ACCEPT as ACCEPT, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
-import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { reportError } from '../../lib/errorReport.ts';
-import { reportEdit } from '../../lib/productAnalytics.ts';
+import { reorderEntries } from '../../lib/pageOrder.js';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { formatFileSize } from '../../lib/format.js';
-import { formatMessage } from '../../lib/formatMessage';
-import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
-import DownloadElement from '../../shell/DownloadElement.tsx';
-import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
-import OutputName from '../../shell/OutputName.tsx';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
-import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
-import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import OptionRow from '../../shell/pageWorkspace/OptionRow.tsx';
-import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
-import { useMediaQuery } from './hooks/useMediaQuery.ts';
 import { englishShellMessages } from '../../shell/shellMessages';
-import ScanCornersView from './components/ScanCornersView.tsx';
-import ScanEditorHead from './components/ScanEditorHead.tsx';
-import ScanPageStrip from './components/ScanPageStrip.tsx';
-import ScanResultView from './components/ScanResultView.tsx';
-import { useKeepSelectedInView } from './hooks/useKeepSelectedInView.ts';
-import { useScanFullScreen } from './hooks/useScanFullScreen.ts';
-import { limitOptions as scanLimitOptions, lookOptions as scanLookOptions, sizeOptions as scanSizeOptions } from './lib/scanOptions.ts';
+import ScanSkippedNotice from './components/ScanSkippedNotice.tsx';
+import ScanWorkspace from './components/ScanWorkspace.tsx';
 import TakePhotoButton from './components/TakePhotoButton.tsx';
-import { placeImage } from '../../lib/imagePage.js';
-import { playFlatten, type FlattenFrom } from './lib/flattenAnimation.ts';
-import ScanVerb from './verb/ScanVerb.tsx';
-import { FULL_QUAD, quadKey, rotateQuad, type Quad } from './lib/quad.ts';
-import { SIZE_LIMITS, type SizeLimitId } from './lib/scanBudget.ts';
-import type { ScanFilter } from './lib/filters.ts';
-import type { BuiltPage, PageSize, ProcessedPage } from './lib/scanPipeline.ts';
+import { useScanBoard } from './hooks/useScanBoard.ts';
+import { useScanExport } from './hooks/useScanExport.ts';
+import { useScanPages } from './hooks/useScanPages.ts';
+import { useScanRefs } from './hooks/useScanRefs.ts';
+import { useScanRating } from './hooks/useScanRating.tsx';
+import { useScanSettings } from './hooks/useScanSettings.ts';
+import { useScanStage } from './hooks/useScanStage.ts';
+import { useScanView } from './hooks/useScanView.ts';
+import { resultKey } from './lib/scanPages.ts';
 import { initialScanState, reduceScan } from './state/scanState.ts';
-import { ScanWork, type PageResult, type ScanPage } from './state/scanWork.ts';
+import { createEditActions, createPageActions } from './state/scanActions.ts';
+import type { ScanPage } from './state/scanWork.ts';
 import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
-
-const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'redact', 'compress'];
-
-/** Fit pages print at 200 dpi (scanPipeline.ts); the same rule places a page before the build lands. */
-const FIT_POINTS_PER_PIXEL = 72 / 200;
-
-let nextId = 0;
-const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.filter}|${page.turns}`;
-/** The corners the warp gets: the photo's own, one place on per quarter turn (quad.ts). */
-const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
-
-type Pipeline = typeof import('./lib/scanPipeline.ts');
-let pipelinePromise: Promise<Pipeline> | null = null;
-// The warp, filter and edge code load once, when the first photo arrives (docs/scan-to-pdf.md).
-const loadPipeline = () => (pipelinePromise ??= import('./lib/scanPipeline.ts'));
+import ScanVerb from './verb/ScanVerb.tsx';
 
 export interface PdfScanToolProps {
   quietPolicy?: QuietPolicy;
@@ -76,204 +39,21 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const { selectedId, finding, findMissed, failedIds, full } = state;
   /** The centre shows the page as it will download; corners are a mode you step into. */
   const view = state.phase;
-  /** A new photo starts with the look last chosen. */
-  const [defaultFilter, setDefaultFilter] = useState<ScanFilter>('document');
-  const [pageSize, setPageSize] = useState<PageSize>('fit');
-  const [limit, setLimit] = useState<SizeLimitId>('none');
-  const [customName, setCustomName] = useState<string | null>(null);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [results, setResults] = useState<Record<number, PageResult>>({});
-  /** Each turned page's preview, turned the same way for the corner editor, by `${id}|${turns}`. */
-  const [turnedPreviews, setTurnedPreviews] = useState<Record<string, string>>({});
-  const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
-  /** Bumped when a build lands, so the per-key maps below are read again. */
-  const [, setBuilt] = useState(0);
-  const [announcement, setAnnouncement] = useState('');
+  const settings = useScanSettings();
+  const board = useScanBoard();
+  const { results, turnedPreviews } = board;
   // The queues, caches and latest-render values async callbacks read (state/scanWork.ts).
-  const workRef = useRef<ScanWork | null>(null);
-  workRef.current ??= new ScanWork();
-  const work = workRef.current;
-  const { enqueue, dropCached, keepShown, forgetShown } = work;
-  const editorRef = useRef<HTMLElement | null>(null);
-  /** The photo and the pages: on desktop they fill the card down to the first screen's foot. */
-  const workbenchRef = useRef<HTMLDivElement | null>(null);
-  const headingRef = useRef<HTMLParagraphElement | null>(null);
-  /** Async work that finishes after the island is gone makes no object URLs and sets no state. */
-  const unmountedRef = useRef(false);
-  const stageHeight = useFloorHeight(workbenchRef, pages.length > 0);
+  const { work, editorRef, workbenchRef, headingRef, unmountedRef } = useScanRefs();
+  const stageHeight = useScanStage(workbenchRef, pages.length > 0);
   work.pages = pages;
-  work.defaultFilter = defaultFilter;
+  work.defaultFilter = settings.defaultFilter;
+  const { rating, wide } = useScanRating();
 
-  useHoldUpdate(pages.length > 0, 'open');
-  const downloaded = useDownloaded();
-  /** One rating ask, in the place that has room for it: two would both try to ask (RatingPrompt). */
-  const wide = useMediaQuery('(min-width: 1024px)');
-  const rating = <RatingPrompt tool="scan-to-pdf" downloaded={downloaded} messages={englishShellMessages} />;
+  const { processed, addFiles } = useScanPages({ pages, setPages, work, unmountedRef, dispatch, ...board });
 
-  const announce = useCallback((text: string) => {
-    setAnnouncement((previous) => (previous === text ? `${text} ` : text));
-  }, []);
-
-  /** True while `key` is what the page on screen and the current look ask for. */
-  const isCurrentKey = (key: string) => {
-    const id = Number(key.slice(0, key.indexOf('|')));
-    const live = work.pages.find((p) => p.id === id);
-    return !!live && resultKey(live) === key;
-  };
-
-  /** The processed page for these corners and this look: cached, so the strip and the build share one run. */
-  const processed = useCallback((page: ScanPage): Promise<ProcessedPage> => {
-    const key = resultKey(page);
-    const cached = work.processing.get(key);
-    if (cached) return cached;
-    const run = enqueue(async () => {
-      // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
-      throwIfAborted({ aborted: !isCurrentKey(key) });
-      return (await loadPipeline()).processPage(page.file, pageQuad(page), page.filter);
-    });
-    work.processing.set(key, run);
-    run.then(() => {
-      if (!isCurrentKey(key)) work.processing.delete(key);
-    }, () => {
-      // expected: a failed run is reported by its caller; dropping it here lets the next try run again
-      work.processing.delete(key);
-    });
-    return run;
-  }, []);
-
-  const addFiles = useCallback((fileList: FileList | File[]) => {
-    const incoming = Array.from(fileList);
-    const accepted = incoming.filter((f) => ACCEPTED_TYPES.includes(f.type));
-    const rejected = incoming.filter((f) => !ACCEPTED_TYPES.includes(f.type));
-    setRejectedFiles(rejected.map((f) => f.name));
-    if (accepted.length === 0) return;
-    const added: ScanPage[] = accepted.map((file) => ({
-      id: nextId++, file, preview: null, aspect: null, filter: work.defaultFilter, reviewed: false,
-      quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null,
-    }));
-    setPages((current) => [...current, ...added]);
-    // A new photo is shown first as itself, corners on top, to approve or adjust (Use these corners).
-    // Also brings the new photo's corners into view, wherever the page was scrolled to pick it.
-    dispatch({ type: 'photosAdded', firstId: added[0].id });
-    announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
-    recordAction('add_files');
-    for (const page of added) {
-      enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
-        .then((seen) => seen, (err) => {
-          reportError('pdf_tool_run', err, 'scan_inspect_photo');
-          return null;
-        })
-        .then((seen) => {
-          if (work.removed.has(page.id) || unmountedRef.current) return;
-          // A photo that could not be decoded: say so (failedIds), never "finding edges" forever.
-          if (!seen) dispatch({ type: 'pageFailed', id: page.id });
-          if (seen) work.previewBlobs.set(page.id, seen.preview);
-          const preview = seen ? URL.createObjectURL(seen.preview) : null;
-          const quad = seen?.quad ?? null;
-          setPages((current) => current.map((p) => (
-            p.id !== page.id ? p : {
-              ...p,
-              guessed: true,
-              found: !!quad,
-              quad: p.edited || !quad ? p.quad : quad,
-              preview,
-              aspect: seen ? seen.width / seen.height : null,
-            }
-          )));
-        });
-    }
-  }, []);
-
-  // Photos handed over from Image to PDF ("Clean it up as a scan") arrive like a pick.
-  useHandoffFilesIntake('scan-to-pdf', (files) => addFiles(files));
-
-  // Every guessed page gets its result for the current corners and look, one at a time.
-  useEffect(() => {
-    for (const page of pages) {
-      // Not yet inspected, or inspected and unreadable (failedIds already says so): nothing to process.
-      if (!page.guessed || page.preview === null) continue;
-      const key = resultKey(page);
-      if (work.results[page.id]?.key === key || work.watching.has(key)) continue;
-      work.watching.add(key);
-      processed(page).then((result) => {
-        work.watching.delete(key);
-        if (unmountedRef.current || !isCurrentKey(key) || work.results[page.id]?.key === key) return;
-        const previous = work.results[page.id];
-        if (previous) {
-          URL.revokeObjectURL(previous.url);
-          URL.revokeObjectURL(previous.thumbUrl);
-        }
-        // Older corners for this page will not come back; let their bytes go.
-        dropCached(page.id, key);
-        work.results = { ...work.results, [page.id]: { key, url: URL.createObjectURL(result.blob), thumbUrl: URL.createObjectURL(result.thumb), page: result } };
-        setResults(work.results);
-        dispatch({ type: 'failureCleared', id: page.id });
-      }, (err) => {
-        work.watching.delete(key);
-        // expected: work superseded before its turn is skipped on purpose, not a failure
-        if (isAbortError(err)) return;
-        reportError('pdf_tool_run', err, 'scan_process_page');
-        dispatch({ type: 'pageFailed', id: page.id });
-      });
-    }
-  }, [pages]);
-
-  // Revoke every live object URL on unmount.
-  work.urls = [
-    ...pages.flatMap((p) => (p.preview ? [p.preview] : [])),
-    ...Object.values(results).flatMap((r) => [r.url, r.thumbUrl]),
-    ...Object.values(turnedPreviews),
-    ...[...work.shown.values()].flatMap((kept) => kept.pages.map((p) => p.url)),
-  ];
-  useEffect(() => {
-    // Set on mount too: a dev server's hot swap runs this cleanup on a live island, then mounts it again.
-    unmountedRef.current = false;
-    return () => {
-      unmountedRef.current = true;
-      // A dev server's hot swap keeps the island's state, photos included: only a real unmount frees them.
-      if (!import.meta.hot) work.urls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, []);
-
-  const allGuessed = pages.length > 0 && pages.every((p) => p.guessed) && failedIds.length === 0;
-  const key = allGuessed
-    ? `${pages.map((p) => resultKey(p)).join(',')}|${pageSize}|${limit}`
-    : null;
-  work.inputs = { pages, pageSize, limit, key };
-  const prepared = usePreparedOutput({
-    key,
-    quietPolicy,
-    build: async (signal, onProgress) => {
-      const { pages: current, pageSize: size, limit: chosen, key: builtKey } = work.inputs;
-      const made = await Promise.all(current.map((page) => processed(page)));
-      throwIfAborted(signal);
-      const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
-      // Through the queue like every decode: a phone holds one photo's worth of pixels at a time.
-      const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
-      throwIfAborted(unmountedRef.current ? AbortSignal.abort() : signal);
-      const builtAs = builtKey as string;
-      if (fit.metTarget) work.missedKeys.delete(builtAs);
-      else work.missedKeys.add(builtAs);
-      keepShown({ key: builtAs, pages: fit.pages.map((page: BuiltPage) => ({ url: URL.createObjectURL(page.blob), place: page.place })) });
-      setBuilt((n) => n + 1);
-      return { blob: fit.blob, pageCount: current.length };
-    },
-    onBuildError: (err) => reportError('pdf_tool_run', err, 'prepare_scan'),
+  const { key, prepared, outputName, fileName, downloadFlow } = useScanExport({
+    pages, failedIds, ...settings, work, processed, unmountedRef, ...board, quietPolicy, navigate,
   });
-
-  const outputName = customName ?? t.defaultName;
-  const fileName = `${outputName}.pdf`;
-  const downloadFlow = useDownloadFlow({
-    prepared,
-    fileName,
-    // A photo that could not be read holds the PDF back: Download says so instead of preparing for good.
-    blocked: prepared.status === 'error' || failedIds.length > 0 ? 'error' : null,
-    announce: setAnnouncement,
-    messages: { ready: t.readyAnnouncement, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
-    navigate,
-  });
-  const { tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
-  work.resetDownloadFlow = resetDownloadFlow;
 
   const { listRef, focusIdRef } = usePhotoTileList({
     active: pages.length > 0,
@@ -285,243 +65,17 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     },
   });
 
-  // Bring the page's top into view: the first photos replace the tall empty state, and moving on from
-  // the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
-  // On desktop the whole card is the first screen (useFloorHeight), so that is the top of the page.
-  const showEditorTop = (instant = false) => {
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const behavior = reduce || instant ? 'auto' : 'smooth';
-    if (window.matchMedia?.('(min-width: 1024px)').matches) window.scrollTo?.({ top: 0, behavior });
-    else editorRef.current?.scrollIntoView?.({ block: 'start', behavior });
-  };
-  useEffect(() => {
-    const has = pages.length > 0;
-    if (has && !work.hadPages) showEditorTop();
-    work.hadPages = has;
-  }, [pages.length > 0]);
-  // Before paint: the result's first frame already has the flatten over it. After paint, the empty paper
-  // showed for one frame before the photo came back over it (Scan QA, Pixel 7).
-  useLayoutEffect(() => {
-    // Whatever was playing belongs to the view that just went.
-    work.stopFlatten();
-    work.stopFlatten = () => {};
-    // Asked for by a view change, run once the new view is laid out (the scroll target moves with it).
-    const { topPending, focusPending } = state;
-    if (topPending || focusPending) dispatch({ type: 'scrollFocusConsumed' });
-    if (focusPending) headingRef.current?.focus({ preventScroll: true });
-    const from = work.flattenFrom;
-    work.flattenFrom = null;
-    const host = editorRef.current;
-    const target = host?.querySelector<HTMLImageElement>('[data-paper] img');
-    // Only when the page is already made: an empty paper has nothing to land.
-    const flatten = !!(from && view === 'result' && host && target);
-    // One motion at a time: with a flatten to play, the scroll jumps first and the page moves alone.
-    if (topPending) showEditorTop(flatten);
-    if (flatten) {
-      work.stopFlatten = playFlatten(host as HTMLElement, from as FlattenFrom, target as HTMLImageElement);
-    }
-  }, [view, selectedId]);
-  useEffect(() => () => work.stopFlatten(), []);
-
-  const { enterFull, exitFull, showResult } = useScanFullScreen({ editorRef, work, dispatch, full, view, landing: state.landing });
-
-
-  useKeepSelectedInView(listRef, selectedId);
-
-  const onTileKeyDown = (event: KeyboardEvent, id: number) => {
-    const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
-      : event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : 0;
-    if (delta === 0 || event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
-    const next = moveEntry(pages, id, delta);
-    if (next === pages) return;
-    event.preventDefault();
-    focusIdRef.current = id;
-    setPages(next);
-    announce(formatMessage(t.announceMoved, { position: next.findIndex((p: ScanPage) => p.id === id) + 1, total: next.length }));
-    recordAction('reorder');
-  };
-
-  // Find the page again, on request: the person asked, so what it finds becomes their corners.
-  const findPage = (page: ScanPage) => {
-    dispatch({ type: 'findStarted', id: page.id });
-    enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).guessPage(work.previewBlobs.get(page.id) ?? page.file)))
-      .then((quad) => quad, (err) => {
-        reportError('pdf_tool_run', err, 'scan_find_page');
-        return null;
-      })
-      .then((quad) => {
-        if (unmountedRef.current) return;
-        dispatch({ type: 'findEnded' });
-        if (work.removed.has(page.id)) return;
-        if (!quad) {
-          dispatch({ type: 'findMissed', id: page.id });
-          announce(t.findMissed);
-          return;
-        }
-        dispatch({ type: 'findFound', id: page.id });
-        setPages((current) => current.map((p) => (p.id === page.id ? { ...p, quad, edited: true, found: true } : p)));
-        announce(t.pageFoundAnnounce);
-        recordAction('change_setting');
-      });
-  };
-
-  const forgetTurned = (match: (key: string) => boolean) => {
-    setTurnedPreviews((map) => {
-      const left: Record<string, string> = {};
-      for (const [k, url] of Object.entries(map)) {
-        if (match(k)) URL.revokeObjectURL(url);
-        else left[k] = url;
-      }
-      return left;
-    });
-  };
-  /** The photo the corner editor shows: as photographed, or turned with the page (null while turning). */
-  const shownPhoto = (page: ScanPage) => (page.turns === 0 ? page.preview : turnedPreviews[`${page.id}|${page.turns}`] ?? null);
-
-  const commitCorners = (id: number, quad: Quad) => {
-    setPages((current) => current.map((p) => (p.id === id ? { ...p, quad, edited: true } : p)));
-    recordAction('move_mark');
-    reportEdit('scan-to-pdf');
-  };
-
-  const removePage = (id: number) => {
-    const index = pages.findIndex((p) => p.id === id);
-    const removed = pages[index];
-    if (!removed) return;
-    if (removed.preview) URL.revokeObjectURL(removed.preview);
-    forgetTurned((k) => k.startsWith(`${id}|`));
-    work.previewBlobs.delete(id);
-    work.removed.add(id);
-    dropCached(id);
-    const left = pages.filter((p) => p.id !== id);
-    if (work.results[id]) {
-      URL.revokeObjectURL(work.results[id].url);
-      URL.revokeObjectURL(work.results[id].thumbUrl);
-      const { [id]: _gone, ...rest } = work.results;
-      work.results = rest;
-      setResults(rest);
-    }
-    setPages(left);
-    const neighbour = left[index] ?? left[index - 1];
-    // Removing the photo under review: on to the next new one, or to the result when none is left.
-    const nextNew = view === 'corners' ? left.find((p) => !p.reviewed) : undefined;
-    dispatch({ type: 'pageRemoved', id, neighbourId: neighbour?.id ?? null, nextNewId: nextNew?.id ?? null });
-    focusIdRef.current = neighbour?.id ?? null;
-    announce(formatMessage(t.announceRemoved, { position: index + 1 }));
-    recordAction('remove_file');
-    if (left.length === 0) reset();
-  };
-
-  const reset = () => {
-    for (const url of work.urls) URL.revokeObjectURL(url);
-    work.processing.clear();
-    for (const page of work.pages) work.removed.add(page.id);
-    work.results = {};
-    forgetShown();
-    work.previewBlobs.clear();
-    forgetTurned(() => true);
-    setPages([]);
-    setResults({});
-    dispatch({ type: 'cleared' });
-    setCustomName(null);
-    setRejectedFiles([]);
-    work.resetDownloadFlow();
-    announce(t.announceCleared);
-  };
-
   const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
   const selectedIndex = selected ? pages.indexOf(selected) : -1;
-  const shownAspect = selected && selected.turns % 2 === 1 ? 1 / (selected.aspect ?? 0.75) : selected?.aspect ?? 0.75;
+  const { enterFull, exitFull, showResult } = useScanView({
+    state, dispatch, work, hasPages: pages.length > 0, selected, editorRef, headingRef, listRef, unmountedRef, ...board,
+  });
 
-  // The look is the selected page's own; it also becomes the look for the next new photo.
-  const chooseLook = (next: ScanFilter) => {
-    if (!selected || next === selected.filter) return;
-    setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, filter: next } : p)));
-    setDefaultFilter(next);
-    recordAction('change_setting');
-    reportEdit('scan-to-pdf');
-  };
+  const { findPage, removePage, removeFromCorners, reset } = createPageActions({ pages, view, setPages, work, unmountedRef, dispatch, focusIdRef, ...board, ...settings });
+  const edit = createEditActions({ pages, selected, selectedIndex, failedIds, setPages, dispatch, focusIdRef, showResult, ...board, ...settings });
 
-  const rotatePage = () => {
-    if (!selected) return;
-    setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, turns: (p.turns + 1) % 4 } : p)));
-    announce(formatMessage(t.announceRotated, { position: selectedIndex + 1 }));
-    recordAction('change_setting');
-    reportEdit('scan-to-pdf');
-  };
-
-  // A turned page shows its preview turned the same way while its corners are set (scanPipeline's turnImage).
-  // Outside the queue: it is one preview-sized image, and it should not wait behind a build.
-  const turnKey = selected && selected.turns !== 0 ? `${selected.id}|${selected.turns}` : null;
-  useEffect(() => {
-    if (view !== 'corners' || !selected || !turnKey || turnedPreviews[turnKey]) return;
-    const blob = work.previewBlobs.get(selected.id);
-    if (!blob) return;
-    const { id, turns } = selected;
-    loadPipeline().then((pipeline) => pipeline.turnImage(blob, turns)).then((turned) => {
-      if (unmountedRef.current || work.removed.has(id)) return;
-      setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: URL.createObjectURL(turned) }));
-    }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
-  }, [view, turnKey, selected?.preview]);
-
-  // A tap on the held-back Download: to the first photo that could not be read, where Remove is.
-  const showFailedPage = () => {
-    const failed = pages.find((p) => failedIds.includes(p.id));
-    if (!failed) return;
-    dispatch({ type: 'failedPageShown', id: failed.id });
-  };
-
-  // Use these corners: on to the next new photo still waiting for a look, or to the result.
-  const approveCorners = () => {
-    if (!selected) return;
-    setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, reviewed: true } : p)));
-    const next = pages.find((p) => !p.reviewed && p.id !== selected.id);
-    if (next) dispatch({ type: 'pageSelected', id: next.id });
-    else showResult(selected);
-    dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
-    announce(next ? formatMessage(t.announceCornersOf, { position: pages.indexOf(next) + 1 }) : t.announceResult);
-    recordAction('move_mark');
-  };
-
-  const choose = <T,>(setter: (value: T) => void, current: T) => (next: T) => {
-    if (next === current) return;
-    setter(next);
-    recordAction('change_setting');
-    reportEdit('scan-to-pdf');
-  };
-
-  const lookOptions = scanLookOptions();
-  const sizeOptions = scanSizeOptions();
-  const limitOptions = scanLimitOptions();
-  const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
-
-  // One set for the rail, one for phones under the pages (the rail is hidden below 1024px).
-  const controls = (suffix: string) => (
-    <>
-      <OptionRow id={`scan-size${suffix}`} label={t.pageSizeLabel} options={sizeOptions} value={pageSize} onChange={choose(setPageSize, pageSize)} dir={t.dir} />
-      <OptionRow id={`scan-limit${suffix}`} label={t.limitLabel} options={limitOptions} value={limit} onChange={choose(setLimit, limit)} dir={t.dir} note={limitNote} />
-    </>
-  );
-
-  const detail = downloadDetail(prepared, pages.length, englishShellMessages, t.dir);
-  const handoffItems = [
-    { tool: 'sign' as HandoffTool, label: t.handoffSign, Icon: FileSignature },
-    { tool: 'redact' as HandoffTool, label: t.handoffRedact, Icon: Eraser },
-    { tool: 'compress' as HandoffTool, label: t.handoffCompress, Icon: Shrink },
-  ];
-  const analyticsStatus = prepared.status === 'error' ? 'error' : tap;
-
-  // The page as it will download: the built PDF's own JPEG once it matches what is on screen,
-  // otherwise this page's newest result laid on its paper by the same rule, shown as updating.
   const shown = key === null ? undefined : work.shown.get(key);
-  const exact = !!shown && prepared.status === 'ready';
-  const resultView = (page: ScanPage, index: number) => {
-    if (exact && shown?.pages[index]) return { src: shown.pages[index].url, place: shown.pages[index].place, exact: true };
-    const result = results[page.id];
-    if (!result) return { src: null, place: null, exact: false };
-    return { src: result.url, place: placeImage(result.page.width, result.page.height, pageSize, FIT_POINTS_PER_PIXEL), exact: false };
-  };
-  const exactDetail = exact ? formatMessage(t.resultDetail, { size: formatFileSize(prepared.size), pages: pagesLabel(pages.length, englishShellMessages) }) : undefined;
+  const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
 
   return (
     <BasePdfTool
@@ -531,188 +85,72 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
       empty={{ art: <ScanVerb />, action: <TakePhotoButton onFiles={addFiles} primary />, message: t.dropHere }}
       clearAll={{ onClear: reset, summary: pagesLabel(pages.length, englishShellMessages) }}
-      analytics={{ tool: 'scan-to-pdf', status: analyticsStatus }}
+      analytics={{ tool: 'scan-to-pdf', status: prepared.status === 'error' ? 'error' : downloadFlow.tap }}
       owns={{ rating: true }}
     >
-      {rejectedFiles.length > 0 && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
-            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
-        </p>
-      )}
+      <ScanSkippedNotice names={board.rejectedFiles} />
 
       {pages.length > 0 && selected && (
         <ToolShellBridge>
-          {({ requestReplace, requestClear }) => (
-            <PageWorkspace
-              rootAttrs={{ 'data-scan-ready': prepared.status === 'ready' || undefined }}
-              phoneBar={(
-                <div class={workspaceStyles['chip-bar']}>
-                  {/* The next page is one tap away however far down the page is: the camera on a phone,
-                      the picker with a mouse. The pages column carries these from 1024px. */}
-                  <TakePhotoButton onFiles={addFiles} buttonClass={styles['bar-add']} />
-                  <button type="button" class={`${styles['bar-add']} ${styles['bar-pick']}`} onClick={requestReplace}>
-                    <ImagePlus size={18} aria-hidden="true" />
-                    {t.addPhotos}
-                  </button>
-                  <PhoneFinish
-                    flow={downloadFlow}
-                    prepared={prepared}
-                    fileName={fileName}
-                    detail={detail}
-                    handoffs={handoffItems}
-                    labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed }}
-                  />
-                </div>
-              )}
-              heading={(
-                <h2 class={workspaceStyles['doc-heading']}>
-                  <span class="sr-only">{t.documentHeading}</span>
-                  <OutputName name={outputName} label={t.fileNameLabel} onRename={(next) => setCustomName(next.length > 0 && next !== t.defaultName ? next : null)} onEditingChange={setIsRenaming} wrapOnPhone>
-                    <span class={workspaceStyles['doc-heading-count']}>{' · '}{pagesLabel(pages.length, englishShellMessages)}</span>
-                  </OutputName>
-                </h2>
-              )}
-              railContent={(
-                <>
-                  {controls('')}
-                  <div class={workspaceStyles['quiet-row']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>
-                      <Trash2 size={16} aria-hidden="true" />
-                      {englishShellMessages.clearLabel ?? t.clearAll}
-                    </button>
-                  </div>
-                </>
-              )}
-              railPinned={(
-                <>
-                  <DownloadElement
-                    state={downloadState}
-                    href={prepared.status === 'ready' ? prepared.url : null}
-                    fileName={fileName}
-                    detail={detail}
-                    pageCount={pages.length}
-                    progress={prepared.progress}
-                    errorMessage={failedIds.length > 0
-                      ? formatMessage(t.removeToMake, { pages: pages.filter((p) => failedIds.includes(p.id)).map((p) => pages.indexOf(p) + 1).join(', ') })
-                      : t.buildFailed}
-                    messages={t}
-                    onPreparingTap={onRowPreparingTap}
-                    onErrorTap={failedIds.length > 0 ? showFailedPage : undefined}
-                    onWarm={prepared.prepareNow}
-                    onDownloadClick={onDownloadTap}
-                    isOutputNameBeingRenamed={isRenaming}
-                  />
-                  <FinishRow
-                    ready={prepared.status === 'ready'}
-                    shareReady={shareReady}
-                    onShare={handleShare}
-                    busy={handoffBusy}
-                    onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
-                    onWarm={prepared.prepareNow}
-                    labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, redact: t.handoffRedact }}
-                    tools={HANDOFF_TOOLS}
-                  />
-                  {handoffFailed && (
-                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-                  )}
-                  {/* On a phone the ask follows the next steps; on desktop it sits under the page instead
-                      (below), where the photo gives it the room: the rail had none (Scan QA). */}
-                  {!wide && rating}
-                </>
-              )}
-            >
-              {prepared.status === 'error' && <ErrorMessage>{t.buildFailed}</ErrorMessage>}
-              {failedIds.length > 0 && (
-                <ErrorMessage>
-                  {formatMessage(t.pagesFailed, { pages: pages.filter((p) => failedIds.includes(p.id)).map((p) => pages.indexOf(p) + 1).join(', ') })}
-                </ErrorMessage>
-              )}
-
-              {/* From 1024px the pages are a column beside the selected page, so both stay on the first screen. */}
-              <div
-                ref={workbenchRef}
-                class={styles.workbench}
-                data-fills-stage
-                data-fitted={stageHeight !== null || undefined}
-                style={stageHeight !== null ? { '--scan-stage-h': `${stageHeight}px` } : undefined}
-              >
-              <section ref={editorRef} class={styles.editor} data-full={full ?? undefined} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
-                <ScanEditorHead
-                  view={view}
-                  selected={selected}
-                  selectedIndex={selectedIndex}
-                  pageCount={pages.length}
-                  finding={finding}
-                  findMissed={findMissed}
-                  full={full}
-                  headingRef={headingRef}
-                  onRotate={rotatePage}
-                  onToggleFull={full ? exitFull : enterFull}
-                  onAdjustCorners={() => {
-                    dispatch({ type: 'cornersOpened', focus: true });
-                    announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
-                  }}
-                />
-                {view === 'corners' && (
-                  <ScanCornersView
-                    selected={selected}
-                    photo={shownPhoto(selected)}
-                    shownAspect={shownAspect}
-                    finding={finding}
-                    onCommit={commitCorners}
-                    onFind={findPage}
-                    onApprove={approveCorners}
-                    onDone={() => {
-                      showResult(selected);
-                      dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
-                      announce(t.announceResult);
-                    }}
-                    onRemove={(id) => {
-                      // The next photo comes into view: this one's error box was not its height.
-                      dispatch({ type: 'scrollFocusRequested', top: true });
-                      removePage(id);
-                    }}
-                  />
-                )}
-                {view === 'result' && (
-                  <ScanResultView
-                    selected={selected}
-                    lookOptions={lookOptions}
-                    onChooseLook={chooseLook}
-                    onAdjustCorners={() => dispatch({ type: 'cornersOpened', focus: false })}
-                    pageProps={resultView(selected, selectedIndex)}
-                    detail={exactDetail}
-                  />
-                )}
-              </section>
-
-              <ScanPageStrip
-                pages={pages}
-                results={results}
-                selectedId={selected.id}
-                failedIds={failedIds}
-                listRef={listRef}
-                resultKeyOf={resultKey}
-                onSelect={(id) => dispatch({ type: 'pageSelected', id })}
-                onTileKeyDown={onTileKeyDown}
-                onRemove={removePage}
-                onFiles={addFiles}
-                onPickMore={requestReplace}
-              />
-              </div>
-
-              {/* On a phone the corners come first; the choices follow the pages they apply to. */}
-              <div class={styles['phone-options']}>{controls('-phone')}</div>
-              {/* Desktop: under the page, inside the first screen (useFloorHeight leaves it the room). */}
-              {wide && <div class={styles['rating-slot']}>{rating}</div>}
-            </PageWorkspace>
+          {(bridge) => (
+            <ScanWorkspace
+              bridge={bridge}
+              pages={pages}
+              failedIds={failedIds}
+              addFiles={addFiles}
+              rating={rating}
+              wide={wide}
+              output={{
+                prepared,
+                flow: downloadFlow,
+                fileName,
+                detail: downloadDetail(prepared, pages.length, englishShellMessages, t.dir),
+                outputName,
+                isRenaming: settings.isRenaming,
+                onRename: settings.rename,
+                onEditingChange: settings.setIsRenaming,
+                onShowFailedPage: edit.showFailedPage,
+              }}
+              options={{ pageSize: settings.pageSize, limit: settings.limit, onPageSize: settings.choosePageSize, onLimit: settings.chooseLimit, limitNote }}
+              workbench={{
+                refs: { workbench: workbenchRef, editor: editorRef, heading: headingRef, list: listRef },
+                stageHeight,
+                pages,
+                selected,
+                selectedIndex,
+                view,
+                results,
+                turnedPreviews,
+                failedIds,
+                finding,
+                findMissed,
+                full,
+                pageSize: settings.pageSize,
+                built: { shown, ready: prepared.status === 'ready', size: prepared.size },
+                resultKeyOf: resultKey,
+                actions: {
+                  onRotate: edit.rotatePage,
+                  onToggleFull: full ? exitFull : enterFull,
+                  onAdjustCorners: edit.adjustCorners,
+                  onAdjustFromNote: () => dispatch({ type: 'cornersOpened', focus: false }),
+                  onCommit: edit.commitCorners,
+                  onFind: findPage,
+                  onApprove: edit.approveCorners,
+                  onDone: edit.finishCorners,
+                  onRemoveFromCorners: removeFromCorners,
+                  onChooseLook: edit.chooseLook,
+                  onSelect: (id) => dispatch({ type: 'pageSelected', id }),
+                  onTileKeyDown: edit.onTileKeyDown,
+                  onRemove: removePage,
+                  onFiles: addFiles,
+                },
+              }}
+            />
           )}
         </ToolShellBridge>
       )}
 
-      <p class="sr-only" role="status" aria-live="polite">{announcement}</p>
+      <p class="sr-only" role="status" aria-live="polite">{board.announcement}</p>
     </BasePdfTool>
   );
 });
