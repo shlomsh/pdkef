@@ -26,25 +26,14 @@ describe('RedactToolbar returning-work status', () => {
     act(() => {
       render(
         <RedactToolbar
-          activeStyle={activeStyle}
-          brushMode={brushMode}
-          restoredNote={restoredNote}
-          toolLocked={false}
-          setTool={vi.fn()}
-          setAnnouncement={vi.fn()}
-          toggleFullscreen={vi.fn()}
-          isFullscreen={false}
-          handleDownloadPdf={vi.fn()}
-          handlePrepareShare={vi.fn()}
-          handleSharePdf={vi.fn()}
+          tool={{ active: activeStyle, locked: false, set: vi.fn(), brushMode }}
+          announce={vi.fn()}
+          fullscreen={{ active: false, toggle: vi.fn() }}
+          output={{ download: vi.fn(), prepareShare: vi.fn(), share: vi.fn() }}
+          history={{ entries: [], undo: vi.fn(), redo: vi.fn(), canRedo: false }}
+          undoChip={{ action: undoAction }}
           elementsCount={0}
-          actionHistory={[]}
-          onUndo={vi.fn()}
-          onRedo={vi.fn()}
-          canRedo={false}
-          showWelcomeTip={showWelcomeTip}
-          undoAction={undoAction}
-          statusMessage={statusMessage}
+          status={{ message: statusMessage, welcomeTip: showWelcomeTip, restoredNote }}
         />,
         container,
       );
@@ -70,21 +59,13 @@ describe('RedactToolbar returning-work status', () => {
     act(() => {
       render(
         <RedactToolbar
-          activeStyle="blackout"
-          toolLocked={false}
-          setTool={vi.fn()}
-          setAnnouncement={vi.fn()}
-          toggleFullscreen={vi.fn()}
-          isFullscreen={false}
-          handleDownloadPdf={vi.fn()}
-          handlePrepareShare={vi.fn()}
-          handleSharePdf={vi.fn()}
+          tool={{ active: 'blackout', locked: false, set: vi.fn() }}
+          announce={vi.fn()}
+          fullscreen={{ active: false, toggle: vi.fn() }}
+          output={{ download: vi.fn(), prepareShare: vi.fn(), share: vi.fn() }}
+          history={{ entries: [], undo: vi.fn(), redo: vi.fn(), canRedo: false }}
           elementsCount={0}
-          actionHistory={[]}
-          onUndo={vi.fn()}
-          onRedo={vi.fn()}
-          canRedo={false}
-          showWelcomeTip={false}
+          status={{ welcomeTip: false }}
         />,
         container,
       );

@@ -31,15 +31,9 @@ describe('RedactBox touch behaviour', () => {
       <RedactBox
         el={EL}
         isSelected={isSelected}
-        onSelect={onSelect}
-        onChange={onChange}
-        getPageWrapper={() => wrapper}
-        onHoverEnter={() => {}}
-        onHoverLeave={() => {}}
-        onDelete={() => {}}
-        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}}
-        onChangeStrength={() => {}}
-        onDuplicate={() => {}}
+        pointer={{ onSelect, onChange, getPageWrapper: () => wrapper, onHoverEnter: () => {}, onHoverLeave: () => {} }}
+        actions={{ onDelete: () => {}, onDuplicate: () => {}, onChangeStrength: () => {} }}
+        color={{ onPick: () => {}, onMatchPage: () => {}, eyedropping: false, onToggleEyedropper: () => {} }}
       />,
       container,
     ));
@@ -103,9 +97,9 @@ describe('RedactBox floating toolbar gap (RED-53)', () => {
     document.body.appendChild(container);
     const wrapper = document.createElement('div');
     act(() => render(
-      <RedactBox el={EL} isSelected={true} onSelect={() => {}} onChange={() => {}}
-        getPageWrapper={() => wrapper} onHoverEnter={() => {}} onHoverLeave={() => {}} onDelete={() => {}}
-        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}} onChangeStrength={() => {}} onDuplicate={() => {}} />,
+      <RedactBox el={EL} isSelected={true} pointer={{ onSelect: () => {}, onChange: () => {}, getPageWrapper: () => wrapper, onHoverEnter: () => {}, onHoverLeave: () => {} }}
+        actions={{ onDelete: () => {}, onDuplicate: () => {}, onChangeStrength: () => {} }}
+        color={{ onPick: () => {}, onMatchPage: () => {}, eyedropping: false, onToggleEyedropper: () => {} }} />,
       container,
     ));
     const pill = container.querySelector('[data-editor-actions]') as HTMLElement;
@@ -123,10 +117,10 @@ describe('RedactBox keyboard (RED-43)', () => {
     const onChange = vi.fn(), onSelect = vi.fn(), onDelete = vi.fn();
     const wrapper = document.createElement('div');
     act(() => render(
-      <RedactBox el={EL} isSelected={true} onSelect={onSelect} onChange={onChange}
-        getPageWrapper={() => wrapper} onHoverEnter={() => {}} onHoverLeave={() => {}} onDelete={onDelete}
-        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}} onChangeStrength={() => {}} onDuplicate={() => {}}
-        pageWidthPoints={500} pageHeightPoints={1000} />,
+      <RedactBox el={EL} isSelected={true} pointer={{ onSelect: onSelect, onChange: onChange, getPageWrapper: () => wrapper, onHoverEnter: () => {}, onHoverLeave: () => {} }}
+        actions={{ onDelete: onDelete, onDuplicate: () => {}, onChangeStrength: () => {} }}
+        color={{ onPick: () => {}, onMatchPage: () => {}, eyedropping: false, onToggleEyedropper: () => {} }}
+        pageSize={{ width: 500, height: 1000 }} />,
       container,
     ));
     const box = container.querySelector('[data-redact-box-id="a"]') as HTMLElement;
