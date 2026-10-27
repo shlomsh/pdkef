@@ -1,13 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { FileSignature, Shrink } from 'lucide-preact';
-import { isPdfFile } from '../../lib/fileKind.js';
 import { editPages } from './editPages.js';
 import { editOptionsFromPlan } from './editPlan.ts';
 import { englishEditPagesMessages as t } from './messages.ts';
-import { includeAll, invert, outputPageCount, skipAll, planForFile, planKey, type PlanEntry } from '../../lib/pagePlan.ts';
-import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
+import { outputPageCount, planKey } from '../../lib/pagePlan.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
-import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -27,7 +24,8 @@ import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import { repairedPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { repairedPdfLoader } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { usePageToolSession } from '../../shell/pageWorkspace/usePageToolSession.ts';
 import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
@@ -43,12 +41,6 @@ const VERBS = { organize: EditPagesVerb, rotate: RotatePagesVerb, remove: Remove
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
 
-interface EditDocument {
-  plan: PlanEntry[];
-}
-
-const EMPTY_DOCUMENT: EditDocument = { plan: [] };
-
 export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }) {
   const Verb = VERBS[job];
   // The download flow is made after this callback, so it reaches its reset through a ref.
@@ -60,45 +52,29 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
   const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
-  // One Undo/Redo stack over the plan. A deliberate change is a `commit`
-  // (rotate, skip, move, a bulk action); opening a file is a `reset`.
-  const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<EditDocument>(
-    EMPTY_DOCUMENT,
-    { tool: 'edit-pdf', announce: setAnnouncement, messages: { undone: t.undoneAnnouncement, redone: t.redoneAnnouncement } },
-  );
-  const { plan } = present;
-
-  // The one open path (src/shell/pageWorkspace/useOpenPageDocument.ts): stale-pick guard,
-  // protection check, repaired copy. pdf-lib stays lazy: the loader imports it on the first pick.
-  const { file, workingFile, pageCount, loadId, loadStatus, needsUnlock, open } = useOpenPageDocument({
+  // The shared page-tool session (src/shell/pageWorkspace/usePageToolSession.ts): one Undo/Redo
+  // stack over the plan, the one open path, PDF filtering, hand-off intake and the bulk actions.
+  // pdf-lib stays lazy: the loader imports it on the first pick.
+  const {
+    present, canUndo, canRedo, onPlanChange, handleUndo, handleRedo,
+    file, workingFile, pageCount, loadId, loadStatus, needsUnlock,
+    handleFilesAdded, onIncludeAll, onSkipAll, onInvert,
+  } = usePageToolSession({
+    tool: 'edit-pdf',
     loader: repairedPdfLoader,
     unlockKinds: ['needs-password', 'owner-restricted'],
-    messages: { needsPassword: t.announceNeedsPassword, restricted: t.announceRestricted, loaded: t.loaded, loadFailed: t.loadFailed },
+    messages: t,
     announce: setAnnouncement,
     onPick: () => {
       resetDownloadFlowRef.current();
       setRenderedCount(0);
       setAddPageNumbers(false);
       setCustomOutputName(null);
-      // A new file starts a fresh document: reset (not commit) so the previous
-      // file's undo/redo stacks don't leak across files.
-      reset(EMPTY_DOCUMENT);
     },
-    onLoaded: ({ pageCount: count }) => reset({ plan: planForFile(FILE_ID, count) }),
   });
+  const { plan } = present;
   useHoldUpdate(file !== null, 'open');
   const PageGrid = useLazyPageGrid(file !== null);
-
-  const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
-    const pdfs = Array.from(fileList).filter((f) => isPdfFile(f));
-    if (pdfs.length === 0) return;
-    await open(pdfs[0]);
-  }, [open]);
-
-  // SITE-42: files picked on the home page arrive as a hand-off, collected on
-  // mount and sent down the same path a manual pick takes. This tool restores
-  // nothing on mount, so there is no restore to race - see useHandoffIntake.ts.
-  useHandoffIntake('edit-pdf', (f) => handleFilesAdded([f]));
 
   const sources = useMemo(
     () => (workingFile ? [{ id: FILE_ID, file: workingFile, pageCount, error: null }] : []),
@@ -141,17 +117,6 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
   } = downloadFlow;
 
   resetDownloadFlowRef.current = resetDownloadFlow;
-
-  // A bulk action is one step, and none at all when it changes nothing.
-  const bulk = (update: (current: PlanEntry[]) => PlanEntry[], message: string) => () => {
-    if (update(plan) === plan) return;
-    onPlanChange(update);
-    recordAction('select_pages');
-    setAnnouncement(message);
-  };
-  const onIncludeAll = bulk(includeAll, t.allIncluded);
-  const onSkipAll = bulk(skipAll, t.allSkipped);
-  const onInvert = bulk(invert, t.inverted);
 
   const onPageNumbersChange = useCallback((event: Event) => {
     setAddPageNumbers((event.target as HTMLInputElement).checked);
