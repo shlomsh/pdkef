@@ -519,7 +519,7 @@ export default function DraggableWrapper<T extends EditorElement>({
           <>
             {fieldNav && (
               <>
-                <span className={elementStyles['quick-field-nav']} dir={fieldNav.direction}>
+                <span data-testid="quick-field-nav" className={elementStyles['quick-field-nav']} dir={fieldNav.direction}>
                   <button
                     type="button"
                     className={controlStyles['element-button']}

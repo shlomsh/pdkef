@@ -9,7 +9,6 @@ import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '../../editor/registry/messages';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import workspaceStyles from '../../editor-ui/Workspace.module.css';
 
 declare const __dirname: string;
 
@@ -111,7 +110,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     const shown = required(state(), 'the needs-unlock state');
     expect(shown.querySelector('h2')?.textContent).toBe(title);
     expect(shown.querySelector('p')?.textContent).toBe(body);
-    expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
+    expect(container.querySelector('[data-testid="workspace"]')).toBeNull();
     expect(container.querySelector('[data-editor-element]')).toBeNull();
     expect(await signFailures()).toEqual([]);
     expect(container.textContent).toContain('Replace');
@@ -164,6 +163,6 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   it('a plain file opens the editor as before', async () => {
     await pick(fixture('plain.pdf'));
     expect(state()).toBeNull();
-    expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+    expect(container.querySelector('[data-testid="workspace"]')).not.toBeNull();
   });
 });
