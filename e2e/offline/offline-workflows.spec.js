@@ -48,6 +48,20 @@ async function waitForServiceWorkerControl(page) {
   await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller !== null, null, {
     timeout: 15_000,
   });
+  await waitForPagePack(page);
+}
+
+// MEM-15: the worker caches a page's files only after the page asks (once the
+// worker is active), so "controlled" no longer means "works offline". Wait for
+// the marker the worker writes when the whole pack is in its cache.
+async function waitForPagePack(page) {
+  await page.waitForFunction(async () => {
+    const marker = `/__pdkef/offline-page-pack/${encodeURIComponent(location.pathname)}`;
+    for (const key of await caches.keys()) {
+      if (key.startsWith('pdkef-') && await (await caches.open(key)).match(marker)) return true;
+    }
+    return false;
+  }, null, { timeout: 30_000 });
 }
 
 async function purgeAppCaches(page) {

@@ -19,28 +19,14 @@ function walk(dir, files = []) {
   return files;
 }
 
-function toPublicUrl(filePath) {
-  const relative = path.relative(distDir, filePath).split(path.sep).join('/');
-  if (relative === 'index.html') return '/';
-  if (relative.endsWith('/index.html')) return `/${relative.slice(0, -'index.html'.length)}`;
-  return `/${relative}`;
-}
-
 if (!fs.existsSync(distDir)) {
   throw new Error('dist/ does not exist. Run Astro build before generating the precache manifest.');
 }
 
 const allFiles = walk(distDir).sort();
 
-const files = allFiles.filter((filePath) => {
-  const relative = path.relative(distDir, filePath).split(path.sep).join('/');
-  return shouldPrecache(relative, { manifestName, workerName });
-});
-
-const urls = files.map(toPublicUrl);
-
-// v2 (MEM-15): the closure of each page, so the worker can cache what a visited
-// page needs instead of the whole build. `urls` stays for the current worker.
+// v2 (MEM-15): the shell, and the closure of each page, so the worker caches what a
+// visited page needs instead of the whole build.
 const relativeOf = (filePath) => path.relative(distDir, filePath).split(path.sep).join('/');
 const view = {
   files: new Map(allFiles.filter((filePath) => /\.(?:html|js|css)$/.test(filePath)).map((filePath) => [relativeOf(filePath), fs.readFileSync(filePath, 'utf8')])),
@@ -52,10 +38,10 @@ for (const relative of [...view.files.keys()].filter((name) => name.endsWith('.h
   pages[relativeToUrl(relative)] = pageClosure(view, relative, { keep });
 }
 const shell = shellClosure(view, { keep });
-const manifest = JSON.stringify({ version: 2, shell, pages, urls }, null, 2);
+const manifest = JSON.stringify({ version: 2, shell, pages }, null, 2);
 
 // Hashed from every file already in dist/ (the manifest and sw.js are written
-// below, after this), not just the precache list - see buildId.mjs for why a
+// below, after this), not just the precache lists - see buildId.mjs for why a
 // same-URL asset (fonts, icons, other public/ files) still needs to bust the
 // cache when its content changes.
 const buildId = computeBuildId(
@@ -115,4 +101,4 @@ if (!signHasTag) {
   throw new Error('dist/sign/index.html is missing the __BUILD_COMMIT__ placeholder.');
 }
 
-console.log(`✅ Precaching ${urls.length} build assets (pdkef-${buildId}), commit ${commit || 'none (no commit)'} on ${stamped} pages.`);
+console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}), commit ${commit || 'none (no commit)'} on ${stamped} pages.`);
