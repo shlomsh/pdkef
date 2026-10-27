@@ -11,13 +11,17 @@
 import { SLOP_PX, TAP_MAX_DURATION_MS } from './constants.ts';
 import { touchClaimsElement } from '../gestures/touchClaim.ts';
 
+/** @testSeam */
 export type PointerKind = 'touch' | 'mouse' | 'pen';
-export interface Point {
+interface Point {
   x: number;
   y: number;
 }
 
-/** What is under the finger at pointer down, as the router measured it. */
+/**
+ * What is under the finger at pointer down, as the router measured it.
+ * @testSeam
+ */
 export type Under =
   | {
       kind: 'blank';
@@ -34,24 +38,25 @@ interface PointerSample extends Point {
   /** ms, any monotonic clock. */
   t: number;
 }
+/** @testSeam */
 export type GestureEvent =
   | ({ type: 'down'; under: Under } & PointerSample)
   | ({ type: 'move' } & PointerSample)
   | ({ type: 'up' } & PointerSample)
   | ({ type: 'cancel' } & PointerSample);
 
-export type OneFingerGesture = 'drag' | 'resize' | 'create';
+type OneFingerGesture = 'drag' | 'resize' | 'create';
 interface Finger {
   pointerId: number;
   pointerType: PointerKind;
   origin: Point;
   at: Point;
 }
-export interface Contact extends Point {
+interface Contact extends Point {
   pointerId: number;
 }
 
-export type GestureState =
+type GestureState =
   | { kind: 'idle' }
   /** Down, not yet classified: a tap, or a move past the slop. */
   | { kind: 'pending'; finger: Finger; under: Under; startedAt: number }
@@ -61,6 +66,7 @@ export type GestureState =
   | PinchState;
 type PinchState = { kind: 'pinch'; a: Contact; b: Contact };
 
+/** @testSeam */
 export type GestureEffect =
   | { type: 'tap'; under: Under; x: number; y: number }
   /** Mouse only: an unselected element is selected as the same gesture moves it (§2.3). */
@@ -74,12 +80,12 @@ export type GestureEffect =
   | { type: 'pinch-update'; a: Contact; b: Contact }
   | { type: 'pinch-end' };
 
-export interface Transition {
+interface Transition {
   state: GestureState;
   effects: GestureEffect[];
 }
 
-export const IDLE: GestureState = { kind: 'idle' };
+const IDLE: GestureState = { kind: 'idle' };
 const stay = (state: GestureState): Transition => ({ state, effects: [] });
 
 /**
@@ -268,7 +274,7 @@ function onCancel(state: GestureState, event: GestureEvent & { type: 'cancel' })
   return { state: IDLE, effects: [{ type: 'cancel', gesture: live.kind }] };
 }
 
-export function transition(state: GestureState, event: GestureEvent): Transition {
+function transition(state: GestureState, event: GestureEvent): Transition {
   switch (event.type) {
     case 'down':
       return onDown(state, event);
@@ -284,6 +290,7 @@ export function transition(state: GestureState, event: GestureEvent): Transition
 /**
  * The interpreter. State is committed before the effects run, so an effect
  * (focus(), a DOM paint) that re-enters `send` sees the new state.
+ * @testSeam
  */
 export function createGestureMachine(onEffect: (effect: GestureEffect) => void = () => {}) {
   let state: GestureState = IDLE;

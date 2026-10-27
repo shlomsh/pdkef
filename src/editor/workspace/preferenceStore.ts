@@ -9,7 +9,7 @@ import { appWideStyleOf, type DocumentStyle } from '../model/documentStyle.ts';
 import { validateDocumentStyle } from '../registry/draftValidation.ts';
 import { isBlurStrengthValue, resolveBlurStrength, type BlurStrength } from '../model/blurStrength.ts';
 
-export interface EditorPreferences {
+interface EditorPreferences {
   penColor: string;
   penThickness: number;
   lastWhiteoutColor: string;
@@ -22,12 +22,15 @@ export interface EditorPreferences {
   // and blur strength, are browser-wide preferences.
 }
 
-export type EditorPreferenceKey = keyof EditorPreferences;
+type EditorPreferenceKey = keyof EditorPreferences;
 
-/** Increment only when the persisted scalar-settings record shape changes. */
+/**
+ * Increment only when the persisted scalar-settings record shape changes.
+ * @testSeam
+ */
 export const EDITOR_PREFERENCE_RECORD_VERSION = 1;
 /** Increment only when the persisted signature-library record shape changes. */
-export const SAVED_SIGNATURE_LIBRARY_VERSION = 1;
+const SAVED_SIGNATURE_LIBRARY_VERSION = 1;
 
 const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
   penColor: 'pdf-toolkit:penColor', penThickness: 'pdf-toolkit:penThickness',
@@ -40,7 +43,7 @@ const SIGNATURE_LIBRARY_KEY_PREFIX = 'pdf-toolkit:saved-signatures:v1:';
 const APP_STYLE_KEY_PREFIX = 'pdf-toolkit:app-style:v1:';
 const RECENT_WHITEOUT_COLORS_KEY_PREFIX = 'pdf-toolkit:recent-whiteout-colors:v1:';
 /** Increment only when the persisted app-wide style record shape changes. */
-export const APP_STYLE_RECORD_VERSION = 1;
+const APP_STYLE_RECORD_VERSION = 1;
 const TAB_ID_KEY = 'pdf-toolkit:editor-preferences-tab-id';
 const DEFAULT_EDITOR_USER_SCOPE = 'local-browser-profile';
 
@@ -58,16 +61,16 @@ type RecordListener<T> = (record: T) => void;
 const localPreferenceListeners = new Map<string, Set<RecordListener<PreferenceRecord>>>();
 const localSignatureListeners = new Map<string, Set<RecordListener<SignatureLibraryRecord>>>();
 
-export interface EditorPreferenceOptions {
+interface EditorPreferenceOptions {
   /** An opaque stable local-user identifier; never pass an email address. */
   userScope?: string;
 }
-export interface EditorPreferenceChange<K extends EditorPreferenceKey> {
+interface EditorPreferenceChange<K extends EditorPreferenceKey> {
   value: EditorPreferences[K] | null;
   revision: number | null;
   conflictPolicy: 'last-writer-wins';
 }
-export interface SavedSignatureChange {
+interface SavedSignatureChange {
   value: SavedSignature[] | null;
   revision: number | null;
   conflictPolicy: 'last-writer-wins';
@@ -177,6 +180,7 @@ function makeId(prefix: string): string {
 function normaliseScope(scope: string | undefined): string | null {
   const trimmed = scope?.trim(); return trimmed && trimmed.length <= 160 ? trimmed : null;
 }
+/** @testSeam */
 export function getEditorUserScope(options: EditorPreferenceOptions = {}): string | null {
   return options.userScope !== undefined ? normaliseScope(options.userScope) : DEFAULT_EDITOR_USER_SCOPE;
 }
@@ -368,7 +372,10 @@ export function rememberAppStyle(patch: Partial<DocumentStyle>, options: EditorP
 const HEX_COLOR = /^#[0-9a-f]{6}$/;
 const RECENT_WHITEOUT_COLORS_VERSION = 1;
 
-/** Puts a '#rrggbb' colour first (lowercased), dedupes, caps at max. Anything else is ignored. */
+/**
+ * Puts a '#rrggbb' colour first (lowercased), dedupes, caps at max. Anything else is ignored.
+ * @testSeam
+ */
 export function withRecentColor(list: readonly string[], color: string, max = 3): string[] {
   const next = typeof color === 'string' ? color.toLowerCase() : '';
   const rest = list.filter((c) => c !== next);

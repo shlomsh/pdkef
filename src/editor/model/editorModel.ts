@@ -61,7 +61,7 @@ export type TextAlign = 'left' | 'center' | 'right';
  * Fields common to every element. Percentages are relative to the page wrapper
  * the element lives in; `pageIndex` selects which PDF page it's baked onto.
  */
-export interface ElementBase {
+interface ElementBase {
   id: string;
   type: ElementType;
   pageIndex: number;
@@ -75,7 +75,7 @@ export interface ElementBase {
  * top/height). For RTL text, `left` is the anchored *right* edge — see
  * DraggableWrapper.tsx's positioning comment — but the field name is unchanged.
  */
-export interface BoxGeometry {
+interface BoxGeometry {
   left: number;
   top: number;
   width: number;
@@ -223,7 +223,7 @@ export interface BlurElement extends ElementBase, BoxGeometry { type: 'blur'; st
  * page at any zoom. The element's BoxGeometry is the stroke's bbox including
  * the brush radius, so selection, hit-testing and history work unchanged.
  */
-export interface StrokeGeometry {
+interface StrokeGeometry {
   points: [number, number][];
   sizePt: number;
 }

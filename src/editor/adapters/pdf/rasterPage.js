@@ -3,10 +3,17 @@ import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE, clampScaleToCanvas } from '../../../l
 import { renderPageToCanvas } from '../../../lib/renderPage.js';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
 
-/** Render scale for a rasterized page: crisp and readable. */
+/**
+ * Render scale for a rasterized page: crisp and readable.
+ * @testSeam
+ */
 export const RASTER_SCALE = 2.5;
-/** JPEG quality for a rasterized page. */
+/**
+ * JPEG quality for a rasterized page.
+ * @testSeam
+ */
 export const RASTER_JPEG_QUALITY = 0.95;
+/** @testSeam */
 export { MAX_CANVAS_AREA, MAX_CANVAS_SIDE };
 
 /**
@@ -18,6 +25,7 @@ export { MAX_CANVAS_AREA, MAX_CANVAS_SIDE };
  * @param {number} width
  * @param {number} height
  * @returns {number}
+ * @testSeam
  */
 export function rasterScaleFor(width, height) {
   return clampScaleToCanvas(width, height, RASTER_SCALE);

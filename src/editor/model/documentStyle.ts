@@ -48,7 +48,7 @@ export interface DocumentStyle {
  * the app-wide style on 2026-09-26 (SIGN-35 reopened) and this list is now
  * direction alone.
  */
-export const DOCUMENT_ONLY_KEYS: readonly (keyof DocumentStyle)[] = ['direction'];
+const DOCUMENT_ONLY_KEYS: readonly (keyof DocumentStyle)[] = ['direction'];
 
 /** SIGN-35: `style` without its document-only keys - what may enter the
  * app-wide style, or be read back from it. */

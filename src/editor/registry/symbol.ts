@@ -7,6 +7,7 @@ import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from
 import type { SymbolElement, SymbolMark } from '../model/editorModel.ts';
 import { DESIGN_BOX, markGeometry, markInkExtent } from './symbolMarks.ts';
 
+/** @testSeam */
 export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
   // The floor is meant to stop a resize shrinking a symbol past a legible
   // size, not to grow one - but `placeSymbolOnRegion` fits a symbol to a
