@@ -5,10 +5,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import dropzoneStyles from '../../shell/Dropzone.module.css';
-import toolShellStyles from '../../shell/ToolShell.module.css';
-import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -74,7 +70,7 @@ describe('PdfEditPagesTool UI flow', () => {
   it('lists the files it skipped, as Split does', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    const note = () => container.querySelector(`.${pdfToolStyles['hint-message']}`)?.textContent;
+    const note = () => container.querySelector('[role="status"]')?.textContent;
     act(() => { render(<PdfEditPagesTool />, container); });
     const input = () => container.querySelector('input[type="file"]');
     await act(async () => { setInputFiles(input(), [new File(['x'], '2025-notes.txt', { type: 'text/plain' })]); });
@@ -137,7 +133,7 @@ describe('PdfEditPagesTool UI flow', () => {
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
 
-    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    const dropzone = container.querySelector('[data-dropzone]');
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -152,7 +148,7 @@ describe('PdfEditPagesTool UI flow', () => {
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool job={job} />, container); });
 
-    const stage = container.querySelector(`.${dropzoneStyles.dropzone} [aria-hidden="true"]`);
+    const stage = container.querySelector('[data-dropzone] [aria-hidden="true"]');
     expect(stage.querySelectorAll('i').length).toBe(pages);
     expect(stage.querySelectorAll('i > b').length).toBe(numbers);
   });
@@ -164,7 +160,7 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(heading().textContent).toContain('document_modified.pdf');
     expect(heading().textContent).toContain('3 pages');
     // The heading names the file, so the shell's own identity row is not shown.
-    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    expect(container.querySelector('[data-file-identity]')).toBeNull();
     // There is no Apply button: the Download element is the whole finish.
     expect(downloadElement().textContent).toContain('3 pages');
     expect(container.textContent).not.toContain('Apply Changes');
@@ -197,7 +193,7 @@ describe('PdfEditPagesTool UI flow', () => {
   // UX guideline 20: the output choice, then which pages, then Download and hand-offs, Replace file last.
   it('runs the rail in order of consequence, with Replace file last', async () => {
     await load();
-    const rail = container.querySelector(`.${workspaceStyles.rail}`);
+    const rail = container.querySelector('[data-rail]');
     const order = Array.from(rail.querySelectorAll('input, button, a[data-state]'))
       .map((el) => (el.hasAttribute('data-state') ? 'download' : (el as HTMLInputElement).type === 'checkbox' ? 'page numbers' : el.textContent.trim()));
     expect(order.slice(0, 5)).toEqual(['page numbers', 'Include all', 'Skip all', 'Invert', 'download']);
@@ -276,7 +272,7 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(strip.textContent).toContain('Compress');
     expect(strip.textContent).toContain('Sign');
 
-    const share = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent.includes('Share'));
+    const share = Array.from(container.querySelectorAll("[data-count] button")).find((b) => b.textContent.includes("Share"));
     expect(share).toBeTruthy();
     await act(async () => share.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('document_modified.pdf');
@@ -286,7 +282,7 @@ describe('PdfEditPagesTool UI flow', () => {
   it('the rail hands the result to Compress and parks its bytes', async () => {
     await load();
     await prepareNow();
-    const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
+    const compress = Array.from(container.querySelectorAll("[data-count] button")).find((b) => b.textContent === "Compress");
     vi.stubGlobal('location', { href: '/organize-pdf/' });
     await act(async () => { compress.click(); });
     await waitUntil(() => expect(window.location.href).toBe('/compress/'));

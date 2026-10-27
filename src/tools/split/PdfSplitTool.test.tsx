@@ -7,11 +7,6 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { recentActions } from '../../lib/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
-import dropzoneStyles from '../../shell/Dropzone.module.css';
-import toolShellStyles from '../../shell/ToolShell.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import outputNameStyles from '../../shell/OutputName.module.css';
-import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -149,7 +144,7 @@ describe('PdfSplitTool UI flow', () => {
 
   it('renders initial dropzone', () => {
     mount();
-    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    const dropzone = container.querySelector('[data-dropzone]');
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -160,7 +155,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(heading().textContent).toContain('extracted_open.pdf');
     expect(heading().textContent).toContain('5 pages');
     // The heading names the output, so the shell's own identity row is not shown.
-    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    expect(container.querySelector('[data-file-identity]')).toBeNull();
     expect(field().value).toBe('1-5');
     expect(container.querySelector('label[for="page-selector-input"]').textContent).toBe('Pages');
     expect(container.querySelector('[role="radiogroup"]').getAttribute('aria-label')).toBe('What to save');
@@ -175,7 +170,7 @@ describe('PdfSplitTool UI flow', () => {
   // UX guideline 20: the output choice, then which pages, then Download and hand-offs, Replace file last.
   it('runs the rail in order of consequence, with Replace file last', async () => {
     await open();
-    const rail = container.querySelector(`.${workspaceStyles.rail}`);
+    const rail = container.querySelector('[data-rail]');
     const order = Array.from(rail.querySelectorAll('[role="radiogroup"], input, button, a[data-state]'))
       .filter((el) => !el.closest('[role="radiogroup"]') || el.getAttribute('role') === 'radiogroup')
       .map((el) => el.getAttribute('role') || el.id || (el.hasAttribute('data-state') ? 'download' : el.textContent.trim()));
@@ -260,7 +255,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(heading().textContent).toContain('open-page-N.pdf');
     expect(heading().textContent).toContain('5 PDFs');
     expect(heading().querySelector('[contenteditable]')).toBeNull();
-    expect(container.querySelector(`.${outputNameStyles.name}`)).toBeNull();
+    expect(container.querySelector('[aria-label="File name, editable"]')).toBeNull();
     expect(downloadElement().textContent).toContain('Download 5 PDFs');
     expect(downloadElement().textContent).toContain('1 page each');
     expect(button('Compress')).toBeUndefined();
@@ -340,7 +335,7 @@ describe('PdfSplitTool UI flow', () => {
   it('renaming the heading changes the combined file name without a rebuild', async () => {
     await open();
     const builds = harness.createdBlobs().length;
-    const nameEl = () => container.querySelector(`.${outputNameStyles.name}`);
+    const nameEl = () => container.querySelector('[aria-label="File name, editable"]');
     expect(nameEl().textContent).toBe('open');
     expect(downloadElement().getAttribute('download')).toBe('extracted_open.pdf');
     await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
@@ -386,7 +381,7 @@ describe('PdfSplitTool UI flow', () => {
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [new File(['plain text'], '2025-notes.txt', { type: 'text/plain' })]);
       });
-      return container.querySelector(`.${pdfToolStyles['hint-message']}`).textContent;
+      return container.querySelector('[role="status"]').textContent;
     };
     expect(await note({ messages: hebrewSplitMessages })).toContain('⁨2025-notes.txt⁩');
     act(() => render(null, container));

@@ -117,7 +117,7 @@ export default function CompareSlider({
     // scrolled away, and a press anywhere on the page still puts the line there.
     <div
       ref={containerRef}
-      class={fill ? `${styles['compare-slider']} ${styles['compare-fill']}` : styles['compare-slider']}
+      class={fill ? `${styles['compare-slider']} ${styles['compare-fill']}` : styles['compare-slider']} data-compare-slider
       style={{ '--reveal': `${position}%` } as JSX.CSSProperties}
       onMouseDown={handleStart}
       onTouchStart={handleStart}
