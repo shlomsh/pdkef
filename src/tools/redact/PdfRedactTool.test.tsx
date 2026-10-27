@@ -2824,6 +2824,9 @@ describe('PdfRedactTool UI flow', () => {
   describe('found boxes stay a set (RED-11)', () => {
     // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts builds its fixture with), so
     // "Redact all" always adds exactly 2 boxes. They arrive as the page's own text stream, read for real.
+    // jsdom has no scrollIntoView; the current match's highlight calls it from a passive effect.
+    beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); });
+    afterEach(() => { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView; });
     beforeEach(() => {
       const item = (str: string, x: number, y: number) => ({ str, transform: [12, 0, 0, 12, x, y], width: str.length * 6, height: 12 });
       harness.pdfjs.pageItems.set(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]);
