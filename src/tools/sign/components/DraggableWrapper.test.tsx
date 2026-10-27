@@ -6,7 +6,6 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import { FillContext, TextFillContext, FILL_OFF } from './fill/FillContext.tsx';
 import type { TextFillProps } from '../lib/fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
@@ -111,7 +110,7 @@ describe('DraggableWrapper RTL text positioning', () => {
 
   function mountWithPageWrapper(element: TextElement, pageWidthPoints: number, onChange: TextChange): HTMLDivElement {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
 
@@ -333,7 +332,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
 
   function mount(element: TextElement, props: { isEditing?: boolean; fieldNav?: typeof fieldNav | null } = {}) {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
 
@@ -456,7 +455,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
 
   function mountFillCase(coarse: boolean) {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
 
@@ -504,7 +503,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
 
   it('SNG-17: collapses to Aa alone (no Previous/Next) in fill mode while editing on a coarse pointer', () => {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
     const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
@@ -541,7 +540,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
 
   it('renders production chrome as today when fill props are absent, even on a coarse pointer', () => {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
     const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
@@ -629,7 +628,7 @@ describe('DraggableWrapper touch-vs-scroll in fill mode (SNG-04)', () => {
     onChange?: TextChange;
   }) {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
 

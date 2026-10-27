@@ -15,7 +15,6 @@ import { englishSignMessages } from '../../messages';
 import type { SignMessages } from '../../../../editor/registry/messages';
 import { useTextFill } from '../fill/FillContext.tsx';
 import { AUTOCORRECT_OFF } from '../../lib/fill/fillTypes.ts';
-import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import type { TextElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
@@ -47,7 +46,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useLayoutEffect(() => {
-    const pageWrapper = textRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
+    const pageWrapper = textRef.current?.closest('[data-page-wrapper]') || null;
     if (!pageWrapper) return;
     const updateScale = () => {
       setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));

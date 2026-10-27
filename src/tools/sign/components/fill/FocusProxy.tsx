@@ -14,6 +14,7 @@ export default function FocusProxy() {
     <input
       ref={proxyRef}
       type="text"
+      data-fill-proxy
       className={styles.proxy}
       tabIndex={-1}
       aria-hidden="true"

@@ -7,8 +7,6 @@ import PdfWorkspace from './PdfWorkspace.tsx';
 import { rememberRecentWhiteoutColor } from '../../../editor/workspace/preferenceStore.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 // Asserts the is-processing state class; the page overlay has no role or attribute, so it is found by class.
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
-import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import type { RectangleElement, SymbolElement, TextElement } from '../../../editor/model/editorModel.ts';
@@ -241,8 +239,8 @@ describe('PdfWorkspace Component', () => {
     });
 
     expect(host.querySelector('[data-sign-page-surface]')).toBe(pageBefore);
-    const workspace = required(host.querySelector('[aria-busy]'), 'workspace');
-    expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
+    const workspace = required(host.querySelector('[data-workspace]'), 'workspace');
+    expect(workspace.hasAttribute('data-processing')).toBe(true);
     expect(workspace.getAttribute('aria-busy')).toBe('true');
   });
 
@@ -254,7 +252,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-page-overlay]'), 'page overlay');
 
     // Mock bounding rectangle so coordinate calculations resolve nicely
     overlay.getBoundingClientRect = () => rect(100, 100, 1000, 1000);
@@ -416,7 +414,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-page-overlay]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -489,7 +487,7 @@ describe('PdfWorkspace Component', () => {
     const state = testState({ selectedTool: 'text', carried: { direction: 'rtl' } });
 
     host = mountWorkspace({ state, dispatch });
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-page-overlay]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -508,7 +506,7 @@ describe('PdfWorkspace Component', () => {
     const state = testState({ selectedTool: 'text' });
 
     host = mountWorkspace({ state, dispatch });
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-page-overlay]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -637,7 +635,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-page-overlay]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 600, 800);
 
     act(() => {
@@ -711,7 +709,7 @@ describe('PdfWorkspace Component', () => {
         props: { numPages: 2, pageSizes: [pageSize, pageSize] }
       });
 
-      const buttons = host.querySelectorAll(`.${pageHeaderStyles['clear-page']}`);
+      const buttons = host.querySelectorAll('[data-editor-page-header] button');
       expect(buttons).toHaveLength(1);
     });
 
@@ -734,7 +732,7 @@ describe('PdfWorkspace Component', () => {
         }
       });
 
-      const button = required(host.querySelector<HTMLButtonElement>(`.${pageHeaderStyles['clear-page']}`), 'clear page button');
+      const button = required(host.querySelector<HTMLButtonElement>('[data-editor-page-header] button'), 'clear page button');
       act(() => {
         button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });

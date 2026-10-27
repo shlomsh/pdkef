@@ -4,7 +4,6 @@ import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import TextNode from './nodes/TextNode.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 
 // MOBI-24: iOS opens the keyboard only for a focus() made while the touch is
@@ -31,7 +30,7 @@ function mount(onBeginEdit: () => void) {
   const host = document.createElement('div');
   document.body.appendChild(host);
   const wrapper = document.createElement('div');
-  wrapper.className = workspaceStyles['page-wrapper'];
+  wrapper.setAttribute('data-page-wrapper', '');
   wrapper.getBoundingClientRect = () => new DOMRect(0, 0, 600, 800);
   host.appendChild(wrapper);
   act(() => {
