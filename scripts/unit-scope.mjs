@@ -214,8 +214,8 @@ export const WIDEN_RULES = [
   },
   {
     id: 'draft-store-sw-text-read',
-    reason: 'draftStore.js and public/sw.js are each read as text by the other\'s sync guard, not imported',
-    match: (f) => f === 'src/lib/drafts/draftStore.js' || f === 'public/sw.js',
+    reason: 'draftStore.ts and public/sw.js are each read as text by the other\'s sync guard, not imported',
+    match: (f) => f === 'src/lib/drafts/draftStore.ts' || f === 'public/sw.js',
     tests: ['src/lib/drafts/draftStoreServiceWorkerSync.test.js', 'scripts/sw.test.mjs'],
   },
   {

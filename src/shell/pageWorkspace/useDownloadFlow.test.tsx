@@ -9,7 +9,7 @@ vi.mock('../../lib/usePdfShare.js', () => ({
   usePdfShare: () => ({ shareReady: false, ...share }),
 }));
 const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));
-vi.mock('../../lib/drafts/draftStore.js', () => store);
+vi.mock('../../lib/drafts/draftStore.ts', () => store);
 
 type Prepared = DownloadFlowInput['prepared'];
 const blob = new Blob(['x'], { type: 'application/pdf' });

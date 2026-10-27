@@ -13,7 +13,7 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   reportToolLifecycleEvent: vi.fn(),
 }));
 
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: vi.fn(() => Promise.resolve(null)),
 }));

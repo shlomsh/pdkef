@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.ts';
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../useHoldUpdate.ts';
 import { reportError } from '../errorReport.ts';

@@ -23,7 +23,7 @@ export interface SendHandoffOptions {
  * out of the eager graph of every tool.
  */
 export async function sendHandoff(target: string, payload: HandoffPayload, options: SendHandoffOptions = {}): Promise<boolean> {
-  const { saveHandoff } = await import('./drafts/draftStore.js');
+  const { saveHandoff } = await import('./drafts/draftStore.ts');
   const saved = await saveHandoff(handoffKeyOf(target), payload);
   if (!saved) throw new Error('handoff');
   if (options.proceed && !options.proceed()) return false;

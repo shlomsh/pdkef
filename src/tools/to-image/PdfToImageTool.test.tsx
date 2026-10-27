@@ -22,7 +22,7 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
 }));
 
 const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(() => Promise.resolve(null)) }));
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: takeHandoffMock,
 }));

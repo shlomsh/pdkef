@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({ probe: vi.fn(), load: vi.fn(), take: vi.fn() }
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: mocks.probe }));
 vi.mock('../../lib/loadPdfPages.ts', () => ({ loadPdfWithPages: mocks.load }));
 vi.mock('../../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
-vi.mock('../../lib/drafts/draftStore.js', () => ({ takeHandoff: mocks.take }));
+vi.mock('../../lib/drafts/draftStore.ts', () => ({ takeHandoff: mocks.take }));
 
 const messages = {
   announceNeedsPassword: 'needs password', announceRestricted: 'restricted', loaded: '{name} {count}', loadFailed: 'failed',

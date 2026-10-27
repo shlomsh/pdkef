@@ -9,7 +9,7 @@ import * as compressLib from './compress.js';
 import * as imagesLib from './compressImages.js';
 import * as imageLib from './compressImage.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { saveHandoff } from '../../lib/drafts/draftStore.js';
+import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 
@@ -21,7 +21,7 @@ const fixtureFile = (name: string) =>
   new File([readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`))], `${name}.pdf`, { type: 'application/pdf' });
 
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: vi.fn(async () => null),
   saveHandoff: vi.fn(async () => true),

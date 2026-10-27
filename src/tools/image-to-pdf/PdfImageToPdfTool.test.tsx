@@ -34,7 +34,7 @@ const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({
 }));
 
 // SITE-42: the home page hands picked files over through the draft store's hand-off slot.
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: takeHandoffMock,
   saveHandoff: saveHandoffMock,

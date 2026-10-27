@@ -18,7 +18,7 @@ import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
-import { loadDraft, saveHandoff } from '../../lib/drafts/draftStore.js';
+import { loadDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
 import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
@@ -55,8 +55,8 @@ async function settleUntil(description: string, ready: () => boolean, budgetMs =
 }
 
 // RED-40: restored-draft tests hand loadDraft a record; every other test gets the real one.
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.js')>();
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.ts')>();
   return { ...actual, loadDraft: vi.fn(actual.loadDraft), saveHandoff: vi.fn(actual.saveHandoff) };
 });
 

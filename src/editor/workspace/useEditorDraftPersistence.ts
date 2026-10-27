@@ -4,19 +4,10 @@ import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValida
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
 import type { DetailEdits } from '../registry/draftValidation.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
-import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
+import { deleteDraft, takeHandoff, type HandoffRecord } from '../../lib/drafts/draftStore.ts';
 import { markHandoffArrival } from '../../lib/useHandoffIntake.ts';
 import { markArrival } from '../../lib/fileArrival.ts';
 import { clearHandoffPending, releaseHandoffPending, releaseHandoffPendingWhenLoaded } from '../../lib/handoffPending.ts';
-
-interface DraftRecord {
-  fileName: string;
-  fileType?: string;
-  fileBytes: ArrayBuffer;
-  from?: string;
-  elements?: unknown[];
-  extra?: { actionHistory?: unknown[]; carried?: Partial<DocumentStyle>; details?: DetailEdits };
-}
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
   tool: string;
@@ -84,8 +75,9 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     [],
   );
 
-  const fileFrom = (record: DraftRecord) =>
-    new File([record.fileBytes], record.fileName, { type: record.fileType || 'application/pdf' });
+  // takeHandoff only returns a valid record, and an editor tool is only handed a single-file one.
+  const fileFrom = (record: HandoffRecord) =>
+    new File([record.fileBytes as ArrayBuffer], record.fileName as string, { type: record.fileType || 'application/pdf' });
 
   // `extra` participates in the autosave revision. Keep its identity tied to
   // actual history/carried-value changes, otherwise a save-state rerender
@@ -117,7 +109,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     // home page never asks any more, MEM-03: opening a file overwrites nothing,
     // the previous file keeps its work on its own recents entry).
     beforeRestore: async () => {
-      const handoff = (await takeHandoff(tool)) as DraftRecord | null;
+      const handoff = await takeHandoff(tool);
       clearHandoffPending(tool);
       if (!handoff || loadStartedRef.current) {
         releaseHandoffPending();
@@ -126,7 +118,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
       loadStartedRef.current = true;
       cancelReleaseRef.current = releaseHandoffPendingWhenLoaded();
       markHandoffArrival(handoff.from);
-      loadPdf(fileFrom(handoff), handoff.fileBytes, { elements: [], actionHistory: [] }, true);
+      loadPdf(fileFrom(handoff), handoff.fileBytes as ArrayBuffer, { elements: [], actionHistory: [] }, true);
       return true;
     },
     onRestore: (record: object, source: 'restore' | 'recent') => {

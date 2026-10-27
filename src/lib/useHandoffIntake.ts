@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { takeHandoff } from './drafts/draftStore.js';
+import { takeHandoff } from './drafts/draftStore.ts';
 import { handoffFitsPage, handoffKindsForPage } from './handoffKinds.ts';
 import { markArrival } from './fileArrival.ts';
 import { ANALYTICS_TOOLS, type AnalyticsTool } from './usageEventSchema.ts';

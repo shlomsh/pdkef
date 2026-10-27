@@ -8,7 +8,7 @@ import {
 } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { seedUniqueId } from '../../editor/model/ids.ts';
 import type { HistoryElement } from '../../editor/model/actionHistory.ts';
-import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
+import { cacheRecentFile } from '../../lib/drafts/draftStore.ts';
 import { isPdfFile } from '../../lib/fileKind.js';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';

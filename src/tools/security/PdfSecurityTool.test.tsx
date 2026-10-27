@@ -16,7 +16,7 @@ const fixtureFile = (name: string) =>
 
 const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(), saveHandoffMock: vi.fn() }));
 
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: takeHandoffMock,
   saveHandoff: saveHandoffMock,

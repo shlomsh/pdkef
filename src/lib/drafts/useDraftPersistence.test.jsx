@@ -18,7 +18,7 @@ import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.
 // this is the behavior TODO.md's SIGN-06 asked for, already implemented in
 // useDraftPersistence.js's persist(), but previously unguarded by any test.
 
-vi.mock('./draftStore.js', () => ({
+vi.mock('./draftStore.ts', () => ({
   saveDraft: vi.fn(),
   attachDraftPreview: vi.fn(),
   cacheRecentFile: vi.fn(() => Promise.resolve(true)),
@@ -39,7 +39,7 @@ vi.mock('../thumbnails.js', () => ({
 }));
 
 import { renderDraftPreview } from '../thumbnails.js';
-import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft } from './draftStore.js';
+import { saveDraft, attachDraftPreview, isStoragePersisted, loadDraft } from './draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../fileArrival.ts';
 
 function Harness({ apiRef, props }) {
@@ -458,7 +458,7 @@ describe('useDraftPersistence - unpersisted-storage warning', () => {
 // actually return once two tools have touched the same entry - that isolation
 // lives in draftStore.js itself (see draftStore.test.js's "keeps two tools'
 // work on the same entry side by side"). This block proves it end to end
-// through the hook instead, against the real store: `vi.mock('./draftStore.js', ...)`
+// through the hook instead, against the real store: `vi.mock('./draftStore.ts', ...)`
 // above is hoisted above every import in this file, so the only way to get an
 // unmocked instance for one block is to unmock it and re-import both modules
 // fresh (`vi.resetModules()`) - the escape hatch useMergeDraft.test.tsx never
@@ -472,7 +472,7 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
   let RealHarness;
 
   beforeEach(async () => {
-    vi.doUnmock('./draftStore.js');
+    vi.doUnmock('./draftStore.ts');
     vi.resetModules();
     localStorage.clear();
     sessionStorage.clear();
@@ -482,7 +482,7 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     // an earlier test would otherwise leak into the next one's "fresh
     // database" assumptions.
     indexedDB = new IDBFactory();
-    realDraftStore = await import('./draftStore.js');
+    realDraftStore = await import('./draftStore.ts');
     const { useDraftPersistence: realUseDraftPersistence } = await import('./useDraftPersistence.js');
     RealHarness = ({ apiRef, props }) => {
       apiRef.current = { result: realUseDraftPersistence(props) };

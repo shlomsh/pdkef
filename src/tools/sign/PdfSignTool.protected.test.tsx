@@ -7,7 +7,7 @@ import * as pdfjsDist from 'pdfjs-dist';
 import PdfSignTool from './PdfSignTool.tsx';
 import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '../../editor/registry/messages';
-import { saveHandoff } from '../../lib/drafts/draftStore.js';
+import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 
@@ -15,8 +15,8 @@ declare const __dirname: string;
 
 // ENC-07: a protected PDF is one quiet state in Sign, not an editor or an alert.
 
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.js')>();
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.ts')>();
   return { ...actual, saveHandoff: vi.fn(actual.saveHandoff) };
 });
 

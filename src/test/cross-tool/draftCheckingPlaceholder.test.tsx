@@ -37,7 +37,7 @@ function draftRecord(fileName) {
 let loadDraftDeferred;
 let hint;
 
-vi.mock('../../lib/drafts/draftStore.js', () => ({
+vi.mock('../../lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(() => loadDraftDeferred.promise),
