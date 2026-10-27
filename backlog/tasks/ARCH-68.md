@@ -1,11 +1,9 @@
 ---
 id: "ARCH-68"
 title: "JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 10
 depends_on: ["ARCH-76"]
 ---
 
@@ -25,5 +23,9 @@ Area: Safety nets. Criterion: Type safety. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] `src/editor/adapters/pdf` type-checks with no suppressions.
-- [ ] Adding a `.js` file under those layers fails CI.
+- [x] `src/editor/adapters/pdf` type-checks with no suppressions.
+- [x] Adding a `.js` file under those layers fails CI.
+
+## Done (2026-10-27)
+
+Every non-test .js in src/editor/adapters/pdf carries // @ts-check and passes tsc with no suppressions or any-typed JSDoc (scripts/checkjs-folders.json lists the folder). scripts/check-js-typed.mjs fails on a missing @ts-check or a suppression there, and on a .js count rising under src/lib, src/editor or src/shell (jsFiles in ratchet-limits.json: 29, 29, 1). Planted cases failed first. Wired in CI and check:push.
