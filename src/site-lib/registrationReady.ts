@@ -42,7 +42,7 @@ export function whenReadyToRegister(deps: ReadyDeps): Promise<void> {
       if (deps.requestIdleCallback) deps.requestIdleCallback(finish, { timeout: IDLE_TIMEOUT_MS });
       else deps.setTimeout(finish, 0);
     };
-    void deps.loaded.then(() => {
+    void deps.loaded.then(() => { // reason: `loaded` resolves on the load event and never rejects
       if (finished) return;
       capTimer = deps.setTimeout(finish, capMs);
       if (!waiting()) return idle();
