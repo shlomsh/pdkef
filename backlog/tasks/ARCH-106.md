@@ -1,10 +1,9 @@
 ---
 id: "ARCH-106"
 title: "The Scan island is shorter than before ARCH-54 grew it"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -24,4 +23,8 @@ Area: Code. Criterion: Size and complexity. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] The Scan island is below 728 lines and the size record reflects it.
+- [x] The Scan island is below 728 lines and the size record reflects it.
+
+## Closed 2026-10-27
+
+`PdfScanTool` 864 -> 646 lines (file 932 -> 697, record dropped), hooks 28 -> 24, effects 12 -> 6. Render sections moved to `components/Scan*.tsx`, the full-screen effects to `hooks/useScanFullScreen.ts`, the scroll effect to `hooks/useKeepSelectedInView.ts`, option builders to `lib/scanOptions.ts` with a test. Effect order kept; no existing test edited.

@@ -1,10 +1,9 @@
 ---
 id: "ARCH-108"
 title: "Sign keeps its document-load fields in signState"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -23,5 +22,9 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] The island holds fewer `useState` calls, with the file, bytes, document and page sizes in the reducer.
-- [ ] The reducer tests cover the new actions.
+- [x] The island holds fewer `useState` calls, with the file, bytes, document and page sizes in the reducer.
+- [x] The reducer tests cover the new actions.
+
+## Closed 2026-10-27
+
+`file`, `sourceBytes`, `pdfDocument`, `numPages` and `pageSizes` moved into `signState` as `DOCUMENT_FILE_SET`, `PDF_DOCUMENT_READY` and `PAGE_SIZES_MEASURED`, each dispatched where the old setter ran. `useState` calls 17 -> 12. Reducer tests were written first and seen failing.
