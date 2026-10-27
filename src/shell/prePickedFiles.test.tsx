@@ -2,7 +2,7 @@ import { hydrate, render } from 'preact';
 import { useRef } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { takePrePickedFiles, useAdoptPrePickedFiles } from './prePickedFiles.ts';
+import { takeInputFiles, useAdoptPrePickedFiles } from './prePickedFiles.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
 function Picker({ onFiles, ready = true }: { onFiles: (files: File[]) => void; ready?: boolean }) {
@@ -58,7 +58,7 @@ describe('pre-picked files', () => {
     expect(onFiles).toHaveBeenCalledTimes(1);
   });
 
-  it('takePrePickedFiles tolerates a missing input', () => {
-    expect(takePrePickedFiles(null)).toEqual([]);
+  it('takeInputFiles tolerates a missing input', () => {
+    expect(takeInputFiles(null)).toEqual([]);
   });
 });
