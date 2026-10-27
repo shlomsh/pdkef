@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useRef } from 'preact/hooks';
+import { useModalDialog } from './useModalDialog.ts';
 import type { ComponentChildren } from 'preact';
 import styles from './Dialog.module.css';
 
@@ -46,29 +47,7 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.open = true;
-    } else if (!open && dialog.open) {
-      if (typeof dialog.close === 'function') dialog.close();
-      else dialog.open = false;
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onEsc = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      onCancel();
-    };
-    window.addEventListener('keydown', onEsc, { capture: true });
-    return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [open, onCancel]);
+  useModalDialog(dialogRef, open, onCancel);
 
   return (
     <dialog

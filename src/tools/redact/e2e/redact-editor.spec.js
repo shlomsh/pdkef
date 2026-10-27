@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import { PDFDocument, StandardFonts, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
 import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 // Reads a saved page's own content stream the same way deleteObjects.js does,
 // decoding the hex-string text operands @cantoo/pdf-lib writes (`<4B45...> Tj`)
@@ -58,33 +59,14 @@ async function makeMultiPagePdfBuffer(pageCount) {
   return Buffer.from(await doc.save());
 }
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Redact tool e2e fixture', {
-    x: 72,
-    y: 720,
-    size: 18,
-    font,
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  page.drawText('Hide this account number: 1234-5678-9012', {
-    x: 72,
-    y: 690,
-    size: 12,
-    font,
-    color: rgb(0.25, 0.25, 0.25),
-  });
-  page.drawText('Keep redaction boxes page-bound near every edge.', {
-    x: 72,
-    y: 660,
-    size: 12,
-    font,
-    color: rgb(0.25, 0.25, 0.25),
-  });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, {
+  title: false,
+  lines: [
+    { text: 'Redact tool e2e fixture' },
+    { text: 'Hide this account number: 1234-5678-9012', y: 690, size: 12, gray: 0.25 },
+    { text: 'Keep redaction boxes page-bound near every edge.', y: 660, size: 12, gray: 0.25 },
+  ],
+});
 
 // Collects the browser's own securitypolicyviolation events (structured,
 // spec-defined, cross-engine) rather than scraping console text — see E1.7

@@ -11,24 +11,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+- [QUAL-30](backlog/tasks/QUAL-30.md) P2 · merge-ready-time guards the wait and the poll, not the merge (in progress)
 
 ### Unify the tools, narrow the graph
 
-- [ARCH-76](backlog/tasks/ARCH-76.md) P2 · Ratchet limits live in one committed file that CI refuses to raise
-- [ARCH-50](backlog/tasks/ARCH-50.md) P2 · File and function length are ratchets that only shrink
-- [ARCH-42](backlog/tasks/ARCH-42.md) P2 · The Nx project graph is asserted acyclic in test:module-boundaries
-- [ARCH-58](backlog/tasks/ARCH-58.md) P2 · The three page tools share one usePageToolSession hook and one messages base
-- [ARCH-59](backlog/tasks/ARCH-59.md) P2 · Every dialog opens and closes through one useModalDialog hook
 - [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
-- [ARCH-62](backlog/tasks/ARCH-62.md) P3 · liveFontCoverage.js is wired in or deleted, and comments stop calling it live
-- [ARCH-64](backlog/tasks/ARCH-64.md) P2 · Tool-keyed types derive from ToolId
-- [ARCH-69](backlog/tasks/ARCH-69.md) P2 · tsconfig states strict mode explicitly
-- [ARCH-77](backlog/tasks/ARCH-77.md) P2 · End-to-end specs share one fixture and navigation helper module
-- [ARCH-87](backlog/tasks/ARCH-87.md) P2 · CSS Modules with no importer and classes never referenced fail the class check
-- [ARCH-90](backlog/tasks/ARCH-90.md) P2 · Dependency overrides pin patched versions, not vulnerable ones
-- [ARCH-91](backlog/tasks/ARCH-91.md) P2 · The runtime-scope zod alert has an override or an owned, expiring exception
-- [ARCH-93](backlog/tasks/ARCH-93.md) P2 · docs/module-boundaries.md holds only current rules, generated from or checked against the script
-- [ARCH-95](backlog/tasks/ARCH-95.md) P3 · The routing rule names toolIds.ts as the one place a new tool starts
 
 ### Search and languages
 
@@ -42,7 +29,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Polish
 
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
-- [SITE-44](backlog/tasks/SITE-44.md) P2 · App bar: the tool crumb gives way instead of shrinking to a letter (in progress)
 
 ## Waiting, by date
 

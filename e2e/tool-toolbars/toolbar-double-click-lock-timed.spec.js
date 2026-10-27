@@ -1,7 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { openTool as openSharedTool } from '../support/tool.js';
 
 /**
  * SIGN-30 follow-up: a real double-click has a real gap between its two
@@ -30,25 +31,14 @@ const FIELDS_FIXTURE = path.resolve(
   'income-tax-101-page1-geometry.pdf',
 );
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Toolbar timed double-click fixture', { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Toolbar timed double-click fixture' }] });
 
-async function openTool(page, path_, toolbarName, overlaySelector, buffer = null) {
-  await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
-  await page.goto(path_);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Choose file', { exact: true }).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles({ name: 'timed-dblclick.pdf', mimeType: 'application/pdf', buffer: buffer || await makePdfBuffer() });
-  await page.locator(overlaySelector).first().waitFor();
-  return page.getByRole('toolbar', { name: toolbarName });
-}
+const openTool = async (page, path_, toolbarName, overlaySelector, buffer = null) => openSharedTool(page, path_, {
+  clearStorage: true,
+  file: { name: 'timed-dblclick.pdf', buffer: buffer || await makePdfBuffer() },
+  overlaySelector,
+  toolbarName,
+});
 
 /**
  * The two clicks of a real double-click, fired with an explicit gap between

@@ -1,11 +1,9 @@
 ---
 id: "ARCH-59"
 title: "Every dialog opens and closes through one useModalDialog hook"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 5
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Code. Criterion: Duplication. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] No dialog calls `showModal()` directly outside the hook; the hook has a unit test.
+- [x] No dialog calls `showModal()` directly outside the hook; the hook has a unit test.
+
+## Done (2026-10-27)
+
+useModalDialog(ref, open, onClose, { escape, fallback, closeWhenHidden, syncOn }) in src/shell/ serves all six dialogs; each copy's Escape route, fallback and dependency list kept through options. No showModal() call remains outside it.

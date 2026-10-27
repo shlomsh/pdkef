@@ -1,11 +1,9 @@
 ---
 id: "ARCH-62"
 title: "liveFontCoverage.js is wired in or deleted, and comments stop calling it live"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 6
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Code. Criterion: Dead code and unused surface. Structure only: no behaviou
 
 ## Acceptance
 
-- [ ] `git grep liveFontCoverage` matches only live code, or nothing.
+- [x] `git grep liveFontCoverage` matches only live code, or nothing.
+
+## Done (2026-10-27)
+
+liveFontCoverage.js and its test are deleted (nothing imported them); scripts, comments and docs/wysiwyg-text-architecture.md now say the signPdf refusal is the coverage check.

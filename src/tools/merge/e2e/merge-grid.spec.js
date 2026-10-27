@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* Direction A (2026-09-13, renamed from merge-strip.spec.js): the document's
    page grid. It wraps (no horizontal strip) and is a `<ul class*="grid">`
@@ -15,12 +16,7 @@ import { readFile } from 'node:fs/promises';
 
 // A distinct page width per file lets pdf-lib tell the merged output's pages
 // apart afterwards, without relying on drawn text.
-async function makePdfBuffer(label, pageCount, width) {
-  const document = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) document.addPage([width, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (label, pageCount, width) => buildPdf(label, { pages: pageCount, size: [width, 792] });
 
 function grid(page) {
   return page.locator('ul[class*="grid"]');

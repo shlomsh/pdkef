@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 
 const fileName = 'תעודת זהות דיגיטלית - רקפת (2).pdf';
 
@@ -9,18 +9,7 @@ async function seedRecentFiles(page, entries) {
   }, entries);
 }
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  page.drawText(label, {
-    x: 72,
-    y: 700,
-    size: 18,
-    font: await doc.embedFont(StandardFonts.Helvetica),
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label, y: 700 }] });
 
 // Writes a full recents entry straight into IndexedDB, the shape MEM-01's
 // draftStore.js itself writes (one record per content hash, `work` holding

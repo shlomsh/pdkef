@@ -21,15 +21,6 @@
   }
 }
 
-.caption {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
 .file-list {
   list-style: none;
   margin: 0;
@@ -63,7 +54,7 @@
    is marked in its rail row, so the error under the heading and the rail
    agree on which file it is. The verifier's pass (2026-09-13) found the
    attribute written with no rule reading it here: the rule had stayed in
-   FileList.module.css, which this rail no longer uses. */
+   an old shell module that this rail no longer used (since deleted). */
 .file-row[data-error] {
   background: var(--color-danger-soft);
   box-shadow: inset 3px 0 0 var(--color-danger);

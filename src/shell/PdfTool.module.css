@@ -148,14 +148,6 @@
   border-color: var(--color-danger);
 }
 
-.field-hint {
-  grid-column: 2;
-  margin: -0.2rem 0 0;
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
 .page-selector-error {
   margin: 0.35rem 0 0;
   color: var(--color-danger);
@@ -179,11 +171,6 @@
   color: var(--color-text);
   border-radius: var(--radius-sm);
   font-size: 0.88rem;
-}
-
-.hint-message.centered {
-  margin-top: 0.5rem;
-  text-align: center;
 }
 
 .hint-message.danger {
@@ -213,11 +200,6 @@
 
 .tool-primary-action-progress--standalone {
   color: var(--color-text);
-}
-
-.thumb-placeholder-fill {
-  width: 100%;
-  height: 100%;
 }
 
 .error-message--full-width {
@@ -399,20 +381,6 @@
   color: var(--color-surface);
 }
 
-.tool-primary-action.is-done {
-  background: var(--color-surface-sunken);
-  color: var(--color-muted);
-  box-shadow: none;
-  border: 1px solid var(--color-border);
-}
-
-.tool-primary-action.is-done:hover:not(:disabled) {
-  background: var(--color-border);
-  color: var(--color-text);
-  box-shadow: none;
-  transform: none;
-}
-
 .tool-primary-action-progress {
   display: inline-flex;
   align-items: center;
@@ -438,23 +406,6 @@
   transition: stroke-dashoffset 0.25s var(--ease-out);
 }
 
-/* --- Generic loading skeleton --- deferred here from E2.2.7/E2.2.9: used by
-   FileList's consumers (Merge/Split file-thumbnail loading state) and
-   PageGrid's consumer (EditPages's page-thumbnail loading state), with no
-   combinator tying it to either specific module. */
-.thumb-placeholder {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(
-    100deg,
-    var(--color-surface-sunken) 30%,
-    var(--color-border) 50%,
-    var(--color-surface-sunken) 70%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
 @keyframes shimmer {
   from {
     background-position: 150% 0;
@@ -462,37 +413,6 @@
   to {
     background-position: -50% 0;
   }
-}
-
-/* --- "Add page numbers" toggle --- deferred here from E2.2.9: despite living
-   next to PageGrid's classes in global.css, its real consumers are
-   PdfEditPagesTool.jsx (page-grid toolbar) and PdfMergeTool.jsx (an unrelated
-   "add page numbers to output" checkbox) — a generic reused pill-toggle, not
-   page-grid-specific. */
-.page-numbers-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  cursor: pointer;
-  padding: 0.3rem 0.5rem;
-  border-radius: var(--radius-sm);
-  transition: color 0.15s;
-  user-select: none;
-}
-
-.page-numbers-toggle:hover {
-  color: var(--color-text);
-}
-
-.page-numbers-toggle input[type="checkbox"] {
-  accent-color: var(--color-primary);
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-  flex-shrink: 0;
 }
 
 /* Native-share button: generic multi-tool state (E2.2a.1). `.sig-btn`/
@@ -504,53 +424,6 @@
   gap: var(--space-2);
   width: 100%;
   margin-top: var(--space-3);
-}
-
-/* MERGE-06: the primary action pinned to the bottom edge on a phone, the way
-   the editor toolbars already stretch full width on mobile
-   (project_fullwidth_mobile_toolbar). `.tool-card` (top of this file) has no
-   `overflow: hidden`, which this depends on: `position: sticky` stops
-   working the moment an ancestor clips overflow, and would silently fall
-   back to `position: static` with no visible error. `position: sticky`
-   rather than `fixed` on purpose - it stays in the card's own flow, so it
-   can never cover content the way a fixed bar would; it just refuses to
-   scroll past the bottom of the viewport while the card is still on screen,
-   the same way a `position: sticky` table header behaves. Because it never
-   leaves flow, it also never needs matching bottom padding added to the list
-   above it to keep the last row visible - there's nothing to compensate for. */
-.action-row {
-  margin-top: var(--space-4);
-}
-
-@media (max-width: 719px) {
-  .action-row {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    margin-inline: -1.5rem; /* bleed to the card's edges (card padding is 1.5rem below 1024px) */
-    padding: var(--space-3) 1.5rem calc(var(--space-3) + env(safe-area-inset-bottom));
-    background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
-  }
-
-  .action-row > * {
-    margin-top: 0; /* the DownloadButton/primary action inside carries its own top margin at desktop; the row's gap owns spacing here */
-  }
-}
-
-/* MERGE-14 hand-off row: "Compress", "Sign", "Split" as quiet links
-   under Download. Three plain verbs, no icons competing with Download - see
-   backlog/tasks/MERGE-14.md's voice note. */
-.action-row-secondary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  justify-content: center;
-  margin-top: var(--space-3);
-  font-size: 0.88rem;
 }
 
 .quiet-link {

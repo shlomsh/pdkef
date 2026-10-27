@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 121 live: 26 up next, 33 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 107 live: 12 up next, 33 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -73,6 +73,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
+| QUAL-30 | P2 | [QUAL-30](backlog/tasks/QUAL-30.md) · merge-ready-time guards the wait and the poll, not the merge | In progress |
 
 ### Then, in order
 
@@ -114,21 +115,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ARCH-76 | P2 | [ARCH-76](backlog/tasks/ARCH-76.md) · Ratchet limits live in one committed file that CI refuses to raise |  |
-| ARCH-50 | P2 | [ARCH-50](backlog/tasks/ARCH-50.md) · File and function length are ratchets that only shrink |  |
-| ARCH-42 | P2 | [ARCH-42](backlog/tasks/ARCH-42.md) · The Nx project graph is asserted acyclic in test:module-boundaries |  |
-| ARCH-58 | P2 | [ARCH-58](backlog/tasks/ARCH-58.md) · The three page tools share one usePageToolSession hook and one messages base |  |
-| ARCH-59 | P2 | [ARCH-59](backlog/tasks/ARCH-59.md) · Every dialog opens and closes through one useModalDialog hook |  |
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
-| ARCH-62 | P3 | [ARCH-62](backlog/tasks/ARCH-62.md) · liveFontCoverage.js is wired in or deleted, and comments stop calling it live |  |
-| ARCH-64 | P2 | [ARCH-64](backlog/tasks/ARCH-64.md) · Tool-keyed types derive from ToolId |  |
-| ARCH-69 | P2 | [ARCH-69](backlog/tasks/ARCH-69.md) · tsconfig states strict mode explicitly |  |
-| ARCH-77 | P2 | [ARCH-77](backlog/tasks/ARCH-77.md) · End-to-end specs share one fixture and navigation helper module |  |
-| ARCH-87 | P2 | [ARCH-87](backlog/tasks/ARCH-87.md) · CSS Modules with no importer and classes never referenced fail the class check |  |
-| ARCH-90 | P2 | [ARCH-90](backlog/tasks/ARCH-90.md) · Dependency overrides pin patched versions, not vulnerable ones |  |
-| ARCH-91 | P2 | [ARCH-91](backlog/tasks/ARCH-91.md) · The runtime-scope zod alert has an override or an owned, expiring exception |  |
-| ARCH-93 | P2 | [ARCH-93](backlog/tasks/ARCH-93.md) · docs/module-boundaries.md holds only current rules, generated from or checked against the script |  |
-| ARCH-95 | P3 | [ARCH-95](backlog/tasks/ARCH-95.md) · The routing rule names toolIds.ts as the one place a new tool starts |  |
 
 ### Then, in order
 
@@ -232,7 +219,6 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
-| SITE-44 | P2 | [SITE-44](backlog/tasks/SITE-44.md) · App bar: the tool crumb gives way instead of shrinking to a letter | In progress |
 
 ### Then, in order
 
@@ -258,9 +244,9 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 57 done, 4 retired
-- Unify the tools, narrow the graph: 8 done, 0 retired
+- Unify the tools, narrow the graph: 22 done, 0 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 17 done, 1 retired
+- Polish: 18 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
