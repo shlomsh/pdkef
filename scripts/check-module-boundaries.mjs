@@ -692,6 +692,41 @@ export function loadProjectOwners(root = ROOT) {
   return owners;
 }
 
+// project name -> its string `implicitDependencies` (Nx draws an edge for each). `!` exclusions and
+// glob entries are skipped: they cannot name a project.
+export function loadImplicitDependencies(root = ROOT) {
+  const implicit = new Map();
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { if (entry.name !== 'node_modules') walk(full); continue; }
+      if (entry.name !== 'project.json') continue;
+      const { name, implicitDependencies } = JSON.parse(fs.readFileSync(full, 'utf8'));
+      if (!name || !Array.isArray(implicitDependencies)) continue;
+      const deps = implicitDependencies.filter((d) => typeof d === 'string' && !d.startsWith('!') && !/[*?{]/.test(d));
+      implicit.set(name, [...(implicit.get(name) || []), ...deps]);
+    }
+  };
+  for (const r of PROJECT_SCAN_ROOTS) {
+    const abs = path.join(root, r);
+    if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) walk(abs);
+  }
+  return implicit;
+}
+
+// Adds project -> dependency for each implicit dependency naming a known project (unknown: ignored).
+export function withImplicitEdges(graph, implicit, knownProjects) {
+  const known = new Set(knownProjects);
+  for (const [project, deps] of implicit) {
+    for (const dep of deps) {
+      if (!known.has(project) || !known.has(dep) || dep === project) continue;
+      if (!graph.has(project)) graph.set(project, new Set());
+      graph.get(project).add(dep);
+    }
+  }
+  return graph;
+}
+
 export function projectOf(relPath, owners) {
   let dir = path.posix.dirname(relPath);
   for (;;) {
@@ -771,7 +806,7 @@ export function projectCycleCheck(root = ROOT) {
       files.push(...collectSourceFiles(abs, [], { testFiles: false }), ...collectSourceFiles(abs, [], { testFiles: true }));
     } else files.push(abs);
   }
-  const graph = projectEdges(edgesOfFiles(files, root), owners);
+  const graph = withImplicitEdges(projectEdges(edgesOfFiles(files, root), owners), loadImplicitDependencies(root), owners.values());
   const edgeCount = [...graph.values()].reduce((n, s) => n + s.size, 0);
   return { projects: new Set(owners.values()).size, edgeCount, cycles: findProjectCycles(graph) };
 }
