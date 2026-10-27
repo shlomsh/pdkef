@@ -42,7 +42,6 @@ export const tools = [
     href: '/sign/',
     icon: FileSignature,
     accent: 'primary',
-    gridTitle: labelOf('sign'),
     gridDescription:
       'Add text, check marks, and your signature to a PDF on your phone or computer. Free, no signup, no upload.',
     sitemapPriority: '0.9',
@@ -323,7 +322,6 @@ export const tools = [
     href: '/redact/',
     icon: Eraser,
     accent: 'soft',
-    gridTitle: labelOf('redact'),
     gridDescription:
       'Blur parts of a PDF, black out private details, or delete text and images. Your file stays on your device.',
     sitemapPriority: '0.9',
@@ -378,7 +376,6 @@ export const tools = [
     // phones only, regardless of whether a file is loaded yet.
     heroPhoneCondensed: true,
     icon: Merge,
-    gridTitle: labelOf('merge'),
     gridDescription:
       'Combine multiple PDFs into one document, in any order, with no page limit or watermark.',
     sitemapPriority: '0.9',
@@ -423,7 +420,6 @@ export const tools = [
     slug: 'pdf-to-image',
     href: '/pdf-to-image/',
     icon: ImageUp,
-    gridTitle: labelOf('pdf-to-image'),
     gridDescription:
       'Convert PDF pages into high-quality JPG or PNG images at full resolution, with no watermark.',
     sitemapPriority: '0.9',
@@ -468,7 +464,6 @@ export const tools = [
     slug: 'image-to-pdf',
     href: '/image-to-pdf/',
     icon: ImageDown,
-    gridTitle: labelOf('image-to-pdf'),
     gridDescription:
       'Combine JPG or PNG images into one PDF at their original quality, with no watermark.',
     sitemapPriority: '0.9',
@@ -513,7 +508,6 @@ export const tools = [
     slug: 'scan-to-pdf',
     href: '/scan-to-pdf/',
     icon: ScanLine,
-    gridTitle: labelOf('scan-to-pdf'),
     gridDescription:
       'Turn photos of paper into a clean PDF: straighten each page, even out the light, keep it small.',
     sitemapPriority: '0.9',
@@ -604,7 +598,6 @@ export const tools = [
     slug: 'split',
     href: '/split/',
     icon: Split,
-    gridTitle: labelOf('split'),
     gridDescription:
       'Extract specific pages or split a PDF into multiple files, with no page limit or watermark.',
     sitemapPriority: '0.9',
@@ -651,7 +644,6 @@ export const tools = [
     href: '/extract-pdf-pages/',
     variantOf: 'split',
     icon: FileOutput,
-    gridTitle: labelOf('extract-pdf-pages'),
     gridDescription:
       'Pull the pages you need out of a PDF into a new file, and leave the original as it was.',
     sitemapPriority: '0.8',
@@ -702,7 +694,6 @@ export const tools = [
     // docs/view-density-control-spec.md 4.7).
     condenseOnLoad: true,
     icon: Shrink,
-    gridTitle: labelOf('compress'),
     gridDescription:
       'Shrink a PDF toward a size limit like 100KB, with quality controls and no daily cap.',
     sitemapPriority: '0.9',
@@ -750,7 +741,6 @@ export const tools = [
     // Same island and loaded layout as compress, so the same fold.
     condenseOnLoad: true,
     icon: ImageMinus,
-    gridTitle: labelOf('compress-image'),
     gridDescription:
       'Shrink a JPG or PNG toward a size limit like 100KB, for portals that cap a photo separately, with no daily cap.',
     sitemapPriority: '0.8',
@@ -796,7 +786,6 @@ export const tools = [
     href: '/unlock/',
     // Condenses on load like every page-grid tool (the default); nothing special here.
     icon: FileLock2,
-    gridTitle: labelOf('unlock'),
     gridDescription: 'Add a password to secure your PDF or remove a known password.',
     sitemapPriority: '0.8',
     sitemapChangefreq: 'weekly',
@@ -838,7 +827,6 @@ export const tools = [
     href: '/organize-pdf/',
     toolId: 'edit-pdf',
     icon: FileEdit,
-    gridTitle: labelOf('organize-pdf'),
     gridDescription:
       'Put pages in order, remove the ones you do not need, turn them upright, and add page numbers, all in a single pass.',
     sitemapPriority: '0.9',
@@ -884,7 +872,6 @@ export const tools = [
     href: '/rotate-pdf/',
     variantOf: 'organize-pdf',
     icon: RotateCw,
-    gridTitle: labelOf('rotate-pdf'),
     gridDescription: 'Turn a sideways or upside-down page upright, one page or several, and save the result.',
     sitemapPriority: '0.8',
     sitemapChangefreq: 'monthly',
@@ -928,7 +915,6 @@ export const tools = [
     href: '/remove-pages/',
     variantOf: 'organize-pdf',
     icon: FileMinus,
-    gridTitle: labelOf('remove-pages'),
     gridDescription:
       'Delete the pages you do not need and keep the rest of your PDF, with no page limit or watermark.',
     sitemapPriority: '0.8',
@@ -974,7 +960,6 @@ export const tools = [
     href: '/add-page-numbers-to-pdf/',
     variantOf: 'organize-pdf',
     icon: ListOrdered,
-    gridTitle: labelOf('add-page-numbers-to-pdf'),
     gridDescription: 'Number every page of a PDF at the bottom centre, in the order the pages end up.',
     sitemapPriority: '0.8',
     sitemapChangefreq: 'monthly',
@@ -1011,7 +996,8 @@ export const tools = [
       { question: 'Is there a file size limit?', answer: "There are no artificial file size limits. The only constraint is your device's available memory, since all processing runs locally in the browser." },
     ],
   },
-];
+// Every grid title is the tool's TOOL_PAGES label (ARCH-63), so it is added once here, not per entry.
+].map((tool) => ({ ...tool, gridTitle: labelOf(tool.slug) }));
 
 export const toolsBySlug = Object.fromEntries(tools.map((tool) => [tool.slug, tool]));
 
