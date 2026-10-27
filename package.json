@@ -46,6 +46,7 @@
     "test:html-comments": "node scripts/check-built-html-comments.js",
     "test:weight": "node scripts/check-page-weight.js",
     "test:lazy-modules": "node scripts/check-lazy-modules.js",
+    "test:precache-budget": "node scripts/check-precache-budget.mjs",
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "test:licenses": "node scripts/runtime-license-inventory.mjs --check",
     "test:dependency-governance": "node scripts/verify-dependency-governance.mjs",
