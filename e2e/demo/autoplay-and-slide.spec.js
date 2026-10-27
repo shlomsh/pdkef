@@ -13,10 +13,8 @@ test('the visible demo plays without scrolling, scroll scrubs it, and story two 
     scrollY: window.scrollY,
     progress: Number(el.style.getPropertyValue('--p-track')),
   }));
-  await page.waitForTimeout(700);
-  const laterProgress = await signStage.evaluate(el => Number(el.style.getPropertyValue('--p-track')));
+  await expect.poll(() => signStage.evaluate(el => Number(el.style.getPropertyValue('--p-track')))).toBeGreaterThan(progress + 0.005);
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
-  expect(laterProgress).toBeGreaterThan(progress + 0.005);
 
   // At the handoff, the old complete panel is pushed left while the next
   // complete panel enters from the right. This deliberately rules out the

@@ -76,6 +76,7 @@ test.describe('first screen', () => {
         expect(geo.heroTop / geo.h, 'hero top as a share of the viewport').toBeLessThanOrEqual(0.45);
         expect(Math.abs(geo.heroMid - (geo.stageTop + Math.min(geo.h, geo.stageBottom)) / 2), 'hero centred in the first screen').toBeLessThanOrEqual(48);
         expect(geo.mainBottom, 'tool column ends within the first screen').toBeLessThanOrEqual(geo.h);
+        // Time on purpose: the layout-shift window while the verb plays.
         await page.waitForTimeout(2500);
         expect(await page.evaluate(() => window.__cls), 'layout shift while the verb plays').toBeLessThan(0.001);
         // Vertical balance: the sheet's content sits centred in the sheet.
@@ -137,6 +138,7 @@ for (const route of ['/merge/', '/unlock/']) {
     await page.setViewportSize({ width: 1440, height: 820 });
     await open(page, route);
     await expect(page.locator('[data-empty-state] div[aria-hidden="true"]').first()).toBeVisible();
+    // Time on purpose: reduced motion must stay still, so there is no animation to wait for.
     await page.waitForTimeout(500);
     const running = await page.evaluate(() => {
       const root = document.querySelector('[data-empty-state]');
@@ -210,6 +212,7 @@ for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900,
     const verb = await page.locator('[data-empty-state] div[aria-hidden="true"]').first().boundingBox();
     expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
     await expectInViewport(page, page.locator(PICKER).first(), 'Choose files');
+    // Time on purpose: the verb plays to its last frame before overflow is read.
     await page.waitForTimeout(2500);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
@@ -272,8 +275,7 @@ const RUNNING_IN_SHEET = () => {
 test('the verb plays without reduced motion (positive control)', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 820 });
   await open(page, '/merge/');
-  await page.waitForTimeout(300);
-  expect(await page.evaluate(RUNNING_IN_SHEET), 'running animations in the sheet').toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(RUNNING_IN_SHEET), { message: 'running animations in the sheet' }).toBeGreaterThan(0);
 });
 
 test('reduced motion shows the last frame of the Merge verb', async ({ page, browser }) => {
@@ -330,6 +332,7 @@ test.describe('Merge restore', () => {
     });
     await restored.goto('/merge/');
     await expect(restored.locator('ul[class*="grid"] > li[data-key]').first()).toBeVisible({ timeout: 15_000 });
+    // Time on purpose: a layout-shift observation window after the restore.
     await restored.waitForTimeout(1500);
     const { cls, heights } = await restored.evaluate(() => ({ cls: window.__cls, heights: window.__heroHeights }));
     expect(heights.length, 'hero was sampled').toBeGreaterThan(0);
@@ -395,6 +398,7 @@ test.describe('hand-off arrival', () => {
     await fits.click();
     await page.waitForURL(new RegExp(`/${tool}/?$`));
     await expect(page.locator('[data-tool-loaded], [data-tool-shell]').first()).toBeVisible({ timeout: 20_000 });
+    // Time on purpose: a layout-shift observation window after the tool loads.
     await page.waitForTimeout(1000);
     expect(await page.evaluate(() => window.__pendingSeen), 'marker set before the file showed').toBe(true);
     const { cls, heights, pending, key } = await page.evaluate((t) => ({
@@ -420,7 +424,7 @@ test.describe('hand-off arrival', () => {
     await expect(page.locator('html')).not.toHaveAttribute('data-handoff-pending', /.*/);
     expect(await page.evaluate(() => sessionStorage.getItem('pdkef:handoff-pending:compress')), 'stale key cleared').toBeNull();
     expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'empty first screen').toBe('grid');
-    await page.waitForTimeout(500);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     // Releasing moves the condensed hero to its centred place in the grid: one move, measured 0.049
     // at 1440x820. A stale key needs a hand-off whose navigation never finished, so it is allowed
     // that one shift and no more (the tool column is hidden until the release, so it adds none).
@@ -454,6 +458,7 @@ test.describe('phone first screen fills the viewport', () => {
         await open(page, route);
         const bottom = await page.locator('.tool-stage').evaluate((el) => el.getBoundingClientRect().bottom);
         expect(bottom, 'stage bottom against the viewport').toBeGreaterThanOrEqual(height - 1);
+        // Time on purpose: a layout-shift observation window on first load.
         await page.waitForTimeout(1500);
         expect(await page.evaluate(() => window.__cls), 'layout shift on first load').toBeLessThan(0.001);
       });

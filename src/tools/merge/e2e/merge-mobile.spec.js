@@ -123,6 +123,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     // jumped the document to an apparently random location.
     const scrollBeforeTap = await work.evaluate(() => window.scrollY);
     await chip.click();
+    // Time on purpose: a negative check, the tap must not scroll.
     await work.waitForTimeout(150);
     expect(await work.evaluate(() => window.scrollY)).toBe(scrollBeforeTap);
 
@@ -477,6 +478,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.locator('[class*="rail-pinned"] a[download]').click();
+    // Time on purpose: a negative check, the strip must not reappear.
     await page.waitForTimeout(300);
     await expect(strip).toHaveCount(0);
   });

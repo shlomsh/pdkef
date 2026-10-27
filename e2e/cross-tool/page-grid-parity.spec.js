@@ -187,6 +187,7 @@ for (const route of ROUTES.filter((r) => !REORDERABLE.includes(r))) {
     await dragPage(page, 1, 4);
     await cells(page).nth(4).focus();
     await page.keyboard.press('ArrowLeft');
+    // Time on purpose: a negative check, nothing may move in this window.
     await page.waitForTimeout(300);
     expect(await keys(page)).toEqual(before);
   });

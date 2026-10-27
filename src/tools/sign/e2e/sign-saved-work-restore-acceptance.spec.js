@@ -172,6 +172,7 @@ for (const restoreCase of RESTORE_CASES) {
 
     // More than the 700ms debounce: a restore is not an edit, so neither the
     // pending nor saved chip may appear after the editor has settled.
+    // Time on purpose: a negative check across the debounce, nothing may appear.
     await restored.waitForTimeout(1_200);
     await expect(restored.getByText('Saving draft…', { exact: true })).toHaveCount(0);
     await expect(restored.getByText('Draft saved', { exact: true })).toHaveCount(0);

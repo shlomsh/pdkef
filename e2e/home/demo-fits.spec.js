@@ -96,7 +96,7 @@ test.describe('dock fits the page', () => {
         for (const index of [0, n - 1]) {
           const card = cards.nth(index);
           await card.hover();
-          await page.waitForTimeout(1200);
+          await expect(card.locator('.app-tooltip')).toBeVisible();
           const tip = await card.locator('.app-tooltip').evaluate((el) => {
             const r = el.getBoundingClientRect();
             return { left: Math.round(r.left), right: Math.round(r.right), visible: getComputedStyle(el).visibility };

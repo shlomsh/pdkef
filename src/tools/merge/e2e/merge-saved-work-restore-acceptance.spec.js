@@ -124,8 +124,6 @@ for (const restoreCase of RESTORE_CASES) {
     await expect(firstCard).toHaveAttribute('data-rotation', '90');
     if (restoreCase.hasRailStatus) {
       await expect(page.locator('[class*="draft-status-row"]', { hasText: 'Draft saved' })).toBeVisible({ timeout: 15_000 });
-    } else {
-      await page.waitForTimeout(1_200);
     }
     // "Draft saved" can still be showing from the save before the rotation
     // (the grid now appears once its fit settles, MERGE-24), so wait for the
@@ -158,11 +156,13 @@ for (const restoreCase of RESTORE_CASES) {
     // Covers the delayed inspectPdf/renderThumbnail work as well as the first
     // restored model. Neither the normal debounce nor pagehide/visibility
     // flush may turn a restore into a new revision.
+    // Time on purpose: a negative check, a restore must not create a revision.
     await restored.waitForTimeout(1_500);
     await restored.evaluate(() => {
       document.dispatchEvent(new Event('visibilitychange'));
       window.dispatchEvent(new Event('pagehide'));
     });
+    // Time on purpose: a negative check after the flush events.
     await restored.waitForTimeout(300);
     await expect(restored.getByText('Saving draft…', { exact: true })).toHaveCount(0);
     await expect(restored.getByText('Draft saved', { exact: true })).toHaveCount(0);
@@ -177,6 +177,7 @@ for (const restoreCase of RESTORE_CASES) {
     const { width } = restoreCase.viewport;
     if (width < 768 || width >= 1024) await expect(pickedUp.filter({ visible: true })).toHaveCount(1);
     await expect(pickedUp).toHaveCount(0, { timeout: 10_000 });
+    // Time on purpose: the observation window closes after the timer departs.
     await restored.waitForTimeout(300);
 
     const trace = await restored.evaluate(() => window.__mergeSavedWorkRestoreTrace());
@@ -206,6 +207,7 @@ for (const restoreCase of RESTORE_CASES) {
       expect(afterEdit.updatedAt).toBeGreaterThan(beforeRestore.updatedAt);
       expect(afterEdit.plan[0]).toMatchObject({ rotation: 180 });
       await restored.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+      // Time on purpose: a negative check after pagehide.
       await restored.waitForTimeout(300);
       expect(await readMergeWork(restored)).toEqual(afterEdit);
     }

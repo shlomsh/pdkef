@@ -69,7 +69,7 @@ async function openAndMark(page) {
   await page.mouse.down();
   await expect(page.locator('.redact-drawing-preview')).toHaveCount(1);
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.36, { steps: 6 });
-  await page.waitForTimeout(50);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.mouse.up();
   await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
   return toolbar;
@@ -138,6 +138,7 @@ test.describe('Redact keeps the file\'s details unless the person changes them',
     expect(doc.getAuthor()).toBeUndefined();
     expect(doc.getTitle()).toBe('Declaration');
 
+    // Time on purpose: lets the debounced draft save land before the reload.
     await page.waitForTimeout(1500);
     await page.reload();
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();

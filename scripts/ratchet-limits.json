@@ -4,6 +4,9 @@
     "maxPageDeadBytes": 10000,
     "maxSinglePageUtilities": 148
   },
+  "e2eSleeps": {
+    "waitForTimeout": 38
+  },
   "size": {
     "fileLines": {
       "src/data/tools.js": 1030,
