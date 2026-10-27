@@ -176,14 +176,6 @@
   display: inline;
 }
 
-.dropzone-subtext {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 /* Two equal ways in (Scan's Choose files and Take a photo): equal columns, one height, and a
    larger target than a lone picker, since this pair is the whole first decision. A column whose
    item is hidden (the camera on a mouse) drops out, leaving the picker alone and centred. */
