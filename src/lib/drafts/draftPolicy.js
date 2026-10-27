@@ -1,3 +1,4 @@
+// @ts-check
 // Workspace retention policy for every persisted editor draft. Keep the timestamp
 // calculation and expiry check together so a policy change applies to drafts
 // created by older versions too: only `savedAt` is persisted, never a frozen
@@ -28,10 +29,15 @@ export function createDraftRetention(now = Date.now()) {
  * so increasing or decreasing MAX_AGE_MS in a future release takes effect on
  * existing drafts immediately.
  */
+/** @param {unknown} savedAt */
 export function getDraftExpiry(savedAt) {
-  return Number.isFinite(savedAt) ? savedAt + MAX_AGE_MS : NaN;
+  return Number.isFinite(savedAt) ? /** @type {number} */ (savedAt) + MAX_AGE_MS : NaN;
 }
 
+/**
+ * @param {unknown} savedAt
+ * @param {number} [now]
+ */
 export function isDraftExpired(savedAt, now = Date.now()) {
   const expiresAt = getDraftExpiry(savedAt);
   return !Number.isFinite(expiresAt) || now >= expiresAt;
