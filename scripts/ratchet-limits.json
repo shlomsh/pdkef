@@ -22,7 +22,7 @@
       "src/shell/pageGrid/PageGrid.tsx": 882,
       "src/tools/compress/PdfCompressTool.tsx": 956,
       "src/tools/redact/PdfRedactTool.tsx": 1331,
-      "src/tools/scan/PdfScanTool.tsx": 969,
+      "src/tools/scan/PdfScanTool.tsx": 938,
       "src/tools/sign/PdfSignTool.tsx": 1077,
       "src/tools/sign/components/PdfWorkspace.tsx": 844,
       "src/tools/sign/components/SignToolbar.tsx": 833,
@@ -31,7 +31,7 @@
     "fileThreshold": 800,
     "functionLines": {
       "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 326,
-      "src/shell/BasePdfTool.tsx#BasePdfTool": 428,
+      "src/shell/BasePdfTool.tsx#BasePdfTool": 422,
       "src/shell/pageGrid/PageGrid.tsx#PageGrid": 693,
       "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
       "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 853,

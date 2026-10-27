@@ -6,8 +6,8 @@ import { makePdfBuffer } from './support/pdf.js';
 // a page with no handler yet. Measured 2026-10-27 on slow 4G with a 4x CPU slowdown: the picker is
 // tappable 0.9 to 1.1 s in and the island hydrates at 2.5 to 4.5 s, so Merge, Compress and Sign
 // each had a 1.5 to 3.5 s window in which a chosen file was silently dropped (DEBT-64's cause).
-// The shell reads whatever the input already holds when it mounts. Delaying the scripts is the
-// only way to pick before hydration deterministically.
+// The shell reads whatever the input already holds when it mounts. Holding the scripts until the
+// file is chosen is the only way to pick before hydration deterministically.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 
 const routes = [
@@ -33,11 +33,14 @@ const pickers = [...routes.map((route) => ({ route, selector: EMPTY_PICKER, name
 for (const { route, selector, name } of pickers) {
   test(`${name} keeps a file chosen before the island hydrates`, async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
+    let release;
+    const chosen = new Promise((resolve) => { release = resolve; });
     await page.route('**/_astro/*.js', async (request) => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await chosen;
       await request.continue();
     });
-    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    // Not 'domcontentloaded': module scripts hold that event, and they are held until the pick.
+    await page.goto(route, { waitUntil: 'commit' });
     const input = page.locator(selector).first();
     await input.waitFor({ state: 'attached' });
     expect(await page.locator('astro-island[client="load"][ssr]').count(), 'chosen before hydration').toBeGreaterThan(0);
@@ -47,6 +50,7 @@ for (const { route, selector, name } of pickers) {
       ? { name: 'early.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('early') }
       : { name: 'early.png', mimeType: 'image/png', buffer: PNG };
     await input.setInputFiles(file);
+    release();
 
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await expect(page.locator('[data-empty-state]')).toHaveCount(0, { timeout: 15_000 });
