@@ -139,8 +139,8 @@ function editActionOf(fields: object): 'move_mark' | 'resize_mark' | 'edit_mark'
 
 export default function PdfWorkspace({
   status,
-  errorDetail: errorDetailProp,
-  fieldNavigation: fieldNavigationProp,
+  errorDetail = null,
+  fieldNavigation = NOOP_FIELD_NAVIGATION,
   messages,
   document: documentProps,
   refs,
@@ -216,8 +216,6 @@ export default function PdfWorkspace({
   };
   announce: (msg: string) => void;
 }) {
-  const errorDetail = errorDetailProp ?? null;
-  const fieldNavigation = fieldNavigationProp ?? NOOP_FIELD_NAVIGATION;
   const {
     numPages,
     pageSizes,
