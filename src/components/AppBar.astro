@@ -72,15 +72,27 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
       <span class="text-[1.1rem] font-bold">PDkef</span>
     </a>
 
+    {/* SITE-44: the crumb is the only thing in this row that gives, so it sits
+        in a wrapper that takes whatever width the brand, badge and chips leave
+        and is its own inline-size container. The crumb hides when that room
+        cannot hold the chevron and 4.5rem of the name (5.6rem: 12px + 0.35rem
+        gap + 72px), so it either reads, ending in an ellipsis when cut, or is
+        not there; before this it was cut to "S" at 320px with no ellipsis.
+        Measuring the room itself, not the viewport, is what keeps the rule
+        right for every tool name, locale and chip width, and for the 721-765px
+        band where the chips regain their labels. A browser without container
+        queries keeps the old squeeze. Guard: e2e/app-bar-crumb.spec.js. */}
     {toolName && (
-      <span class="inline-flex min-w-0 items-center gap-[0.35rem] text-[0.85rem] font-semibold text-[var(--color-muted)]">
-        {/* Same mirror as the back arrow: the separator points from the brand
-            toward the tool name, which is leftward on an RTL page. */}
-        <svg class={isRtl ? '-scale-x-100 shrink-0 text-[var(--color-muted-light)]' : 'shrink-0 text-[var(--color-muted-light)]'} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-        <span class="overflow-hidden text-ellipsis whitespace-nowrap">{toolName}</span>
-      </span>
+      <div class="@container min-w-0 flex-1">
+        <span data-crumb class="flex min-w-0 items-center gap-[0.35rem] text-[0.85rem] font-semibold text-[var(--color-muted)] @max-[5.6rem]:hidden">
+          {/* Same mirror as the back arrow: the separator points from the brand
+              toward the tool name, which is leftward on an RTL page. */}
+          <svg class={isRtl ? '-scale-x-100 shrink-0 text-[var(--color-muted-light)]' : 'shrink-0 text-[var(--color-muted-light)]'} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+          <span class="overflow-hidden text-ellipsis whitespace-nowrap">{toolName}</span>
+        </span>
+      </div>
     )}
 
     <span data-on-device class={`ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold ${isHome ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-surface)]' : 'border-[var(--color-border-strong)] bg-[transparent] text-[var(--color-primary-text)]'} min-[561px]:max-[1023px]:gap-1 min-[561px]:max-[1023px]:text-[0.7rem] max-[560px]:size-8 max-[560px]:justify-center max-[560px]:gap-0 max-[560px]:p-0 max-[560px]:text-[0px]`}>
