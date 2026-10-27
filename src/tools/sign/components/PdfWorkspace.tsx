@@ -134,6 +134,25 @@ function editActionOf(fields: object): 'move_mark' | 'resize_mark' | 'edit_mark'
   return 'edit_mark';
 }
 
+/**
+ * FORM-11: every region the detector published for this file, counted. It is deliberately the same
+ * set the hint overlay outlines - combs, free-text cells and checkboxes - so what the toolbar line
+ * says is exactly what a person can see and tap, rather than the smaller set Next/Previous walks.
+ * The toolbar gets the count, never the regions: a field's own label is content out of somebody's
+ * form. `detail` is the one line the Feedback report may carry. `detectionIssue` is already
+ * content-free (the hook writes it itself, and it outlives a later successful run on purpose); a
+ * caught error is turned into text here and nowhere else, sanitised on the way out - see
+ * formDetectionDetail.ts for what may survive that and why the raw error may not.
+ */
+function formDetectionSummary(formRegions: NonNullable<PdfWorkspaceProps['document']['formRegions']>) {
+  return {
+    state: formRegions.detection,
+    count: formRegions.combs.length + formRegions.cells.length + formRegions.checkboxes.length,
+    detail: formRegions.detectionIssue
+      ?? (formRegions.detectionError === undefined ? null : describeFormDetectionFailure(formRegions.detectionError)),
+  };
+}
+
 export default function PdfWorkspace({
   status,
   errorDetail = null,
@@ -578,6 +597,9 @@ export default function PdfWorkspace({
       className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
       ref={workspaceRef}
       aria-busy={status === 'signing'}
+      data-workspace
+      data-processing={status === 'signing' || undefined}
+      data-pseudo-fullscreen={isPseudoFullscreen || undefined}
     >
       {(status === 'editing' || status === 'signing') && (
         <>
@@ -601,27 +623,7 @@ export default function PdfWorkspace({
             exportIssueCount={exportReadiness.blockingFieldCount}
             onReviewExportIssues={reviewExportIssues}
             fieldNavigation={fieldNavigation}
-            /* FORM-11: every region the detector published for this file,
-               counted. It is deliberately the same set the hint overlay
-               outlines - combs, free-text cells and checkboxes - so what the
-               line says is exactly what a person can see and tap, rather than
-               the smaller set Next/Previous walks. The toolbar gets the count,
-               never the regions: a field's own label is content out of
-               somebody's form. */
-            formDetection={{
-              state: formRegions.detection,
-              count: formRegions.combs.length + formRegions.cells.length + formRegions.checkboxes.length,
-              // The one line the Feedback report may carry. `detectionIssue`
-              // is already content-free (the hook writes it itself, and it
-              // outlives a later successful run on purpose); a caught error
-              // is turned into text here and nowhere else, sanitised on the
-              // way out - see formDetectionDetail.ts for what may survive
-              // that and why the raw error may not.
-              detail: formRegions.detectionIssue
-                ?? (formRegions.detectionError === undefined
-                  ? null
-                  : describeFormDetectionFailure(formRegions.detectionError)),
-            }}
+            formDetection={formDetectionSummary(formRegions)}
             messages={messages}
           />
 
@@ -660,6 +662,7 @@ export default function PdfWorkspace({
                     data-sign-page-surface={pageIdx}
                     data-eyedropper-surface
                     className={workspaceStyles['page-wrapper']}
+                    data-page-wrapper
                     style={{ aspectRatio: `${size.width} / ${size.height}` }}
                   >
                     <PdfPageCanvas
@@ -669,6 +672,7 @@ export default function PdfWorkspace({
                     />
 
                     <div
+                      data-page-overlay
                       className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' && fillTool !== 'none' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
                       // Capture sees a tap on an existing checkbox mark before
                       // its wrapper consumes the bubble event, so the same

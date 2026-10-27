@@ -8,7 +8,6 @@ import { textElementLayout } from '../../../editor/text/textLayout.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
@@ -174,7 +173,7 @@ export default function DraggableWrapper<T extends EditorElement>({
   // rendered at the wrong scale until an unrelated re-render happened. Reading it from
   // our own position in the DOM (at layout/event time, when it's always attached)
   // removes that timing dependency entirely.
-  const getPageWrapper = () => elementRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
+  const getPageWrapper = () => elementRef.current?.closest('[data-page-wrapper]') || null;
   const actionsRef = useRef<HTMLDivElement | null>(null);
   // The registry's declarative view flags (E7.6) - DraggableWrapper reads these
   // instead of comparing element.type directly, so adding a new element type
@@ -299,7 +298,7 @@ export default function DraggableWrapper<T extends EditorElement>({
   // below is the middleware that closes it, reading `window.visualViewport`
   // directly after `shift()`/`size()` have done their own zoom-invariant job.
   const getFloatingBoundary = (reference: Element | null) =>
-    reference?.closest?.(`.${workspaceStyles['page-wrapper']}`) || 'clippingAncestors';
+    reference?.closest?.('[data-page-wrapper]') || 'clippingAncestors';
   const floatingBoundary = ({ elements }: { elements: { reference: unknown } }) =>
     getFloatingBoundary(elements.reference instanceof Element ? elements.reference : null);
   // Measured, not derived: at the plain 8px offset a tap aimed at a short text

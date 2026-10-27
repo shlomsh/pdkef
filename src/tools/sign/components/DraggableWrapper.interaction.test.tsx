@@ -147,7 +147,6 @@ vi.mock('@floating-ui/react', async () => {
 // already resolves to the mocked module.
 import DraggableWrapper from './DraggableWrapper.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 
 describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   let container: HTMLDivElement;
@@ -251,7 +250,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
 
   function mountInPageWrapper(element: TestElement, { isActive = true, pageWidthPoints = 612, onChange = () => {}, pageGeometry }: MountOptions = {}) {
     const wrapper = document.createElement('div');
-    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.setAttribute('data-page-wrapper', '');
     wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
     const editorElement = toEditorElement(element);
@@ -606,7 +605,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   describe('whiteout bounds', () => {
     function renderWhiteout(element: WhiteoutFixture, onChange: ChangeHandler): HTMLDivElement {
       const page = document.createElement('div');
-      page.className = workspaceStyles['page-wrapper'];
+      page.setAttribute('data-page-wrapper', '');
       document.body.appendChild(page);
       const whiteout = createWhiteoutElement(element);
       act(() => {

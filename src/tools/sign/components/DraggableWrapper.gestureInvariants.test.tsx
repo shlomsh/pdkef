@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import TextNode from './nodes/TextNode.tsx';
@@ -110,7 +109,7 @@ function mountInPageWrapper<T extends EditorElement>(element: T, node: Component
   const container = document.createElement('div');
   document.body.appendChild(container);
   const wrapper = document.createElement('div');
-  wrapper.className = workspaceStyles['page-wrapper'];
+  wrapper.setAttribute('data-page-wrapper', '');
   wrapper.getBoundingClientRect = pageRect;
   container.appendChild(wrapper);
 
