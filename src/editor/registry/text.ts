@@ -13,6 +13,7 @@ import { fontkitFont, unrepresentableCharacters } from '../text/textMetrics.ts';
 export { normalizeTabsForBidi, stripInvisibleFormatting, findMissingGlyphs };
 export { fontkitFont, unrepresentableCharacters };
 
+/** @testSeam */
 export function applyTextResize({ startFontSize, delta, startRect, fallbackDeltaPoints }: TextResizeInput): TextResizePatch {
   let fontSize = startFontSize;
   if (startRect && startRect.width > 0 && startRect.height > 0) {
@@ -25,6 +26,7 @@ export function applyTextResize({ startFontSize, delta, startRect, fallbackDelta
   return { fontSize: Math.max(MIN_FONT_SIZE_PT, Math.min(MAX_FONT_SIZE_PT, fontSize)) };
 }
 
+/** @testSeam */
 export function applyTextPosition({ start, startSize, nextSize, isLeftHandle, isTopHandle, isRtl }: TextPositionInput): TextPositionPatch {
   let { left, top } = start;
   if (nextSize.width > 0 && startSize.width > 0) {
@@ -35,6 +37,7 @@ export function applyTextPosition({ start, startSize, nextSize, isLeftHandle, is
   return { left, top };
 }
 
+/** @testSeam */
 export function applyCombWidth({ handle, delta, start, isRtl, minWidth }: WidthResizeInput): WidthResizePatch {
   const movesAnchor = isRtl ? handle === 'right' : handle === 'left';
   const rawWidth = start.width + ((isRtl ? movesAnchor : !movesAnchor) ? delta.x : -delta.x);
@@ -46,6 +49,7 @@ export function applyCombWidth({ handle, delta, start, isRtl, minWidth }: WidthR
   };
 }
 
+/** @testSeam */
 export function combWidthFloor({ element, fontSizePx, pageWidthPx, naturalWidthPx }: WidthFloorInput): number {
   if (!(pageWidthPx > 0) || !(fontSizePx > 0)) return MIN_COMB_WIDTH_PCT;
   const cellFloorPct = Math.max(MIN_COMB_WIDTH_PCT, (combCellCount(element as TextElement) * fontSizePx * COMB_MIN_CELL_EM / pageWidthPx) * 100);

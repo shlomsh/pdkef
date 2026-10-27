@@ -35,8 +35,8 @@ import { renderRedactionSurface, renderStrokeSurface } from './redactionSurface.
 // TypeScript reducing the call's argument type to `never` - indexing a record
 // whose values are all the same type is safe for a union key; indexing one
 // whose value type varies per key is not.
-export type ElementRenderer = (context: NodeRenderContext<any>) => ComponentChildren;
-export type ElementRenderers = Record<ElementType, ElementRenderer>;
+type ElementRenderer = (context: NodeRenderContext<any>) => ComponentChildren;
+type ElementRenderers = Record<ElementType, ElementRenderer>;
 
 export function createElementRenderers(
   nodeComponents: Partial<Record<SignToolType, ComponentType<any>>>,
