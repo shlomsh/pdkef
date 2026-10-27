@@ -16,7 +16,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [ARCH-46](backlog/tasks/ARCH-46.md) P2 · Single-tool modules leave the editor core, and rule 9 covers src/editor (in progress)
 - [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
-- [ARCH-72](backlog/tasks/ARCH-72.md) P2 · Uncaught-error reporting installs from the layout, and every island has an error boundary (in progress)
 - [ARCH-79](backlog/tasks/ARCH-79.md) P2 · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet (in progress)
 - [ARCH-83](backlog/tasks/ARCH-83.md) P2 · Every CI run reports how far affected-scope narrowed it (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)

@@ -1,11 +1,9 @@
 ---
 id: "ARCH-72"
 title: "Uncaught-error reporting installs from the layout, and every island has an error boundary"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 12
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Safety nets. Criterion: Error handling and async. Structure only: no behav
 
 ## Acceptance
 
-- [ ] A unit test shows a thrown render error reaches the reporter; one install per page.
+- [x] A unit test shows a thrown render error reaches the reporter; one install per page.
+
+## Done (2026-10-27)
+
+src/lib/IslandErrorBoundary.tsx wraps every island at its export (the ten tool islands, BasePdfTool, FileDropzone, ScrollDriver), installs the window handlers once per page and reports a render error once before re-throwing it, so the screen is unchanged. Installed from the boundary, not a layout script, so the static SEO surface ships no JS. Unit tests cover the report, one install, nesting and the window handler skip.
