@@ -16,11 +16,11 @@
 // Classification is data-driven (MODULE_PREFIXES below) on purpose: ARCH-16
 // through ARCH-19 move folders, not rules, so landing a move is "add/edit one
 // table row", never "teach this script a new folder". See docs/module-boundaries.md
-// for the layout, the evidence and the full rule list this file enforces; keep
-// the two in sync by hand, since one is prose and the other is code.
+// for the layout and the full rule list this file enforces; RULES (below) is checked
+// against that doc by scripts/check-module-boundaries.doc.test.mjs.
 //
-// The rule set (must match docs/module-boundaries.md's "Dependency rules" section;
-// the numbering below follows the doc, which is the record):
+// The rule set (RULES below carries each rule's id and a phrase the doc's rule of the
+// same number must contain; the numbering follows the doc):
 //   1. A tool (`tool:<name>`) may import `shell`, `editor-ui`, `editor`, `lib`,
 //      and site's `i18n`/`data`. It may never import another tool, the site
 //      surface (`pages`/`layouts`/`content`/`styles`/`.astro` components), or
@@ -106,6 +106,21 @@ import {
   collectSourceFiles, IMPORT_PATTERN, importSpecifiers, resolveRelativeImport, relOf,
   buildEdges, buildToolRouteMap, scriptSrcSpecifiers, astroScriptSrcEdges, reverseEdgeMap, edgesOfFiles,
 } from './import-graph.mjs';
+
+// The ten rules by id, each with a phrase docs/module-boundaries.md's rule of the same number
+// contains (scripts/check-module-boundaries.doc.test.mjs fails when the two lists disagree).
+export const RULES = [
+  { id: 1, name: 'may never import another tool' },
+  { id: 2, name: 'may never import a tool' },
+  { id: 3, name: 'headless' },
+  { id: 4, name: 'island entry point' },
+  { id: 5, name: 'MUST NOT import a tool' },
+  { id: 6, name: 'launder a cross-tool import' },
+  { id: 7, name: "only reference that tool's own routes" },
+  { id: 8, name: 'import from `scripts/`' },
+  { id: 9, name: 'two or more distinct consumers' },
+  { id: 10, name: 'bottom layer' },
+];
 
 export { collectSourceFiles, IMPORT_PATTERN, importSpecifiers, buildEdges, buildToolRouteMap, scriptSrcSpecifiers, astroScriptSrcEdges };
 
