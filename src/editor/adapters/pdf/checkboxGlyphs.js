@@ -1,3 +1,4 @@
+// @ts-check
 import { PDFName } from '@cantoo/pdf-lib';
 import { tokenize, multiplyMatrix, applyMatrix } from './contentStream.js';
 import { lookupDict } from './dictReads.js';
@@ -15,6 +16,14 @@ import {
   operandNumber,
 } from './textState.js';
 
+/**
+ * @typedef {import('./contentStream.js').Matrix} Matrix
+ * @typedef {import('./contentStream.js').Box} Box
+ * @typedef {import('./pdfFonts.js').FontEntry} FontEntry
+ * @typedef {[number, number, number, number]} GlyphSquare `[x0, y0, x1, y1]` in glyph space (1000/em)
+ */
+
+/** @type {Matrix} */
 const IDENTITY = [1, 0, 0, 1, 0, 0];
 
 // A checkbox is often a text glyph rather than a painted rectangle. These are
@@ -27,6 +36,7 @@ const CHECKBOX_GLYPHS = new Set(['\u2610', '\u25a1', '\u274f', '\u2751']);
 // Wingdings: the square family (0x6F, 0x71, and the plain 0xA8). Wingdings 2 0x2A is the box
 // สปส.1-10 prints its four checkboxes with, confirmed against the embedded glyph's outline (two
 // nested rectangles, 1086 x 1086 of 2048 em), not assumed from a table.
+/** @type {Record<'wingdings' | 'wingdings2', Set<number>>} */
 const SYMBOL_FONT_CHECKBOX_CODES = {
   wingdings: new Set([0x6f, 0x71, 0xa8]),
   wingdings2: new Set([0x2a]),
@@ -43,6 +53,7 @@ const ZAPF_DINGBATS_CHECKBOX_CODES = new Set([0x6f, 0x71]);
 // @pdf-lib/fontkit). The outer contour, x[35,725] y[0,692] for ❑, includes
 // the shadow. pdf.js's FoxitDingbats, drawn when a file does not embed the
 // font, agrees: ❑ exactly, ❏ within 8/1000 em (x[64,597] y[126,662]).
+/** @type {Map<number, GlyphSquare>} */
 const ZAPF_DINGBATS_CHECKBOX_SQUARES = new Map([
   [0x6f, [64, 134, 590, 662]],
   [0x71, [66, 123, 598, 660]],
@@ -57,6 +68,7 @@ const ZAPF_DINGBATS_CHECKBOX_SQUARES = new Map([
 // shadow, so the box is the inner (hole) contour: the outer contour, x[84,807] y[0,723], includes the
 // shadow. 0x2A is a ring, whose hole is only the paper inside the stroke, so the box is its outer
 // edge. 0xA8 is one contour with no hole to read a square from, so it keeps the line box.
+/** @type {Record<'wingdings' | 'wingdings2', Map<number, GlyphSquare>>} */
 const SYMBOL_FONT_CHECKBOX_SQUARES = {
   wingdings: new Map([
     [0x6f, [181, 96, 711, 626]],
@@ -74,25 +86,59 @@ const WINGDINGS_BOX_UNICODE_CODES = new Map([[0x274f, 0x6f], [0x2751, 0x71]]);
  * reports it through its ToUnicode map in the private-use range U+F020-F0FF (Word's way of
  * embedding Wingdings), where the low byte is the Wingdings code, or as the box's own Unicode
  * character.
+ *
+ * @param {FontEntry} font
+ * @param {number} code
+ * @returns {number | undefined}
  */
 function symbolCode(font, code) {
   const unicode = font.toUnicode.get(code)?.codePointAt(0);
   if (unicode !== undefined && unicode >= 0xf020 && unicode <= 0xf0ff) return unicode - 0xf000;
-  if (font.symbolFamily === 'wingdings' && WINGDINGS_BOX_UNICODE_CODES.has(unicode)) {
+  if (font.symbolFamily === 'wingdings' && unicode !== undefined && WINGDINGS_BOX_UNICODE_CODES.has(unicode)) {
     return WINGDINGS_BOX_UNICODE_CODES.get(unicode);
   }
   return font.twoByte ? undefined : code;
 }
 
+/**
+ * The square inside a symbol-font box glyph, when `code` is one.
+ *
+ * @param {FontEntry | null | undefined} font
+ * @param {number} code
+ * @returns {GlyphSquare | undefined}
+ */
+function symbolSquare(font, code) {
+  if (!font?.symbolFamily) return undefined;
+  const symbol = symbolCode(font, code);
+  return symbol === undefined ? undefined : SYMBOL_FONT_CHECKBOX_SQUARES[font.symbolFamily].get(symbol);
+}
+
+/**
+ * @param {FontEntry | null | undefined} font
+ * @param {number} code
+ * @returns {boolean}
+ */
 function isCheckboxGlyph(font, code) {
-  if (font?.symbolFamily && SYMBOL_FONT_CHECKBOX_CODES[font.symbolFamily].has(symbolCode(font, code))) return true;
-  return (font?.isZapfDingbats && ZAPF_DINGBATS_CHECKBOX_CODES.has(code))
-    || CHECKBOX_GLYPHS.has(font?.toUnicode.get(code));
+  if (font?.symbolFamily) {
+    const symbol = symbolCode(font, code);
+    if (symbol !== undefined && SYMBOL_FONT_CHECKBOX_CODES[font.symbolFamily].has(symbol)) return true;
+  }
+  const character = font?.toUnicode.get(code);
+  return Boolean(font?.isZapfDingbats && ZAPF_DINGBATS_CHECKBOX_CODES.has(code))
+    || (character !== undefined && CHECKBOX_GLYPHS.has(character));
 }
 
 /**
  * Axis-aligned PDF-space bounds of a text-space rectangle under the current
  * text and graphics transforms.
+ *
+ * @param {Matrix} tm
+ * @param {Matrix} ctm
+ * @param {number} x0
+ * @param {number} y0
+ * @param {number} x1
+ * @param {number} y1
+ * @returns {Box}
  */
 function textGlyphBox(tm, ctm, x0, y0, x1, y1) {
   const trm = multiplyMatrix(tm, ctm);
@@ -123,22 +169,27 @@ function textGlyphBox(tm, ctm, x0, y0, x1, y1) {
  * ordinary letter cannot become a false target.
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
- * @returns {Array<{x: number, y: number, width: number, height: number}>}
+ * @returns {Box[]}
  */
 export function collectCheckboxGlyphs(page) {
   const context = page.doc.context;
   const resources = lookupDict(context, page.node.get(PDFName.of('Resources')));
   const fonts = buildFontTable(context, resources);
   const tokens = tokenize(getPageContentBytes(page));
+  /** @type {Box[]} */
   const boxes = [];
 
   let ctm = IDENTITY;
+  /** @type {Matrix[]} */
   const ctmStack = [];
+  /** @type {import('./contentStream.js').Token[]} */
   let operands = [];
   let inText = false;
   let ts = initialTextState();
 
+  /** @param {number} index */
   const num = (index) => operandNumber(operands, index);
+  /** @param {Uint8Array} bytes */
   const showString = (bytes) => {
     const { font, fontSize, rise } = ts;
     const ascent = (font?.ascent ?? FALLBACK_ASCENT) * fontSize + rise;
@@ -147,7 +198,7 @@ export function collectCheckboxGlyphs(page) {
       const advance = glyphAdvance(ts, code);
       const square = font?.isZapfDingbats
         ? ZAPF_DINGBATS_CHECKBOX_SQUARES.get(code)
-        : font?.symbolFamily && SYMBOL_FONT_CHECKBOX_SQUARES[font.symbolFamily].get(symbolCode(font, code));
+        : symbolSquare(font, code);
       if (square) {
         const [x0, y0, x1, y1] = square;
         const sx = (fontSize * ts.horizontalScale) / 1000;
@@ -160,6 +211,7 @@ export function collectCheckboxGlyphs(page) {
     }
   };
 
+  /** @param {string} op */
   const showOperator = (op) => {
     if (!inText) return;
     if (op === 'TJ') {
