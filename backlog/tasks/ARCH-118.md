@@ -1,7 +1,7 @@
 ---
 id: "ARCH-118"
 title: "More JavaScript folders are type-checked through checkjs-folders.json"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

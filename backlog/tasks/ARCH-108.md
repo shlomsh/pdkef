@@ -1,7 +1,7 @@
 ---
 id: "ARCH-108"
 title: "Sign keeps its document-load fields in signState"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

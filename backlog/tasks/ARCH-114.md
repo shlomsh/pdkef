@@ -1,7 +1,7 @@
 ---
 id: "ARCH-114"
 title: "The unused-exports baseline of own-file-only and test-only exports shrinks"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

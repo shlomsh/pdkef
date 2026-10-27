@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 99 live: 12 up next, 22 then, 26 waiting, 39 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 99 live: 22 up next, 13 then, 26 waiting, 38 parked.
 
 ## Redact: finish removal
 
@@ -115,24 +115,25 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names | In progress |
 | ARCH-89 | P3 | [ARCH-89](backlog/tasks/ARCH-89.md) · Repeated CSS blocks and static inline styles move to shared rules | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
+| ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · No tool island function is over 300 lines | In progress |
+| ARCH-105 | P2 | [ARCH-105](backlog/tasks/ARCH-105.md) · The size ratchet also records functions over 150 lines and nesting depth | In progress |
+| ARCH-106 | P2 | [ARCH-106](backlog/tasks/ARCH-106.md) · The Scan island is shorter than before ARCH-54 grew it | In progress |
+| ARCH-108 | P2 | [ARCH-108](backlog/tasks/ARCH-108.md) · Sign keeps its document-load fields in signState | In progress |
+| ARCH-109 | P2 | [ARCH-109](backlog/tasks/ARCH-109.md) · Redact moves its effect clusters into hooks over the reducer state | In progress |
+| ARCH-114 | P2 | [ARCH-114](backlog/tasks/ARCH-114.md) · The unused-exports baseline of own-file-only and test-only exports shrinks | In progress |
+| ARCH-118 | P2 | [ARCH-118](backlog/tasks/ARCH-118.md) · More JavaScript folders are type-checked through checkjs-folders.json | In progress |
+| ARCH-121 | P2 | [ARCH-121](backlog/tasks/ARCH-121.md) · Fixed sleeps in e2e specs are replaced by web-first assertions | In progress |
+| ARCH-129 | P2 | [ARCH-129](backlog/tasks/ARCH-129.md) · docs/module-boundaries.md describes the current layout | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-101 | P2 | [ARCH-101](backlog/tasks/ARCH-101.md) · src/lib groups its modules by domain, and a check holds the shape |  |
-| ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · No tool island function is over 300 lines |  |
-| ARCH-105 | P2 | [ARCH-105](backlog/tasks/ARCH-105.md) · The size ratchet also records functions over 150 lines and nesting depth |  |
-| ARCH-106 | P2 | [ARCH-106](backlog/tasks/ARCH-106.md) · The Scan island is shorter than before ARCH-54 grew it |  |
-| ARCH-108 | P2 | [ARCH-108](backlog/tasks/ARCH-108.md) · Sign keeps its document-load fields in signState |  |
-| ARCH-109 | P2 | [ARCH-109](backlog/tasks/ARCH-109.md) · Redact moves its effect clusters into hooks over the reducer state |  |
-| ARCH-114 | P2 | [ARCH-114](backlog/tasks/ARCH-114.md) · The unused-exports baseline of own-file-only and test-only exports shrinks |  |
-| ARCH-118 | P2 | [ARCH-118](backlog/tasks/ARCH-118.md) · More JavaScript folders are type-checked through checkjs-folders.json |  |
-| ARCH-121 | P2 | [ARCH-121](backlog/tasks/ARCH-121.md) · Fixed sleeps in e2e specs are replaced by web-first assertions |  |
 | ARCH-123 | P2 | [ARCH-123](backlog/tasks/ARCH-123.md) · The narrowed share of main runs is reported and acted on |  |
-| ARCH-129 | P2 | [ARCH-129](backlog/tasks/ARCH-129.md) · docs/module-boundaries.md describes the current layout |  |
 
 ### Parked
 
@@ -140,7 +141,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | --- | --- | --- | --- |
 | ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control |  |
 | ARCH-44 | P3 | [ARCH-44](backlog/tasks/ARCH-44.md) · Imports across layers use one path alias per layer |  |
-| ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names |  |
 | ARCH-102 | P3 | [ARCH-102](backlog/tasks/ARCH-102.md) · src/tools/sign/lib is split into sub-areas with a file-count ratchet |  |
 | ARCH-104 | P3 | [ARCH-104](backlog/tasks/ARCH-104.md) · ToolHero.astro is split into per-section components |  |
 | ARCH-107 | P3 | [ARCH-107](backlog/tasks/ARCH-107.md) · draftStore.ts and formCells.js are split by responsibility |  |
