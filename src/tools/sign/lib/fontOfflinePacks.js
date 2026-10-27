@@ -1,4 +1,4 @@
-import { FONT_BY_FAMILY, isPrecachedFontFile } from '../../../editor/text/fontManifest.js';
+import { FONT_BY_FAMILY, isPrecachedFontFile } from '../../../lib/fonts/fontManifest.js';
 
 export const FONT_PACK_MESSAGE = Object.freeze({
   status: 'pdkef:font-pack-status',

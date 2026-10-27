@@ -80,6 +80,9 @@
 //      allowlist entries (ARCH-46: files only tests/scripts read) are excepted;
 //      otherwise it holds at zero violations like rules 6 and 8, so a module that fails it moves into
 //      the tool that actually uses it, or is deleted if nothing does.
+//  11. The site (pages, layouts, content, data, i18n, styles, `.astro` components,
+//      `src/site-lib/`) never imports `src/editor/` (ARCH-43). Data the editor and the
+//      site both read (the font manifest and license tables) lives in `src/lib/`.
 //
 // An `.astro` file's own `<script src="...">` tag is an edge the main scan
 // (buildEdges(), rules 1-8 and the allowlist) does not see
@@ -90,7 +93,7 @@
 // its own separate astroScriptSrcEdges() pass below, since otherwise a
 // module loaded only this way would misread as having no site consumer.
 //
-// Anything not covered by these ten rules is not checked here (test
+// Anything not covered by these eleven rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
 // its own, below, because it is not part of the target layout
 // docs/module-boundaries.md describes); this file is deliberately narrower
@@ -112,7 +115,7 @@ export {
   findProjectCycles, projectCycleCheck,
 } from './project-cycles.mjs';
 
-// The ten rules by id, each with a phrase docs/module-boundaries.md's rule of the same number
+// The eleven rules by id, each with a phrase docs/module-boundaries.md's rule of the same number
 // contains (scripts/check-module-boundaries.doc.test.mjs fails when the two lists disagree).
 export const RULES = [
   { id: 1, name: 'may never import another tool' },
@@ -125,6 +128,7 @@ export const RULES = [
   { id: 8, name: 'import from `scripts/`' },
   { id: 9, name: 'two or more distinct consumers' },
   { id: 10, name: 'bottom layer' },
+  { id: 11, name: 'never imports the editor core' },
 ];
 
 export { collectSourceFiles, IMPORT_PATTERN, importSpecifiers, buildEdges, buildToolRouteMap, scriptSrcSpecifiers, astroScriptSrcEdges };
@@ -240,6 +244,10 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   // Rule 5: `components` (HeroDemo/, compareFigure.css) may not import a tool.
   if (fromModule === 'components' && isTool(toModule)) {
     return 'the components module may not import a tool';
+  }
+  // Rule 11 (ARCH-43): the site never imports the editor core. Data both need lives in src/lib/.
+  if (isSite(fromModule) && toModule === 'editor') {
+    return 'the site may not import the editor core: shared data lives in src/lib/';
   }
   // Test infrastructure under src/test/: not part of the target layout, but
   // the same laundering hazard applies - it may build its harness out of any
