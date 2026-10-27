@@ -1,7 +1,7 @@
 ---
 id: "DEBT-64"
 title: "Merge's phone chip test passes alone and fails under parallel load"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
