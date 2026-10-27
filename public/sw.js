@@ -55,6 +55,11 @@ const REQUIRED_URL = '/';
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
+// MEM-23: a request with no time limit can stall forever and hold one of the
+// lanes above; enough of them and the install never finishes. Past this limit a
+// request is aborted and its URL counts as missed like any other failure.
+const PRECACHE_FETCH_TIMEOUT_MS = 30000;
+
 // SIGN-23: non-default faces are opt-in family packs, provisioned separately and
 // not part of the app install. A successful provision stores this synthetic marker
 // beside every face in the current build cache. The marker is the explicit
@@ -143,8 +148,20 @@ function isCriticalOver(ownVersion, otherKeys) {
 // 'no-cache', not 'reload': still validated with the server on every call, so
 // a deploy is never served stale, but an unchanged file comes back as a 304
 // instead of being downloaded again (reload sends no conditional request).
-function fetchFresh(url) {
-  return fetch(new Request(resolve(url), { cache: 'no-cache' }));
+function fetchFresh(url, signal) {
+  return fetch(new Request(resolve(url), { cache: 'no-cache', signal }));
+}
+
+// MEM-23: runs `start(signal)` and aborts it after PRECACHE_FETCH_TIMEOUT_MS.
+// The timer is cleared as soon as the request settles.
+async function withPrecacheTimeout(start) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PRECACHE_FETCH_TIMEOUT_MS);
+  try {
+    return await start(controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // MEM-16: only /_astro/ files are content-hashed, so their bytes never change
@@ -254,7 +271,9 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
           return;
         }
       }
-      const response = isHashedUrl(url) ? await fetch(new Request(resolve(url))) : await fetchFresh(url);
+      const response = await withPrecacheTimeout((signal) => (
+        isHashedUrl(url) ? fetch(new Request(resolve(url), { signal })) : fetchFresh(url, signal)
+      ));
       if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
       await cache.put(url, response);
     } catch (error) {

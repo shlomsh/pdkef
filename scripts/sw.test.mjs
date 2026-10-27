@@ -102,6 +102,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     Request,
     Response,
     URL,
+    AbortController,
     Promise,
     Error,
     Array,
@@ -244,6 +245,51 @@ describe('offline-first service worker', () => {
     ));
 
     await expect(dispatchInstall(worker)).rejects.toThrow(/Failed to precache \//);
+  });
+
+  describe('MEM-23: precache request time limit', () => {
+    const LIMIT = Number(/const PRECACHE_FETCH_TIMEOUT_MS = (\d+);/.exec(workerSource)?.[1] ?? 30000);
+    // A fetch that never settles on its own: it rejects only when its request is aborted.
+    const hang = (request) => new Promise((_resolve, reject) => {
+      request.signal.addEventListener('abort', () => reject(new Error('aborted')));
+    });
+
+    it('aborts a request that never settles, reports its URL missed, and still caches the rest', async () => {
+      vi.useFakeTimers();
+      try {
+        const aborted = [];
+        const base = manifestResponder(['/', '/sign/', '/_astro/app.js']);
+        const worker = createWorker(vi.fn((request) => {
+          if (new URL(requestUrl(request)).pathname === '/sign/') {
+            request.signal.addEventListener('abort', () => aborted.push('/sign/'));
+            return hang(request);
+          }
+          return base(request);
+        }));
+        const install = dispatchInstall(worker);
+        await vi.advanceTimersByTimeAsync(LIMIT - 1);
+        expect(aborted).toEqual([]);
+        await vi.advanceTimersByTimeAsync(1);
+        await install;
+        expect(aborted).toEqual(['/sign/']);
+        expect(worker.entries.has('https://pdkef.test/')).toBe(true);
+        expect(worker.entries.has('https://pdkef.test/_astro/app.js')).toBe(true);
+        expect(worker.entries.has('https://pdkef.test/sign/')).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('clears the timer of a request that resolves in time', async () => {
+      vi.useFakeTimers();
+      try {
+        const worker = createWorker(manifestResponder(['/', '/sign/', '/_astro/app.js']));
+        await dispatchInstall(worker);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   it('uninstalls itself and drops its caches when the origin serves no build', async () => {
