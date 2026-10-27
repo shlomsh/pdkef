@@ -1310,6 +1310,97 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     });
   });
 
+  describe('every other write path checks the same hashes', () => {
+    const asset = (path) => ({ method: 'GET', mode: 'no-cors', url: `https://pdkef.test${path}` });
+    const COMPLETE = 'https://pdkef.test/__pdkef/precache-complete/';
+    // Install with the icon missing (its bytes were another build's), then let the page request it.
+    const installed = async (listed, bytes) => {
+      const serve = (pathname) => (pathname.startsWith('/icons/') || pathname.startsWith('/fonts/') ? new Response(bytes) : new Response('asset'));
+      const worker = createWorker(manifestResponder(['/', '/icons/icon-512.png'], serve, {}, listed), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      return worker;
+    };
+
+    it('serves a listed asset with other bytes but does not store it, and the build stays incomplete', async () => {
+      const worker = await installed({ '/icons/icon-512.png': pageHash('this build') }, 'newer build');
+      const { response, background } = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      expect(await response.text()).toBe('newer build');
+      await Promise.all(background);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+      worker.self.clients.matchAll = vi.fn(async () => []);
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+      expect(worker.entries.has(COMPLETE)).toBe(false);
+    });
+
+    it('stores a listed asset whose bytes match', async () => {
+      const worker = await installed({ '/icons/other.png': pageHash('x') }, 'this build');
+      const { background } = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/icons/icon-512.png').text()).toBe('this build');
+    });
+
+    it('stores a matching listed asset the install missed', async () => {
+      const worker = await installed({ '/icons/icon-512.png': pageHash('this build') }, 'this build');
+      worker.entries.delete('https://pdkef.test/icons/icon-512.png');
+      const { background } = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/icons/icon-512.png').text()).toBe('this build');
+    });
+
+    it('stores an asset the manifest does not list', async () => {
+      const worker = await installed({ '/icons/icon-512.png': pageHash('this build') }, 'this build');
+      const { background } = await dispatchFetch(worker, asset('/_astro/late.js'));
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/_astro/late.js').text()).toBe('asset');
+    });
+
+    describe('font packs', () => {
+      const FONT = '/fonts/Heebo-Regular.ttf';
+      const KEY = 'https://pdkef.test/fonts/Heebo-Regular.ttf';
+      const pack = { family: 'Heebo', urls: [FONT] };
+      const MARKER = 'https://pdkef.test/__pdkef/offline-font-pack/Heebo';
+      const withManifest = async (fontBytesOnNetwork, hash) => {
+        const fetchImpl = manifestResponder(['/'], (pathname) => (pathname === FONT ? new Response(fontBytesOnNetwork) : new Response('asset')), {}, { [FONT]: pageHash(hash) });
+        const worker = createWorker(fetchImpl, ['pdkef-previous'], createFakeIndexedDB(), source);
+        await dispatchInstall(worker);
+        return worker;
+      };
+
+      it('does not carry over a listed font whose old bytes do not match, nor mark the pack', async () => {
+        const worker = await withManifest('this build font', 'this build font');
+        worker.entries.delete(KEY);
+        const old = worker.entriesByCache.get('pdkef-previous');
+        old.set(MARKER, new Response(JSON.stringify(pack)));
+        old.set(KEY, new Response('older font'));
+        worker.context.fetch = vi.fn(async () => { throw new Error('offline'); });
+        await dispatchActivate(worker);
+        expect(worker.entries.has(KEY)).toBe(false);
+        expect(worker.entries.has(MARKER)).toBe(false);
+      });
+
+      it('stores the fetched font instead when it matches', async () => {
+        const worker = await withManifest('this build font', 'this build font');
+        worker.entries.delete(KEY);
+        const old = worker.entriesByCache.get('pdkef-previous');
+        old.set(MARKER, new Response(JSON.stringify(pack)));
+        old.set(KEY, new Response('older font'));
+        await dispatchActivate(worker);
+        expect(await worker.entries.get(KEY).text()).toBe('this build font');
+        expect(worker.entries.has(MARKER)).toBe(true);
+      });
+
+      it('does not store a provisioned font whose bytes do not match, and the pack is not complete', async () => {
+        const worker = await withManifest('newer font', 'this build font');
+        worker.entries.delete(KEY);
+        const result = await dispatchMessage(worker, { type: 'pdkef:font-pack-provision', packs: [pack] });
+        expect(result.ok).toBe(false);
+        expect(worker.entries.has(KEY)).toBe(false);
+        expect(worker.entries.has(MARKER)).toBe(false);
+      });
+    });
+  });
+
   describe('navigation refresh', () => {
     const navigate = (path) => ({ method: 'GET', mode: 'navigate', url: `https://pdkef.test${path}` });
     const install = async (hashes, serve) => {
