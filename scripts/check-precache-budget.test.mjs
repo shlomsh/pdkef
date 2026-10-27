@@ -173,6 +173,17 @@ describe('manifestIdentityProblems (MEM-22)', () => {
     const f = manifestIdentityProblems({ ...clean, hashes: { ...clean.hashes, '/c/': 'x' } }, { readPage, workerSource });
     expect(f.join('\n')).toContain('/c/');
   });
+  it('names a dist font that is not precached and has no hash', () => {
+    const distFonts = ['/fonts/Pack.ttf'];
+    const f = manifestIdentityProblems(clean, { readPage, workerSource, distFonts });
+    expect(f.join('\n')).toContain('/fonts/Pack.ttf');
+  });
+  it('passes a dist font listed with matching bytes', () => {
+    const distFonts = ['/fonts/Pack.ttf'];
+    const read = (u) => (u === '/fonts/Pack.ttf' ? 'ttf' : bytes[u]);
+    const m = { ...clean, hashes: { ...clean.hashes, '/fonts/Pack.ttf': pageHash('ttf') } };
+    expect(manifestIdentityProblems(m, { readPage: read, workerSource, distFonts })).toEqual([]);
+  });
   it('names a file whose bytes no longer hash to the recorded value', () => {
     const f = manifestIdentityProblems(clean, { readPage: (u) => (u === '/icons/i.png' ? 'changed' : bytes[u]), workerSource });
     expect(f).toHaveLength(1);
