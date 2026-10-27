@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
 import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
@@ -120,6 +120,14 @@ describe('planSteps', () => {
     expect(steps).not.toContain('build');
     for (const g of DIST_GUARD_STEPS) expect(steps).not.toContain(g);
     expect(steps).toEqual(expect.arrayContaining(ALWAYS_GUARD_STEPS));
+  });
+
+  it('a diff reaching an .astro file also plans astro check (QUAL-31); one without does not', () => {
+    const astro = ['src/layouts/BaseLayout.astro'];
+    const ts = ['src/lib/errorReport.ts'];
+    const plan = (files) => planSteps({ ...wide([], 'x'), docsOnly: false, reachesDist: reachesDist(files), touchesAstro: touchesAstro(files) });
+    expect(plan(astro)).toContain('astro-check');
+    expect(plan(ts)).not.toContain('astro-check');
   });
 
   it('the ratchet guards run on every diff (ARCH-76)', () => {
