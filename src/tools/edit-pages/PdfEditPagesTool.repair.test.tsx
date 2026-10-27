@@ -3,32 +3,35 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from './lib/editPages.js';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
-import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
+import { getPdfLib } from '../../lib/pdfLib.js';
+import { buildPdf, healthy, noPagesKey, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
+import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 
 // DEBT-54: a file whose page list was lost is repaired once on open; the
 // grid (pdf.js) and the export must both read the repaired bytes while the
 // person's file keeps its identity.
 
-vi.mock('../../lib/loadPdfPages.ts', () => ({ loadPdfWithPages: vi.fn() }));
-
-// The stub files here are not PDFs: the encryption gate must not run real pdf.js on them.
+// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it.
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
 
+// EDGE: pdf.js cannot render in jsdom. The grid reads pages through this source, so the test reads which
+// file it was handed there; no real rendering here.
 vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  openThumbnailSource: vi.fn(async (file) => ({
-    file,
-    pageCount: 2,
-    render: vi.fn(async (pageIndex) => `data:image/png;base64,t${pageIndex}`),
-    destroy: vi.fn(async () => {}),
-  })),
-}));
-
-vi.mock('./lib/editPages.js', () => ({
-  editPages: vi.fn(() => Promise.resolve(new Blob(['out'], { type: 'application/pdf' }))),
+  renderPdfThumbnails: vi.fn(async () => 0),
+  openThumbnailSource: vi.fn(async (file) => {
+    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
+    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
+    return {
+      file,
+      pageCount,
+      render: vi.fn(async (pageIndex) => `data:image/png;base64,t${pageIndex}`),
+      destroy: vi.fn(async () => {}),
+    };
+  }),
 }));
 
 // The grid draws a page only once its cell is near the viewport; tests say which.
@@ -47,23 +50,38 @@ class FakeIntersectionObserver {
   }
 }
 
-async function textOf(file) {
-  return new TextDecoder().decode(await file.arrayBuffer());
+// The page widths of a PDF's bytes: its pages are told apart by width (200, 300, 400).
+async function widthsOf(blob) {
+  const { PDFDocument } = await getPdfLib();
+  const doc = await PDFDocument.load(await blob.arrayBuffer());
+  return doc.getPages().map((p) => p.getWidth());
 }
 
 describe('PdfEditPagesTool working file after a repair', () => {
   let container;
   let originalIO;
-  const original = new File(['%PDF-original'], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
+  let harness;
+  // The file whose page list was lost, so opening it repairs it.
+  let original;
 
   beforeEach(() => {
+    harness = installToolHarness();
+    // jsdom's Blob has no arrayBuffer().
+    if (!Blob.prototype.arrayBuffer) {
+      Blob.prototype.arrayBuffer = function arrayBuffer() {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
+    original = new File([noPagesKey()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     observers = [];
     originalIO = globalThis.IntersectionObserver;
     globalThis.IntersectionObserver = FakeIntersectionObserver;
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
     vi.mocked(openThumbnailSource).mockClear();
-    vi.mocked(editPages).mockClear();
   });
 
   afterEach(() => {
@@ -73,6 +91,8 @@ describe('PdfEditPagesTool working file after a repair', () => {
       container = null;
     }
     globalThis.IntersectionObserver = originalIO;
+    vi.restoreAllMocks();
+    harness.restore();
   });
 
   async function open() {
@@ -80,7 +100,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [original]); });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await until(() => container.querySelector('ul[data-page-grid]') || container.querySelector('[role="alert"]'));
     // The grid's own observer is the last one made.
     await act(async () => { observers.at(-1)?.intersectAll(); });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
@@ -94,8 +114,6 @@ describe('PdfEditPagesTool working file after a repair', () => {
   }
 
   it('hands the repaired bytes, under the original name, to the grid and the export', async () => {
-    const fixed = new TextEncoder().encode('%PDF-repaired');
-    vi.mocked(loadPdfWithPages).mockResolvedValue({ doc: {}, pageCount: 2, bytes: fixed, repaired: true });
     await open();
 
     const gridFile = vi.mocked(openThumbnailSource).mock.calls[0][0];
@@ -103,59 +121,77 @@ describe('PdfEditPagesTool working file after a repair', () => {
     expect(gridFile.name).toBe('document.pdf');
     expect(gridFile.type).toBe('application/pdf');
     expect(gridFile.lastModified).toBe(1234);
-    expect(await textOf(gridFile)).toBe('%PDF-repaired');
-    expect(container.querySelectorAll('ul[data-page-grid] > li[data-key]').length).toBe(2);
+    // The grid reads the repaired copy: all three pages, which the lost page list left unreachable.
+    expect(await widthsOf(gridFile)).toEqual(ORIGINAL_WIDTHS);
+    expect(container.querySelectorAll('ul[data-page-grid] > li[data-key]').length).toBe(3);
     expect(container.textContent).toContain('document_modified.pdf');
 
     await build();
-    const exportFile = vi.mocked(editPages).mock.calls[0][0];
-    expect(await textOf(exportFile)).toBe('%PDF-repaired');
-    expect(exportFile.name).toBe('document.pdf');
+    // The export read the repaired copy too: all three pages came out, in order, under the original name.
+    expect(harness.createdBlobs()).toHaveLength(1);
+    expect(await widthsOf(harness.createdBlobs()[0])).toEqual(ORIGINAL_WIDTHS);
+    expect(container.querySelector('a[data-state]').getAttribute('download')).toBe('document_modified.pdf');
   });
 
   it('hands the original File to the grid and the export when nothing was repaired', async () => {
-    vi.mocked(loadPdfWithPages).mockResolvedValue({
-      doc: {}, pageCount: 2, bytes: new Uint8Array(), repaired: false,
-    });
+    original = new File([healthy()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     await open();
     expect(vi.mocked(openThumbnailSource).mock.calls[0][0]).toBe(original);
 
     await build();
-    expect(vi.mocked(editPages).mock.calls[0][0]).toBe(original);
+    expect(harness.createdBlobs()).toHaveLength(1);
+    expect(await widthsOf(harness.createdBlobs()[0])).toEqual(ORIGINAL_WIDTHS);
   });
 
   it('exports the file picked last when an earlier, slower load finishes after it', async () => {
+    // Two pages, told apart from the first file's three.
+    const second = new File([buildPdf({
+      1: '<< /Type /Catalog /Pages 2 0 R >>',
+      2: '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',
+      3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 250 500] >>',
+      4: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 350 500] >>',
+    })], 'second.pdf', { type: 'application/pdf' });
+    // Not a fake: both loads still run for real. The gate holds the first one open (a real pdf-lib parse
+    // gives no way to pause it) until the second has been picked and shown.
+    const { PDFDocument } = await getPdfLib();
+    const realLoad = PDFDocument.load;
     let finishFirst;
-    const second = new File(['%PDF-second'], 'second.pdf', { type: 'application/pdf' });
-    vi.mocked(loadPdfWithPages)
-      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
-      .mockResolvedValueOnce({ doc: {}, pageCount: 2, bytes: new Uint8Array(), repaired: false });
+    let loads = 0;
+    vi.spyOn(PDFDocument, 'load').mockImplementation(async (...args) => {
+      loads += 1;
+      if (loads === 1) await new Promise((resolve) => { finishFirst = resolve; });
+      return realLoad.apply(PDFDocument, args);
+    });
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [original]); });
+    await until(() => finishFirst);
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [second]); });
     // A second pick asks first; the person confirms it.
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     const confirm = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file');
     await act(async () => confirm.click());
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await until(() => container.querySelectorAll('ul[data-page-grid] > li[data-key]').length === 2);
     await act(async () => {
-      finishFirst({ doc: {}, pageCount: 2, bytes: new TextEncoder().encode('%PDF-first-repaired'), repaired: true });
+      finishFirst();
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(async () => { observers.at(-1)?.intersectAll(); });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
 
     expect(container.querySelector('#page-grid-heading').textContent).toContain('second_modified.pdf');
+    expect(container.querySelectorAll('ul[data-page-grid] > li[data-key]').length).toBe(2);
     await build();
-    expect(vi.mocked(editPages).mock.calls[0][0]).toBe(second);
+    expect(harness.createdBlobs()).toHaveLength(1);
+    expect(await widthsOf(harness.createdBlobs()[0])).toEqual([250, 350]);
     expect(vi.mocked(openThumbnailSource).mock.calls.every(([f]) => f === second)).toBe(true);
   });
 
   it('shows the load error and opens no grid when the loader rejects', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.mocked(loadPdfWithPages).mockRejectedValue(new Error('Failed to parse PDF'));
+    // Not a PDF at all: the loader cannot read it.
+    original = new File(['this is not a PDF'], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     await open();
     expect(openThumbnailSource).not.toHaveBeenCalled();
     expect(container.querySelector('ul[data-page-grid]')).toBeNull();
@@ -164,7 +200,8 @@ describe('PdfEditPagesTool working file after a repair', () => {
 
   it('a load failure still offers Replace file, which asks first', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.mocked(loadPdfWithPages).mockRejectedValue(new Error('Failed to parse PDF'));
+    // Not a PDF at all: the loader cannot read it.
+    original = new File(['this is not a PDF'], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     await open();
     const replace = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Replace file');
     expect(replace).toBeDefined();

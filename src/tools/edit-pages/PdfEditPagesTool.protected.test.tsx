@@ -5,9 +5,8 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from './lib/editPages.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // A protected PDF is a precondition, not a failure: Edit Pages shows NeedsUnlock (src/shell/NeedsUnlock.tsx)
@@ -16,37 +15,46 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 const fixtureFile = (name: string) =>
   new File([readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`))], `${name}.pdf`, { type: 'application/pdf' });
 
+// EDGE: pdf.js's worker cannot run in jsdom; beforeEach points this at the real classifier over pdf.js's Node build.
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: vi.fn(async () => null),
-  saveHandoff: vi.fn(async () => true),
-}));
+// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
 vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => ({
-    file,
-    pageCount: 1,
-    render: vi.fn(async () => 'data:image/png;base64,fake'),
-    destroy: vi.fn(async () => {}),
-  })),
+  openThumbnailSource: vi.fn(async (file) => {
+    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
+    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
+    return {
+      file,
+      pageCount,
+      render: vi.fn(async () => 'data:image/png;base64,fake'),
+      destroy: vi.fn(async () => {}),
+    };
+  }),
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
   renderPdfThumbnails: vi.fn(async () => 0),
-}));
-vi.mock('./lib/editPages.js', () => ({
-  editPages: vi.fn(() => Promise.resolve(new Blob(['x'], { type: 'application/pdf' }))),
 }));
 
 describe('PdfEditPagesTool with a protected PDF', () => {
   let container;
   let input;
+  let harness;
 
   beforeEach(async () => {
+    harness = installToolHarness();
+    // jsdom's Blob has no arrayBuffer().
+    if (!Blob.prototype.arrayBuffer) {
+      Blob.prototype.arrayBuffer = function arrayBuffer() {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
     input = undefined;
     const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
     const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
     probeEncryption.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {
@@ -57,6 +65,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     }
     vi.unstubAllGlobals();
     vi.clearAllMocks();
+    harness.restore();
   });
 
   const nap = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
@@ -89,7 +98,8 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     expect(buttons()).toContain('Unlock it');
     expect(container.querySelector('ul[data-page-grid]')).toBeNull();
     expect(container.textContent).not.toMatch(/Could not edit|Undo|Download/);
-    expect(editPages).not.toHaveBeenCalled();
+    // Nothing was built.
+    expect(harness.createdBlobs()).toHaveLength(0);
   });
 
   it('records the kind each protected fixture gets', async () => {
@@ -108,7 +118,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
     });
 
-    expect(saveHandoff).toHaveBeenCalledWith('unlock', expect.objectContaining({ from: 'edit-pdf', fileName: 'needs-password.pdf' }));
+    expect(await harness.takeHandoff('unlock')).toMatchObject({ from: 'edit-pdf', fileName: 'needs-password.pdf' });
     expect(location.href).toBe('/unlock/');
   });
 
