@@ -50,7 +50,7 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    never import another tool.
 2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and may never import the
    `components` module (see below). They may import site's `i18n`/`data` (`site-i18n`/`site-data`),
-   but never `site` itself (pages/layouts/content/styles).
+   but never `site` itself (pages/layouts/content/styles). `lib` is narrower still: rule 10.
 3. `editor` may never import `editor-ui` or `shell`. It is headless; Preact only renders from its
    state and binds events to it.
 4. The site (pages, layouts, content, data, i18n, styles, and the `.astro` files still under
@@ -70,8 +70,11 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    `shell`, `editor-ui`, `editor` or `lib`, or under one tool's own `src/tools/<name>/` folder, may
    not import another tool's files. `src/test/` (including `src/test/cross-tool/`, the placement
    `docs/nx-affected-ci.md` already asked for) is exempt: a test placed there classifies as
-   `test-support`, neither a core module nor a tool, so the rule never reaches it. Unlike rules 1-5,
-   rule 6 carries no allowlist - it holds at zero violations, not a ratchet down from today's count.
+   `test-support`, neither a core module nor a tool, so the rule never reaches it; the same
+   `test-support` files may build a harness from any core module but may not import a tool, an edge
+   `ruleViolation()` rejects on its own (see "Test support" below). Unlike rules 1-5, which may carry
+   `{ from, to, reason }` edge entries in `scripts/module-boundaries-allowlist.json` (none today),
+   rule 6 has no allowlist - it holds at zero violations, not a ratchet down from today's count.
 7. **A `*.spec.js` under `src/tools/<t>/e2e/` may only reference that tool's own routes, plus `/`.**
    The tool -> routes map is derived, never hand-written: a top-level `src/pages/<slug>.astro` that
    imports `../tools/<t>/Pdf*Tool` maps route `/<slug>` to tool folder `<t>` (so `/compress/` and
@@ -118,7 +121,7 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    now correctly flagged as site-only (`FileDropzone.tsx`, `homeWorkspace.ts`, `RecentFiles.tsx`,
    `sampleDocument.ts`) into `src/site-lib/`. Enforced by `commonLayerConsumerViolations()`, with no
    ratcheting allowlist (like rules 6 and 8) beyond `{ rule: 9, file, reason }` entries in
-   `scripts/module-boundaries-allowlist.json` for `src/editor/` files only tests, generators or e2e
+   `scripts/module-boundaries-allowlist.json` (the same file as the rule 1-5 edge entries, which are empty today) for `src/editor/` files only tests, generators or e2e
    guards read (ARCH-46; a stale entry fails, `*.test-helper.js` is never counted): it holds at zero
    violations, so a module that fails it moves into the tool that actually uses it, or is deleted if
    nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
@@ -127,7 +130,12 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    `src/tools/redact/`, by this rule. ARCH-37 (2026-10-26) moved `useCoarsePointer` back into `src/editor-ui/hooks/` once Sign and Redact both used one meaning of it. An `.astro` file's `<script src="...">` is invisible to the main
    edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
    consumes a given module.
-10. **`lib` is the bottom layer: it may import only `lib`** (ARCH-34). A `src/lib/` module that imports `editor`, `editor-ui`, `shell`, `i18n` or `data` fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
+10. **`lib` is the bottom layer: it may not import `editor`, `editor-ui`, `shell`, `i18n` or `data`** (ARCH-34). Rule 2 already bars `lib` from a tool, `components` and `site` itself, so together the two leave `lib` importing only `lib`. A `src/lib/` module that imports one of those five fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
+
+**Test support.** `src/test/` (cross-tool included) classifies as `test-support`, a module of its own
+that is not in the numbered list. The script enforces one edge for it, in `ruleViolation()`: a
+`test-support` file may not import a tool. It may import every core module and the site. This is
+what keeps a harness from reaching into one tool's internals; rule 6 covers the other test locations.
 
 `scripts/check-module-boundaries.mjs` enforces exactly these ten rules; its exported `RULES` list
 and this section are checked against each other by `scripts/check-module-boundaries.doc.test.mjs`
