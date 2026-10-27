@@ -53,7 +53,7 @@ file, which the ticket's own predecessor guard already handles and this one had 
   exactly one consumer" matches exactly; "3+ consumers" is 13 here against 8 in the ticket, and "no
   island/editor consumer" is 10 here against 14. The likely cause is methodology, not code drift: the
   ticket's count of 8 modules with 3+ consumers looks like it may not count `src/editor/registry/*`
-  files as consumers (only `src/components/`), which would move `signHelpers.js` out of the "3+" tier
+  files as consumers (only `src/components/`), which would move `textLayout.js` out of the "3+" tier
   in their count; recompute before relying on the exact numbers, but treat the shape (most lib modules
   are single-tool or zero-tool, a handful are genuinely universal) as solid either way.
 - **Two of the checker scripts named in the ticket's Notes need no change at all.**
@@ -208,7 +208,7 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 
 | Module | Direct consumers |
 | --- | --- |
-| `signHelpers.js` | `ElementToolbar`, `SignTool/DraggableWrapper`, `SignTool/PdfWorkspace`, `SignTool/nodes/{SignatureNode,TextNode}`, `editor/registry/{ellipse,line,rectangle,signature,symbol,textPdf,whiteout}.ts` (the editor core itself - this one can never move to a tool) |
+| `textLayout.js` | `ElementToolbar`, `SignTool/DraggableWrapper`, `SignTool/PdfWorkspace`, `SignTool/nodes/{SignatureNode,TextNode}`, `editor/registry/{ellipse,line,rectangle,signature,symbol,textPdf,whiteout}.ts` (the editor core itself - this one can never move to a tool) |
 | `drafts/` (`draftStore.js`, `draftPolicy.js`, `useDraftPersistence.js`; DEBT-04 move A, out of `src/editor/workspace/`) | `PdfMergeTool`, `MergeTool/useMergeDraft` (two dynamic imports plus one direct), `PdfRedactTool`, `PdfSignTool`, `FileDropzone` (shell), `useHandoffIntake.ts` (lib) - and `editor/workspace/useEditorDraftPersistence.ts`, the one editor-side consumer, since it stays in the editor for its registry dependency (`editor/registry/draftValidation.ts`, which `drafts/` imports back the other way) |
 | `format.js` | all nine `Pdf*Tool.tsx` |
 | `usePdfShare.js` | all nine `Pdf*Tool.tsx` |

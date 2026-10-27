@@ -3,7 +3,8 @@ import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react
 import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { getEffectiveTextDirection, textElementLayout } from '../../../editor/text/signHelpers.js';
+import { getEffectiveTextDirection } from '../../../editor/text/textDirection.js';
+import { textElementLayout } from '../../../editor/text/textLayout.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
@@ -423,7 +424,7 @@ export default function DraggableWrapper<T extends EditorElement>({
   // right-anchoring the moment a Hebrew character appears would slide it a
   // whole field-width sideways off the boxes it was sized to. Reading order
   // still follows the text - comb.js mirrors the cell centres for RTL inside
-  // the fixed span, and a cell box aligns its text right. signHelpers'
+  // the fixed span, and a cell box aligns its text right. textLayout'
   // textAnchorsRightEdge is the one answer to "which edge is `left`".
   const isLine = !!view.isLine;
   const isShape = !!view.isShape;
@@ -436,7 +437,7 @@ export default function DraggableWrapper<T extends EditorElement>({
     pointerEvents: 'none',
     transform: 'none',
     // An intrinsically sized type (text) takes the one box rule its slot
-    // preview shares (signHelpers' textElementLayout): a comb's explicit
+    // preview shares (textLayout's textElementLayout): a comb's explicit
     // span, a cell's minWidth, the RTL right-edge anchor. Keyed on the view
     // flag, not the type name, so the wrapper stays type-agnostic. The
     // fallback below always anchors left: RTL anchoring lives only in
