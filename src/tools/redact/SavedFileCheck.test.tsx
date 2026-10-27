@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import SavedFileCheck from './SavedFileCheck.tsx';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 import type { Finding } from './check/types.ts';
-import type { DocumentTraces } from '../../editor/adapters/pdf/documentTraces.js';
+import type { DocumentTraces } from './lib/documentTraces.js';
 import { ALL_CLEAR, CHECK_UPDATED, picturePagesNote, DETAILS_CHANGED, DETAILS_REVIEW, DETAILS_SURVIVED } from './check/checkCopy.ts';
 
 const EMPTY: DocumentTraces = {

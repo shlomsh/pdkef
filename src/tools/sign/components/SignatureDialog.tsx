@@ -5,7 +5,7 @@ import ColorPicker from '../../../editor-ui/ColorPicker.tsx';
 import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../../../editor/text/fonts.js';
 import { DEFAULT_LINE_HEIGHT_EM } from '../../../editor/model/signGeometry.js';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../../editor/workspace/preferenceStore.ts';
-import { encodeSignatureCanvas, typedSignatureFontPx, TYPED_SIGNATURE_MIN_FONT_PX } from '../../../editor/workspace/signatureImagePolicy.ts';
+import { encodeSignatureCanvas, typedSignatureFontPx, TYPED_SIGNATURE_MIN_FONT_PX } from '../lib/signatureImagePolicy.ts';
 import { englishSignMessages } from '../messages';
 import type { SignMessages } from '../../../editor/registry/messages';
 import styles from './SignatureDialog.module.css';

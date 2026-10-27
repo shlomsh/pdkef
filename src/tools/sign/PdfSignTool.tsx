@@ -793,7 +793,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const telemetryTransport = beaconMaintenanceTransport;
 
     try {
-      const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
+      const { signPdf } = await import('./lib/sign.js');
       const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
         if (!speculative && ticket.isCurrent()) lifecycleDispatch({ type: 'EXPORT_PROGRESSED', progress: p });
       });

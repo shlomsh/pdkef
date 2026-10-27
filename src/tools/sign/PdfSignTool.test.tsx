@@ -4,7 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
-import * as signModule from '../../editor/adapters/pdf/sign.js';
+import * as signModule from './lib/sign.js';
 import * as maintenanceTelemetry from '../../lib/maintenanceTelemetry.ts';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';

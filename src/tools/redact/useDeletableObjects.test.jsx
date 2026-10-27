@@ -21,7 +21,7 @@ async function buildSample() {
 // is no longer enough: wait for that module to land before letting the effect's
 // own promise chain settle.
 const flush = () => act(async () => {
-  await import('../../editor/adapters/pdf/deleteObjects.js');
+  await import('./lib/deleteObjects.js');
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 

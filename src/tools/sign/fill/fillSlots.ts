@@ -11,9 +11,9 @@
  * no visible jump; `slotElement.ts` is the other half, the element a slot
  * with text in it becomes.
  */
-import { fieldFontSize, placeTextOnField, type TypableField } from '../../../editor/text/combPlacement.ts';
+import { fieldFontSize, placeTextOnField, type TypableField } from '../lib/combPlacement.ts';
 import { resolveFontFamily } from '../../../editor/text/fonts.js';
-import { elementIsOnField } from '../../../editor/text/fieldOrder.ts';
+import { elementIsOnField } from '../lib/fieldOrder.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import { TEXT_BOX_LINE_HEIGHT_EM } from '../../../editor/model/signGeometry.js';
 import type { FillSlot, PagePoint, SlotPlacement } from './fillTypes.ts';

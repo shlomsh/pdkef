@@ -19,7 +19,7 @@ import { horizontalRules } from '../../../src/tools/sign/fields/inkEdges.js';
 import { greedyMatch } from '../../../src/tools/sign/fields/corpus/scoring/match.js';
 import { toCandidates } from '../../../src/tools/sign/fields/corpus/scoring/candidates.js';
 import { loadTruth, IOU, scoreForm } from '../../../src/tools/sign/fields/corpus/scoring/score.js';
-import { labelFieldCandidates } from '../../../src/editor/adapters/pdf/fieldLabels.js';
+import { labelFieldCandidates } from '../../../src/tools/sign/lib/fieldLabels.js';
 
 const arg = (name) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? null : process.argv[i + 1]; };
 const S33 = arg('scratch33');

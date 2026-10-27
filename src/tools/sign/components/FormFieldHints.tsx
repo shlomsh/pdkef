@@ -1,4 +1,4 @@
-import type { CombRegion, FieldRegion } from '../../../editor/text/combPlacement.ts';
+import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import { boxKey } from '../fill/fillDom.ts';
 import styles from './FormFieldHints.module.css';
 

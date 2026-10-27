@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry } from '../../../editor/geometry/coords.ts';
-import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import { checkBoxesFromElements } from './checkBoxes.ts';
 import { coveredTerms } from './coveredTerms.ts';
 

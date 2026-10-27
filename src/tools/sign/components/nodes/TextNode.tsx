@@ -4,7 +4,7 @@ import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
 import { fieldTextInset, strongTextDirection, textElementLayout } from '../../../../editor/text/signHelpers.js';
 import { resolveFontSubstitution } from '../../../../editor/text/fonts.js';
-import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
+import { getTextFontSupport } from '../../lib/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../../editor/text/comb.js';

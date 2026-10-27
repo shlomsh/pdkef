@@ -1,4 +1,4 @@
-import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import type { DocumentTraces } from '../lib/documentTraces.js';
 
 /**
  * RED-59: what a file says about itself, read from its bytes on the device.
@@ -9,7 +9,7 @@ import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces
 export async function readDetails(bytes: ArrayBuffer): Promise<DocumentTraces> {
   const [{ openPdfDoc }, { readDocumentTraces }] = await Promise.all([
     import('../../../lib/openPdfDoc'),
-    import('../../../editor/adapters/pdf/documentTraces.js'),
+    import('../lib/documentTraces.js'),
   ]);
   const { doc } = await openPdfDoc(bytes, { updateMetadata: false, fast: true });
   return readDocumentTraces(doc);

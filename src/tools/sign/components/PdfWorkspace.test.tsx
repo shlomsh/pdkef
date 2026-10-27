@@ -9,7 +9,7 @@ import { samplePageColor } from '../whiteoutPageColor.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
-import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
+import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import type { RectangleElement, SymbolElement, TextElement } from '../../../editor/model/editorModel.ts';
 import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';

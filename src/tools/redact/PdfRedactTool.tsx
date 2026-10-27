@@ -39,7 +39,7 @@ import { DetailsFooter } from './details/DetailsFooter.tsx';
 import { DetailsSheet } from './details/DetailsSheet.tsx';
 import { useDocumentDetails } from './details/useDocumentDetails.ts';
 import { describeDetails, detailsSummary, changesPieces } from './details/describeDetails.ts';
-import type { DetailEdits } from '../../editor/adapters/pdf/detailEdits.js';
+import type { DetailEdits } from './lib/detailEdits.js';
 import useSavedFileCheck, { traceLocale } from './useSavedFileCheck.ts';
 import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
@@ -819,7 +819,7 @@ export default function PdfRedactTool() {
       // export, which is the right outcome: the boxes stay, the message is
       // "try again". Repeat exports reuse the module registry's copy.
       const [{ applyPageEdits }, { removePlaces }] = await Promise.all([
-        import('../../editor/adapters/pdf/applyPageEdits.js'),
+        import('./lib/applyPageEdits.js'),
         import('./check/removePlaces.ts'),
       ]);
       // RED-60: every removal replays, oldest first, onto the new document.

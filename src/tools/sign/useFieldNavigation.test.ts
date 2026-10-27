@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import useFieldNavigation from './useFieldNavigation.ts';
-import type { CombRegion, FieldRegion } from '../../editor/text/combPlacement.ts';
+import type { CombRegion, FieldRegion } from './lib/combPlacement.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';

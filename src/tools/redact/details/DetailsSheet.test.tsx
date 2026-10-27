@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DetailsSheet } from './DetailsSheet.tsx';
 import type { DetailRow } from './describeDetails.ts';
-import type { DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
+import type { DetailEdits } from '../lib/detailEdits.js';
 import {
   DETAILS_THUMBS, DETAIL_DELETE, DETAIL_DONE, DETAIL_EDIT, DETAIL_IMPLIED, DETAIL_UNDO, DETAILS_CLOSE,
 } from '../check/checkCopy.ts';

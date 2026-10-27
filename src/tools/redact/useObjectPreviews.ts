@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { previewTexts } from '../../editor/adapters/pdf/deletePreviews.ts';
+import { previewTexts } from './lib/deletePreviews.ts';
 import { getPdfjs } from '../../editor/adapters/pdf/pdfjsLoader.js';
-import { readGlyphs } from '../../editor/adapters/pdf/readGlyphs.js';
+import { readGlyphs } from './lib/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../editor/geometry/coords.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { GLYPH_BUDGET } from './find/itemGlyphs.ts';

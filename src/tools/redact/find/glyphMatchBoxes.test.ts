@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.ts';
 import { glyphsBox } from './glyphBoxes.ts';
 import { mapItemGlyphs, pageGlyphMap } from './itemGlyphs.ts';

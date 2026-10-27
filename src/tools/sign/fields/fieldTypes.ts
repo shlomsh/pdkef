@@ -1,5 +1,5 @@
 import type { PDFPage } from '@cantoo/pdf-lib';
-import type { CombRegion, FieldRegion } from '../../../editor/text/combPlacement.ts';
+import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 
 /**
