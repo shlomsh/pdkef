@@ -1,3 +1,5 @@
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import { describe, expect, it } from 'vitest';
 import {
   initialSignLifecycleState,
@@ -14,6 +16,7 @@ describe('signLifecycleReducer', () => {
   it('starts idle and empty', () => {
     expect(initialSignLifecycleState()).toEqual({
       status: 'idle', errorDetail: null, progress: 0, announcement: '', needsUnlock: null, signedExport: null, handoffFailed: false,
+      file: null, sourceBytes: null, pdfDocument: null, numPages: 0, pageSizes: [],
     });
   });
 
@@ -103,5 +106,33 @@ describe('an action that changes nothing', () => {
     const state = withState({ announcement: 'Saved', progress: 0.5 });
     expect(run(state, { type: 'ANNOUNCED', message: 'Saved' })).toBe(state);
     expect(run(state, { type: 'EXPORT_PROGRESSED', progress: 0.5 })).toBe(state);
+  });
+
+  describe('document-load fields', () => {
+    const file = new File(['x'], 'a.pdf');
+    const bytes = new ArrayBuffer(4);
+    const doc = { numPages: 2 } as unknown as PDFDocumentProxy;
+    const sizes = [{ width: 1, height: 2 }] as unknown as PageGeometry[];
+
+    it('DOCUMENT_FILE_SET stores the file and bytes and clears the old document', () => {
+      const next = run(withState({ pdfDocument: doc, numPages: 2, pageSizes: sizes }), { type: 'DOCUMENT_FILE_SET', file, bytes });
+      expect(next).toEqual(withState({ file, sourceBytes: bytes }));
+    });
+
+    it('DOCUMENT_FILE_SET leaves lifecycle fields alone', () => {
+      const next = run(withState({ status: 'editing', announcement: 'a' }), { type: 'DOCUMENT_FILE_SET', file, bytes });
+      expect(next.status).toBe('editing');
+      expect(next.announcement).toBe('a');
+    });
+
+    it('PDF_DOCUMENT_READY stores the document and its page count', () => {
+      const next = run(withState({ file }), { type: 'PDF_DOCUMENT_READY', pdfDocument: doc, numPages: 2 });
+      expect(next).toEqual(withState({ file, pdfDocument: doc, numPages: 2 }));
+    });
+
+    it('PAGE_SIZES_MEASURED stores the page frames only', () => {
+      const next = run(withState({ numPages: 2 }), { type: 'PAGE_SIZES_MEASURED', pageSizes: sizes });
+      expect(next).toEqual(withState({ numPages: 2, pageSizes: sizes }));
+    });
   });
 });
