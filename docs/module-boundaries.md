@@ -48,23 +48,18 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
 
 1. A tool may import `shell`, `editor-ui`, `editor`, `lib`, and site's `i18n`/`data`. A tool may
    never import another tool.
-2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and may never import the
-   `components` module (see below). They may import site's `i18n`/`data` (`site-i18n`/`site-data`),
-   but never `site` itself (pages/layouts/content/styles). `lib` is narrower still: rule 10.
+2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and may never import
+   `site` itself (pages/layouts/content/styles and `src/components/`). They may import site's
+   `i18n`/`data` (`site-i18n`/`site-data`). `lib` is narrower still: rule 10.
 3. `editor` may never import `editor-ui` or `shell`. It is headless; Preact only renders from its
    state and binds events to it.
-4. The site (pages, layouts, content, data, i18n, styles, and the `.astro` files still under
+4. The site (pages, layouts, content, data, i18n, styles, and everything under
    `src/components/`) may reach a tool only through that tool's island entry point, `Pdf*Tool.tsx`
    directly under `src/tools/<name>/`, or its text, `messages.ts` directly under `src/tools/<name>/`
    (ARCH-35: the site's message registry, `src/site-lib/toolMessageRegistry.ts`, picks a tool's
    catalogue without loading its island).
-5. **`components` is what is left of the flat `src/components/` now that ARCH-16 through ARCH-18
-   have landed:** only `.astro` site components (which classify as `site`, not `components`) and
-   `HeroDemo/` remain there. `components` MUST NOT import a tool. The reverse allowance this rule
-   used to carry - "a tool MAY import `components` during the transition, because that folder is
-   where the future `shell` and `editor-ui` still live" - retired the moment ARCH-16 gave `shell`
-   and `editor-ui` their own folders; rule 1's list is exhaustive and does not include `components`,
-   so a tool importing it is now a violation like any other not on that list.
+5. This rule is retired (ARCH-48): `src/components/` (the `.astro` components, `inlineStyles.ts`, `HeroDemo/`, the
+   `.css` files) is `site`, so rules 1, 2 and 4 already cover it. The number stays so rules 6-11 keep theirs.
 6. **A test file may not launder a cross-tool import a real edge in the same location would be
    forbidden from making** (DEBT-02, out of the 2026-09-14 architecture-debt review): a test under
    `shell`, `editor-ui`, `editor` or `lib`, or under one tool's own `src/tools/<name>/` folder, may
@@ -130,7 +125,7 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    `src/tools/redact/`, by this rule. ARCH-37 (2026-10-26) moved `useCoarsePointer` back into `src/editor-ui/hooks/` once Sign and Redact both used one meaning of it. An `.astro` file's `<script src="...">` is invisible to the main
    edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
    consumes a given module.
-10. **`lib` is the bottom layer: it may not import `editor`, `editor-ui`, `shell`, `i18n` or `data`** (ARCH-34). Rule 2 already bars `lib` from a tool, `components` and `site` itself, so together the two leave `lib` importing only `lib`. A `src/lib/` module that imports one of those five fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
+10. **`lib` is the bottom layer: it may not import `editor`, `editor-ui`, `shell`, `i18n` or `data`** (ARCH-34). Rule 2 already bars `lib` from a tool and `site` itself (`src/components/` included), so together the two leave `lib` importing only `lib`. A `src/lib/` module that imports one of those five fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
 11. **The site never imports the editor core** (ARCH-43): a page, layout, `.astro` component, `i18n`/`data`
     module or `src/site-lib/` helper never imports `src/editor/`, so the headless core is not a public
     API for build-time site code. Data the editor and the site both read lives in `src/lib/`: the font
