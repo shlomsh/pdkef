@@ -1,0 +1,15 @@
+[
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "top", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "right", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "bottom", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "left", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "top-left", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "top-right", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "bottom-left", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/editor-ui/EditorElement.module.css", "class": "bottom-right", "reason": "ElementResizers.tsx builds the key with styles[handle]; handle comes from resizeBehavior.handles in src/editor/registry/*.ts" },
+  { "file": "src/tools/compress/verb/CompressVerb.module.css", "class": "skyHigh", "reason": "CompressVerb.tsx builds the key with styles[tone] over the TONES list" },
+  { "file": "src/tools/compress/verb/CompressVerb.module.css", "class": "skyLow", "reason": "CompressVerb.tsx builds the key with styles[tone] over the TONES list" },
+  { "file": "src/tools/compress/verb/CompressVerb.module.css", "class": "hill", "reason": "CompressVerb.tsx builds the key with styles[tone] over the TONES list" },
+  { "file": "src/tools/compress/verb/CompressVerb.module.css", "class": "ground", "reason": "CompressVerb.tsx builds the key with styles[tone] over the TONES list" },
+  { "file": "src/tools/compress/verb/CompressVerb.module.css", "class": "sun", "reason": "CompressVerb.tsx builds the key with styles[tone] over the TONES list" }
+]

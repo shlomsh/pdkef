@@ -170,18 +170,6 @@
   flex-shrink: 0;
 }
 
-/* Redact design-review finding #5: the Download control never said what it
-   would produce. A quiet, end-aligned line beside the always-visible
-   completion Download/Share pair - the honest-numbers pattern from
-   docs/ux-design-guidelines.md §2, sized down to a caption since this tool's
-   primary control is already labelled "Download", not a bare verb. */
-.export-count {
-  margin: 0 0 0.4rem;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-  text-align: end;
-}
-
 /* A saved Redact workspace can be dozens of canvas pages long. pdf.js gives
    each canvas its final dimensions independently, so content after the
    workspace would otherwise become visible and then step downward during a
