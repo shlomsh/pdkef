@@ -159,8 +159,11 @@ export interface AppUpdateDeps {
   clearTimeout: (id: unknown) => void;
   setInterval: (fn: () => void, ms: number) => unknown;
   now: () => number;
-  /** Resolves once the page has loaded; registration waits for it. Default: now. */
-  loaded?: Promise<void>;
+  /**
+   * Resolves once the page is quiet (loaded, islands hydrated, idle; see
+   * registrationReady.ts); registration waits for it. Default: now.
+   */
+  ready?: Promise<void>;
   createMessageChannel?: () => MessageChannelLike;
 }
 
@@ -282,7 +285,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     deps.reload();
   });
 
-  await deps.loaded;
+  await deps.ready;
 
   // A browser that refuses or blocks workers (private modes, enterprise
   // policy, Playwright's serviceWorkers: 'block') gets no worker and no line.
