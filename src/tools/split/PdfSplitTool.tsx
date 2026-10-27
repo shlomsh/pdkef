@@ -19,13 +19,12 @@ import DownloadElement from '../../shell/DownloadElement.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
-import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
 import SkippedFilesNote from '../../shell/pageWorkspace/SkippedFilesNote.tsx';
 import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
-import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
+import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { repairedPdfLoader } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
@@ -35,6 +34,8 @@ import SplitVerb from './verb/SplitVerb.tsx';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import { buildSplit, type SplitMode } from './lib/splitOutput.ts';
+import SplitHeading from './components/SplitHeading.tsx';
+import SplitBulkRow from './components/SplitBulkRow.tsx';
 import { outputBaseName, extractedFileName } from './lib/split.js';
 
 
@@ -178,13 +179,7 @@ export default withIslandBoundary(function PdfSplitTool({
     ]
     : [];
 
-  const bulkRow = (
-    <div class={workspaceStyles['quiet-row']}>
-      <button type="button" class={workspaceStyles['quiet-button']} onClick={onIncludeAll}>{t.includeAll}</button>
-      <button type="button" class={workspaceStyles['quiet-button']} onClick={onSkipAll}>{t.skipAll}</button>
-      <button type="button" class={workspaceStyles['quiet-button']} onClick={onInvert}>{t.invertPages}</button>
-    </div>
-  );
+  const bulkRow = <SplitBulkRow onIncludeAll={onIncludeAll} onSkipAll={onSkipAll} onInvert={onInvert} messages={t} />;
 
   // The phone row shares its line with the bulk buttons, so it takes the shell's short label.
   const replaceRow = (requestReplace: () => void) => (
@@ -274,32 +269,18 @@ export default withIslandBoundary(function PdfSplitTool({
             </div>
           )}
           heading={(
-            <h2 class={workspaceStyles['doc-heading']} id="page-grid-heading">
-              <span class="sr-only">{t.documentHeading}</span>
-              {combined ? (
-                <OutputName
-                  prefix="extracted_"
-                  name={title}
-                  label={t.fileNameEditableLabel}
-                  onRename={renameOutput}
-                  onEditingChange={setIsRenamingOutputName}
-                  wrapOnPhone
-                >
-                  <span class={workspaceStyles['doc-heading-count']}>
-                    {' · '}{pagesLabel(outputCount, sm)}
-                    {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
-                  </span>
-                </OutputName>
-              ) : (
-                <>
-                  <bdi dir="ltr">{fileName}</bdi>
-                  <span class={workspaceStyles['doc-heading-count']}>
-                    {' · '}{pdfsLabel(outputCount)}
-                    {skippedCount > 0 ? ` · ${skippedLabel(skippedCount, t)}` : ''}
-                  </span>
-                </>
-              )}
-            </h2>
+            <SplitHeading
+              combined={combined}
+              title={title}
+              fileName={fileName}
+              outputCount={outputCount}
+              skippedCount={skippedCount}
+              pdfsLabel={pdfsLabel}
+              onRename={renameOutput}
+              onEditingChange={setIsRenamingOutputName}
+              messages={t}
+              shellMessages={sm}
+            />
           )}
           headerStatus={<HistoryButtons canUndo={canUndo} canRedo={canRedo} onUndo={handleUndo} onRedo={handleRedo} labels={t} />}
           railContent={(
