@@ -9,11 +9,11 @@ import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
    shapes are unchanged. English only until a Hebrew edition exists. */
 
 export interface EditPagesMessages extends PageGridMessages, PageToolMessages, DownloadMessages, HistoryButtonsMessages {
-  invert: string;
+  invertPages: string;
   addPageNumbers: string;
   touchDragHint: string;
   fileNameEditableLabel: string;
-  editedReady: string;
+  readyAnnouncement: string;
   allSkipped: string;
   loadingStructure: string;
   announceRestricted: string;
@@ -70,13 +70,15 @@ export const englishEditPagesMessages: EditPagesMessages = {
   // This tool's own.
   includeAll: 'Include all',
   skipAll: 'Skip all',
-  invert: 'Invert',
+  invertPages: 'Invert',
+  skippedOne: 'Skipped “{name}” - not a PDF.',
+  skippedMany: 'Skipped {count} files - not PDFs.',
   addPageNumbers: 'Add page numbers',
   touchDragHint: 'Touch and hold a page, then drag to reorder.',
   documentHeading: 'Your edited PDF',
   fileNameEditableLabel: 'File name, editable',
   downloadShort: 'Download',
-  editedReady: 'Your edited PDF is ready.',
+  readyAnnouncement: 'Your edited PDF is ready.',
   sharedSuccessfully: 'Edited PDF shared successfully.',
   sharingCanceled: 'Sharing canceled. Your edited PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',

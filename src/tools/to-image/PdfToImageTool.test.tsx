@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfToImageTool from './PdfToImageTool.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
@@ -562,6 +563,26 @@ describe('PdfToImageTool', () => {
     revoked.length = 0;
     act(() => render(null, container));
     for (const url of created) expect(revoked).toContain(url);
+  });
+
+
+  describe('files that are not PDFs', () => {
+    const noteFor = async (messages, files) => {
+      mount(messages ? { messages } : {});
+      await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), files); });
+      return container.querySelector(`.${pdfToolStyles['hint-message']}`)?.textContent;
+    };
+    const txt = (name) => new File(['x'], name, { type: 'text/plain' });
+
+    it('lists the one it skipped, as Split does', async () => {
+      expect(await noteFor(null, [txt('2025-notes.txt')])).toBe('Skipped “2025-notes.txt” - not a PDF.');
+    });
+    it('counts several, and speaks Hebrew with the name isolated', async () => {
+      expect(await noteFor(null, [txt('a.txt'), txt('b.txt')])).toBe('Skipped 2 files - not PDFs.');
+      act(() => render(null, container));
+      container.remove();
+      expect(await noteFor(hebrewToImageMessages, [txt('2025-notes.txt')])).toBe('דילגנו על "⁨' + '2025-notes.txt⁩" - זה לא קובץ PDF.');
+    });
   });
 
   // LOC: /he/pdf-to-image/ passes the Hebrew catalogue; nothing the island renders stays English.
