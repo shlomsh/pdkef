@@ -102,7 +102,7 @@
     }
   }
 
-  @keyframes arc {
+  @keyframes split-arc {
     0% {
       transform: translateY(0);
       rotate: 0deg;
@@ -132,6 +132,6 @@
   .right > i {
     animation:
       deal 0.55s ease-in-out calc(0.2s + var(--j) * 0.15s) both,
-      arc 0.55s linear calc(0.2s + var(--j) * 0.15s) both;
+      split-arc 0.55s linear calc(0.2s + var(--j) * 0.15s) both;
   }
 }
