@@ -1,11 +1,9 @@
 ---
 id: "ARCH-86"
 title: "The unit suite runs as its own CI job beside the guards"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 17
 depends_on: []
 ---
 
@@ -25,6 +23,6 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Acceptance
 
-- [ ] Guards and units report separately; total wall time does not rise.
+- [x] Guards and units report separately; total wall time does not rise.
 
-*2026-10-27:* landed on `audit-structure`. It stays in progress until the first CI run on `main` shows that total wall time did not rise.
+*Closed 2026-10-27:* run 40563223976 (a225e8fc) reports `checks` (36s) and `units` (281s) separately. Its 567s wall was set by `font-guards (1)` (533s), which ran because the push touched the font tables, as on 97f93bab (608s). `units` ended at +314s, level with the e2e shards (+299s), and the unit step itself (200s) sits inside the recent 128-207s range. The old combined `checks` job also ran the guards serially before the units, so the split takes about 30s off that path.
