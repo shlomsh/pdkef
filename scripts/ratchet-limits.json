@@ -35,7 +35,7 @@
       "src/tools/redact/RedactToolbar.tsx#RedactToolbar": 315,
       "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 952,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 321,
-      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 956,
+      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 955,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 705,
