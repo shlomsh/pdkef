@@ -5,11 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const reportError = vi.fn();
 
 vi.mock('./errorReport.ts', async (importOriginal) => {
-  const actual = await importOriginal();
-  return { ...actual, reportError: (...args) => { reportError(...args); return actual.reportError(...args); } };
+  const actual = await importOriginal<typeof import('./errorReport.ts')>();
+  return { ...actual, reportError: (...args: Parameters<typeof actual.reportError>) => { reportError(...args); return actual.reportError(...args); } };
 });
 
-function Boom({ error }) {
+function Boom({ error }: { error: unknown }): null {
   throw error;
 }
 
@@ -47,7 +47,7 @@ describe('IslandErrorBoundary', () => {
     render(<Boundary><p>one</p></Boundary>, container!);
     render(<Boundary><p>two</p></Boundary>, second);
     await new Promise((r) => setTimeout(r, 0)); // componentDidMount-time work has run
-    const count = (type) => add.mock.calls.filter(([t]) => t === type).length;
+    const count = (type: string) => add.mock.calls.filter(([t]) => t === type).length;
     expect(count('error')).toBe(1);
     expect(count('unhandledrejection')).toBe(1);
     render(null, second);

@@ -1,16 +1,14 @@
 import { hydrate, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { renderToString } from 'preact-render-to-string';
-import fs from 'fs';
-import path from 'path';
-import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { describe, expect, it, afterEach, beforeEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
-const FIXTURE = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-2.pdf'));
-const pdf = (name) => new File([FIXTURE], name, { type: 'application/pdf' });
+const FIXTURE = new TextEncoder().encode('%PDF-1.4\n%%EOF');
+const pdf = (name: string) => new File([FIXTURE], name, { type: 'application/pdf' });
 
 /* Files offered the moment the island hydrates, before the lazy draft module and
    the grid have loaded, land as entries. (A change event fired BEFORE hydration has

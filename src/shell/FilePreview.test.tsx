@@ -17,9 +17,9 @@ function makeImageFile(name = 'photo.jpg', type = 'image/jpeg') {
 // A controllable promise, so a test can assert the glyph-still-showing state
 // before renderThumbnail settles, then resolve or reject on cue.
 function deferred() {
-  let resolve;
-  let reject;
-  const promise = new Promise((res, rej) => {
+  let resolve!: (value: string) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<string>((res, rej) => {
     resolve = res;
     reject = rej;
   });
@@ -45,7 +45,7 @@ describe('FilePreview', () => {
     }
   });
 
-  function mount(props) {
+  function mount(props: Record<string, unknown>) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -107,7 +107,7 @@ describe('FilePreview', () => {
 
   it('calls renderThumbnail for a PDF with no MIME type, via the filename extension fallback', () => {
     const { promise } = deferred();
-    thumbnailsLib.renderThumbnail.mockReturnValue(promise);
+    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValue(promise);
 
     const file = makePdfFile('contract.pdf');
     Object.defineProperty(file, 'type', { value: '' });
@@ -118,7 +118,7 @@ describe('FilePreview', () => {
 
   it('calls renderThumbnail for a PDF and swaps the glyph for the render once it resolves', async () => {
     const { promise, resolve } = deferred();
-    thumbnailsLib.renderThumbnail.mockReturnValue(promise);
+    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValue(promise);
 
     const file = makePdfFile();
     mount({ file });
@@ -146,7 +146,7 @@ describe('FilePreview', () => {
     // The rejection is expected and swallowed - stub the handler so vitest's
     // unhandled-rejection guard doesn't flag it as a real one.
     promise.catch(() => {});
-    thumbnailsLib.renderThumbnail.mockReturnValue(promise);
+    vi.mocked(thumbnailsLib.renderThumbnail).mockReturnValue(promise);
 
     const file = makePdfFile('locked.pdf');
     mount({ file });
