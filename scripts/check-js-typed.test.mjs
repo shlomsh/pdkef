@@ -40,12 +40,12 @@ describe('findTypedViolations (ARCH-68)', () => {
 });
 
 describe('js file counts (ARCH-68)', () => {
-  const paths = ['src/lib/a.js', 'src/lib/b.jsx', 'src/lib/c.test.js', 'src/lib/e2e/d.js', 'src/lib/e.ts', 'src/shell/f.js', 'src/tools/g.js'];
+  const paths = ['src/lib/a.js', 'src/lib/b.jsx', 'src/lib/c.test.js', 'src/lib/e2e/d.js', 'src/lib/e.ts', 'src/shell/f.js', 'src/tools/g.js', 'src/tools/x/lib/h.js', 'src/tools/x/lib/h.test.js', 'src/tools/x/e2e/i.js'];
 
   it('counts non-test .js and .jsx per layer', () => {
     expect(isJsSource('src/lib/a.js')).toBe(true);
     expect(isJsSource('src/lib/a.test-helper.js')).toBe(false);
-    expect(countJsFiles(paths)).toEqual({ 'src/lib': 2, 'src/editor': 0, 'src/shell': 1 });
+    expect(countJsFiles(paths)).toEqual({ 'src/lib': 2, 'src/editor': 0, 'src/shell': 1, 'src/tools': 2 });
   });
 
   it('fails a count above the record', () => {
