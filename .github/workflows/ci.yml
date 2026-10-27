@@ -74,7 +74,7 @@ env:
   VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
 
 jobs:
-  # Everything that needs no build: source guards, the unit suite, typecheck.
+  # Everything that needs no build: source guards (the unit suite is `units`, ARCH-86).
   checks:
     runs-on: ubuntu-latest
     needs: scope
@@ -99,13 +99,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
-    # `pdftotext` half. Without it that half self-skips with a warning, which
-    # would leave the one assertion that actually proves /ActualText works
-    # running only on a developer's machine.
-    - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
-      run: sudo apt-get update && sudo apt-get install -y poppler-utils
-
     # backlog/tasks/*.md is the canonical board; BACKLOG.md and TODO.md are
     # generated from it. Fails on malformed task metadata, a dependency that
     # does not resolve, or a stale generated view (ARCH-12). Source guards
@@ -126,11 +119,6 @@ jobs:
     # intensifiers SEO-36 removed (scripts/check-never-say.mjs holds the list).
     - name: Validate never-say copy
       run: npm run check:never-say
-
-    # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
-    # every unit file on every push.
-    - name: Run tests
-      run: npx vitest run
 
     # Also covers the box-resize single-owner rule (exactly one file under
     # src/ may mention maxWidthFromRightGrowth/maxHeightFromBottomGrowth),
@@ -228,6 +216,43 @@ jobs:
     # guard. This locally validates that wiring on every PR.
     - name: Verify dependency governance wiring
       run: npm run test:dependency-governance
+
+  # ARCH-86: the unit suite beside the guards in `checks`, so neither delays the other's verdict.
+  units:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        # Full history: src/site-lib/gitLastModified.test.js dates a real
+        # guide from git and refuses a shallow boundary commit, so on the
+        # default depth-1 checkout it would see null and fail. Same reason
+        # and cost as `build` below (30 MB against 24 MB, 2026-09-14).
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
+    # `pdftotext` half. Without it that half self-skips with a warning, which
+    # would leave the one assertion that actually proves /ActualText works
+    # running only on a developer's machine.
+    - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+    # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
+    # every unit file on every push.
+    - name: Run tests
+      run: npx vitest run
 
   # The build and every guard that reads dist/. The product e2e suite is the
   # `e2e` job below, which builds again rather than waiting for this job; the
