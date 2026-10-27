@@ -27,6 +27,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Polish
 
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
+- [SITE-44](backlog/tasks/SITE-44.md) P2 · App bar: the tool crumb gives way instead of shrinking to a letter (in progress)
 
 ## Waiting, by date
 

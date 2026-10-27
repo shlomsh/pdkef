@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 65 live: 10 up next, 11 then, 26 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 66 live: 11 up next, 11 then, 26 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -172,6 +172,7 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
+| SITE-44 | P2 | [SITE-44](backlog/tasks/SITE-44.md) · App bar: the tool crumb gives way instead of shrinking to a letter | In progress |
 
 ### Then, in order
 
