@@ -25,7 +25,7 @@ import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
+import { imageOptionRows } from './components/ImageOptionRows.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
 import type { CellAction } from '../../shell/pageGrid/PageGrid.tsx';
 import { thumbnailPdfLoader } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
@@ -139,54 +139,7 @@ export default withIslandBoundary(function PdfToImageTool({ messages: messagesPr
   } = downloadFlow;
   resetDownloadFlowRef.current = resetDownloadFlow;
 
-  const changeSetting = <T,>(current: T, next: T, set: (value: T) => void) => {
-    if (next === current) return;
-    set(next);
-    recordAction('change_setting');
-    reportEdit('pdf-to-image');
-  };
-  const formatRow = (id: string, compact = false) => (
-    <OptionRow
-      id={id}
-      label={t.formatLabel}
-      showLabel={!compact}
-      options={[
-        { value: 'image/png', label: 'PNG', hint: t.formatPngHint },
-        { value: 'image/jpeg', label: 'JPG', hint: t.formatJpgHint },
-      ] as Option<ImageFormat>[]}
-      value={format}
-      onChange={(next) => changeSetting(format, next, setFormat)}
-      dir={t.dir}
-      compact={compact}
-    />
-  );
-  const qualityRow = (id: string) => (
-    <OptionRow
-      id={id}
-      label={t.qualityLabel}
-      options={[
-        { value: 1, label: t.qualityStandard, hint: t.qualityStandardHint },
-        { value: 2, label: t.qualityHigh, hint: t.qualityHighHint },
-        { value: 3, label: t.qualityMaximum, hint: t.qualityMaximumHint },
-      ]}
-      value={scale}
-      onChange={(next) => changeSetting(scale, next, setScale)}
-      dir={t.dir}
-    />
-  );
-  const layoutRow = (id: string) => (
-    <OptionRow
-      id={id}
-      label={t.layoutLabel}
-      options={[
-        { value: 'separate', label: t.layoutSeparate, hint: t.layoutSeparateHint },
-        { value: 'concatenated', label: t.layoutCombined, hint: t.layoutCombinedHint },
-      ] as Option<ImageLayout>[]}
-      value={layout}
-      onChange={(next) => changeSetting(layout, next, setLayout)}
-      dir={t.dir}
-    />
-  );
+  const { formatRow, qualityRow, layoutRow } = imageOptionRows(t, { format, scale, layout, setFormat, setScale, setLayout });
 
   const imagesLabel = (n: number) => (n === 1 ? t.imageCountOne : formatMessage(t.imageCountOther, { count: n }));
   // Above the auto-build limit nothing builds until the tap: say so where the size goes.
