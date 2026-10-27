@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { openTool } from '../support/tool.js';
+import { openTool, waitForIsland } from '../support/tool.js';
 
 /* ENC-08: a PDF that needs a password is a precondition in Compress too. One quiet state, "Unlock it"
    parks the file as a hand-off and opens /unlock/ with it loaded, and Unlock leads with "Continue in
@@ -36,7 +36,7 @@ test('a file that needs a password goes to Unlock from Compress and comes back u
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
   await page.waitForURL(/\/unlock\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const password = page.getByLabel('PDF password');
   await expect(password).toBeVisible({ timeout: 10_000 });
   await password.fill('u');
@@ -45,7 +45,7 @@ test('a file that needs a password goes to Unlock from Compress and comes back u
 
   await page.getByRole('button', { name: 'Continue in Compress' }).click();
   await page.waitForURL(/\/compress\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.locator('[data-tool-shell]')).toContainText('needs-password_unlocked.pdf', { timeout: 10_000 });
   await expect(page.locator('[data-compress-status="done"]')).toBeVisible({ timeout: 60_000 });
 

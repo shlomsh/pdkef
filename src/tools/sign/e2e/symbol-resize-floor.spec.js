@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Reported live on a real Hebrew tax form (income tax form 101): a checkbox
@@ -34,7 +35,7 @@ test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 }
 
 test('nudging a checkbox smaller than the resize floor does not snap it up to that floor', async ({ page }) => {
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({

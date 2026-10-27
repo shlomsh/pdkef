@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { scrollStory, stageLocator } from './heroDemoHelpers.js';
 import { SAMPLE_FILE_NAME } from '../../src/site-lib/sampleDocument.ts';
+import { waitForIsland } from '../support/tool.js';
 test.use({serviceWorkers:'block'});
 
 // MEM-01: a raw workspace record is now a content-addressed entry (its own
@@ -143,7 +144,7 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
   const bytes = readFileSync('public/images/redaction-guide/sample.pdf');
   for (const tool of ['sign','redact']) {
     await page.goto(`/${tool}/`);
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await page.locator('input[type="file"]').first().setInputFiles({name:`my-${tool}-document.pdf`,mimeType:'application/pdf',buffer:bytes});
     await expect(page.locator('canvas').first()).toBeVisible();
     // QUAL-10: opening alone writes no `work` (that starts on the first real

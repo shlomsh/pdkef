@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Real drag-to-reorder, then undo/redo, in a real browser.
@@ -26,7 +27,7 @@ function cells(page) {
 
 async function openEditPagesTool(page, pageCount) {
   await page.goto('/organize-pdf/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles({
     name: 'edit-pages-reorder-e2e.pdf',
     mimeType: 'application/pdf',

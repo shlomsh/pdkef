@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* Split, the stage (docs/split-stage-spec.md, 2026-09-14; on the shared page
    grid since GRID-05). The one thing jsdom cannot prove: the control that
@@ -12,7 +13,7 @@ const makePdfBuffer = (pageCount) => buildPdf(null, { title: false, pages: pageC
 
 async function openSplit(page, name, pageCount) {
   await page.goto('/split/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles({
     name,
     mimeType: 'application/pdf',

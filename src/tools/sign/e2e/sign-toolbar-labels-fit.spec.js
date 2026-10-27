@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 // Sign's phone toolbar: a word under every control, Download kept beside Share,
 // and no row ever stranding a lone control. Labels use the system font stack,
@@ -8,13 +9,7 @@ import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 // its button's border box on both sides. Every offender is collected by name
 // before any assertion fails.
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([300, 400]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Sign toolbar labels fixture', { x: 30, y: 320, size: 14, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { size: [300, 400], title: false, lines: [{ text: 'Sign toolbar labels fixture', x: 30, y: 320, size: 14, gray: null }] });
 
 async function openSign(page, path) {
   // Share only exists where the browser can share; the toolbar's Download is
@@ -24,7 +19,7 @@ async function openSign(page, path) {
     Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
   });
   await page.goto(path);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText(/^(Choose file|בחירת קובץ)$/).first().click();
   await (await chooser).setFiles({ name: 'sign-toolbar-fit.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

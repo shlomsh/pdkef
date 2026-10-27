@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../support/tool.js';
 
 // LOC-02: the one thing jsdom cannot prove about a localized tool page - that
 // the shell actually mirrors under dir="rtl". Rendered rects only; copy and
@@ -62,7 +63,7 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
   // input. The <input type=file> accepts files even unhydrated, but its Preact
   // onChange only attaches after hydration - an early setInputFiles is silently
   // dropped and the row never appears, which is how this spec flaked in CI.
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.setInputFiles('input[type=file]', {
     name: 'sample.pdf',
     mimeType: 'application/pdf',

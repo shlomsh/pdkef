@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Tapping a printed grid, in a real browser.
@@ -35,7 +36,7 @@ const NAME_CELL = { left: 52.73, top: 25.32, width: 20.87, height: 2.77 };
 
 async function openWithFixture(page) {
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({
@@ -52,7 +53,7 @@ async function openWithFixture(page) {
 
 async function openWithHealthFixture(page) {
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // RED-66: the toolbar Download finishes where the person is looking. The strip
 // hangs under the sticky toolbar card, so whether the result, both hand-offs and
@@ -13,7 +14,7 @@ async function openWithOneBox(page) {
   // A fresh device: the rating ask's 14-day cadence allows it.
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/redact');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'done-strip.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer() });

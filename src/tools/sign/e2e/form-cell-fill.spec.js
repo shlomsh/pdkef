@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * MOBI-11: a tap on a detected free-text cell places a box that fills the
@@ -35,7 +36,7 @@ const EDGE_SLACK_PX = 3;
 
 async function openWithFixture(page, { file = FIXTURE, name = 'health-declaration.pdf' } = {}) {
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({
