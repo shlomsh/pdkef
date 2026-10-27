@@ -1,11 +1,9 @@
 ---
 id: "ARCH-100"
 title: "Island tests wait for what they assert, not for a fixed sleep"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -23,5 +21,9 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] With every remaining fixed sleep planted at 0 ms, the seven tools' island tests all pass.
-- [ ] Each converted file passes 3 runs and 4 parallel copies; CI on main is green on the unit job.
+- [x] With every remaining fixed sleep planted at 0 ms, the seven tools' island tests all pass.
+- [x] Each converted file passes 3 runs and 4 parallel copies; CI on main is green on the unit job.
+
+## Closed
+
+Closed 2026-10-27. `src/test/harness/waitUntil.ts` (5 tests) replaced the fixed sleeps that wait on real work in the seven tools' island tests; windows that prove something does not happen, and fake-timer blocks, keep fixed time. Under a 0 ms plant on every remaining sleep the island tests pass, except Redact's RED-51 fold test, which needs 550 ms of real time by design. Two leaks the load runs found are fixed: a Redact saved-file check outliving its test, and Merge's early-files hand-off read (now awaited by IndexedDB order). Two concurrent full suites pass clean; CI run 40543513132 on main is green.
