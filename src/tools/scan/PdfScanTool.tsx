@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
-import { Check, Crop, Eraser, FileSignature, ImagePlus, Maximize, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { Eraser, FileSignature, ImagePlus, Shrink, Trash2 } from 'lucide-preact';
 import { isAbortError, throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
@@ -25,18 +25,22 @@ import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
+import OptionRow from '../../shell/pageWorkspace/OptionRow.tsx';
 import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
 import { useMediaQuery } from './hooks/useMediaQuery.ts';
 import { englishShellMessages } from '../../shell/shellMessages';
-import CornerEditor from './components/CornerEditor.tsx';
-import FullScreenButton from './components/FullScreenButton.tsx';
+import ScanCornersView from './components/ScanCornersView.tsx';
+import ScanEditorHead from './components/ScanEditorHead.tsx';
+import ScanPageStrip from './components/ScanPageStrip.tsx';
+import ScanResultView from './components/ScanResultView.tsx';
+import { useKeepSelectedInView } from './hooks/useKeepSelectedInView.ts';
+import { useScanFullScreen } from './hooks/useScanFullScreen.ts';
+import { limitOptions as scanLimitOptions, lookOptions as scanLookOptions, sizeOptions as scanSizeOptions } from './lib/scanOptions.ts';
 import TakePhotoButton from './components/TakePhotoButton.tsx';
-import ResultPage from './components/ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
-import { playFlatten, relativeBox, type FlattenFrom } from './lib/flattenAnimation.ts';
+import { playFlatten, type FlattenFrom } from './lib/flattenAnimation.ts';
 import ScanVerb from './verb/ScanVerb.tsx';
-import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } from './lib/quad.ts';
+import { FULL_QUAD, quadKey, rotateQuad, type Quad } from './lib/quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './lib/scanBudget.ts';
 import type { ScanFilter } from './lib/filters.ts';
 import type { BuiltPage, PageSize, ProcessedPage } from './lib/scanPipeline.ts';
@@ -319,97 +323,10 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   }, [view, selectedId]);
   useEffect(() => () => work.stopFlatten(), []);
 
-  // The corners full screen (state.full): the browser's own, on the editor (Sign's pattern, PdfSignTool),
-  // or a fixed full-page layer where it has none for an element (iPhone Safari).
-  useEffect(() => {
-    const onChange = () => dispatch({ type: 'fullscreenChanged', native: document.fullscreenElement === editorRef.current });
-    document.addEventListener('fullscreenchange', onChange);
-    return () => document.removeEventListener('fullscreenchange', onChange);
-  }, []);
-  const enterFull = () => {
-    recordAction('fullscreen');
-    const el = editorRef.current;
-    if (el?.requestFullscreen && document.fullscreenEnabled !== false) {
-      // expected: element full screen is optional, the layer stands in
-      el.requestFullscreen()?.catch(() => dispatch({ type: 'fullLayerEntered' }));
-    } else dispatch({ type: 'fullLayerEntered' });
-  };
-  const exitFull = () => {
-    // The browser's own: `full` follows its fullscreenchange, once the card is back on screen.
-    if (document.fullscreenElement === editorRef.current && document.exitFullscreen) {
-      // expected: the browser may already have left full screen (Esc), nothing to undo
-      document.exitFullscreen()?.catch(() => dispatch({ type: 'fullExited' }));
-    } else dispatch({ type: 'fullExited' });
-  };
-  /** Approved full screen: the result waits for the card, and the flatten starts from the photo where
-   * the card shows it. Measured full screen, the page flew in from full-screen coordinates (2026-10-27). */
-  const showResult = (page: ScanPage) => {
-    if (full) {
-      dispatch({ type: 'resultAfterFullQueued', landing: { quad: page.quad, turns: page.turns } });
-      exitFull();
-      return;
-    }
-    captureFlatten(page);
-    dispatch({ type: 'resultShown' });
-  };
-  useLayoutEffect(() => {
-    const page = state.landing;
-    if (full || !page) return;
-    captureFlatten(page);
-    dispatch({ type: 'resultAfterFullShown' });
-  }, [full]);
-  // Full screen belongs to the view it was opened on (the corners, or the page as it downloads): a
-  // view change brings the card back.
-  useEffect(() => {
-    exitFull();
-  }, [view]);
-  useEffect(() => () => {
-    // expected: leaving the page while full screen, nothing to report
-    if (document.fullscreenElement && document.fullscreenElement === editorRef.current) document.exitFullscreen?.()?.catch(() => {});
-  }, []);
-  // The layer: the page behind keeps still, and Esc leaves it as it leaves the browser's own.
-  useEffect(() => {
-    if (full !== 'layer') return undefined;
-    const root = document.documentElement;
-    const overflow = root.style.overflow;
-    root.style.overflow = 'hidden';
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') dispatch({ type: 'fullExited' }); };
-    document.addEventListener('keydown', onKey);
-    return () => {
-      root.style.overflow = overflow;
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [full]);
+  const { enterFull, exitFull, showResult } = useScanFullScreen({ editorRef, work, dispatch, full, view, landing: state.landing });
 
-  const captureFlatten = (page: { quad: Quad; turns: number }) => {
-    const host = editorRef.current;
-    const frame = host?.querySelector('[data-corner-frame]');
-    // The editor's own photo, already decoded: the flatten paints from it on its first frame.
-    const photo = frame?.querySelector<HTMLImageElement>('img');
-    if (!host || !frame || !photo) return;
-    work.flattenFrom = {
-      photo,
-      frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
-      quad: turnedQuad(page.quad, page.turns),
-    };
-  };
 
-  // The selected page stays in view inside the pages list (a capped column from 1024px), by scrolling
-  // the list alone: scrollIntoView would also move the page away from the photo on a phone. On a new
-  // selection only: an added page is selected, and removing another page must leave the list where it is.
-  useEffect(() => {
-    const list = listRef.current;
-    const tile = list?.querySelector<HTMLElement>('[data-selected]');
-    if (!list || !tile) return;
-    // Inset by the strip's 10px padding, which keeps the selected ring and the remove disc in the clear.
-    const { top, bottom, left, right } = list.getBoundingClientRect();
-    const box = { top: top + 10, bottom: bottom - 10, left: left + 10, right: right - 10 };
-    const at = tile.getBoundingClientRect();
-    if (at.top < box.top) list.scrollTop -= box.top - at.top;
-    else if (at.bottom > box.bottom) list.scrollTop += at.bottom - box.bottom;
-    if (at.left < box.left) list.scrollLeft -= box.left - at.left;
-    else if (at.right > box.right) list.scrollLeft += at.right - box.right;
-  }, [selectedId]);
+  useKeepSelectedInView(listRef, selectedId);
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
@@ -573,22 +490,9 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     reportEdit('scan-to-pdf');
   };
 
-  const lookOptions: Option<ScanFilter>[] = [
-    { value: 'original', label: t.lookOriginal, hint: t.lookOriginalHint },
-    { value: 'grayscale', label: t.lookGrayscale, hint: t.lookGrayscaleHint },
-    { value: 'document', label: t.lookDocument, hint: t.lookDocumentHint },
-  ];
-  const sizeOptions: Option<PageSize>[] = [
-    { value: 'fit', label: t.pageSizeFit, hint: t.pageSizeFitHint },
-    { value: 'a4', label: t.pageSizeA4, hint: formatMessage(t.pageSizePaperHint, { size: 'A4' }) },
-    { value: 'letter', label: t.pageSizeLetter, hint: formatMessage(t.pageSizePaperHint, { size: 'Letter' }) },
-  ];
-  const limitLabels: Record<SizeLimitId, string> = { none: t.limitNone, '2mb': t.limit2mb, '1mb': t.limit1mb, '500kb': t.limit500kb };
-  const limitOptions: Option<SizeLimitId>[] = SIZE_LIMITS.map((l) => ({
-    value: l.id,
-    label: limitLabels[l.id],
-    hint: l.bytes === null ? t.limitNoneHint : formatMessage(t.limitHint, { size: limitLabels[l.id] }),
-  }));
+  const lookOptions = scanLookOptions();
+  const sizeOptions = scanSizeOptions();
+  const limitOptions = scanLimitOptions();
   const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
 
   // One set for the rail, one for phones under the pages (the rail is hidden below 1024px).
@@ -735,186 +639,68 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                 style={stageHeight !== null ? { '--scan-stage-h': `${stageHeight}px` } : undefined}
               >
               <section ref={editorRef} class={styles.editor} data-full={full ?? undefined} aria-label={formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}>
-                <div class={styles['editor-head']}>
-                  <p class={styles['editor-title']} ref={headingRef} tabIndex={-1} data-page-heading>
-                    {formatMessage(t.pageOf, { position: selectedIndex + 1, total: pages.length })}
-                    {view === 'corners' && (
-                      <span class={styles['editor-hint']} role="status">
-                        {selected.guessed && selected.preview === null ? t.pageFailed
-                          : !selected.guessed || finding === selected.id ? t.findingEdges
-                          : findMissed.includes(selected.id) ? t.findMissed
-                          : selected.found === false && !selected.edited ? t.notFoundCorners
-                          : t.cornersHint}
-                      </span>
-                    )}
-                  </p>
-                  {view === 'corners' && selected.preview !== null && (
-                    <div class={styles['head-actions']}>
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>
-                        <RotateCw size={16} aria-hidden="true" />
-                        {t.rotate}
-                      </button>
-                      <FullScreenButton full={full !== null} onToggle={full ? exitFull : enterFull} labels={{ enter: t.fullScreen, exit: t.exitFullScreen }} />
-                    </div>
-                  )}
-                  {view === 'result' && (
-                    <div class={styles['head-actions']}>
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={rotatePage}>
-                        <RotateCw size={16} aria-hidden="true" />
-                        {t.rotate}
-                      </button>
-                      <button
-                        type="button"
-                        class={workspaceStyles['quiet-button']}
-                        onClick={() => {
-                          dispatch({ type: 'cornersOpened', focus: true });
-                          announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
-                        }}
-                      >
-                        <Crop size={16} aria-hidden="true" />
-                        {t.adjustCorners}
-                      </button>
-                      <FullScreenButton full={full !== null} onToggle={full ? exitFull : enterFull} labels={{ enter: t.fullScreen, exit: t.exitFullScreen }} />
-                    </div>
-                  )}
-                </div>
+                <ScanEditorHead
+                  view={view}
+                  selected={selected}
+                  selectedIndex={selectedIndex}
+                  pageCount={pages.length}
+                  finding={finding}
+                  findMissed={findMissed}
+                  full={full}
+                  headingRef={headingRef}
+                  onRotate={rotatePage}
+                  onToggleFull={full ? exitFull : enterFull}
+                  onAdjustCorners={() => {
+                    dispatch({ type: 'cornersOpened', focus: true });
+                    announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
+                  }}
+                />
                 {view === 'corners' && (
-                  <div class={styles['photo-area']}>
-                    {shownPhoto(selected) === null ? (
-                      // The photo's own shape and size, so nothing moves when its preview lands.
-                      <div
-                        class={styles['corners-wait']}
-                        style={{ aspectRatio: String(shownAspect), width: `min(100%, calc(var(--scan-view-h) * ${shownAspect}))` }}
-                      >
-                        {/* The head already says a photo could not be read; the box stays quiet. */}
-                        {selected.preview !== null || selected.guessed ? '' : t.findingEdges}
-                      </div>
-                    ) : (
-                      // On a turned page the photo, its shape and its corners are all shown turned (quad.ts).
-                      <CornerEditor
-                        key={`${selected.id}|${selected.turns}`}
-                        src={shownPhoto(selected) as string}
-                        aspect={selected.aspect === null ? undefined : shownAspect}
-                        quad={turnedQuad(selected.quad, selected.turns)}
-                        onCommit={(quad) => commitCorners(selected.id, unturnedQuad(quad, selected.turns))}
-                        labels={{ group: t.cornersGroup, corners: t.corners }}
-                      />
-                    )}
-                  </div>
-                )}
-                {view === 'corners' && selected.guessed && selected.preview === null && (
-                  // An unreadable photo has nothing to straighten: the one thing to do is take it out.
-                  <div class={styles['corners-actions']}>
-                    <button
-                      type="button"
-                      class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
-                      onClick={() => {
-                        // The next photo comes into view: this one's error box was not its height.
-                        dispatch({ type: 'scrollFocusRequested', top: true });
-                        removePage(selected.id);
-                      }}
-                    >
-                      <Trash2 size={18} aria-hidden="true" />
-                      {t.removePhoto}
-                    </button>
-                  </div>
-                )}
-                {view === 'corners' && !(selected.guessed && selected.preview === null) && (
-                  // Under the photo, like a scanner app's bottom bar: the quiet choices, then the one that moves on.
-                  // One row where it fits; on a phone the one that moves on takes a row of its own.
-                  <div class={styles['corners-actions']}>
-                    <button type="button" class={workspaceStyles['quiet-button']} disabled={finding !== null || selected.preview === null} onClick={() => findPage(selected)}>
-                      <WandSparkles size={18} aria-hidden="true" />
-                      {t.findPage}
-                    </button>
-                    <button
-                      type="button"
-                      class={workspaceStyles['quiet-button']}
-                      disabled={quadKey(selected.quad) === quadKey(FULL_QUAD)}
-                      onClick={() => commitCorners(selected.id, FULL_QUAD)}
-                    >
-                      <Maximize size={18} aria-hidden="true" />
-                      {t.wholePhoto}
-                    </button>
-                    <button
-                      type="button"
-                      class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
-                      disabled={selected.preview === null}
-                      onClick={selected.reviewed ? () => {
-                        showResult(selected);
-                        dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
-                        announce(t.announceResult);
-                      } : approveCorners}
-                    >
-                      <Check size={18} aria-hidden="true" />
-                      {selected.reviewed ? t.cornersDone : t.useCorners}
-                    </button>
-                  </div>
+                  <ScanCornersView
+                    selected={selected}
+                    photo={shownPhoto(selected)}
+                    shownAspect={shownAspect}
+                    finding={finding}
+                    onCommit={commitCorners}
+                    onFind={findPage}
+                    onApprove={approveCorners}
+                    onDone={() => {
+                      showResult(selected);
+                      dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
+                      announce(t.announceResult);
+                    }}
+                    onRemove={(id) => {
+                      // The next photo comes into view: this one's error box was not its height.
+                      dispatch({ type: 'scrollFocusRequested', top: true });
+                      removePage(id);
+                    }}
+                  />
                 )}
                 {view === 'result' && (
-                  <>
-                    {/* The look belongs to this page, so it sits right above it, on the first screen on a phone. */}
-                    <div class={styles['page-look']}>
-                      <OptionRow id="scan-look" label={t.lookLabel} options={lookOptions} value={selected.filter} onChange={chooseLook} dir={t.dir} />
-                    </div>
-                    {selected.found === false && !selected.edited && (
-                      <p class={styles['not-found']} role="status">
-                        {t.notFound}
-                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => dispatch({ type: 'cornersOpened', focus: false })}>
-                          <Crop size={16} aria-hidden="true" />
-                          {t.adjustCorners}
-                        </button>
-                      </p>
-                    )}
-                    <div class={styles['paper-area']}>
-                      <ResultPage {...resultView(selected, selectedIndex)} labels={{ exact: t.resultExact, updating: t.resultUpdating, making: t.processing }} detail={exactDetail} />
-                    </div>
-                  </>
+                  <ScanResultView
+                    selected={selected}
+                    lookOptions={lookOptions}
+                    onChooseLook={chooseLook}
+                    onAdjustCorners={() => dispatch({ type: 'cornersOpened', focus: false })}
+                    pageProps={resultView(selected, selectedIndex)}
+                    detail={exactDetail}
+                  />
                 )}
               </section>
 
-              <div class={styles.pages}>
-              <p class="sr-only" id="scan-reorder-hint">{t.reorderHint}</p>
-              <ul class={styles.strip} ref={listRef} aria-label={t.pagesLabel} aria-describedby="scan-reorder-hint">
-                {pages.map((page, index) => {
-                  const result = results[page.id];
-                  const current = result?.key === resultKey(page);
-                  return (
-                    <li key={page.id} class={styles.tile} data-id={page.id} data-selected={page.id === selected.id || undefined}>
-                      <div
-                        class={styles.page}
-                        data-page
-                        tabIndex={0}
-                        role="button"
-                        aria-pressed={page.id === selected.id}
-                        aria-label={formatMessage(t.tileLabel, { position: index + 1, total: pages.length })}
-                        onClick={() => dispatch({ type: 'pageSelected', id: page.id })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'pageSelected', id: page.id }); return; }
-                          onTileKeyDown(e, page.id);
-                        }}
-                      >
-                         {result ? <img src={result.thumbUrl} alt="" draggable={false} data-stale={!current || undefined} /> : <span class={styles.pending}>{failedIds.includes(page.id) ? t.pageFailed : t.processing}</span>}
-                        <span class={styles.badge} aria-hidden="true">{index + 1}</span>
-                      </div>
-                      <button type="button" class={styles.remove} aria-label={formatMessage(t.removeLabel, { position: index + 1 })} onClick={() => removePage(page.id)}>
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                        </svg>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              {/* Outside the list, so a long scan scrolls its pages and these stay at the end, in view. */}
-              <div class={styles['add-tile']}>
-                <TakePhotoButton onFiles={addFiles} />
-                <button type="button" class={styles['add-button']} onClick={requestReplace}>
-                  <ImagePlus size={20} aria-hidden="true" />
-                  {t.addPhotos}
-                </button>
-              </div>
-              </div>
+              <ScanPageStrip
+                pages={pages}
+                results={results}
+                selectedId={selected.id}
+                failedIds={failedIds}
+                listRef={listRef}
+                resultKeyOf={resultKey}
+                onSelect={(id) => dispatch({ type: 'pageSelected', id })}
+                onTileKeyDown={onTileKeyDown}
+                onRemove={removePage}
+                onFiles={addFiles}
+                onPickMore={requestReplace}
+              />
               </div>
 
               {/* On a phone the corners come first; the choices follow the pages they apply to. */}
