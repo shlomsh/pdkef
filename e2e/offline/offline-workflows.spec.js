@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/languageAcceptance.js';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 
 const offlineLanguageLayouts = new Map([
   ['arabic', { xRatio: 0.75, yRatio: 0.25 }],
@@ -42,13 +42,7 @@ const representativeOfflineLanguagePacks = LANGUAGE_ACCEPTANCE_MATRIX
  * of shipping.
  */
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText(label, { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label }] });
 
 async function waitForServiceWorkerControl(page) {
   await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller !== null, null, {

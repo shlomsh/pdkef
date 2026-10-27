@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* Direction A (2026-09-13): the document is the centre. Merge's card
    (`.tool-card`, unchanged) still fills the width before any file is
@@ -12,12 +13,7 @@ import { readFile } from 'node:fs/promises';
    result directly, so this spec checks that it arrives ready with an href,
    a download name and "2 pages", never a second, stacked "done" state. */
 
-async function makePdfBuffer(label, pageCount = 1) {
-  const document = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (label, pageCount = 1) => buildPdf(label, { pages: pageCount });
 
 test('keeps the Merge card full width and spaces the native-share icon', async ({ page }) => {
   // Native Share is not exposed in every browser context. Supply its supported

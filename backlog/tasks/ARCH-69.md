@@ -1,11 +1,9 @@
 ---
 id: "ARCH-69"
 title: "tsconfig states strict mode explicitly"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 8
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Safety nets. Criterion: Type safety. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] Typecheck green; the setting is visible in the file.
+- [x] Typecheck green; the setting is visible in the file.
+
+## Done (2026-10-27)
+
+tsconfig.json sets "strict": true (tsc --strict false shows the 22 errors strict catches).

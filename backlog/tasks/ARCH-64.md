@@ -1,11 +1,9 @@
 ---
 id: "ARCH-64"
 title: "Tool-keyed types derive from ToolId"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 7
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Code. Criterion: Readability and naming. Structure only: no behaviour chan
 
 ## Acceptance
 
-- [ ] No hand-written tool union remains; typecheck green.
+- [x] No hand-written tool union remains; typecheck green.
+
+## Done (2026-10-27)
+
+HandoffTool derives from a handoffTarget flag on TOOL_PAGES and ToolSlug from the rows with accepts; type pins in src/test/cross-tool/toolIds.test.ts.

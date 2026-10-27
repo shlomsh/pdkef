@@ -1,5 +1,6 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { PageGridMessages, DownloadMessages } from '../../shell/shellMessages';
+import type { PageToolMessages } from '../../shell/pageWorkspace/pageToolMessages.ts';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /**
@@ -8,7 +9,7 @@ import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
  * `{format}` is PNG or JPG, which stay Latin on every locale. The output file
  * names (`<name>-page-N.png`) are real file names and are never translated.
  */
-export interface ToImageMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
+export interface ToImageMessages extends PageGridMessages, PageToolMessages, DownloadMessages, HistoryButtonsMessages {
   lang: string;
   dir: 'ltr' | 'rtl';
   formatLabel: string;
@@ -53,24 +54,8 @@ export interface ToImageMessages extends PageGridMessages, DownloadMessages, His
   invalidPart: string;
   noValidPages: string;
   /* The shared page grid's own strings (as Split's). Not the bare Tailwind utility name for invertPages: src/i18n is a Tailwind @source. */
-  includeAll: string;
-  skipAll: string;
   invertPages: string;
-  allIncluded: string;
-  inverted: string;
-  documentHeading: string;
-  downloadShort: string;
   readyAnnouncement: string;
-  sharedSuccessfully: string;
-  sharingCanceled: string;
-  shareError: string;
-  undoneAnnouncement: string;
-  redoneAnnouncement: string;
-  loaded: string;
-  loadFailed: string;
-  announceNeedsPassword: string;
-  closeStrip: string;
-  shareLabel: string;
   /** The visible tooltip word of the per-page save action; its aria-label is downloadPageAria. */
   tipSave: string;
   /* The protected-file state (src/shell/NeedsUnlock.tsx): only a password stops this tool. */

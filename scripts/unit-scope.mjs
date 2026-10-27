@@ -157,7 +157,6 @@ export const WIDEN_RULES = [
       'src/editor/text/fontCoverage.test.js',
       'src/editor/text/fontCoverageTable.test.js',
       'src/editor/text/fonts.test.js',
-      'src/editor/text/liveFontCoverage.test.js',
       'src/editor/registry/hebrewMarkPlacement.test.js',
       'src/editor/registry/textShaping.test.js',
       'src/test/cross-tool/textCoverage.test.js',

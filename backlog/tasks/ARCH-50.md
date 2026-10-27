@@ -1,11 +1,9 @@
 ---
 id: "ARCH-50"
 title: "File and function length are ratchets that only shrink"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 2
 depends_on: ["ARCH-76"]
 ---
 
@@ -25,4 +23,8 @@ Area: Code. Criterion: Size and complexity. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] Growing a recorded file fails CI; shrinking it passes and lowers the record.
+- [x] Growing a recorded file fails CI; shrinking it passes and lowers the record.
+
+## Done (2026-10-27)
+
+scripts/check-size-ratchet.mjs records 13 files over 800 lines (.astro included) and 25 functions over 300 in ratchet-limits.json; growth fails, a clean local run lowers the record, a failing run writes nothing. Its first integrated run caught check-module-boundaries.mjs at 816 lines, which was split.

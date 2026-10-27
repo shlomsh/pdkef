@@ -1,11 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { FileSignature, Shrink } from 'lucide-preact';
-import { isPdfFile } from '../../lib/fileKind.js';
-import { includeAll, invert, outputPageCount, planForFile, planKey, skipAll, withIncludedPages, type PlanEntry } from '../../lib/pagePlan.ts';
-import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
+import { outputPageCount, planKey } from '../../lib/pagePlan.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
@@ -28,7 +25,8 @@ import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
 import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import { repairedPdfLoader, useOpenPageDocument } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { repairedPdfLoader } from '../../shell/pageWorkspace/useOpenPageDocument.ts';
+import { usePageToolSession } from '../../shell/pageWorkspace/usePageToolSession.ts';
 import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import SplitVerb from './verb/SplitVerb.tsx';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
@@ -39,12 +37,6 @@ import { outputBaseName, extractedFileName } from './split.js';
 
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
-
-interface SplitDocument {
-  plan: PlanEntry[];
-}
-
-const EMPTY_DOCUMENT: SplitDocument = { plan: [] };
 
 /** Fills a sentence that holds one non-text node (a link) at `{slot}`. */
 function withSlot(template: string, slot: string, node: any) {
@@ -82,44 +74,29 @@ export default function PdfSplitTool({
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
 
-  const { present, canUndo, canRedo, reset, onPlanChange, handleUndo, handleRedo } = useDocumentHistory<SplitDocument>(
-    EMPTY_DOCUMENT,
-    { tool: 'split', announce: setAnnouncement, messages: { undone: t.undoneAnnouncement, redone: t.redoneAnnouncement } },
-  );
-  const { plan } = present;
-
-  // The one open path (src/shell/pageWorkspace/useOpenPageDocument.ts): stale-pick guard,
-  // protection check, repaired copy. What is Split's own is reset in onPick/onLoaded.
-  const { file, workingFile, pageCount, loadId, loadStatus, needsUnlock, open } = useOpenPageDocument({
+  // The shared page-tool session (src/shell/pageWorkspace/usePageToolSession.ts): history, the one
+  // open path, PDF filtering, hand-off intake and the bulk actions. What is Split's own is reset in onPick.
+  const {
+    present, canUndo, canRedo, onPlanChange, handleUndo, handleRedo,
+    file, workingFile, pageCount, loadId, loadStatus, needsUnlock,
+    handleFilesAdded, onIncludeAll, onSkipAll, onInvert, onSelectPages,
+  } = usePageToolSession({
+    tool: 'split',
     loader: repairedPdfLoader,
     unlockKinds: ['needs-password', 'owner-restricted'],
-    messages: { needsPassword: t.announceNeedsPassword, restricted: t.announceRestricted, loaded: t.loaded, loadFailed: t.loadFailed },
+    messages: t,
     announce: setAnnouncement,
     onPick: () => {
       resetDownloadFlowRef.current();
       setRenderedCount(0);
       setMode('combined');
       setCustomName(null);
-      // A new file starts a fresh document: reset (not commit) so the previous
-      // file's undo/redo stacks don't leak across files.
-      reset(EMPTY_DOCUMENT);
     },
-    onLoaded: ({ pageCount: count }) => reset({ plan: planForFile(FILE_ID, count) }),
+    onRejected: setRejectedFiles,
   });
+  const { plan } = present;
   useHoldUpdate(file !== null, 'open');
   const PageGrid = useLazyPageGrid(file !== null);
-
-  const handleFilesAdded = useCallback(async (fileList: FileList | File[]) => {
-    const incoming = Array.from(fileList);
-    const pdfs = incoming.filter((f) => isPdfFile(f));
-    setRejectedFiles(incoming.filter((f) => !isPdfFile(f)).map((f) => f.name));
-    if (pdfs.length === 0) return;
-    await open(pdfs[0]);
-  }, [open]);
-
-  // MERGE-14: a PDF handed off from another tool (or the home page) is collected
-  // on mount and dropped into the same path a manual pick takes.
-  useHandoffIntake('split', (f) => handleFilesAdded([f]));
 
   const sources = useMemo(
     () => (workingFile ? [{ id: FILE_ID, file: workingFile, pageCount, error: null }] : []),
@@ -165,21 +142,6 @@ export default function PdfSplitTool({
     onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow,
   } = downloadFlow;
   resetDownloadFlowRef.current = resetDownloadFlow;
-
-  // A bulk action is one step, and none at all when it changes nothing.
-  const bulk = (update: (current: PlanEntry[]) => PlanEntry[], message: string) => () => {
-    if (update(plan) === plan) return;
-    onPlanChange(update);
-    recordAction('select_pages');
-    setAnnouncement(message);
-  };
-  const onIncludeAll = bulk(includeAll, t.allIncluded);
-  const onSkipAll = bulk(skipAll, t.allSkipped);
-  const onInvert = bulk(invert, t.inverted);
-
-  const onSelectPages = useCallback((numbers: number[], options: { merge: boolean }) => {
-    onPlanChange((current) => withIncludedPages(current, numbers), options);
-  }, [onPlanChange]);
 
   const modeOptions: Option<SplitMode>[] = [{ value: 'combined', label: t.modeCombined }, { value: 'separate', label: t.modeSeparate }];
   const chooseMode = (next: SplitMode) => {

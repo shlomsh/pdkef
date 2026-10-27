@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
+import { useModalDialog } from '../../../shell/useModalDialog.ts';
 import SignaturePad from 'signature_pad';
 import ColorPicker from '../../../editor-ui/ColorPicker.tsx';
 import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../../../editor/text/fonts.js';
@@ -145,20 +146,12 @@ export default function SignatureDialog({
     return { dataUrl: encoded.dataUrl, aspectRatio: encoded.height / encoded.width };
   };
 
-  // Handle native <dialog> open/close and Safari light-dismiss fallback
+  useModalDialog(dialogRef, isOpen, onClose, { escape: false, fallback: false, syncOn: onClose });
+
+  // Safari light-dismiss fallback
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-
-    if (isOpen) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-    } else {
-      if (dialog.open) {
-        dialog.close();
-      }
-    }
 
     const handleBackdropClick = (event: MouseEvent) => {
       if (event.target !== dialog) return;
@@ -310,9 +303,9 @@ export default function SignatureDialog({
       // The face loads lazily via @font-face; drawing before it has actually
       // been fetched and parsed silently falls back to the generic 'cursive'
       // font, so the saved signature could look nothing like the preview the
-      // user just picked. document.fonts.load() (unlike .check(), see
-      // liveFontCoverage.js's note on why .check() can't be used for this
-      // kind of question) actually triggers the fetch and resolves once the
+      // user just picked. document.fonts.load() (unlike .check(), which only
+      // reports whether the matched faces are already loaded, so it cannot
+      // answer this) actually triggers the fetch and resolves once the
       // real face is ready to draw with. Load before measuring, so the
       // reference-size measurement below already sees the real face.
       if (document.fonts) {
