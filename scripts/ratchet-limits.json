@@ -19,7 +19,7 @@
       "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 890,
       "src/tools/compress/PdfCompressTool.tsx": 956,
-      "src/tools/redact/PdfRedactTool.tsx": 1332,
+      "src/tools/redact/PdfRedactTool.tsx": 1331,
       "src/tools/scan/PdfScanTool.tsx": 1075,
       "src/tools/sign/PdfSignTool.tsx": 1077,
       "src/tools/sign/components/PdfWorkspace.tsx": 844,
