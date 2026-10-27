@@ -1,7 +1,7 @@
 ---
 id: "MEM-22"
 title: "A build's cache holds only that build's files"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "later"
