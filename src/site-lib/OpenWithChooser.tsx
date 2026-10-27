@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { sendHandoff } from '../lib/sendHandoff.ts';
+import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
 import { pdfFromLaunch, type LaunchParams } from './openWithLaunch.ts';
 import styles from './OpenWithChooser.module.css';
 
@@ -12,7 +13,7 @@ const CHOICES = [
   { tool: 'redact', name: 'Redact', label: 'Redact it', note: 'Black out private parts' },
 ] as const;
 
-export default function OpenWithChooser() {
+function OpenWithChooser() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -74,3 +75,5 @@ export default function OpenWithChooser() {
     </div>
   );
 }
+
+export default withIslandBoundary(OpenWithChooser);
