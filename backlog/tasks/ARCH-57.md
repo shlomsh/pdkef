@@ -1,7 +1,7 @@
 ---
 id: "ARCH-57"
 title: "The widest components take grouped, typed props instead of 25 to 31 loose ones"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
