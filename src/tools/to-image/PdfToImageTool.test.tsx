@@ -3,9 +3,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfToImageTool from './PdfToImageTool.tsx';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import dropzoneStyles from '../../shell/Dropzone.module.css';
-import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -147,7 +144,7 @@ describe('PdfToImageTool', () => {
 
   it('renders the initial file dropper zone', () => {
     mount();
-    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    const dropzone = container.querySelector('[data-dropzone]');
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -157,7 +154,7 @@ describe('PdfToImageTool', () => {
     expect(cells().map((c) => c.dataset.key)).toEqual(['0:0', '0:1', '0:2', '0:3', '0:4']);
     expect(heading().textContent).toContain('report-page-N.png');
     expect(heading().textContent).toContain('5 images');
-    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    expect(container.querySelector('[data-file-identity]')).toBeNull();
     expect(field().value).toBe('1-5');
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
@@ -544,7 +541,7 @@ describe('PdfToImageTool', () => {
     const noteFor = async (messages, files) => {
       mount(messages ? { messages } : {});
       await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), files); });
-      return container.querySelector(`.${pdfToolStyles['hint-message']}`)?.textContent;
+      return container.querySelector('[role="status"]')?.textContent;
     };
     const txt = (name) => new File(['x'], name, { type: 'text/plain' });
 

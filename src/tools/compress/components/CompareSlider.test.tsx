@@ -2,7 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
 import CompareSlider from './CompareSlider.tsx';
-import styles from './CompareSlider.module.css'; // asserts the compare-slider root class
 
 // Real drag math needs a realistic mocked rect, not jsdom's default 0x0 -
 // see CLAUDE.md's "Vacuous geometry tests from unmocked 0x0 rects" hazard.
@@ -59,7 +58,7 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container!.querySelector<HTMLElement>(`.${styles['compare-slider']}`)!;
+    const slider = container!.querySelector<HTMLElement>('[data-compare-slider]')!;
     expect(slider.style.getPropertyValue('--reveal')).toBe('50%');
 
     const handle = container.querySelector('[role="slider"]');
@@ -73,7 +72,7 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container!.querySelector<HTMLElement>(`.${styles['compare-slider']}`)!;
+    const slider = container!.querySelector<HTMLElement>('[data-compare-slider]')!;
     const handle = container.querySelector('[role="slider"]');
     slider.getBoundingClientRect = () => MOCK_RECT;
 
@@ -116,7 +115,7 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" fill />, container!);
     });
 
-    const slider = container!.querySelector<HTMLElement>(`.${styles['compare-slider']}`)!;
+    const slider = container!.querySelector<HTMLElement>('[data-compare-slider]')!;
     const handle = container.querySelector('[role="slider"]');
     const image = container.querySelector('img');
     slider.getBoundingClientRect = () => MOCK_RECT;
@@ -141,7 +140,7 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container!.querySelector<HTMLElement>(`.${styles['compare-slider']}`)!;
+    const slider = container!.querySelector<HTMLElement>('[data-compare-slider]')!;
     const handle = container.querySelector('[role="slider"]');
     slider.getBoundingClientRect = () => MOCK_RECT;
     let rectReads = 0;
@@ -166,7 +165,7 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container!.querySelector<HTMLElement>(`.${styles['compare-slider']}`)!;
+    const slider = container!.querySelector<HTMLElement>('[data-compare-slider]')!;
     const handle = container.querySelector('[role="slider"]');
     slider.getBoundingClientRect = () => MOCK_RECT;
 

@@ -32,7 +32,7 @@ export default function MergeChipBar({ entries, chipListRef, onRemove, downloadF
   return (
     <>
       <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
-      <div class={workspaceStyles['chip-bar']}>
+      <div class={workspaceStyles['chip-bar']} data-chip-bar>
         <ul
           data-testid="chip-row"
           class={docStyles['chip-row']}
@@ -42,6 +42,7 @@ export default function MergeChipBar({ entries, chipListRef, onRemove, downloadF
             <li
               key={entry.id}
               class={docStyles.chip}
+              data-chip
               data-id={entry.id}
               data-locked={entry.error === 'encrypted' ? '' : undefined}
             >
@@ -66,6 +67,7 @@ export default function MergeChipBar({ entries, chipListRef, onRemove, downloadF
                 <button
                   type="button"
                   class={docStyles['chip-remove']}
+                  data-chip-remove
                   aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
                   onClick={() => onRemove(entry.id)}
                 >

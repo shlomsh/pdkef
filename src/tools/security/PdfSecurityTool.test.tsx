@@ -5,7 +5,6 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
 import * as securityLib from './lib/security.js';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -83,7 +82,7 @@ describe('PdfSecurityTool', () => {
   const outputBlob = () => harness.blobForUrl(container.querySelector('a[download]').getAttribute('href'));
   // Unlock and protect now run for real (pdf-lib), so wait for the run to finish instead of a fixed sleep.
   const settle = async () => {
-    for (let waited = 0; waited < 5000 && container.querySelector(`.${pdfToolStyles['is-processing']}`); waited += 25) {
+    for (let waited = 0; waited < 5000 && container.querySelector('[data-processing]'); waited += 25) {
       await act(() => new Promise((resolve) => setTimeout(resolve, 25)));
     }
     await harness.flush();
@@ -259,7 +258,7 @@ describe('PdfSecurityTool', () => {
 
     // The real unlock ran with the typed password: what came out opens with none.
     expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_unlocked.pdf');
+    expect(container.querySelector('a[download]').getAttribute('download')).toBe('test_unlocked.pdf');
     const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
     expect(shareButton).not.toBeUndefined();
     await act(async () => shareButton.click());
@@ -309,7 +308,7 @@ describe('PdfSecurityTool', () => {
     it('records the Download tap by the name "download"', async () => {
       const nativeShare = await shareDone();
       resetActionTrailForTests();
-      const link = container.querySelector(`a.${pdfToolStyles['download-button']}`);
+      const link = container.querySelector('a[download]');
       await act(async () => { link.addEventListener('click', (e) => e.preventDefault()); link.click(); });
       expect(recentActions()).toEqual(['download']);
       nativeShare.restore();
@@ -344,7 +343,7 @@ describe('PdfSecurityTool', () => {
 
     // The real protect ran with the typed password: what came out asks for it.
     expect(await realProbe(await outputBlob().arrayBuffer())).toBe('needs-password');
-    expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_protected.pdf');
+    expect(container.querySelector('a[download]').getAttribute('download')).toBe('test_protected.pdf');
   });
 
   it('handles wrong password during unlock', async () => {
@@ -482,7 +481,7 @@ describe('PdfSecurityTool', () => {
       // Unlocked with the empty password: no field, and the bytes behind Download classify as open.
       expect(container.querySelector('input[type="password"]')).toBeNull();
       expect(container.textContent).toContain('No password needed. The protection is off.');
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('owner-only_unlocked.pdf');
+      expect(container.querySelector('a[download]').getAttribute('download')).toBe('owner-only_unlocked.pdf');
       expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
     });
 
@@ -497,7 +496,7 @@ describe('PdfSecurityTool', () => {
       await waitUntil(() => expect(container.textContent).toContain('Enter its password to unlock'));
       expect(unlockSpy).not.toHaveBeenCalled();
       // Nothing is unlocked before a password is submitted.
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+      expect(container.querySelector('a[download]')).toBeNull();
 
       await type('wrong');
       await submit();
@@ -505,9 +504,9 @@ describe('PdfSecurityTool', () => {
 
       await type('u');
       await submit();
-      await waitUntil(() => expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull());
+      await waitUntil(() => expect(container.querySelector('a[download]')).not.toBeNull());
       expect(container.textContent).not.toContain('The password may be incorrect.');
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(container.querySelector('a[download]')).not.toBeNull();
       expect(unlockSpy).toHaveBeenCalledTimes(2);
       expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
       unlockSpy.mockRestore();
@@ -546,7 +545,7 @@ describe('PdfSecurityTool', () => {
       expect(text.indexOf('Continue in Redact')).toBeLessThan(text.indexOf('Download'));
       const download = container.querySelector('a[download]');
       expect(download.getAttribute('download')).toBe('form_unlocked.pdf');
-      expect(download.classList.contains(pdfToolStyles['download-button'])).toBe(false);
+      expect(download.hasAttribute('data-quiet-download')).toBe(true);
       const share = buttonByText('Share');
       expect(share).not.toBeUndefined();
       expect(download.parentElement.contains(share)).toBe(true);
@@ -635,7 +634,7 @@ describe('PdfSecurityTool', () => {
       expect(container.querySelector('form')).toBeNull();
       expect(container.querySelector('input[type="password"]')).toBeNull();
       expect(buttonByText('Unlock PDF')).toBeUndefined();
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(container.querySelector('a[download]')).not.toBeNull();
     });
 
     it('protect keeps its password as the setting and swaps only the button for Download', async () => {
@@ -653,14 +652,14 @@ describe('PdfSecurityTool', () => {
       await settle();
       expect(container.querySelector('input[type="password"]')).not.toBeNull();
       expect(buttonByText('Protect PDF')).toBeUndefined();
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(container.querySelector('a[download]')).not.toBeNull();
     });
 
     it('Share sits right after Download, outside the row that holds only Redact it and Sign it', async () => {
       const nativeShare = mockNativeFileShare();
       await unlockDone(vi.fn());
       const share = buttonByText('Share');
-      const download = container.querySelector(`a.${pdfToolStyles['download-button']}`);
+      const download = container.querySelector('a[download]');
       const row = buttonByText('Redact it').parentElement;
       expect(row.contains(share)).toBe(false);
       expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual(['Redact it', 'Sign it']);
@@ -683,7 +682,7 @@ describe('PdfSecurityTool', () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       });
       await settle();
-      expect(container.querySelector(`a.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(container.querySelector('a[download]')).not.toBeNull();
       expect(buttonByText('Share')).not.toBeUndefined();
       expect(buttonByText('Redact it')).toBeUndefined();
       expect(buttonByText('Sign it')).toBeUndefined();
@@ -808,8 +807,8 @@ describe('PdfSecurityTool', () => {
       await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); }); // window: the replaced file's output must not land
 
       expect(container.textContent).toContain('second.pdf');
-      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
-      expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
+      expect(container.querySelector('a[download]')).toBeNull();
+      expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.trim() === 'Share')).toBe(false);
     });
   });
 
