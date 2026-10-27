@@ -2,8 +2,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import EditorExportActions, { type EditorExportActionsProps } from './EditorExportActions.tsx';
+// Builds the .toolbar fixture and asserts the download / desktop-download classes: the toolbar's CSS contract.
 import styles from './SignToolbar.module.css';
-import workspaceStyles from './Workspace.module.css';
+import workspaceStyles from './Workspace.module.css'; // asserts the export-actions row class
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -313,7 +314,7 @@ describe('EditorExportActions parity contract', () => {
         container,
       );
     });
-    const row = container.firstElementChild as HTMLElement;
+    const row = container.querySelector<HTMLElement>(`.${workspaceStyles['export-actions']}`)!;
     expect(row.getAttribute('dir')).toBe('rtl');
     expect(row.getAttribute('lang')).toBe('he');
     expect([...container.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual(['הורדה', 'שיתוף']);

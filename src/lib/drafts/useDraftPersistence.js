@@ -1,3 +1,4 @@
+// @ts-check
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.ts';
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
@@ -24,7 +25,7 @@ function isInstalledStandalone() {
     if (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches) return true;
     // iOS Safari never matches the media query above, even once installed; it
     // exposes this legacy boolean on `navigator` instead.
-    return typeof navigator !== 'undefined' && navigator.standalone === true;
+    return typeof navigator !== 'undefined' && /** @type {{ standalone?: boolean }} */ (navigator).standalone === true;
   } catch {
     // expected: feature detect, no standalone mode available
     return false;
@@ -49,6 +50,18 @@ export function clearDraftHintAttribute() {
 export const RESTORE_TIMEOUT_MS = 4000;
 
 /**
+ * @typedef {object} EditorSnapshot
+ * @property {string} tool
+ * @property {boolean} enabled
+ * @property {File | null} file
+ * @property {ArrayBuffer | null} fileBytes
+ * @property {unknown[]} elements
+ * @property {object} extra
+ * @property {string} status
+ * @property {boolean} isDirty
+ */
+
+/**
  * Wires crash-safe draft persistence into a PDF editing tool.
  *
  * Continuous debounced autosave — not `beforeunload` — is what actually survives a
@@ -60,7 +73,7 @@ export const RESTORE_TIMEOUT_MS = 4000;
  * @param {boolean} opts.enabled    - master switch
  * @param {File?}   opts.file        - currently loaded file (fingerprint/display)
  * @param {ArrayBuffer?} opts.fileBytes - source PDF bytes, captured once at load
- * @param {Array}   opts.elements   - JSON-serializable edit state
+ * @param {unknown[]}   opts.elements   - JSON-serializable edit state
  * @param {object}  opts.extra      - tool-specific extra state (e.g. { actionHistory })
  * @param {string}  opts.status     - tool status; only 'editing' persists
  * @param {boolean} opts.isDirty    - whether the current document differs from
@@ -83,7 +96,8 @@ export const RESTORE_TIMEOUT_MS = 4000;
  *   RESTORE_TIMEOUT_MS elapses - the caller's cue to hold off on an empty state
  *   that a file is about to replace anyway. A visitor with no hint never enters
  *   this state at all, so a plain first visit is exactly as fast as before. See
- *   BasePdfTool.tsx's `checkingDraft` prop.
+ *   BasePdfTool.tsx's `checkingDraft` prop. `clearDraft` also resolves a boolean; the
+ *   contract stays Promise<void>, hence the cast at the return.
  */
 export function useDraftPersistence({
   tool,
@@ -100,24 +114,24 @@ export function useDraftPersistence({
   // Restore runs exactly once per mount, before any autosave can fire.
   const restoreAttempted = useRef(false);
   // Keep the latest values addressable from event listeners without re-binding them.
-  const latest = useRef({});
+  const latest = useRef(/** @type {EditorSnapshot} */ ({}));
   latest.current = { tool, enabled, file, fileBytes, elements, extra, status, isDirty };
 
   // Each distinct editor snapshot gets a monotonically increasing revision.
   // IndexedDB writes cannot be cancelled once started, so completions must prove
   // they still belong to the live snapshot before changing the visible state.
   const revisionRef = useRef(0);
-  const sourceRef = useRef(null);
+  const sourceRef = useRef(/** @type {EditorSnapshot | null} */ (null));
   const source = { tool, enabled, file, fileBytes, elements, extra, status, isDirty };
   const sourceChanged = !sourceRef.current || Object.keys(source).some(
-    (key) => sourceRef.current[key] !== source[key],
+    (key) => /** @type {EditorSnapshot} */ (sourceRef.current)[/** @type {keyof EditorSnapshot} */ (key)] !== source[/** @type {keyof EditorSnapshot} */ (key)],
   );
   if (sourceChanged) {
     sourceRef.current = source;
     revisionRef.current += 1;
   }
   const currentRevision = revisionRef.current;
-  const [saveState, setSaveState] = useState({ state: 'idle', revision: 0 });
+  const [saveState, setSaveState] = useState(/** @type {{ state: 'idle'|'pending'|'saved'|'error'|'conflict', revision: number }} */ ({ state: 'idle', revision: 0 }));
   // Set at most once per mount, and only once a save has actually succeeded -
   // see the effect below and isInstalledStandalone's comment for the
   // anti-noise scoping.
@@ -147,9 +161,9 @@ export function useDraftPersistence({
   // file and reused by every save after it. Autosave fires on a 700ms debounce
   // while typing, so rendering this inside buildRecord would re-rasterize a
   // PDF page every few keystrokes to produce a byte-identical image.
-  const previewRef = useRef(null);
+  const previewRef = useRef(/** @type {string | null} */ (null));
 
-  const buildRecord = (values = latest.current) => {
+  const buildRecord = (/** @type {EditorSnapshot} */ values = latest.current) => {
     const { file, fileBytes, elements, extra } = values;
     if (!file || !fileBytes) return null;
     return {
@@ -165,7 +179,7 @@ export function useDraftPersistence({
     };
   };
 
-  const persist = (revision, record) => {
+  const persist = (/** @type {number} */ revision, /** @type {import('./draftRecords.ts').DraftSaveRecord} */ record) => {
     if (writePromisesRef.current.has(revision)) {
       return writePromisesRef.current.get(revision);
     }
@@ -409,5 +423,5 @@ export function useDraftPersistence({
   // resolve within a force's wait.
   useHoldUpdate(draftSaveState === 'error', 'open');
 
-  return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };
+  return { clearDraft: /** @type {() => Promise<void>} */ (/** @type {unknown} */ (clearDraft)), isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }

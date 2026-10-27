@@ -43,8 +43,12 @@
 
 export type BlurStrength = number;
 
-/** What any stored strength is clamped to, so every box ever saved resolves as it was. */
+/**
+ * What any stored strength is clamped to, so every box ever saved resolves as it was.
+ * @testSeam
+ */
 export const BLUR_MIN = 0.05;
+/** @testSeam */
 export const BLUR_MAX = 0.55;
 
 /** What the slider offers: the range where a blur still looks like a blur. */
@@ -54,7 +58,10 @@ export const BLUR_SLIDER_MAX = 0.28;
 /** What a new box starts at, and what the slider's reset returns: the middle of the slider. */
 export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.18;
 
-/** What a blur box saved without a strength (before RED-30) resolves as; it never moves, so old files export unchanged. */
+/**
+ * What a blur box saved without a strength (before RED-30) resolves as; it never moves, so old files export unchanged.
+ * @testSeam
+ */
 export const UNSET_BLUR_STRENGTH: BlurStrength = 0.3;
 
 /** The slider's notch is sticky: it snaps to the default within this distance (about 8% of the track each side). */
@@ -96,7 +103,10 @@ export function snapBlurStrength(value: number): number {
   return Math.min(BLUR_SLIDER_MAX, Math.max(BLUR_SLIDER_MIN, Math.round(value * 100) / 100));
 }
 
-/** The blur radius as a plain fraction of the box's height, with no floor applied. */
+/**
+ * The blur radius as a plain fraction of the box's height, with no floor applied.
+ * @testSeam
+ */
 export function blurFactor(strength: unknown): number {
   return resolveBlurStrength(strength);
 }

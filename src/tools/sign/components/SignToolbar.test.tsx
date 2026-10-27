@@ -11,6 +11,7 @@ import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../messages';
+// Asserts toolbar state and layout classes (locked, hint, help-reserve-nav, label and dropdown structure) and the base button class.
 import styles from '../../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../../shell/ToolShell.module.css';
 
@@ -251,7 +252,7 @@ describe('SignToolbar Component', () => {
     };
 
     const findButton = (label: string): HTMLButtonElement => required(
-      Array.from(container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`)).find(b => b.textContent.includes(label)),
+      Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')).find(b => b.textContent.includes(label)),
       `${label} button`,
     );
 
@@ -1064,7 +1065,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const signBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`))
+    const signBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button'))
       .find(b => b.textContent.includes('Sign')), 'Sign button');
 
     await act(async () => {
@@ -1175,7 +1176,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const sigBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`)).find(b => b.textContent.includes('Sign')), 'Sign button');
+    const sigBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')).find(b => b.textContent.includes('Sign')), 'Sign button');
     expect(sigBtn).not.toBeUndefined();
 
     // Clicking signature button toggles dropdown
@@ -1283,7 +1284,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const toolbar = query<HTMLElement>(container, `.${styles.toolbar}`);
+    const toolbar = query<HTMLElement>(container, '[role="toolbar"]');
     expect(toolbar).not.toBeNull();
     expect(required(toolbar.parentElement, 'toolbar parent').classList.contains(toolShellStyles.controls)).toBe(true);
 
@@ -1332,7 +1333,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const radiogroup = query(container, `.${styles.toolbar} [role="radiogroup"]`);
+    const radiogroup = query(container, '[role="toolbar"] [role="radiogroup"]');
     expect(radiogroup).not.toBeNull();
     expect(radiogroup.getAttribute('aria-label')).toBe('View density');
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
@@ -1364,7 +1365,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const toolbar = query<HTMLElement>(container, `.${styles.toolbar}`);
+    const toolbar = query<HTMLElement>(container, '[role="toolbar"]');
     expect(toolbar.getAttribute('dir')).toBe('rtl');
     expect(toolbar.getAttribute('lang')).toBe('he');
     expect(toolbar.getAttribute('aria-label')).toBe(hebrewSignMessages.toolbarLabel);

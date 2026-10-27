@@ -5,6 +5,7 @@ import { hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../text/imageTint.js';
 import { percentToPoints } from '../geometry/coords.js';
 
+/** @testSeam */
 export function applyLineResize({ handle, delta, start }: LineResizeInput): LineResizePatch {
   return handle === 'line-start'
     ? { x1: start.x1 + delta.x, y1: start.y1 + delta.y }

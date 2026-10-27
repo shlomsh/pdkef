@@ -2,9 +2,9 @@ import { handoffHrefOf, handoffKeyOf } from './toolIds.ts';
 
 /** What travels: one file, or a `files` list in pick order; `from` names the sending tool for a detour. */
 type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
-export type HandoffPayload = (HandoffFile | { files: HandoffFile[] }) & { from?: string };
+type HandoffPayload = (HandoffFile | { files: HandoffFile[] }) & { from?: string };
 
-export interface SendHandoffOptions {
+interface SendHandoffOptions {
   /** Where to go. Default: the target's page in the registry (src/lib/toolIds.ts). A locale edition or a query passes its own. */
   href?: string;
   /** Tests only: jsdom cannot navigate. */

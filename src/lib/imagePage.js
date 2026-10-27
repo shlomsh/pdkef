@@ -21,6 +21,7 @@ export function hasImageSignature(bytes, mimeType) {
 
 // EXIF orientation (1-8) of a JPEG, read from the APP1 Exif segment's TIFF
 // IFD0 tag 0x0112. 1 (upright) when absent, unreadable, or not a JPEG.
+/** @testSeam */
 export function jpegOrientation(input) {
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
   if (!startsWith(bytes, JPEG_SIGNATURE)) return 1;
@@ -67,6 +68,7 @@ function tiffOrientation(view, start, end) {
 const ORIENTATION_ROTATION = { 1: 0, 2: 0, 3: 180, 4: 180, 5: 90, 6: 90, 7: 270, 8: 270 };
 
 // Page sizes in PDF points (portrait). Scan lays its pages on these.
+/** @testSeam */
 export const PAGE_SIZES = { a4: [595.28, 841.89], letter: [612, 792] };
 
 // Where an image sits on its page, in PDF points. 'fit' is the pixel-for-pixel

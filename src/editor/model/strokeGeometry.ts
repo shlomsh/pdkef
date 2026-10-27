@@ -8,9 +8,10 @@ import type { BlurStrokeElement, WhiteoutStrokeElement } from './editorModel.ts'
 // points first. Screen (SVG / mask) and export (canvas) both draw the same
 // polyline with round caps and joins, so they cannot disagree.
 
+/** @testSeam */
 export type StrokePoint = [number, number];
 
-export interface StrokeBBox { left: number; top: number; width: number; height: number; }
+interface StrokeBBox { left: number; top: number; width: number; height: number; }
 
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 const round3 = (value: number) => Math.round(value * 1000) / 1000;
@@ -25,6 +26,7 @@ function distancePt(a: StrokePoint, b: StrokePoint, pageWidthPt: number, pageHei
  * does not write hundreds of points into an undo entry. Both endpoints are
  * always kept: the last point replaces the previous kept one when it would
  * otherwise be dropped, so the stroke still ends where the pointer lifted.
+ * @testSeam
  */
 export function simplifyStroke(
   points: readonly StrokePoint[],
@@ -48,7 +50,10 @@ export function simplifyStroke(
   return kept;
 }
 
-/** The stroke's bounding box in page percent, brush radius included, clamped to the page. */
+/**
+ * The stroke's bounding box in page percent, brush radius included, clamped to the page.
+ * @testSeam
+ */
 export function strokeBBox(
   points: readonly StrokePoint[],
   sizePt: number,
@@ -81,7 +86,10 @@ interface MakeStrokeArgs {
   strength?: unknown;
 }
 
-/** The step below which two points are one point: half a point of page. */
+/**
+ * The step below which two points are one point: half a point of page.
+ * @testSeam
+ */
 export const STROKE_MIN_STEP_PT = 0.5;
 
 /** Builds a committed stroke element: simplified points and their bbox. */
@@ -116,7 +124,7 @@ export function strokeSvgPath(points: readonly StrokePoint[], bbox: StrokeBBox):
   return polyline(points, ([x, y]) => [((x - bbox.left) / w) * 100, ((y - bbox.top) / h) * 100]);
 }
 
-export interface StrokeSvgInPoints {
+interface StrokeSvgInPoints {
   /** `0 0 <bbox width in pt> <bbox height in pt>`: uniform, so the round stroke stays round. */
   viewBox: string;
   d: string;
@@ -144,7 +152,7 @@ export function strokeSvgInPoints(
   return { viewBox: `0 0 ${round3(Math.max(wPt, 0.001))} ${round3(Math.max(hPt, 0.001))}`, d, strokeWidth: stroke.sizePt };
 }
 
-export interface StrokeInPixels {
+interface StrokeInPixels {
   /** The polyline in canvas pixels. */
   points: StrokePoint[];
   /** The brush diameter in canvas pixels (`sizePt` x the render scale). */

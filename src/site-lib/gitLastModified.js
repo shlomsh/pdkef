@@ -102,6 +102,7 @@ export function gitFileLastModifiedIso(file) {
 // page changing, and this is the only freshness signal the sitemap carries.
 // Each entry in the registry is a `  {` ... `  },` block with a `slug:` line,
 // so a tool is dated by the history of its own block's lines.
+/** @testSeam */
 export function toolEntryLineRange(source, slug) {
   const lines = source.split('\n');
   const slugLine = lines.findIndex((line) => line.trim() === `slug: '${slug}',`);

@@ -11,7 +11,7 @@ describe('measureSource (ARCH-50)', () => {
 
   it('measures a function declaration first line to last', () => {
     const m = measureSource(`function big() {\n${lines(5)}\n}\n`, 'x.js');
-    expect(m.functions).toEqual([{ name: 'big', lines: 7 }]);
+    expect(m.functions).toEqual([{ name: 'big', lines: 7, depth: 0 }]);
   });
 
   it('names a method by its class and an arrow by its variable', () => {
@@ -28,14 +28,14 @@ describe('measureSource (ARCH-50)', () => {
   it('calls a function passed as an argument (anonymous) and numbers duplicates in source order', () => {
     const src = `run(() => {\n  a();\n});\nrun(() => {\n  b();\n  c();\n});\n`;
     expect(measureSource(src, 'x.js').functions).toEqual([
-      { name: '(anonymous)', lines: 3 },
-      { name: '(anonymous)~2', lines: 4 },
+      { name: '(anonymous)', lines: 3, depth: 0 },
+      { name: '(anonymous)~2', lines: 4, depth: 0 },
     ]);
   });
 
   it('takes a property name for a function expression in an object', () => {
     const src = `const o = {\n  go: function () {\n    return 1;\n  },\n};\n`;
-    expect(measureSource(src, 'x.js').functions).toEqual([{ name: 'go', lines: 3 }]);
+    expect(measureSource(src, 'x.js').functions).toEqual([{ name: 'go', lines: 3, depth: 0 }]);
   });
 
   it('parses tsx', () => {
@@ -60,9 +60,66 @@ describe('isSizeScoped', () => {
   ])('%s -> %s', (file, expected) => expect(isSizeScoped(file)).toBe(expected));
 });
 
+describe('function length tier at 150 and nesting depth (ARCH-105)', () => {
+  const th = { fileThreshold: 800, functionThreshold: 150, nestingCap: 4 };
+  const rec = (functionLines = {}, nesting = {}) => ({ fileLines: {}, functionLines, nesting });
+  const fn = (body) => `function f() {\n${body}\n}\n`;
+  const depthOf = (src) => measureSource(src, 'x.js').functions.find((f) => f.name === 'f').depth;
+
+  it('fails an unrecorded 151-line function, passes a 150-line one', () => {
+    const big = measureSource(fn(lines(149)), 'x.js'); // 151 lines
+    const ok = measureSource(fn(lines(148)), 'x.js'); // 150 lines
+    const snap = (m) => snapshot({ 'a.js': m }, th);
+    expect(snap(big).functionLines).toEqual({ 'a.js#f': 151 });
+    expect(snap(ok).functionLines).toEqual({});
+    expect(compareSize(rec(), snap(big), th).failures).toEqual([{ key: 'a.js#f', kind: 'function', recorded: 150, current: 151 }]);
+  });
+
+  it('fails a recorded function that grew and lowers one that shrank', () => {
+    expect(compareSize(rec({ 'a.js#f': 200 }), rec({ 'a.js#f': 201 }), th).failures).toHaveLength(1);
+    expect(compareSize(rec({ 'a.js#f': 200 }), rec({ 'a.js#f': 190 }), th).lowered).toEqual([{ key: 'a.js#f', kind: 'function', from: 200, to: 190 }]);
+    expect(nextRecords(rec({ 'a.js#f': 200 }), rec({ 'a.js#f': 190 }), th).functionLines).toEqual({ 'a.js#f': 190 });
+  });
+
+  it('measures depth: 4 levels is at the cap, 5 is over it', () => {
+    const four = fn('if (a) { for (;;) { while (b) { if (c) { x(); } } } }');
+    const five = fn('if (a) { for (;;) { while (b) { if (c) { try { x(); } catch (e) {} } } } }');
+    expect(depthOf(four)).toBe(4);
+    expect(depthOf(five)).toBe(5);
+    const snap = (src) => snapshot({ 'a.js': measureSource(src, 'x.js') }, th);
+    expect(snap(four).nesting).toEqual({});
+    expect(snap(five).nesting).toEqual({ 'a.js#f': 5 });
+    expect(compareSize(rec(), snap(five), th).failures).toEqual([{ key: 'a.js#f', kind: 'nesting', recorded: 4, current: 5 }]);
+    expect(compareSize(rec({}, { 'a.js#f': 6 }), snap(five), th).lowered).toEqual([{ key: 'a.js#f', kind: 'nesting', from: 6, to: 5 }]);
+  });
+
+  it('counts an else-if chain once', () => {
+    expect(depthOf(fn('if (a) { x(); } else if (b) { y(); } else if (c) { z(); } else { w(); }'))).toBe(1);
+  });
+
+  it('counts catch and finally at the try level, switch cases at the switch level, and a bare block', () => {
+    expect(depthOf(fn('try { a(); } catch (e) { b(); } finally { c(); }'))).toBe(1);
+    expect(depthOf(fn('switch (a) { case 1: { if (b) { c(); } } }'))).toBe(3);
+    expect(depthOf(fn('{ { x(); } }'))).toBe(2);
+    expect(depthOf(fn('do { x(); } while (a);'))).toBe(1);
+    expect(depthOf(fn('for (const k of o) { for (const j in k) { x(); } }'))).toBe(2);
+  });
+
+  it('counts a nested arrow separately under its own key and ignores JSX', () => {
+    const src = fn('if (a) { if (b) { run(() => { if (c) { x(); } }); } }');
+    const fs = measureSource(src, 'x.js').functions;
+    expect(fs).toEqual([
+      { name: 'f', lines: 3, depth: 2 },
+      { name: 'f.(anonymous)', lines: 1, depth: 1 },
+    ]);
+    const jsx = 'export function C() {\n  return <div>{a ? <p>{b ? <i/> : null}</p> : null}</div>;\n}\n';
+    expect(measureSource(jsx, 'c.tsx').functions[0].depth).toBe(0);
+  });
+});
+
 describe('compareSize', () => {
-  const th = { fileThreshold: 800, functionThreshold: 300 };
-  const rec = (fileLines = {}, functionLines = {}) => ({ fileLines, functionLines });
+  const th = { fileThreshold: 800, functionThreshold: 300, nestingCap: 4 };
+  const rec = (fileLines = {}, functionLines = {}) => ({ fileLines, functionLines, nesting: {} });
 
   it('passes when nothing changed', () => {
     const r = rec({ 'a.js': 900 }, { 'a.js#f': 310 });
@@ -92,9 +149,46 @@ describe('compareSize', () => {
   });
 });
 
+describe('same-named functions are matched by size, not position (ARCH-105)', () => {
+  const th = { fileThreshold: 800, functionThreshold: 150, nestingCap: 4 };
+  const r = (functionLines) => ({ fileLines: {}, functionLines, nesting: {} });
+  const k = (n) => `f.ts#F.(anonymous)~${n}`;
+
+  it('a small callback inserted earlier renames the big one without failing or lowering it', () => {
+    expect(compareSize(r({ [k(2)]: 200 }), r({ [k(2)]: 20, [k(3)]: 200 }), th)).toEqual({ failures: [], lowered: [] });
+  });
+
+  it('the same insert fails when the big one grew', () => {
+    const { failures } = compareSize(r({ [k(2)]: 200 }), r({ [k(2)]: 20, [k(3)]: 201 }), th);
+    expect(failures).toEqual([{ key: k(3), kind: 'function', recorded: 200, current: 201 }]);
+  });
+
+  it('lowers the recorded key of the one that shrank', () => {
+    const { failures, lowered } = compareSize(r({ [k(2)]: 200, [k(3)]: 180 }), r({ [k(2)]: 200, [k(3)]: 170 }), th);
+    expect(failures).toEqual([]);
+    expect(lowered).toEqual([{ key: k(3), kind: 'function', from: 180, to: 170 }]);
+  });
+
+  it('fails a new unrecorded anonymous function over the threshold beside an unchanged one', () => {
+    const { failures, lowered } = compareSize(r({ [k(2)]: 200 }), r({ [k(2)]: 200, [k(3)]: 151 }), th);
+    expect(failures).toEqual([{ key: k(3), kind: 'function', recorded: 150, current: 151 }]);
+    expect(lowered).toEqual([]);
+  });
+
+  it('drops the recorded key with no partner, and keeps named functions exact', () => {
+    expect(compareSize(r({ [k(2)]: 200, [k(3)]: 180 }), r({ [k(2)]: 200 }), th).lowered).toEqual([{ key: k(3), kind: 'function', from: 180, to: null }]);
+    expect(compareSize(r({ 'f.ts#a': 200, 'f.ts#b': 180 }), r({ 'f.ts#a': 180, 'f.ts#b': 200 }), th).failures).toEqual([{ key: 'f.ts#b', kind: 'function', recorded: 180, current: 200 }]);
+  });
+
+  it('nextRecords writes the lowered value under the recorded key and adds no key', () => {
+    const next = nextRecords(r({ [k(2)]: 200, [k(3)]: 180 }), r({ [k(2)]: 20, [k(4)]: 200, [k(5)]: 170 }), th);
+    expect(next.functionLines).toEqual({ [k(2)]: 200, [k(3)]: 170 });
+  });
+});
+
 describe('nextRecords', () => {
-  const th = { fileThreshold: 800, functionThreshold: 300 };
-  const rec = (fileLines = {}, functionLines = {}) => ({ fileLines, functionLines });
+  const th = { fileThreshold: 800, functionThreshold: 300, nestingCap: 4 };
+  const rec = (fileLines = {}, functionLines = {}) => ({ fileLines, functionLines, nesting: {} });
 
   it('returns null when one file shrank but another grew (nothing may be written)', () => {
     const recorded = rec({ 'a.js': 900, 'b.js': 850 });
@@ -107,7 +201,7 @@ describe('nextRecords', () => {
     const current = rec({ 'a.js': 880, 'b.js': 850, 'c.js': 830 }, { 'a.js#f': 310 });
     expect(nextRecords(recorded, current, th)).toBeNull();
     const ok = rec({ 'a.js': 880, 'b.js': 850 }, { 'a.js#f': 310 });
-    expect(nextRecords(recorded, ok, th)).toEqual({ fileLines: { 'a.js': 880, 'b.js': 850 }, functionLines: { 'a.js#f': 310 } });
+    expect(nextRecords(recorded, ok, th)).toEqual({ fileLines: { 'a.js': 880, 'b.js': 850 }, functionLines: { 'a.js#f': 310 }, nesting: {} });
   });
 
   it('returns null when nothing was lowered', () => {
@@ -122,9 +216,10 @@ describe('snapshot', () => {
       'a.js': { fileLines: 801, functions: [{ name: 'f', lines: 301 }, { name: 'g', lines: 300 }] },
       'b.js': { fileLines: 800, functions: [] },
     };
-    expect(snapshot(measured, { fileThreshold: 800, functionThreshold: 300 })).toEqual({
+    expect(snapshot(measured, { fileThreshold: 800, functionThreshold: 300, nestingCap: 4 })).toEqual({
       fileLines: { 'a.js': 801 },
       functionLines: { 'a.js#f': 301 },
+      nesting: {},
     });
   });
 });

@@ -50,7 +50,7 @@ export function readTapSample(touch: Touch, time: number, scrollTop: number): Ta
   };
 }
 
-export interface TapClassifierOptions {
+interface TapClassifierOptions {
   /**
    * How far the touch may move (in *screen* points - CSS px already
    * multiplied by `visualViewport.scale`, so the same finger travel counts
@@ -64,8 +64,8 @@ export interface TapClassifierOptions {
   maxDurationMs?: number;
 }
 
-export const DEFAULT_TAP_SLOP_SCREEN_POINTS = 16;
-export const DEFAULT_TAP_MAX_DURATION_MS = 500;
+const DEFAULT_TAP_SLOP_SCREEN_POINTS = 16;
+const DEFAULT_TAP_MAX_DURATION_MS = 500;
 
 /**
  * Proportional tolerance for `visualViewport.scale` drifting during the

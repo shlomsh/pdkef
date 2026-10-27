@@ -1,7 +1,7 @@
 ---
 id: "ARCH-103"
 title: "No tool island function is over 300 lines"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
@@ -27,5 +27,5 @@ The per-tool steps are ARCH-109 (Redact), ARCH-108 (Sign) and ARCH-106 (Scan); C
 
 ## Acceptance
 
-- [ ] Every tool island function is under 300 lines, so `scripts/ratchet-limits.json` records none of them.
-- [ ] The size ratchet passes with those records removed, not raised.
+- [ ] Every tool island function is under 300 lines.
+- [ ] The size ratchet passes with those records lowered, not raised. Since ARCH-105 records every function over 150 lines, an island between 150 and 300 stays recorded; that is fine (reworded 2026-10-27).

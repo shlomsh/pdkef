@@ -2,8 +2,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
+// Asserts the text measure and input classes, which carry the padding rules (no inline padding).
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
+// Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import { FillContext, TextFillContext, FILL_OFF } from './fill/FillContext.tsx';
 import type { TextFillProps } from '../lib/fill/fillTypes.ts';
@@ -164,7 +166,7 @@ describe('DraggableWrapper RTL text positioning', () => {
     });
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const box = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles.element}`);
+    const box = requiredElement<HTMLDivElement>(wrapper, '[data-editor-element]');
 
     // Right edge = 100 - left, derived purely from `left` — never from width.
     expect(box.style.right).toBe('30%');
@@ -228,7 +230,7 @@ describe('DraggableWrapper RTL text positioning', () => {
     const onChangeCalls: EditorElementPatch<TextElement>[] = [];
 
     const wrapper = mountWithPageWrapper(element, 612, (patch) => onChangeCalls.push(patch));
-    const box = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles.element}`);
+    const box = requiredElement<HTMLDivElement>(wrapper, '[data-editor-element]');
 
     expect(box.style.left).toBe('20%');
     expect(box.style.right).toBe('');
@@ -245,8 +247,8 @@ describe('DraggableWrapper RTL text positioning', () => {
     });
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const measure = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles['text-measure']}`);
-    const input = requiredElement<HTMLTextAreaElement>(wrapper, `.${elementStyles['text-input']}`);
+    const measure = requiredElement<HTMLDivElement>(wrapper, '[data-editor-text-measure]');
+    const input = requiredElement<HTMLTextAreaElement>(wrapper, '[data-editor-text-input]');
 
     // Padding is owned by the single `[data-editor-text-input], [data-editor-text-measure]` rule
     // in global.css, not by inline styles. Both elements carrying those classes
@@ -270,8 +272,8 @@ describe('DraggableWrapper RTL text positioning', () => {
     });
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const input = requiredElement<HTMLTextAreaElement>(wrapper, `textarea.${elementStyles['text-input']}`);
-    const measure = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles['text-measure']}`);
+    const input = requiredElement<HTMLTextAreaElement>(wrapper, 'textarea[data-editor-text-input]');
+    const measure = requiredElement<HTMLDivElement>(wrapper, '[data-editor-text-measure]');
 
     // A bare textarea defaults to ~20 cols and forces that intrinsic width onto the
     // grid track, stranding short text in a wide box. cols=1 removes that so the
@@ -490,7 +492,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
 
     expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
     expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
-    expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
   it('keeps the resize handles and the floating toolbar on a fine pointer', () => {
@@ -533,7 +535,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
     expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
     expect(wrapper.querySelector('button[aria-label="Next field"]')).toBeNull();
-    expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
     expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 
@@ -653,7 +655,7 @@ describe('DraggableWrapper touch-vs-scroll in fill mode (SNG-04)', () => {
       );
     });
 
-    const box = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles.element}`);
+    const box = requiredElement<HTMLDivElement>(wrapper, '[data-editor-element]');
     // The dragged node measures itself via getBoundingClientRect at pointer-down.
     box.getBoundingClientRect = () => new DOMRect(140, 90, 80, 20);
     return { wrapper, box };

@@ -2,7 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OutputName from './OutputName.tsx';
-import styles from './OutputName.module.css';
 
 describe('OutputName', () => {
   let container: HTMLElement;
@@ -17,7 +16,7 @@ describe('OutputName', () => {
     act(() => render(<OutputName name="merged_a" extension={extension} label="File name, editable" onRename={onRename} />, container));
     return onRename;
   }
-  const nameEl = () => container.querySelector(`.${styles.name}`) as HTMLElement;
+  const nameEl = () => container.querySelector('[aria-label][tabindex]') as HTMLElement;
   const begin = () => act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
   const type = (text: string) => act(async () => { nameEl().textContent = text; });
   const key = (k: string) => act(async () => {
@@ -28,7 +27,7 @@ describe('OutputName', () => {
     mount();
     expect(nameEl().getAttribute('contenteditable')).toBe('false');
     expect(nameEl().textContent).toBe('merged_a');
-    const ext = container.querySelector(`.${styles['doc-heading-ext']}`);
+    const ext = container.querySelector('bdi [dir="ltr"]');
     expect(ext?.textContent).toBe('.pdf');
     expect(nameEl().closest('bdi')).toBe(ext?.closest('bdi'));
   });
@@ -112,10 +111,10 @@ describe('OutputName', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(<OutputName name={long} label="x" onRename={() => {}} />, container));
-    expect(nameEl().querySelector(`.${styles['name-tail']}`)?.textContent).toBe(long.slice(-20));
+    expect(nameEl().querySelector('[data-name-tail]')?.textContent).toBe(long.slice(-20));
     expect(nameEl().textContent).toBe(long);
     await begin();
-    expect(nameEl().querySelector(`.${styles['name-tail']}`)).toBeNull();
+    expect(nameEl().querySelector('[data-name-tail]')).toBeNull();
     expect(nameEl().textContent).toBe(long);
   });
 

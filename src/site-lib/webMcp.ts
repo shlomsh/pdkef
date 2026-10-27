@@ -10,6 +10,7 @@
  * (`BaseLayout.astro`), so this module imports no icons and no copy.
  */
 
+/** @testSeam */
 export interface WebMcpEntry {
   slug: string;
   name: string;
@@ -30,7 +31,7 @@ interface ModelContextTool {
   execute: (args: Record<string, unknown>) => ToolResult | Promise<ToolResult>;
 }
 
-export interface ModelContextLike {
+interface ModelContextLike {
   registerTool?: (tool: ModelContextTool) => unknown;
   provideContext?: (context: { tools: ModelContextTool[] }) => unknown;
 }
@@ -40,6 +41,7 @@ const text = (value: string, isError = false): ToolResult => ({
   ...(isError ? { isError: true } : {}),
 });
 
+/** @testSeam */
 export function parseEntries(raw: string | null | undefined): WebMcpEntry[] {
   try {
     const parsed: unknown = JSON.parse(raw ?? '[]');
@@ -52,6 +54,7 @@ export function parseEntries(raw: string | null | undefined): WebMcpEntry[] {
   }
 }
 
+/** @testSeam */
 export function buildTools(
   entries: WebMcpEntry[],
   navigate: (url: string) => void,
@@ -88,6 +91,7 @@ export function buildTools(
   ];
 }
 
+/** @testSeam */
 export function registerWebMcp(
   modelContext: ModelContextLike | undefined,
   entries: WebMcpEntry[],

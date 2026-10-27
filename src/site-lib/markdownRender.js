@@ -21,6 +21,7 @@ const SITE = 'https://pdkef.com';
  * bare `<strong>`/`<a href="...">`) and tools.js's freeform class-bearing
  * markup (e.g. `<a class="..." href="...">`), then strips anything left over
  * defensively so a future tag never leaks into the Markdown as literal HTML.
+ * @testSeam
  */
 export function inlineToMarkdown(html) {
   if (!html) return '';

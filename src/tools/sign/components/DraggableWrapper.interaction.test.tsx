@@ -146,8 +146,8 @@ vi.mock('@floating-ui/react', async () => {
 // Vitest hoists vi.mock calls above imports, so this plain top-level import
 // already resolves to the mocked module.
 import DraggableWrapper from './DraggableWrapper.tsx';
+// Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
-import elementStyles from '../../../editor-ui/EditorElement.module.css';
 
 describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   let container: HTMLDivElement;
@@ -883,7 +883,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     it('leaves a plain box looking exactly as it did when a side handle is merely grabbed, so it never flinches before the drag says anything', () => {
       const element = { id: 'el-comb-grab', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12 };
       const { box } = mountInPageWrapper(element, { isActive: true, onChange: vi.fn(), pageWidthPoints: 600 });
-      const measure = () => box.querySelector(`.${elementStyles['text-measure']}`);
+      const measure = () => box.querySelector('[data-editor-text-measure]');
       const before = { width: box.style.width, measured: measure().textContent };
 
       act(() => {
@@ -900,8 +900,8 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(measure().textContent).toBe(before.measured);
       expect(measure().textContent).toContain('0382');
       expect(box.style.width).toBe(before.width);
-      expect(box.querySelector(`.${elementStyles['text-comb']}`).style.display).toBe('none');
-      expect(box.querySelector(`.${elementStyles['text-display']}`).hasAttribute('data-comb')).toBe(false);
+      expect(box.querySelector('[data-editor-text-comb]').style.display).toBe('none');
+      expect(box.querySelector('[data-editor-text-display]').hasAttribute('data-comb')).toBe(false);
     });
 
     it('leaves a comb\'s span completely alone when its font size is dragged - the two never contend for the same grip', () => {
@@ -939,9 +939,9 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       // a comb is visible while it can still be taken back, not discovered
       // after the fact.
       expect(box.style.width).toBe('');
-      expect(box.querySelector(`.${elementStyles['text-comb']}`).style.display).toBe('none');
-      expect(box.querySelector(`.${elementStyles['text-display']}`).hasAttribute('data-comb')).toBe(false);
-      expect(box.querySelector(`.${elementStyles['text-input']}`).style.color).toBe('rgb(0, 0, 0)');
+      expect(box.querySelector('[data-editor-text-comb]').style.display).toBe('none');
+      expect(box.querySelector('[data-editor-text-display]').hasAttribute('data-comb')).toBe(false);
+      expect(box.querySelector('[data-editor-text-input]').style.color).toBe('rgb(0, 0, 0)');
 
       act(() => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
@@ -967,7 +967,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         return { left: 0, top: 0, width, height: 20, right: width, bottom: 20, x: 0, y: 0, toJSON: () => {} };
       };
       const rightHandle = box.querySelector('[data-editor-resizer="right"]');
-      const cells = () => [...box.querySelectorAll(`.${elementStyles['text-comb-cell']}`)];
+      const cells = () => [...box.querySelectorAll('[data-text-part="comb-cell"]')];
       // '27' with no explicit combCells is 2 cells, centred at 25%/75%.
       expect(cells()[0].style.left).toBe('25%');
       expect(cells()[1].style.left).toBe('75%');

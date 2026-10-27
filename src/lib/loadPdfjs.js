@@ -12,7 +12,7 @@ import { installPdfjsPolyfills } from './pdfjsPolyfills.js';
  * @param {() => Promise<typeof import('pdfjs-dist')>} importPdfjs
  * @returns {Promise<typeof import('pdfjs-dist')>}
  */
-export async function loadPdfjs(importPdfjs) {
+async function loadPdfjs(importPdfjs) {
   installPdfjsPolyfills();
   const pdfjsLib = await importPdfjs();
   pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;

@@ -16,10 +16,10 @@
 import { getPdfjs } from './loadPdfjs.js';
 import { PDFJS_WASM_URL } from './pdfjsWasm.js';
 
-export type PdfProtection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';
+type PdfProtection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';
 
 /** What pdf.js said when asked to open the file with no password. */
-export type PdfOpenOutcome =
+type PdfOpenOutcome =
   | { opened: true; permissions: unknown }
   | { opened: false; error: unknown };
 

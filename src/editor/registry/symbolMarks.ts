@@ -20,7 +20,7 @@ import type { SymbolMark } from '../model/editorModel.ts';
 
 const DESIGN_BOX = 24;
 
-export interface MarkGeometry {
+interface MarkGeometry {
   /** Polylines to stroke, as `[x, y]` pairs in design units. Empty for a dot. */
   strokes: Array<Array<[number, number]>>;
   /** Stroke thickness in design units. */
@@ -29,7 +29,7 @@ export interface MarkGeometry {
   disc?: { cx: number; cy: number; r: number };
 }
 
-export const SYMBOL_MARKS: Record<SymbolMark, MarkGeometry> = Object.freeze({
+const SYMBOL_MARKS: Record<SymbolMark, MarkGeometry> = Object.freeze({
   check: { strokes: [[[4, 12], [9, 17], [20, 6]]], thickness: 3 },
   x: { strokes: [[[4, 4], [20, 20]], [[20, 4], [4, 20]]], thickness: 3 },
   dot: { strokes: [], thickness: 0, disc: { cx: 12, cy: 12, r: 8 } },
@@ -39,7 +39,7 @@ export function markGeometry(mark: SymbolMark | undefined): MarkGeometry {
   return SYMBOL_MARKS[mark as SymbolMark] || SYMBOL_MARKS.check;
 }
 
-export interface InkExtent {
+interface InkExtent {
   x0: number; y0: number; x1: number; y1: number;
   width: number; height: number;
   centerX: number; centerY: number;

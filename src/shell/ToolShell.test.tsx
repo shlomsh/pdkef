@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ToolShell, { ToolShellContext } from './ToolShell.tsx';
+// Asserts the chip state classes (saved/pending/error) and the flush modifier, and finds the icon, meta and note slots by class (no role, label or text marks them).
 import styles from './ToolShell.module.css';
 import { englishShellMessages } from './shellMessages';
 
@@ -49,7 +50,7 @@ describe('ToolShell editor variant', () => {
   it('renders no thumbnail, while the default shell still does', () => {
     mount(true);
     expect(container.querySelector(`.${styles.icon}`)).toBeNull();
-    expect(container.querySelector(`.${styles.name}`)!.textContent).toBe('form.pdf');
+    expect(container.querySelector('[title="form.pdf"]')!.textContent).toBe('form.pdf');
     expect(container.querySelector(`.${styles['meta-text']}`)!.textContent).toBe('1 page · 12 KB');
     expect(container.querySelector(`.${styles.saved}`)).not.toBeNull();
     expect(container.querySelector('[data-status]')).not.toBeNull();

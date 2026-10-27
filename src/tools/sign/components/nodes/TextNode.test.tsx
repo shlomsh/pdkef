@@ -2,7 +2,9 @@ import { render, type ComponentChildren, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RawTextNode from './TextNode.tsx';
+// Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
+// Asserts the textarea state classes (inert, fill) and builds a toolbar fixture with the actions class production looks up.
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import { WYSIWYG_STRING_CASES } from '../../../../test/support/fixtures/wysiwygStrings.js';
 import { TextFillContext } from '../fill/FillContext.tsx';
@@ -547,7 +549,7 @@ describe('TextNode component', () => {
 
     it('places one character per cell at the cell centre', () => {
       host = renderComb({ text: '270' });
-      const cells = [...host.querySelectorAll<HTMLElement>(`.${elementStyles['text-comb-cell']}`)];
+      const cells = [...host.querySelectorAll<HTMLElement>('[data-text-part="comb-cell"]')];
       expect(cells.map((cell) => cell.textContent)).toEqual(['2', '7', '0']);
       // Centres, not edges: 1/6, 3/6, 5/6 of the span.
       expect(cells.map((cell) => cell.style.left)).toEqual([
@@ -557,16 +559,16 @@ describe('TextNode component', () => {
 
     it('shows the alignment guides only while selected, so they stay an editing aid', () => {
       host = renderComb({ text: '270' });
-      expect(host.querySelectorAll(`.${elementStyles['text-comb-guide']}`)).toHaveLength(2);
+      expect(host.querySelectorAll('[data-text-part="comb-guide"]')).toHaveLength(2);
       document.body.removeChild(host);
 
       host = renderComb({ text: '270' }, false);
-      expect(host.querySelectorAll(`.${elementStyles['text-comb-guide']}`)).toHaveLength(0);
+      expect(host.querySelectorAll('[data-text-part="comb-guide"]')).toHaveLength(0);
     });
 
     it('renders blank cells for a field with boxes left empty', () => {
       host = renderComb({ text: '27', combCells: 5 });
-      expect([...host.querySelectorAll(`.${elementStyles['text-comb-cell']}`)].map((c) => c.textContent))
+      expect([...host.querySelectorAll('[data-text-part="comb-cell"]')].map((c) => c.textContent))
         .toEqual(['2', '7', '', '', '']);
     });
 
@@ -597,21 +599,21 @@ describe('TextNode component', () => {
         input.dispatchEvent(new Event('select', { bubbles: true }));
       });
 
-      const caret = requireElement<HTMLSpanElement>(host, `.${elementStyles['text-comb-caret']}`);
+      const caret = requireElement<HTMLSpanElement>(host, '[data-text-part="comb-caret"]');
       // Boundary between cell 1 and cell 2 of 3, same math as the guide lines.
       expect(caret.style.left).toBe(`${(2.5 / 3) * 100}%`); // the centre of cell 2
 
       act(() => {
         input.blur();
       });
-      expect(host.querySelector(`.${elementStyles['text-comb-caret']}`)).toBeNull();
+      expect(host.querySelector('[data-text-part="comb-caret"]')).toBeNull();
     });
 
     it('mirrors cell position for RTL content, so the first character typed lands nearest the right edge', () => {
       // Hebrew has a strong RTL character, so direction auto-detects without
       // needing textDirection set (see textDirection.js).
       host = renderComb({ text: 'שלום' });
-      const cells = [...host.querySelectorAll<HTMLElement>(`.${elementStyles['text-comb-cell']}`)];
+      const cells = [...host.querySelectorAll<HTMLElement>('[data-text-part="comb-cell"]')];
       // Array order (and so which character is "first") is unchanged - only
       // *where* each index renders mirrors. LTR would be 1/8, 3/8, 5/8, 7/8;
       // RTL is that reversed, so the first character ('ש') ends up at 7/8
@@ -633,7 +635,7 @@ describe('TextNode component', () => {
           pageWidthPoints={600}
         />
       );
-      expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
+      expect(host.querySelector('[data-editor-text-comb]')).toBeNull();
       expect(requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]').style.color).toBe('rgb(0, 0, 0)');
     });
   });
