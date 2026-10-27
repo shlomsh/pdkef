@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { classifyTouchTap, isBlankAreaTarget, type TapGestureSample } from './tapOutsideDeselect.ts';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { classifyTouchTap, isBlankAreaTarget, readTapSample, type TapGestureSample } from './tapOutsideDeselect.ts';
 
 function sample(overrides: Partial<TapGestureSample> = {}): TapGestureSample {
   return {
@@ -122,5 +122,42 @@ describe('isBlankAreaTarget', () => {
     expect(isBlankAreaTarget(null, EXCLUDED)).toBe(false);
     const text = document.createTextNode('hi');
     expect(isBlankAreaTarget(text as unknown as EventTarget, EXCLUDED)).toBe(false);
+  });
+});
+
+describe('readTapSample', () => {
+  const touch = { clientX: 12, clientY: 34 } as Touch;
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('reads x, y, time and the scrollTop it is given', () => {
+    vi.stubGlobal('window', { visualViewport: null });
+    expect(readTapSample(touch, 99, 250)).toEqual({
+      x: 12,
+      y: 34,
+      time: 99,
+      viewportScale: 1,
+      viewportOffsetLeft: 0,
+      viewportOffsetTop: 0,
+      scrollTop: 250,
+    });
+  });
+
+  it('reads the zoomed visual viewport', () => {
+    vi.stubGlobal('window', { visualViewport: { scale: 2.5, offsetLeft: 40, offsetTop: 90 } });
+    const s = readTapSample(touch, 1, 0);
+    expect(s.viewportScale).toBe(2.5);
+    expect(s.viewportOffsetLeft).toBe(40);
+    expect(s.viewportOffsetTop).toBe(90);
+  });
+
+  it('defaults to scale 1 and no offset without a visualViewport', () => {
+    vi.stubGlobal('window', {});
+    const s = readTapSample(touch, 1, 7);
+    expect([s.viewportScale, s.viewportOffsetLeft, s.viewportOffsetTop]).toEqual([1, 0, 0]);
+  });
+
+  it('defaults to scale 1 when window is undefined', () => {
+    vi.stubGlobal('window', undefined);
+    expect(readTapSample(touch, 1, 0).viewportScale).toBe(1);
   });
 });

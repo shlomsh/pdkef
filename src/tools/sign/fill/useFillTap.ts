@@ -31,7 +31,7 @@ import { clientPointToPagePercent, type PageGeometry } from '../../../editor/geo
 import { fillTapDecision } from './fillTap.ts';
 import { reachTarget } from './fillReach.ts';
 import { fillKeyOf, focusFillInput } from './fillDom.ts';
-import { classifyTouchTap, type TapGestureSample } from '../../../lib/gestures/tapOutsideDeselect.ts';
+import { classifyTouchTap, readTapSample, type TapGestureSample } from '../../../lib/gestures/tapOutsideDeselect.ts';
 import { useFill } from './FillContext.tsx';
 import { FILL_KEY_ATTR, type FillTapDecision, type FillTool, type PagePoint, type ReachTarget } from './fillTypes.ts';
 
@@ -137,15 +137,8 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       ?.querySelector(`[${FILL_KEY_ATTR}]`)
       ?.getAttribute(FILL_KEY_ATTR) ?? null;
 
-  const sample = (touch: Touch): TapGestureSample => ({
-    x: touch.clientX,
-    y: touch.clientY,
-    time: Date.now(),
-    viewportScale: window.visualViewport?.scale ?? 1,
-    viewportOffsetLeft: window.visualViewport?.offsetLeft ?? 0,
-    viewportOffsetTop: window.visualViewport?.offsetTop ?? 0,
-    scrollTop: document.scrollingElement?.scrollTop ?? 0,
-  });
+  const sample = (touch: Touch): TapGestureSample =>
+    readTapSample(touch, Date.now(), document.scrollingElement?.scrollTop ?? 0);
 
   // The element's own options bar (Delete, colour, font) always wins over the box-first
   // rule below it in fillTapDecision - see FillTapInput.onElementBar's own comment.

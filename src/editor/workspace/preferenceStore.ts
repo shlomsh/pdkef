@@ -346,7 +346,7 @@ export function getAppStyle(options: EditorPreferenceOptions = {}): Partial<Docu
   try {
     const scope = getEditorUserScope(options); if (!scope) return {};
     return readAppStyle(localStorage.getItem(appStyleKey(scope)));
-  // expected: storage failure returns {}
+  // expected: unreadable storage means no app-wide style, so new documents use defaults
   } catch { return {}; }
 }
 

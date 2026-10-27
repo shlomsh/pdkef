@@ -236,7 +236,8 @@ test.describe('a field move scrolls once', () => {
     // near the top of the page, so it starts well out of view above.
     await page.setViewportSize({ width: 390, height: 320 });
     await workspace.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-    await expect.poll(() => workspace.evaluate((el) => el.scrollTop)).toBeGreaterThan(150);
+    await expect.poll(() => workspace.evaluate((el) => Math.round(el.scrollTop) === Math.round(el.scrollHeight - el.clientHeight))).toBe(true);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const startTop = await workspace.evaluate((el) => el.scrollTop);
     expect(startTop, 'the workspace itself is the scroller here, with range to move').toBeGreaterThan(150);
 
@@ -281,7 +282,8 @@ test.describe('a field move scrolls once', () => {
     // distance at which the reported "all the way up and then all the way
     // down" was visible at all.
     await page.evaluate(() => { window.scrollTo(0, 1400); });
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY) === Math.round(Math.min(1400, document.scrollingElement.scrollHeight - window.innerHeight)))).toBe(true);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 
     const trace = await traceScroll(page, () => page.evaluate(() => {
       document.querySelector(
@@ -339,7 +341,8 @@ test.describe('a field move scrolls once', () => {
     await tapFirstCellHint(page);
     await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
     await page.evaluate(() => { window.scrollTo(0, 1400); });
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY) === Math.round(Math.min(1400, document.scrollingElement.scrollHeight - window.innerHeight)))).toBe(true);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 
     await page.evaluate(() => {
       Object.defineProperty(window.visualViewport, 'scale', { configurable: true, get: () => 2 });

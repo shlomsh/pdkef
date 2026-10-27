@@ -240,7 +240,8 @@ test.describe('thumbnails after a reload', () => {
     await expect(page.locator('[class*="draft-status-row"]').filter({ hasText: 'Draft saved' }).first()).toBeAttached({ timeout: 10_000 });
 
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    // Time on purpose: lets the scroll position persist before the reload (debounce not ruled out).
+    await page.waitForTimeout(400);
     await page.reload();
     await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
     const cells = page.locator('li[class*="page"][data-key]');

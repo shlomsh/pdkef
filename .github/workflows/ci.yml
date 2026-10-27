@@ -162,6 +162,18 @@ jobs:
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 
+    - name: Verify floating promises are handled
+      run: npm run test:floating-promises
+
+    - name: Verify no IntersectionObserver reveals what JS hid
+      run: npm run test:reveal-observers
+
+    - name: Verify every fetch site is listed with its reason
+      run: npm run test:fetch-sites
+
+    - name: Verify patched dependencies are pinned to their patch
+      run: npm run test:patch-pins
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
@@ -361,6 +373,16 @@ jobs:
           test-results/
         if-no-files-found: ignore
 
+    # ARCH-85: the JSON report of every run, kept for the nightly flake aggregation.
+    - name: Upload Playwright JSON report
+      if: always()
+      uses: actions/upload-artifact@v5
+      with:
+        name: playwright-json-product-shard-${{ matrix.shard }}
+        path: playwright-json/
+        retention-days: 30
+        if-no-files-found: ignore
+
   # QUAL-09 (2026-09-14): webkit and the perf budgets run once here, unsharded,
   # instead of inside the `e2e` matrix above. Measured on run 34788031094:
   # each chromium shard's `playwright install --with-deps chromium webkit`
@@ -426,6 +448,7 @@ jobs:
     - name: Run Playwright e2e tests (product webkit)
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+        PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-json/webkit.json
       run: npx playwright test --project=webkit --pass-with-no-tests $E2E_PATHS
 
     # The wall-clock budget specs, on one worker so nothing else on the
@@ -435,6 +458,7 @@ jobs:
     - name: Run Playwright e2e tests (performance budgets, one worker)
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+        PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-json/perf.json
       run: npx playwright test --project=perf --workers=1 --pass-with-no-tests $E2E_PATHS
 
     - name: Upload Playwright artifacts
@@ -446,6 +470,79 @@ jobs:
           playwright-report/
           test-results/
         if-no-files-found: ignore
+
+    # ARCH-85: the JSON report of every run, kept for the nightly flake aggregation.
+    - name: Upload Playwright JSON report
+      if: always()
+      uses: actions/upload-artifact@v5
+      with:
+        name: playwright-json-product-webkit
+        path: playwright-json/
+        retention-days: 30
+        if-no-files-found: ignore
+
+  # ARCH-83: how far affected-scope narrowed this run, written to the job
+  # summary. A job of its own rather than a step of `scope`, because `scope`
+  # has no node_modules (and stays ~6s so every other job can start); this
+  # one needs `nx`. Nothing `needs` it, so it can neither delay nor fail the
+  # run. Reporting only.
+  scope-summary:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: needs.scope.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true'
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Write the narrowing summary
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+        DOCS_ONLY: ${{ needs.scope.outputs.docs_only }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/scope-summary.mjs --base "$BASE"
+
+  # ARCH-85: per-spec flake rates over the last N main runs, from the JSON
+  # reports the Playwright jobs upload. Nightly only. Reporting only: it
+  # never fails the run, and nothing needs it.
+  flake-report:
+    runs-on: ubuntu-latest
+    needs: [scope, e2e]
+    if: always() && github.event_name == 'schedule'
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUNS: 30
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+
+    - name: Download the JSON reports of the last main runs
+      run: |
+        mkdir -p flake-reports
+        for id in $(gh run list --repo "${{ github.repository }}" --workflow ci.yml --branch main --status completed --limit "$RUNS" --json databaseId --jq '.[].databaseId'); do
+          gh run download "$id" --repo "${{ github.repository }}" --pattern 'playwright-json-*' --dir "flake-reports/$id" || true
+        done
+
+    - name: Aggregate per-spec failure and retry rates
+      run: node scripts/flake-report.mjs --dir flake-reports --runs "$RUNS" --threshold 0.02
 
   # The Playwright version the `e2e` and `e2e-webkit` containers are tagged with: Playwright's image
   # carries the browsers of one release, so the tag comes from the lockfile, never a copy kept by hand.

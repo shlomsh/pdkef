@@ -52,6 +52,7 @@ import formFieldHintStyles from './FormFieldHints.module.css';
 import {
   classifyTouchTap,
   isBlankAreaTarget,
+  readTapSample,
   type TapGestureSample,
 } from '../../../lib/gestures/tapOutsideDeselect.ts';
 import { useFill } from '../fill/FillContext.tsx';
@@ -493,19 +494,6 @@ export default function PdfWorkspace({
   const readScrollTop = () =>
     (workspaceRef.current?.scrollTop || 0) + (document.scrollingElement?.scrollTop || 0);
 
-  const readTapSample = (touch: Touch, time: number): TapGestureSample => {
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-    return {
-      x: touch.clientX,
-      y: touch.clientY,
-      time,
-      viewportScale: vv?.scale ?? 1,
-      viewportOffsetLeft: vv?.offsetLeft ?? 0,
-      viewportOffsetTop: vv?.offsetTop ?? 0,
-      scrollTop: readScrollTop(),
-    };
-  };
-
   const resetTouchTap = () => {
     touchTapStartRef.current = null;
     touchTapIdRef.current = null;
@@ -522,7 +510,7 @@ export default function PdfWorkspace({
     }
     const touch = e.changedTouches[0];
     if (!touch) return;
-    touchTapStartRef.current = readTapSample(touch, Date.now());
+    touchTapStartRef.current = readTapSample(touch, Date.now(), readScrollTop());
     touchTapIdRef.current = touch.identifier;
     touchTapMultiRef.current = false;
   };
@@ -534,7 +522,7 @@ export default function PdfWorkspace({
     const endTouch = Array.from(e.changedTouches).find((t) => t.identifier === trackedId);
     if (!endTouch) return; // some other touch ended; the tracked one is still down
     const multiTouch = touchTapMultiRef.current;
-    const end = readTapSample(endTouch, Date.now());
+    const end = readTapSample(endTouch, Date.now(), readScrollTop());
     resetTouchTap();
 
     // A touchend another handler already preventDefault()ed (e.g. useFillTap's

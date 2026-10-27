@@ -1,4 +1,5 @@
 import { useEffect } from 'preact/hooks';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import { SIGN_END, CROSSFADE_START, CROSSFADE_END } from './storySplit.ts';
 
 /**
@@ -198,7 +199,7 @@ function resolvePin(): { pin: HTMLElement; track: HTMLElement } | null {
   return pin && track ? { pin, track } : null;
 }
 
-export default function ScrollDriver({ rootSelector }: { rootSelector: string }) {
+function ScrollDriver({ rootSelector }: { rootSelector: string }) {
   useEffect(() => {
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.querySelector(rootSelector);
@@ -321,3 +322,5 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
 
   return null;
 }
+
+export default withIslandBoundary(ScrollDriver);

@@ -96,3 +96,12 @@ describe('signLifecycleReducer', () => {
     expect(run(initialSignLifecycleState(), { type: 'HANDOFF_FAILED' }).handoffFailed).toBe(true);
   });
 });
+
+describe('an action that changes nothing', () => {
+  // The separate useState setters this reducer replaced skipped the render on an unchanged value.
+  it('returns the same state, so the island does not re-render', () => {
+    const state = withState({ announcement: 'Saved', progress: 0.5 });
+    expect(run(state, { type: 'ANNOUNCED', message: 'Saved' })).toBe(state);
+    expect(run(state, { type: 'EXPORT_PROGRESSED', progress: 0.5 })).toBe(state);
+  });
+});

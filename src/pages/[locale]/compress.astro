@@ -11,5 +11,5 @@ const page = await loadLocalizedToolPage('compress', Astro.props.localeId, Astro
 ---
 
 <LocalizedToolLayout page={page}>
-  <PdfCompressTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+  <PdfCompressTool client:load messages={page.toolMessages} shellMessages={page.shellMessages} />
 </LocalizedToolLayout>

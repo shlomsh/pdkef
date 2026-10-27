@@ -424,7 +424,8 @@ test.describe('hand-off arrival', () => {
     await expect(page.locator('html')).not.toHaveAttribute('data-handoff-pending', /.*/);
     expect(await page.evaluate(() => sessionStorage.getItem('pdkef:handoff-pending:compress')), 'stale key cleared').toBeNull();
     expect(await page.locator('.tool-stage').first().evaluate((el) => getComputedStyle(el).display), 'empty first screen').toBe('grid');
-    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    // Time on purpose: a layout-shift observation window after the release.
+    await page.waitForTimeout(500);
     // Releasing moves the condensed hero to its centred place in the grid: one move, measured 0.049
     // at 1440x820. A stale key needs a hand-off whose navigation never finished, so it is allowed
     // that one shift and no more (the tool column is hidden until the release, so it adds none).

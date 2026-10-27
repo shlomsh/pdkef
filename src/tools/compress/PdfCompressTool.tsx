@@ -236,7 +236,9 @@ export default function PdfCompressTool({
       encryptionCheck.invalidate();
       setAnalysis(null);
       if (deriveFileKind(next) === 'pdf') {
+        // reason: checkEncryption catches and reports its own failure
         void checkEncryption(next);
+        // reason: analyze catches and reports its own failure
         void analyze(next);
       } else {
         compare.loadOriginal(next);
@@ -486,7 +488,7 @@ export default function PdfCompressTool({
     setAnnouncement(built.meta.announcement);
     compare.clear();
     // Open by default (SEO-25, 2026-09-12). Not for a passthrough, whose slider would hold the same bytes on both sides.
-    if (!built.meta.passthrough) void compare.open(currentFileRef.current, built.blob);
+    if (!built.meta.passthrough) compare.open(currentFileRef.current, built.blob).catch((err) => reportError('pdf_render', err, 'compare_open'));
   };
   callbacksRef.current = { build, fail, land };
 
@@ -755,7 +757,7 @@ export default function PdfCompressTool({
                 sliderLabel={t.compareSliderLabel}
               />
               <p class={styles['compare-caption']}>{compareCaption}</p>
-              <button type="button" class={styles['compare-toggle-button']} onClick={() => { void compare.openFullscreen(file, last?.blob ?? null); }}>
+              <button type="button" class={styles['compare-toggle-button']} onClick={() => { compare.openFullscreen(file, last?.blob ?? null).catch((err) => reportError('pdf_render', err, 'compare_open_fullscreen')); }}>
                 {t.compareFullscreenLabel}
               </button>
             </>
