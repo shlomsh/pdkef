@@ -4,7 +4,7 @@ import { formatMessage } from '../../../lib/formatMessage';
 import { reportError } from '../../../lib/errorReport.ts';
 import type { CompressMessages } from '../messages';
 import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
-import type { CompressMeta } from '../hooks/useCompressCallbacks.ts';
+import type { CompressMeta } from '../lib/compressCallbacks.ts';
 import { formatBytes, type ResultView } from '../lib/resultView.ts';
 import CompareFullscreen from './CompareFullscreen.tsx';
 import CompareSlider from './CompareSlider.tsx';

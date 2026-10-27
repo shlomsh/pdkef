@@ -24,7 +24,7 @@ import { type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import { type AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { useCompressMachine } from './state/useCompressMachine.ts';
-import { useCompressCallbacks, superseded, type CompressCallbacks, type CompressMeta } from './hooks/useCompressCallbacks.ts';
+import { createCompressCallbacks, superseded, type CompressCallbacks, type CompressMeta } from './lib/compressCallbacks.ts';
 import { useFileIntake, type PdfAnalysis } from './hooks/useFileIntake.ts';
 import { useRunActions } from './hooks/useRunActions.ts';
 import { deriveResultView, formatBytes } from './lib/resultView.ts';
@@ -172,7 +172,7 @@ export default withIslandBoundary(function PdfCompressTool({
     setFile, setFileSeq, setRejectedFiles, setAnnouncement, setNeedsUnlockBytes, setAnalysis,
   });
 
-  callbacksRef.current = useCompressCallbacks({ t, machine, compare, currentFileRef, optionsRef, setAnnouncement });
+  callbacksRef.current = createCompressCallbacks({ t, machine, compare, currentFileRef, optionsRef, setAnnouncement });
 
   const { warmBuild, handleLevelChange, handleFlattenChange, handleTargetKBChange, retry, onDownloadClick, handleShare } = useRunActions({
     t, analyticsTool, kind, machine, compare, flow, prepared, fresh, passthrough, retryTap, downloadUrl,

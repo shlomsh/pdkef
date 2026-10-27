@@ -4,13 +4,13 @@ import { throwIfAborted } from '../../../lib/abort.js';
 import { deriveFileKind } from '../../../lib/fileKind.js';
 import { reportError } from '../../../lib/errorReport.ts';
 import { recordAction } from '../../../lib/actionTrail.ts';
-import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
-import { compressImageToTarget } from '../lib/compressImage.js';
-import { compressedFileName as deriveDownloadName } from '../lib/outputName.ts';
+import { compressPdf, compressPdfToTarget } from './compress.js';
+import { compressImageToTarget } from './compressImage.js';
+import { compressedFileName as deriveDownloadName } from './outputName.ts';
 import { isCurrentRun } from '../state/compressMachine.ts';
 import type { useCompressMachine } from '../state/useCompressMachine.ts';
 import type { CompressMessages } from '../messages';
-import type { useComparePreviews } from './useComparePreviews.ts';
+import type { useComparePreviews } from '../hooks/useComparePreviews.ts';
 
 /** What a finished build hands the island beside its blob, so a cached one lands exactly as a fresh one. */
 export interface CompressMeta {
@@ -68,7 +68,7 @@ async function buildImage({ activeFile, targetKB, onProgress, isCurrent, t }: Bu
 }
 
 async function buildPdfImages({ activeFile, targetKB, level, onProgress, isCurrent, t }: BuildStep): Promise<Built<CompressMeta>> {
-  const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('../lib/compressImages.js');
+  const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('./compressImages.js');
   const result: { blob: Blob; metTarget?: boolean; reason: string; keptBytes?: number; imageBytes?: number } = level === 'target'
     ? await compressPdfImagesToTarget(activeFile, { targetKB, onProgress })
     : await compressPdfImages(activeFile, { ...IMAGE_LEVELS[level as 'high' | 'medium' | 'low'], onProgress });
@@ -155,7 +155,7 @@ export interface CompressCallbacks {
 }
 
 /** The build, failure and landing callbacks usePreparedOutput is handed; the island assigns them each render. */
-export function useCompressCallbacks({ t, machine, compare, currentFileRef, optionsRef, setAnnouncement }: CompressCallbacksInput): CompressCallbacks {
+export function createCompressCallbacks({ t, machine, compare, currentFileRef, optionsRef, setAnnouncement }: CompressCallbacksInput): CompressCallbacks {
   // One build: reads the options and the file through refs (the render that carries them may not have
   // happened yet), and touches no state but the run counter. It returns what to land.
   const build = async (signal: AbortSignal, reportProgress: (fraction: number) => void): Promise<Built<CompressMeta>> => {
