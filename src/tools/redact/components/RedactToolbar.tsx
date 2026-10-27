@@ -44,19 +44,7 @@ const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_
 const stopSelect = (e: Event) => e.preventDefault();
 const blockSelection = (el: HTMLButtonElement | null) => el?.addEventListener('selectstart', stopSelect);
 
-export default function RedactToolbar({
-  tool,
-  announce: setAnnouncement,
-  fullscreen,
-  output,
-  history,
-  undoChip = {},
-  elementsCount,
-  status = {},
-  find = {},
-  slots = {},
-  peek = {},
-}: {
+interface RedactToolbarProps {
   tool: {
     active: RedactToolType | null;
     locked: boolean;
@@ -130,7 +118,21 @@ export default function RedactToolbar({
     active?: boolean;
     onChange?: (on: boolean) => void;
   };
-}) {
+}
+
+export default function RedactToolbar({
+  tool,
+  announce: setAnnouncement,
+  fullscreen,
+  output,
+  history,
+  undoChip = {},
+  elementsCount,
+  status = {},
+  find = {},
+  slots = {},
+  peek = {},
+}: RedactToolbarProps) {
   const { active: activeStyle, locked: toolLocked, set: setTool, brushMode = false } = tool;
   const { active: isFullscreen, toggle: toggleFullscreen } = fullscreen;
   const {

@@ -64,6 +64,13 @@
   border-color: var(--color-danger);
 }
 
+/* The box being drawn; the gesture writes its left, top, width and height (ARCH-89). */
+.drawing-preview {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+}
+
 /* RED-33: the drag box itself; the component positions it in percent. */
 .delete-marquee {
   display: none;

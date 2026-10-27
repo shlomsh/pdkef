@@ -1142,7 +1142,6 @@ export default withIslandBoundary(function PdfRedactTool() {
                   style={{
                     touchAction: activeStyle && activeStyle !== 'delete' ? 'none' : 'auto',
                     cursor: activeStyle && activeStyle !== 'delete' ? 'crosshair' : 'default',
-                    position: 'relative',
                   }}
                 >
                   <PdfPageCanvas
@@ -1192,10 +1191,7 @@ export default withIslandBoundary(function PdfRedactTool() {
                           onKeepOnlyThisPage: () => keepOnlyThis(el.id),
                           onRemove: () => removeLinked(el.id, 'repeatGroup'),
                         }}
-                        findSet={{
-                          size: selected ? findSetMembers(elements, el.id).length : undefined,
-                          onRemove: () => removeLinked(el.id, 'findSet'),
-                        }}
+                        findSet={{ size: selected ? findSetMembers(elements, el.id).length : undefined, onRemove: () => removeLinked(el.id, 'findSet') }}
                       />
                     );
                   })}
@@ -1249,13 +1245,10 @@ export default withIslandBoundary(function PdfRedactTool() {
                   {drawingState && drawingState.pageIndex === i && (
                     <div
                       ref={drawingPreviewRef}
-                      className="redact-drawing-preview"
+                      className={`redact-drawing-preview ${styles['drawing-preview']}`}
                       style={{
-                        position: 'absolute',
                         left: `${drawingState.startX}%`, top: `${drawingState.startY}%`, width: 0, height: 0,
                         ...redactionDrawingPreviewStyle(drawingState.type, drawingState.color),
-                        zIndex: 20,
-                        pointerEvents: 'none'
                       }}
                     >
                       {/* No boxHeightPt here (RED-24): this preview's width/height are
