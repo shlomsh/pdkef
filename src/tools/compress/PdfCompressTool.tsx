@@ -35,6 +35,8 @@ import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { compressedFileName as deriveDownloadName } from './outputName.ts';
+import { isCurrentAnalysis, isCurrentRun } from './state/compressMachine.ts';
+import { useCompressMachine } from './state/useCompressMachine.ts';
 
 // Wording only: below this saving the result says so plainly. The file is still offered (COMP-01).
 const SLIGHT_GAIN_PERCENT = 5;
@@ -122,41 +124,31 @@ export default function PdfCompressTool({
   // COMP-01: what the PDF is made of (images, text), read once it is added so the tool can say
   // before any click that there is nothing to shrink. Never gates anything else.
   const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean; imageShare: number; pageCount: number } | null>(null);
-  const analysisTokenRef = useRef(0);
   // COMP-01: by default only the images are recompressed and every page stays as it is; true turns
   // the pages into pictures (compress.js). Survives a new file, like the level.
   const [flatten, setFlatten] = useState(false);
-  // e2e reads this beside data-compress-status: it counts the builds that have started.
-  const [runCount, setRunCount] = useState(0);
-  // True only after a tap on Download or Share before the build is done: the one moment the compressing look shows.
-  const [tapped, setTapped] = useState(false);
-  // DEBT-59 analytics for the one tap the shared flow does not own: Try again. The flow's tap covers Download and Share.
-  const [retryTap, setRetryTap] = useState<'idle' | 'processing' | 'done'>('idle');
+  // The run lifecycle (gate, tokens, run count, the Download/Share and Try again taps) is one machine
+  // (state/compressMachine.ts); `machine.state` is what this render sees, `machine.read()` the live value.
+  const machine = useCompressMachine();
+  const { runnable, runCount, tapped, retryTap } = machine.state;
   const sheetRef = useRef<HTMLDivElement | null>(null);
-  // The file gate: closed from the moment a file is accepted until it may run (an image at once, a PDF once
-  // its encryption check says it is not locked), and while a password is needed. No build starts behind it.
-  const [runnable, setRunnableState] = useState(false);
-  // The same gate as a ref, closed synchronously at a pick: a quiet timer armed for the old file must not build.
-  const runnableRef = useRef(false);
-  const setRunnable = (open: boolean) => {
-    runnableRef.current = open;
-    setRunnableState(open);
-  };
   // Which opened file the builds belong to; it is in the build key, so a new file never lands an old result.
   const [fileSeq, setFileSeq] = useState(0);
   const currentFileRef = useRef<File | null>(null);
   // The build reads the options on screen through this, as usePreparedOutput asks.
   const optionsRef = useRef({ level, targetKB, flatten });
   optionsRef.current = { level, targetKB, flatten };
-  const buildRef = useRef<(signal: AbortSignal, onProgress: (fraction: number) => void) => Promise<Built<CompressMeta>>>(async () => { throw superseded(); });
-  const failRef = useRef<(err: unknown) => void>(() => {});
-  const landRef = useRef<(built: Built<CompressMeta>) => void>(() => {});
+  // The latest build, failure and landing callbacks, assigned during render, as usePreparedOutput asks.
+  const callbacksRef = useRef<{
+    build: (signal: AbortSignal, onProgress: (fraction: number) => void) => Promise<Built<CompressMeta>>;
+    fail: (err: unknown) => void;
+    land: (built: Built<CompressMeta>) => void;
+  }>({ build: async () => { throw superseded(); }, fail: () => {}, land: () => {} });
 
-  // Bumped on every change that invalidates an in-flight run (new file, level change, target size
-  // change). A build and the previews capture it before their first await and check it after, so a
-  // run that outlives its file or its options lands nothing.
-  const runTokenRef = useRef(0);
-  const compare = useComparePreviews({ runTokenRef });
+  // The machine's run token is bumped on every change that invalidates an in-flight run (new file,
+  // option change, failure). A build and the previews capture it before their first await and check it
+  // after, so a run that outlives its file or its options lands nothing.
+  const compare = useComparePreviews({ runTokenRef: machine.runTokenRef });
 
   // Guideline §2, "Quiet means quiet": usePreparedOutput builds once the person goes quiet and caches
   // by key, so a state already built is instant. The first build of a file starts at once (below).
@@ -165,9 +157,9 @@ export default function PdfCompressTool({
     // Registered at once so the gate can start it with no render in between; behind a closed gate nothing builds.
     key: file ? buildKey(fileSeq, level, targetKB, flatten) : null,
     autoBuild: runnable,
-    build: (signal, onProgress) => buildRef.current(signal, onProgress),
-    onBuildError: (err) => failRef.current(err),
-    onReady: (built) => landRef.current(built),
+    build: (signal, onProgress) => callbacksRef.current.build(signal, onProgress),
+    onBuildError: (err) => callbacksRef.current.fail(err),
+    onReady: (built) => callbacksRef.current.land(built),
     quietPolicy,
   });
   // The last result stays on screen, silent, until the new one lands.
@@ -220,13 +212,6 @@ export default function PdfCompressTool({
   else if (!last) shareSeenRef.current = false;
   const shareVisible = flow.shareReady || shareSeenRef.current;
 
-  // Everything a new file, a change or a failure takes back to the start.
-  const resetTaps = () => {
-    flow.reset();
-    setRetryTap('idle');
-    setTapped(false);
-  };
-
   const handleFilesAdded = (files: FileList | File[]) => {
     const incoming = Array.from(files);
     const accepted = incoming.filter((f) => deriveFileKind(f) !== null);
@@ -237,20 +222,18 @@ export default function PdfCompressTool({
     if (accepted.length > 0) {
       const next = accepted[0];
       // A new file's key differs from the old one's, so the old build is dropped and its cache never hit.
-      setRunnable(false);
+      machine.send({ type: 'fileAccepted' });
       setFileSeq((n) => n + 1);
       currentFileRef.current = next;
       setFile(next);
-      runTokenRef.current += 1;
       forgetLast();
-      resetTaps();
+      flow.reset();
       compare.clear();
       compare.clearOriginal();
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');
       setNeedsUnlockBytes(null);
       encryptionCheck.invalidate();
-      analysisTokenRef.current += 1;
       setAnalysis(null);
       if (deriveFileKind(next) === 'pdf') {
         void checkEncryption(next);
@@ -264,7 +247,7 @@ export default function PdfCompressTool({
 
   // Reads the PDF's make-up for the "nothing to shrink" note. A newer file wins: a stale result is dropped.
   const analyze = async (pdf: File) => {
-    const token = analysisTokenRef.current;
+    const token = machine.read().analysisToken;
     await analyzeInner(pdf, token);
   };
 
@@ -284,7 +267,7 @@ export default function PdfCompressTool({
       // Dynamic: analyzePdf.js pulls in pdf-lib, which must not ride in the first download (DEBT-20).
       const { analyzePdf } = await import('./analyzePdf.js');
       const result = analyzePdf(doc, { totalBytes });
-      if (token === analysisTokenRef.current) setAnalysis(result);
+      if (isCurrentAnalysis(machine.read(), token)) setAnalysis(result);
     } catch (err) {
       reportError('pdf_tool_run', err, 'analyze_pdf');
     }
@@ -331,19 +314,19 @@ export default function PdfCompressTool({
   const renderedFileRef = useRef<File | null>(null);
   renderedFileRef.current = file;
   const openGate = () => {
-    setRunnable(true);
+    machine.send({ type: 'gateOpened' });
     if (renderedFileRef.current === currentFileRef.current) prepared.prepareNow();
   };
   useEffect(() => {
     // Not after a failure: prepareNow would read that as Try again.
-    if (runnableRef.current && prepared.status !== 'error') prepared.prepareNow();
+    if (machine.read().runnable && prepared.status !== 'error') prepared.prepareNow();
   }, [runnable, fileSeq]);
 
   // An option change invalidates what a late build would land (usePreparedOutput aborts it and waits for
   // the person to go quiet); a key already built is instant. The last result stays on screen meanwhile.
   const onOptionChange = () => {
-    runTokenRef.current += 1;
-    resetTaps();
+    machine.send({ type: 'optionChanged' });
+    flow.reset();
     compare.resetStatus();
   };
 
@@ -382,18 +365,18 @@ export default function PdfCompressTool({
   // happened yet), and touches no state but the run counter. It returns what to land.
   const build = async (signal: AbortSignal, reportProgress: (fraction: number) => void): Promise<Built<CompressMeta>> => {
     const activeFile = currentFileRef.current;
-    if (!runnableRef.current || !activeFile) throw superseded();
+    if (!machine.read().runnable || !activeFile) throw superseded();
     const { level: lv, targetKB: kb, flatten: flat } = optionsRef.current;
     // Read before the first await: a drop or Replace pick, or an option change, swaps the token under a
     // run in flight, and then it lands nothing and moves no ring.
-    const runToken = runTokenRef.current;
-    const isCurrent = () => runToken === runTokenRef.current && !signal.aborted;
+    const runToken = machine.read().runToken;
+    const isCurrent = () => isCurrentRun(machine.read(), runToken) && !signal.aborted;
     const onProgress = (p: number) => {
       if (isCurrent()) reportProgress(p);
     };
     const isImage = deriveFileKind(activeFile) === 'image';
     recordAction('export');
-    setRunCount((n) => n + 1);
+    machine.send({ type: 'buildStarted' });
 
     if (isImage) {
       const result = await compressImageToTarget(activeFile, { targetKB: kb, onProgress });
@@ -491,34 +474,33 @@ export default function PdfCompressTool({
     };
   };
 
-  buildRef.current = build;
-  failRef.current = (err: unknown) => {
+  const fail = (err: unknown) => {
     reportError('pdf_tool_run', err, 'compress');
     setAnnouncement(currentFileRef.current && deriveFileKind(currentFileRef.current) === 'image' ? t.imageFailed : t.failed);
   };
 
   // A build landed, fresh or from the cache (usePreparedOutput drops one for any other key).
-  landRef.current = (built) => {
+  const land = (built: Built<CompressMeta>) => {
     if (!built.meta || !('blob' in built)) return;
-    setTapped(false);
+    machine.send({ type: 'buildLanded' });
     setAnnouncement(built.meta.announcement);
     compare.clear();
     // Open by default (SEO-25, 2026-09-12). Not for a passthrough, whose slider would hold the same bytes on both sides.
     if (!built.meta.passthrough) void compare.open(currentFileRef.current, built.blob);
   };
+  callbacksRef.current = { build, fail, land };
 
   // A failed build: nothing of the last result is kept, and the taps start over.
   useEffect(() => {
     if (prepared.status !== 'error') return;
-    runTokenRef.current += 1;
+    machine.send({ type: 'buildFailed' });
     compare.clear();
-    resetTaps();
+    flow.reset();
   }, [prepared.status === 'error']);
 
   // Try again after a failed run: a tap, so the compressing look shows, and the build starts at once.
   const retry = () => {
-    setRetryTap('processing');
-    setTapped(true);
+    machine.send({ type: 'retryTapped' });
     prepared.prepareNow();
   };
 
@@ -526,12 +508,12 @@ export default function PdfCompressTool({
   useEffect(() => {
     if (fresh && passthrough && flow.tap === 'processing') {
       flow.reset();
-      setRetryTap('done');
+      machine.send({ type: 'retrySettled' });
     }
   }, [fresh, passthrough, flow.tap]);
   // The retried result has landed: 'processing' rendered once so BasePdfTool reported the start.
   useEffect(() => {
-    if (retryTap === 'processing' && fresh) setRetryTap('done');
+    if (retryTap === 'processing' && fresh) machine.send({ type: 'retrySettled' });
   }, [retryTap, fresh]);
 
   // A tap on Download before the build is done: show the compressing look; the shared flow delivers when it lands.
@@ -541,7 +523,7 @@ export default function PdfCompressTool({
       return;
     }
     event.preventDefault();
-    setTapped(true);
+    machine.send({ type: 'busyTapped' });
     setAnnouncement(kind === 'image' ? t.imageStarting : t.starting);
     flow.onRowPreparingTap();
   };
@@ -549,7 +531,7 @@ export default function PdfCompressTool({
   const handleShare = async () => {
     // The prepared files belong to the last result; a stale one waits for the new build instead.
     if (!fresh) {
-      setTapped(true);
+      machine.send({ type: 'busyTapped' });
       prepared.prepareNow();
       return;
     }
