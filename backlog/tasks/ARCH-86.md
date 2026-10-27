@@ -1,10 +1,10 @@
 ---
 id: "ARCH-86"
 title: "The unit suite runs as its own CI job beside the guards"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 17
 depends_on: []
 ---

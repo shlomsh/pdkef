@@ -1,10 +1,10 @@
 ---
 id: "ARCH-43"
 title: "The site reads font tables from a data module, not from the editor core"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 1
 depends_on: []
 ---

@@ -1,10 +1,10 @@
 ---
 id: "ARCH-49"
 title: "The import graph sees every import form, or rejects the ones it cannot read"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 5
 depends_on: []
 ---

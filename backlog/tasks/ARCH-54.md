@@ -1,10 +1,10 @@
 ---
 id: "ARCH-54"
 title: "Scan moves its ref-held state into a typed state module"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 6
 depends_on: []
 ---

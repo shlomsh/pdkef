@@ -1,10 +1,10 @@
 ---
 id: "ARCH-56"
 title: "Home and tool page layouts are composed of section components"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 7
 depends_on: []
 ---
