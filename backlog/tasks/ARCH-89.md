@@ -1,11 +1,9 @@
 ---
 id: "ARCH-89"
 title: "Repeated CSS blocks and static inline styles move to shared rules"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 18
 depends_on: []
 ---
 
@@ -25,7 +23,7 @@ Area: Supporting. Criterion: Styling architecture. Structure only: no behaviour 
 
 ## Acceptance
 
-- [ ] The CSS duplication factor drops and is recorded; no static inline style remains in those files.
+- [x] The CSS duplication factor drops and is recorded; no static inline style remains in those files.
 
 ## Status 2026-10-27
 
@@ -40,3 +38,6 @@ Area: Supporting. Criterion: Styling architecture. Structure only: no behaviour 
   - Heaviest-family factor: 45.30% -> 45.40% (Redact). The new .drawing-preview class adds about 94 bytes to Redact's page, and the distinct total shrank.
 - **Recorded:** the CI limit is now 0.46 (was 0.65).
 
+## Closed 2026-10-27
+
+Closed on Shlomi's call. The duplicated blocks, keyframes and static inline styles are gone and the CI limit is recorded at 0.46 (was 0.65). The heaviest-family figure moved 45.30% to 45.40% only because Redact's page gained one small class while the distinct CSS total shrank; the drift above stays as it is.
