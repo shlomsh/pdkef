@@ -39,33 +39,7 @@ export const BOX_TOOLBAR_GAP = 16;
 // components at all; see registry/renderers.ts's own header comment.
 const ELEMENT_RENDERERS = createElementRenderers({});
 
-// Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
-// map() because useFloating (below) is a hook and can't run per-iteration inline.
-//
-// All three types are styled to match the Sign tool's whiteout element as closely as
-// possible: the same floating toolbar on selection (RedactBoxToolbar - colour controls for
-// whiteout only, then duplicate and delete for every type), positioned with the same
-// Floating UI middleware as src/tools/sign/components/DraggableWrapper.tsx so it flips below the box
-// instead of clipping off-screen near the top of a page; the same 8-handle resize UI as
-// ElementResizers renders for shapes (`.sign-element--shape .sign-element-resizer` in
-// global.css); and a border that stays transparent at rest so the box reads as a true
-// erase, only appearing on hover/selection (mirrors `.sign-element` / `.sign-element.active`
-// in global.css). Blackout/blur used to carry their own inline red delete button instead
-// of this toolbar; a design review found the mismatch (different icon, colour and
-// position, the position itself moving between the resize-handles-shown and hidden
-// states) confusing enough to remove it in favour of one shared selection chrome for
-// every type.
-export default function RedactBox({
-  el,
-  isSelected,
-  peekAll = false,
-  pageSize = {},
-  pointer,
-  actions,
-  color,
-  repeatGroup = {},
-  findSet = {},
-}: {
+interface RedactBoxProps {
   el: RedactBoxElement | RedactStrokeElement;
   isSelected: boolean;
   /** RED-31: view state only - every box shows what is under it. */
@@ -112,7 +86,35 @@ export default function RedactBox({
     size?: number;
     onRemove?: () => void;
   };
-}) {
+}
+
+// Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
+// map() because useFloating (below) is a hook and can't run per-iteration inline.
+//
+// All three types are styled to match the Sign tool's whiteout element as closely as
+// possible: the same floating toolbar on selection (RedactBoxToolbar - colour controls for
+// whiteout only, then duplicate and delete for every type), positioned with the same
+// Floating UI middleware as src/tools/sign/components/DraggableWrapper.tsx so it flips below the box
+// instead of clipping off-screen near the top of a page; the same 8-handle resize UI as
+// ElementResizers renders for shapes (`.sign-element--shape .sign-element-resizer` in
+// global.css); and a border that stays transparent at rest so the box reads as a true
+// erase, only appearing on hover/selection (mirrors `.sign-element` / `.sign-element.active`
+// in global.css). Blackout/blur used to carry their own inline red delete button instead
+// of this toolbar; a design review found the mismatch (different icon, colour and
+// position, the position itself moving between the resize-handles-shown and hidden
+// states) confusing enough to remove it in favour of one shared selection chrome for
+// every type.
+export default function RedactBox({
+  el,
+  isSelected,
+  peekAll = false,
+  pageSize = {},
+  pointer,
+  actions,
+  color,
+  repeatGroup = {},
+  findSet = {},
+}: RedactBoxProps) {
   const { width: pageWidthPoints, height: pageHeightPoints } = pageSize;
   const { onSelect, onChange, getPageWrapper, onHoverEnter, onHoverLeave } = pointer;
   const { onDelete, onDuplicate, onChangeStrength } = actions;
