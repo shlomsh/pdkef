@@ -3,11 +3,9 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
-import redactStyles from '../../tools/redact/PdfRedactTool.module.css';
 import { takeHandoff } from '../../lib/drafts/draftStore.ts';
 import { setInputFiles } from '../support/setInputFiles.js';
 
-const REDACT_BOX = redactStyles['redact-box'];
 
 // Regression coverage for the auto-resume "silent draft restore" race:
 //
@@ -171,7 +169,7 @@ describe('draft-restore vs. manual file pick race', () => {
 
     let announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
-    expect(container.querySelectorAll(`.${REDACT_BOX}`).length).toBe(0);
+    expect(container.querySelectorAll('[data-redact-box-id]').length).toBe(0);
 
     await act(async () => {
       loadDraftDeferred.resolve(
@@ -185,7 +183,7 @@ describe('draft-restore vs. manual file pick race', () => {
     announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
     expect(announcement.textContent).not.toContain('draft-old.pdf');
-    expect(container.querySelectorAll(`.${REDACT_BOX}`).length).toBe(0);
+    expect(container.querySelectorAll('[data-redact-box-id]').length).toBe(0);
   });
 
   it('PdfRedactTool: restores the draft normally when no manual pick preempts it', async () => {
@@ -206,7 +204,7 @@ describe('draft-restore vs. manual file pick race', () => {
 
     const announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
-    expect(container.querySelectorAll(`.${REDACT_BOX}`).length).toBe(1);
+    expect(container.querySelectorAll('[data-redact-box-id]').length).toBe(1);
   });
 
   // A file dropped on the home page arrives as a handoff (draftStore.saveHandoff)
