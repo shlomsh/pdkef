@@ -4,8 +4,8 @@
 //  (a) Every non-test .js file in a folder listed in scripts/checkjs-folders.json starts
 //      with `// @ts-check` (so the existing tsc typecheck covers it) and carries no
 //      suppression (@ts-ignore, @ts-expect-error, @ts-nocheck) and no {any} / {*} JSDoc.
-//  (b) The non-test .js/.jsx file count under src/lib, src/editor and src/shell is a
-//      ratchet in scripts/ratchet-limits.json ("jsFiles"): it rises never, and a lower
+//  (b) The non-test .js/.jsx file count under src/lib, src/editor, src/shell and src/tools is a
+//      ratchet in scripts/ratchet-limits.json ("jsFiles", plus "jsFilesTools" for src/tools): it rises never, and a lower
 //      count rewrites the record lower on a local run (CI only prints).
 //
 //   node scripts/check-js-typed.mjs          check (and lower records outside CI)
@@ -18,7 +18,20 @@ import { readRatchetLimits, writeRatchetLimits } from './ratchet-limits.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export const COUNTED_LAYERS = ['src/lib', 'src/editor', 'src/shell'];
+export const COUNTED_LAYERS = ['src/lib', 'src/editor', 'src/shell', 'src/tools'];
+
+// "src/tools" is recorded in its own top-level section: a new key inside an existing section
+// counts as a raise in check-ratchet-raises.mjs.
+const TOOLS_LAYER = 'src/tools';
+
+// Pure: ratchet limits <-> the one { layer: count } record the comparisons use.
+export function readJsRecord(limits) {
+  return { ...(limits.jsFiles ?? {}), [TOOLS_LAYER]: limits.jsFilesTools?.[TOOLS_LAYER] ?? 0 };
+}
+export function withJsRecord(limits, record) {
+  const { [TOOLS_LAYER]: tools, ...rest } = record;
+  return { ...limits, jsFiles: rest, jsFilesTools: { [TOOLS_LAYER]: tools ?? 0 } };
+}
 
 const SUPPRESSIONS = ['@ts-ignore', '@ts-expect-error', '@ts-nocheck'];
 // `{any}` / `{*}` or either nested in a generic or union, inside a JSDoc type brace.
@@ -95,11 +108,11 @@ function main(args) {
   const limits = readRatchetLimits(root);
   const current = countJsFiles(files);
   if (args.includes('--init')) {
-    writeRatchetLimits({ ...limits, jsFiles: current }, root);
+    writeRatchetLimits(withJsRecord(limits, current), root);
     console.log(`js-typed: recorded ${JSON.stringify(current)}.`);
     return 0;
   }
-  const recorded = limits.jsFiles ?? {};
+  const recorded = readJsRecord(limits);
   const { failures, lowered } = compareJsCounts(recorded, current);
 
   if (lowered.length > 0) {
@@ -108,7 +121,7 @@ function main(args) {
       console.log(`js-typed: ${lowered.length} record(s) can be lowered (run it locally to rewrite scripts/ratchet-limits.json):\n${lines.join('\n')}`);
     } else {
       const next = violations.length === 0 ? nextJsCounts(recorded, current) : null;
-      if (next) writeRatchetLimits({ ...limits, jsFiles: next }, root);
+      if (next) writeRatchetLimits(withJsRecord(limits, next), root);
       console.log(`js-typed: ${next ? 'lowered' : 'would lower'} ${lowered.length} record(s):\n${lines.join('\n')}`);
     }
   }

@@ -12,6 +12,9 @@
     "src/lib": 29,
     "src/shell": 1
   },
+  "jsFilesTools": {
+    "src/tools": 56
+  },
   "size": {
     "fileLines": {
       "src/data/tools.js": 1030,
