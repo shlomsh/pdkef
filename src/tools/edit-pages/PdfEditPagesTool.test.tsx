@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
@@ -84,6 +85,20 @@ describe('PdfEditPagesTool UI flow', () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     harness.restore();
+  });
+
+  it('lists the files it skipped, as Split does', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const note = () => container.querySelector(`.${pdfToolStyles['hint-message']}`)?.textContent;
+    act(() => { render(<PdfEditPagesTool />, container); });
+    const input = () => container.querySelector('input[type="file"]');
+    await act(async () => { setInputFiles(input(), [new File(['x'], '2025-notes.txt', { type: 'text/plain' })]); });
+    expect(note()).toBe('Skipped “2025-notes.txt” - not a PDF.');
+    await act(async () => {
+      setInputFiles(input(), [new File(['x'], 'a.txt', { type: 'text/plain' }), new File(['y'], 'b.txt', { type: 'text/plain' })]);
+    });
+    expect(note()).toBe('Skipped 2 files - not PDFs.');
   });
 
   async function load(name = 'document.pdf', bytes = healthy()) {

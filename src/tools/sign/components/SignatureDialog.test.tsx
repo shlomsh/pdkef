@@ -1,6 +1,7 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { useState } from 'preact/hooks';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import SignatureDialog from './SignatureDialog.tsx';
 
@@ -224,5 +225,51 @@ describe('SignatureDialog Component', () => {
     });
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  describe('native dismissal (Escape, light dismiss)', () => {
+    let Parent;
+    const mountWithState = (onClose) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      Parent = function Parent() {
+        const [open, setOpen] = useState(true);
+        return (
+          <SignatureDialog
+            isOpen={open}
+            onClose={() => { onClose(); setOpen(false); }}
+            onSaveSignature={() => {}}
+          />
+        );
+      };
+      act(() => render(<Parent />, container));
+      return container.querySelector('dialog');
+    };
+
+    it('tells Sign when the dialog closes on its own, and stays closed on the next render', () => {
+      const onClose = vi.fn();
+      const dialog = mountWithState(onClose);
+      expect(dialog.open).toBe(true);
+
+      // What closedby="any" does on Escape or a tap outside: the browser closes it and fires close.
+      act(() => {
+        dialog.open = false;
+        dialog.dispatchEvent(new Event('close'));
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+      // A later parent render must not reopen it.
+      act(() => render(<Parent />, container));
+      expect(dialog.open).toBe(false);
+    });
+
+    it('does not call onClose twice when the close came from Cancel', () => {
+      const onClose = vi.fn();
+      const dialog = mountWithState(onClose);
+      const cancel = [...dialog.querySelectorAll('button')].find((b) => b.textContent === 'Cancel');
+      act(() => cancel.click());
+      expect(dialog.open).toBe(false);
+      act(() => { dialog.dispatchEvent(new Event('close')); });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 });
