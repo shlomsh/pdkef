@@ -396,7 +396,7 @@ the day.
    `tool-<name>` projects get). The glob wins on one measured fact: `src/editor/text/` mixes the
    catalogue (`fonts.js`, `fontManifest.js`, ...) with shaping/runtime code that shares the same
    directory (`bidiRuns.js`, `combPlacement.ts`, `dateFormat.ts`, `hebrewComposition.js`,
-   `liveFontCoverage.js`, `textCoverage.js`, `textFontSupport.js`, `textMetrics.ts`,
+   `textCoverage.js`, `textFontSupport.js`, `textMetrics.ts`,
    `textTransforms.js`) - a real Nx project is directory-rooted, so carving one out would need an actual
    file move (a bigger change than this ticket's saving justifies) or would still have to be
    directory-wide, which is exactly what the glob already is. `matchesFontsGlob` is deliberately a

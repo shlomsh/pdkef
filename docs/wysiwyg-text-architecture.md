@@ -331,15 +331,12 @@ section implied it was.** `resolveFontSubstitution`'s `missing` (in both step 4 
 box is using Alef instead" - and it fires whenever `family !== requested`, including the ordinary
 successful-substitution case where nothing is actually at risk. It is not, and was never routed as,
 the "this will stop the download" warning. That warning is a separate computation on a separate path:
-`useFontCoverageNotice` calls `unsupportedCharactersInDocument` (`liveFontCoverage.js`), which calls
-`findUnrepresentableCharacters` in `textCoverage.js`, which resolves each element's family via
+`signPdf` (`src/editor/adapters/pdf/sign.js`) calls `findUnrepresentableCharacters` in `textCoverage.js`, which resolves each element's family via
 `resolveFontFamily` (the thin wrapper that returns just `resolveFontSubstitution(...).family`, discarding
 `missing`) and then re-derives coverage from scratch against the *actually loaded* font instance via
 `unrepresentableCharacters` in `src/editor/registry/text.ts` - not from anything `resolveFontSubstitution`
-returned. `describeUnrepresentableText` renders that result, in a calmer while-typing wording or the
-save-time refusal wording. `signPdf`'s refusal is unchanged and remains the backstop, built from the same
-`findUnrepresentableCharacters` call so the two can never name different characters (see the header
-comment of `textCoverage.js`).
+returned. `describeUnrepresentableText` renders that result as the save-time refusal wording. No while-typing
+notice is wired today: `signPdf`'s refusal is the check (see the header comment of `textCoverage.js`).
 
 **Step 2 has a subtlety worth stating rather than discovering.** The composition step is gated on the
 font's own glyph set, so `lookupText` is different per candidate font. Computing it once against
@@ -394,9 +391,8 @@ which row matched. Its own doc comment admits the claim is briefly false on mixe
 coverage rule the notice can say what is actually true: **which characters the requested family could not
 draw**. Same shape, no approximation, and it stops being wrong on the mixed case.
 
-The two-layer guarantee (live notice while typing via `useFontCoverageNotice`, refusal at save via
-`signPdf`) is unchanged. Both continue to run one policy through
-`findUnrepresentableCharacters`, which is what keeps them from disagreeing.
+The guarantee (refusal at save via `signPdf`, through `findUnrepresentableCharacters`) is unchanged.
+No while-typing notice is wired today.
 
 ## 3.6 What the rule changes, case by case
 
@@ -582,7 +578,7 @@ ships the layering pattern: comb mode stacks a per-cell display layer over the t
 - **Selection highlight:** the textarea's `::selection` paints behind transparent text, so a highlight
   rectangle still appears, in roughly the right place, off by the same drift.
 - **Bundle:** zero. fontkit is already loaded in the editor
-  ([liveFontCoverage.js:51](../src/editor/text/liveFontCoverage.js#L51)) and already 214,606 brotli bytes in a
+  (`src/editor/text/textMetrics.ts`) and already 214,606 brotli bytes in a
   lazy chunk.
 - **Per-keystroke shaping:** fontkit `layout()` on a short string is microseconds and the gesture golden
   rule does not apply (typing is not a pointer gesture). Must not reshape during drag.
