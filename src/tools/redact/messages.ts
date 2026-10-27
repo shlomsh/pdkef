@@ -60,6 +60,11 @@ export interface RedactMessages {
   closeFind: string;
   /* Island: commands, announcements, errors. */
   addedBox: string;
+  movedBox: string;
+  resizedBox: string;
+  changedBoxColor: string;
+  coveredOne: string;
+  coveredMany: string;
   addedBoxAnnounce: string;
   strokeBlur: string;
   strokeWhiteout: string;
@@ -294,6 +299,11 @@ export const englishRedactMessages: RedactMessages = {
   coverAllCount: 'Cover all {count}',
   closeFind: 'Close find',
   addedBox: 'Added {type} box',
+  movedBox: 'Moved {type} box',
+  resizedBox: 'Resized {type} box',
+  changedBoxColor: 'Changed {type} box color',
+  coveredOne: 'Covered 1 match',
+  coveredMany: 'Covered {count} matches',
   addedBoxAnnounce: 'Added {type} box.',
   strokeBlur: 'blur',
   strokeWhiteout: 'whiteout',
