@@ -1,5 +1,5 @@
 // @ts-nocheck - test file, mirrors PdfMergeTool.test.tsx's loose fixtures
-import { hydrate } from 'preact';
+import { hydrate, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { renderToString } from 'preact-render-to-string';
 import fs from 'fs';
@@ -30,7 +30,15 @@ describe('files offered right after hydration', () => {
   let container;
   let harness: ToolHarness;
   beforeEach(() => { harness = installToolHarness(); });
-  afterEach(() => { container?.remove(); container = null; harness.restore(); });
+  afterEach(async () => {
+    // Unmount, then let the hand-off intake's IndexedDB read settle while the DOM still exists:
+    // a read that outlives the test file touches `document` after jsdom is gone (CI, 2026-10-27).
+    if (container) act(() => render(null, container));
+    await flush(50);
+    container?.remove();
+    container = null;
+    harness.restore();
+  });
 
   it('lands them as entries when offered straight after hydration starts', async () => {
     container = document.createElement('div');
