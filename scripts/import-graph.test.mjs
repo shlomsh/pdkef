@@ -141,4 +141,11 @@ describe('comment blanking is string-aware', () => {
   it('still ignores import(x) inside real comments', () => {
     expect(importSpecifiers('/* import(x) */\n// import(y)\nconst a = 1;', 'src/x.js')).toEqual([]);
   });
+  it('reads a string import() that carries an options argument', () => {
+    expect(importSpecifiers("const m = await import('./data.json', { with: { type: 'json' } });", 'src/x.js')).toContain('./data.json');
+    expect(importSpecifiers('const m = await import("./data.json", { with: { type: "json" } });', 'src/x.js')).toContain('./data.json');
+  });
+  it('returns a plain import() exactly once', () => {
+    expect(importSpecifiers("const m = await import('./a.js');", 'src/x.js')).toEqual(['./a.js']);
+  });
 });
