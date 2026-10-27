@@ -25,3 +25,7 @@ Area: Tests and CI. Criterion: Test architecture. Structure only: no behaviour c
 ## Acceptance
 
 - [ ] `waitForTimeout` count below 20 and recorded; affected projects green.
+
+## Progress (2026-10-27)
+
+Fixed sleeps that stood in for a condition became web-first assertions, expect.poll or frame waits; scripts/check-e2e-sleeps.mjs (planted extra sleep failed first) counts waitForTimeout and setTimeout-promise sleeps and runs in CI and check:push. The count is 44, recorded: 66 at filing, measured more narrowly. Every remaining sleep carries a "Time on purpose" comment: layout-shift observation windows, negative "nothing moves" windows, timing under test and debounce waits. A reviewer showed that replacing those weakened the tests, so they were restored. Open: below 20 is not reachable without weakening these checks; the owner decides whether 44 stands as the record or the CLS windows move into a counted helper.

@@ -25,3 +25,7 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 ## Acceptance
 
 - [ ] The nightly summary names any spec with a failure rate above 2%.
+
+## Progress (2026-10-27)
+
+Playwright JSON reports upload per shard; the nightly flake-report job aggregates the last 30 main runs per spec and names any above 2% (aggregation unit-tested with planted 3% and 1% specs). Open: confirm on the first nightly after landing.

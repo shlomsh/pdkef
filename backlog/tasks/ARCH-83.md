@@ -26,3 +26,7 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 ## Acceptance
 
 - [ ] Every CI run shows the narrowing summary; a docs-only run shows zero e2e.
+
+## Progress (2026-10-27)
+
+The scope-summary job writes narrowed and full counts (projects, specs, unit files) and the reason for any widening to the job summary; docs-only shows zero e2e (unit-tested). Open: confirm on the first real CI run after landing.
