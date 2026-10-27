@@ -11,7 +11,7 @@
     "fileLines": {
       "src/data/tools.js": 1030,
       "src/layouts/HomePageLayout.astro": 1394,
-      "src/lib/drafts/draftStore.ts": 1148,
+      "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 890,
       "src/tools/compress/PdfCompressTool.tsx": 956,
       "src/tools/redact/PdfRedactTool.tsx": 1332,

@@ -111,7 +111,7 @@ interface BasePdfToolProps {
  * a replacement would cost - not re-implemented per tool.
  */
 
-function BasePdfToolInner({
+function BasePdfTool({
   hasFiles,
   onFilesAdded,
   children,
@@ -543,4 +543,4 @@ function BasePdfToolInner({
 }
 
 /** Every tool island renders inside the shared error boundary (ARCH-72). */
-export default withIslandBoundary(BasePdfToolInner);
+export default withIslandBoundary(BasePdfTool);

@@ -162,6 +162,18 @@ jobs:
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 
+    - name: Verify floating promises are handled
+      run: npm run test:floating-promises
+
+    - name: Verify no IntersectionObserver reveals what JS hid
+      run: npm run test:reveal-observers
+
+    - name: Verify every fetch site is listed with its reason
+      run: npm run test:fetch-sites
+
+    - name: Verify patched dependencies are pinned to their patch
+      run: npm run test:patch-pins
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
