@@ -336,4 +336,4 @@ sign rows on page one. Accepted risk: `אונליין` leaves the title for the 
 and SEO-45 records `/merge/` dropping out of results when its title lead changed.
 
 For the 11-06 read: sign-family queries count from this change, not from 09-24; the fill-family rows are
-the guard on what the title gave up. Indexing request for `/he/sign/` after the deploy.
+the guard on what the title gave up. Indexing requested for `/he/sign/` on 2026-10-27 after the deploy (Shlomi).
