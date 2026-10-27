@@ -722,6 +722,7 @@ jobs:
   # has landed (`nightly_unchanged`).
   update-cost:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     needs: scope
     if: always() && github.event_name == 'schedule' && needs.scope.outputs.nightly_unchanged != 'true'
     permissions:
@@ -745,13 +746,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        shas=$(gh api "repos/${{ github.repository }}/deployments?environment=Production&per_page=2" --jq '.[].sha')
-        after=$(echo "$shas" | sed -n 1p)
-        before=$(echo "$shas" | sed -n 2p)
-        if [ -z "$after" ] || [ -z "$before" ]; then echo "Fewer than two production deploys recorded" >&2; exit 1; fi
-        echo "after=$after" >> "$GITHUB_OUTPUT"
-        echo "before=$before" >> "$GITHUB_OUTPUT"
-        echo "Update cost from ${before:0:8} to ${after:0:8}" >> "$GITHUB_STEP_SUMMARY"
+        node scripts/lastDeploys.mjs "${{ github.repository }}" >> "$GITHUB_OUTPUT"
 
     - name: Build both deploys
       run: |
@@ -760,9 +755,6 @@ jobs:
           git worktree add "$RUNNER_TEMP/$side" "$sha"
           (cd "$RUNNER_TEMP/$side" && npm ci && npm run build && mv dist "$RUNNER_TEMP/dist-$side")
         done
-
-    - name: Install dependencies
-      run: npm ci
 
     - name: Measure the update cost
       run: npm run measure:update-cost -- "$RUNNER_TEMP/dist-before" "$RUNNER_TEMP/dist-after"
