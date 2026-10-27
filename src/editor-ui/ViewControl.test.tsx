@@ -2,7 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import ViewControl from './ViewControl.tsx';
-import styles from './ViewControl.module.css';
 
 const STORAGE_KEY = 'pdf-toolkit:view-density';
 
@@ -133,7 +132,7 @@ describe('ViewControl', () => {
     // FullscreenButton uses SignToolbar.module.css's .button/.label, not this
     // module's classes, and must stay a direct sibling (not nested in a
     // wrapper) so it remains a direct .toolbar child - see ViewControl.tsx.
-    const segmented = container!.querySelector(`.${styles.segmented}`);
+    const segmented = container!.querySelector('[role="radiogroup"]');
     const fallbackButton = container!.querySelector('button:not([role="radio"])');
     expect(fallbackButton).not.toBeNull();
     expect(fallbackButton.previousElementSibling).toBe(segmented);

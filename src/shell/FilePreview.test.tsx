@@ -2,8 +2,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FilePreview from './FilePreview.tsx';
+// Asserts the icon-loaded state class (the thumbnail swap is the behaviour).
 import toolShellStyles from './ToolShell.module.css';
-import styles from './FilePreview.module.css';
 import * as thumbnailsLib from '../lib/thumbnails.js';
 
 function makePdfFile(name = 'contract.pdf') {
@@ -55,7 +55,7 @@ describe('FilePreview', () => {
 
   it('renders the glyph when no file is given', () => {
     mount({ file: null });
-    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon).not.toBeNull();
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('svg')).not.toBeNull();
@@ -71,9 +71,9 @@ describe('FilePreview', () => {
     const file = makeImageFile();
     mount({ file });
 
-    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
-    const img = icon.querySelector(`img.${styles.thumbnail}`);
+    const img = icon.querySelector('img[data-testid="file-preview-thumbnail"]');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('blob:preview-photo');
     expect(img.getAttribute('alt')).toBe('');
@@ -95,9 +95,9 @@ describe('FilePreview', () => {
     const file = makeImageFile('photo.png', '');
     mount({ file });
 
-    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
-    const img = icon.querySelector(`img.${styles.thumbnail}`);
+    const img = icon.querySelector('img[data-testid="file-preview-thumbnail"]');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('blob:preview-photo-noext-type');
     expect(window.URL.createObjectURL).toHaveBeenCalledWith(file);
@@ -125,7 +125,7 @@ describe('FilePreview', () => {
 
     expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 192 });
     // Still the glyph until the render settles.
-    let icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    let icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon.querySelector('img')).toBeNull();
     expect(icon.querySelector('svg')).not.toBeNull();
 
@@ -134,9 +134,9 @@ describe('FilePreview', () => {
       await promise;
     });
 
-    icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
-    const img = icon.querySelector(`img.${styles.thumbnail}`);
+    const img = icon.querySelector('img[data-testid="file-preview-thumbnail"]');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('data:image/png;base64,pdfpage1');
   });
@@ -156,7 +156,7 @@ describe('FilePreview', () => {
       await promise.catch(() => {});
     });
 
-    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
     expect(icon.querySelector('svg')).not.toBeNull();
@@ -167,7 +167,7 @@ describe('FilePreview', () => {
     mount({ file });
 
     expect(thumbnailsLib.renderThumbnail).not.toHaveBeenCalled();
-    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector('[data-testid="tool-shell-icon"]');
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
   });

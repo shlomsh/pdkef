@@ -159,8 +159,8 @@ export default function EditorToolStatus({
   // listener. `display: none` keeps the unused one out of the accessible name.
   const keepOnText = (button: string) => (
     <>
-      <span className={styles['keep-long']}>{formatMessage(keepOnLabel, { button })}</span>
-      <span className={styles['keep-short']}>{formatMessage(keepOnShort, { button })}</span>
+      <span className={styles['keep-long']} data-testid="keep-long">{formatMessage(keepOnLabel, { button })}</span>
+      <span className={styles['keep-short']} data-testid="keep-short">{formatMessage(keepOnShort, { button })}</span>
     </>
   );
 
@@ -175,8 +175,8 @@ export default function EditorToolStatus({
         <line x1="12" y1="8" x2="12.01" y2="8" />
       </svg>
       <span className={styles['help-text']}>
-        <span className={styles['action-long']}>{rowCopy.action}</span>
-        <span className={styles['action-touch']}>{rowCopy.actionTouch}</span>
+        <span className={styles['action-long']} data-testid="action-long">{rowCopy.action}</span>
+        <span className={styles['action-touch']} data-testid="action-touch">{rowCopy.actionTouch}</span>
       </span>
       {/* aria-checked, not a second sentence: the knob says "on" to the eye and
           this says it to a screen reader, so the line does not have to spend a
@@ -249,6 +249,7 @@ export default function EditorToolStatus({
     // filename out for the armed row. It is an attribute rather than a class
     // because the two live in different CSS modules.
     <div
+      data-testid="tool-status"
       className={`${styles.help}${reserveFieldNav && !fieldNav ? ` ${styles['help-reserve-nav']}` : ''}`}
       dir={dir}
       lang={lang}
@@ -263,7 +264,7 @@ export default function EditorToolStatus({
           state change worth announcing; the idle tip is standing advice, not a
           change, and a hidden reservation is not a state at all. */}
       <div className={`${styles['help-stack']}`}>
-        <div className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override && !fieldsShown ? styles['help-shown'] : styles['help-spare']}`}>
+        <div data-testid="tool-status-row" className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override && !fieldsShown ? styles['help-shown'] : styles['help-spare']}`}>
           <span>{idle}</span>
         </div>
         {/* The detector's answer, in the stack rather than beside it, and this
@@ -292,6 +293,7 @@ export default function EditorToolStatus({
             a live region that arrives already full is announced unreliably. */}
         {fieldSummary !== undefined && (
           <div
+            data-testid="tool-status-fields"
             className={`${styles['help-row']} ${styles['help-fields']}${fieldSummary.problem ? ` ${styles['help-fields-problem']}` : ''} ${fieldsShown ? styles['help-shown'] : styles['help-spare']}`}
             role="status"
           >
@@ -299,17 +301,18 @@ export default function EditorToolStatus({
           </div>
         )}
         {override ? (
-          <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
+          <div data-testid="tool-status-row" className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
             {override}
           </div>
         ) : copy && (
-          <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
+          <div data-testid="tool-status-row" className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
             {armedRow(copy, true)}
           </div>
         )}
         {reserveCopies.map((rowCopy) => (
           <div
             key={rowCopy.button + rowCopy.action}
+            data-testid="tool-status-row"
             className={`${styles['help-row']} ${styles['help-spare']}`}
             aria-hidden="true"
           >
@@ -327,10 +330,11 @@ export default function EditorToolStatus({
           `reserveFieldNav` (the `.help` className above) is what keeps
           this mount/unmount from moving the row - see its own prop doc. */}
       {fieldNav && (
-        <div className={styles['field-nav']} dir={fieldNav.direction}>
+        <div className={styles['field-nav']} data-testid="field-nav" dir={fieldNav.direction}>
           <button
             type="button"
             className={styles['field-nav-button']}
+            data-testid="field-nav-button"
             onClick={fieldNav.onPrevious}
             disabled={!fieldNav.hasPrevious}
             aria-label={fieldNav.previousLabel}
@@ -343,6 +347,7 @@ export default function EditorToolStatus({
           <button
             type="button"
             className={styles['field-nav-button']}
+            data-testid="field-nav-button"
             onClick={fieldNav.onNext}
             disabled={!fieldNav.hasNext}
             aria-label={fieldNav.nextLabel}

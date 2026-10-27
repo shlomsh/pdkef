@@ -88,9 +88,9 @@ export default function FilePreview({ file }: FilePreviewProps) {
   }, []);
 
   return (
-    <span class={`${toolShellStyles.icon}${previewSrc ? ` ${toolShellStyles['icon-loaded']}` : ''}`} aria-hidden="true">
+    <span data-testid="tool-shell-icon" class={`${toolShellStyles.icon}${previewSrc ? ` ${toolShellStyles['icon-loaded']}` : ''}`} aria-hidden="true">
       {previewSrc ? (
-        <img src={previewSrc} alt="" class={styles.thumbnail} />
+        <img src={previewSrc} alt="" class={styles.thumbnail} data-testid="file-preview-thumbnail" />
       ) : (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path

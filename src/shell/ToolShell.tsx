@@ -166,16 +166,16 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
 
   return (
     <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}`} data-tool-shell>
-      <div class={styles.identity}>
+      <div class={styles.identity} data-testid="tool-shell-identity">
         {!editor && <FilePreview file={file} />}
 
         <span class={styles.text}>
-          <span class={styles.name} title={fileLabel || undefined}>
+          <span class={styles.name} data-testid="tool-shell-name" title={fileLabel || undefined}>
             {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
           </span>
           {(fileMeta || draftStatus || (!editor && metaExtra)) && (
-            <span class={styles.meta}>
-              {fileMeta && <span class={styles['meta-text']}>{fileMeta}</span>}
+            <span class={styles.meta} data-testid="tool-shell-meta">
+              {fileMeta && <span class={styles['meta-text']} data-testid="tool-shell-meta-text">{fileMeta}</span>}
               {draftStatus && (
                 <span class={draftStatus.className} role={draftSaveState === 'error' || draftSaveState === 'conflict' ? 'alert' : undefined}>
                   {draftSaveState === 'saved' && (
@@ -199,7 +199,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
 
       <div class={styles.controls}>{children}</div>
 
-      {!editor && note && <div class={styles.note}>{note}</div>}
+      {!editor && note && <div class={styles.note} data-testid="tool-shell-note">{note}</div>}
     </div>
   );
 }
@@ -235,6 +235,7 @@ function ActionButton({ action, onClick, highlight = false }: { action: FileActi
     <button
       type="button"
       class={`${styles.action}${highlight ? ` ${styles.highlight}` : ''}`}
+      data-testid="tool-shell-action"
       onClick={onClick}
       title={action.title}
     >

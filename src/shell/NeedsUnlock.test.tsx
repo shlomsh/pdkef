@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NeedsUnlock from './NeedsUnlock.tsx';
 import { ToolShellContext } from './ToolShell.tsx';
+// Asserts the .unlock class: the primary action is styled as the primary action.
 import styles from './NeedsUnlock.module.css';
 
 describe('NeedsUnlock', () => {
@@ -32,7 +33,8 @@ describe('NeedsUnlock', () => {
 
   it('leads with "Unlock it" as the only button in the action row, Replace the quiet line after it', () => {
     mount();
-    const actions = container.querySelector(`.${styles.actions}`)!;
+    const unlockButton = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Unlock it')!;
+    const actions = unlockButton.parentElement!;
     const buttons = [...actions.querySelectorAll('button')];
     expect(buttons).toHaveLength(1);
     expect(buttons[0].classList.contains(styles.unlock)).toBe(true);
@@ -51,7 +53,7 @@ describe('NeedsUnlock', () => {
         container,
       );
     });
-    const chip = container.querySelector(`.${styles.file}`)!;
+    const chip = container.querySelector('[data-testid="needs-unlock-file"]')!;
     expect(chip.querySelector(`[title="${name}"]`)).not.toBeNull();
     expect(chip.textContent!.endsWith('-2026.pdf')).toBe(true);
   });
@@ -59,8 +61,8 @@ describe('NeedsUnlock', () => {
   it('names the file it is about, under a heading, with a decorative lock', () => {
     mount();
     expect(container.querySelector('h2')!.textContent).toBe('This PDF has a password');
-    expect(container.querySelector(`.${styles.file}`)!.textContent).toContain('Quarterly report.pdf');
-    expect(container.querySelector(`.${styles.art}`)!.getAttribute('aria-hidden')).toBe('true');
+    expect(container.querySelector('[data-testid="needs-unlock-file"]')!.textContent).toContain('Quarterly report.pdf');
+    expect(container.querySelector('[data-needs-unlock] > [aria-hidden="true"]')!.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('says why a file that opens without a password still needs Unlock', () => {
