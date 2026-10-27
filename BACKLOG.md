@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 93 live: 15 up next, 16 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 93 live: 17 up next, 14 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -114,8 +114,10 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-45 | P2 | [ARCH-45](backlog/tasks/ARCH-45.md) · Every tool folder follows one template, checked in CI | In progress |
 | ARCH-46 | P2 | [ARCH-46](backlog/tasks/ARCH-46.md) · Single-tool modules leave the editor core, and rule 9 covers src/editor | In progress |
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
+| ARCH-68 | P2 | [ARCH-68](backlog/tasks/ARCH-68.md) · JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers | In progress |
 | ARCH-79 | P2 | [ARCH-79](backlog/tasks/ARCH-79.md) · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet | In progress |
 | ARCH-83 | P2 | [ARCH-83](backlog/tasks/ARCH-83.md) · Every CI run reports how far affected-scope narrowed it | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
@@ -124,9 +126,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ARCH-45 | P2 | [ARCH-45](backlog/tasks/ARCH-45.md) · Every tool folder follows one template, checked in CI |  |
 | ARCH-61 | P2 | [ARCH-61](backlog/tasks/ARCH-61.md) · Unused exports and locals are a CI ratchet |  |
-| ARCH-68 | P2 | [ARCH-68](backlog/tasks/ARCH-68.md) · JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers |  |
 | ARCH-78 | P2 | [ARCH-78](backlog/tasks/ARCH-78.md) · Island tests mock only the storage and network edge, through one harness |  |
 | ARCH-94 | P2 | [ARCH-94](backlog/tasks/ARCH-94.md) · Guidance and source comments cite only paths that exist |  |
 
