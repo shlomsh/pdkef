@@ -145,7 +145,7 @@ const MODULE_PREFIXES = [
   ['src/editor/', () => 'editor'],
   // DEBT-05: site-only/build-only helpers with no tool, shell, editor or lib
   // consumer (contentMarkup, markdownRender, gitLastModified, cspHash,
-  // localeOfflinePacks, acceptNegotiation). Distinct string from src/lib/, so
+  // acceptNegotiation). Distinct string from src/lib/, so
   // this row's position relative to it does not matter, but it is listed
   // before the generic 'site' buckets below since that is this table's
   // convention for anything more specific than a broad site prefix.
