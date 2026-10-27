@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import { tintImageDataUrl } from '../../../../editor/text/signHelpers.js';
+import { reportError } from '../../../../lib/errorReport.ts';
 import { englishSignMessages } from '../../messages';
 import styles from '../../../../editor-ui/EditorElement.module.css';
 import type { SignatureElement } from '../../../../editor/model/editorModel.ts';
@@ -18,7 +19,7 @@ export default function SignatureNode({ element, isActive, onResizeStart, messag
     let cancelled = false;
     tintImageDataUrl(element.dataUrl, element.color).then((tinted: string) => {
       if (!cancelled) setTintedSigUrl(tinted);
-    });
+    }, (err: unknown) => reportError('pdf_tool_run', err, 'tint_signature'));
     return () => { cancelled = true; };
   }, [element.dataUrl, element.color]);
 
