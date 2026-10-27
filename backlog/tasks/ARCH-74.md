@@ -1,11 +1,9 @@
 ---
 id: "ARCH-74"
 title: "The swallowed-errors check covers api/ and middleware, and expected reasons carry words"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 14
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Safety nets. Criterion: Error handling and async. Structure only: no behav
 
 ## Acceptance
 
-- [ ] `api/report.ts:166` reports or explains; a planted `// expected: ditto` fails.
+- [x] `api/report.ts:166` reports or explains; a planted `// expected: ditto` fails.
+
+## Done (2026-10-27)
+
+The swallowed-errors check walks src/, api/ and middleware.ts, and an expected reason needs four words; api/report.ts explains why the error sink only logs. A planted `// expected: ditto` fails.

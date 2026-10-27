@@ -1,11 +1,9 @@
 ---
 id: "ARCH-67"
 title: "The draft store is TypeScript with one record type parsed where it is read"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 9
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Safety nets. Criterion: Type safety. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] No `as DraftRecord` cast remains outside the store.
-- [ ] Draft unit and restore e2e tests pass unchanged.
+- [x] No `as DraftRecord` cast remains outside the store.
+- [x] Draft unit and restore e2e tests pass unchanged.
+
+## Done (2026-10-27)
+
+draftStore.ts plus draftRecords.ts (types and parse functions, tested); every IndexedDB read goes through a parse that narrows without rejecting what it accepted before, and corrupt records are still cleaned up. No `as DraftRecord` cast remains outside the store. Draft unit and restore e2e tests pass.

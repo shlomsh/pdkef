@@ -1,11 +1,9 @@
 ---
 id: "ARCH-53"
 title: "Compress runs its build and gate lifecycle through one explicit state machine"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 5
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] No duplicated state/ref pairs remain in the island.
-- [ ] Compress unit and e2e tests pass, including the reselect-size case.
+- [x] No duplicated state/ref pairs remain in the island.
+- [x] Compress unit and e2e tests pass, including the reselect-size case.
+
+## Done (2026-10-27)
+
+Compress's run gate, tokens, run count and taps are one pure machine (state/compressMachine.ts) held in a single ref by useCompressMachine; no state/ref pair remains. Transition tests cover reselecting the target size and stale tokens; Compress unit and e2e tests pass.

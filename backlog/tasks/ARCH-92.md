@@ -1,11 +1,9 @@
 ---
 id: "ARCH-92"
 title: "Patched dependencies are pinned to the version their patch names"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 21
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Supporting. Criterion: Dependency hygiene. Structure only: no behaviour ch
 
 ## Acceptance
 
-- [ ] A version mismatch between a patch and `package-lock.json` fails CI.
+- [x] A version mismatch between a patch and `package-lock.json` fails CI.
+
+## Done (2026-10-27)
+
+@cantoo/pdf-lib 2.11.1 and @pdf-lib/fontkit 1.1.1 are pinned exactly; scripts/check-patch-pins.mjs fails when a patch file's version differs from package-lock or the pin is a range. Wired in CI and check:push.

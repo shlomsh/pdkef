@@ -1,11 +1,9 @@
 ---
 id: "ARCH-51"
 title: "Merge keeps its lifecycle in one reducer and its decisions in mergePlan"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 3
 depends_on: []
 ---
 
@@ -26,5 +24,9 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] `PdfMergeTool` under 500 lines, recorded in the size ratchet.
-- [ ] New pure functions have their own unit tests; e2e unchanged.
+- [x] `PdfMergeTool` under 500 lines, recorded in the size ratchet.
+- [x] New pure functions have their own unit tests; e2e unchanged.
+
+## Done (2026-10-27)
+
+PdfMergeTool's function is 452 lines (file 535, was 1,440), recorded in the size ratchet. The lifecycle is one reducer in state/mergeState.ts; plan bookkeeping, sort and drop hit-testing are pure in mergePlan.ts, mergeDrag.ts and mergeModel.ts with their own tests (mergeState, mergePlanBookkeeping, mergeDrag, earlyFiles). The island test passes unchanged apart from ARCH-67's specifier.
