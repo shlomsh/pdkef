@@ -5,7 +5,8 @@ import type { RefObject } from 'preact';
  * tappable from first paint, so on a slow phone a person can choose a file while the island's
  * script is still downloading: the browser fires `change` into a page with no handler, and the
  * file only waits in `files`. Copies the list out before clearing, as every change handler does
- * (`value = ''` empties a live FileList). */
+ * (`value = ''` empties a live FileList).
+ * @testSeam */
 export function takePrePickedFiles(input: HTMLInputElement | null | undefined): File[] {
   const files = Array.from(input?.files ?? []);
   if (input && files.length > 0) input.value = '';
