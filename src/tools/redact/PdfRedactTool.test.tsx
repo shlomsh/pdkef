@@ -13,6 +13,7 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '../../lib/actionTrail.ts';
+import * as gestureController from '../../lib/gestures/controller.ts';
 import { saveDraft } from '../../lib/drafts/draftStore.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
@@ -224,14 +225,23 @@ describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
 
   let harness: ToolHarness;
-  let restoreCanvas: () => void;
+  let restoreCanvas: (() => void) | undefined;
+  // One entry per gesture the tool started: its commit callback, wrapped, so a gesture that commits
+  // twice is seen (the action trail drops a repeat of its last name, so it cannot count commits).
+  let gestureCommitSpies: Array<ReturnType<typeof vi.fn>> = [];
   // What the tool has told the usage endpoint so far, as [event, tool] in the order sent.
   const lifecycle = async () => { await harness.flush(); return harness.usageEvents().map((e) => [e.name, e.properties.tool]); };
   const failedOperations = async () => { await harness.flush(); return harness.usageEvents('tool_operation_failed'); };
 
   beforeEach(() => {
     harness = installToolHarness();
-    restoreCanvas = installCanvasEdge();
+    gestureCommitSpies = [];
+    const actualStartGesture = gestureController.startGesture;
+    vi.spyOn(gestureController, 'startGesture').mockImplementation((options: any) => {
+      const commit: any = vi.fn(options.commit);
+      gestureCommitSpies.push(commit);
+      return actualStartGesture({ ...options, commit });
+    });
     canvasEdge.encoded = 0;
     canvasEdge.fills = [];
     pdfjsEdge.pageItems.clear();
@@ -248,7 +258,8 @@ describe('PdfRedactTool UI flow', () => {
       container.remove();
     }
     vi.restoreAllMocks();
-    restoreCanvas();
+    restoreCanvas?.();
+    restoreCanvas = undefined;
     harness.restore();
     // A remembered blur strength or brush colour (rememberAppStyle) is on-device
     // state, so a test that sets one must not hand it to whichever test runs next.
@@ -648,6 +659,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('keeps the redaction editor open after downloading', async () => {
+    restoreCanvas = installCanvasEdge();
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -733,6 +745,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
+    restoreCanvas = installCanvasEdge();
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => { throw new Error('blocked'); });
@@ -770,6 +783,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('RED-60: Remove it is a history step every export replays; Undo takes it back out', async () => {
+    restoreCanvas = installCanvasEdge();
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     const downloads: Blob[] = [];
@@ -827,6 +841,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('the export receives the details edited in the sheet, and none when untouched', async () => {
+      restoreCanvas = installCanvasEdge();
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const downloads: Blob[] = [];
@@ -865,6 +880,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('RED-31: Space peeks under every box, the Peek button shows it, and an export taken while peeking is unchanged', async () => {
+    restoreCanvas = installCanvasEdge();
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -984,6 +1000,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('exports the bytes it already holds when the picked file can no longer be read (DEBT-51)', async () => {
+    restoreCanvas = installCanvasEdge();
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     const downloads: Blob[] = [];
@@ -1018,6 +1035,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('shares a valid PDF prepared from the real num-1.pdf fixture', async () => {
+    restoreCanvas = installCanvasEdge();
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
     const share = vi.fn((_data?: ShareData) => Promise.resolve());
@@ -1329,9 +1347,12 @@ describe('PdfRedactTool UI flow', () => {
     });
   }
 
-  // A gesture commits its state once, on release, and each commit leaves one entry on the action trail
-  // (never one per pointer move), so the trail counts the commits.
-  const trailCount = (action: string) => recentActions().filter((a) => a === action).length;
+  // A gesture commits its state exactly once, on release (never one per pointer move).
+  function expectLatestGestureToCommitOnce() {
+    const commit = gestureCommitSpies.at(-1);
+    if (!commit) throw new Error('no gesture was started');
+    expect(commit).toHaveBeenCalledTimes(1);
+  }
 
   it('commits Redact creation once after multiple pointer moves (E4.4)', async () => {
     const drawArea = await loadFileAndGetDrawArea();
@@ -1349,7 +1370,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     });
 
-    expect(trailCount('place_mark')).toBe(1);
+    expectLatestGestureToCommitOnce();
     expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
   });
 
@@ -1381,7 +1402,7 @@ describe('PdfRedactTool UI flow', () => {
       const points: [number, number][] = Array.from({ length: 40 }, (_, i) => [100 + i * 0.1, 200]);
       await paint(drawArea, points);
 
-      expect(trailCount('place_mark')).toBe(1);
+      expectLatestGestureToCommitOnce();
       const strokes = container.querySelectorAll(`.${REDACT_BOX}`);
       expect(strokes).toHaveLength(1);
       // Still armed for the next stroke, with the brush layer on the page.
@@ -1456,7 +1477,7 @@ describe('PdfRedactTool UI flow', () => {
 
     expect(parseFloat(box.style.left)).toBeCloseTo(expectedLeft);
     expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop);
-    expect(trailCount('move_mark')).toBe(1);
+    expectLatestGestureToCommitOnce();
   });
 
   // Blackout/blur now share whiteout's floating toolbar
@@ -1485,7 +1506,7 @@ describe('PdfRedactTool UI flow', () => {
 
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
-    const trailBefore = recentActions();
+    const gestureCountBefore = gestureCommitSpies.length;
 
     await act(async () => {
       deleteBtn.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
@@ -1497,7 +1518,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    expect(recentActions()).toEqual(trailBefore);
+    expect(gestureCommitSpies.length).toBe(gestureCountBefore);
     expect(parseFloat(box.style.left)).toBeCloseTo(startLeftPercent);
     expect(parseFloat(box.style.top)).toBeCloseTo(startTopPercent);
   });
@@ -1539,7 +1560,7 @@ describe('PdfRedactTool UI flow', () => {
 
     expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
     expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
-    expect(trailCount('resize_mark')).toBe(1);
+    expectLatestGestureToCommitOnce();
   });
 
   it('DEBT-31: a resize release records resize_mark once, after the box was placed', async () => {
@@ -2917,6 +2938,7 @@ describe('PdfRedactTool UI flow', () => {
     const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
 
     it('checks only deleted words automatically, never a Find search (RED-66)', async () => {
+      restoreCanvas = installCanvasEdge();
       const originalCreateObjectURL = window.URL.createObjectURL;
       window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
       try {
@@ -3464,6 +3486,7 @@ describe('PdfRedactTool UI flow', () => {
   // that reason.
   describe('an edit that lands mid-export (DEBT-18)', () => {
     it('drops an export whose boxes a keyboard redo has already changed', async () => {
+      restoreCanvas = installCanvasEdge();
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -3526,6 +3549,7 @@ describe('PdfRedactTool UI flow', () => {
     // tell the person: a file still being read is loading, it has no edits
     // that could have changed mid-prepare.
     it('leaves a replacement file loading instead of reporting the export as invalidated', async () => {
+      restoreCanvas = installCanvasEdge();
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -3605,6 +3629,7 @@ describe('PdfRedactTool UI flow', () => {
     // tool the person has navigated away from. Sign's unmount does the same
     // with activeExportRequestRef.
     it('does not download an export that finishes after the editor unmounts', async () => {
+      restoreCanvas = installCanvasEdge();
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const createObjectURL = vi.fn(() => 'blob:redacted-pdf');

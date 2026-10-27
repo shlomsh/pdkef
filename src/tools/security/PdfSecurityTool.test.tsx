@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
+import * as securityLib from './lib/security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -500,6 +501,7 @@ describe('PdfSecurityTool', () => {
 
     it('still asks for the password of a file that needs one, and tells wrong from right', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
+      const unlockSpy = vi.spyOn(securityLib, 'unlockPdf');
       useRealProbe();
       mount();
       await act(async () => {
@@ -507,6 +509,7 @@ describe('PdfSecurityTool', () => {
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
       expect(container.textContent).toContain('Enter its password to unlock');
+      expect(unlockSpy).not.toHaveBeenCalled();
       // Nothing is unlocked before a password is submitted.
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
 
@@ -518,7 +521,9 @@ describe('PdfSecurityTool', () => {
       await submit();
       expect(container.textContent).not.toContain('The password may be incorrect.');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(unlockSpy).toHaveBeenCalledTimes(2);
       expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
+      unlockSpy.mockRestore();
     });
   });
 

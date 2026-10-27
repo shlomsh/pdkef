@@ -8,6 +8,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { mergePdfs } from './lib/merge.js';
+import * as mergeLib from './lib/merge.js';
 import { MERGE_DRAFT_SCHEMA_VERSION } from './hooks/useMergeDraft.ts';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 import { saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
@@ -480,14 +481,21 @@ describe('PdfMergeTool UI flow', () => {
 
   it('any change to the list cancels the pending pre-merge and starts a new one', async () => {
     // The first build is held in flight when the list changes, so the abort is what has to stop it.
+    const mergeSpy = vi.spyOn(mergeLib, 'mergePdfs');
     const a = makePdfFile('a.pdf');
     const reads = controlReads(a);
     reads.holdFrom(1);
     mount();
     await loadFiles([a, 'b.pdf']);
     await until(reads.isBlocked);
+    expect(mergeSpy).toHaveBeenCalledTimes(1);
+    const firstSignal = mergeSpy.mock.calls[0][3] as AbortSignal;
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal.aborted).toBe(false);
 
     await loadFiles(['c.pdf']);
+    // The build for the old order was told to stop.
+    expect(firstSignal.aborted).toBe(true);
     // Nothing is on offer for the old order while the new one is still to come.
     expect(downloadLink()).toBeNull();
     await act(async () => { reads.release(); });
@@ -1323,6 +1331,8 @@ describe('PdfMergeTool UI flow', () => {
       expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
       // The saved set is still stored, with its work, in the recents.
       expect(harness.recents().filter((entry) => entry.hasWork.includes('merge')).map((entry) => entry.fileName)).toContain('merged_old1');
+      // And the stored body is intact, not cleared or replaced by the hand-off.
+      expect((await harness.storedDraft('merge'))?.files.map((f) => f.fileName)).toEqual(['old1.pdf', 'old2.pdf']);
     });
 
     it('replaces a restore that landed first instead of appending to it', async () => {
@@ -1337,6 +1347,8 @@ describe('PdfMergeTool UI flow', () => {
       expect(fileNames()).toEqual(['new1.pdf', 'new2.pdf']);
       expect(container.textContent).not.toContain('Picked up where you left off');
       expect(harness.recents().filter((entry) => entry.hasWork.includes('merge')).map((entry) => entry.fileName)).toContain('merged_old1');
+      // And the stored body is intact, not cleared or replaced by the hand-off.
+      expect((await harness.storedDraft('merge'))?.files.map((f) => f.fileName)).toEqual(['old1.pdf', 'old2.pdf']);
     });
 
     it('clears everything else the replaced set left behind: sort mode and history', async () => {

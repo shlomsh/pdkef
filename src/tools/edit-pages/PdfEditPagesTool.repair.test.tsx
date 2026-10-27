@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
+import * as editPagesLib from './lib/editPages.js';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { buildPdf, healthy, noPagesKey, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
@@ -135,10 +136,13 @@ describe('PdfEditPagesTool working file after a repair', () => {
 
   it('hands the original File to the grid and the export when nothing was repaired', async () => {
     original = new File([healthy()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
+    const editPagesSpy = vi.spyOn(editPagesLib, 'editPages');
     await open();
     expect(vi.mocked(openThumbnailSource).mock.calls[0][0]).toBe(original);
 
     await build();
+    expect(editPagesSpy).toHaveBeenCalledTimes(1);
+    expect(editPagesSpy.mock.calls[0][0]).toBe(original);
     expect(harness.createdBlobs()).toHaveLength(1);
     expect(await widthsOf(harness.createdBlobs()[0])).toEqual(ORIGINAL_WIDTHS);
   });
