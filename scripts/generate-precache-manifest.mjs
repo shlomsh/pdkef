@@ -89,6 +89,11 @@ fs.writeFileSync(aboutPath, about.replaceAll('__BUILD_ID__', buildId));
 // so the worker stores a file only when it is the one this build serves.
 const hashes = {};
 const unhashedUrls = new Set([...shell, ...Object.values(pages).flat()].filter((url) => !url.startsWith('/_astro/')));
+// Fonts are listed though not precached: a font pack fetches them at runtime and the worker checks them here.
+const fontsDir = path.join(distDir, 'fonts');
+if (fs.existsSync(fontsDir)) {
+  for (const f of fs.readdirSync(fontsDir)) if (/^[A-Za-z0-9-]+\.ttf$/.test(f)) unhashedUrls.add(`/fonts/${f}`);
+}
 for (const url of [...unhashedUrls].sort()) {
   const relative = decodeURIComponent(url.endsWith('/') ? `${url}index.html` : url);
   hashes[url] = pageHash(fs.readFileSync(path.join(distDir, relative)));
