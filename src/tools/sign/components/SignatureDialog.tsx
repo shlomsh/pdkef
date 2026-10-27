@@ -146,7 +146,7 @@ export default function SignatureDialog({
     return { dataUrl: encoded.dataUrl, aspectRatio: encoded.height / encoded.width };
   };
 
-  useModalDialog(dialogRef, isOpen, onClose, { escape: false, fallback: false });
+  useModalDialog(dialogRef, isOpen, onClose, { escape: false, fallback: false, syncOn: onClose });
 
   // Safari light-dismiss fallback
   useEffect(() => {
