@@ -67,6 +67,7 @@ async function stableSavedAt(page, tool) {
     const current = (await currentIndexRow(page, tool))?.savedAt;
     if (current !== undefined && current === previous) return current;
     previous = current;
+    // Time on purpose: the interval between two reads of savedAt.
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   throw new Error(`savedAt for '${tool}' never settled`);

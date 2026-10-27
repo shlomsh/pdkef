@@ -73,6 +73,8 @@ async function settleLayout(page) {
     await Promise.all([...document.querySelectorAll('#home-files img')].map((img) => img.decode().catch(() => {})));
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   });
+  // Time on purpose: late-reflow window, as long as the sleep this helper replaced.
+  await page.waitForTimeout(300);
 }
 
 async function readRects(page) {
