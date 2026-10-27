@@ -2,18 +2,14 @@
 import { hydrate } from 'preact';
 import { act } from 'preact/test-utils';
 import { renderToString } from 'preact-render-to-string';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
-vi.mock('./lib/merge.js', () => {
-  class MergeFileError extends Error {}
-  return {
-    MergeFileError,
-    mergePdfs: vi.fn(() => Promise.resolve(new Blob(['x'], { type: 'application/pdf' }))),
-    inspectPdf: vi.fn(() => Promise.resolve({ pageCount: 2, encrypted: false, creationDate: null })),
-  };
-});
+// EDGE: pdf.js cannot render a thumbnail in jsdom. The merge, the draft store and the rest run for real.
 vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
   renderThumbnailWithMeta: vi.fn(),
@@ -22,7 +18,8 @@ vi.mock('../../lib/thumbnails.js', () => ({
 }));
 
 const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
-const pdf = (name) => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+const FIXTURE = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-2.pdf'));
+const pdf = (name) => new File([FIXTURE], name, { type: 'application/pdf' });
 
 /* Files offered the moment the island hydrates, before the lazy draft module and
    the grid have loaded, land as entries. (A change event fired BEFORE hydration has
@@ -31,7 +28,9 @@ const pdf = (name) => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 describe('files offered right after hydration', () => {
   const Island = PdfMergeTool;
   let container;
-  afterEach(() => { container?.remove(); container = null; });
+  let harness: ToolHarness;
+  beforeEach(() => { harness = installToolHarness(); });
+  afterEach(() => { container?.remove(); container = null; harness.restore(); });
 
   it('lands them as entries when offered straight after hydration starts', async () => {
     container = document.createElement('div');
