@@ -9,6 +9,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -168,7 +169,8 @@ describe('PdfSecurityTool', () => {
     await loadFile('fine.pdf');
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     const confirm = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Replace file');
-    await act(async () => { confirm.click(); await new Promise((r) => setTimeout(r, 10)); });
+    await act(async () => { confirm.click(); });
+    await waitUntil(() => expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF'));
 
     await act(async () => {
       firstProbe.reject(new Error('probe died'));
@@ -211,14 +213,12 @@ describe('PdfSecurityTool', () => {
 
     await loadFile('replacement.pdf');
     const confirm = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
-    await act(async () => {
-      confirm.click();
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
+    await act(async () => { confirm.click(); });
+    await waitUntil(() => expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]')?.open).not.toBe(true));
     expect(container.textContent).toContain('replacement.pdf');
     // A confirmed replacement is a new file: the old password does not carry
     // over to it (handleFilesAdded resets password on every accepted file).
-    expect(passwordInput.value).toBe('');
+    await waitUntil(() => expect(container.querySelector('input[type="password"]')?.value).toBe(''));
   });
 
   // MEM-03: Replace always asks, even with nothing entered yet. The dialog no
@@ -253,8 +253,8 @@ describe('PdfSecurityTool', () => {
     const form = container.querySelector('form');
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise(resolve => setTimeout(resolve, 10));
     });
+    await waitUntil(() => expect(container.querySelector('a[download]')).not.toBeNull());
     await settle();
 
     // The real unlock ran with the typed password: what came out opens with none.
@@ -281,12 +281,13 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 10));
       });
+      await waitUntil(() => expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.trim() === 'Share')).toBe(true));
       await settle();
       resetActionTrailForTests();
       const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
-      await act(async () => { shareButton.click(); await new Promise((resolve) => setTimeout(resolve, 10)); });
+      await act(async () => { shareButton.click(); });
+      await waitUntil(() => expect(nativeShare.share).toHaveBeenCalled());
       return nativeShare;
     };
     const announced = () => container.querySelector('p.sr-only[role="status"]').textContent.trim();
@@ -337,8 +338,8 @@ describe('PdfSecurityTool', () => {
     const form = container.querySelector('form');
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise(resolve => setTimeout(resolve, 10));
     });
+    await waitUntil(() => expect(container.querySelector('a[download]')).not.toBeNull());
     await settle();
 
     // The real protect ran with the typed password: what came out asks for it.
@@ -361,8 +362,8 @@ describe('PdfSecurityTool', () => {
     const form = container.querySelector('form');
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise(resolve => setTimeout(resolve, 10));
     });
+    await waitUntil(() => expect(container.textContent).toContain("The password may be incorrect."));
     await settle();
 
     expect(container.textContent).toContain("The password may be incorrect.");
@@ -381,8 +382,8 @@ describe('PdfSecurityTool', () => {
     });
     await act(async () => {
       container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise((resolve) => setTimeout(resolve, 10));
     });
+    await waitUntil(() => expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.'));
     await settle();
 
     expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.');
@@ -398,7 +399,6 @@ describe('PdfSecurityTool', () => {
     });
     await act(async () => {
       container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise((resolve) => setTimeout(resolve, 10));
     });
     await settle();
   }
@@ -465,7 +465,6 @@ describe('PdfSecurityTool', () => {
     const submit = async () => {
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 300));
       });
       await settle();
     };
@@ -478,9 +477,7 @@ describe('PdfSecurityTool', () => {
       });
       // Real pdf-lib work: wait for the result rather than a fixed sleep, which
       // lost the race whenever the whole suite ran in parallel.
-      for (let waited = 0; waited < 5000 && !container.textContent.includes('The protection is off.'); waited += 50) {
-        await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
-      }
+      await waitUntil(() => expect(container.textContent).toContain('The protection is off.'));
 
       // Unlocked with the empty password: no field, and the bytes behind Download classify as open.
       expect(container.querySelector('input[type="password"]')).toBeNull();
@@ -496,19 +493,19 @@ describe('PdfSecurityTool', () => {
       mount();
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('needs-password')]);
-        await new Promise((resolve) => setTimeout(resolve, 500));
       });
-      expect(container.textContent).toContain('Enter its password to unlock');
+      await waitUntil(() => expect(container.textContent).toContain('Enter its password to unlock'));
       expect(unlockSpy).not.toHaveBeenCalled();
       // Nothing is unlocked before a password is submitted.
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
 
       await type('wrong');
       await submit();
-      expect(container.textContent).toContain('The password may be incorrect.');
+      await waitUntil(() => expect(container.textContent).toContain('The password may be incorrect.'));
 
       await type('u');
       await submit();
+      await waitUntil(() => expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull());
       expect(container.textContent).not.toContain('The password may be incorrect.');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
       expect(unlockSpy).toHaveBeenCalledTimes(2);
@@ -528,7 +525,7 @@ describe('PdfSecurityTool', () => {
       await parkFor({ fileName: 'form.pdf', fileBytes: bufferOf(BYTES['needs-password']), from: 'redact' });
       const nativeShare = mockNativeFileShare();
       mount({ navigate });
-      await flush();
+      await waitUntil(() => expect(container.querySelector('input[type="password"]')).not.toBeNull());
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
         passwordInput.value = goodPassword();
@@ -536,8 +533,8 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await waitUntil(() => expect(container.querySelector('a[download]')).not.toBeNull());
       await settle();
       return nativeShare;
     }
@@ -563,10 +560,11 @@ describe('PdfSecurityTool', () => {
       await parkFor({ fileName: 'a.pdf', fileBytes: bufferOf(BYTES['owner-restricted']), from });
       const navigate = vi.fn();
       mount({ navigate });
-      await flush();
+      await waitUntil(() => expect(buttonByText(label)).not.toBeUndefined());
       await settle();
-      await act(async () => { buttonByText(label).click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
-      // The unlocked file is parked under the key of the tool that sent it.
+      await act(async () => { buttonByText(label).click(); });
+      // The unlocked file is parked under the key of the tool that sent it, then it navigates.
+      await waitUntil(() => expect(navigate).toHaveBeenCalled());
       const parked = await harness.takeHandoff(from);
       expect(parked?.fileName).toBe('a_unlocked.pdf');
       expect(await realProbe(parked.fileBytes)).toBe('open');
@@ -577,7 +575,7 @@ describe('PdfSecurityTool', () => {
       probeAs('owner-restricted');
       await parkFor({ fileName: 'a.pdf', fileBytes: bufferOf(BYTES['owner-restricted']), from: 'nowhere' });
       mount({ navigate: vi.fn() });
-      await flush();
+      await waitUntil(() => expect(buttonByText('Redact it')).not.toBeUndefined());
       await settle();
       expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.startsWith('Continue in'))).toBe(false);
       expect(buttonByText('Redact it')).not.toBeUndefined();
@@ -586,7 +584,8 @@ describe('PdfSecurityTool', () => {
     it('Continue in Redact hands the unlocked file back and goes there', async () => {
       const navigate = vi.fn();
       await unlockFromRedact(navigate);
-      await act(async () => { buttonByText('Continue in Redact').click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
+      await act(async () => { buttonByText('Continue in Redact').click(); });
+      await waitUntil(() => expect(navigate).toHaveBeenCalled());
       const record = await harness.takeHandoff('redact');
       expect(record?.fileName).toBe('form_unlocked.pdf');
       expect(await realProbe(record.fileBytes)).toBe('open');
@@ -603,7 +602,7 @@ describe('PdfSecurityTool', () => {
         fileBytes: bufferOf(BYTES['needs-password']),
       });
       mount();
-      await flush();
+      await waitUntil(() => expect(container.textContent).toContain('from-redact.pdf'));
 
       // The island collected it: a hand-off is read once and consumed.
       expect(await harness.takeHandoff('unlock')).toBeNull();
@@ -627,7 +626,6 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 20));
       });
       await settle();
     }
@@ -651,7 +649,6 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 20));
       });
       await settle();
       expect(container.querySelector('input[type="password"]')).not.toBeNull();
@@ -684,7 +681,6 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 20));
       });
       await settle();
       expect(container.querySelector(`a.${pdfToolStyles['download-button']}`)).not.toBeNull();
@@ -704,7 +700,8 @@ describe('PdfSecurityTool', () => {
     it.each([['Redact it', 'redact', '/redact/'], ['Sign it', 'sign', '/sign/']])('%s saves the unlocked bytes and navigates', async (label, key, href) => {
       const navigate = vi.fn();
       await unlockDone(navigate);
-      await act(async () => { buttonByText(label).click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
+      await act(async () => { buttonByText(label).click(); });
+      await waitUntil(() => expect(navigate).toHaveBeenCalledWith(href));
 
       // Parked once, under the key of the tool it goes to and no other.
       const other = key === 'redact' ? 'sign' : 'redact';
@@ -722,7 +719,8 @@ describe('PdfSecurityTool', () => {
       await unlockDone(navigate);
       // Storage refuses the write (a locked-down browser has no IndexedDB), so the real save answers false.
       globalThis.indexedDB = undefined;
-      await act(async () => { buttonByText('Sign it').click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
+      await act(async () => { buttonByText('Sign it').click(); });
+      await waitUntil(() => expect(container.textContent).toContain('Could not hand this off. Download it instead and open it there.'));
 
       expect(navigate).not.toHaveBeenCalled();
       expect(container.textContent).toContain('Could not hand this off. Download it instead and open it there.');
@@ -741,7 +739,6 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 20));
       });
       await settle();
       expect(buttonByText('Redact it')).toBeUndefined();
@@ -758,10 +755,8 @@ describe('PdfSecurityTool', () => {
     async function confirmReplace() {
       const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
       const confirm = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
-      await act(async () => {
-        confirm.click();
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      });
+      await act(async () => { confirm.click(); });
+      await waitUntil(() => expect(container.querySelector('dialog[aria-labelledby="confirm-replace-title"]')?.open).not.toBe(true));
     }
 
     it('keeps the mode of the file that is actually loaded', async () => {
@@ -774,7 +769,7 @@ describe('PdfSecurityTool', () => {
 
       await loadFile('small-plain.pdf');
       await confirmReplace();
-      expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF');
+      await waitUntil(() => expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF'));
 
       // Only now does the replaced file's check answer, with the other answer.
       await act(async () => {
@@ -801,7 +796,6 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 10));
       });
       // The protect has started and is waiting on the first file's read.
       expect(typeof gate.release).toBe('function');
@@ -809,11 +803,9 @@ describe('PdfSecurityTool', () => {
       await loadFile('second.pdf');
       await confirmReplace();
 
-      await act(async () => {
-        gate.release();
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      });
+      await act(async () => { gate.release(); });
       await settle();
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); }); // window: the replaced file's output must not land
 
       expect(container.textContent).toContain('second.pdf');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
@@ -833,7 +825,6 @@ describe('PdfSecurityTool', () => {
     });
     await act(async () => {
       container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise((r) => setTimeout(r, 20));
     });
     await settle();
     expect(recentActions()).toEqual(['add_files', 'export']);
@@ -850,7 +841,6 @@ describe('PdfSecurityTool', () => {
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        await new Promise((resolve) => setTimeout(resolve, 20));
       });
       await settle();
     };
@@ -869,8 +859,8 @@ describe('PdfSecurityTool', () => {
       probeAs('open');
       mount();
       await loadFile();
-      await flush();
-      expect(tagOf()).toBe('Not protected');
+      await waitUntil(() => expect(tagOf()).toBe('Not protected'));
+      await flush(); // settle window for the exact render count
       expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(1);
       expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls[0][0]).toBeInstanceOf(File);
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,AAAA');
@@ -881,8 +871,8 @@ describe('PdfSecurityTool', () => {
       mount();
       await loadFile();
       await submitWith(goodPassword());
-      await flush();
-      expect(tagOf()).toBe('Unlocked');
+      await waitUntil(() => expect(tagOf()).toBe('Unlocked'));
+      await waitUntil(() => expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls.at(-1)[0]).not.toBeInstanceOf(File));
       const last = harness.pdfjs.thumbnails.renderComparePreview.mock.calls.at(-1)[0];
       expect(last).not.toBeInstanceOf(File);
       // What is drawn is the unlocked output, which no longer asks for a password.
@@ -894,8 +884,7 @@ describe('PdfSecurityTool', () => {
       mount();
       await loadFile();
       await submitWith(goodPassword());
-      await flush();
-      expect(tagOf()).toBe('Protected');
+      await waitUntil(() => expect(tagOf()).toBe('Protected'));
     });
 
     it('keeps the placeholder and reports when the render throws', async () => {
@@ -905,7 +894,7 @@ describe('PdfSecurityTool', () => {
       harness.pdfjs.thumbnails.renderComparePreview.mockRejectedValue(boom);
       mount();
       await loadFile();
-      await flush();
+      await waitUntil(() => expect(harness.reports()).toHaveLength(1));
       await harness.flush();
       expect(harness.reports()).toMatchObject([{ area: 'pdf_render', step: 'render_security_preview', type: 'Error' }]);
       expect(container.querySelector('[data-security-preview] img')).toBeNull();
@@ -926,10 +915,9 @@ describe('PdfSecurityTool', () => {
       mount();
       await loadFile('test.pdf', file);
       // The input page is drawn while the unlock runs; then the output replaces it.
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
-      expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
+      await waitUntil(() => expect(container.querySelector('[data-security-preview] img')?.getAttribute('src')).toBe('data:image/png;base64,OLD'));
       await act(async () => { gate.release(); });
-      for (let i = 0; i < 10 && harness.pdfjs.thumbnails.renderComparePreview.mock.calls.length < 2; i += 1) await flush();
+      await waitUntil(() => expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls.length).toBeGreaterThanOrEqual(2));
       expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
       expect(container.querySelector('[data-page-frame]').getAttribute('aria-busy')).toBe('true');
@@ -945,7 +933,8 @@ describe('PdfSecurityTool', () => {
       mount();
       // The unlock reads damaged bytes and fails; the preview render failing for the same file adds no second report.
       await loadFile('test.pdf', realFile('test.pdf', 'unreadable'));
-      await flush();
+      await waitUntil(() => expect(harness.reports()).toHaveLength(1));
+      await flush(); // window: the failing preview render must add no second report
       await settle();
       expect(harness.reports()).toHaveLength(1);
       expect(harness.reports()[0]).toMatchObject({ area: 'pdf_tool_run', step: 'unlock' });
