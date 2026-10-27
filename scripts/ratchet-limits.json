@@ -36,7 +36,6 @@
       "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 449,
       "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
       "src/tools/merge/lib/merge.js#mergePdfs": 188,
-      "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 902,
       "src/tools/redact/components/FindBar.tsx#FindBar": 177,
       "src/tools/redact/components/RedactBox.tsx#RedactBox": 256,
       "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 253,
@@ -94,10 +93,6 @@
       "src/tools/merge/PdfMergeTool.tsx": {
         "effects": 0,
         "hooks": 32
-      },
-      "src/tools/redact/PdfRedactTool.tsx": {
-        "effects": 4,
-        "hooks": 26
       },
       "src/tools/scan/PdfScanTool.tsx": {
         "effects": 6,
@@ -162,7 +157,6 @@
       "src/data/tools.js": 1017,
       "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 882,
-      "src/tools/redact/PdfRedactTool.tsx": 1022,
       "src/tools/sign/PdfSignTool.tsx": 1055,
       "src/tools/sign/components/SignToolbar.tsx": 833,
       "src/tools/sign/lib/fields/formCells.js": 1061
