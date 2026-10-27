@@ -264,7 +264,7 @@ jobs:
     # would leave the one assertion that actually proves /ActualText works
     # running only on a developer's machine.
     - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
-      run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      run: bash scripts/ci-bounded-apt.sh 120 bash -c 'apt-get update && apt-get install -y poppler-utils'
 
     # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
     # every unit file on every push.
@@ -860,13 +860,14 @@ jobs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
+    # QUAL-33: apt is bounded at 120 s with one retry; the browser download is separate.
+    - name: Install Playwright system dependencies
+      if: steps.affected.outputs.fonts != 'false'
+      run: bash scripts/ci-bounded-apt.sh 120 npx playwright install-deps chromium
+
     - name: Install Playwright browsers
       if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system dependencies
-      if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
+      run: npx playwright install chromium
 
     - name: Run Playwright e2e tests (font guards, shard ${{ matrix.shard }}/2)
       if: steps.affected.outputs.fonts != 'false'
@@ -937,13 +938,14 @@ jobs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
+    # QUAL-33: apt is bounded at 120 s with one retry; the browser download is separate.
+    - name: Install Playwright system dependencies
+      if: steps.affected.outputs.export_guards != 'false'
+      run: bash scripts/ci-bounded-apt.sh 120 npx playwright install-deps chromium
+
     - name: Install Playwright browsers
       if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright system dependencies
-      if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium
+      run: npx playwright install chromium
 
     - name: Run Playwright e2e tests (export guards)
       if: steps.affected.outputs.export_guards != 'false'
