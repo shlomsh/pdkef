@@ -703,7 +703,7 @@ function buildIncompleteWorker(source, windows, failing = []) {
   const fetched = [];
   const fetchImpl = vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/', '/_astro/app.js'], pages: {} }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/', '/_astro/app.js'], pages: {}, hashes: {} }));
     const pathname = new URL(url).pathname;
     fetched.push(pathname);
     return failing.includes(pathname) ? new Response('no', { status: 503 }) : new Response('asset');
@@ -1150,7 +1150,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const a = criticalWindow('a');
     const worker = build({ windows: [a], marker: false });
     worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
-      ? new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {} }))
+      ? new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: {} }))
       : new Response('no', { status: 503 })));
     await runCheck(worker);
     expect(a.postMessage).not.toHaveBeenCalled();
@@ -1160,7 +1160,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
   it('finishes a missing precache online and then forces', async () => {
     const worker = build({ marker: false });
     worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
-      ? new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {} }))
+      ? new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: {} }))
       : new Response('asset')));
     await runCheck(worker);
     expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
@@ -1246,6 +1246,8 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
 describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('one build per cache (%s)', (_label, source) => {
   const OTHER = { version: 2, build: 'another-build', shell: ['/', '/sign/'], pages: {} };
   const NO_BUILD = { version: 2, shell: ['/', '/sign/'], pages: {} };
+  const NO_HASHES = { version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {} };
+  const BAD_HASHES = { version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: 'nope' };
   const MANIFEST_URL = '/precache-manifest.json';
   const respondWith = (manifest, fetched = []) => vi.fn(async (request) => {
     const pathname = new URL(requestUrl(request)).pathname;
@@ -1254,7 +1256,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     return new Response('asset');
   });
 
-  it.each([['another build', OTHER], ['no build id', NO_BUILD]])('install rejects a manifest with %s and caches none of its URLs', async (_name, manifest) => {
+  it.each([['another build', OTHER], ['no build id', NO_BUILD], ['no hashes', NO_HASHES], ['hashes that are not an object', BAD_HASHES]])('install rejects a manifest with %s and caches none of its URLs', async (_name, manifest) => {
     const fetched = [];
     const worker = createWorker(respondWith(manifest, fetched), [], createFakeIndexedDB(), source);
     await expect(dispatchInstall(worker)).rejects.toThrow();
@@ -1398,6 +1400,55 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
         expect(worker.entries.has(KEY)).toBe(false);
         expect(worker.entries.has(MARKER)).toBe(false);
       });
+    });
+  });
+
+  describe('an unreadable stored manifest', () => {
+    const MANIFEST_KEY = 'https://pdkef.test/__pdkef/manifest/';
+    const asset = (path) => ({ method: 'GET', mode: 'no-cors', url: `https://pdkef.test${path}` });
+    const navigate = (path) => ({ method: 'GET', mode: 'navigate', url: `https://pdkef.test${path}` });
+    const install = async (hashes) => {
+      const serve = (pathname) => (pathname.startsWith('/icons/') ? new Response('newer build') : new Response('page'));
+      const worker = createWorker(manifestResponder(['/', '/icons/icon-512.png'], serve, {}, hashes), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      return worker;
+    };
+    // Makes reading the stored manifest reject until the returned function is called.
+    const breakManifestRead = (worker) => {
+      const real = worker.cache.match.getMockImplementation();
+      worker.cache.match.mockImplementation(async (request) => {
+        if (requestUrl(request) === MANIFEST_KEY) throw new Error('unreadable');
+        return real(request);
+      });
+      return () => worker.cache.match.mockImplementation(real);
+    };
+
+    it.each([
+      ['the read rejects', (worker) => { breakManifestRead(worker); }],
+      ['the stored body is not JSON', (worker) => { worker.entries.set(MANIFEST_KEY, new Response('not json')); }],
+    ])('when %s, a non-navigation write is stored and a navigation is not', async (_name, damage) => {
+      const worker = await install({ '/': pageHash('page') });
+      damage(worker);
+      const { background } = await dispatchFetch(worker, asset('/_astro/late.js'));
+      await Promise.all(background);
+      expect(worker.entries.has('https://pdkef.test/_astro/late.js')).toBe(true);
+      const { response, background: more } = await dispatchFetch(worker, navigate('/merge/'));
+      expect(await response.text()).toBe('page');
+      await Promise.all(more);
+      expect(worker.entries.has('https://pdkef.test/merge/')).toBe(false);
+    });
+
+    it('reads the manifest again on a later write after a failed read', async () => {
+      const worker = await install({ '/icons/icon-512.png': pageHash('this build') });
+      const restore = breakManifestRead(worker);
+      const first = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(first.background);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(true);
+      worker.entries.delete('https://pdkef.test/icons/icon-512.png');
+      restore();
+      const second = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(second.background);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
     });
   });
 
