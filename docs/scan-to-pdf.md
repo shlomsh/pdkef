@@ -35,13 +35,13 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 | `src/lib/canvasBlob.js` | Compress, Scan | `canvasToBlob`, moved out of `compress.js` |
 | `src/shell/pageWorkspace/useDownloadFlow.ts`, `FinishRow.tsx` | all page tools | `HandoffTool` gains `'merge'` |
 | `src/shell/BasePdfTool.tsx`, `DropzoneEmptyState.tsx` | all tools | optional `emptyAction` slot under the picker |
-| `src/tools/scan/quad.ts` | Scan | `Point`, `Quad`, `RgbaImage`, `GrayImage`, quad helpers |
-| `src/tools/scan/edges/` | Scan | the swappable edge guess |
-| `src/tools/scan/warp.ts` | Scan | homography and perspective warp, pure |
-| `src/tools/scan/filters.ts` | Scan | the three looks, pure |
-| `src/tools/scan/scanBudget.ts` | Scan | the size-limit search over pages, pure (injected encode and build) |
-| `src/tools/scan/scanPipeline.ts` | Scan | the DOM side: decode, gray thumbnail, process a page, build the PDF. Lazy. |
-| `src/tools/scan/CornerEditor.tsx` | Scan | the photo with four draggable corners |
+| `src/tools/scan/lib/quad.ts` | Scan | `Point`, `Quad`, `RgbaImage`, `GrayImage`, quad helpers |
+| `src/tools/scan/lib/edges/` | Scan | the swappable edge guess |
+| `src/tools/scan/lib/warp.ts` | Scan | homography and perspective warp, pure |
+| `src/tools/scan/lib/filters.ts` | Scan | the three looks, pure |
+| `src/tools/scan/lib/scanBudget.ts` | Scan | the size-limit search over pages, pure (injected encode and build) |
+| `src/tools/scan/lib/scanPipeline.ts` | Scan | the DOM side: decode, gray thumbnail, process a page, build the PDF. Lazy. |
+| `src/tools/scan/components/CornerEditor.tsx` | Scan | the photo with four draggable corners |
 | `src/tools/scan/PdfScanTool.tsx` | Scan | the island |
 
 Scan never imports another tool (module-boundaries rule 1); everything it shares moved to `src/lib/` or
@@ -55,7 +55,7 @@ orientation already applied, as `<img>` and `createImageBitmap(..., { imageOrien
 both show it). Pixel quads exist only inside `scanPipeline.ts`.
 
 ```ts
-// src/tools/scan/quad.ts
+// src/tools/scan/lib/quad.ts
 export interface Point { x: number; y: number }
 /** Top-left, top-right, bottom-right, bottom-left. */
 export type Quad = [Point, Point, Point, Point];
@@ -69,18 +69,18 @@ export function scaleQuad(quad: Quad, width: number, height: number): Quad;
 export function quadKey(quad: Quad): string;
 export function rotateQuad(quad: Quad, turns: number): Quad; // the page turned clockwise: corners moved one place on per turn
 
-// src/tools/scan/edges/index.ts
+// src/tools/scan/lib/edges/index.ts
 export type EdgeGuesser = (image: GrayImage) => Quad | null; // normalized; null = no page found
 export const guessCorners: EdgeGuesser; // the current strategy; a better detector replaces this line
 
-// src/tools/scan/warp.ts
+// src/tools/scan/lib/warp.ts
 export type Matrix3 = [number, number, number, number, number, number, number, number, number];
 export function homography(from: Quad, to: Quad): Matrix3; // maps each from[i] onto to[i]
 export function applyHomography(h: Matrix3, p: Point): Point;
 export function warpSize(quadPx: Quad, maxLongEdge: number): { width: number; height: number };
 export function warpPerspective(src: RgbaImage, quadPx: Quad, width: number, height: number): RgbaImage;
 
-// src/tools/scan/filters.ts
+// src/tools/scan/lib/filters.ts
 export type ScanFilter = 'original' | 'grayscale' | 'document';
 export function applyFilter(image: RgbaImage, filter: ScanFilter): RgbaImage; // never mutates `image`
 
@@ -93,7 +93,7 @@ export async function addImagePage(pdfDoc, bytes, mimeType, label = mimeType, { 
 // src/lib/imagesToPdf.js
 export async function imagesToPdf(files, onProgress, signal, { pageSize = 'fit' } = {}): Promise<Blob>;
 
-// src/tools/scan/scanBudget.ts
+// src/tools/scan/lib/scanBudget.ts
 export const SCAN_SCALE_LADDER: number[];
 export const SCAN_QUALITY: number; // the quality with no limit set
 export const SIZE_LIMITS: { id: 'none' | '2mb' | '1mb' | '500kb'; bytes: number | null }[];

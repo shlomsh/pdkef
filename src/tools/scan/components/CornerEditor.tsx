@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { startGesture } from '../../lib/gestures/controller.ts';
-import { clampPoint, isPagelike, type Quad } from './quad.ts';
-import { LOUPE_SIZE, loupeView, placeLoupe } from './loupe.ts';
+import { startGesture } from '../../../lib/gestures/controller.ts';
+import { clampPoint, isPagelike, type Quad } from '../lib/quad.ts';
+import { LOUPE_SIZE, loupeView, placeLoupe } from '../lib/loupe.ts';
 import styles from './CornerEditor.module.css';
 
 interface CornerEditorProps {
