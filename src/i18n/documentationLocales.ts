@@ -22,7 +22,6 @@ export const documentationLocales = [
 
 export type DocumentationLocale = (typeof documentationLocales)[number];
 export type DocumentationLocaleId = DocumentationLocale['id'];
-export type DocumentationDirection = DocumentationLocale['dir'];
 
 export const DOCUMENTATION_LOCALE_IDS = documentationLocales.map(({ id }) => id) as [
   DocumentationLocaleId,

@@ -1,5 +1,3 @@
-import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
-
 /**
  * Unlock / Protect's strings. English only for now; the island takes a Partial of this over the
  * English table the way Split does. `{name}`-style tokens are filled with formatMessage.
@@ -126,7 +124,3 @@ export const englishSecurityMessages: SecurityMessages = {
   returnEditPdf: 'Organize PDF',
   returnMerge: 'Merge',
 };
-
-export function getSecurityMessages(_locale: DocumentationLocaleId): SecurityMessages {
-  return englishSecurityMessages;
-}

@@ -1,4 +1,3 @@
-import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { DownloadMessages } from '../../shell/shellMessages';
 
 /** Scan's strings. English only at launch; a localized edition follows the languages page. */
@@ -180,7 +179,3 @@ export const englishScanMessages: ScanMessages = {
   announceMoved: 'Page moved to position {position} of {total}.',
   announceCleared: 'All pages cleared.',
 };
-
-export function getScanMessages(_locale: DocumentationLocaleId): ScanMessages {
-  return englishScanMessages;
-}
