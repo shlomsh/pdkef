@@ -16,6 +16,9 @@ import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } fr
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from '../PdfRedactTool.module.css';
 import { boxKeyIntent, boxMovePatch, boxAriaLabel } from '../lib/boxKeys.ts';
+import type { RedactElement, RedactBoxElement, RedactStrokeElement } from '../lib/redactElements.ts';
+import type { EditorPointerEvent } from '../../../editor-ui/nodeResizeTypes.ts';
+import type { ResizeHandle } from '../../../editor/registry/types.ts';
 import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
 
 // MOBI-17: which corner of the bar actually touches the box it belongs to, so
@@ -63,7 +66,7 @@ export default function RedactBox({
   repeatGroup = {},
   findSet = {},
 }: {
-  el: any;
+  el: RedactBoxElement | RedactStrokeElement;
   isSelected: boolean;
   /** RED-31: view state only - every box shows what is under it. */
   peekAll?: boolean;
@@ -73,10 +76,10 @@ export default function RedactBox({
   pageSize?: { width?: number; height?: number };
   pointer: {
     onSelect: (id: string) => void;
-    onChange: (id: string, patch: any) => void;
-    getPageWrapper: (...args: any[]) => any;
-    onHoverEnter: (...args: any[]) => void;
-    onHoverLeave: (...args: any[]) => void;
+    onChange: (id: string, patch: Partial<RedactElement>) => void;
+    getPageWrapper: () => HTMLDivElement | null;
+    onHoverEnter: () => void;
+    onHoverLeave: () => void;
   };
   actions: {
     onDelete: (id: string) => void;
@@ -179,7 +182,7 @@ export default function RedactBox({
     elementRef,
     getPageWrapper,
     onSelect: () => onSelect(el.id),
-    onChange: (patch: any) => onChange(el.id, patch),
+    onChange: (patch: Partial<RedactElement>) => onChange(el.id, patch),
     // Only a selected box claims a touch (SNG-04's model, docs/sign-next-gen.md
     // §12 #4). A finger landing on an unselected box is left to the browser, so
     // it can scroll or pinch-zoom across a box that covers most of the page,
@@ -193,7 +196,7 @@ export default function RedactBox({
   const { onPressStart } = usePressAndHold({
     onPeekChange: (on) => elementRef.current?.toggleAttribute('data-peeking', on),
   });
-  const handlePress = (e: any) => {
+  const handlePress = (e: MouseEvent | TouchEvent) => {
     onPressStart(e);
     handleDragPointerDown(e);
   };
@@ -202,7 +205,7 @@ export default function RedactBox({
     elementRef,
     getPageWrapper,
     pageWidthPoints: 0,
-    onChange: (patch: any) => onChange(el.id, patch),
+    onChange: (patch: Partial<RedactElement>) => onChange(el.id, patch),
   });
 
   // The floating toolbar's own wrapper (`data-editor-actions`, below) already
@@ -221,7 +224,7 @@ export default function RedactBox({
   // RED-43: keyboard access. Key handling is boxKeys.ts's pure function; this
   // only dispatches to the callbacks a click, the delete button and a drag
   // release already use. Keys from the floating toolbar's controls are ignored.
-  const handleKeyDown = (e: any) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.target !== e.currentTarget) return;
     const intent = boxKeyIntent(
       e.key,
@@ -325,7 +328,7 @@ export default function RedactBox({
         <ElementResizers
           element={el}
           isActive={isSelected}
-          onResizeStart={(e: any, handle: any) => handleResizeStart(e, handle)}
+          onResizeStart={(e: EditorPointerEvent, handle?: ResizeHandle) => handleResizeStart(e, handle)}
         />
       )}
       {isSelected && coarsePointer && (
