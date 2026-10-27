@@ -66,6 +66,7 @@ import { elementForSlot, type SlotElementBase } from '../fill/slotElement.ts';
 import { fillKeyOf, focusNextFillInput } from '../fill/fillDom.ts';
 import type { FillItem, FillSlot, ReachTarget } from '../fill/fillTypes.ts';
 import fillStyles from '../fill/fill.module.css';
+import type { SignStatus } from '../state/signState.ts';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
@@ -167,7 +168,7 @@ export default function PdfWorkspace({
   fieldNavigation = NOOP_FIELD_NAVIGATION,
   messages,
 }: {
-  status: string;
+  status: SignStatus;
   isPseudoFullscreen: boolean;
   workspaceRef: { current: HTMLDivElement | null };
   numPages: number;
