@@ -87,7 +87,12 @@ function dynamicImportSpecifiers(source, file) {
   DYNAMIC_IMPORT.lastIndex = 0;
   while ((match = DYNAMIC_IMPORT.exec(source)) !== null) {
     const rest = source.slice(match.index + match[0].length);
-    if (STRING_ARGUMENT.test(rest)) continue; // the main pattern has it
+    const literal = STRING_ARGUMENT.exec(rest);
+    if (literal) {
+      // The main pattern only takes a string followed directly by `)`; one followed by `,` (an options argument) is ours.
+      if (literal[0].endsWith(',')) specifiers.push(literal[0].slice(1).split(literal[1])[0]);
+      continue;
+    }
     if (rest.startsWith(')')) continue; // `import()` with no argument is prose in a string, not a call
     const template = /^`([^`$\\]*)`\s*[,)]/.exec(rest);
     if (template) { specifiers.push(template[1]); continue; }
