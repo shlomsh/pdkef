@@ -3,6 +3,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { pageHash } from './pageHash.mjs';
+import { findRepoOnlyFiles } from './repoOnlyFiles.mjs';
 
 /*
  * Budgets what the service worker downloads: the shell, and the closure of
@@ -181,6 +182,11 @@ export function manifestIdentityProblems(manifest, { readPage, workerSource, dis
   return problems;
 }
 
+// Repo config that public/ copied into dist/ is served to everyone; scripts/repoOnlyFiles.mjs strips it after the build.
+export function repoOnlyProblems(distDir) {
+  return findRepoOnlyFiles(distDir).map((f) => `${f}: repo config shipped in dist/ (an Nx project.json inside public/ is copied verbatim and served; run scripts/repoOnlyFiles.mjs or move it)`);
+}
+
 function brotli(buffer) {
   return zlib.brotliCompressSync(buffer, {
     params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
@@ -223,6 +229,7 @@ function main() {
     workerSource: fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'),
     distFonts: distFontUrls(dist),
   }));
+  failures.push(...repoOnlyProblems(dist));
   if (failures.length) {
     console.error(failures.join('\n'));
     console.error(`FAIL: ${failures.length} precache budget problem(s)`);
