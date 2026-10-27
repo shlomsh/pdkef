@@ -150,23 +150,27 @@ export function useToolShell() {
 export default function ToolShell({ editor = false, inlineStatus = false, flush = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; flush?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
   const { fileLabel, fileMeta, metaExtra, note, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
-    ? { label: messages.draftSaved, className: styles.saved }
+    ? { label: messages.draftSaved, className: styles.saved, state: 'saved' }
     : draftSaveState === 'unpersisted'
       // Still a save that succeeded, not a problem - same quiet weight as
       // "Saving draft…", never the danger color 'error'/'conflict' use, so
       // it reads as a fact to notice rather than a fault to worry about.
-      ? { label: messages.draftUnpersisted, className: styles.pending }
+      ? { label: messages.draftUnpersisted, className: styles.pending, state: 'pending' }
     : draftSaveState === 'pending'
-      ? { label: messages.draftSaving, className: styles.pending }
+      ? { label: messages.draftSaving, className: styles.pending, state: 'pending' }
       : draftSaveState === 'error'
-        ? { label: messages.draftNotSaved, className: styles.error }
+        ? { label: messages.draftNotSaved, className: styles.error, state: 'error' }
         : draftSaveState === 'conflict'
-          ? { label: messages.draftConflict, className: styles.error }
+          ? { label: messages.draftConflict, className: styles.error, state: 'error' }
         : null;
 
   return (
-    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}`} data-tool-shell>
-      <div class={styles.identity}>
+    <div
+      class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}${!editor && flush ? ` ${styles.flush}` : ''}`}
+      data-tool-shell
+      data-flush={!editor && flush ? true : undefined}
+    >
+      <div class={styles.identity} data-file-identity>
         {!editor && <FilePreview file={file} />}
 
         <span class={styles.text}>
@@ -174,10 +178,10 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
             {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
           </span>
           {(fileMeta || draftStatus || (!editor && metaExtra)) && (
-            <span class={styles.meta}>
-              {fileMeta && <span class={styles['meta-text']}>{fileMeta}</span>}
+            <span class={styles.meta} data-meta>
+              {fileMeta && <span class={styles['meta-text']} data-meta-text>{fileMeta}</span>}
               {draftStatus && (
-                <span class={draftStatus.className} role={draftSaveState === 'error' || draftSaveState === 'conflict' ? 'alert' : undefined}>
+                <span class={draftStatus.className} data-draft-status={draftStatus.state} role={draftSaveState === 'error' || draftSaveState === 'conflict' ? 'alert' : undefined}>
                   {draftSaveState === 'saved' && (
                     <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
@@ -199,7 +203,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
 
       <div class={styles.controls}>{children}</div>
 
-      {!editor && note && <div class={styles.note}>{note}</div>}
+      {!editor && note && <div class={styles.note} data-note>{note}</div>}
     </div>
   );
 }

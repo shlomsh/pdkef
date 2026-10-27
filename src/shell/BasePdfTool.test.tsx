@@ -4,9 +4,6 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.tsx';
 // Assert state classes on purpose (Dropzone's is-dragover, ToolShell's icon-loaded); the tool card, drop overlay, identity, meta and note have no role, label or text, so they are found by class.
-import styles from './Dropzone.module.css';
-import toolShellStyles from './ToolShell.module.css';
-import pdfToolStyles from './PdfTool.module.css';
 import { reportToolLifecycleEvent } from '../lib/productAnalytics.ts';
 import { markArrival } from '../lib/fileArrival.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
@@ -133,7 +130,7 @@ describe('BasePdfTool', () => {
     expect(container.textContent).toContain('Drop PDFs here');
     expect(container.textContent).toContain('Choose files');
     expect(container.textContent).toContain('Private. Files never leave your device.');
-    const dropzone = container.querySelector(`.${styles['dropzone']}`);
+    const dropzone = container.querySelector('[data-dropzone]');
     expect(dropzone).not.toBeNull();
     // Marks this as the real empty-state invitation, distinct from the
     // checking-draft placeholder below - see Dropzone.module.css's
@@ -182,7 +179,7 @@ describe('BasePdfTool', () => {
     expect(container.textContent).not.toContain('Private. Files never leave your device.');
     expect(container.querySelector('[data-empty-state], [aria-busy]')).toBeNull();
 
-    const identity = container.querySelector(`.${toolShellStyles.identity}`);
+    const identity = container.querySelector('[data-file-identity]');
     expect(identity).not.toBeNull();
     expect(identity.textContent).toContain('contract.pdf');
     // Read-only: the identity states what is loaded and offers no way to act on it.
@@ -281,7 +278,7 @@ describe('BasePdfTool', () => {
       isDirectory: true,
       createReader: () => ({ readEntries: (resolve) => { if (served) return resolve([]); served = true; resolve(inside.map((f) => ({ isFile: true, isDirectory: false, file: (r) => r(f) }))); } }),
     };
-    const card = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const card = container.querySelector('[data-tool-card]');
     const event = new Event('drop', { bubbles: true, cancelable: true });
     Object.defineProperty(event, 'dataTransfer', { value: { types: ['Files'], files: [], items: [{ webkitGetAsEntry: () => folder }] } });
     await act(async () => {
@@ -320,7 +317,7 @@ describe('BasePdfTool', () => {
     act(() => {
       dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
     });
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(true);
+    expect(dropzone.hasAttribute('data-dragover')).toBe(true);
 
     const file = new File([''], 'test.pdf', { type: 'application/pdf' });
     const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
@@ -330,7 +327,7 @@ describe('BasePdfTool', () => {
       dropzone.dispatchEvent(dropEvent);
     });
 
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
+    expect(dropzone.hasAttribute('data-dragover')).toBe(false);
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
     expect(onFilesAddedSpy.mock.calls[0][0][0]).toBe(file);
   });
@@ -338,14 +335,14 @@ describe('BasePdfTool', () => {
   it('shows a drop overlay over the whole tool while dragging a file in the loaded state', () => {
     const onFilesAddedSpy = vi.fn();
     mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, fileLabel: 'contract.pdf' });
-    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const wrapper = container.querySelector('[data-tool-card]');
 
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).toBeNull();
 
     act(() => {
       wrapper.dispatchEvent(fileDragEvent('dragenter'));
     });
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).not.toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).not.toBeNull();
     expect(container.textContent).toContain('Drop to replace the current file');
 
     const dropEvent = fileDragEvent('drop');
@@ -357,7 +354,7 @@ describe('BasePdfTool', () => {
     // separate question - MEM-03: a single-file tool now always confirms
     // before it reaches onFilesAdded, so the drop lands the confirmation
     // dialog here rather than the file itself.
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).toBeNull();
     expect(onFilesAddedSpy).not.toHaveBeenCalled();
     const dialog = dialogNamed(container, 'confirm-replace-title');
     expect(dialog.open).toBe(true);
@@ -368,23 +365,23 @@ describe('BasePdfTool', () => {
 
   it('does not show the overlay for non-file drags (e.g. SortableJS reorder)', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), fileLabel: '3 PDFs' });
-    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const wrapper = container.querySelector('[data-tool-card]');
 
     act(() => {
       wrapper.dispatchEvent(fileDragEvent('dragenter', { withFiles: false }));
     });
 
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).toBeNull();
   });
 
   it('clears the overlay when the drag leaves the window with enters unpaired', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), fileLabel: 'contract.pdf' });
-    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const wrapper = container.querySelector('[data-tool-card]');
     act(() => {
       wrapper.dispatchEvent(fileDragEvent('dragenter'));
       wrapper.dispatchEvent(fileDragEvent('dragenter'));
     });
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).not.toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).not.toBeNull();
 
     const leave = fileDragEvent('dragleave');
     Object.defineProperty(leave, 'relatedTarget', { value: null });
@@ -393,7 +390,7 @@ describe('BasePdfTool', () => {
     act(() => {
       wrapper.dispatchEvent(leave);
     });
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).toBeNull();
   });
 
   // The gate that closed the drift: six of nine tools used to discard the user's
@@ -534,7 +531,7 @@ describe('BasePdfTool', () => {
 
   it('leaves the shell to the tool when it mounts one itself', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'contract.pdf', ownsShell: true });
-    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    expect(container.querySelector('[data-file-identity]')).toBeNull();
     // The picker behind it still belongs to BasePdfTool, so the tool's own
     // Replace control has something to open.
     expect(container.querySelector('input[type="file"]')).not.toBeNull();
@@ -554,7 +551,7 @@ describe('BasePdfTool', () => {
 
     const icon = container.querySelector('[data-tool-shell] span[aria-hidden="true"]');
     expect(icon).not.toBeNull();
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
+    expect(icon.hasAttribute('data-loaded')).toBe(true);
     const img = icon.querySelector('img');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('blob:base-pdf-tool-preview');
@@ -572,8 +569,8 @@ describe('BasePdfTool', () => {
       fileMetaExtra: <span data-extra>extra</span>,
       fileNote: <span data-note-content>note</span>,
     });
-    expect(container.querySelector(`.${toolShellStyles.meta} [data-extra]`)).not.toBeNull();
-    expect(container.querySelector(`.${toolShellStyles.note} [data-note-content]`)).not.toBeNull();
+    expect(container.querySelector('[data-meta] [data-extra]')).not.toBeNull();
+    expect(container.querySelector('[data-note] [data-note-content]')).not.toBeNull();
   });
 
   // Merge (and any other `multiple` tool) has its own list thumbnails, so
@@ -584,24 +581,24 @@ describe('BasePdfTool', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: true, fileLabel: '3 PDFs', file });
 
     const icon = container.querySelector('[data-tool-shell] span[aria-hidden="true"]');
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
+    expect(icon.hasAttribute('data-loaded')).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
   });
 
   it('does not attach the drop overlay in the empty state', () => {
     mount({ hasFiles: false, onFilesAdded: vi.fn() });
-    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const wrapper = container.querySelector('[data-tool-card]');
 
     act(() => {
       wrapper.dispatchEvent(fileDragEvent('dragenter'));
     });
 
-    expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+    expect(container.querySelector('[data-drop-overlay]')).toBeNull();
   });
 
   describe('drop anywhere', () => {
     const fireWindow = (e) => act(() => { window.dispatchEvent(e); });
-    const card = () => container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const card = () => container.querySelector('[data-tool-card]');
 
     it('marks the card data-dragging on a window file dragenter and clears on dragleave and drop', () => {
       mount({ hasFiles: false, onFilesAdded: vi.fn() });

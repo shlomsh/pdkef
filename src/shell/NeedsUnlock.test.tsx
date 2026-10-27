@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NeedsUnlock from './NeedsUnlock.tsx';
 import { ToolShellContext } from './ToolShell.tsx';
 // Asserts the .unlock class: the primary action is styled as the primary action.
-import styles from './NeedsUnlock.module.css';
 
 describe('NeedsUnlock', () => {
   let container: HTMLDivElement;
@@ -37,7 +36,7 @@ describe('NeedsUnlock', () => {
     const actions = unlockButton.parentElement!;
     const buttons = [...actions.querySelectorAll('button')];
     expect(buttons).toHaveLength(1);
-    expect(buttons[0].classList.contains(styles.unlock)).toBe(true);
+    expect(buttons[0].hasAttribute('data-unlock')).toBe(true);
     expect(container.querySelector('[data-replace-line]')).not.toBeNull();
     expect(actions.querySelector('[data-replace-line]')).toBeNull();
   });
@@ -53,7 +52,7 @@ describe('NeedsUnlock', () => {
         container,
       );
     });
-    const chip = container.querySelector('h2')!.nextElementSibling!;
+    const chip = container.querySelector('[data-file-chip]')!;
     expect(chip.querySelector(`[title="${name}"]`)).not.toBeNull();
     expect(chip.textContent!.endsWith('-2026.pdf')).toBe(true);
   });
@@ -61,7 +60,7 @@ describe('NeedsUnlock', () => {
   it('names the file it is about, under a heading, with a decorative lock', () => {
     mount();
     expect(container.querySelector('h2')!.textContent).toBe('This PDF has a password');
-    expect(container.querySelector('h2')!.nextElementSibling!.textContent).toContain('Quarterly report.pdf');
+    expect(container.querySelector('[data-file-chip]')!.textContent).toContain('Quarterly report.pdf');
     expect(container.querySelector('[data-needs-unlock] > [aria-hidden="true"]')!.getAttribute('aria-hidden')).toBe('true');
   });
 

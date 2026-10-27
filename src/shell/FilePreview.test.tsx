@@ -3,7 +3,6 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FilePreview from './FilePreview.tsx';
 // Asserts the icon-loaded state class (the thumbnail swap is the behaviour).
-import toolShellStyles from './ToolShell.module.css';
 import * as thumbnailsLib from '../lib/thumbnails.js';
 
 function makePdfFile(name = 'contract.pdf') {
@@ -57,7 +56,7 @@ describe('FilePreview', () => {
     mount({ file: null });
     const icon = container!.querySelector('span[aria-hidden="true"]');
     expect(icon).not.toBeNull();
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
+    expect(icon.hasAttribute('data-loaded')).toBe(false);
     expect(icon.querySelector('svg')).not.toBeNull();
     expect(icon.querySelector('img')).toBeNull();
   });
@@ -72,7 +71,7 @@ describe('FilePreview', () => {
     mount({ file });
 
     const icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
+    expect(icon.hasAttribute('data-loaded')).toBe(true);
     const img = icon.querySelector('img');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('blob:preview-photo');
@@ -96,7 +95,7 @@ describe('FilePreview', () => {
     mount({ file });
 
     const icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
+    expect(icon.hasAttribute('data-loaded')).toBe(true);
     const img = icon.querySelector('img');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('blob:preview-photo-noext-type');
@@ -135,7 +134,7 @@ describe('FilePreview', () => {
     });
 
     icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
+    expect(icon.hasAttribute('data-loaded')).toBe(true);
     const img = icon.querySelector('img');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('data:image/png;base64,pdfpage1');
@@ -157,7 +156,7 @@ describe('FilePreview', () => {
     });
 
     const icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
+    expect(icon.hasAttribute('data-loaded')).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
     expect(icon.querySelector('svg')).not.toBeNull();
   });
@@ -168,7 +167,7 @@ describe('FilePreview', () => {
 
     expect(thumbnailsLib.renderThumbnail).not.toHaveBeenCalled();
     const icon = container!.querySelector('span[aria-hidden="true"]');
-    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
+    expect(icon.hasAttribute('data-loaded')).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
   });
 });

@@ -784,7 +784,7 @@ export default function PageGrid({
                 until the button is hovered or keyboard-focused; the
                 aria-label above stays the real accessible name so a screen
                 reader is never told the word twice. */}
-            <span class={styles.tip} aria-hidden="true">{t.tipRotate}</span>
+            <span class={styles.tip} data-tip aria-hidden="true">{t.tipRotate}</span>
           </button>
           <button
             type="button"
@@ -810,7 +810,7 @@ export default function PageGrid({
                 )}
               </svg>
             </span>
-            <span class={styles.tip} aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>
+            <span class={styles.tip} data-tip aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>
           </button>
           <button
             type="button"
@@ -824,7 +824,7 @@ export default function PageGrid({
                 <path d="M10.3 10.3L14 14" />
               </svg>
             </span>
-            <span class={styles.tip} aria-hidden="true">{t.tipOpen}</span>
+            <span class={styles.tip} data-tip aria-hidden="true">{t.tipOpen}</span>
           </button>
           {action && (
             <a
@@ -835,7 +835,7 @@ export default function PageGrid({
               onClick={(event) => { event.stopPropagation(); action.onActivate?.(); }}
             >
               <span class={styles['action-glyph']} aria-hidden="true"><Download size={16} strokeWidth={1.8} /></span>
-              <span class={styles.tip} aria-hidden="true">{action.tip}</span>
+              <span class={styles.tip} data-tip aria-hidden="true">{action.tip}</span>
             </a>
           )}
         </span>

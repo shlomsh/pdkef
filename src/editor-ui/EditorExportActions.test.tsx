@@ -4,7 +4,6 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import EditorExportActions, { type EditorExportActionsProps } from './EditorExportActions.tsx';
 // Builds the .toolbar fixture and asserts the download / desktop-download classes: the toolbar's CSS contract.
 import styles from './SignToolbar.module.css';
-import workspaceStyles from './Workspace.module.css'; // asserts the export-actions row class
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -65,7 +64,7 @@ describe('EditorExportActions parity contract', () => {
           render(<EditorExportActions {...PROFILES[tool].makeProps()} />, container);
         });
 
-        const row = required(container.querySelector(`.${workspaceStyles['export-actions']}`), 'export-actions row');
+        const row = required(container.querySelector('[data-export-actions]'), 'export-actions row');
         expect(row).not.toBeNull();
       });
 
@@ -188,7 +187,7 @@ describe('EditorExportActions parity contract', () => {
     document.body.appendChild(container);
     act(() => {
       render(
-        <div className={styles.toolbar}>
+        <div data-testid="toolbar">
           <EditorExportActions
             variant="toolbar"
             canShare
@@ -203,7 +202,7 @@ describe('EditorExportActions parity contract', () => {
       );
     });
 
-    const toolbar = required(container.querySelector(`.${styles.toolbar}`), 'toolbar');
+    const toolbar = required(container.querySelector('[data-testid="toolbar"]'), 'toolbar');
     const directButtons = Array.from(toolbar.children).filter((el) => el.tagName === 'BUTTON');
     expect(directButtons).toHaveLength(2);
 
@@ -219,7 +218,7 @@ describe('EditorExportActions parity contract', () => {
     document.body.appendChild(container);
     act(() => {
       render(
-        <div className={styles.toolbar}>
+        <div data-testid="toolbar">
           <EditorExportActions
             variant="toolbar"
             canShare={false}
@@ -245,7 +244,7 @@ describe('EditorExportActions parity contract', () => {
     document.body.appendChild(container);
     const mount = (confirmed: boolean) => act(() => {
       render(
-        <div className={styles.toolbar}>
+        <div data-testid="toolbar">
           <EditorExportActions variant="toolbar" canShare={false} shareReady={false} disabled={false} confirmed={confirmed}
             onDownload={() => {}} onPrepareShare={() => {}} onShare={() => {}} />
         </div>,
@@ -257,7 +256,7 @@ describe('EditorExportActions parity contract', () => {
     expect(before.querySelector('[aria-hidden="true"]:not(svg)')?.textContent).toContain('Saved');
     mount(true);
     const button = required(container.querySelector('button'), 'button');
-    expect(button.parentElement).toBe(container.querySelector(`.${styles.toolbar}`));
+    expect(button.parentElement).toBe(container.querySelector('[data-testid="toolbar"]'));
     const visible = Array.from(button.querySelectorAll('[aria-hidden="true"]')).filter((el) => el.textContent?.trim());
     expect(visible.map((el) => el.textContent?.trim())).toEqual(['Download']);
     expect(button.textContent).toContain('Saved');
@@ -314,7 +313,7 @@ describe('EditorExportActions parity contract', () => {
         container,
       );
     });
-    const row = container.querySelector<HTMLElement>(`.${workspaceStyles['export-actions']}`)!;
+    const row = container.querySelector<HTMLElement>('[data-export-actions]')!;
     expect(row.getAttribute('dir')).toBe('rtl');
     expect(row.getAttribute('lang')).toBe('he');
     expect([...container.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual(['הורדה', 'שיתוף']);

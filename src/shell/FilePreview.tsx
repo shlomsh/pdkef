@@ -88,7 +88,12 @@ export default function FilePreview({ file }: FilePreviewProps) {
   }, []);
 
   return (
-    <span class={`${toolShellStyles.icon}${previewSrc ? ` ${toolShellStyles['icon-loaded']}` : ''}`} aria-hidden="true">
+    <span
+      class={`${toolShellStyles.icon}${previewSrc ? ` ${toolShellStyles['icon-loaded']}` : ''}`}
+      data-file-icon
+      data-loaded={previewSrc ? true : undefined}
+      aria-hidden="true"
+    >
       {previewSrc ? (
         <img src={previewSrc} alt="" class={styles.thumbnail} />
       ) : (

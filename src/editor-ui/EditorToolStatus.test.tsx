@@ -44,8 +44,8 @@ describe('EditorToolStatus', () => {
     return container.firstElementChild as HTMLElement;
   };
 
-  const rows = () => container.querySelectorAll(`.${styles['help-row']}`);
-  const shown = () => container.querySelector<HTMLElement>(`.${styles['help-shown']}`)!;
+  const rows = () => container.querySelectorAll('[data-help-row]');
+  const shown = () => container.querySelector<HTMLElement>('[data-shown]')!;
 
   // The shell hides the filename behind this attribute on a phone, so it has
   // to mean exactly "something live is in the slot": not idle, and not only
@@ -63,7 +63,7 @@ describe('EditorToolStatus', () => {
   it('keeps every reservation in the stack in every state', () => {
     mount();
     expect(rows()).toHaveLength(1 + TOOLS.length);
-    expect(shown().classList.contains(styles['help-idle'])).toBe(true);
+    expect(shown().getAttribute('data-help-row')).toBe('idle');
 
     mount({ copy: TOOLS[0] });
     expect(rows()).toHaveLength(2 + TOOLS.length);
@@ -74,7 +74,7 @@ describe('EditorToolStatus', () => {
     expect(rows()).toHaveLength(2 + TOOLS.length);
     expect(shown().getAttribute('role')).toBe('status');
     expect(shown().querySelector('[data-chip]')).not.toBeNull();
-    expect(container.querySelectorAll(`.${styles['help-spare']}`)).toHaveLength(1 + TOOLS.length);
+    expect(container.querySelectorAll('[data-help-row]:not([data-shown])')).toHaveLength(1 + TOOLS.length);
   });
 
   // The override is an override: with one up, the armed row is not rendered
@@ -84,7 +84,7 @@ describe('EditorToolStatus', () => {
     mount({ copy: TOOLS[0], override: <span>Removed 1 box</span> });
     expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
     expect(container.querySelectorAll('[role="switch"]')).toHaveLength(0);
-    const spares = [...container.querySelectorAll(`.${styles['help-spare']}`)].map((row) => row.textContent);
+    const spares = [...container.querySelectorAll('[data-help-row]:not([data-shown])')].map((row) => row.textContent);
     expect(spares.some((text) => text!.includes(TOOLS[0].action))).toBe(true);
   });
 
@@ -109,8 +109,8 @@ describe('EditorToolStatus', () => {
   // which sentence belongs to which state is SignToolbar.test.tsx's, where the
   // copy lives.
   describe('fieldSummary', () => {
-    const summary = () => container.querySelector<HTMLElement>(`.${styles['help-fields']}`);
-    const isShown = (row: HTMLElement) => row.classList.contains(styles['help-shown']);
+    const summary = () => container.querySelector<HTMLElement>('[data-help-row="fields"]');
+    const isShown = (row: HTMLElement) => row.hasAttribute('data-shown');
 
     it('renders nothing for a toolbar with no detector at all - Redact is unaffected', () => {
       mount();
@@ -135,8 +135,8 @@ describe('EditorToolStatus', () => {
       expect(summary()!.textContent).toBe('A quiet note');
       expect(isShown(summary()!)).toBe(true);
       // One row visible in the cell, never two stacked on each other.
-      expect(host.querySelectorAll(`.${styles['help-shown']}`)).toHaveLength(1);
-      expect(isShown(host.querySelector<HTMLElement>(`.${styles['help-idle']}`)!)).toBe(false);
+      expect(host.querySelectorAll('[data-shown]')).toHaveLength(1);
+      expect(isShown(host.querySelector<HTMLElement>('[data-help-row="idle"]')!)).toBe(false);
       // A row of the stack, so the cell's height already covers it.
       expect(rows()).toHaveLength(2 + TOOLS.length);
     });
@@ -159,11 +159,11 @@ describe('EditorToolStatus', () => {
     // and `data-status-active` is how the shell is told which it has.
     it('marks the slot live for a failure it is showing, and never for a result', () => {
       expect(mount({ fieldSummary: { text: 'A quiet note', problem: false } }).hasAttribute('data-status-active')).toBe(false);
-      expect(summary()!.classList.contains(styles['help-fields-problem'])).toBe(false);
+      expect(summary()!.hasAttribute('data-problem')).toBe(false);
 
       const host = mount({ fieldSummary: { text: 'Could not check this PDF', problem: true } });
       expect(host.hasAttribute('data-status-active')).toBe(true);
-      expect(summary()!.classList.contains(styles['help-fields-problem'])).toBe(true);
+      expect(summary()!.hasAttribute('data-problem')).toBe(true);
 
       // Not while something else owns the cell: the attribute would then be
       // claiming a row the shell is not showing.
@@ -180,12 +180,12 @@ describe('EditorToolStatus', () => {
 
     it('renders nothing when the caller passes none - Redact is unaffected', () => {
       const host = mount();
-      expect(host.querySelector(`.${styles['field-nav']}`)).toBeNull();
+      expect(host.querySelector('[data-field-nav]')).toBeNull();
     });
 
     it('is present and active when the caller passes one, unlike the armed-row stack', () => {
       const host = mount({ fieldNav });
-      expect(host.querySelector(`.${styles['field-nav']}`)).not.toBeNull();
+      expect(host.querySelector('[data-field-nav]')).not.toBeNull();
       expect(host.hasAttribute('data-status-active')).toBe(true);
       // Not one of the stack's own rows.
       expect(rows()).toHaveLength(1 + TOOLS.length);
@@ -198,18 +198,18 @@ describe('EditorToolStatus', () => {
     // the heights are e2e/tool-toolbars/toolbar-arm-no-shift.spec.js's job).
     it('reserves the arrows\' footprint while they are absent, and only then', () => {
       const idle = mount({ reserveFieldNav: true });
-      expect(idle.className).toContain(styles['help-reserve-nav']);
-      expect(idle.querySelector(`.${styles['field-nav']}`)).toBeNull();
+      expect(idle.hasAttribute('data-reserve-nav')).toBe(true);
+      expect(idle.querySelector('[data-field-nav]')).toBeNull();
 
       const armed = mount({ fieldNav, reserveFieldNav: true });
-      expect(armed.className).not.toContain(styles['help-reserve-nav']);
+      expect(armed.hasAttribute('data-reserve-nav')).toBe(false);
 
-      expect(mount().className).not.toContain(styles['help-reserve-nav']);
+      expect(mount().hasAttribute('data-reserve-nav')).toBe(false);
     });
 
     it("disables each button by its own hasNext/hasPrevious, independently of the other", () => {
       const host = mount({ fieldNav });
-      const [previous, next] = host.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      const [previous, next] = host.querySelectorAll<HTMLButtonElement>('[data-field-nav] button');
       expect(previous.disabled).toBe(true);
       expect(next.disabled).toBe(false);
     });
@@ -218,7 +218,7 @@ describe('EditorToolStatus', () => {
       const onNext = vi.fn();
       const onPrevious = vi.fn();
       const host = mount({ fieldNav: { ...fieldNav, hasPrevious: true, onNext, onPrevious } });
-      const [previous, next] = host.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      const [previous, next] = host.querySelectorAll<HTMLButtonElement>('[data-field-nav] button');
       expect(previous.getAttribute('aria-label')).toBe('Previous field');
       expect(next.getAttribute('aria-label')).toBe('Next field');
       next.click();
@@ -228,8 +228,8 @@ describe('EditorToolStatus', () => {
     });
 
     it('coexists with an armed tool and with the override, never replacing either', () => {
-      expect(mount({ fieldNav, copy: TOOLS[0] }).querySelector(`.${styles['field-nav']}`)).not.toBeNull();
-      expect(mount({ fieldNav, override: <span>Removed 1 box</span> }).querySelector(`.${styles['field-nav']}`)).not.toBeNull();
+      expect(mount({ fieldNav, copy: TOOLS[0] }).querySelector('[data-field-nav]')).not.toBeNull();
+      expect(mount({ fieldNav, override: <span>Removed 1 box</span> }).querySelector('[data-field-nav]')).not.toBeNull();
     });
 
     // The arrows belong to the document, the rest of the row to the reader.
@@ -239,13 +239,13 @@ describe('EditorToolStatus', () => {
     it('takes its dir from the document, overriding the locale dir on the row', () => {
       const host = mount({ fieldNav: { ...fieldNav, direction: 'rtl' as const }, dir: 'ltr' });
       expect(host.getAttribute('dir')).toBe('ltr');
-      expect(host.querySelector(`.${styles['field-nav']}`)!.getAttribute('dir')).toBe('rtl');
+      expect(host.querySelector('[data-field-nav]')!.getAttribute('dir')).toBe('rtl');
     });
 
     it('leaves an LTR document reading left to right inside a Hebrew UI', () => {
       const host = mount({ fieldNav, dir: 'rtl' });
       expect(host.getAttribute('dir')).toBe('rtl');
-      expect(host.querySelector(`.${styles['field-nav']}`)!.getAttribute('dir')).toBe('ltr');
+      expect(host.querySelector('[data-field-nav]')!.getAttribute('dir')).toBe('ltr');
     });
 
     // Order is previous-then-next in the DOM either way: `dir` on the flex
@@ -253,7 +253,7 @@ describe('EditorToolStatus', () => {
     // and reading order stay the component's, not the stylesheet's.
     it('keeps Previous first in the DOM whichever way the document reads', () => {
       const host = mount({ fieldNav: { ...fieldNav, hasPrevious: true, direction: 'rtl' as const } });
-      const [first, second] = host.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      const [first, second] = host.querySelectorAll<HTMLButtonElement>('[data-field-nav] button');
       expect(first.getAttribute('aria-label')).toBe('Previous field');
       expect(second.getAttribute('aria-label')).toBe('Next field');
     });

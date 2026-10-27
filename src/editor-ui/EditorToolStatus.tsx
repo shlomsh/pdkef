@@ -252,6 +252,8 @@ export default function EditorToolStatus({
       className={`${styles.help}${reserveFieldNav && !fieldNav ? ` ${styles['help-reserve-nav']}` : ''}`}
       dir={dir}
       lang={lang}
+      data-tool-status
+      data-reserve-nav={reserveFieldNav && !fieldNav ? true : undefined}
       data-status-active={copy || override || fieldNav || (fieldsShown && fieldSummary?.problem) ? '' : undefined}
     >
       {/* Everything this toolbar could ever show lives here at once - the idle
@@ -263,7 +265,11 @@ export default function EditorToolStatus({
           state change worth announcing; the idle tip is standing advice, not a
           change, and a hidden reservation is not a state at all. */}
       <div className={`${styles['help-stack']}`}>
-        <div className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override && !fieldsShown ? styles['help-shown'] : styles['help-spare']}`}>
+        <div
+          className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override && !fieldsShown ? styles['help-shown'] : styles['help-spare']}`}
+          data-help-row="idle"
+          data-shown={!copy && !override && !fieldsShown ? true : undefined}
+        >
           <span>{idle}</span>
         </div>
         {/* The detector's answer, in the stack rather than beside it, and this
@@ -293,17 +299,20 @@ export default function EditorToolStatus({
         {fieldSummary !== undefined && (
           <div
             className={`${styles['help-row']} ${styles['help-fields']}${fieldSummary.problem ? ` ${styles['help-fields-problem']}` : ''} ${fieldsShown ? styles['help-shown'] : styles['help-spare']}`}
+            data-help-row="fields"
+            data-shown={fieldsShown ? true : undefined}
+            data-problem={fieldSummary.problem ? true : undefined}
             role="status"
           >
             <span>{fieldSummary.text}</span>
           </div>
         )}
         {override ? (
-          <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
+          <div className={`${styles['help-row']} ${styles['help-shown']}`} data-help-row="armed" data-shown role="status">
             {override}
           </div>
         ) : copy && (
-          <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
+          <div className={`${styles['help-row']} ${styles['help-shown']}`} data-help-row="armed" data-shown role="status">
             {armedRow(copy, true)}
           </div>
         )}
@@ -311,6 +320,7 @@ export default function EditorToolStatus({
           <div
             key={rowCopy.button + rowCopy.action}
             className={`${styles['help-row']} ${styles['help-spare']}`}
+            data-help-row="reserve"
             aria-hidden="true"
           >
             {armedRow(rowCopy, false)}
@@ -326,34 +336,41 @@ export default function EditorToolStatus({
           reserved-row bookkeeping and is never duplicated into a reservation.
           `reserveFieldNav` (the `.help` className above) is what keeps
           this mount/unmount from moving the row - see its own prop doc. */}
-      {fieldNav && (
-        <div className={styles['field-nav']} dir={fieldNav.direction}>
-          <button
-            type="button"
-            className={styles['field-nav-button']}
-            onClick={fieldNav.onPrevious}
-            disabled={!fieldNav.hasPrevious}
-            aria-label={fieldNav.previousLabel}
-            title={fieldNav.previousLabel}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={styles['field-nav-button']}
-            onClick={fieldNav.onNext}
-            disabled={!fieldNav.hasNext}
-            aria-label={fieldNav.nextLabel}
-            title={fieldNav.nextLabel}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      )}
+      {fieldNav && <FieldNav {...fieldNav} />}
+    </div>
+  );
+}
+
+type FieldNavProps = NonNullable<Parameters<typeof EditorToolStatus>[0]['fieldNav']>;
+
+/** Sign's Previous/Next across detected fields, beside whichever row the stack shows. */
+function FieldNav({ hasNext, hasPrevious, onNext, onPrevious, nextLabel, previousLabel, direction }: FieldNavProps) {
+  return (
+    <div className={styles['field-nav']} data-field-nav dir={direction}>
+      <button
+        type="button"
+        className={styles['field-nav-button']}
+        onClick={onPrevious}
+        disabled={!hasPrevious}
+        aria-label={previousLabel}
+        title={previousLabel}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className={styles['field-nav-button']}
+        onClick={onNext}
+        disabled={!hasNext}
+        aria-label={nextLabel}
+        title={nextLabel}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
     </div>
   );
 }
