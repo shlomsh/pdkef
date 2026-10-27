@@ -44,8 +44,8 @@
       "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
       "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
       "src/tools/sign/useWorkspaceGestures.ts#useWorkspaceGestures": 426,
-      "src/tools/split/PdfSplitTool.tsx#PdfSplitTool": 356,
-      "src/tools/to-image/PdfToImageTool.tsx#PdfToImageTool": 355
+      "src/tools/split/PdfSplitTool.tsx#PdfSplitTool": 326,
+      "src/tools/to-image/PdfToImageTool.tsx#PdfToImageTool": 328
     },
     "functionThreshold": 300
   }
