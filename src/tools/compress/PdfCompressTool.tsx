@@ -90,7 +90,7 @@ interface CompressMeta {
 
 /** The build is superseded: usePreparedOutput drops an AbortError without reporting it. */
 const superseded = (): never => {
-  throwIfAborted({ aborted: true });
+  throwIfAborted(AbortSignal.abort());
   throw new Error('unreachable');
 };
 
