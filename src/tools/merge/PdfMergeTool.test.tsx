@@ -1641,7 +1641,7 @@ describe('PdfMergeTool UI flow', () => {
   // a ".pdf" outside any isolate lays out as "pdf." and sits on the wrong side of the name.
   // Name and extension are one isolate whose direction follows the name, with the extension
   // an LTR run inside it. jsdom has no layout, so this asserts the markup; the rendered
-  // order is merge-rtl-file-name.spec.js.
+  // order is src/tools/merge/e2e/merge-rtl-file-name.spec.js.
   describe('the heading file name is one bidi isolate', () => {
     const headingUnit = async (props) => {
       mount(props);
