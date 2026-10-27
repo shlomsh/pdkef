@@ -46,6 +46,13 @@ const FONT_GUARDS = [
   '**/sign/*-parity.spec.js',
 ];
 
+// The guards assert pixels, not time, so a slow runner must not fail them.
+// gurmukhi-tiro-shaping-guard is 26-36s on a normal runner; on 2026-10-27
+// (run 40537583054) a runner about 1.7x slow took it to 45.3s with all 132
+// cases passing, and the suite-wide 45s timeout failed it. Wall-clock budgets
+// belong in PERF_BUDGETS, never here.
+const FONT_GUARD_TIMEOUT = 90_000;
+
 // The two export-pipeline guards (ARCH-23): export-render-guard.spec.js
 // rasterises the real `signPdf` output against a runner-pinned baseline;
 // language-acceptance.spec.js runs the same bundle over every shipped
@@ -178,6 +185,7 @@ export default defineConfig({
     {
       name: 'fonts',
       testMatch: FONT_GUARDS,
+      timeout: FONT_GUARD_TIMEOUT,
       use: { ...devices['Desktop Chrome'] },
     },
     // The two CI shards (QUAL-06). `fonts` above is untouched and stays what
@@ -186,12 +194,14 @@ export default defineConfig({
     {
       name: 'fonts-shard-1',
       testMatch: FONT_GUARDS_SHARD_1,
+      timeout: FONT_GUARD_TIMEOUT,
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'fonts-shard-2',
       testMatch: FONT_GUARDS,
       testIgnore: [...BASE_IGNORE, ...FONT_GUARDS_SHARD_1],
+      timeout: FONT_GUARD_TIMEOUT,
       use: { ...devices['Desktop Chrome'] },
     },
     // ARCH-23: the two export-pipeline guards, split out of `fonts` into
