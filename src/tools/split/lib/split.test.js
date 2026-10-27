@@ -5,7 +5,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { splitPdf } from './split.js';
 
 function fixture(name) {
-  const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', name));
+  const buffer = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__/encrypted', name));
   return new File([buffer], name, { type: 'application/pdf' });
 }
 
@@ -21,7 +21,7 @@ describe('splitPdf on a protected file', () => {
 
 describe('splitPdf library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
