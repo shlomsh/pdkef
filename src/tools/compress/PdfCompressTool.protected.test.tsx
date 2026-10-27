@@ -5,47 +5,35 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfCompressTool from './PdfCompressTool.tsx';
-import * as compressLib from './lib/compress.js';
-import * as imagesLib from './lib/compressImages.js';
-import * as imageLib from './lib/compressImage.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
 // (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
-// under pdf.js's Node build against the real fixtures; only the browser seams are faked.
+// under pdf.js's Node build against the real fixtures; only the browser seams are faked: the probe wrapper
+// (so a test can hold an answer open) and the page-preview renderer (pdf.js has to render). The compress
+// engines, the draft store, analytics and the hand-off all run for real, read back through the harness.
 
 const fixtureFile = (name: string) =>
   new File([readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`))], `${name}.pdf`, { type: 'application/pdf' });
 
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: vi.fn(async () => null),
-  saveHandoff: vi.fn(async () => true),
-}));
-vi.mock('./lib/compress.js', () => ({
-  compressPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }))),
-  compressPdfToTarget: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }), metTarget: true })),
-}));
-vi.mock('./lib/compressImage.js', () => ({
-  compressImageToTarget: vi.fn(() => Promise.resolve({
-    blob: new Blob(['jpeg'], { type: 'image/jpeg' }), metTarget: true, width: 8, height: 6, originalWidth: 16, originalHeight: 12,
-  })),
-}));
-vi.mock('./lib/compressImages.js', () => ({
-  IMAGE_LEVELS: { high: { maxLongSidePx: 1000, quality: 0.4 }, medium: { maxLongSidePx: 1600, quality: 0.6 }, low: { maxLongSidePx: 2400, quality: 0.8 } },
-  compressPdfImages: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-images'], { type: 'application/pdf' }), reason: 'smaller' })),
-  compressPdfImagesToTarget: vi.fn(),
-}));
 vi.mock('../../lib/thumbnails.js', () => ({ renderComparePreview: vi.fn() }));
+
+// jsdom has no createImageBitmap, and the image path falls back to an <img> that never loads here; a
+// stand-in decoder that reports a 16x12 photo is the one browser API the image run needs (the file is
+// under the default target, so no canvas is reached).
+const stubImageDecoder = () => vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 16, height: 12, close() {} })));
 
 describe('PdfCompressTool with a protected PDF', () => {
   let container;
+  let harness: ToolHarness;
 
   beforeEach(async () => {
+    harness = installToolHarness();
+    stubImageDecoder();
     input = undefined;
     const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
     const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -60,6 +48,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     }
     vi.unstubAllGlobals();
     vi.clearAllMocks();
+    harness.restore();
   });
 
   const mount = (props = {}) => {
@@ -85,6 +74,9 @@ describe('PdfCompressTool with a protected PDF', () => {
   const buttons = () => Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
   // The loaded state compresses on its own: it is "normal" once its layout is up and the run was made.
   const loaded = () => container.querySelector('[data-compress-status]') !== null;
+  // How many builds the tool has started for the loaded file (the layout's run counter), '' before it loads.
+  const runs = () => container.querySelector('[data-compress-run]')?.getAttribute('data-compress-run') ?? '';
+  const statusNow = () => container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status');
 
   it('shows the password state and no level picker for a file that needs a password', async () => {
     mount();
@@ -110,10 +102,10 @@ describe('PdfCompressTool with a protected PDF', () => {
     mount();
     await pick(fixtureFile('needs-password'));
 
-    expect(compressLib.compressPdf).not.toHaveBeenCalled();
-    expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
-    expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
-    expect(imagesLib.compressPdfImagesToTarget).not.toHaveBeenCalled();
+    // No build ever started: no run layout, no run counter, no result built into a download.
+    expect(loaded()).toBe(false);
+    expect(runs()).toBe('');
+    expect(harness.createdBlobs()).toHaveLength(0);
     expect(container.textContent).not.toMatch(/Successfully|Download/);
   });
 
@@ -128,7 +120,8 @@ describe('PdfCompressTool with a protected PDF', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
     });
 
-    expect(saveHandoff).toHaveBeenCalledWith('unlock', expect.objectContaining({ from: 'compress', fileName: 'needs-password.pdf' }));
+    const parked = await harness.takeHandoff('unlock');
+    expect(parked).toEqual(expect.objectContaining({ from: 'compress', fileName: 'needs-password.pdf' }));
     expect(location.href).toBe('/unlock/');
   });
 
@@ -138,7 +131,8 @@ describe('PdfCompressTool with a protected PDF', () => {
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(loaded()).toBe(true);
-    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(statusNow()).toBe('done');
+    expect(runs()).toBe('1');
   });
 
   it('does not run until the password check has answered, then runs once', async () => {
@@ -147,10 +141,14 @@ describe('PdfCompressTool with a protected PDF', () => {
     mount();
     await pick(fixtureFile('plain'), false);
 
-    expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
+    // The strip is up while the check is out, but no build has started.
+    expect(runs()).toBe('0');
+    expect(statusNow()).not.toMatch(/^(processing|done)$/);
     await act(async () => { release('open'); });
-    for (let i = 0; i < 100 && imagesLib.compressPdfImages.mock.calls.length === 0; i++) await nap(20);
-    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    for (let i = 0; i < 100 && statusNow() !== 'done'; i++) await nap(20);
+    expect(statusNow()).toBe('done');
+    await nap(100);
+    expect(runs()).toBe('1');
   });
 
   it('never probes an image, and compresses it on its own', async () => {
@@ -159,7 +157,8 @@ describe('PdfCompressTool with a protected PDF', () => {
 
     expect(probeEncryption).not.toHaveBeenCalled();
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
-    expect(imageLib.compressImageToTarget).toHaveBeenCalledTimes(1);
+    expect(statusNow()).toBe('done');
+    expect(runs()).toBe('1');
   });
 
   it('drops a probe result that lands after a newer pick', async () => {
@@ -173,7 +172,8 @@ describe('PdfCompressTool with a protected PDF', () => {
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(loaded()).toBe(true);
-    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(statusNow()).toBe('done');
+    expect(runs()).toBe('1');
   });
 
   it('drops a probe result that lands after a newer image pick', async () => {
@@ -186,7 +186,9 @@ describe('PdfCompressTool with a protected PDF', () => {
     await act(async () => { release('needs-password'); await new Promise((resolve) => setTimeout(resolve, 50)); });
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
-    expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
+    // Only the image's own build ran: a PDF build from the dropped probe would have made the counter 2.
+    expect(statusNow()).toBe('done');
+    expect(runs()).toBe('1');
   });
 
   it('falls back to the normal state when the probe throws', async () => {
@@ -197,7 +199,8 @@ describe('PdfCompressTool with a protected PDF', () => {
 
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(loaded()).toBe(true);
-    expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(1);
+    expect(statusNow()).toBe('done');
+    expect(runs()).toBe('1');
   });
 
   it('shows the Hebrew title with the Hebrew messages', async () => {

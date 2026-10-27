@@ -16,14 +16,8 @@ import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
-
-const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportToolLifecycleEvent: lifecycleSpy,
-  reportEdit: editSpy,
-}));
+import { recentActions } from '../../lib/actionTrail.ts';
+import { installToolHarness } from '../../test/harness/toolHarness.ts';
 
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
@@ -57,23 +51,6 @@ function deferred() {
   const promise = new Promise((res) => { resolve = res; });
   return { promise, resolve };
 }
-
-vi.mock('pdfjs-dist', () => {
-  return {
-    GlobalWorkerOptions: {
-      workerSrc: ''
-    },
-    getDocument: vi.fn(() => ({
-      promise: Promise.resolve({
-        numPages: 2,
-        getPage: vi.fn(() => Promise.resolve({
-          getViewport: () => ({ width: 612, height: 792 }),
-          render: () => ({ promise: Promise.resolve() })
-        }))
-      })
-    }))
-  };
-});
 
 // A PDF is probed for a password before its first run; none of these files has one.
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(() => Promise.resolve('open')) }));
@@ -137,11 +114,11 @@ vi.mock('../../lib/thumbnails.js', () => {
 
 describe('PdfCompressTool UI flow', () => {
   let container;
+  let harness;
 
   beforeEach(() => {
+    harness = installToolHarness();
     vi.clearAllMocks();
-    lifecycleSpy.mockClear();
-    editSpy.mockClear();
     probeEncryption.mockImplementation(() => Promise.resolve('open'));
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
     imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult()));
@@ -158,8 +135,6 @@ describe('PdfCompressTool UI flow', () => {
     thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) =>
       Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
     );
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {
@@ -170,6 +145,7 @@ describe('PdfCompressTool UI flow', () => {
       container = null;
     }
     vi.restoreAllMocks();
+    harness.restore();
   });
 
   // The dropzone's input, kept for the whole session: a second pick through it
@@ -449,7 +425,8 @@ describe('PdfCompressTool UI flow', () => {
 
     const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
-    expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
+    // The link carries the compressed bytes the run produced.
+    expect(harness.blobForUrl(downloadBtn.getAttribute('href'))?.size).toBe(15);
     // The result summary rides on the Download button as a second line.
     expect(downloadBtn.textContent).toContain('15 Bytes');
     expect(downloadBtn.textContent).not.toContain('smaller');
@@ -469,7 +446,6 @@ describe('PdfCompressTool UI flow', () => {
   ])('a share that is %s says so in the live region and records no share', async (_name, rejection, expected) => {
     const nativeShare = mockNativeFileShare();
     nativeShare.share.mockImplementationOnce(() => Promise.reject(rejection));
-    resetActionTrailForTests();
     await loadPdf('test_doc.pdf', 100000);
     await act(async () => container.querySelector(`.${pdfToolStyles['pdf-share-button']}`).click());
     await wait(20);
@@ -679,7 +655,7 @@ describe('PdfCompressTool UI flow', () => {
         const run = deferred();
         compressImageLib.compressImageToTarget.mockImplementation(() => run.promise);
         mount();
-        await pick(makeImageFile('decode.jpg', 900_000), ran(compressImageLib.compressImageToTarget, 1));
+        const photo = await pick(makeImageFile('decode.jpg', 900_000), ran(compressImageLib.compressImageToTarget, 1));
         await wait(20);
         expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
         expect(result().querySelector('img')).toBeNull();
@@ -687,7 +663,7 @@ describe('PdfCompressTool UI flow', () => {
           decode.resolve();
         });
         await waitFor(() => result().querySelector('img') !== null);
-        expect(result().querySelector('img').getAttribute('src')).toBe('blob:testurl');
+        expect(harness.blobForUrl(result().querySelector('img').getAttribute('src'))).toBe(photo);
         expect(result().querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
         await act(async () => {
           run.resolve(makeImageResult());
@@ -778,7 +754,7 @@ describe('PdfCompressTool UI flow', () => {
     expect(imagesLib.compressPdfImagesToTarget).toHaveBeenLastCalledWith(file, expect.objectContaining({ targetKB: 500 }));
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
-    expect(downloadButton().getAttribute('href')).toBe('blob:testurl');
+    expect(harness.blobForUrl(downloadButton().getAttribute('href'))?.size).toBe(15);
   });
 
   it('typing a KB value builds once after the pause, not per keystroke; a preset is a change like any other', async () => {
@@ -864,7 +840,9 @@ describe('PdfCompressTool UI flow', () => {
 
     const downloadBtn = downloadButton();
     expect(downloadBtn).not.toBeNull();
-    expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
+    const linked = harness.blobForUrl(downloadBtn.getAttribute('href'));
+    expect(linked?.type).toBe('image/jpeg');
+    expect(linked?.size).toBe(10);
     expect(downloadBtn.getAttribute('download')).toBe('photo-compressed.jpg');
   });
 
@@ -881,10 +859,8 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('renders the comparison automatically for an image result with no rasterization, then no slider at all for a passthrough result', async () => {
-    let nextBlobUrl = 0;
-    window.URL.createObjectURL = vi.fn(() => `blob:image-compare-${nextBlobUrl++}`);
     mount();
-    await pick(makeImageFile('portrait.jpg', 900_000));
+    const portrait = await pick(makeImageFile('portrait.jpg', 900_000));
 
     // Opens on its own, same as the PDF case - and with no rasterization,
     // just two object URLs.
@@ -893,7 +869,11 @@ describe('PdfCompressTool UI flow', () => {
     expect(panel).not.toBeNull();
     const images = panel.querySelectorAll('img');
     expect(images).toHaveLength(2);
-    images.forEach((img) => expect(img.getAttribute('src')).toMatch(/^blob:image-compare-/));
+    // The two sides are the original photo and the compressed JPEG, straight from their blobs.
+    const sides = Array.from(images).map((img) => harness.blobForUrl(img.getAttribute('src')));
+    expect(sides[0]).toBe(portrait);
+    expect(sides[1]?.type).toBe('image/jpeg');
+    expect(sides[1]?.size).toBe(10);
 
     // Non-passthrough result: the re-encode notice, not the passthrough one.
     expect(result().textContent).toContain('once compressed, the output is a JPEG');
@@ -1441,7 +1421,10 @@ describe('PdfCompressTool UI flow', () => {
 
   // DEBT-59: the funnel counts the person's tap, not the builds an option change starts.
   describe('usage events (DEBT-59)', () => {
-    const events = (name) => lifecycleSpy.mock.calls.filter(([event]) => event === name).length;
+    const events = async (name) => {
+      await harness.flush();
+      return harness.usageEvents(name).length;
+    };
 
     it('counts neither started nor ready for the builds a pick and option changes start', async () => {
       await loadPdf('test_doc.pdf', 50000);
@@ -1449,22 +1432,22 @@ describe('PdfCompressTool UI flow', () => {
       await choose('Sharpest');
       expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(3);
       expect(status()).toBe('done');
-      expect(events('tool_operation_started')).toBe(0);
-      expect(events('tool_result_ready')).toBe(0);
+      expect(await events('tool_operation_started')).toBe(0);
+      expect(await events('tool_result_ready')).toBe(0);
     });
 
     it('counts one started and one ready for a Download tap, again after a change', async () => {
       await loadPdf('test_doc.pdf', 50000);
       await act(async () => { downloadButton().click(); });
       await settled();
-      expect(events('tool_operation_started')).toBe(1);
-      expect(events('tool_result_ready')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(1);
       await choose('Smallest');
-      expect(events('tool_operation_started')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(1);
       await act(async () => { downloadButton().click(); });
       await settled();
-      expect(events('tool_operation_started')).toBe(2);
-      expect(events('tool_result_ready')).toBe(2);
+      expect(await events('tool_operation_started')).toBe(2);
+      expect(await events('tool_result_ready')).toBe(2);
     });
 
     it('counts a tap on a stale result as started, and ready once the build lands', async () => {
@@ -1473,36 +1456,37 @@ describe('PdfCompressTool UI flow', () => {
       imagesLib.compressPdfImages.mockImplementationOnce(() => slow.promise);
       await act(async () => { radio('Smallest').click(); });
       await act(async () => { downloadButton().click(); });
-      expect(events('tool_operation_started')).toBe(1);
-      expect(events('tool_result_ready')).toBe(0);
+      expect(await events('tool_operation_started')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(0);
       await act(async () => { slow.resolve(imagesResult()); });
       await settled();
-      expect(events('tool_operation_started')).toBe(1);
-      expect(events('tool_result_ready')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(1);
     });
 
     it('counts a failed build, then started and ready for the Try again tap', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       imagesLib.compressPdfImages.mockImplementationOnce(() => Promise.reject(new Error('boom')));
       await loadPdf('flaky.pdf');
-      expect(events('tool_operation_failed')).toBe(1);
-      expect(events('tool_operation_started')).toBe(0);
+      expect(await events('tool_operation_failed')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(0);
       await act(async () => { findButton('Try again').click(); });
       await settled();
-      expect(events('tool_operation_started')).toBe(1);
-      expect(events('tool_result_ready')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(1);
     });
 
     it('reports an edit when the person changes an option, not on arrival', async () => {
       await loadPdf('test_doc.pdf', 50000);
-      expect(editSpy).not.toHaveBeenCalled();
+      await harness.flush();
+      expect(harness.usageEvents('tool_first_edit')).toHaveLength(0);
       await choose('Smallest');
-      expect(editSpy).toHaveBeenCalledWith('compress');
+      await harness.flush();
+      expect(harness.usageEvents('tool_first_edit').map((e) => e.properties.tool)).toEqual(['compress']);
     });
   });
 
   it('records what the person did, by name only, in order', async () => {
-    resetActionTrailForTests();
     await loadPdf('secret_name.pdf', 100000);
     await choose('Smallest');
     expect(recentActions()).toEqual(['add_files', 'export', 'change_setting', 'export']);
