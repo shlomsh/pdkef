@@ -161,8 +161,11 @@ function isCriticalOver(ownVersion, otherKeys) {
   return otherKeys.length > 0 && ownVersion > Math.min(...otherKeys.map(criticalVersionOf));
 }
 
+// 'no-cache', not 'reload': still validated with the server on every call, so
+// a deploy is never served stale, but an unchanged file comes back as a 304
+// instead of being downloaded again (reload sends no conditional request).
 function fetchFresh(url) {
-  return fetch(new Request(resolve(url), { cache: 'reload' }));
+  return fetch(new Request(resolve(url), { cache: 'no-cache' }));
 }
 
 // MEM-16: only /_astro/ files are content-hashed, so their bytes never change
@@ -208,8 +211,10 @@ async function findInPrevious(previousCaches, url) {
 
 // The manifest this build installed from. Stored on first read, so every later
 // read (the completion pass, a page pack) sees this build's lists, never a newer
-// deploy's.
-async function loadManifest(cache) {
+// deploy's. Only install may fetch it (fetchIfMissing): a worker that is
+// already active and finds its copy gone would otherwise pair a live deploy's
+// file list with this build's cache.
+async function loadManifest(cache, { fetchIfMissing = true } = {}) {
   const stored = await cache.match(resolve(STORED_MANIFEST_PATH));
   if (stored) {
     try {
@@ -218,6 +223,7 @@ async function loadManifest(cache) {
       // A corrupt copy is refetched below.
     }
   }
+  if (!fetchIfMissing) throw new Error('Offline pack is not ready.');
   const response = await fetchFresh(PRECACHE_MANIFEST_URL);
   if (response.status === 404) {
     throw new OrphanedWorkerError('This origin serves no precache manifest.');
@@ -471,6 +477,22 @@ async function markedPages(caches_) {
   return pages;
 }
 
+// Activation: a pack the still-active old worker provisioned after this build
+// installed is marked only in an old cache, which is about to be deleted. Bring
+// each such page over with the same path install uses. Best effort: a page that
+// cannot be completed simply stays unmarked, and the visitor re-provisions it
+// on their next visit.
+async function migratePagePacks(previousCaches, currentCache) {
+  const manifest = await loadManifest(currentCache, { fetchIfMissing: false });
+  const already = await markedPages([currentCache]);
+  const late = [...await markedPages(previousCaches)]
+    .filter((page) => Object.hasOwn(manifest.pages, page) && !already.has(page));
+  for (const page of late) {
+    const missed = await precacheUrls(currentCache, manifest.pages[page], previousCaches, { skipCached: true });
+    if (missed.length === 0) await writePagePackMarker(currentCache, page);
+  }
+}
+
 async function allCached(cache, urls) {
   const found = await Promise.all(urls.map((url) => cache.match(url)));
   return found.every(Boolean);
@@ -490,7 +512,7 @@ async function packedPages(manifest, caches_) {
 async function handlePagePackMessage(data) {
   const page = data?.page;
   const cache = await caches.open(CACHE_VERSION);
-  const manifest = await loadManifest(cache);
+  const manifest = await loadManifest(cache, { fetchIfMissing: false });
   if (typeof page !== 'string' || !Object.hasOwn(manifest.pages, page)) throw new Error('Unknown page.');
   const urls = manifest.pages[page];
   if (data.type === PAGE_PACK_MESSAGE.provision) {
@@ -654,6 +676,8 @@ self.addEventListener('activate', (event) => {
     const previousCaches = await Promise.all(previousKeys.map((key) => caches.open(key)));
     const currentCache = await caches.open(CACHE_VERSION);
     await migrateFontPacks(previousCaches, currentCache);
+    // Best effort, like the font packs: never blocks the deletion below.
+    await migratePagePacks(previousCaches, currentCache).catch(() => {});
     await Promise.all(previousKeys.map((key) => caches.delete(key)));
     await self.clients.claim();
   })());
