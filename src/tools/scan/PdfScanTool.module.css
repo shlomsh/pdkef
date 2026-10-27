@@ -159,6 +159,14 @@
   --scan-view-h: 100cqh;
 }
 
+/* The result full screen: the paper takes what the head and the look row leave, caption included. */
+.editor[data-full] .paper-area {
+  flex: 1 1 0;
+  min-height: 0;
+  container-type: size;
+  --scan-paper-h: calc(100cqh - 2rem);
+}
+
 /* Where the photo (corners) and the paper (result) sit: centred, as wide as the editor. */
 .photo-area,
 .paper-area {
