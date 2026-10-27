@@ -71,16 +71,15 @@ test('Download is built within the budget once it is warmed, for a 20-file, 200-
   }));
   // eslint-disable-next-line no-console
   console.log(`MERGE-12: built ${buildMs.toFixed(1)}ms after warming for ${FILE_COUNT} files / ${FILE_COUNT * PAGES_PER_FILE} pages`);
-  // MERGE-12 asks for under 500ms on desktop: 331 to 363ms here (macOS,
-  // 2026-10-27). CI's runners are slower and vary. CDP CPU throttling gives
-  // 740 to 790ms at 2x, 1190 to 1300ms at 3x, 1710 to 1980ms at 4x, 2230 to
-  // 2350ms at 5x, 2700 to 2890ms at 6x. The old whole-window reading (the
-  // 1500ms wait, the build and up to half a second of poll lag) failed its
-  // 2600ms bound at 3x with the app unchanged, the same 2.5 to 2.9s CI read
-  // on its slow runners. 2500ms passes a CPU five times slower and fails one
-  // six times slower, with about twice the headroom the 3x figure needs. The
-  // first CI run that prints the line above replaces these throttle-derived
-  // figures.
+  // MERGE-12 asks for under 500ms on desktop: 331 to 363ms on macOS, and
+  // 1170.6ms on CI's Linux runner (run 40485609159, 2026-10-27), about 3.4
+  // times slower. CDP CPU throttling on the Mac gives 740 to 790ms at 2x,
+  // 1190 to 1300ms at 3x, 1710 to 1980ms at 4x, 2230 to 2350ms at 5x, 2700
+  // to 2890ms at 6x, so CI sits on the 3x line. The old whole-window reading
+  // (the 1500ms wait, the build and up to half a second of poll lag) failed
+  // its 2600ms bound at 3x with the app unchanged, the same 2.5 to 2.9s CI
+  // read on its slow runners. 2500ms is about twice the CI reading and fails
+  // a CPU six times slower than a Mac.
   expect(buildMs).toBeLessThan(2500);
 
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });

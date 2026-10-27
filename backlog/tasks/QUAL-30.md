@@ -153,9 +153,9 @@ build.
 - [x] Red then green: the spec as written fails `< 2600` at 3x throttle on an unchanged app; the new
       spec passes up to 5x and fails at 6x and 7x
 - [ ] Landed on `main` (Shlomi confirms the push)
-- [ ] One CI run on a Linux runner prints `MERGE-12: built ...`, and the spec comment's throttle-derived
-      figures are replaced by it (`.claude/rules/tests.md`: a number from macOS only gets a Linux run
-      first: `gh workflow run ci.yml --ref merge-ready-margin`)
+- [x] One CI run on a Linux runner prints `MERGE-12: built ...`: run 40485609159 (workflow_dispatch on
+      `merge-ready-margin`, 04dcdb2e) printed `built 1170.6ms`, green, about 3.4 times the Mac and on the
+      3x throttle line. The spec comment now carries it. One reading, from a fast-population runner.
 
 ## Left alone
 
