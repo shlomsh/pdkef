@@ -42,6 +42,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fullClosure, pageEntries, staticClosure } from './precacheClosure.mjs';
 
 const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const ASSETS = path.join(DIST, '_astro');
@@ -103,48 +104,27 @@ const PAGES = [
   'he/sign', 'he/merge', 'he/compress',
 ];
 
-const QUOTE = '["\'`]';
-const STATIC_IMPORT = new RegExp(
-  // `import "./x.js"`, `import a from"./x.js"`, `import{a as b}from"./x.js"`.
-  // The character class excludes `(` so a dynamic `import("./x.js")` cannot match.
-  `(?:^|[;}\\s])import\\s*(?:[^"'\`()]*?from\\s*)?${QUOTE}\\./([^"'\`]+\\.js)${QUOTE}`,
-  'g',
-);
-const REEXPORT = new RegExp(`export\\s*(?:\\*|\\{[^}]*\\})\\s*from\\s*${QUOTE}\\./([^"'\`]+\\.js)${QUOTE}`, 'g');
-const DYNAMIC_IMPORT = new RegExp(`import\\(\\s*${QUOTE}\\./([^"'\`]+\\.js)${QUOTE}\\s*\\)`, 'g');
-
-const readChunk = (file) => fs.readFileSync(path.join(ASSETS, file), 'utf8');
-const matchAll = (source, pattern) => [...source.matchAll(pattern)].map((match) => match[1]);
-
-/** Entry points a browser fetches for this page without any interaction. */
-function pageEntries(page) {
-  const html = path.join(DIST, page, 'index.html');
-  if (!fs.existsSync(html)) return null;
-  const source = fs.readFileSync(html, 'utf8');
-  return [...new Set([
-    ...matchAll(source, /<script[^>]+src="\/_astro\/([^"]+)"/g),
-    ...matchAll(source, /<link[^>]+rel="modulepreload"[^>]+href="\/_astro\/([^"]+)"/g),
-    ...matchAll(source, /(?:component-url|renderer-url)="\/_astro\/([^"]+)"/g),
-  ])];
+/** Dist as the pure closure functions see it: every text file, plus the list of all paths. */
+function readDist() {
+  const files = new Map();
+  const paths = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else {
+        const relative = path.relative(DIST, full).split(path.sep).join('/');
+        paths.push(relative);
+        if (/\.(?:html|js|css)$/.test(relative)) files.set(relative, fs.readFileSync(full, 'utf8'));
+      }
+    }
+  };
+  walk(DIST);
+  return { files, paths };
 }
 
-function closure(entries, follow) {
-  const seen = new Set();
-  const queue = [...entries];
-  while (queue.length > 0) {
-    const file = queue.pop();
-    if (seen.has(file) || !fs.existsSync(path.join(ASSETS, file))) continue;
-    seen.add(file);
-    queue.push(...follow(file));
-  }
-  return seen;
-}
-
-const staticDeps = (file) => {
-  const source = readChunk(file);
-  return [...matchAll(source, STATIC_IMPORT), ...matchAll(source, REEXPORT)];
-};
-const anyDeps = (file) => [...staticDeps(file), ...matchAll(readChunk(file), DYNAMIC_IMPORT)];
+const STRIP = '_astro/';
+const names = (closure) => new Set([...closure].filter((file) => file.startsWith(STRIP)).map((file) => file.slice(STRIP.length)));
 
 const errors = [];
 const notes = [];
@@ -153,6 +133,8 @@ if (!fs.existsSync(ASSETS)) {
   console.error('No dist/_astro. Run `npm run build` first.');
   process.exit(1);
 }
+
+const view = readDist();
 
 // Non-vacuity, first: a guard that matches nothing passes forever. Every
 // lazy-only module must still exist as a chunk of its own, or the chunk naming
@@ -165,12 +147,13 @@ for (const { chunk, why } of LAZY_ONLY) {
 }
 
 for (const page of PAGES) {
-  const entries = pageEntries(page);
-  if (entries === null) {
+  const html = view.files.get(path.posix.join(page, 'index.html'));
+  if (html === undefined) {
     errors.push(`dist/${page}/index.html is missing - PAGES is stale.`);
     continue;
   }
-  const eager = closure(entries, staticDeps);
+  const entries = pageEntries(html);
+  const eager = names(staticClosure(view, entries));
   for (const { chunk, why } of LAZY_ONLY) {
     const leaked = [...eager].filter((file) => chunk.test(file));
     if (leaked.length > 0) {
@@ -186,7 +169,7 @@ for (const page of PAGES) {
   // absent: a feature deleted outright would pass the check above.
   const owed = LAZY_ONLY.filter(({ reachableFrom }) => reachableFrom.includes(page));
   if (owed.length > 0) {
-    const reachable = closure(entries, anyDeps);
+    const reachable = names(fullClosure(view, entries));
     const unreachable = owed
       .filter(({ chunk }) => ![...reachable].some((file) => chunk.test(file)))
       .map(({ why }) => why);
