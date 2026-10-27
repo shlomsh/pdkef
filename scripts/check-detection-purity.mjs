@@ -104,6 +104,15 @@ export const DETECTION_MODULES = [
   'src/tools/sign/fields/fieldRegions.js',
   'src/tools/sign/fields/textRuns.js',
   'src/editor/adapters/pdf/pdfObjects.js',
+  'src/editor/adapters/pdf/textState.js',
+  'src/editor/adapters/pdf/contentStreamWalk.js',
+  'src/editor/adapters/pdf/pdfFonts.js',
+  'src/editor/adapters/pdf/checkboxGlyphs.js',
+  'src/editor/adapters/pdf/textRunJoin.js',
+  'src/editor/adapters/pdf/pdkefMark.js',
+  'src/editor/adapters/pdf/dictReads.js',
+  'src/editor/adapters/pdf/pageContent.js',
+  'src/editor/adapters/pdf/xobjectTable.js',
   'src/tools/sign/fields/fieldTypes.ts',
   'src/tools/sign/fields/corpus/scoring/score.js',
   'src/tools/sign/fields/corpus/scoring/match.js',
@@ -138,6 +147,26 @@ export const BOUNDARY_SHIMS = new Map([
       + 'annotation tree into plain values (FORM-14, MOBI-11).',
   ],
   [
+    'src/editor/adapters/pdf/pdfFonts.js',
+    'readFont and its helpers read pdf-lib font dicts into plain glyph metrics (split from pdfObjects.js, ARCH-55).',
+  ],
+  [
+    'src/editor/adapters/pdf/checkboxGlyphs.js',
+    'collectCheckboxGlyphs reads a pdf-lib page into plain checkbox boxes (split from pdfObjects.js, ARCH-55).',
+  ],
+  [
+    'src/editor/adapters/pdf/dictReads.js',
+    'lookupDict/numberAt resolve pdf-lib dict entries into plain values (split from pdfObjects.js, ARCH-55).',
+  ],
+  [
+    'src/editor/adapters/pdf/pageContent.js',
+    "getPageContentBytes concatenates a pdf-lib page's content streams into plain bytes (split from pdfObjects.js, ARCH-55).",
+  ],
+  [
+    'src/editor/adapters/pdf/xobjectTable.js',
+    "buildXObjectTable reads a pdf-lib Resources dict's /XObject entries into a plain table (split from pdfObjects.js, ARCH-55).",
+  ],
+  [
     'src/tools/sign/fields/corpus/scoring/score.js',
     'the scoring loader: pageTextRuns opens a real PDF through pdf-lib and pdfjs-dist '
       + 'to score the shipped pipeline against reviewed ground truth (MOBI-13).',
@@ -164,24 +193,6 @@ export const FUNCTION_SHIMS = new Map([
   [
     'src/editor/adapters/pdf/pdfObjects.js',
     new Map([
-      ['lookupDict', 'resolves a context reference to a PDFDict; the shared primitive every other '
-        + 'dict-reading function below calls.'],
-      ['numberAt', 'resolves one PDFName.of(key) dict entry into a plain number.'],
-      ['getPageContentBytes', "concatenates a pdf-lib page's content streams (PDFStream/PDFArray/"
-        + 'decodePDFRawStream) into one plain byte buffer.'],
-      ['readFont', 'reads a pdf-lib font dict (Type0 descendant, /W widths, FontDescriptor) into '
-        + 'plain glyph metrics; the biggest single adapter in the file.'],
-      ['readDifferences', "reads a pdf-lib font's /Encoding /Differences array into a plain code to "
-        + 'glyph-name map.'],
-      ['standardFontWidths', "reads a standard-14 font's per-code widths from pdf-lib's shipped AFM "
-        + 'metrics into a plain map.'],
-      ['isVerticalCMap', "decodes a pdf-lib /Encoding CMap stream to see whether it declares /WMode 1."],
-      ['buildFontTable', "walks a pdf-lib Resources dict's /Font entries into a plain lookup table."],
-      ['buildXObjectTable', "walks a pdf-lib Resources dict's /XObject entries into a plain lookup "
-        + 'table.'],
-      ['collectCheckboxGlyphs', "reads a pdf-lib page's Resources dict once before walking its own "
-        + 'already-decoded content-stream tokens; the one PDFName reference is why the whole '
-        + 'function needs to be here even though most of its body is pure geometry.'],
       ['inheritedEntry', "walks a widget's PDFDict parent chain to read one inheritable field "
         + 'attribute into a plain value.'],
       ['pageWidgets', "reads a pdf-lib page's /Annots array into plain widget dicts."],
@@ -198,6 +209,54 @@ export const FUNCTION_SHIMS = new Map([
         + 'on its parameter rather than naming PDFName/PDFDict/etc. - so nothing here would actually '
         + 'flag it; it is listed anyway because its parameter is a pdf-lib PDFDocument and hiding '
         + 'that would be the dishonest version of this allowlist.'],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/pdfFonts.js',
+    new Map([
+      ['readFont', 'reads a pdf-lib font dict (Type0 descendant, /W widths, FontDescriptor) into '
+        + 'plain glyph metrics; the biggest single adapter in the file.'],
+      ['readDifferences', "reads a pdf-lib font's /Encoding /Differences array into a plain code to "
+        + 'glyph-name map.'],
+      ['standardFontWidths', "reads a standard-14 font's per-code widths from pdf-lib's shipped AFM "
+        + 'metrics into a plain map.'],
+      ['isVerticalCMap', "decodes a pdf-lib /Encoding CMap stream to see whether it declares /WMode 1."],
+      ['buildFontTable', "walks a pdf-lib Resources dict's /Font entries into a plain lookup table."],
+      ['readType0Metrics', 'reads a pdf-lib Type0 font dict (Encoding, DescendantFonts, DW) into plain metrics.'],
+      ['readCidWidths', 'reads a pdf-lib CIDFont /W array into a plain code to width map.'],
+      ['readSimpleMetrics', 'reads a pdf-lib simple font dict (FontDescriptor, Widths, Encoding) into plain metrics.'],
+      ['type3WidthScale', "reads a pdf-lib Type3 font's /FontMatrix into a plain scale."],
+      ['readToUnicode', "decodes a pdf-lib font's /ToUnicode stream (decodePDFRawStream) into a plain map."],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/checkboxGlyphs.js',
+    new Map([
+      ['collectCheckboxGlyphs', "reads a pdf-lib page's Resources dict once before walking its own "
+        + 'already-decoded content-stream tokens; the one PDFName reference is why the whole '
+        + 'function needs to be here even though most of its body is pure geometry.'],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/dictReads.js',
+    new Map([
+      ['lookupDict', 'resolves a context reference to a PDFDict; the shared primitive every other '
+        + 'dict-reading function below calls.'],
+      ['numberAt', 'resolves one PDFName.of(key) dict entry into a plain number.'],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/pageContent.js',
+    new Map([
+      ['getPageContentBytes', "concatenates a pdf-lib page's content streams (PDFStream/PDFArray/"
+        + 'decodePDFRawStream) into one plain byte buffer.'],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/xobjectTable.js',
+    new Map([
+      ['buildXObjectTable', "walks a pdf-lib Resources dict's /XObject entries into a plain lookup "
+        + 'table.'],
     ]),
   ],
   [
@@ -604,6 +663,35 @@ export function checkModuleLevelState(sourceFile, relPath, checker = createCheck
 }
 
 // ---------------------------------------------------------------------------
+// FUNCTION_SHIMS staleness
+// ---------------------------------------------------------------------------
+
+// Names of every function-like declaration in the file, by the same naming
+// `enclosingFunctionName` uses, so an entry is stale exactly when no
+// reference could ever match it.
+function declaredFunctionNames(sourceFile) {
+  const names = new Set();
+  forEachNode(sourceFile, (node) => {
+    if ((ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node)) && node.name) names.add(node.name.text);
+    else if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name)) names.add(node.name.text);
+    else if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer
+      && (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))) names.add(node.name.text);
+  });
+  return names;
+}
+
+// A FUNCTION_SHIMS entry for a function the file no longer has would keep
+// exempting nothing while reading as if it still guarded something (ARCH-55).
+export function checkStaleShims(sourceFile, relPath) {
+  const declared = declaredFunctionNames(sourceFile);
+  const violations = [];
+  for (const name of (FUNCTION_SHIMS.get(relPath) ?? new Map()).keys()) {
+    if (!declared.has(name)) violations.push(`${relPath}: FUNCTION_SHIMS names '${name}', which this file does not define`);
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Driver
 // ---------------------------------------------------------------------------
 
@@ -631,6 +719,7 @@ export function checkAll() {
       ...checkForbiddenImports(sourceFile, relPath, checker),
       ...checkForbiddenGlobals(sourceFile, relPath, checker),
       ...checkModuleLevelState(sourceFile, relPath, checker),
+      ...checkStaleShims(sourceFile, relPath),
     );
   }
 
