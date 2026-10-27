@@ -30,7 +30,7 @@ describe('handoffHref', () => {
 });
 
 describe('signExportReady', () => {
-  const ready = { status: 'editing', elementCount: 1, blocked: false };
+  const ready = { status: 'editing' as const, elementCount: 1, blocked: false };
 
   it('is ready when there is something to export and Download would be enabled', () => {
     expect(signExportReady(ready)).toBe(true);
@@ -45,7 +45,7 @@ describe('signExportReady', () => {
   });
 
   it('is not ready while loading, signing or after an error', () => {
-    for (const status of ['idle', 'loading', 'signing', 'error']) {
+    for (const status of ['idle', 'loading', 'signing', 'error'] as const) {
       expect(signExportReady({ ...ready, status })).toBe(false);
     }
   });
