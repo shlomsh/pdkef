@@ -359,7 +359,9 @@ export function useMergeDraft({
     setSaveState({ state: 'pending', revision });
     const timer = setTimeout(() => {
       const { entries, plan, options, title, outputName } = latest.current;
-      buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
+      buildRecord(entries, plan, options, title, outputName)
+        .then((record) => persist(revision, record))
+        .catch((err) => reportError('drafts', err, 'autosave_merge_draft'));
     }, autosaveDebounceMs);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,6 +4,7 @@ import type { ComponentChild, Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
 import { isAndroidDevice, isIOSDevice } from '../lib/platform.ts';
+import { reportError } from '../lib/errorReport.ts';
 
 interface DropzoneEmptyStateProps {
   multiple?: boolean;
@@ -97,7 +98,9 @@ export default function DropzoneEmptyState({
     // MERGE-10: a dropped folder yields its files (walked, sorted by name);
     // a plain drop keeps the synchronous path.
     if (dropHasDirectory(event.dataTransfer)) {
-      void filesFromDataTransfer(event.dataTransfer).then((files) => onFiles(files, 'drop'));
+      filesFromDataTransfer(event.dataTransfer)
+        .then((files) => onFiles(files, 'drop'))
+        .catch((err) => reportError('pdf_tool_run', err, 'read_dropped_folder'));
       return;
     }
     onFiles(event.dataTransfer.files, 'drop');

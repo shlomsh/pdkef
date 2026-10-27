@@ -264,7 +264,10 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
                 shareReady={shareReady}
                 onShare={handleShare}
                 busy={handoffBusy}
-                onHandoff={(tool) => { void requestHandoff(tool); }}
+                onHandoff={(tool) => {
+                  // reason: requestHandoff catches its own failure and shows the hand-off error
+                  void requestHandoff(tool);
+                }}
                 onWarm={prepared.prepareNow}
                 labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign }}
               />

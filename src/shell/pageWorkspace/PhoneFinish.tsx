@@ -60,7 +60,10 @@ export default function PhoneFinish({ flow, prepared, fileName, detail, handoffs
           <ExportHandoffs
             items={handoffs}
             busy={flow.handoffBusy || prepared.status !== 'ready'}
-            onHandoff={(tool) => { void flow.requestHandoff(tool as HandoffTool); }}
+            onHandoff={(tool) => {
+              // reason: requestHandoff catches its own failure and shows the hand-off error
+              void flow.requestHandoff(tool as HandoffTool);
+            }}
           />
           {flow.handoffFailed && (
             <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{labels.handoffFailed}</p>
