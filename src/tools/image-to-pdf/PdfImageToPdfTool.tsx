@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { ScanLine } from 'lucide-preact';
 import { defaultOutputName, moveEntry, orderKey, reorderEntries, sortEntries } from '../../lib/pageOrder.js';
 import { imagesToPdf } from '../../lib/imagesToPdf.js';
 import { reportError } from '../../lib/errorReport.ts';
@@ -9,16 +8,14 @@ import { PHOTO_ACCEPT, PHOTO_ACCEPTED_TYPES, usePhotoTileList } from '../../lib/
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
-import ToolShell, { FileActions, useToolShell } from '../../shell/ToolShell.tsx';
+import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import SortMenu from '../../shell/SortMenu.tsx';
-import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './PdfImageToPdfTool.module.css';
 import ImageToPdfVerb from './verb/ImageToPdfVerb.tsx';
-import PdfShareButton from '../../shell/PdfShareButton.tsx';
-import ProgressRing from '../../shell/ProgressRing.tsx';
-import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import DownloadButton from '../../shell/DownloadButton.tsx';
+import DownloadSheet from './components/DownloadSheet.tsx';
+import ResultGrid from './components/ResultGrid.tsx';
+import { toHandoffFiles } from './lib/handoffFiles';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -53,21 +50,6 @@ function toEntry(file: File): ImageEntry {
   return { id: nextId++, file, thumbnail: URL.createObjectURL(file) };
 }
 
-// Its own component so it can reach the shell context (BasePdfTool provides it to its children).
-function AddImagesTile({ label }: { label: string }) {
-  const { requestReplace } = useToolShell();
-  return (
-    <li class={styles['add-tile']}>
-      <button type="button" class={styles['add-button']} onClick={requestReplace}>
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
-        {label}
-      </button>
-    </li>
-  );
-}
-
 export interface PdfImageToPdfToolProps {
   quietPolicy?: QuietPolicy;
   /** Server-rendered by its src/pages/[locale]/<tool>.astro route for a localized
@@ -92,7 +74,6 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     setAnnouncement((previous) => (previous === text ? `${text}\u00A0` : text));
   }, []);
 
-  const sheetRef = useRef<HTMLDivElement | null>(null);
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   const lastSizeRef = useRef<string | undefined>(undefined);
@@ -285,9 +266,7 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
     setScanBusy(true);
     setScanFailed(false);
     try {
-      const files = await Promise.all(
-        entriesRef.current.map(async ({ file }) => ({ fileName: file.name, fileType: file.type, fileBytes: await file.arrayBuffer() })),
-      );
+      const files = await toHandoffFiles(entriesRef.current.map(({ file }) => file));
       await sendHandoff('scan-to-pdf', { files }, { navigate });
     } catch {
       // expected: saveHandoff reports its own failure; this shows the status line
@@ -301,42 +280,23 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
   const tappedBusy = tapped && !fresh && !failed;
 
   const sheet = (
-    <div
-      ref={sheetRef}
-      class={styles.sheet}
-      onPointerEnter={prepared.prepareNow}
-      onFocusIn={prepared.prepareNow}
-      onPointerDown={prepared.prepareNow}
-    >
-      {failed ? (
-        <>
-          <ErrorMessage>{t.buildFailed}</ErrorMessage>
-          <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={prepared.prepareNow}>
-            {t.tryAgain}
-          </button>
-        </>
-) : (
-        <>
-          {/* Silent until a tap: while a change waits for quiet the sheet keeps its shape, with the
-              last size shown and Share still there (inert until the new PDF lands). */}
-          <DownloadButton
-            autoFocus={false}
-            href={fresh && downloadUrl ? downloadUrl : '#'}
-            download={fileName}
-            label={t.downloadLabel}
-            detail={lastSizeRef.current}
-            onClick={onDownloadClick}
-            busy={tappedBusy ? <ProgressRing progress={prepared.progress} label={t.preparing} /> : undefined}
-          />
-          <PdfShareButton visible={shareReady || (shareSeenRef.current && prepared.status === 'pending')} onShare={handleShare} label={t.shareLabel} />
-        </>
-      )}
-      <button type="button" class={styles['scan-button']} disabled={scanBusy} onClick={openAsScan}>
-        <ScanLine size={16} aria-hidden="true" />
-        {t.scanHandoff}
-      </button>
-      {scanFailed && <p class={pdfToolStyles['hint-message']} role="status">{t.scanHandoffFailed}</p>}
-    </div>
+    <DownloadSheet
+      t={t}
+      failed={failed}
+      fresh={fresh}
+      downloadUrl={downloadUrl}
+      fileName={fileName}
+      detail={lastSizeRef.current}
+      progress={prepared.progress}
+      busy={tappedBusy}
+      shareVisible={shareReady || (shareSeenRef.current && prepared.status === 'pending')}
+      scanBusy={scanBusy}
+      scanFailed={scanFailed}
+      onPrepare={prepared.prepareNow}
+      onDownloadClick={onDownloadClick}
+      onShare={handleShare}
+      onScan={openAsScan}
+    />
   );
 
   return (
@@ -376,43 +336,15 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
             )}
           </div>
 
-          <div class={styles.result}>
-            <p class={styles.heading}>
-              <OutputName name={outputName} label={t.fileNameLabel} onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)} />
-              <span class={styles['heading-meta']}>· {entries.length} {entries.length === 1 ? t.pageCountOne : t.pageCountOther}</span>
-            </p>
-            <p class="sr-only" id="reorder-hint">
-              {t.reorderHint}
-            </p>
-            <ul class={styles.grid} ref={listRef} aria-describedby="reorder-hint">
-              {entries.map((entry, index) => (
-                <li key={entry.id} class={styles.tile} data-id={entry.id}>
-                  <div
-                    class={styles.page}
-                    data-page
-                    tabIndex={0}
-                    role="button"
-                    aria-label={formatMessage(t.tileLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
-                    onKeyDown={(e) => onTileKeyDown(e, entry.id)}
-                  >
-                    <img src={entry.thumbnail} alt="" draggable={false} />
-                    <span class={styles.badge} aria-hidden="true">{index + 1}</span>
-                  </div>
-                  <button
-                    type="button"
-                    class={styles.remove}
-                    aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
-                    onClick={() => removeEntry(entry.id)}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                  </button>
-                </li>
-              ))}
-              <AddImagesTile label={t.addImages} />
-            </ul>
-          </div>
+          <ResultGrid
+            t={t}
+            entries={entries}
+            outputName={outputName}
+            listRef={listRef}
+            onRename={(next) => setCustomName(next.length > 0 && next !== defaultOutputName(entries) ? next : null)}
+            onTileKeyDown={onTileKeyDown}
+            onRemove={removeEntry}
+          />
 
           {sheet}
         </div>
