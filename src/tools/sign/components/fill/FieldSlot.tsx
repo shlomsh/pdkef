@@ -4,7 +4,6 @@ import { fieldTextInset, textElementLayout } from '../../../../editor/text/textL
 import { combLayout, isComb } from '../../../../editor/text/comb.js';
 import CombCells from '../nodes/CombCells.tsx';
 import { useCombCaret } from '../nodes/useCombCaret.ts';
-import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import type { TextElement } from '../../../../editor/model/editorModel.ts';
 import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from '../../lib/fill/fillTypes.ts';
@@ -58,6 +57,24 @@ function textWidthPx(text: string, font: { fontSize: number; fontFamily: string;
  * the printed pitch in precisely the way `comb.js`'s own docstring says a
  * comb must not.
  */
+/**
+ * SNG-15: the visible at-rest/aimed/focus chrome, sized to the printed field only (the slot's
+ * `fieldFrameBox`) - never the input's own (possibly enlarged) box. Rendered before the input so the
+ * input's text always paints on top of this tint, never under it.
+ */
+function FieldFrame({ box, aimed, focused }: { box: Record<string, string>; aimed: boolean; focused: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      data-field-frame
+      data-aimed={aimed || undefined}
+      data-focused={focused || undefined}
+      className={`${styles['field-frame']}${aimed ? ` ${styles.aimed}` : ''}${focused ? ` ${styles.focused}` : ''}`}
+      style={box}
+    />
+  );
+}
+
 export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, label, elementOf, onEnter, onCommit, onLeave }: {
   slot: FillSlot;
   enterKeyHint: EnterKeyHint;
@@ -95,7 +112,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   // can be shown at any rendered width, so points only become the right CSS
   // px through the page wrapper's actual size, kept in sync as it resizes.
   useLayoutEffect(() => {
-    const pageWrapper = inputRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
+    const pageWrapper = inputRef.current?.closest('[data-page-wrapper]') || null;
     if (!pageWrapper) return undefined;
     const updateScale = () => {
       setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));
@@ -219,22 +236,15 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
 
   return (
     <>
-      {fieldFrameBox && (
-        // SNG-15: the visible at-rest/aimed/focus chrome, sized to the
-        // printed field only (see `fieldFrameBox` above) - never the input's
-        // own (possibly enlarged) box. Rendered before the input so the
-        // input's text always paints on top of this tint, never under it.
-        <div
-          aria-hidden="true"
-          className={`${styles['field-frame']}${aimed ? ` ${styles.aimed}` : ''}${focused ? ` ${styles.focused}` : ''}`}
-          style={fieldFrameBox}
-        />
-      )}
+      {fieldFrameBox && <FieldFrame box={fieldFrameBox} aimed={aimed} focused={focused} />}
       <input
         ref={inputRef}
         type="text"
         data-fill-input
         data-fill-key={slot.key}
+        data-aimed={aimed || undefined}
+        data-field-slot={fieldFrameBox ? '' : undefined}
+        data-slot-comb={comb || undefined}
         className={`${styles.slot}${fieldFrameBox ? ` ${styles['field-slot']}` : ''}${aimed ? ` ${styles.aimed}` : ''}${comb ? ` ${styles['slot-comb']}` : ''}`}
         enterKeyHint={enterKeyHint}
         dir={direction}
@@ -277,6 +287,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
       {cells && (
         <div
           aria-hidden="true"
+          data-comb-overlay
           className={styles['comb-overlay']}
           style={{
             // The overlay draws the element's own box, not the frame: it

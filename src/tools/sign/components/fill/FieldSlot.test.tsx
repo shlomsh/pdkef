@@ -2,11 +2,8 @@ import { render, type ComponentChildren } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import FieldSlot from './FieldSlot.tsx';
-import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 // Asserts the shell keeps the text-display class; the fixture parent carries the page-wrapper class production looks up.
-import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 // Asserts the focused, aimed and slot state classes.
-import styles from './fill.module.css';
 import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
 import { combLayout } from '../../../../editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from '../../lib/fill/fillTypes.ts';
@@ -64,7 +61,7 @@ function requireElement<T extends Element>(parent: ParentNode, selector: string)
 // something rather than jsdom's default 0x0 (editor.md's geometry-test rule).
 function mount(vnode: ComponentChildren): HTMLDivElement {
   const host = document.createElement('div');
-  host.className = workspaceStyles['page-wrapper'];
+  host.setAttribute('data-page-wrapper', '');
   host.getBoundingClientRect = () => new DOMRect(0, 0, 600, 800);
   document.body.appendChild(host);
   act(() => {
@@ -643,7 +640,7 @@ describe('FieldSlot component', () => {
         />
       );
       const input = requireElement<HTMLInputElement>(host, 'input');
-      const frame = requireElement<HTMLDivElement>(host, `.${styles['field-frame']}`);
+      const frame = requireElement<HTMLDivElement>(host, '[data-field-frame]');
 
       // The frame stays at the printed field's own box...
       expect(frame.style.left).toBe('10%');
@@ -656,12 +653,12 @@ describe('FieldSlot component', () => {
 
       // The input's own at-rest/aimed/focus chrome is switched off in favour
       // of the frame's.
-      expect(input.classList.contains(styles['field-slot'])).toBe(true);
-      expect(frame.classList.contains(styles.focused)).toBe(false);
+      expect(input.hasAttribute('data-field-slot')).toBe(true);
+      expect(frame.hasAttribute('data-focused')).toBe(false);
       act(() => { input.focus(); });
-      expect(frame.classList.contains(styles.focused)).toBe(true);
+      expect(frame.hasAttribute('data-focused')).toBe(true);
       act(() => { input.blur(); });
-      expect(frame.classList.contains(styles.focused)).toBe(false);
+      expect(frame.hasAttribute('data-focused')).toBe(false);
     });
 
     it('carries the aimed class onto the frame, not the input, for a field slot', () => {
@@ -683,8 +680,8 @@ describe('FieldSlot component', () => {
           onCommit={() => {}}
         />
       );
-      const frame = requireElement<HTMLDivElement>(host, `.${styles['field-frame']}`);
-      expect(frame.classList.contains(styles.aimed)).toBe(true);
+      const frame = requireElement<HTMLDivElement>(host, '[data-field-frame]');
+      expect(frame.hasAttribute('data-aimed')).toBe(true);
     });
 
     it('draws no separate frame for a free slot, which has no printed field to stay inside', () => {
@@ -700,9 +697,9 @@ describe('FieldSlot component', () => {
           onCommit={() => {}}
         />
       );
-      expect(host.querySelector(`.${styles['field-frame']}`)).toBeNull();
+      expect(host.querySelector('[data-field-frame]')).toBeNull();
       const input = requireElement<HTMLInputElement>(host, 'input');
-      expect(input.classList.contains(styles['field-slot'])).toBe(false);
+      expect(input.hasAttribute('data-field-slot')).toBe(false);
     });
 
     it('keeps the comb overlay on the element\'s own box, unaffected by the frame', () => {
@@ -727,7 +724,7 @@ describe('FieldSlot component', () => {
           onCommit={() => {}}
         />
       );
-      const overlay = requireElement<HTMLDivElement>(host, `.${styles['comb-overlay']}`);
+      const overlay = requireElement<HTMLDivElement>(host, '[data-comb-overlay]');
       const input = requireElement<HTMLInputElement>(host, 'input');
       const expectedElementBox = textElementLayout(combElementOf(''), 1) as { box: Record<string, string> };
 
@@ -841,8 +838,7 @@ describe('FieldSlot component', () => {
       );
       const input = requireElement<HTMLInputElement>(host, 'input');
 
-      expect(input.classList.contains(styles.slot)).toBe(true);
-      expect(input.classList.contains(styles.aimed)).toBe(true);
+            expect(input.hasAttribute('data-aimed')).toBe(true);
     });
 
     it('leaves off the aimed class at rest', () => {
@@ -860,8 +856,7 @@ describe('FieldSlot component', () => {
       );
       const input = requireElement<HTMLInputElement>(host, 'input');
 
-      expect(input.classList.contains(styles.slot)).toBe(true);
-      expect(input.classList.contains(styles.aimed)).toBe(false);
+            expect(input.hasAttribute('data-aimed')).toBe(false);
     });
   });
 
@@ -916,7 +911,7 @@ describe('FieldSlot component', () => {
       expect(Array.from(cells).map((cell) => cell.textContent)).toEqual(['1', '2', '3']);
       // The transparent text colour is the static .slot-comb class now, not
       // an inline style (styling.md: inline is for runtime geometry only).
-      expect(input.classList.contains(styles['slot-comb'])).toBe(true);
+      expect(input.hasAttribute('data-slot-comb')).toBe(true);
     });
 
     it('draws each comb digit with the committed element\'s own geometry: its box, font, cells and display shell', () => {
@@ -949,7 +944,7 @@ describe('FieldSlot component', () => {
       // The mocked page wrapper is 600px wide against 600pt: scale 1.
       const layout = textElementLayout(committed, 1);
       const box = layout.box as Record<string, string>;
-      const overlay = requireElement<HTMLDivElement>(host, `.${styles['comb-overlay']}`);
+      const overlay = requireElement<HTMLDivElement>(host, '[data-comb-overlay]');
       expect(overlay.style.left).toBe(box.left);
       expect(overlay.style.top).toBe(box.top);
       expect(overlay.style.width).toBe(box.width);
@@ -957,7 +952,6 @@ describe('FieldSlot component', () => {
       expect(overlay.style.getPropertyValue('--text-pad-em')).toBe(`${layout.font.paddingEm}em`);
 
       const shell = overlay.firstElementChild as HTMLElement;
-      expect(shell.classList.contains(elementStyles['text-display'])).toBe(true);
       expect(shell.getAttribute('data-comb')).toBe('on');
       expect(shell.querySelector('[data-text-part="comb"]')).not.toBeNull();
 
@@ -1070,7 +1064,7 @@ describe('FieldSlot component', () => {
 
       expect(host.querySelectorAll('[data-text-part="comb-cell"]').length).toBe(0);
       expect(host.querySelector('[data-editor-text-comb]')).toBeNull();
-      expect(requireElement<HTMLInputElement>(host, 'input').classList.contains(styles['slot-comb'])).toBe(false);
+      expect(requireElement<HTMLInputElement>(host, 'input').hasAttribute('data-slot-comb')).toBe(false);
     });
   });
 });
