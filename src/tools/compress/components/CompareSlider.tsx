@@ -129,8 +129,8 @@ export default function CompareSlider({
 
       {tags && (
         <>
-          <span class={`${styles['compare-tag']} ${styles['compare-tag-after']}`}>{afterLabel}</span>
-          <span class={`${styles['compare-tag']} ${styles['compare-tag-before']}`}>{beforeLabel}</span>
+          <span data-testid="compare-tag" class={`${styles['compare-tag']} ${styles['compare-tag-after']}`}>{afterLabel}</span>
+          <span data-testid="compare-tag" class={`${styles['compare-tag']} ${styles['compare-tag-before']}`}>{beforeLabel}</span>
         </>
       )}
 
