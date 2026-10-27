@@ -70,6 +70,7 @@ import type { PendingSignaturePlacement } from './hooks/useWorkspaceGestures.ts'
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
+import { isEncryptedPdfError } from '../../lib/encryptedPdfError.ts';
 import { initialSignLifecycleState, signLifecycleReducer } from './state/signState.ts';
 import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './lib/exportHandoff.ts';
 import { signedFileName } from './lib/signedFileName.ts';
@@ -805,9 +806,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       console.error(err);
       // ENC-07: the load gate should have caught a protected file, so this is reported above (a gate
       // miss), but the person gets the way on rather than a retry that can never work.
-      const name = Reflect.get(Object(err), 'name');
-      const message = String(Reflect.get(Object(err), 'message') ?? '');
-      if (name === 'EncryptedPDFError' || message.includes('is encrypted')) {
+      if (isEncryptedPdfError(err)) {
         lifecycleDispatch({ type: 'EXPORT_NEEDS_UNLOCK', announcement: t.protectedOwnerOnlyTitle });
         return;
       }

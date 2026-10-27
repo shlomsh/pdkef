@@ -81,6 +81,9 @@ export interface RedactMessages {
   exportSuperseded: string;
   readyHandoff: string;
   readyShare: string;
+  /** Announced as an export starts: boxes to burn in, or only deletions. */
+  exportSaving: string;
+  exportDeleting: string;
   savedStarted: string;
   pdfProtected: string;
   downloadStopped: string;
@@ -312,6 +315,8 @@ export const englishRedactMessages: RedactMessages = {
   exportSuperseded: 'You changed something, so that download stopped. Download again when ready.',
   readyHandoff: 'Ready to hand off.',
   readyShare: 'Your redacted PDF is ready to share.',
+  exportSaving: 'Saving the redacted PDF…',
+  exportDeleting: 'Deleting what you chose…',
   savedStarted: 'Saved. Download started.',
   pdfProtected: 'This PDF is protected.',
   downloadStopped: 'The download stopped.',
