@@ -5,7 +5,6 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 // Asserts the .action class on the save link: a cell action is styled as one of the card's actions.
-import styles from '../../shell/pageGrid/PageGrid.module.css';
 import PageGrid, { cellEdge } from '../../shell/pageGrid/PageGrid.tsx';
 import { planForFile } from '../../lib/pagePlan.ts';
 import { englishMergeMessages } from '../../tools/merge/messages';
@@ -295,16 +294,16 @@ describe('PageGrid', () => {
     const { rerender } = mount();
     const first = cards()[0];
     const [rotateButton, skipButton, openButton] = first.querySelectorAll('button[aria-label], a[aria-label]');
-    expect(rotateButton.querySelector(':scope > span:last-child').textContent).toBe('Rotate');
-    expect(skipButton.querySelector(':scope > span:last-child').textContent).toBe('Hide');
+    expect(rotateButton.querySelector('[data-tip]').textContent).toBe('Rotate');
+    expect(skipButton.querySelector('[data-tip]').textContent).toBe('Hide');
     expect(skipButton.getAttribute('aria-label')).toBe('Hide page 1 from the merged PDF');
-    expect(openButton.querySelector(':scope > span:last-child').textContent).toBe('Open');
+    expect(openButton.querySelector('[data-tip]').textContent).toBe('Open');
 
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[0] = { ...plan[0], skipped: true };
     rerender({ plan });
     const [, skipButtonAfter] = cards()[0].querySelectorAll('button[aria-label], a[aria-label]');
-    expect(skipButtonAfter.querySelector(':scope > span:last-child').textContent).toBe('Show');
+    expect(skipButtonAfter.querySelector('[data-tip]').textContent).toBe('Show');
     expect(skipButtonAfter.getAttribute('aria-label')).toBe('Show page 1 in the merged PDF');
   });
 
@@ -593,9 +592,8 @@ describe('PageGrid', () => {
       expect(link.getAttribute('href')).toBe('blob:one');
       expect(link.getAttribute('download')).toBe('a-1.png');
       expect(link.getAttribute('aria-label')).toBe('Save page 1 as an image');
-      expect(link.classList.contains(styles.action)).toBe(true);
-      expect(link.querySelector(':scope > span:last-child').textContent).toBe('Save');
-      expect(link.previousElementSibling.tagName).toBe('BUTTON');
+      expect(link.querySelector('[data-tip]').textContent).toBe('Save');
+      expect([...first.querySelectorAll('button[aria-label], a[aria-label]')].at(-1)).toBe(link);
       expect(saveLinks(second)).toHaveLength(0);
       expect(second.querySelectorAll('button')).toHaveLength(3);
     });

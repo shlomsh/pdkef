@@ -393,6 +393,7 @@ function BasePdfTool({
     <ToolShellContext.Provider value={shell}>
     <div
       class={pdfToolStyles['tool-card']}
+      data-tool-card
       /* Direction A reduction: the "has a file" signal for a tool that hides
          ToolShell (`hideIdentity`), so the page-level `:has()` gate in
          ToolPageLayout.astro (the two-column grid applies only while neither
@@ -416,7 +417,7 @@ function BasePdfTool({
           // Same dropzone box, so nothing resizes when this resolves either way -
           // just a neutral holding message instead of "drop a file here", which
           // would be actively misleading the moment before a draft loads over it.
-          <div class={styles.dropzone} aria-busy="true">
+          <div class={styles.dropzone} data-dropzone aria-busy="true">
             <p class={styles['dropzone-text']}>{sm.checkingDraft}</p>
           </div>
         ) : (
@@ -459,18 +460,7 @@ function BasePdfTool({
       )}
 
       {hasFiles && isDraggingOverWorkspace && (
-        <div class={styles['drop-overlay']} aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M6 3.5h7l5 5V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V3.5Z"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linejoin="round"
-            />
-            <path d="M9.5 13.5h5M12.5 11l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <p>{multiple ? sm.dropToAddMore : sm.dropToReplace}</p>
-        </div>
+        <DropOverlay message={multiple ? sm.dropToAddMore : sm.dropToReplace} />
       )}
 
       {hasFiles && needsPdfjs && oldBrowser && (
@@ -538,3 +528,21 @@ function BasePdfTool({
 
 /** Every tool island renders inside the shared error boundary (ARCH-72). */
 export default withIslandBoundary(BasePdfTool);
+
+/** The "let go to add it" veil over a loaded tool while a file is dragged across the page. */
+function DropOverlay({ message }: { message: string }) {
+  return (
+    <div class={styles['drop-overlay']} data-drop-overlay aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M6 3.5h7l5 5V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V3.5Z"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+        />
+        <path d="M9.5 13.5h5M12.5 11l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <p>{message}</p>
+    </div>
+  );
+}

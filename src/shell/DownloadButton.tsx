@@ -46,6 +46,7 @@ export default function DownloadButton({ href, download, label = 'Download PDF',
       href={href}
       download={download}
       aria-disabled={busy ? 'true' : undefined}
+      data-processing={busy ? true : undefined}
       onClick={(event) => {
         onClick?.(event);
         if (busy) event.preventDefault();

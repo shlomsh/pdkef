@@ -3,7 +3,6 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ToolShell, { ToolShellContext } from './ToolShell.tsx';
 // Asserts the chip state classes (saved/pending/error) and the flush modifier, and finds the icon, meta and note slots by class (no role, label or text marks them).
-import styles from './ToolShell.module.css';
 import { englishShellMessages } from './shellMessages';
 
 /* BasePdfTool.test.tsx covers the default shell (thumbnail, actions). This is
@@ -49,14 +48,14 @@ describe('ToolShell editor variant', () => {
   // render Sign and Redact were only doing for it.
   it('renders no thumbnail, while the default shell still does', () => {
     mount(true);
-    expect(container.querySelector(`.${styles.icon}`)).toBeNull();
+    expect(container.querySelector('[data-file-icon]')).toBeNull();
     expect(container.querySelector('[title="form.pdf"]')!.textContent).toBe('form.pdf');
-    expect(container.querySelector(`.${styles['meta-text']}`)!.textContent).toBe('1 page · 12 KB');
-    expect(container.querySelector(`.${styles.saved}`)).not.toBeNull();
+    expect(container.querySelector('[data-meta-text]')!.textContent).toBe('1 page · 12 KB');
+    expect(container.querySelector('[data-draft-status="saved"]')).not.toBeNull();
     expect(container.querySelector('[data-status]')).not.toBeNull();
 
     mount(false);
-    expect(container.querySelector(`.${styles.icon}`)).not.toBeNull();
+    expect(container.querySelector('[data-file-icon]')).not.toBeNull();
   });
 
   // SIGN-06 follow-up: the unpersisted-storage line is a quiet line, never a
@@ -82,14 +81,14 @@ describe('ToolShell editor variant', () => {
       );
     });
 
-    const chip = container.querySelector(`.${styles.pending}`);
+    const chip = container.querySelector('[data-draft-status="pending"]');
     expect(chip).not.toBeNull();
     // MEM-11: the retention hint rides along too (unpersisted is not error/conflict).
     expect(chip!.textContent).toBe(
       'Draft saved, but this browser might not keep it - download to be safe'
       + englishShellMessages.draftRetentionInfo,
     );
-    expect(container.querySelector(`.${styles.error}`)).toBeNull();
+    expect(container.querySelector('[data-draft-status="error"]')).toBeNull();
     expect(chip!.getAttribute('role')).toBeNull();
   });
 
@@ -176,10 +175,10 @@ describe('ToolShell strip slots', () => {
   it('renders a note from context inside the strip, and nothing when absent', () => {
     mount(false, { note: <span data-note-content>Smaller is possible</span> });
     const shell = container.querySelector('[data-tool-shell]')!;
-    expect(shell.querySelector(`.${styles.note} [data-note-content]`)).not.toBeNull();
+    expect(shell.querySelector('[data-note] [data-note-content]')).not.toBeNull();
 
     mount(false, {});
-    expect(container.querySelector(`.${styles.note}`)).toBeNull();
+    expect(container.querySelector('[data-note]')).toBeNull();
   });
 
   it('a flush strip drops the card chrome, for a strip that sits inside a rail', () => {
@@ -191,15 +190,15 @@ describe('ToolShell strip slots', () => {
         container,
       );
     });
-    expect(container.querySelector('[data-tool-shell]')!.className).toContain(styles.flush);
+    expect(container.querySelector('[data-tool-shell]')!.hasAttribute('data-flush')).toBe(true);
     mount(false, {});
-    expect(container.querySelector('[data-tool-shell]')!.className).not.toContain(styles.flush);
+    expect(container.querySelector('[data-tool-shell]')!.hasAttribute('data-flush')).toBe(false);
   });
 
   it('renders metaExtra after the file meta, in the meta line', () => {
     mount(false, { metaExtra: <span data-extra>843 KB</span> });
-    const meta = container.querySelector(`.${styles.meta}`)!;
-    const text = meta.querySelector(`.${styles['meta-text']}`)!;
+    const meta = container.querySelector('[data-meta]')!;
+    const text = meta.querySelector('[data-meta-text]')!;
     const extra = meta.querySelector('[data-extra]')!;
     expect(extra).not.toBeNull();
     expect(text.compareDocumentPosition(extra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -207,7 +206,7 @@ describe('ToolShell strip slots', () => {
 
   it('leaves the editor variant without either slot', () => {
     mount(true, { note: <span>n</span>, metaExtra: <span data-extra>x</span> });
-    expect(container.querySelector(`.${styles.note}`)).toBeNull();
+    expect(container.querySelector('[data-note]')).toBeNull();
     expect(container.querySelector('[data-extra]')).toBeNull();
   });
 });

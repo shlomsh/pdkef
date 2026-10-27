@@ -81,14 +81,14 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
       </div>
       <h2 class={styles.title}>{title}</h2>
       {file && (
-        <div class={styles.file}>
+        <div class={styles.file} data-file-chip>
           <FileText size={14} stroke-width={1.75} aria-hidden="true" />
           <FileName name={file.name} className={styles.name} />
         </div>
       )}
       <p class={styles.body}>{body}</p>
       <div class={styles.actions}>
-        <button type="button" class={styles.unlock} disabled={busy} onClick={() => { void unlock(); /* reason: unlock catches its own failure and shows it */ }}>
+        <button type="button" class={styles.unlock} data-unlock disabled={busy} onClick={() => { void unlock(); /* reason: unlock catches its own failure and shows it */ }}>
           <LockKeyhole size={18} stroke-width={2} aria-hidden="true" />
           {unlockIt}
         </button>
