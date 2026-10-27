@@ -32,14 +32,23 @@ function makeRecents(count) {
 // PerformanceObserver summing every layout-shift entry for the whole load.
 // Both signals are read again once the page has settled and compared against
 // this first sample.
-async function installShiftSampler(page) {
-  await page.addInitScript(() => {
+//
+// `recentsCount` (phones only, DEBT-65): a phone reserves no recents rows, so the
+// server-rendered starter card is a different height from the real tiles and
+// the picker moves once they land. How early that happens depends on the
+// runner (a 6x throttled run sampled the card frame, the picker 111px lower).
+// With it, the first sample waits for that many tiles and only shifts from then
+// on count, so the spec guards what phones promise: nothing moves after the
+// recents are in.
+async function installShiftSampler(page, { recentsCount = 0 } = {}) {
+  await page.addInitScript((minTiles) => {
     window.__firstRects = null;
-    window.__clsSum = 0;
+    window.__firstAt = 0;
+    window.__clsEntries = [];
     try {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (!entry.hadRecentInput) window.__clsSum += entry.value;
+          if (!entry.hadRecentInput) window.__clsEntries.push({ at: entry.startTime, value: entry.value });
         }
       });
       observer.observe({ type: 'layout-shift', buffered: true });
@@ -55,14 +64,15 @@ async function installShiftSampler(page) {
       const picker = document.querySelector('[data-home-picker]');
       const list = document.querySelector('[data-home-recents] ul');
       const tile = list?.querySelector('li');
-      if (picker && tile && !window.__firstRects) {
+      if (picker && tile && list.children.length >= minTiles && !window.__firstRects) {
+        window.__firstAt = performance.now();
         window.__firstRects = { picker: boxOf(picker), list: boxOf(list), tile: boxOf(tile) };
         return;
       }
       requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
-  });
+  }, recentsCount);
 }
 
 async function readRects(page) {
@@ -80,7 +90,7 @@ async function readRects(page) {
     return {
       firstRects: window.__firstRects,
       settledRects: { picker: box(picker), list: box(list), tile: box(list.querySelector('li')) },
-      clsSum: window.__clsSum,
+      clsSum: window.__clsEntries.filter((entry) => entry.at >= window.__firstAt).reduce((sum, entry) => sum + entry.value, 0),
       heroBottom: hero ? hero.getBoundingClientRect().bottom : null,
       dockTop: dock ? dock.getBoundingClientRect().top : null,
       thumbTop: thumb ? thumb.getBoundingClientRect().top : null,
@@ -260,7 +270,7 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
   test(`picker box is unchanged from first frame to settled layout at ${PHONE_VIEWPORT.width}x${PHONE_VIEWPORT.height}`, async ({ page }, testInfo) => {
     await page.setViewportSize(PHONE_VIEWPORT);
     await seedRecentFiles(page, PHONE_RECENTS);
-    await installShiftSampler(page);
+    await installShiftSampler(page, { recentsCount: PHONE_RECENTS.length });
     await page.goto('/');
 
     await expect(page.locator('#home-files li')).toHaveCount(PHONE_RECENTS.length);

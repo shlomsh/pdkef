@@ -196,7 +196,8 @@ describe('PdfToImageTool', () => {
     expect(downloadElement().getAttribute('data-state')).toBe('ready');
     expect(downloadElement().textContent).toContain('Download 5 PNGs');
     expect(convertCalls.last.pages).toBe('1-5');
-    expect(sourceState.destroyed).toBe(sourceState.opened);
+    // The tool's own document is let go; the grid keeps the one it read the page sizes from until it unmounts.
+    expect(sourceState.opened - sourceState.destroyed).toBe(1);
     expect(button('Convert')).toBeUndefined();
   });
 

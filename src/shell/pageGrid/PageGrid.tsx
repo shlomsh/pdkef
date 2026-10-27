@@ -87,6 +87,8 @@ export interface PageGridProps {
 
 interface ThumbnailSource {
   pageCount: number;
+  /** Every page's width / height, read without rendering. */
+  aspects?: () => Promise<number[]>;
   render: (pageIndex: number, opts: { width?: number; type?: string; quality?: number; signal?: AbortSignal }) => Promise<string>;
   destroy: () => Promise<void>;
 }
@@ -175,20 +177,20 @@ function fitItems(plan: PageGridProps['plan'], aspects: Map<string, number>, gro
    every width: a landscape page lays out in one column until its aspect
    arrives, then spans two, which shifted pages 3 and 4 on phone and tablet.
    Settled for good: later changes come from the person's own actions. */
-function useFitSettled(known: number, total: number, measured: boolean): boolean {
+function useFitSettled(known: number, total: number, measured: boolean, probing: boolean): boolean {
   const [settled, setSettled] = useState(false);
   const startedAt = useRef<number | null>(null);
   useEffect(() => {
     if (settled || total <= 0) return undefined;
     if (startedAt.current == null) startedAt.current = Date.now();
     const elapsed = Date.now() - startedAt.current;
-    if (fitSettled({ known, total, elapsed, measured })) {
+    if (fitSettled({ known, total, elapsed, measured, probing })) {
       setSettled(true);
       return undefined;
     }
     const timer = setTimeout(() => setSettled(true), Math.max(0, FIT_PATIENCE_MS - elapsed));
     return () => clearTimeout(timer);
-  }, [settled, known, total, measured]);
+  }, [settled, known, total, measured, probing]);
   return settled;
 }
 
@@ -227,6 +229,9 @@ export default function PageGrid({
   const [, bump] = useState(0);
   const thumbnails = useRef(new Map<string, string>());
   const aspects = useRef(new Map<string, number>());
+  const probed = useRef(new Set<number>());
+  // Files whose page-size read is still running.
+  const probing = useRef(0);
   // The raster width each cached thumbnail was rendered at, so a page re-renders
   // at a larger step when its cell grows and never at a smaller one.
   const planRef = useRef(plan);
@@ -244,6 +249,7 @@ export default function PageGrid({
     plan.length,
     // Phone and tablet cells are fixed, so only desktop has a cell to measure.
     desktopCell != null || !isDesktopViewport(),
+    entries.some((e) => !e.error && !probed.current.has(e.id)) || probing.current > 0,
   );
   const fitPendingRef = useRef(fitPending);
   fitPendingRef.current = fitPending;
@@ -294,6 +300,7 @@ export default function PageGrid({
   const fileById = (id: number) => entriesRef.current.find((e) => e.id === id);
 
   const releaseFile = useCallback((fileId: number) => {
+    probed.current.delete(fileId);
     const held = sources.current.get(fileId);
     if (held) {
       held.controller.abort();
@@ -318,6 +325,17 @@ export default function PageGrid({
     onRenderedCountChange(count);
   }, [onRenderedCountChange]);
 
+  // One pdf.js document per file, opened the first time a page or an aspect needs it.
+  const sourceFor = useCallback((entry: GridSource) => {
+    let held = sources.current.get(entry.id);
+    if (!held) {
+      const controller = new AbortController();
+      held = { source: openThumbnailSource(entry.file) as Promise<ThumbnailSource>, controller };
+      sources.current.set(entry.id, held);
+    }
+    return held;
+  }, []);
+
   const processQueue = useCallback(async () => {
     if (rendering.current) return;
     rendering.current = true;
@@ -331,12 +349,7 @@ export default function PageGrid({
         const pageIndex = Number(pageIndexText);
         const entry = fileById(fileId);
         if (!entry || entry.error) continue;
-        let held = sources.current.get(fileId);
-        if (!held) {
-          const controller = new AbortController();
-          held = { source: openThumbnailSource(entry.file) as Promise<ThumbnailSource>, controller };
-          sources.current.set(fileId, held);
-        }
+        const held = sourceFor(entry);
         try {
           const source = await held.source;
           if (held.controller.signal.aborted) continue;
@@ -358,7 +371,7 @@ export default function PageGrid({
     } finally {
       rendering.current = false;
     }
-  }, [reportRenderedCount, hasCurrent, optionsFor]);
+  }, [reportRenderedCount, hasCurrent, optionsFor, sourceFor]);
 
   const enqueue = useCallback((key: string) => {
     if (fitPendingRef.current || hasCurrent(key) || queued.current.has(key)) return;
@@ -366,6 +379,33 @@ export default function PageGrid({
     queue.current.push(key);
     void processQueue();
   }, [processQueue, hasCurrent]);
+
+  /* Page aspects come from the PDF's own page sizes, read for every file, rather
+     than from the first thumbnail: a thumbnail that arrives after the fit has
+     settled changes a span and refits every cell (DEBT-65, 0.05 of layout
+     shift on a throttled run). Photos and unreadable files simply have none. */
+  useEffect(() => {
+    const pending = entries.filter((e) => !e.error && e.pageCount != null && !probed.current.has(e.id));
+    for (const entry of pending) {
+      probed.current.add(entry.id);
+      probing.current += 1;
+      const held = sourceFor(entry);
+      void (async () => {
+        try {
+          const list = await (await held.source).aspects?.();
+          if (!list || held.controller.signal.aborted) return;
+          list.forEach((aspect, pageIndex) => {
+            if (Number.isFinite(aspect) && aspect > 0) aspects.current.set(`${entry.id}:${pageIndex}`, aspect);
+          });
+        } catch {
+          // expected: an unreadable file has no sizes; its thumbnail path reports the error
+        } finally {
+          probing.current -= 1;
+          bump((n) => n + 1);
+        }
+      })();
+    }
+  }, [entries, sourceFor]);
 
   // Release thumbnails and cancel pending renders for files that left the list.
   useEffect(() => {
@@ -746,7 +786,7 @@ export default function PageGrid({
               onLoad={(event) => {
                 const img = event.currentTarget as HTMLImageElement;
                 img.dataset.ready = '';
-                if (img.naturalWidth && img.naturalHeight) {
+                if (img.naturalWidth && img.naturalHeight && !aspects.current.has(entry.key)) {
                   aspects.current.set(entry.key, img.naturalWidth / img.naturalHeight);
                   bump((n) => n + 1);
                 }
