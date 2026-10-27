@@ -34,3 +34,16 @@ depends_on: []
       and nothing verdicts.
 - [ ] A scripts-only push shows the e2e steps skipped in its CI run, and a full-run push still runs all
       four shards.
+
+## Progress
+
+*2026-10-28.* `runsProductE2e(scope)` in `scripts/affected-scope.mjs` is the one rule for whether product
+e2e runs at all (everything, or any e2e path); `runE2eProduct` and `runE2ePerf` use it for their early
+return, and `printOutputs` emits `product_e2e`. In `.github/workflows/ci.yml` the Build step and the
+chromium, webkit and perf Playwright steps of the `e2e` and `e2e-webkit` jobs run only when
+`product_e2e != 'false'` (fail-open, as the font guards gate on `fonts`). The CI summary says when product
+e2e is skipped. Unit tests cover the rule, the printed output and the five gates in ci.yml. A dry run on
+084d5cbb (a scripts-only commit) prints `product_e2e=false`.
+
+Closes when a scripts-only push to main shows the e2e steps skipped and a full-run push still runs all
+four shards.
