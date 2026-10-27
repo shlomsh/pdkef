@@ -9,7 +9,6 @@ import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import SignVerb from './verb/SignVerb.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages } from './messages';
-import { signElementTypeLabel } from '../../editor/registry/signLabels';
 import type { SignMessages } from '../../editor/registry/messages';
 import type { ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
@@ -30,12 +29,14 @@ import { useFillMode } from './hooks/useFillMode.ts';
 import { useSignFullscreen } from './hooks/useSignFullscreen.ts';
 import { useExportRun } from './hooks/useExportRun.ts';
 import { useSignHistory } from './hooks/useSignHistory.ts';
+import { useFormDetectionTelemetry } from './hooks/useFormDetectionTelemetry.ts';
+import { useSignKeyboard } from './hooks/useSignKeyboard.ts';
+import { useElementClipboard } from './hooks/useElementClipboard.ts';
 import { useSavedSignatures } from './hooks/useSavedSignatures.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
 import {
   captureAddedElement,
-  captureElementSnapshots,
 } from '../../editor/model/actionHistory.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
@@ -45,10 +46,6 @@ import {
   reportMaintenanceEvent,
   signExportFailed,
   signExportSucceeded,
-  signFormDetectionCompleted,
-  signFormDetectionFailed,
-  signFormDetectionNotStarted,
-  signFormDetectionUnavailable,
   beaconMaintenanceTransport,
 } from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
@@ -176,39 +173,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // document PdfWorkspace already renders pages from, for the page's text.
   const formRegions = useFormFieldRegions(sourceBytes, numPages, pdfDocument);
 
-  // FORM-11: one anonymous maintenance event per document, when that walk
-  // finishes. Reported from here rather than from inside the hook because
-  // this file already owns the boundary and its production-only transport
-  // (see runExport below), and a detector that keeps working is better
-  // evidenced by an aggregate than by waiting for the next bug report - a
-  // total detection failure once shipped and nothing noticed
-  // (useFormFieldRegions.wiring.test.js).
-  //
-  // What travels: a bucketed count and the first page's kind (text, vector,
-  // image or none, off a closed list), or an error code off a closed list. No
-  // labels, no filename, no page count, no bytes - maintenanceTelemetry.ts is
-  // the only thing that may describe an event and it cannot express them.
-  // `pending` is not an outcome, so it reports nothing; every other state
-  // fires once, because `formRegions` is state and only changes when the walk
-  // starts over for a different file.
-  useEffect(() => {
-    if (formRegions.detection === 'pending') return;
-    const transport = beaconMaintenanceTransport;
-    const detectionEvent = () => {
-      // Four outcomes, four signals. A run that never started, a detector
-      // that never loaded (a stale cached shell after a deploy) and a
-      // detector that ran and threw are the same blank editor, and want
-      // three different fixes.
-      if (formRegions.detection === 'not-started') return signFormDetectionNotStarted();
-      if (formRegions.detection === 'unavailable') return signFormDetectionUnavailable();
-      if (formRegions.detection === 'failed') return signFormDetectionFailed(formRegions.detectionError);
-      return signFormDetectionCompleted(
-        formRegions.combs.length + formRegions.cells.length + formRegions.checkboxes.length,
-        formRegions.pageKind,
-      );
-    };
-    reportMaintenanceEvent(detectionEvent(), transport);
-  }, [formRegions]);
+  // FORM-11: one anonymous maintenance event per finished walk (hooks/useFormDetectionTelemetry.ts).
+  useFormDetectionTelemetry(formRegions);
 
   // Next/Previous across those same fields (MOBI-06). Built once here, not in
   // PdfWorkspace/SignToolbar, so the desktop Tab shortcut below and the
@@ -348,163 +314,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     }
   };
 
-  // Delete placed element
-  const deleteElement = (id: string) => {
-    const el = elements.find(e => e.id === id);
-    const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
-    dispatch({ type: 'DELETE_ELEMENT', payload: id });
-    recordAction('delete_mark');
-    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
-    setAnnouncement(t.removedElement);
-  };
+  useSignKeyboard({
+    dispatch, elements, activeElementId, editingElementId, fieldNavigation, enabled, logAction, setAnnouncement, messages: t,
+  });
 
-  // Global keyboard shortcuts (Escape, Undo, Delete)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape unwinds one level at a time: out of the text box first, then out
-      // of the selection and tool. Collapsing both into one press would make it
-      // impossible to go from typing to "this box is selected", which is the
-      // state Backspace-to-delete needs.
-      if (e.key === 'Escape') {
-        if (editingElementId) {
-          dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: null });
-          (document.activeElement as HTMLElement | null)?.blur();
-          setAnnouncement(t.finishedEditingHint);
-          return;
-        }
-        dispatch({ type: 'SET_TOOL', payload: null });
-        dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-        (document.activeElement as HTMLElement | null)?.blur();
-        return;
-      }
-
-      const tag = document.activeElement?.tagName;
-      const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
-
-      // Tab / Shift+Tab move field-to-field - the desktop equivalent of the
-      // phone's Next/Previous control (MOBI-06). Gated on `activeElementId`,
-      // the same tier Backspace/Delete below are on rather than requiring an
-      // open edit session: a field a single click has only selected, not yet
-      // opened for typing, is exactly the state a plain Tab into the next
-      // control would otherwise leave with no visible effect, which read as
-      // "Tab does nothing" (this fires with the caret live in the field too,
-      // since `editingElementId` set implies `activeElementId` is the same
-      // id). With nothing selected at all it does not fire, same as Enter/
-      // Backspace, so it never pre-empts the browser's native tab order while
-      // tabbing through the toolbar's own buttons. Falling through without
-      // calling preventDefault when there is nowhere left to go
-      // (hasNext/hasPrevious false) leaves Tab free to leave the field the
-      // ordinary way, same as reaching the end of any other web form.
-      //
-      // Off in fill mode (docs/sign-fill-mode.md): every fill input is a
-      // real, focusable element already in reading order, so native Tab
-      // needs no help finding the next one - this handler would otherwise
-      // fight the browser's own order with `fieldOrder.ts`'s.
-      if (!enabled && e.key === 'Tab' && activeElementId) {
-        const goingForward = !e.shiftKey;
-        if (goingForward ? fieldNavigation.hasNext : fieldNavigation.hasPrevious) {
-          e.preventDefault();
-          if (goingForward) fieldNavigation.goToNext(); else fieldNavigation.goToPrevious();
-          return;
-        }
-      }
-
-      // Enter opens an edit session on a selected text box - the keyboard's
-      // equivalent of double-clicking it, so text stays reachable without a
-      // pointer.
-      if (e.key === 'Enter' && activeElementId && !editingElementId && !isInput) {
-        const selected = elements.find(el => el.id === activeElementId);
-        if (selected?.type === 'text') {
-          e.preventDefault();
-          dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: activeElementId });
-        }
-        return;
-      }
-
-      // Delete the active element via Backspace/Delete
-      if (activeElementId && (e.key === 'Backspace' || e.key === 'Delete')) {
-        if (isInput) return;
-        e.preventDefault();
-        deleteElement(activeElementId);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-    // fieldNavigation is a plain object rebuilt every render (like
-    // useWorkspaceGestures's handlers), so listing it here re-subscribes on
-    // every render rather than risking a stale hasNext/hasPrevious closure -
-    // cheap next to what a Tab press silently doing the wrong thing would cost.
-  }, [activeElementId, editingElementId, elements, fieldNavigation, enabled]);
-
-  const copiedElementRef = useRef<EditorElement | null>(null);
-  // Handle element copy and paste actions
-  useEffect(() => {
-    const handleCopy = (e: ClipboardEvent) => {
-      const activeTag = document.activeElement?.tagName;
-      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
-        const activeInput = document.activeElement as HTMLInputElement | HTMLTextAreaElement;
-        const selStart = activeInput.selectionStart;
-        const selEnd = activeInput.selectionEnd;
-        if (selStart !== selEnd) {
-          return;
-        }
-      }
-
-      if (!activeElementId) return;
-      const elToCopy = elements.find((el) => el.id === activeElementId);
-      if (elToCopy) {
-        copiedElementRef.current = elToCopy;
-        const textRepresentation = elToCopy.type === 'text' ? elToCopy.text : `[${elToCopy.type}]`;
-        if (e.clipboardData) {
-          e.clipboardData.setData('text/plain', textRepresentation);
-        }
-        e.preventDefault();
-        setAnnouncement(t.copiedElement);
-      }
-    };
-
-    const handlePaste = (e: ClipboardEvent) => {
-      const activeTag = document.activeElement?.tagName;
-      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
-        return;
-      }
-
-      if (!copiedElementRef.current) return;
-      e.preventDefault();
-
-      const id = uniqueId();
-      const original = copiedElementRef.current;
-      const clone: EditorElement = original.type === 'line'
-        ? {
-            ...original,
-            id,
-            x1: Math.min(100, original.x1 + 4),
-            y1: Math.min(100, original.y1 + 4),
-            x2: Math.min(100, original.x2 + 4),
-            y2: Math.min(100, original.y2 + 4),
-          }
-        : {
-            ...original,
-            id,
-            left: Math.min(90, original.left + 4),
-            top: Math.min(90, original.top + 4),
-          };
-
-      dispatch({ type: 'ADD_ELEMENT', payload: clone });
-      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-      logAction('add', 'DUPLICATE_ELEMENT', original.pageIndex, formatMessage(t.duplicatedElementDescriptionTemplate, { label: signElementTypeLabel(t, original.type) }), [captureAddedElement(clone, elements.length)]);
-      setAnnouncement(t.pastedElement);
-    };
-
-    window.addEventListener('copy', handleCopy);
-    window.addEventListener('paste', handlePaste);
-    return () => {
-      window.removeEventListener('copy', handleCopy);
-      window.removeEventListener('paste', handlePaste);
-    };
-  }, [activeElementId, elements]);
+  useElementClipboard({ dispatch, elements, activeElementId, logAction, setAnnouncement, messages: t });
 
   // Shared by both export actions below: signs the PDF and hands the result to
   // `onSigned`, which decides what to do with it (share vs. plain download).
