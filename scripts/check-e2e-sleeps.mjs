@@ -20,10 +20,12 @@ export function isE2eSpec(file) {
   return /\.spec\.js$/.test(file) && (file.startsWith('e2e/') || /^src\/.*\/e2e\//.test(file));
 }
 
-// Pure: `.waitForTimeout(` call sites in one source string, comments skipped.
+// Pure: `.waitForTimeout(` and `new Promise(r => setTimeout(r, N))` sleeps in one source string, comments skipped.
 export function countSleeps(source) {
   const code = source.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
-  return (code.match(/\.waitForTimeout\(/g) ?? []).length;
+  const fixed = code.match(/\.waitForTimeout\(/g) ?? [];
+  const wrapped = code.match(/new Promise\(\s*\(?\w+\)?\s*=>\s*setTimeout\(/g) ?? [];
+  return fixed.length + wrapped.length;
 }
 
 // Pure: failed when the current count is above the record.

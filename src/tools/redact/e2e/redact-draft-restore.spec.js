@@ -27,6 +27,7 @@ async function selectRedactStyle(page, name) {
   const tool = page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name, exact: true });
   if ((await tool.getAttribute('aria-pressed')) !== 'true') await tool.click();
   await expect(tool).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
 
 async function drawRedaction(page, styleName, startRatio, endRatio) {
