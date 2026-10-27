@@ -12,6 +12,7 @@ import { englishSplitMessages, type SplitMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
@@ -55,7 +56,7 @@ export interface PdfSplitToolProps {
   quietPolicy?: QuietPolicy;
 }
 
-export default function PdfSplitTool({
+export default withIslandBoundary(function PdfSplitTool({
   messages: messagesProp,
   shellMessages,
   navigate,
@@ -380,4 +381,4 @@ export default function PdfSplitTool({
       </p>
     </BasePdfTool>
   );
-}
+});

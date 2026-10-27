@@ -1,5 +1,6 @@
 // @ts-nocheck - jsdom test of the shared island boundary (ARCH-72)
 import { render } from 'preact';
+import { useState } from 'preact/hooks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reportError = vi.fn();
@@ -67,6 +68,19 @@ describe('IslandErrorBoundary', () => {
     expect(() => render(<Boundary><Boom error={error} /></Boundary>, container)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
     window.dispatchEvent(new ErrorEvent('error', { error }));
+    expect(reportError).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports once for a throwing hook in a wrapped island, even inside another boundary', async () => {
+    const mod = await import('./IslandErrorBoundary.tsx');
+    const Boundary = mod.default;
+    const error = new Error('hook failed');
+    function Island() {
+      useState(() => { throw error; });
+      return null;
+    }
+    const Wrapped = mod.withIslandBoundary(Island);
+    expect(() => render(<Boundary><Wrapped /></Boundary>, container)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,6 +8,7 @@ import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { PHOTO_ACCEPT, PHOTO_ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShell, { FileActions, useToolShell } from '../../shell/ToolShell.tsx';
 import SortMenu from '../../shell/SortMenu.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -77,7 +78,7 @@ export interface PdfImageToPdfToolProps {
   navigate?: (href: string) => void;
 }
 
-export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp, shellMessages, navigate = (href) => { window.location.href = href; } }: PdfImageToPdfToolProps = {}) {
+export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, messages: messagesProp, shellMessages, navigate = (href) => { window.location.href = href; } }: PdfImageToPdfToolProps = {}) {
   const t: ImageToPdfMessages = { ...englishImageToPdfMessages, ...messagesProp };
   const [scanBusy, setScanBusy] = useNavigatingAway();
   const [scanFailed, setScanFailed] = useState(false);
@@ -424,4 +425,4 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
       </p>
     </BasePdfTool>
   );
-}
+});
