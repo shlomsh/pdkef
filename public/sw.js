@@ -55,10 +55,11 @@ const REQUIRED_URL = '/';
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
-// MEM-23: a request with no time limit can stall forever and hold one of the
-// lanes above; enough of them and the install never finishes. Past this limit a
-// request is aborted and its URL counts as missed like any other failure.
-const PRECACHE_FETCH_TIMEOUT_MS = 30000;
+// MEM-23: a request with no limit can stall forever and hold one of the lanes
+// above; enough of them and the install never finishes. A request that receives
+// nothing for this long is aborted and its URL counts as missed like any other
+// failure. A slow download that keeps arriving is never cut off.
+const PRECACHE_STALL_MS = 30000;
 
 // SIGN-23: non-default faces are opt-in family packs, provisioned separately and
 // not part of the app install. A successful provision stores this synthetic marker
@@ -152,23 +153,43 @@ function fetchFresh(url, signal) {
   return fetch(new Request(resolve(url), { cache: 'no-cache', signal }));
 }
 
-// MEM-23: runs `start(signal)` and gives up after PRECACHE_FETCH_TIMEOUT_MS,
-// aborting the request and rejecting even if `start` never settles (a body
-// that stalls inside cache.put). The timer is cleared as soon as it settles.
+// MEM-23: runs `start(signal, touch)` and gives up after PRECACHE_STALL_MS
+// without a `touch()`, aborting the request and rejecting even if `start` never
+// settles (a body that stalls inside cache.put). The timer is cleared as soon
+// as it settles.
 async function withPrecacheTimeout(start) {
   const controller = new AbortController();
   let timer;
+  let fail;
   const expired = new Promise((_resolve, reject) => {
+    fail = reject;
+  });
+  const touch = () => {
+    clearTimeout(timer);
     timer = setTimeout(() => {
       controller.abort();
-      reject(new Error(`Precache request timed out after ${PRECACHE_FETCH_TIMEOUT_MS} ms`));
-    }, PRECACHE_FETCH_TIMEOUT_MS);
-  });
+      fail(new Error(`Precache request stalled for ${PRECACHE_STALL_MS} ms`));
+    }, PRECACHE_STALL_MS);
+  };
+  touch();
   try {
-    return await Promise.race([start(controller.signal), expired]);
+    return await Promise.race([start(controller.signal, touch), expired]);
   } finally {
     clearTimeout(timer);
   }
+}
+
+// MEM-23: the same response, with every arriving chunk restarting the stall
+// timer. Headers are kept (the page reads Server-Timing from cached pages).
+function trackProgress(response, touch) {
+  if (!response.body) return response;
+  const body = response.body.pipeThrough(new TransformStream({
+    transform(chunk, controller) {
+      touch();
+      controller.enqueue(chunk);
+    },
+  }));
+  return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
 
 // MEM-16: only /_astro/ files are content-hashed, so their bytes never change
@@ -278,10 +299,10 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
           return;
         }
       }
-      await withPrecacheTimeout(async (signal) => {
+      await withPrecacheTimeout(async (signal, touch) => {
         const response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
-        await cache.put(url, response);
+        await cache.put(url, trackProgress(response, touch));
       });
     } catch (error) {
       if (url === REQUIRED_URL) throw error;
