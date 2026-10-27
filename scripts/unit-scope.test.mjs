@@ -130,9 +130,9 @@ describe('selectUnitTests: a core-folder change narrows, it does not force the w
   });
 
   it('src/lib/drafts/draftStore.js selects a handful of seeds, not the whole suite', () => {
-    const scope = selectUnitTests({ files: [file('src/lib/drafts/draftStore.js')], exists: () => true });
+    const scope = selectUnitTests({ files: [file('src/lib/drafts/draftStore.ts')], exists: () => true });
     expect(scope.all).toBe(false);
-    expect(scope.seeds).toContain('src/lib/drafts/draftStore.js');
+    expect(scope.seeds).toContain('src/lib/drafts/draftStore.ts');
     expect(scope.seeds).toContain('src/lib/drafts/draftStoreServiceWorkerSync.test.js');
     expect(scope.seeds).toContain('scripts/sw.test.mjs');
     // the whole-src render-call-scan rule also fires (draftStore.js is a
@@ -210,7 +210,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/layouts/HomePageLayout.astro',
       'src/content/content-pages/sign-pdf-in-your-language.yaml',
       'src/styles/editorFonts.css',
-      'src/lib/drafts/draftStore.js',
+      'src/lib/drafts/draftStore.ts',
       'public/sw.js',
       'src/tools/sign/useFormFieldRegions.ts',
       'scripts/check-editor-dependency-directions.mjs',

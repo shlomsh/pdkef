@@ -28,7 +28,7 @@ const { saveHandoffMock, takeHandoffMock } = vi.hoisted(() => ({
   saveHandoffMock: vi.fn(),
   takeHandoffMock: vi.fn(() => Promise.resolve(null)),
 }));
-vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   saveHandoff: saveHandoffMock,
   takeHandoff: takeHandoffMock,

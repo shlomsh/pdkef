@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const DRAFT_STORE_PATH = 'src/lib/drafts/draftStore.js';
+const DRAFT_STORE_PATH = 'src/lib/drafts/draftStore.ts';
 const SERVICE_WORKER_PATH = 'public/sw.js';
 
 const draftStoreSource = fs.readFileSync(path.join(process.cwd(), DRAFT_STORE_PATH), 'utf8');
@@ -90,7 +90,7 @@ describe('draftStore.js and sw.js agree on the shared IndexedDB handoff schema',
     // sw.js's own comment says this is "the same expression, retyped" rather
     // than a differently-named constant, so both sides are held to the exact
     // same template literal text (a real IndexedDB key, not just its shape).
-    const pattern = /const handoffKey = \(tool\) => `([^`]*)`;/;
+    const pattern = /const handoffKey = \(tool(?:: string)?\) => `([^`]*)`;/;
     const draftStoreValue = extractConst(draftStoreSource, DRAFT_STORE_PATH, pattern, 'handoffKey');
     const workerValue = extractConst(workerSource, SERVICE_WORKER_PATH, pattern, 'handoffKey');
 

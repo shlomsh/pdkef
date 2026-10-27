@@ -13,7 +13,7 @@ import {
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
   readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry, clearCurrentEntry,
   sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges, saveHandoff, takeHandoff,
-} from './draftStore.js';
+} from './draftStore.ts';
 
 // Structured clone (what a real IndexedDB put/get round-trips through, and
 // what fake-indexeddb faithfully emulates) copies an ArrayBuffer rather than
@@ -345,7 +345,7 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
     localStorage.clear();
     sessionStorage.clear();
     vi.stubGlobal('crypto', webcrypto);
-    // A fresh backing store per test: draftStore.js's database has no upgrade
+    // A fresh backing store per test: draftStore.ts's database has no upgrade
     // path by design (see its header comment), so a record left behind by an
     // earlier test would otherwise leak into the next one's "fresh database"
     // assumptions - revision 1, no prior work to bump past.
@@ -652,7 +652,7 @@ describe('legacy per-tool draft migration', () => {
   });
 
   async function freshStore() {
-    return import('./draftStore.js');
+    return import('./draftStore.ts');
   }
 
   it('folds a legacy single-file (Sign) draft into a fresh entry, sets the pointer, and clears the legacy keys', async () => {
@@ -792,7 +792,7 @@ describe('storage persistence request', () => {
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
     vi.resetModules();
-    const mod = await import('./draftStore.js');
+    const mod = await import('./draftStore.ts');
     await mod.saveDraft('redact', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
     await mod.saveDraft('redact', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
 
@@ -805,7 +805,7 @@ describe('storage persistence request', () => {
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
     vi.resetModules();
-    const mod = await import('./draftStore.js');
+    const mod = await import('./draftStore.ts');
     // A visitor who opens a file (cacheRecentFile, exactly what merely
     // loading a PDF does) and reads it back, but never saves any work,
     // must never trigger the request - openDb runs for both of these too.
@@ -822,7 +822,7 @@ describe('storage persistence request', () => {
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
 
     vi.resetModules();
-    const mod = await import('./draftStore.js');
+    const mod = await import('./draftStore.ts');
     const saved = await mod.saveDraft('redact', {
       fileBytes: bytes(), fileName: 'b.pdf', fileType: 'application/pdf', elements: [{ id: 'x', pageIndex: 0, type: 'blur' }],
     });
@@ -838,7 +838,7 @@ describe('storage persistence request', () => {
     });
 
     vi.resetModules();
-    const mod = await import('./draftStore.js');
+    const mod = await import('./draftStore.ts');
     const saved = await mod.saveDraft('redact', {
       fileBytes: bytes(), fileName: 'c.pdf', fileType: 'application/pdf', elements: [],
     });

@@ -298,7 +298,7 @@ describe('deriveScope', () => {
 
   it('a src/lib/ change outside the font-registry glob gives everything=true but fonts=false (ARCH-23)', () => {
     const scope = deriveScope({
-      files: ['src/lib/drafts/draftStore.js'],
+      files: ['src/lib/drafts/draftStore.ts'],
       affected: ['lib', 'tool-sign'],
       roots: ROOTS,
     });

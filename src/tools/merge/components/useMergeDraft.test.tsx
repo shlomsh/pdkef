@@ -29,7 +29,7 @@ import {
 import {
   loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
   setCurrentEntry, readCurrentEntryId,
-} from '../../../lib/drafts/draftStore.js';
+} from '../../../lib/drafts/draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../../lib/fileArrival.ts';
 import { planForFile } from '../../../lib/pagePlan.ts';
 import { flushBeforeUpdateReload, isUpdateHeld } from '../../../lib/appUpdate/updateHolds.ts';
@@ -124,7 +124,7 @@ describe('useMergeDraft', () => {
     sessionStorage.clear();
     document.documentElement.removeAttribute('data-draft-hint');
     vi.stubGlobal('crypto', webcrypto);
-    // A fresh backing store per test - draftStore.js's database has no
+    // A fresh backing store per test - draftStore.ts's database has no
     // upgrade path by design, so a record left behind by an earlier test
     // would otherwise leak into the next one's "fresh database" assumptions.
     indexedDB = new IDBFactory();

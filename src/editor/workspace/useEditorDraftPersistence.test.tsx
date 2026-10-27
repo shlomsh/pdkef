@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../lib/drafts/draftStore.js', () => ({
+vi.mock('../../lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
@@ -16,7 +16,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null)),
 }));
 
-import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
+import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.ts';
 import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../lib/fileArrival.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
