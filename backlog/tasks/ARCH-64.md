@@ -1,7 +1,7 @@
 ---
 id: "ARCH-64"
 title: "Tool-keyed types derive from ToolId"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

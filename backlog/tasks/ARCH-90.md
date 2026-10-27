@@ -1,7 +1,7 @@
 ---
 id: "ARCH-90"
 title: "Dependency overrides pin patched versions, not vulnerable ones"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

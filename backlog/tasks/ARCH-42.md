@@ -1,7 +1,7 @@
 ---
 id: "ARCH-42"
 title: "The Nx project graph is asserted acyclic in test:module-boundaries"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

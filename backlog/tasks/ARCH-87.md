@@ -1,7 +1,7 @@
 ---
 id: "ARCH-87"
 title: "CSS Modules with no importer and classes never referenced fail the class check"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

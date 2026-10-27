@@ -1,7 +1,7 @@
 ---
 id: "ARCH-91"
 title: "The runtime-scope zod alert has an override or an owned, expiring exception"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

@@ -1,7 +1,7 @@
 ---
 id: "ARCH-76"
 title: "Ratchet limits live in one committed file that CI refuses to raise"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

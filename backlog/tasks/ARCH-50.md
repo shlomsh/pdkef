@@ -1,7 +1,7 @@
 ---
 id: "ARCH-50"
 title: "File and function length are ratchets that only shrink"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"
