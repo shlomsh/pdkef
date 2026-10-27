@@ -7,7 +7,6 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import type { LineElement, RectangleElement, WhiteoutElement, EllipseElement } from '../../../editor/model/editorModel.ts';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 
 const noop = () => {};
 const base = { id: 'e1', pageIndex: 0 };
@@ -62,7 +61,7 @@ describe('SVG stroke attributes render as kebab-case', () => {
 describe('DraggableWrapper dragging', () => {
   function renderInPage(element: RectangleElement | EllipseElement | LineElement | WhiteoutElement, onChange: () => void) {
     const page = document.createElement('div');
-    page.className = workspaceStyles['page-wrapper'];
+    page.setAttribute('data-page-wrapper', '');
     document.body.appendChild(page);
     act(() => {
       render(

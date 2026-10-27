@@ -5,9 +5,7 @@ import FillLayer from './FillLayer.tsx';
 import FocusProxy from './FocusProxy.tsx';
 import { FillContext, FILL_OFF, useTextFill } from './FillContext.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 // Asserts the aimed and proxy state classes.
-import styles from './fill.module.css';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR, textFillKey } from '../../lib/fill/fillTypes.ts';
 import type { FillItem, FillSlot, EnterKeyHint } from '../../lib/fill/fillTypes.ts';
 
@@ -72,7 +70,7 @@ function requireAll<T extends Element>(parent: ParentNode, selector: string): T[
 // geometry-test rule).
 function mountHost(vnode: ComponentChildren): HTMLDivElement {
   const el = document.createElement('div');
-  el.className = workspaceStyles['page-wrapper'];
+  el.setAttribute('data-page-wrapper', '');
   el.getBoundingClientRect = () => new DOMRect(0, 0, 600, 800);
   document.body.appendChild(el);
   act(() => {
@@ -157,8 +155,8 @@ describe('FillLayer component', () => {
 
     const a = requireElement<HTMLInputElement>(host, 'input[data-fill-key="slot:a"]');
     const b = requireElement<HTMLInputElement>(host, 'input[data-fill-key="slot:b"]');
-    expect(a.classList.contains(styles.aimed)).toBe(false);
-    expect(b.classList.contains(styles.aimed)).toBe(true);
+    expect(a.hasAttribute('data-aimed')).toBe(false);
+    expect(b.hasAttribute('data-aimed')).toBe(true);
   });
 
   describe('Enter moves focus by key', () => {
@@ -271,7 +269,7 @@ describe('FocusProxy component', () => {
     const input = requireElement<HTMLInputElement>(host, 'input');
     expect(input.tabIndex).toBe(-1);
     expect(input.getAttribute('aria-hidden')).toBe('true');
-    expect(input.classList.contains(styles.proxy)).toBe(true);
+    expect(input.hasAttribute('data-fill-proxy')).toBe(true);
     expect(proxyRef.current).toBe(input);
   });
 });

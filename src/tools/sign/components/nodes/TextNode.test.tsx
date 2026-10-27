@@ -2,9 +2,7 @@ import { render, type ComponentChildren, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RawTextNode from './TextNode.tsx';
-// Fixture parent: production finds the page with closest() on this class, so the test must carry it.
-import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
-// Asserts the textarea state classes (inert, fill) and builds a toolbar fixture with the actions class production looks up.
+// Asserts the textarea's inert and fill state classes (styling contract); the toolbar fixture uses a data attribute.
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import { WYSIWYG_STRING_CASES } from '../../../../test/support/fixtures/wysiwygStrings.js';
 import { TextFillContext } from '../fill/FillContext.tsx';
@@ -55,7 +53,7 @@ function requireElement<T extends Element>(parent: ParentNode, selector: string)
 
 function mount(vnode: ComponentChildren): HTMLDivElement {
   const host = document.createElement('div');
-  host.className = workspaceStyles['page-wrapper'];
+  host.setAttribute('data-page-wrapper', '');
   host.getBoundingClientRect = () => new DOMRect(0, 0, 600, 800);
   document.body.appendChild(host);
   act(() => {
@@ -407,7 +405,7 @@ describe('TextNode component', () => {
 
     // Create a mock toolbar element and focus it
     const toolbar = document.createElement('div');
-    toolbar.className = elementStyles.actions;
+    toolbar.setAttribute('data-editor-actions', '');
     const button = document.createElement('button');
     toolbar.appendChild(button);
     host.appendChild(toolbar);
