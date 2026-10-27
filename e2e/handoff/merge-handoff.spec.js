@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /* MERGE-14: the quiet hand-off row under Download. "Compress" saves the
    merged blob as a hand-off (draftStore.saveHandoff) and navigates to
@@ -15,13 +15,6 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    `navigate()` (window.location.href) after saving the hand-off, just
    without an <a href> to assert against - and "Split" was dropped
    entirely on Shlomi's decision, so it is not covered here. */
-
-async function makePdfBuffer(label) {
-  const document = await PDFDocument.create();
-  document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
 
 test('Compress hands the merged file to Compress with the identity row naming it', async ({ page }) => {
   await page.goto('/merge/');

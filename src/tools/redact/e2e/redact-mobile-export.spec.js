@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 // EditorExportActions.tsx (shared by Sign and Redact) drops the sticky toolbar's
 // Download below 920px once Share exists (`.desktop-download`), unless the tool
@@ -10,13 +10,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 // (see CLAUDE.md's "some editor bugs require a browser, not jsdom"). This is the
 // one guard that does.
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Redact mobile export fixture', { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Redact mobile export fixture' }] });
 
 async function openRedactTool(page) {
   // Native Share is not exposed in every browser context. Supply its

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /**
  * Real drag-to-reorder, then undo/redo, in a real browser.
@@ -17,11 +18,7 @@ import { readFile } from 'node:fs/promises';
  * own idea of the visible page order.
  */
 
-async function makePdfBuffer(pageCount) {
-  const document = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) document.addPage([300, 400]);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (pageCount) => buildPdf(null, { title: false, size: [300, 400], pages: pageCount });
 
 function cells(page) {
   return page.locator('ul[data-page-grid] > li[data-key]');
