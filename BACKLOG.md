@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 89 live: 15 up next, 12 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 16 up next, 12 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -118,6 +118,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-100 | P1 | [ARCH-100](backlog/tasks/ARCH-100.md) · Island tests wait for what they assert, not for a fixed sleep | In progress |
 | ARCH-83 | P2 | [ARCH-83](backlog/tasks/ARCH-83.md) · Every CI run reports how far affected-scope narrowed it | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 
