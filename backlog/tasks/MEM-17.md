@@ -4,8 +4,6 @@ title: "Service worker registration waits for the island's hydration and an idle
 status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "now"
-order: 3
 depends_on: []
 ---
 

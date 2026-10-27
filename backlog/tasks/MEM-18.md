@@ -4,8 +4,6 @@ title: "CI budgets each page's precache closure and keeps tool-specific assets o
 status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 1
 depends_on: ["MEM-15"]
 ---
 

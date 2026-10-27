@@ -4,8 +4,6 @@ title: "A new build's cache carries every unchanged content-hashed file over fro
 status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
