@@ -33,6 +33,23 @@ export interface TapGestureSample {
   scrollTop: number;
 }
 
+/**
+ * Samples a touch plus the visual viewport around it. `scrollTop` is the
+ * caller's own reading (each surface scrolls a different container).
+ */
+export function readTapSample(touch: Touch, time: number, scrollTop: number): TapGestureSample {
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+  return {
+    x: touch.clientX,
+    y: touch.clientY,
+    time,
+    viewportScale: vv?.scale ?? 1,
+    viewportOffsetLeft: vv?.offsetLeft ?? 0,
+    viewportOffsetTop: vv?.offsetTop ?? 0,
+    scrollTop,
+  };
+}
+
 export interface TapClassifierOptions {
   /**
    * How far the touch may move (in *screen* points - CSS px already

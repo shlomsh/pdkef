@@ -2,6 +2,7 @@ import { useRef } from 'preact/hooks';
 import {
   classifyTouchTap,
   isBlankAreaTarget,
+  readTapSample,
   type TapGestureSample,
 } from '../../lib/gestures/tapOutsideDeselect.ts';
 
@@ -52,7 +53,7 @@ export function useTapOutsideDeselect({
     }
     const touch = e.changedTouches[0];
     if (!touch) return;
-    startRef.current = readTapSample(touch, Date.now());
+    startRef.current = readTapSample(touch, Date.now(), readScrollTop());
     idRef.current = touch.identifier;
     multiRef.current = false;
   };
@@ -64,7 +65,7 @@ export function useTapOutsideDeselect({
     const endTouch = Array.from(e.changedTouches).find((t) => t.identifier === trackedId);
     if (!endTouch) return; // another finger lifted; the tracked one is still down
     const multiTouch = multiRef.current;
-    const end = readTapSample(endTouch, Date.now());
+    const end = readTapSample(endTouch, Date.now(), readScrollTop());
     reset();
 
     if (e.defaultPrevented) return; // some handler below already owned this tap
@@ -77,15 +78,4 @@ export function useTapOutsideDeselect({
   return { onClick, onTouchStart, onTouchEnd, onTouchCancel: reset };
 }
 
-function readTapSample(touch: Touch, time: number): TapGestureSample {
-  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-  return {
-    x: touch.clientX,
-    y: touch.clientY,
-    time,
-    viewportScale: vv?.scale ?? 1,
-    viewportOffsetLeft: vv?.offsetLeft ?? 0,
-    viewportOffsetTop: vv?.offsetTop ?? 0,
-    scrollTop: document.scrollingElement?.scrollTop || 0,
-  };
-}
+const readScrollTop = () => document.scrollingElement?.scrollTop || 0;
