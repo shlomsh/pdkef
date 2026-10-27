@@ -1,3 +1,4 @@
+// @ts-check
 import { MAX_CANVAS_AREA, MAX_CANVAS_SIDE, clampScaleToCanvas } from '../../../lib/canvasLimits.js';
 import { renderPageToCanvas } from '../../../lib/renderPage.js';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
@@ -13,10 +14,16 @@ export { MAX_CANVAS_AREA, MAX_CANVAS_SIDE };
  * shared scale, lowered so the canvas stays inside the browser's limits. Past
  * them toDataURL returns an empty "data:," and the picture is lost.
  */
+/**
+ * @param {number} width
+ * @param {number} height
+ * @returns {number}
+ */
 export function rasterScaleFor(width, height) {
   return clampScaleToCanvas(width, height, RASTER_SCALE);
 }
 
+/** @param {string} base64 */
 const base64ToBytes = (base64) => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
 /**
@@ -24,6 +31,8 @@ const base64ToBytes = (base64) => Uint8Array.from(atob(base64), (c) => c.charCod
  * viewport)` runs after the page render and before encoding, so a caller can
  * draw over the picture.
  *
+ * @param {import('pdfjs-dist').PDFPageProxy} pdfjsPage
+ * @param {{ paint?: (ctx: CanvasRenderingContext2D | null, viewport: import('pdfjs-dist').PageViewport, canvas: HTMLCanvasElement) => void }} [options]
  * @returns {Promise<{ jpeg: Uint8Array, width: number, height: number }>}
  *   width and height are the page's size in PDF points.
  */
@@ -43,7 +52,13 @@ export async function rasterizePageToJpeg(pdfjsPage, { paint } = {}) {
   return { jpeg, width, height };
 }
 
-/** Adds a page of the given size (points) holding only the JPEG, edge to edge. */
+/** Adds a page of the given size (points) holding only the JPEG, edge to edge.
+ * @param {import('@cantoo/pdf-lib').PDFDocument} newDoc
+ * @param {Uint8Array | ArrayBuffer} jpegBytes
+ * @param {number} width
+ * @param {number} height
+ * @returns {Promise<import('@cantoo/pdf-lib').PDFPage>}
+ */
 export async function buildImageOnlyPage(newDoc, jpegBytes, width, height) {
   const page = newDoc.addPage([width, height]);
   page.drawImage(await newDoc.embedJpg(jpegBytes), { x: 0, y: 0, width, height });

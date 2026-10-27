@@ -1,3 +1,4 @@
+// @ts-check
 import { tokenize, multiplyMatrix, applyMatrix, transformedUnitBox } from './contentStream.js';
 import { buildFontTable, decodeCodes, FALLBACK_ASCENT, FALLBACK_DESCENT } from './pdfFonts.js';
 import { buildXObjectTable } from './xobjectTable.js';
@@ -15,19 +16,114 @@ import {
   operandNumber,
 } from './textState.js';
 
+/**
+ * @typedef {import('./contentStream.js').Token} Token
+ * @typedef {Extract<Token, { type: 'operator' }>} OperatorToken
+ * @typedef {import('./contentStream.js').Matrix} Matrix
+ * @typedef {import('./contentStream.js').Box} Box
+ * @typedef {import('./pdfFonts.js').FontEntry} FontEntry
+ * @typedef {import('./xobjectTable.js').XObjectEntry} XObjectEntry
+ * @typedef {import('./textState.js').TextState} TextState
+ * @typedef {import('./pdkefMark.js').PdkefMark} PdkefMark
+ * @typedef {{ start: number, end: number }} Range byte range in the decoded stream
+ * @typedef {[number, number]} Point
+ */
+
+/**
+ * One deletable unit the walk reports: an image placement, a show-text operation or a `/PDkef` mark.
+ * `id` and `rect` are added by the page walk once every unit is known.
+ *
+ * @typedef {object} PageObject
+ * @property {'text' | 'image' | 'mark'} kind
+ * @property {number} pageIndex
+ * @property {string[]} formPath `PDFRef` tags of the Forms down to the holding stream, outermost first
+ * @property {Box} bbox page space
+ * @property {number} start byte offset into the holding stream
+ * @property {number} end
+ * @property {string | null} [name] image: the `/Name` operand of the `Do`
+ * @property {string} [imageRef] image: "12 0 R"
+ * @property {string[]} [imageRefs] mark: the images it drew
+ * @property {string} [replacement] text: the advance-only `TJ` that stands in for it
+ * @property {Range[]} [strip] text: inline property dicts that may hold a copy of the text
+ * @property {Array<{ start: number, end: number, replacement: string | undefined }>} [parts] a joined text unit's ops
+ * @property {string} [id]
+ * @property {{ left: number, top: number, width: number, height: number }} [rect] percentages, top-left origin
+ */
+
+/** A `BT ... ET` span, reported separately from the units.
+ * @typedef {{ formPath: string[], bbox: Box, start: number, end: number }} TextBlock
+ */
+
+/**
+ * What the page walk shares with every stream it reaches, nested Forms included.
+ *
+ * @typedef {object} WalkEnv
+ * @property {import('@cantoo/pdf-lib').PDFContext} context
+ * @property {number} pageIndex
+ * @property {PageObject[]} objects
+ * @property {TextBlock[]} blocks
+ * @property {PdkefMark} mark
+ * @property {(form: { ref: import('@cantoo/pdf-lib').PDFRef, stream: import('@cantoo/pdf-lib').PDFStream }, resources: import('@cantoo/pdf-lib').PDFDict | undefined, ctm: Matrix, formPath: string[]) => void} walkForm
+ */
+
+/**
+ * The walk's own mutable state, read and updated by the operator handlers below.
+ *
+ * @typedef {WalkEnv & {
+ *   streamResources: import('@cantoo/pdf-lib').PDFDict | undefined,
+ *   baseCtm: Matrix,
+ *   formPath: string[],
+ *   key: string,
+ *   fonts: Map<string, FontEntry>,
+ *   xobjects: Map<string, XObjectEntry>,
+ *   ctm: Matrix,
+ *   ctmStack: Matrix[],
+ *   operands: Token[],
+ *   lineWidth: number,
+ *   lineWidthStack: number[],
+ *   pathPoints: Point[],
+ *   sequences: Array<{ strip: Range | null }>,
+ *   ts: TextState,
+ *   inText: boolean,
+ *   textStart: number,
+ *   runMin: Point | null,
+ *   runMax: Point | null,
+ *   opMin: Point | null,
+ *   opMax: Point | null,
+ *   opShift: number,
+ *   opFrom: Point,
+ *   pending: Array<PageObject & { run: import('./textRunJoin.js').Run }>,
+ *   blockVertical: boolean,
+ * }} Walk
+ */
+
 // The families share no operator, so the first that takes one is the only that could.
 const OPERATOR_FAMILIES = [graphicsOperator, pathOperator, markedContentOperator, xobjectOperator, textOperator];
 
-/** A number as a content stream may write it: plain decimal, never exponent notation. */
+/** A number as a content stream may write it: plain decimal, never exponent notation.
+ * @param {number} n
+ */
 const pdfNumber = (n) => String(Number(n.toFixed(4)));
 
+/**
+ * @param {Point} min
+ * @param {Point} max
+ * @returns {Box}
+ */
 const rectOf = (min, max) => ({ x: min[0], y: min[1], width: max[0] - min[0], height: max[1] - min[1] });
 
-/** The smallest [min, max] corner pair holding the current pair (when there is one) and `box`. */
+/** The smallest [min, max] corner pair holding the current pair (when there is one) and `box`.
+ * @param {Point | null} min
+ * @param {Point | null} max
+ * @param {Box} box
+ * @returns {[Point, Point]}
+ */
 function growCorners(min, max, box) {
+  /** @type {Point} */
   const lo = [box.x, box.y];
+  /** @type {Point} */
   const hi = [box.x + box.width, box.y + box.height];
-  return min ? [
+  return min && max ? [
     [Math.min(min[0], lo[0]), Math.min(min[1], lo[1])],
     [Math.max(max[0], hi[0]), Math.max(max[1], hi[1])],
   ] : [lo, hi];
@@ -39,16 +135,14 @@ function growCorners(min, max, box) {
  * in one mutable `walk` record that the operator handlers below read and update.
  *
  * @param {Uint8Array} streamBytes decoded content of the holding stream
- * @param {object|undefined} streamResources
- * @param {number[]} baseCtm matrix mapping this stream's space to the page
+ * @param {import('@cantoo/pdf-lib').PDFDict | undefined} streamResources
+ * @param {Matrix} baseCtm matrix mapping this stream's space to the page
  * @param {string[]} formPath
- * @param {{
- *   context: object, pageIndex: number, objects: Array, blocks: Array, mark: object,
- *   walkForm: (form: object, resources: object|undefined, ctm: number[], formPath: string[]) => void,
- * }} env what the page walk shares with every stream it reaches, nested Forms included
+ * @param {WalkEnv} env what the page walk shares with every stream it reaches, nested Forms included
  */
 export function walkContentStream(streamBytes, streamResources, baseCtm, formPath, env) {
   const tokens = tokenize(streamBytes);
+  /** @type {Walk} */
   const walk = {
     ...env,
     streamResources,
@@ -102,13 +196,22 @@ export function walkContentStream(streamBytes, streamResources, baseCtm, formPat
   }
 }
 
+/**
+ * @param {Walk} walk
+ * @param {number} index
+ */
 const num = (walk, index) => operandNumber(walk.operands, index);
+/** @param {Walk} walk */
 const lastNum = (walk) => num(walk, walk.operands.length - 1);
 
 /** A dict a show op sits in is read when the op runs: a BDC can open and close inside BT..ET. */
-const openStrips = (walk) => walk.sequences.filter((s) => s.strip).map((s) => s.strip);
+/** @param {Walk} walk */
+const openStrips = (walk) => walk.sequences.flatMap((s) => (s.strip ? [s.strip] : []));
 
-/** Every unit this stream reports goes through here, so a rule about which units a page offers lives in one place. */
+/** Every unit this stream reports goes through here, so a rule about which units a page offers lives in one place.
+ * @param {Walk} walk
+ * @param {PageObject} object
+ */
 function emit(walk, object) {
   if (object.kind === 'text') {
     const strip = unionStrips([object.strip, openStrips(walk)]);
@@ -121,7 +224,11 @@ function emit(walk, object) {
   } else walk.objects.push(object);
 }
 
-/** `q Q cm`. */
+/** `q Q cm`.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ * @returns {boolean} whether this family took the operator
+ */
 function graphicsOperator(walk, token) {
   switch (token.value) {
     case 'q':
@@ -140,11 +247,17 @@ function graphicsOperator(walk, token) {
   }
 }
 
+/**
+ * @param {Walk} walk
+ * @param {number[]} coords
+ */
 const notePoints = (walk, ...coords) => {
   for (let i = 0; i + 1 < coords.length; i += 2) walk.pathPoints.push(applyMatrix(walk.ctm, coords[i], coords[i + 1]));
 };
 
-/** A painted path folds into the open mark, stroke width included; outside a mark it is dropped. */
+/** A painted path folds into the open mark, stroke width included; outside a mark it is dropped.
+ * @param {Walk} walk
+ */
 function paintPath(walk) {
   const { pathPoints, ctm } = walk;
   if (walk.mark.open && pathPoints.length) {
@@ -162,8 +275,13 @@ function paintPath(walk) {
   walk.pathPoints = [];
 }
 
-/** Path construction and painting: only their extent matters, and only inside a mark. */
+/** Path construction and painting: only their extent matters, and only inside a mark.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ * @returns {boolean} whether this family took the operator
+ */
 function pathOperator(walk, token) {
+  /** @param {number} index */
   const n = (index) => num(walk, index);
   switch (token.value) {
     case 'w':
@@ -192,7 +310,10 @@ function pathOperator(walk, token) {
   }
 }
 
-/** `BMC`/`BDC`: opens a sequence, and a `/PDkef` one opens a mark when none is open. */
+/** `BMC`/`BDC`: opens a sequence, and a `/PDkef` one opens a mark when none is open.
+ * @param {Walk} walk
+ * @param {string} op
+ */
 function openSequence(walk, op) {
   const { operands, mark } = walk;
   const tag = operands[operands.length - (op === 'BMC' ? 1 : 2)];
@@ -204,7 +325,10 @@ function openSequence(walk, op) {
   }
 }
 
-/** `EMC`: closes a sequence, and the mark's last one turns what it drew into one unit. */
+/** `EMC`: closes a sequence, and the mark's last one turns what it drew into one unit.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ */
 function closeSequence(walk, token) {
   const { mark, objects, formPath } = walk;
   walk.sequences.pop();
@@ -212,7 +336,7 @@ function closeSequence(walk, token) {
   const { min, max, units, drawsForm, start: markStart, imageRefs } = mark;
   Object.assign(mark, closedMark());
   // A mark that drew a Form could not be deleted whole: the Form's content would stay.
-  if (drawsForm || !min) {
+  if (drawsForm || !min || !max) {
     objects.push(...units);
     return;
   }
@@ -228,7 +352,11 @@ function closeSequence(walk, token) {
   });
 }
 
-/** `BMC BDC EMC`. */
+/** `BMC BDC EMC`.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ * @returns {boolean} whether this family took the operator
+ */
 function markedContentOperator(walk, token) {
   switch (token.value) {
     case 'BMC':
@@ -243,13 +371,17 @@ function markedContentOperator(walk, token) {
   }
 }
 
-/** `Do`: an image is a unit; a Form is walked in place. */
+/** `Do`: an image is a unit; a Form is walked in place.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ * @returns {boolean} whether this family took the operator
+ */
 function xobjectOperator(walk, token) {
   if (token.value !== 'Do') return false;
   const name = walk.operands[walk.operands.length - 1];
   const xobjectKey = name?.type === 'name' ? `/${name.value}` : null;
   const entry = xobjectKey ? walk.xobjects.get(xobjectKey) : undefined;
-  if (entry?.isImage) {
+  if (entry?.isImage && name) {
     // Span covers the `/Name` operand as well as `Do`, so no orphan name
     // is left behind. The preceding `cm` stays: it sits inside the
     // enclosing q/Q and is undone by the `Q` regardless.
@@ -270,13 +402,19 @@ function xobjectOperator(walk, token) {
   return true;
 }
 
-/** Grows the text object's run box and the show operation's box to hold `box`. */
+/** Grows the text object's run box and the show operation's box to hold `box`.
+ * @param {Walk} walk
+ * @param {Box} box
+ */
 function noteBox(walk, box) {
   [walk.runMin, walk.runMax] = growCorners(walk.runMin, walk.runMax, box);
   [walk.opMin, walk.opMax] = growCorners(walk.opMin, walk.opMax, box);
 }
 
-/** The glyphs of one shown string: each grows the boxes and moves the cursor. */
+/** The glyphs of one shown string: each grows the boxes and moves the cursor.
+ * @param {Walk} walk
+ * @param {Uint8Array} bytesOfString
+ */
 function showString(walk, bytesOfString) {
   const { font, fontSize, rise } = walk.ts;
   const ascent = (font?.ascent ?? FALLBACK_ASCENT) * fontSize + rise;
@@ -307,11 +445,16 @@ function showString(walk, bytesOfString) {
 /**
  * Ends one show operation: a unit when it showed a glyph. `prefix` is what a `'` or `"` does before
  * showing (it moves the line and, for `"`, sets spacing), which the replacement must repeat.
+ *
+ * @param {Walk} walk
+ * @param {Token} firstOperand
+ * @param {OperatorToken} token
+ * @param {string[]} prefix
  */
 function endShow(walk, firstOperand, token, prefix) {
   const { ts } = walk;
   if (ts.font?.vertical) walk.blockVertical = true;
-  if (walk.opMin) {
+  if (walk.opMin && walk.opMax) {
     const trm = multiplyMatrix(ts.tm, walk.ctm);
     const scale = ts.fontSize * ts.horizontalScale;
     const advance = scale ? `[${pdfNumber((-walk.opShift * 1000) / scale)}] TJ` : '';
@@ -339,12 +482,20 @@ function endShow(walk, firstOperand, token, prefix) {
   walk.opShift = 0;
 }
 
+/**
+ * @param {Token | undefined} token
+ * @returns {token is Extract<Token, { type: 'string' | 'hexstring' }>}
+ */
 const isString = (token) => token?.type === 'string' || token?.type === 'hexstring';
 
-/** `Tj`, `'` and `"`. */
+/** `Tj`, `'` and `"`.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ */
 function showText(walk, token) {
   const op = token.value;
   const { operands } = walk;
+  /** @type {string[]} */
   const prefix = [];
   if (op !== 'Tj') walk.ts = moveToNextLine(walk.ts);
   if (op === '"') {
@@ -358,7 +509,10 @@ function showText(walk, token) {
   endShow(walk, operands[operands.length - (op === '"' ? 3 : 1)] ?? token, token, prefix);
 }
 
-/** `TJ`: strings and the kerns between them. */
+/** `TJ`: strings and the kerns between them.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ */
 function showTextArray(walk, token) {
   const arr = walk.operands[walk.operands.length - 1];
   walk.opFrom = applyMatrix(multiplyMatrix(walk.ts.tm, walk.ctm), 0, 0);
@@ -377,7 +531,10 @@ function showTextArray(walk, token) {
   endShow(walk, arr ?? token, token, []);
 }
 
-/** `ET`: the block is reported, and its units are offered joined, or whole when the font is vertical. */
+/** `ET`: the block is reported, and its units are offered joined, or whole when the font is vertical.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ */
 function endTextObject(walk, token) {
   if (walk.inText && walk.runMin && walk.runMax) {
     const block = { formPath: walk.formPath, bbox: rectOf(walk.runMin, walk.runMax), start: walk.textStart, end: token.end };
@@ -389,7 +546,11 @@ function endTextObject(walk, token) {
   walk.inText = false;
 }
 
-/** Text objects, showing, and (through the shared reducer) every text-state operator. */
+/** Text objects, showing, and (through the shared reducer) every text-state operator.
+ * @param {Walk} walk
+ * @param {OperatorToken} token
+ * @returns {boolean} whether this family took the operator
+ */
 function textOperator(walk, token) {
   switch (token.value) {
     case 'BT':

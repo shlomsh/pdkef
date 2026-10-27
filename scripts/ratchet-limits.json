@@ -7,6 +7,11 @@
   "e2eSleeps": {
     "waitForTimeout": 44
   },
+  "jsFiles": {
+    "src/editor": 29,
+    "src/lib": 29,
+    "src/shell": 1
+  },
   "size": {
     "fileLines": {
       "src/data/tools.js": 1030,

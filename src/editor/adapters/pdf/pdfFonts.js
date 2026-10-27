@@ -1,3 +1,4 @@
+// @ts-check
 import {
   PDFName,
   PDFArray,
@@ -5,7 +6,22 @@ import {
   StandardFontEmbedder,
   decodePDFRawStream,
 } from '@cantoo/pdf-lib';
-import { lookupDict, numberAt } from './dictReads.js';
+import { lookupDict, numberAt, numberOf, nameOf } from './dictReads.js';
+
+/**
+ * What the walk needs of one font resource to advance the text cursor.
+ * @typedef {object} FontEntry
+ * @property {boolean} twoByte codes are two bytes (Type0)
+ * @property {boolean} vertical vertical writing mode
+ * @property {Map<number, number>} widths per-code width, 1/1000 em (glyph space for Type3)
+ * @property {number} defaultWidth width of a code outside `widths`
+ * @property {number} widthScale glyph-space to text-space scale (0.001, or Type3's /FontMatrix)
+ * @property {Map<number, string>} toUnicode code -> string from /ToUnicode
+ * @property {boolean} isZapfDingbats
+ * @property {'wingdings' | 'wingdings2' | undefined} symbolFamily
+ * @property {number} ascent as a fraction of the font size
+ * @property {number} descent as a fraction of the font size
+ */
 
 /** Default vertical extent as a fraction of font size, when the font omits them. */
 export const FALLBACK_ASCENT = 0.75;
@@ -14,6 +30,9 @@ export const FALLBACK_DESCENT = -0.25;
 /**
  * The Wingdings family a BaseFont names, or undefined: the `/ABCDEE+` subset tag, `#20` escapes and a
  * `,Bold` style are not part of it.
+ *
+ * @param {string} baseFont
+ * @returns {'wingdings' | 'wingdings2' | undefined}
  */
 function symbolFontFamily(baseFont) {
   const name = baseFont
@@ -33,14 +52,19 @@ function symbolFontFamily(baseFont) {
  *
  * Only `bfchar` and `bfrange` are handled. A miss means the code is not taken
  * for a checkbox.
+ *
+ * @param {Uint8Array | undefined} bytes
+ * @returns {Map<number, string>}
  */
 function parseToUnicode(bytes) {
+  /** @type {Map<number, string>} */
   const map = new Map();
   if (!bytes) return map;
 
   let text = '';
   for (let i = 0; i < bytes.length; i += 1) text += String.fromCharCode(bytes[i]);
 
+  /** @param {string} hex */
   const toStr = (hex) => {
     let out = '';
     for (let i = 0; i + 3 < hex.length + 1; i += 4) {
@@ -54,7 +78,7 @@ function parseToUnicode(bytes) {
   for (const block of charBlocks) {
     const pairs = block.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/g) || [];
     for (const pair of pairs) {
-      const [, src, dst] = pair.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/);
+      const [, src = '', dst = ''] = pair.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/) ?? [];
       map.set(parseInt(src, 16), toStr(dst));
     }
   }
@@ -64,9 +88,9 @@ function parseToUnicode(bytes) {
     const simple =
       block.match(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/g) || [];
     for (const entry of simple) {
-      const [, lo, hi, dst] = entry.match(
+      const [, lo = '', hi = '', dst = ''] = entry.match(
         /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]*)>/,
-      );
+      ) ?? [];
       const start = parseInt(lo, 16);
       const end = parseInt(hi, 16);
       const base = parseInt(dst, 16);
@@ -87,16 +111,24 @@ const STANDARD_14 = new Set([
   'Symbol', 'ZapfDingbats',
 ]);
 
-/** A Type1/TrueType font's name without its `ABCDEF+` subset tag, when it is one of the standard 14. */
+/** A Type1/TrueType font's name without its `ABCDEF+` subset tag, when it is one of the standard 14.
+ * @param {string} baseFont
+ * @returns {string | undefined}
+ */
 function standardFontName(baseFont) {
   const name = baseFont.replace(/^\//, '').replace(/^[A-Z]{6}\+/, '');
   return STANDARD_14.has(name) ? name : undefined;
 }
 
-/** The /Differences of an /Encoding dictionary as code -> glyph name. */
+/** The /Differences of an /Encoding dictionary as code -> glyph name.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFObject | undefined} encoding
+ * @returns {Map<number, string>}
+ */
 function readDifferences(context, encoding) {
+  /** @type {Map<number, string>} */
   const names = new Map();
-  const differences = context.lookup(encoding?.get?.(PDFName.of('Differences')));
+  const differences = context.lookup(/** @type {import('@cantoo/pdf-lib').PDFDict | undefined} */ (encoding)?.get?.(PDFName.of('Differences')));
   if (!(differences instanceof PDFArray)) return names;
   let code = 0;
   for (let i = 0; i < differences.size(); i += 1) {
@@ -104,8 +136,8 @@ function readDifferences(context, encoding) {
     if (item instanceof PDFName) {
       names.set(code, item.asString().slice(1));
       code += 1;
-    } else if (typeof item?.asNumber === 'function') {
-      code = item.asNumber();
+    } else if (numberOf(item) !== undefined) {
+      code = /** @type {number} */ (numberOf(item));
     }
   }
   return names;
@@ -115,17 +147,24 @@ function readDifferences(context, encoding) {
  * Per-code widths (1/1000 em) of a standard-14 font from the AFM metrics pdf-lib ships. A code's
  * glyph is its /Differences name, else the built-in name (Symbol, ZapfDingbats) or the WinAnsi
  * name, which is what StandardEncoding and MacRoman share for printable ASCII.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {string} name
+ * @param {import('@cantoo/pdf-lib').PDFObject | undefined} encoding
+ * @returns {Map<number, number>}
  */
 function standardFontWidths(context, name, encoding) {
-  const embedder = StandardFontEmbedder.for(name);
+  const embedder = StandardFontEmbedder.for(/** @type {Parameters<typeof StandardFontEmbedder.for>[0]} */ (name));
   const { font } = embedder;
   const differences = readDifferences(context, encoding);
   // The embedder's own encoding table: code -> glyph name for WinAnsi, Symbol and ZapfDingbats.
+  /** @type {Map<number, string>} */
   const builtIn = new Map();
   for (const codePoint of embedder.encoding.supportedCodePoints) {
     const { code, name: glyph } = embedder.encoding.encodeUnicodeCodePoint(codePoint);
     if (!builtIn.has(code)) builtIn.set(code, glyph);
   }
+  /** @type {Map<number, number>} */
   const widths = new Map();
   for (let code = 0; code < 256; code += 1) {
     const glyph = differences.get(code) ?? builtIn.get(code);
@@ -135,37 +174,45 @@ function standardFontWidths(context, name, encoding) {
   return widths;
 }
 
-/** True when an /Encoding CMap stream declares vertical writing. */
+/** True when an /Encoding CMap stream declares vertical writing.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFObject | undefined} encoding
+ * @returns {boolean}
+ */
 function isVerticalCMap(context, encoding) {
   if (!(encoding instanceof PDFStream)) return false;
   if (numberAt(context, encoding.dict, 'WMode') === 1) return true;
   try {
     return /\/WMode\s+1\s+def/.test(
-      new TextDecoder('latin1').decode(decodePDFRawStream(encoding).decode()),
+      new TextDecoder('latin1').decode(decodePDFRawStream(/** @type {import('@cantoo/pdf-lib').PDFRawStream} */ (encoding)).decode()),
     );
   } catch { // expected: an undecodable CMap stream is simply not vertical
     return false;
   }
 }
 
-/** Every `[first [w1 w2 ...]]` and `[first last w]` entry of a CIDFont /W array, into `widths`. */
+/** Every `[first [w1 w2 ...]]` and `[first last w]` entry of a CIDFont /W array, into `widths`.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFArray} w
+ * @param {Map<number, number>} widths
+ */
 function readCidWidths(context, w, widths) {
   let i = 0;
   while (i < w.size()) {
-    const first = context.lookup(w.get(i))?.asNumber?.();
+    const first = numberOf(context.lookup(w.get(i))) ?? NaN;
     const second = context.lookup(w.get(i + 1));
     if (second instanceof PDFArray) {
       // `c [w1 w2 ...]`: consecutive codes starting at c.
       for (let k = 0; k < second.size(); k += 1) {
-        const width = context.lookup(second.get(k))?.asNumber?.();
-        if (Number.isFinite(width)) widths.set(first + k, width);
+        const width = numberOf(context.lookup(second.get(k)));
+        if (width !== undefined && Number.isFinite(width)) widths.set(first + k, width);
       }
       i += 2;
     } else {
       // `cFirst cLast w`: one width across an inclusive range.
-      const last = second?.asNumber?.();
-      const width = context.lookup(w.get(i + 2))?.asNumber?.();
-      if (Number.isFinite(last) && Number.isFinite(width) && last - first <= 0xffff) {
+      const last = numberOf(second);
+      const width = numberOf(context.lookup(w.get(i + 2)));
+      if (last !== undefined && width !== undefined && Number.isFinite(last) && Number.isFinite(width) && last - first <= 0xffff) {
         for (let code = first; code <= last; code += 1) widths.set(code, width);
       }
       i += 3;
@@ -180,11 +227,17 @@ function readCidWidths(context, w, widths) {
  * producer we have seen emits. A non-identity CMap would need its own
  * codespace walk; widths then fall back to /DW, which keeps the box roughly
  * right instead of collapsing it.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict} fontDict
+ * @returns {Omit<FontEntry, 'toUnicode' | 'isZapfDingbats' | 'symbolFamily' | 'ascent' | 'descent'> & { descriptor: import('@cantoo/pdf-lib').PDFDict | undefined }}
  */
 function readType0Metrics(context, fontDict) {
+  /** @type {Map<number, number>} */
   const widths = new Map();
   const encoding = context.lookup(fontDict.get(PDFName.of('Encoding')));
-  const vertical = /-V$/.test(encoding?.asString?.() ?? '') || isVerticalCMap(context, encoding);
+  const vertical = /-V$/.test(nameOf(encoding) ?? '') || isVerticalCMap(context, encoding);
+  /** @type {ReturnType<typeof readType0Metrics>} */
   const metrics = { twoByte: true, vertical, widths, defaultWidth: 500, widthScale: 0.001, descriptor: undefined };
   const descendants = context.lookup(fontDict.get(PDFName.of('DescendantFonts')));
   const descendant =
@@ -198,23 +251,39 @@ function readType0Metrics(context, fontDict) {
   return metrics;
 }
 
-/** The /Widths array of a simple font, `firstChar` onward, into `widths`. */
+/** The /Widths array of a simple font, `firstChar` onward, into `widths`.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFArray} widthArray
+ * @param {number} firstChar
+ * @param {Map<number, number>} widths
+ */
 function readWidthsArray(context, widthArray, firstChar, widths) {
   for (let i = 0; i < widthArray.size(); i += 1) {
-    const width = context.lookup(widthArray.get(i))?.asNumber?.();
-    if (Number.isFinite(width)) widths.set(firstChar + i, width);
+    const width = numberOf(context.lookup(widthArray.get(i)));
+    if (width !== undefined && Number.isFinite(width)) widths.set(firstChar + i, width);
   }
 }
 
-/** A Type3 font's glyph-space-to-text-space scale from /FontMatrix, 0.001 when it gives none. */
+/** A Type3 font's glyph-space-to-text-space scale from /FontMatrix, 0.001 when it gives none.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict} fontDict
+ * @returns {number}
+ */
 function type3WidthScale(context, fontDict) {
   const matrix = context.lookup(fontDict.get(PDFName.of('FontMatrix')));
-  const scale = matrix instanceof PDFArray ? context.lookup(matrix.get(0))?.asNumber?.() : undefined;
-  return Number.isFinite(scale) && scale > 0 ? scale : 0.001;
+  const scale = matrix instanceof PDFArray ? numberOf(context.lookup(matrix.get(0))) : undefined;
+  return scale !== undefined && Number.isFinite(scale) && scale > 0 ? scale : 0.001;
 }
 
-/** The metrics of a simple (single-byte) font: Type1, TrueType, Type3. */
+/** The metrics of a simple (single-byte) font: Type1, TrueType, Type3.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict} fontDict
+ * @param {string | undefined} subtype
+ * @param {string} baseFont
+ * @returns {ReturnType<typeof readType0Metrics>}
+ */
 function readSimpleMetrics(context, fontDict, subtype, baseFont) {
+  /** @type {Map<number, number>} */
   const widths = new Map();
   const descriptor = lookupDict(context, fontDict.get(PDFName.of('FontDescriptor')));
   const widthArray = context.lookup(fontDict.get(PDFName.of('Widths')));
@@ -238,19 +307,27 @@ function readSimpleMetrics(context, fontDict, subtype, baseFont) {
   return { twoByte: false, vertical: false, widths, defaultWidth, widthScale, descriptor };
 }
 
-/** The ToUnicode CMap of a font as code -> string, empty when it has none. */
+/** The ToUnicode CMap of a font as code -> string, empty when it has none.
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict} fontDict
+ * @returns {Map<number, string>}
+ */
 function readToUnicode(context, fontDict) {
   const stream = context.lookup(fontDict.get(PDFName.of('ToUnicode')));
-  return stream instanceof PDFStream ? parseToUnicode(decodePDFRawStream(stream).decode()) : new Map();
+  return stream instanceof PDFStream ? parseToUnicode(decodePDFRawStream(/** @type {import('@cantoo/pdf-lib').PDFRawStream} */ (stream)).decode()) : new Map();
 }
 
 /**
  * Reads the metrics we need to advance the text cursor: per-code widths, the
  * code size, and the vertical extent of a line.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict} fontDict
+ * @returns {FontEntry}
  */
 function readFont(context, fontDict) {
-  const subtype = context.lookup(fontDict.get(PDFName.of('Subtype')))?.asString?.();
-  const baseFont = context.lookup(fontDict.get(PDFName.of('BaseFont')))?.asString?.() || '';
+  const subtype = nameOf(context.lookup(fontDict.get(PDFName.of('Subtype'))));
+  const baseFont = nameOf(context.lookup(fontDict.get(PDFName.of('BaseFont')))) || '';
   const toUnicode = readToUnicode(context, fontDict);
   const { descriptor, ...metrics } = subtype === '/Type0'
     ? readType0Metrics(context, fontDict)
@@ -264,12 +341,18 @@ function readFont(context, fontDict) {
     toUnicode,
     isZapfDingbats: /ZapfDingbats/i.test(baseFont),
     symbolFamily: symbolFontFamily(baseFont),
-    ascent: Number.isFinite(ascent) ? ascent / 1000 : FALLBACK_ASCENT,
-    descent: Number.isFinite(descent) ? descent / 1000 : FALLBACK_DESCENT,
+    ascent: ascent !== undefined && Number.isFinite(ascent) ? ascent / 1000 : FALLBACK_ASCENT,
+    descent: descent !== undefined && Number.isFinite(descent) ? descent / 1000 : FALLBACK_DESCENT,
   };
 }
 
+/**
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict | undefined} resources
+ * @returns {Map<string, FontEntry>} keyed `/Name`
+ */
 export function buildFontTable(context, resources) {
+  /** @type {Map<string, FontEntry>} */
   const table = new Map();
   const fonts = lookupDict(context, resources?.get(PDFName.of('Font')));
   if (!fonts) return table;
@@ -280,8 +363,13 @@ export function buildFontTable(context, resources) {
   return table;
 }
 
-/** Splits a shown string into character codes for this font. */
+/** Splits a shown string into character codes for this font.
+ * @param {Uint8Array} bytes
+ * @param {{ twoByte?: boolean } | null | undefined} font
+ * @returns {number[]}
+ */
 export function decodeCodes(bytes, font) {
+  /** @type {number[]} */
   const codes = [];
   if (font?.twoByte) {
     for (let i = 0; i + 1 < bytes.length; i += 2) codes.push((bytes[i] << 8) | bytes[i + 1]);

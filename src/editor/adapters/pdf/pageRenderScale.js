@@ -1,3 +1,4 @@
+// @ts-check
 import { MAX_CANVAS_AREA } from './rasterPage.js';
 
 /** The scale every page used before it followed the display; also the floor, so a page is never softer than it was. */
@@ -9,7 +10,10 @@ export const MAX_PAGE_RENDER_DPR = 3;
 /** Displayed widths are rounded up to this many CSS px, so dragging a window edge repaints a handful of times, not every pixel. */
 export const WIDTH_BUCKET_PX = 64;
 
-/** A displayed CSS width rounded up to its bucket; 0 when it cannot be measured. */
+/** A displayed CSS width rounded up to its bucket; 0 when it cannot be measured.
+ * @param {number} cssWidth
+ * @returns {number}
+ */
 export function bucketWidth(cssWidth) {
   if (!Number.isFinite(cssWidth) || cssWidth <= 0) return 0;
   return Math.ceil(cssWidth / WIDTH_BUCKET_PX) * WIDTH_BUCKET_PX;
@@ -27,7 +31,7 @@ export function bucketWidth(cssWidth) {
  */
 export function pageRenderScale({ unitWidth, unitHeight, cssWidth, dpr }) {
   if (!(unitWidth > 0) || !(unitHeight > 0) || !(cssWidth > 0)) return PAGE_RENDER_MIN_SCALE;
-  const ratio = Math.min(Number.isFinite(dpr) && dpr > 0 ? dpr : 1, MAX_PAGE_RENDER_DPR);
+  const ratio = Math.min(typeof dpr === 'number' && Number.isFinite(dpr) && dpr > 0 ? dpr : 1, MAX_PAGE_RENDER_DPR);
   const wanted = (cssWidth * ratio) / unitWidth;
   const areaCap = Math.sqrt(Math.min(MAX_PAGE_RENDER_AREA, MAX_CANVAS_AREA) / (unitWidth * unitHeight));
   return Math.max(PAGE_RENDER_MIN_SCALE, Math.min(wanted, areaCap));
