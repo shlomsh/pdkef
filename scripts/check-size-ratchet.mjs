@@ -21,7 +21,7 @@ const SCOPE_DIRS = ['src/', 'scripts/', 'api/'];
 
 // Pure: is this repo-relative path one the ratchet measures?
 export function isSizeScoped(file) {
-  if (!/\.(js|mjs|ts|tsx)$/.test(file) || file.endsWith('.d.ts')) return false;
+  if (!/\.(js|mjs|ts|tsx|astro)$/.test(file) || file.endsWith('.d.ts')) return false;
   if (/\.(test|spec)\.[^/]+$/.test(file) || file.split('/').includes('e2e')) return false;
   return file === 'middleware.ts' || SCOPE_DIRS.some((d) => file.startsWith(d));
 }
@@ -53,6 +53,8 @@ function ownName(node) {
 // Pure: measure one source string. functions are in source order, names carry
 // `~2`, `~3` for repeats within the file.
 export function measureSource(source, fileName) {
+  const fileLines = source.split('\n').length - (source.endsWith('\n') ? 1 : 0);
+  if (fileName.endsWith('.astro')) return { fileLines, functions: [] };
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, fileName.endsWith('x') ? ts.ScriptKind.TSX : undefined);
   const found = [];
   const visit = (node, chain) => {
@@ -75,7 +77,6 @@ export function measureSource(source, fileName) {
     seen.set(name, n);
     return { name: n === 1 ? name : `${name}~${n}`, lines };
   });
-  const fileLines = source.split('\n').length - (source.endsWith('\n') ? 1 : 0);
   return { fileLines, functions };
 }
 
@@ -110,6 +111,20 @@ export function compareSize(recorded, current, { fileThreshold, functionThreshol
   return { failures, lowered };
 }
 
+// Pure: the records to write after a clean run, or null when nothing may be
+// written (a failure, or nothing lowered). Only lowered entries change.
+export function nextRecords(recorded, current, thresholds) {
+  const { failures, lowered } = compareSize(recorded, current, thresholds);
+  if (failures.length > 0 || lowered.length === 0) return null;
+  const next = { fileLines: { ...recorded.fileLines }, functionLines: { ...recorded.functionLines } };
+  for (const l of lowered) {
+    const field = l.kind === 'file' ? 'fileLines' : 'functionLines';
+    if (l.to === null) delete next[field][l.key];
+    else next[field][l.key] = l.to;
+  }
+  return next;
+}
+
 function measureTree() {
   const files = execFileSync('git', ['ls-files', 'src', 'scripts', 'api', 'middleware.ts'], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
     .split('\n')
@@ -139,8 +154,9 @@ function main(args) {
     if (process.env.CI) {
       console.log(`size-ratchet: ${lowered.length} record(s) can be lowered (run it locally to rewrite scripts/ratchet-limits.json):\n${lines.join('\n')}`);
     } else {
-      writeRatchetLimits({ ...limits, size: { ...thresholds, ...current } }, root);
-      console.log(`size-ratchet: lowered ${lowered.length} record(s) in scripts/ratchet-limits.json:\n${lines.join('\n')}`);
+      const next = nextRecords(recorded, current, thresholds);
+      if (next) writeRatchetLimits({ ...limits, size: { ...limits.size, ...thresholds, ...next } }, root);
+      console.log(`size-ratchet: ${next ? 'lowered' : 'would lower'} ${lowered.length} record(s)${next ? ' in scripts/ratchet-limits.json' : ' (nothing written while the run fails)'}:\n${lines.join('\n')}`);
     }
   }
 
