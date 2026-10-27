@@ -19,7 +19,7 @@ import { waitForIsland } from '../support/tool.js';
 
 test('Compress hands the merged file to Compress with the identity row naming it', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page, { single: true });
 
   const files = await Promise.all(['first.pdf', 'second.pdf', 'third.pdf'].map(async (name) => ({
     name,
