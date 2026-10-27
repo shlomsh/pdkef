@@ -1,22 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../support/tool.js';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /* Shlomi 2026-10-21: "Compress it" and "Sign it" show under Redact's finish
    pair as soon as there is something to export. A tap makes the redacted file
    itself (no browser download) and carries it on. */
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Redact hand-off fixture', { x: 72, y: 720, size: 18, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { title: false, lines: [{ text: 'Redact hand-off fixture', gray: null }] });
 
 test('Sign it exports the redacted file without a download and carries it on', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/redact?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'handoff.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

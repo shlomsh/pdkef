@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, PDFInvalidObject } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makeEncryptedPdf } from '../../../../e2e/support/pdf.js';
 
 /* DEBT-34: Unlock threw `ReferenceError: Buffer is not defined` in production (reported 2026-10-02,
    action trail add_files, export, download, add_files, export). Our pdf-lib patch called Node's `Buffer`
@@ -10,15 +11,7 @@ import { PDFDocument, PDFInvalidObject } from '@cantoo/pdf-lib';
 
 const PASSWORD = 'pw';
 
-async function protectedPdf({ unparseableObject }) {
-  const doc = await PDFDocument.create();
-  doc.addPage([612, 792]);
-  if (unparseableObject) {
-    doc.context.assign(doc.context.nextRef(), PDFInvalidObject.of(new TextEncoder().encode('<< /Foo [ ) >>')));
-  }
-  doc.encrypt({ userPassword: PASSWORD, ownerPassword: PASSWORD });
-  return Buffer.from(await doc.save());
-}
+const protectedPdf = ({ unparseableObject }) => makeEncryptedPdf({ password: PASSWORD, unparseableObject });
 
 const pdf = (name, buffer) => ({ name, mimeType: 'application/pdf', buffer });
 
@@ -42,7 +35,7 @@ test('two files unlocked one after the other in one tab, the second holding an u
   });
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/unlock/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
 
   const download = page.getByRole('link', { name: /Download unlocked PDF/i });
 

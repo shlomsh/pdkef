@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* MERGE-12: the merge is built in the background, so Download is instant.
    Budget: under 500ms of real work for 20 files / 200 pages. The wait before
@@ -15,12 +17,8 @@ import { readFile } from 'node:fs/promises';
 const FILE_COUNT = 20;
 const PAGES_PER_FILE = 10;
 
-async function makeFileBuffer(index) {
-  const document = await PDFDocument.create();
-  const width = 100 + index; // unique per file (index is 1-based)
-  for (let i = 0; i < PAGES_PER_FILE; i += 1) document.addPage([width, 792]);
-  return Buffer.from(await document.save());
-}
+// index is 1-based, so each file's page width is unique
+const makeFileBuffer = (index) => makePdfBuffer(null, { pages: PAGES_PER_FILE, size: [100 + index, 792], title: false });
 
 async function buildFixtureFiles() {
   return Promise.all(
@@ -34,7 +32,7 @@ async function buildFixtureFiles() {
 
 test('Download is built within the budget once it is warmed, for a 20-file, 200-page set', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await buildFixtureFiles();
 
@@ -100,7 +98,7 @@ test('Download is built within the budget once it is warmed, for a 20-file, 200-
 
 test('a mid-prepare reorder cancels the running merge and delivers the new order', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await buildFixtureFiles();
   await page.locator('input[type="file"]').setInputFiles(files);

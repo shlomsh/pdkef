@@ -501,7 +501,12 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
   // fake-indexeddb schedules its own callbacks through setImmediate/setTimeout
   // (see useMergeDraft.test.tsx's note on the same hazard), so this waits on
   // the real clock rather than fake timers.
-  const flushReal = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+  // The real store answers on the real event loop: wait for what the test needs, not a fixed sleep.
+  const flushReal = (done) => act(async () => {
+    const until = Date.now() + 3000;
+    do { await new Promise((resolve) => setTimeout(resolve, 10)); } while (!done() && Date.now() < until);
+  });
+  const previewOf = (fileName) => () => realDraftStore.readRecentFiles().some((entry) => entry.fileName === fileName && entry.preview);
 
   it('opening a PDF in Redact that already has Sign work restores only work.redact, leaving Sign untouched', async () => {
     const fileBytes = new TextEncoder().encode('%PDF-1.4 shared between tools').buffer;
@@ -528,7 +533,7 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
         onRestore,
       }} />, container);
     });
-    await flushReal();
+    await flushReal(() => onRestore.mock.calls.length > 0);
 
     expect(onRestore).toHaveBeenCalledTimes(1);
     const restored = onRestore.mock.calls[0][0];
@@ -569,13 +574,13 @@ describe('useDraftPersistence - same file opened in two tools (real store)', () 
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-alpha.pdf', alphaBytes)} />, container);
     });
-    await flushReal();
+    await flushReal(previewOf('qa-alpha.pdf'));
 
     realRenderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,bravo');
     await act(async () => {
       render(<RealHarness apiRef={apiRef} props={props('qa-bravo.pdf', bravoBytes)} />, container);
     });
-    await flushReal();
+    await flushReal(previewOf('qa-bravo.pdf'));
 
     const previews = Object.fromEntries(realDraftStore.readRecentFiles().map((entry) => [entry.fileName, entry.preview]));
     expect(previews).toEqual({

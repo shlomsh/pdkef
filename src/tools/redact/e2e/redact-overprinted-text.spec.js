@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makeOverprintedTextPdf } from '../../../../e2e/support/pdf.js';
 
 // RED-62: some forms draw a title twice, the second copy a hair to the side,
 // to fake bold. Every reader of page words (Find, the saved-file check) must
@@ -11,26 +10,11 @@ import fontkit from '@pdf-lib/fontkit';
 const TITLE = 'Employee Card';
 const HEBREW_TITLE = 'כרטיס עובד';
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  doc.registerFontkit(fontkit);
-  const page = doc.addPage([300, 400]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const hebrew = await doc.embedFont(fs.readFileSync('public/fonts/Heebo-Regular.ttf'), { subset: true });
-  for (const dx of [0, 0.4]) {
-    page.drawText(TITLE, { x: 40 + dx, y: 330, size: 24, font });
-    page.drawText(HEBREW_TITLE, { x: 40 + dx, y: 280, size: 24, font: hebrew });
-  }
-  page.drawText('Name: Dana Levi', { x: 40, y: 200, size: 14, font });
-  // A second page with no box keeps its text, so the check lists its rows
-  // (a file saved wholly as pictures gets one line instead, RED-66).
-  doc.addPage([300, 400]).drawText('Page two keeps its text', { x: 40, y: 330, size: 14, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makeOverprintedTextPdf({ title: TITLE, hebrewTitle: HEBREW_TITLE });
 
 async function openFixture(page) {
   await page.goto('/redact');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'overprinted.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

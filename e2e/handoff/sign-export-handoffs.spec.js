@@ -1,23 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../support/tool.js';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /* Shlomi 2026-10-21: under Sign's Download/Share pair, "Compress it" and
    "Redact it" show whenever export is ready (the same moment Download is
    enabled and something is placed), a restored draft included, and carry the
    signed file on without a download first. */
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([400, 500]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Hand-off fixture', { x: 40, y: 440, size: 18, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { size: [400, 500], title: false, lines: [{ text: 'Hand-off fixture', x: 40, y: 440, gray: null }] });
 
 async function openAndWhiteout(page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.locator('[data-tool-shell], main').getByText(/Choose file/).first().click();
   await (await chooser).setFiles({ name: 'handoff.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

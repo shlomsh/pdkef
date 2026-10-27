@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* Direction A (2026-09-13): MERGE-07's insertion line still paints, on the
    rail's file rows, at 1024px and up. The rail's file list is now a plain
@@ -17,7 +18,7 @@ function rows(page) {
 
 test('a file dropped between two rail rows inserts there, with an insertion line first', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['a.pdf', 'b.pdf', 'c.pdf'].map(async (name) => ({
     name,

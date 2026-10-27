@@ -4,6 +4,7 @@ import { formatFileSize } from '../../../lib/format.js';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import styles from './RedactDone.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
+import type { RedactHandoffTarget } from '../../../lib/toolIds.ts';
 import { finishPagesText, finishStatusText, type FinishFacts } from '../lib/finishState.ts';
 
 /** The saved result: what was saved, then the one line about pictures. Shared by the pinned strip and the bottom row. */
@@ -23,7 +24,7 @@ export interface DoneHandoffsProps {
   fileSize: number | null;
   busy: boolean;
   failed: boolean;
-  onHandoff(tool: 'compress' | 'sign'): void;
+  onHandoff(tool: RedactHandoffTarget): void;
 }
 
 /** Compress it (carrying the size) and Sign it, plus the failure line. */
@@ -34,7 +35,7 @@ export function DoneHandoffs({ fileSize, busy, failed, onHandoff }: DoneHandoffs
       <ExportHandoffs
         items={[compress, { tool: 'sign', label: t.signIt, Icon: FileSignature }]}
         busy={busy}
-        onHandoff={(tool) => onHandoff(tool as 'compress' | 'sign')}
+        onHandoff={(tool) => onHandoff(tool as RedactHandoffTarget)}
       />
       {failed && (
         <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">

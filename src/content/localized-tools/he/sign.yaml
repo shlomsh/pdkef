@@ -7,8 +7,12 @@
 # stays English-edition-only too (see ToolPageLayout.astro) pending its own
 # reviewed translation.
 #
-# Phrasing follows LOC-03's SERP-derived hypotheses: "חתימה על PDF" /
-# "לחתום על קובץ PDF" / "מילוי טופס PDF" lead, none of the five incumbents
+# Title and h1 lead with "חתימה על מסמך PDF" (2026-10-27, LOC-03): it is
+# Google's top Hebrew autocomplete for every signing stem and half of our
+# Hebrew sign impressions, while the fill-form phrasing the 09-24 title led
+# with drew 7 impressions at position 5. "טפסים" and "בעברית" stay as the
+# second half; "הוספת חתימה" lives in aboutHeading, since its autocomplete
+# is half email signatures. None of the five incumbents
 # on the "מילוי טופס pdf חינם" SERP mention Hebrew text or RTL at all, so
 # that is the unclaimed fact this page leads with (subhead, aboutLead, and
 # the Hebrew-specific FAQ item below). "חתימה דיגיטלית" is deliberately
@@ -33,17 +37,18 @@ reviewNotes: >-
   language support rescoped from unqualified "right, every time" to
   "right, in the 20 languages listed above" (fixed a self-contradiction);
   Hebrew answer updated to match; pending Shlomi's read-through.
-  10-15: hash moved only because h1Name was added; translation unchanged.
+  10-15: hash moved only for h1Name; translation unchanged.
+  10-27: lead is "חתימה על מסמך PDF" (LOC-03).
 sourceHash: 'fnv1a64:4deee9e1ec9995f4'
-seoTitle: 'מילוי וחתימה על טופס PDF אונליין בחינם, גם בעברית | PDkef'
+seoTitle: 'חתימה על מסמך PDF ומילוי טפסים בחינם, גם בעברית | PDkef'
 seoDescription: >-
-  מלאו וחתמו על טופס PDF אונליין בחינם, באייפון, אנדרואיד או במחשב. הוסיפו
-  טקסט, סימוני וי וחתימה לטפסים, כולל קבצים מוואטסאפ. בלי הרשמה ובלי העלאה
+  חתמו על מסמך PDF והוסיפו חתימה, טקסט וסימוני וי לטפסים, אונליין ובחינם,
+  באייפון, אנדרואיד או במחשב, גם לקבצים מוואטסאפ. בלי הרשמה ובלי העלאה
   לשרת.
 schemaName: 'PDkef - חתימה על PDF'
 toolName: 'חתימה ומילוי PDF'
-h1: 'מילוי וחתימה על טופס PDF בחינם, בדפדפן'
-h1Name: 'מילוי וחתימה על טופס PDF'
+h1: 'חתימה על מסמך PDF ומילוי טפסים, בחינם ובדפדפן'
+h1Name: 'חתימה על מסמך PDF'
 subhead: >-
   מלאו וחתמו על PDF בנייד או במחשב בלי להדפיס ולסרוק. הוסיפו טקסט, סימוני
   וי וחתימה לטופס בית ספר, בקשה, או קובץ מוואטסאפ. הקלידו בעברית וגם
@@ -51,7 +56,7 @@ subhead: >-
   שמאלה מקצה ימני קבוע, בדיוק כמו כתיבה ביד. חינם, קוד פתוח, והמסמך נשאר
   אצלכם במכשיר.
 ariaLabel: 'כלי חתימה על PDF'
-aboutHeading: 'איך למלא ולחתום על קובץ PDF'
+aboutHeading: 'איך להוסיף חתימה למסמך PDF'
 aboutLead: >-
   פתחו PDF מוואטסאפ, מאימייל, או מהמכשיר שלכם, ואז הוסיפו טקסט וחתימה בלי
   להדפיס. זה עובד בדפדפן שלכם בנייד או במחשב, בלי העלאה.

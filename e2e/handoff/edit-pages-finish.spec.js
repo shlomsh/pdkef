@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../support/tool.js';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /* Edit Pages has no Apply step: the output is prepared in the background after
    an edit, and the Download element is ready on its own. This guards the finish
@@ -10,16 +11,11 @@ import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
    `_modified` name). Visits other tools, so it lives here and not under the
    tool's own e2e folder. */
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  for (let i = 1; i <= 6; i += 1) doc.addPage([300, 400]).drawText(`Page ${i}`, { x: 40, y: 340, size: 28, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { pages: 6, size: [300, 400], title: false, lines: (i) => [{ text: `Page ${i + 1}`, x: 40, y: 340, size: 28, gray: null }] });
 
 async function openAndEdit(page) {
   await page.goto('/organize-pdf/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles({ name: 'six.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });
   const cells = page.locator('ul[data-page-grid] > li[data-key]');
   await expect(cells).toHaveCount(6);
@@ -56,7 +52,7 @@ test.describe('phone', () => {
       Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
     });
     await page.goto('/organize-pdf/');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await page.locator('input[type="file"]').setInputFiles({ name: 'six.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });
     const cells = page.locator('ul[data-page-grid] > li[data-key]');
     await expect(cells).toHaveCount(6);

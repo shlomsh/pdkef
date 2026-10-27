@@ -1,11 +1,9 @@
 ---
 id: "ARCH-96"
 title: "Sign's dialog state follows Escape, and every page tool lists files it skipped"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] A test closes the signature dialog with Escape and it stays closed on the next render.
-- [ ] Unit tests show the skipped-files note in Edit Pages and PDF to Image, English and Hebrew.
+- [x] A test closes the signature dialog with Escape and it stays closed on the next render.
+- [x] Unit tests show the skipped-files note in Edit Pages and PDF to Image, English and Hebrew.
+
+## Closed
+
+Closed 2026-10-27. Sign reports a native close through `useModalDialog`'s `reportNativeClose`; Split, Edit Pages and PDF to Image share `SkippedFilesNote` (Hebrew where the tool has a catalogue: PDF to Image). Tests in `SignatureDialog.test.tsx`, `useModalDialog.test.tsx`, `PdfEditPagesTool.test.tsx`, `PdfToImageTool.test.tsx`.

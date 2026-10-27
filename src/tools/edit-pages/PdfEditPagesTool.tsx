@@ -19,6 +19,7 @@ import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import SkippedFilesNote from '../../shell/pageWorkspace/SkippedFilesNote.tsx';
 import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import PageNumbersRow from '../../shell/pageWorkspace/PageNumbersRow.tsx';
@@ -50,6 +51,7 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
   // null means "still the automatic name"; a string is the person's own.
   const [customOutputName, setCustomOutputName] = useState<string | null>(null);
   const [isRenamingOutputName, setIsRenamingOutputName] = useState(false);
+  const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
@@ -72,6 +74,7 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
       setAddPageNumbers(false);
       setCustomOutputName(null);
     },
+    onRejected: setRejectedFiles,
   });
   const { plan } = present;
   useHoldUpdate(file !== null, 'open');
@@ -110,7 +113,7 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
     blocked: prepared.status === 'error' ? 'error' : null,
     nothing: plan.length > 0 && outputCount === 0,
     announce: setAnnouncement,
-    messages: { ready: t.editedReady, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
+    messages: { ready: t.readyAnnouncement, shared: t.sharedSuccessfully, canceled: t.sharingCanceled, shareError: t.shareError },
   });
   const {
     tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff,
@@ -140,7 +143,7 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
     <div class={workspaceStyles['quiet-row']}>
       <button type="button" class={workspaceStyles['quiet-button']} onClick={onIncludeAll}>{t.includeAll}</button>
       <button type="button" class={workspaceStyles['quiet-button']} onClick={onSkipAll}>{t.skipAll}</button>
-      <button type="button" class={workspaceStyles['quiet-button']} onClick={onInvert}>{t.invert}</button>
+      <button type="button" class={workspaceStyles['quiet-button']} onClick={onInvert}>{t.invertPages}</button>
     </div>
   );
 
@@ -168,6 +171,8 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
       fileLabel={file?.name}
       hideIdentity
     >
+      <SkippedFilesNote names={rejectedFiles} messages={t} dir="ltr" />
+
       {file && loadStatus === 'loading-file' && (
         <div class={pdfToolStyles['status-block']}>
           <p class={pdfToolStyles['status-text-muted']}>{t.loadingStructure}</p>
@@ -206,7 +211,7 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
                 fileName={fileName}
                 detail={detail}
                 handoffs={handoffs}
-                labels={{ download: t.downloadShort, ready: t.editedReady, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
+                labels={{ download: t.downloadShort, ready: t.readyAnnouncement, closeStrip: t.closeStrip, handoffFailed: t.handoffFailed, nothing: t.allSkipped }}
               />
             </div>
           )}

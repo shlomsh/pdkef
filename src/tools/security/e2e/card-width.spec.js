@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* The Unlock/Protect card used to shrink-wrap to its content on a phone: 219px after picking a plain
    PDF (protect), 249px after Protect PDF, while unlock mode with its next-steps row filled the width
@@ -10,15 +11,11 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 
 const NEEDS_PASSWORD = readFileSync(new URL('../../../lib/__fixtures__/encrypted/needs-password.pdf', import.meta.url));
 
-async function plainPdf() {
-  const doc = await PDFDocument.create();
-  doc.addPage([612, 792]);
-  return Buffer.from(await doc.save());
-}
+const plainPdf = () => makePdfBuffer(null, { title: false });
 
 async function openAndPick(page, name, buffer) {
   await page.goto('/unlock/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name, mimeType: 'application/pdf', buffer });

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 // RED-53: with a mouse on a narrow window, a selected box shows the floating
 // pill (not the phone bar). It must stay inside the window, wrap its groups,
@@ -8,12 +9,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 
 const RECENT_KEY = 'pdf-toolkit:recent-whiteout-colors:v1:local-browser-profile';
 
-async function makeTwoPagePdf() {
-  const doc = await PDFDocument.create();
-  doc.addPage([612, 792]);
-  doc.addPage([612, 792]);
-  return Buffer.from(await doc.save());
-}
+const makeTwoPagePdf = () => makePdfBuffer(null, { pages: 2, title: false });
 
 test.describe('selected box pill fits the window (RED-53)', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'layout guard, Chromium only');
@@ -27,7 +23,7 @@ test.describe('selected box pill fits the window (RED-53)', () => {
       const page = await context.newPage();
       try {
         await page.goto('/redact');
-        await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+        await waitForIsland(page);
         const chooser = page.waitForEvent('filechooser');
         await page.getByText('Choose file', { exact: true }).click();
         await (await chooser).setFiles({ name: 'pill.pdf', mimeType: 'application/pdf', buffer: await makeTwoPagePdf() });

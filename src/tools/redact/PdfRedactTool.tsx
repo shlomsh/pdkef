@@ -924,7 +924,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   // boundaries). The chips show whenever Download is enabled: an export that
   // still matches the document (any edit drops it) is handed on as is, else
   // the same export Download runs is made first, without saving it to the device.
-  const requestHandoff = async (tool: 'compress' | 'sign') => {
+  const requestHandoff = async (tool: import('../../lib/toolIds.ts').RedactHandoffTarget) => {
     if (handoffBusy) return;
     setHandoffBusy(true);
     dispatch({ type: 'HANDOFF_STARTED' });

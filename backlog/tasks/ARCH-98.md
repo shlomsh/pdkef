@@ -1,11 +1,9 @@
 ---
 id: "ARCH-98"
 title: "Untriaged dependency advisories are triaged"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 3
 depends_on: []
 ---
 
@@ -23,4 +21,8 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] The advisory check reports no untriaged finding.
+- [x] The advisory check reports no untriaged finding.
+
+## Closed
+
+Closed 2026-10-27. appium 3.9.0 patches body-parser; `check-dependency-advisories.mjs` over `npm audit --json` reports no untriaged high/critical finding (zod via @vercel stays under its exception to 2026-11-26).

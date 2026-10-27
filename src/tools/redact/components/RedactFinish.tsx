@@ -4,6 +4,7 @@ import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import styles from './RedactFinish.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
+import type { RedactHandoffTarget } from '../../../lib/toolIds.ts';
 import { finishCountText, finishStatusText, type FinishFacts } from '../lib/finishState.ts';
 
 export interface RedactFinishProps {
@@ -13,7 +14,7 @@ export interface RedactFinishProps {
   onDownload(): void;
   onPrepareShare(): void;
   onShare(): void;
-  onHandoff(tool: 'compress' | 'sign'): void;
+  onHandoff(tool: RedactHandoffTarget): void;
   handoffBusy: boolean;
   handoffFailed: boolean;
   /** The saved-file check slot, rendered last. */

@@ -85,6 +85,19 @@ describe('useModalDialog', () => {
     expect(dialogOf(container).open).toBe(false);
   });
 
+  it('reportNativeClose calls onClose for a close on its own, but not for one open=false caused', () => {
+    const onClose = vi.fn();
+    const options = { escape: false as const, reportNativeClose: true };
+    const { container, rerender } = render(<Harness open onClose={onClose} options={options} />);
+    const dialog = dialogOf(container);
+    dialog.close();
+    dialog.dispatchEvent(new Event('close'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    rerender(<Harness open={false} onClose={onClose} options={options} />);
+    dialog.dispatchEvent(new Event('close'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('Escape calls onClose once and does not reach a bubbling listener', () => {
     const onClose = vi.fn();
     const bubbling = vi.fn();

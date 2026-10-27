@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { makePdfBuffer as buildPdf } from './support/pdf.js';
+import { waitForIsland } from './support/tool.js';
 
 /*
  * Split, Compress, PDF to Image, Image to PDF and Edit Pages are only ever
@@ -95,7 +96,7 @@ test.describe('uncovered tools produce a real downloadable file', () => {
   for (const tool of tools) {
     test(`${tool.name} download link points at a real object URL`, async ({ page }) => {
       await page.goto(tool.path);
-      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await waitForIsland(page);
 
       await page.locator('input[type="file"]').setInputFiles({
         name: tool.file.name,

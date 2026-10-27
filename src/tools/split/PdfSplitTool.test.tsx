@@ -17,13 +17,12 @@ import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
-// (analytics, error reports, draftStore, loadPdfPages, splitPdf) runs for real over the harness.
-const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
+// The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs. Everything else
+// (analytics, error reports, draftStore, loadPdfPages, splitPdf) runs for real over it.
 
 // Not a fake: loadPdfWithPages still runs for real. The gate only lets one test hold a load open
 // between the pick and the page count, which a real pdf-lib parse gives no way to pause (DEBT-18).
@@ -38,22 +37,6 @@ vi.mock('../../lib/loadPdfPages.ts', async (importOriginal) => {
     },
   };
 });
-
-// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
-vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => {
-    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
-    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-      destroy: vi.fn(async () => {}),
-    };
-  }),
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-}));
 
 // Tests that are not about timing build after 5ms instead of the real 1500ms.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
@@ -71,8 +54,6 @@ describe('PdfSplitTool UI flow', () => {
 
   beforeEach(() => {
     harness = installToolHarness();
-    probeMock.mockReset();
-    probeMock.mockResolvedValue('open');
     loadGate.before = null;
     // jsdom's Blob has no arrayBuffer().
     if (!Blob.prototype.arrayBuffer) {
@@ -344,7 +325,8 @@ describe('PdfSplitTool UI flow', () => {
       await open({ navigate });
       await click(skipButton(1));
       await builtWith(4);
-      await act(async () => { button(label).click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+      await act(async () => { button(label).click(); });
+      await waitUntil(() => expect(navigate).toHaveBeenCalledWith(href));
       // Parked under the target tool's own key, and under no other.
       const otherTool = tool === 'compress' ? 'sign' : 'compress';
       expect(await harness.takeHandoff(otherTool)).toBeNull();
@@ -391,7 +373,8 @@ describe('PdfSplitTool UI flow', () => {
     await until(() => cells().length > 0 && downloadElement()?.getAttribute('data-state') === 'ready' && harness.createdBlobs().length > 0);
     expect(cells()).toHaveLength(3);
     expect((await pagesOf(shownOutput())).widths).toEqual([200, 300, 400]);
-    await act(async () => { button('Compress').click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { button('Compress').click(); });
+    await waitUntil(() => expect(navigate).toHaveBeenCalled());
     const handoff = await harness.takeHandoff('compress');
     expect(handoff?.fileName).toBe('extracted_broken.pdf');
     expect((await pagesOf(new Blob([handoff.fileBytes]))).widths).toEqual([200, 300, 400]);
@@ -415,7 +398,7 @@ describe('PdfSplitTool UI flow', () => {
 
   describe.each(['needs-password', 'owner-restricted'])('a %s PDF (DEBT-41)', (protection) => {
     it('shows NeedsUnlock, never builds, reports nothing, and is not a failed operation (DEBT-44)', async () => {
-      probeMock.mockResolvedValue(protection);
+      harness.pdfjs.probeAs(protection);
       mount();
       await pick(fixtureFile('locked.pdf'));
       await until(() => button('Unlock it'));
@@ -477,7 +460,7 @@ describe('PdfSplitTool UI flow', () => {
     ['needs-password', 'protectedNeedsPasswordTitle'],
     ['owner-restricted', 'protectedOwnerOnlyTitle'],
   ])('shows the Hebrew protected-file copy for a %s PDF', async (protection, titleKey) => {
-    probeMock.mockResolvedValue(protection);
+    harness.pdfjs.probeAs(protection);
     mount({ messages: hebrewSplitMessages, shellMessages: hebrewShellMessages });
     await pick(fixtureFile('locked.pdf'));
     await until(() => container.textContent.includes(hebrewSplitMessages.protectedUnlockIt));

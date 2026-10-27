@@ -3,8 +3,8 @@
  *
  * Edges, which this harness fakes: IndexedDB (fake-indexeddb), localStorage/sessionStorage (cleared),
  * the network transport (`navigator.sendBeacon`, recorded instead of sent) and `URL.createObjectURL`
- * (recorded). Browser APIs jsdom lacks and the pdf.js render engine stay with the test file
- * (`mockFileShare.js`, a `vi.mock` of the thumbnail source), since a `vi.mock` must be hoisted there.
+ * (recorded). Browser APIs jsdom lacks (`mockFileShare.js`) stay with the test file. The pdf.js edge is faked in `pdfjsEdges.ts`, registered by the
+ * island projects' setup files, and steered through `harness.pdfjs`.
  *
  * Internal modules are NOT mocked: `draftStore`, `productAnalytics`, `errorReport`, `actionTrail`, a
  * tool's own lib modules and the hand-off/session hooks run for real. A test asserts on what they
@@ -25,6 +25,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { resetErrorReportingForTests, setReportingEnabledForTests } from '../../lib/errorReport.ts';
 import { resetUsageEventsForTests } from '../../lib/productAnalytics.ts';
+import { createPdfjsHarness, resetPdfjsEdges, type PdfjsHarness } from './pdfjsEdges.ts';
 import { resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { loadDraft, readRecentFiles, takeHandoff } from '../../lib/drafts/draftStore.ts';
 import type { UsageEvent } from '../../lib/usageEventSchema.ts';
@@ -37,6 +38,8 @@ export interface BeaconRecord {
 }
 
 export interface ToolHarness {
+  /** The pdf.js edge (probe, thumbnails, `pdfjs-dist`): fakes registered by the island setup files, steered here. */
+  pdfjs: PdfjsHarness;
   /** Every beacon handed to `navigator.sendBeacon` so far, in order (completed reads only, see `flush`). */
   beacons(): BeaconRecord[];
   /**
@@ -71,6 +74,7 @@ export interface ToolHarness {
  * reporting on and records its beacons instead of sending them, and records object URLs.
  */
 export function installToolHarness(): ToolHarness {
+  resetPdfjsEdges();
   globalThis.indexedDB = new IDBFactory();
   localStorage.clear();
   sessionStorage.clear();
@@ -112,6 +116,7 @@ export function installToolHarness(): ToolHarness {
   const payloads = () => records.map((r) => r.payload).filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null);
 
   return {
+    pdfjs: createPdfjsHarness(),
     beacons: () => [...records],
     reports: () => payloads().filter((p) => 'area' in p && 'step' in p) as unknown as (ErrorReport | DropRecord)[],
     usageEvents: (name) => (payloads().filter((p) => typeof p.name === 'string' && 'properties' in p) as unknown as UsageEvent[])

@@ -2,6 +2,18 @@
 import { expect } from '@playwright/test';
 
 /**
+ * Waits for the first `client:load` island on the page (or in a scope such as
+ * a second tab's page) to hydrate.
+ * @param {import('@playwright/test').Page} page
+ * @param {object} [opts]
+ * @param {boolean} [opts.single=false]  Fail (Playwright strict mode) if the page has more than one such island.
+ */
+export async function waitForIsland(page, { single = false } = {}) {
+  const islands = page.locator('astro-island[client="load"]:not([ssr])');
+  await (single ? islands : islands.first()).waitFor();
+}
+
+/**
  * Opens a tool route and waits for its island to hydrate.
  * @param {import('@playwright/test').Page} page
  * @param {string} route
@@ -17,7 +29,7 @@ export async function openTool(page, route, { clearStorage = false, file, overla
     await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
   }
   await page.goto(route);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   if (file) {
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByText('Choose file', { exact: true }).click();

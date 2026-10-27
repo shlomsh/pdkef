@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // SCAN-01 - what jsdom cannot prove about the corner editor: a real pointer
 // drag moves the handle while it is held, the handle stays where it was dropped,
@@ -41,7 +42,7 @@ const center = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 }
 test.describe('scan - corner drag', () => {
   test('a dragged corner follows the pointer, stays where dropped, reprocesses the page, and a bow tie stops at the last valid shape', async ({ page }) => {
     await page.goto('/scan-to-pdf/');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
 
     await page.locator('input[type=file]:not([capture])').first().setInputFiles({
       name: 'desk-photo.jpg',

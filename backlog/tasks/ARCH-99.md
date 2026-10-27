@@ -1,11 +1,9 @@
 ---
 id: "ARCH-99"
 title: "E2e specs build PDFs and open tools only through e2e/support"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 4
 depends_on: []
 ---
 
@@ -23,4 +21,8 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] No spec defines its own PDF builder or inline island wait; every Playwright project lists the same tests.
+- [x] No spec defines its own PDF builder or inline island wait; every Playwright project lists the same tests.
+
+## Closed
+
+Closed 2026-10-27. Specs build PDFs through `e2e/support/pdf.js` (`makePdfBuffer` plus named builders, moved verbatim where byte order mattered) and wait through `waitForIsland`, with `{ single: true }` for the one spec that asserts a single island. `playwright test --list` is 886 tests before and after. Two waits stay as they are by design: `language-acceptance.spec.js` builds its PDF inside the browser, which is what it tests, and the two Compress specs wait for the empty state inside the island, not for hydration. A review caught `waitForIsland` calling itself; fixed and covered by the e2e run.

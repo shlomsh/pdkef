@@ -7,17 +7,9 @@ import path from 'path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
-// EDGE: pdf.js cannot render a thumbnail in jsdom. The merge, the draft store and the rest run for real.
-vi.mock('../../lib/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
-  renderThumbnailWithMeta: vi.fn(),
-  renderPdfThumbnails: vi.fn(() => Promise.resolve(0)),
-  openThumbnailSource: vi.fn(),
-}));
-
-const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 const FIXTURE = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-2.pdf'));
 const pdf = (name) => new File([FIXTURE], name, { type: 'application/pdf' });
 
@@ -33,8 +25,9 @@ describe('files offered right after hydration', () => {
   afterEach(async () => {
     // Unmount, then let the hand-off intake's IndexedDB read settle while the DOM still exists:
     // a read that outlives the test file touches `document` after jsdom is gone (CI, 2026-10-27).
+    // IndexedDB answers in order, so once a read of our own returns, the intake's earlier one has.
     if (container) act(() => render(null, container));
-    await flush(50);
+    await harness.takeHandoff('merge');
     container?.remove();
     container = null;
     harness.restore();
@@ -49,8 +42,7 @@ describe('files offered right after hydration', () => {
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [pdf('one.pdf'), pdf('two.pdf'), pdf('three.pdf')]);
-      await flush(10);
     });
-    expect(container.querySelectorAll('[data-link-row]').length).toBe(3);
+    await waitUntil(() => expect(container.querySelectorAll('[data-link-row]').length).toBe(3));
   });
 });

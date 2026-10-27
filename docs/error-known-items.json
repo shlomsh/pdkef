@@ -33,7 +33,7 @@
     "match": {
       "area": "uncaught",
       "name": "NotFoundError",
-      "step": "unhandled_rejection",
+      "step": ["unhandled_rejection", "island_render"],
       "slug": "sign",
       "module": "preact.module"
     },

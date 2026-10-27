@@ -10,7 +10,6 @@ import PdfMergeTool from './PdfMergeTool.tsx';
 import { mergePdfs } from './lib/merge.js';
 import * as mergeLib from './lib/merge.js';
 import { MERGE_DRAFT_SCHEMA_VERSION } from './hooks/useMergeDraft.ts';
-import * as thumbnailsLib from '../../lib/thumbnails.js';
 import { saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -26,23 +25,14 @@ import { buildPdf, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts'
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewMergeMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 import { recentActions } from '../../lib/actionTrail.ts';
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
+// The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs. Everything else
 // (analytics, error reports, draftStore, the merge itself, the draft hook, the hand-off intake) runs for
-// real over the harness.
-const { probeMock } = vi.hoisted(() => ({ probeMock: vi.fn() }));
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: probeMock }));
-
-// EDGE: pdf.js cannot render a thumbnail in jsdom.
-vi.mock('../../lib/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
-  renderThumbnailWithMeta: vi.fn(() => Promise.resolve({ dataUrl: 'data:image/png;base64,mock', pageCount: 2, width: 150, height: 194 })),
-  renderPdfThumbnails: vi.fn(() => Promise.resolve(0)),
-  openThumbnailSource: vi.fn(),
-}));
+// real over it.
 
 /* The fixtures are real files. Every page of every fixture PDF is told apart by its MediaBox: the
    width names the file (a registry, reset per test) and the height the page number in it, so a merged
@@ -185,7 +175,6 @@ describe('PdfMergeTool UI flow', () => {
     harness = installToolHarness();
     pageCounts.clear();
     widthOf.clear();
-    probeMock.mockReset();
     originalScrollTo = window.scrollTo;
     window.scrollTo = vi.fn();
   });
@@ -421,7 +410,7 @@ describe('PdfMergeTool UI flow', () => {
       unobserve(target) { this.targets.delete(target); }
       disconnect() { this.targets.clear(); }
     };
-    thumbnailsLib.openThumbnailSource.mockImplementation(async () => ({
+    harness.pdfjs.thumbnails.openThumbnailSource.mockImplementation(async () => ({
       render: async () => 'data:image/png;base64,x',
       destroy: async () => {},
     }));
@@ -431,7 +420,7 @@ describe('PdfMergeTool UI flow', () => {
     // The grid (PageGrid) itself arrives through a dynamic import(); give
     // it a beat to mount and start observing before the IntersectionObserver
     // instance it creates is read below.
-    await act(async () => { await flush(20); });
+    await waitUntil(() => expect(instances.at(-1)?.targets.size).toBeGreaterThan(0));
     // Four pages total (two files, two pages each); rendering has not
     // started yet, so the heading names the total and says none are done.
     const heading = () => container.querySelector(`.${workspaceStyles['doc-heading']}`);
@@ -442,9 +431,8 @@ describe('PdfMergeTool UI flow', () => {
     const io = instances.at(-1);
     await act(async () => {
       io.callback(Array.from(io.targets).map((target) => ({ target, isIntersecting: true })));
-      await flush(50);
     });
-    expect(heading().textContent).not.toContain('rendered');
+    await waitUntil(() => expect(heading().textContent).not.toContain('rendered'));
 
     globalThis.IntersectionObserver = originalIO;
   });
@@ -507,7 +495,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('a thumbnail that arrives after the pre-merge started does not restart it', async () => {
-    thumbnailsLib.renderThumbnail.mockImplementationOnce(
+    harness.pdfjs.thumbnails.renderThumbnail.mockImplementationOnce(
       () => new Promise((resolve) => setTimeout(() => resolve('data:image/png;base64,late'), 25)),
     );
     mount();
@@ -764,9 +752,8 @@ describe('PdfMergeTool UI flow', () => {
 
     await act(async () => {
       status.querySelector('button').click();
-      await flush(10);
     });
-    expect(fileNames()).toEqual(['dup.pdf', 'other.pdf', 'dup.pdf']);
+    await waitUntil(() => expect(fileNames()).toEqual(['dup.pdf', 'other.pdf', 'dup.pdf']));
   });
 
   it('sorts with the styled menu, Reverse folded in as its own option, and regroups the plan to match', async () => {
@@ -947,7 +934,7 @@ describe('PdfMergeTool UI flow', () => {
     ['needs-password.pdf', 'needs-password'],
   ])('a single protected file (%s) shows the locked state in place of the result area', async (fixture, kind) => {
     const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', fixture));
-    probeMock.mockResolvedValue(kind);
+    harness.pdfjs.probeAs(kind);
     mount();
     await loadFiles([new File([bytes], fixture, { type: 'application/pdf' })]);
     await settle();
@@ -963,7 +950,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('shows no error while it is still checking how a single protected file is locked', async () => {
-    probeMock.mockReturnValue(new Promise(() => {}));
+    harness.pdfjs.probeNeverAnswers();
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
     mount();
     await loadFiles(['locked.pdf']);
@@ -978,18 +965,19 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('shows the Hebrew locked-state copy on the /he/ edition', async () => {
-    probeMock.mockResolvedValue('needs-password');
+    harness.pdfjs.probeAs('needs-password');
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
     mount({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
     await loadFiles(['locked.pdf']);
     await settle();
-    await act(async () => { await flush(20); });
-    expect(container.textContent).toContain(hebrewMergeMessages.protectedNeedsPasswordTitle);
-    expect(container.textContent).toContain(hebrewMergeMessages.protectedUnlockIt);
+    await waitUntil(() => {
+      expect(container.textContent).toContain(hebrewMergeMessages.protectedNeedsPasswordTitle);
+      expect(container.textContent).toContain(hebrewMergeMessages.protectedUnlockIt);
+    });
   });
 
   it('keeps the inline error when a protected file sits among several (MERGE-04)', async () => {
-    probeMock.mockResolvedValue('needs-password');
+    harness.pdfjs.probeAs('needs-password');
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
     mount();
     await loadFiles(['a.pdf', 'locked.pdf']);
@@ -999,7 +987,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('names the output after the first readable file, not a locked one that leads', async () => {
-    probeMock.mockResolvedValue('needs-password');
+    harness.pdfjs.probeAs('needs-password');
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
     mount();
     await loadFiles(['locked.pdf', 'plain.pdf']);
@@ -1008,13 +996,13 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('offers no "add one more file" box beside the locked state of a single protected file', async () => {
-    probeMock.mockResolvedValue('needs-password');
+    harness.pdfjs.probeAs('needs-password');
     pageCounts.set('locked.pdf', { pageCount: 1, encrypted: true });
     mount();
     await loadFiles(['locked.pdf']);
     await settle();
-    await act(async () => { await flush(20); });
-    expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
+    await waitUntil(() => expect(container.querySelector('[data-needs-unlock]')).not.toBeNull());
+    await act(async () => { await flush(20); }); // the absence below keeps its window
     expect(container.querySelector('[data-state="one-file"]')).toBeNull();
   });
 
@@ -1092,7 +1080,6 @@ describe('PdfMergeTool UI flow', () => {
     const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Compress');
     await act(async () => {
       button.click();
-      await flush(10);
     });
     await until(() => navigate.mock.calls.length > 0);
     // The hand-off is what Compress will find: the merged file, whole.
@@ -1117,9 +1104,8 @@ describe('PdfMergeTool UI flow', () => {
 
     await act(async () => {
       handoff('Compress').click();
-      await flush(10);
     });
-    expect(navigate).toHaveBeenCalledWith('/compress/');
+    await waitUntil(() => expect(navigate).toHaveBeenCalledWith('/compress/'));
     expect(handoff('Sign').disabled).toBe(true);
 
     await act(async () => {
@@ -1131,9 +1117,8 @@ describe('PdfMergeTool UI flow', () => {
     expect(handoff('Sign').disabled).toBe(false);
     await act(async () => {
       handoff('Sign').click();
-      await flush(10);
     });
-    expect(navigate).toHaveBeenLastCalledWith('/sign/');
+    await waitUntil(() => expect(navigate).toHaveBeenLastCalledWith('/sign/'));
   });
 
   // MEM-01/02: this used to ask first, and on confirmation call
@@ -1157,7 +1142,6 @@ describe('PdfMergeTool UI flow', () => {
     const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Sign');
     await act(async () => {
       button.click();
-      await flush(10);
     });
     await until(() => navigate.mock.calls.length > 0);
     expect((await harness.takeHandoff('sign'))?.fileName).toBe('merged_a.pdf');
@@ -1457,10 +1441,17 @@ describe('PdfMergeTool UI flow', () => {
       expect(container.querySelector(`ul.${railStyles['file-list']}`)).toBeNull();
 
       await loadFiles(['c.pdf', 'd.pdf']);
-      await flush(10);
-
-      const list = container.querySelector(`ul.${railStyles['file-list']}`);
-      const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+      const listOf = () => container.querySelector(`ul.${railStyles['file-list']}`);
+      const chipRowOf = () => container.querySelector(`ul.${docStyles['chip-row']}`);
+      await waitUntil(() => {
+        expect(listOf()).not.toBeNull();
+        expect(chipRowOf()).not.toBeNull();
+        expect(Sortable.get(listOf())).toBeDefined();
+        expect(Sortable.get(chipRowOf())).toBeDefined();
+      });
+      await flush(10); // the error checks below are absences: keep a window
+      const list = listOf();
+      const chipRow = chipRowOf();
       expect(list).not.toBeNull();
       expect(chipRow).not.toBeNull();
       expect(errors).toEqual([]);
@@ -1888,6 +1879,11 @@ describe('PdfMergeTool quiet-time prepare', () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await act(async () => pageNumbersBox().click());
     await advance(1700);
+    // The build loads pdf-lib and the page-number font before its first read: real work, not fake time.
+    // Waits on the real loop only, so the fake clock stays at 1700 ms.
+    for (const until = performance.now() + 5000; !reads.isBlocked() && performance.now() < until;) {
+      await act(() => new Promise((resolve) => setImmediate(resolve)));
+    }
     expect(reads.isBlocked()).toBe(true);
     expect(box().getAttribute('data-state')).toBe('ready');
     await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
