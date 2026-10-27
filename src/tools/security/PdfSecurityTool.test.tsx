@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
-import * as securityLib from './security.js';
+import * as securityLib from './lib/security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -40,7 +40,7 @@ vi.mock('../../lib/thumbnails.js', async (importOriginal) => ({
 }));
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
-vi.mock('./security.js', () => ({
+vi.mock('./lib/security.js', () => ({
   unlockPdf: vi.fn(),
   protectPdf: vi.fn(),
   UnreadablePdfError: class UnreadablePdfError extends Error {
@@ -433,7 +433,7 @@ describe('PdfSecurityTool', () => {
     // The real classifier (under pdf.js's Node build) and the real unlock; only the browser seams are faked.
     async function useRealLibs() {
       const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
-      const realSecurity = await vi.importActual('./security.js');
+      const realSecurity = await vi.importActual('./lib/security.js');
       const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
       probeEncryption.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
       securityLib.unlockPdf.mockImplementation(realSecurity.unlockPdf);

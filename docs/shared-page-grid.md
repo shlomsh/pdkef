@@ -145,7 +145,7 @@ Split's file card, framed "one document" box, always-on tile icons and undo chip
 `src/lib/pagePlan.ts` (pure):
 
 ```ts
-includeAll(plan) / skipAll(plan) / invert(plan)   // moved from src/tools/edit-pages/editPlan.ts, same no-op contract
+includeAll(plan) / skipAll(plan) / invert(plan)   // moved from src/tools/edit-pages/lib/editPlan.ts, same no-op contract
 includedPageNumbers(plan): number[]               // 1-based source page numbers of the kept entries, in plan order
 withIncludedPages(plan, pageNumbers: number[]): PlanEntry[]  // skipped = not in the list; same array when nothing changes
 ```

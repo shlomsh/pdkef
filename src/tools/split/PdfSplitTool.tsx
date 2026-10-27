@@ -32,8 +32,8 @@ import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import SplitVerb from './verb/SplitVerb.tsx';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
-import { buildSplit, type SplitMode } from './splitOutput.ts';
-import { outputBaseName, extractedFileName } from './split.js';
+import { buildSplit, type SplitMode } from './lib/splitOutput.ts';
+import { outputBaseName, extractedFileName } from './lib/split.js';
 
 
 // The one file has one source in the shared plan.

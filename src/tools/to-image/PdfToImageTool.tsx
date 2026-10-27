@@ -31,11 +31,11 @@ import { thumbnailPdfLoader } from '../../shell/pageWorkspace/useOpenPageDocumen
 import { usePageToolSession } from '../../shell/pageWorkspace/usePageToolSession.ts';
 import { useLazyPageGrid } from '../../shell/pageWorkspace/useLazyPageGrid.ts';
 import PdfToImageVerb from './verb/PdfToImageVerb.tsx';
-import { imageBaseName, imageExtension, imageFileName } from './toImage.js';
+import { imageBaseName, imageExtension, imageFileName } from './lib/toImage.js';
 import {
   autoBuilds, buildImages, formatName, imageLabels, imagesMade, AUTO_BUILD_PAGE_LIMIT,
   type ImageFormat, type ImageLayout,
-} from './toImageOutput.ts';
+} from './lib/toImageOutput.ts';
 import styles from './PdfToImageTool.module.css';
 
 // Nothing is handed off from here (Share only), but the shared flow's contract names the targets.

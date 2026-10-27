@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { mergedFileName } from '../../tools/merge/mergePlan.ts';
-import { outputFileName as splitName } from '../../tools/split/split.js';
+import { outputFileName as splitName } from '../../tools/split/lib/split.js';
 import { compressedFileName } from '../../tools/compress/outputName.ts';
-import { modifiedTitle } from '../../tools/edit-pages/outputName.ts';
-import { outputFileName as securityName } from '../../tools/security/outputName.ts';
+import { modifiedTitle } from '../../tools/edit-pages/lib/outputName.ts';
+import { outputFileName as securityName } from '../../tools/security/lib/outputName.ts';
 import { signedFileName } from '../../tools/sign/signedFileName.ts';
 import { redactedFileName } from '../../tools/redact/lib/redactFileName.ts';
-import { imageBaseName, imageFileName } from '../../tools/to-image/toImage.js';
+import { imageBaseName, imageFileName } from '../../tools/to-image/lib/toImage.js';
 import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';
 import { defaultOutputName } from '../../lib/pageOrder.js';
 
