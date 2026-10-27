@@ -21,8 +21,10 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Outcome
 
-- `vitest run` moves to its own job; build-dependent jobs wait on `checks` for dependency PRs.
+- `vitest run` moves to its own `units` job. On a dependency PR, one `dependency-gate` job builds first and the jobs that build on their own wait for it (a bump that breaks the build failed seven jobs in run 40337702161). `needs` is static, so waiting on `checks` would have slowed every run.
 
 ## Acceptance
 
 - [ ] Guards and units report separately; total wall time does not rise.
+
+*2026-10-27:* landed on `audit-structure`. It stays in progress until the first CI run on `main` shows that total wall time did not rise.
