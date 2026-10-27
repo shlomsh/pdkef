@@ -72,7 +72,7 @@ check cannot see. Grouped by the component that should own each:
 - **Fonts (the big one).** `scripts/font-manifest.mjs` (38 families, `DEFAULT_FONT_FAMILY`,
   `RETIRED_FONTS`), `display-only-fonts.mjs`, `font-languages.mjs` (515 lines of per-language
   alphabets), `language-acceptance.mjs` (Sign's rollout contract) are the source of truth;
-  `generate-font-manifest.mjs` writes `src/editor/text/fontManifest.ts` and `src/styles/editorFonts.css`
+  `generate-font-manifest.mjs` writes `src/editor/text/fontManifest.js` and `src/styles/editorFonts.css`
   (with its own `FACE_CSS` weight/style policy), `generate-font-coverage.mjs` writes
   `src/editor/text/fontCoverageTable.js` **including the runtime lookup functions** (`fontFileHasGlyph`
   and friends, authored in a template literal at lines 246-310 - runtime code living in a script),
@@ -156,8 +156,8 @@ font-coverage script ran the whole suite), not a large wall-clock rescue on its 
   page (`src/pages/licenses.astro` importing the font manifest) and one a shipped stylesheet's
   `@source`, and went to zero as each move below landed.
 - **Every runtime piece left `scripts/`**, each move proving its generated output unchanged:
-  - Fonts: `src/editor/text/fontManifest.ts` (hand-written now, with `FACE_CSS` and
-    `isPrecachedFontFile`), `fontLicenses.ts` (side-table, key sets tested identical, never in the
+  - Fonts: `src/editor/text/fontManifest.js` (hand-written now, with `FACE_CSS` and
+    `isPrecachedFontFile`), `fontLicenses.js` (side-table, key sets tested identical, never in the
     editor bundle), `displayOnlyFonts.js`, `languageAlphabets.js`, `fontCoverageLookup.js` (the
     lookup code that used to be authored inside the generator's template string);
     `fontCoverageTable.js` is data only; `src/tools/sign/languageAcceptance.js` is Sign's contract.

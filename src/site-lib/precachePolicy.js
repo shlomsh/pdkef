@@ -1,5 +1,4 @@
 import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../lib/fonts/fontManifest.ts';
-import { isLocalizedPath } from '../i18n/localePrefixes.js';
 
 /**
  * ARCH-22: this is product behaviour, not build tooling - it decides what
@@ -15,26 +14,11 @@ import { isLocalizedPath } from '../i18n/localePrefixes.js';
  * Which built assets the service worker downloads before anyone asks for
  * them. Everything omitted here still enters the runtime cache on first use.
  *
- * Everything in dist/ is precached except fonts. Two things force this back
- * to "the whole shell," not just tool-page HTML:
- *
- * 1. A service worker can never intercept the navigation that first
- *    registers it - by the time 'load' fires and registration begins, that
- *    document request (and every subresource it triggered, including a
- *    `client:load` island's own hydration bundle) has already gone out
- *    uncontrolled and uncached. So a page shell alone is not enough to
- *    reopen a tool offline after exactly one visit: the HTML would be
- *    there, but its island's JS would 404 from the runtime cache and the
- *    tool would never hydrate. Only precaching the JS/CSS a page needs,
- *    alongside its HTML, actually closes the gap - and per-page dependency
- *    graphs aren't information this filter has, so the reliable version of
- *    that is "precache the app."
- * 2. This is a reversion to the pre-2026-08-27 policy, which precached
- *    everything (measured then at 4.23 MB non-font across ~69 entries) and
- *    was working; the SIGN-07 review found the later change - which
- *    additionally dropped every page's HTML and JS down to precaching only
- *    `/` - broke offline-after-one-visit for every route, not just the
- *    documentation pages it meant to stop precaching.
+ * MEM-15/MEM-18: the install caches the whole app, as the union of the build's
+ * closures: a shell (`/` and what every page shares) plus the closure of each
+ * HTML page (scripts/precacheClosure.mjs, listed in the manifest). Files no
+ * page reaches are not installed. This filter decides which files may appear
+ * in any of those lists, so a tool works offline after one visit.
  *
  * Fonts are mostly excluded. Declared with `@font-face`
  * (src/styles/editorFonts.css), a browser fetches a TTF only when a rule
@@ -59,22 +43,18 @@ import { isLocalizedPath } from '../i18n/localePrefixes.js';
  * and why it's read off `faces.normal` rather than every entry the
  * manifest's (currently unused) `precache` flag would pull in.
  *
- * Localized HTML (`/he/...`, any prefix in src/i18n/localePrefixes.js) is
- * the second exclusion (LOC-02): a locale must cost only its own visitors
- * bytes, and every tool times N languages of page shells would otherwise
- * land in every visitor's cache. A localized page instead asks sw.js to
- * precache its edition's published pages as a pack (the same mechanism as
- * font packs, `pdkef:locale-pack-provision`), so a Hebrew visitor has the
- * whole edition offline after one visit while the JS - shared,
- * content-hashed, already in the manifest - downloads once. The HTML is
- * cheap; the rule is what stops the multiplication.
+ * Localized pages (`/he/...`, `/id/...`) are part of the whole-app install
+ * like any other page: each is cached with its own closure.
  */
 const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 
+// The Scan guide's photos (about 750 KB) are shown only on a controlled page and cached then, at runtime.
+const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/'];
+
 export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;
   if (relative.startsWith('fonts/')) return PRECACHED_FONTS.includes(relative);
-  if (relative.endsWith('.html') && isLocalizedPath(relative)) return false;
+  if (RUNTIME_ONLY_IMAGE_DIRS.some((dir) => `/${relative}`.startsWith(dir))) return false;
   return true;
 }

@@ -14,7 +14,7 @@ Area: Architecture. Criterion: Layering and dependency direction. Structure only
 
 ## Why
 
-- `src/pages/licenses.astro` and `src/site-lib/precachePolicy.js` import `src/editor/text/fontManifest.ts` (and licenses also `fontLicenses.ts`). No boundary rule describes a site to editor edge, so the headless core is a de facto public API for build-time site code.
+- `src/pages/licenses.astro` and `src/site-lib/precachePolicy.js` import `src/editor/text/fontManifest.js` (and licenses also `fontLicenses.js`). No boundary rule describes a site to editor edge, so the headless core is a de facto public API for build-time site code.
 
 ## Outcome
 

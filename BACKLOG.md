@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 81 live: 15 up next, 12 then, 26 waiting, 28 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 77 live: 12 up next, 11 then, 26 waiting, 28 parked.
 
 ## Redact: finish removal
 
@@ -70,9 +70,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| MEM-16 | P2 | [MEM-16](backlog/tasks/MEM-16.md) · A new build's cache carries every unchanged content-hashed file over from the previous cache |  |
-| MEM-15 | P2 | [MEM-15](backlog/tasks/MEM-15.md) · The precache manifest is per page: a visit caches the shell plus that page's import closure |  |
-| MEM-17 | P3 | [MEM-17](backlog/tasks/MEM-17.md) · Service worker registration waits for the island's hydration and an idle callback |  |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
@@ -81,7 +78,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| MEM-18 | P2 | [MEM-18](backlog/tasks/MEM-18.md) · CI budgets each page's precache closure and keeps tool-specific assets out of other tools' closures |  |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
@@ -212,7 +208,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 58 done, 4 retired
+- Robustness and debt: 62 done, 4 retired
 - Unify the tools, narrow the graph: 56 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 18 done, 1 retired

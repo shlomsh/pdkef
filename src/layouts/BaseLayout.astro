@@ -133,15 +133,24 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       // modules from two Vite optimize passes and hydration dies on an undefined
       // internal. Dev actively uninstalls it instead of leaving it to rot.
       import { startAppUpdates } from '../site-lib/appUpdate.ts';
+      import { whenReadyToRegister } from '../site-lib/registrationReady.ts';
       if ('serviceWorker' in navigator) {
         if (import.meta.env.PROD) {
-          // MEM-10: registration (after load), the answer to the worker's
-          // busy query (from the start), and the update line, which shows only
-          // when another tab holds an update back.
+          // MEM-10: registration (after load, hydration and an idle moment,
+          // MEM-17), the answer to the worker's busy query (from the start),
+          // and the update line, which shows only when another tab holds an
+          // update back.
           startAppUpdates({
-            loaded: new Promise((resolve) => {
-              if (document.readyState === 'complete') resolve();
-              else window.addEventListener('load', () => resolve(), { once: true });
+            ready: whenReadyToRegister({
+              loaded: new Promise((resolve) => {
+                if (document.readyState === 'complete') resolve();
+                else window.addEventListener('load', () => resolve(), { once: true });
+              }),
+              document,
+              requestIdleCallback: window.requestIdleCallback?.bind(window),
+              setTimeout: (fn, ms) => setTimeout(fn, ms),
+              clearTimeout: (id) => clearTimeout(id as number),
+              MutationObserver: window.MutationObserver,
             }),
             serviceWorker: navigator.serviceWorker,
             line: document.querySelector('[data-app-update]'),

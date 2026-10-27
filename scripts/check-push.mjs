@@ -90,6 +90,9 @@ const BUILD_INVOKED_SCRIPTS = new Set([
   'scripts/generate-language-acceptance.mjs',
   'scripts/generate-precache-manifest.mjs',
   'scripts/buildId.mjs',
+  'scripts/buildCommit.mjs',
+  'scripts/minifyServiceWorker.mjs',
+  'scripts/precacheClosure.mjs',
 ]);
 
 export function fileCannotReachDist(file) {
@@ -185,7 +188,7 @@ export const ALWAYS_GUARD_STEPS = [
 ];
 
 // The dist guards ci.yml's `build` job runs after `astro build`, in order.
-export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test:css', 'test:weight', 'test:lazy-modules'];
+export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test:css', 'test:weight', 'test:lazy-modules', 'test:precache-budget'];
 
 // ---------------------------------------------------------------------------
 // The pure step-plan builder: given the one computed scope, decide the
@@ -268,6 +271,7 @@ const STEP_RUNNERS = {
   'test:css': () => runNpm('test:css'),
   'test:weight': () => runNpm('test:weight'),
   'test:lazy-modules': () => runNpm('test:lazy-modules'),
+  'test:precache-budget': () => runNpm('test:precache-budget'),
 };
 for (const script of ALWAYS_GUARD_STEPS) {
   if (!(script in STEP_RUNNERS)) STEP_RUNNERS[script] = () => runNpm(script);
