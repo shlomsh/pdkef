@@ -2,8 +2,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import EditorExportActions, { type EditorExportActionsProps } from './EditorExportActions.tsx';
+// Builds the .toolbar fixture and asserts the download / desktop-download classes: the toolbar's CSS contract.
 import styles from './SignToolbar.module.css';
-import workspaceStyles from './Workspace.module.css';
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -64,7 +64,7 @@ describe('EditorExportActions parity contract', () => {
           render(<EditorExportActions {...PROFILES[tool].makeProps()} />, container);
         });
 
-        const row = required(container.querySelector(`.${workspaceStyles['export-actions']}`), 'export-actions row');
+        const row = required(container.firstElementChild, 'export-actions row');
         expect(row).not.toBeNull();
       });
 
