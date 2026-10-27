@@ -50,9 +50,6 @@ export const CRITICAL_PAGE_CAP_MS = 60_000;
 export const CRITICAL_ABANDON_MS = 90_000;
 /** MEM-13: a tab coming back to the foreground asks for a new build at most this often. */
 export const VISIBLE_CHECK_MIN_MS = 60 * 1000;
-/** MEM-15: the page asks its worker for the page's offline pack; a download can take a while on a weak line. */
-export const PAGE_PACK_PROVISION = 'pdkef:page-pack-provision';
-export const PAGE_PACK_TIMEOUT_MS = 5 * 60 * 1000;
 export const CRITICAL_UPDATE = 'pdkef:critical-update';
 export const CRITICAL_CHECK = 'pdkef:critical-check';
 
@@ -138,8 +135,6 @@ interface ContainerLike {
   controller: unknown;
   register(url: string): Promise<RegistrationLike>;
   getRegistration?(): Promise<RegistrationLike | undefined>;
-  /** Resolves with the registration once its worker is active. */
-  ready?: Promise<{ active?: WorkerLike | null } | undefined>;
   addEventListener(type: 'controllerchange', listener: () => void): void;
   addEventListener(type: 'message', listener: (event: WorkerMessageEvent) => void): void;
   startMessages?(): void;
@@ -170,8 +165,6 @@ export interface AppUpdateDeps {
    */
   ready?: Promise<void>;
   createMessageChannel?: () => MessageChannelLike;
-  /** The page's public URL, as the build manifest keys it. Default: `location.pathname`. */
-  page?: string;
 }
 
 export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
@@ -315,21 +308,6 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   // and its claim must not reload the page under the person's first click
   // (DEBT-45).
   if (activeBeforeRegister) controlled = true;
-
-  // MEM-15: this page's offline pack, asked of the worker once it is active. A
-  // failure of any kind is silent: the pack is an offline nicety, and the page
-  // works without it. Not awaited, so it never delays the update wiring below.
-  void provisionPagePack(); // reason: provisionPagePack catches everything itself and cannot reject
-  async function provisionPagePack(): Promise<void> {
-    try {
-      const page = deps.page ?? globalThis.location?.pathname;
-      const worker = (await serviceWorker.ready)?.active;
-      if (!worker || !page) return;
-      await ask(worker, { type: PAGE_PACK_PROVISION, page }, PAGE_PACK_TIMEOUT_MS);
-    } catch {
-      // expected: no active worker, or it went away; the next visit asks again
-    }
-  }
 
   // One question to the waiting worker; null when it does not answer in time.
   function ask(worker: WorkerLike, message: unknown, timeoutMs: number): Promise<StatusReply | null> {

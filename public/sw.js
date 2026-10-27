@@ -3,20 +3,15 @@
 // own cache and no two builds ever share one.
 //
 // Strategy:
-//   - Install precaches the shell (`/`, the offline fallback, and what every
-//     page shares) plus the pack of every page that had one in a previous
-//     build's cache: that page's HTML and every script, style, worker and wasm
-//     file it reaches, as listed per page in the build manifest (v2). A page
-//     asks for its own pack once it is open online (pdkef:page-pack-provision),
-//     so a tool works offline once its page was opened online, and a tool nobody
-//     opened costs nothing. Best-effort per URL except the root fallback (see
-//     precacheUrls). A service worker can never intercept the navigation that
-//     first registers it, which is why a visited page's closure is fetched
-//     explicitly rather than hoped for from the runtime cache. The manifest an
-//     install used is kept in its cache, so provisioning never mixes in a newer
-//     deploy's lists. A new build copies its unchanged content-hashed /_astro/
-//     files from the previous build's cache and fetches only the rest, so a
-//     redeploy costs the diff, not the site.
+//   - Install precaches the whole app, defined by the build manifest (v2) as
+//     the shell (`/`, the offline fallback, and what every page shares) plus
+//     every page's list: that page's HTML and every script, style, worker and
+//     wasm file it reaches, computed at build time and deduped here (appUrls).
+//     Guide photos and files no page reaches are left to runtime caching.
+//     Best-effort per URL except the root fallback (see precacheUrls). A new
+//     build copies its unchanged content-hashed /_astro/ files from the
+//     previous build's cache and fetches only the rest, so a redeploy costs
+//     the diff, not the site.
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable.
 //   - Other same-origin assets are cache-first after precache or first use.
@@ -103,22 +98,6 @@ const FONT_PACK_MESSAGE = {
   status: 'pdkef:font-pack-status',
   provision: 'pdkef:font-pack-provision',
 };
-
-// MEM-15: a page pack is the closure of one visited page (its HTML and every
-// script, style, worker and wasm file it reaches), listed per page in the build's
-// manifest. The page asks for it once it is open online; a marker beside the files
-// says every one of them is cached. A new build's install re-provisions each page
-// whose marker the previous build's cache held, so a visited tool stays offline
-// across deploys without the worker downloading pages nobody opened.
-const PAGE_PACK_MARKER_PATH = '/__pdkef/offline-page-pack/';
-const PAGE_PACK_MESSAGE = {
-  status: 'pdkef:page-pack-status',
-  provision: 'pdkef:page-pack-provision',
-};
-// The manifest this build installed from, kept in its own cache. Provisioning
-// reads it instead of the network, so a page never gets the file list of a
-// newer deploy than the worker (and the cached shell) it belongs to.
-const STORED_MANIFEST_PATH = '/__pdkef/manifest/';
 
 // Raised when this origin serves no build manifest at all — a 404, not a
 // network blip. The worker is then running somewhere it was never built for
@@ -209,21 +188,7 @@ async function findInPrevious(previousCaches, url) {
   return null;
 }
 
-// The manifest this build installed from. Stored on first read, so every later
-// read (the completion pass, a page pack) sees this build's lists, never a newer
-// deploy's. Only install may fetch it (fetchIfMissing): a worker that is
-// already active and finds its copy gone would otherwise pair a live deploy's
-// file list with this build's cache.
-async function loadManifest(cache, { fetchIfMissing = true } = {}) {
-  const stored = await cache.match(resolve(STORED_MANIFEST_PATH));
-  if (stored) {
-    try {
-      return validManifest(await stored.json());
-    } catch {
-      // A corrupt copy is refetched below.
-    }
-  }
-  if (!fetchIfMissing) throw new Error('Offline pack is not ready.');
+async function loadManifest() {
   const response = await fetchFresh(PRECACHE_MANIFEST_URL);
   if (response.status === 404) {
     throw new OrphanedWorkerError('This origin serves no precache manifest.');
@@ -231,9 +196,12 @@ async function loadManifest(cache, { fetchIfMissing = true } = {}) {
   if (!response.ok) {
     throw new Error(`Failed to load precache manifest: ${response.status}`);
   }
-  const manifest = validManifest(await response.json());
-  await cache.put(resolve(STORED_MANIFEST_PATH), new Response(JSON.stringify(manifest)));
-  return manifest;
+  return validManifest(await response.json());
+}
+
+// MEM-15: the whole app is the shell plus every page's list, each URL once.
+function appUrls({ shell, pages }) {
+  return [...new Set([...shell, ...Object.values(pages).flat()])];
 }
 
 function validManifest(manifest) {
@@ -297,23 +265,18 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
   return missed;
 }
 
-// MEM-15: the shell plus the pack of every page that had one before. Resolves
-// to the number of URLs missed.
+// MEM-15: the whole app (see appUrls). Resolves to the number of URLs missed.
 async function precacheAppShell({ skipCached = false } = {}) {
+  const manifest = await loadManifest();
   const cache = await caches.open(CACHE_VERSION);
-  const manifest = await loadManifest(cache);
   let previousCaches = [];
   try {
     previousCaches = await previousCacheHandles();
   } catch {
     // No readable previous cache.
   }
-  const pages = await packedPages(manifest, [...previousCaches, cache]);
-  const urls = [...new Set([...manifest.shell, ...pages.flatMap((page) => manifest.pages[page])])];
+  const urls = appUrls(manifest);
   const missed = await precacheUrls(cache, urls, previousCaches, { skipCached });
-  for (const page of pages) {
-    if (await allCached(cache, manifest.pages[page])) await writePagePackMarker(cache, page);
-  }
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
@@ -321,9 +284,9 @@ async function precacheAppShell({ skipCached = false } = {}) {
 }
 
 // A build is ready to take over from the previous one only when it is fully
-// precached and the device is online. Offline, activation could not
-// re-provision the visited pages' packs (see PAGE_PACK_MARKER_PATH), so the old
-// build's offline coverage would be lost for good.
+// precached and the device is online. Offline, a build that is not
+// fully cached would replace one that is, and the offline coverage would be
+// lost for good.
 async function readyToTakeOver() {
   const cache = await caches.open(CACHE_VERSION);
   const complete = !!await cache.match(resolve(PRECACHE_COMPLETE_PATH));
@@ -450,77 +413,6 @@ async function migrateFontPacks(previousCaches, currentCache) {
     }
     if (complete) await writeFontPackMarker(currentCache, pack);
   });
-}
-
-function pagePackMarker(page) {
-  return `${PAGE_PACK_MARKER_PATH}${encodeURIComponent(page)}`;
-}
-
-async function writePagePackMarker(cache, page) {
-  await cache.put(resolve(pagePackMarker(page)), new Response(page));
-}
-
-// The pages whose marker one of these caches holds.
-async function markedPages(caches_) {
-  const pages = new Set();
-  for (const cache of caches_) {
-    for (const request of await cache.keys()) {
-      const { pathname } = new URL(request.url);
-      if (!pathname.startsWith(PAGE_PACK_MARKER_PATH)) continue;
-      try {
-        pages.add(decodeURIComponent(pathname.slice(PAGE_PACK_MARKER_PATH.length)));
-      } catch {
-        // A malformed marker names no page.
-      }
-    }
-  }
-  return pages;
-}
-
-// Activation: a pack the still-active old worker provisioned after this build
-// installed is marked only in an old cache, which is about to be deleted. Bring
-// each such page over with the same path install uses. Best effort: a page that
-// cannot be completed simply stays unmarked, and the visitor re-provisions it
-// on their next visit.
-async function migratePagePacks(previousCaches, currentCache) {
-  const manifest = await loadManifest(currentCache, { fetchIfMissing: false });
-  const already = await markedPages([currentCache]);
-  const late = [...await markedPages(previousCaches)]
-    .filter((page) => Object.hasOwn(manifest.pages, page) && !already.has(page));
-  for (const page of late) {
-    const missed = await precacheUrls(currentCache, manifest.pages[page], previousCaches, { skipCached: true });
-    if (missed.length === 0) await writePagePackMarker(currentCache, page);
-  }
-}
-
-async function allCached(cache, urls) {
-  const found = await Promise.all(urls.map((url) => cache.match(url)));
-  return found.every(Boolean);
-}
-
-// Install and the later completion pass share this: the pack of every page that
-// had a marker before (in an earlier build's cache or already in this one).
-async function packedPages(manifest, caches_) {
-  const marked = await markedPages(caches_);
-  return Object.keys(manifest.pages).filter((page) => marked.has(page));
-}
-
-// Provision caches what the page's list in this build's stored manifest lacks and
-// writes the marker once nothing is missing; status only reports. A page the
-// manifest does not list is refused, so a page cannot make the worker fetch URLs
-// the build never named. Replies { [page]: ready }.
-async function handlePagePackMessage(data) {
-  const page = data?.page;
-  const cache = await caches.open(CACHE_VERSION);
-  const manifest = await loadManifest(cache, { fetchIfMissing: false });
-  if (typeof page !== 'string' || !Object.hasOwn(manifest.pages, page)) throw new Error('Unknown page.');
-  const urls = manifest.pages[page];
-  if (data.type === PAGE_PACK_MESSAGE.provision) {
-    const missed = await precacheUrls(cache, urls, await previousCacheHandles().catch(() => []), { skipCached: true });
-    if (missed.length === 0) await writePagePackMarker(cache, page);
-  }
-  const ready = !!await cache.match(resolve(pagePackMarker(page))) && await allCached(cache, urls);
-  return { [page]: ready };
 }
 
 async function handleFontPackMessage(data) {
@@ -676,8 +568,6 @@ self.addEventListener('activate', (event) => {
     const previousCaches = await Promise.all(previousKeys.map((key) => caches.open(key)));
     const currentCache = await caches.open(CACHE_VERSION);
     await migrateFontPacks(previousCaches, currentCache);
-    // Best effort, like the font packs: never blocks the deletion below.
-    await migratePagePacks(previousCaches, currentCache).catch(() => {});
     await Promise.all(previousKeys.map((key) => caches.delete(key)));
     await self.clients.claim();
   })());
@@ -903,13 +793,11 @@ self.addEventListener('message', (event) => {
     event.waitUntil(handleUpdateStatus(event));
     return;
   }
-  const isFontPack = [FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type);
-  const isPagePack = [PAGE_PACK_MESSAGE.status, PAGE_PACK_MESSAGE.provision].includes(type);
-  if (!isFontPack && !isPagePack) return;
+  if (![FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type)) return;
   const reply = event.ports?.[0];
   if (!reply) return;
   event.waitUntil(
-    (isFontPack ? handleFontPackMessage(event.data) : handlePagePackMessage(event.data))
+    handleFontPackMessage(event.data)
       .then((ready) => reply.postMessage({ ok: true, ready }))
       .catch((error) => reply.postMessage({ ok: false, error: error.message })),
   );
