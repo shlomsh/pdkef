@@ -1,7 +1,7 @@
 ---
 id: "ARCH-82"
 title: "Behaviour tests find elements by role and label, not CSS Module class names"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

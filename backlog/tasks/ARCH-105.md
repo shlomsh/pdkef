@@ -1,7 +1,7 @@
 ---
 id: "ARCH-105"
 title: "The size ratchet also records functions over 150 lines and nesting depth"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

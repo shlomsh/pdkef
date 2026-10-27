@@ -1,7 +1,7 @@
 ---
 id: "ARCH-121"
 title: "Fixed sleeps in e2e specs are replaced by web-first assertions"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

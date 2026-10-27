@@ -1,7 +1,7 @@
 ---
 id: "ARCH-109"
 title: "Redact moves its effect clusters into hooks over the reducer state"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

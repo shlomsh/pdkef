@@ -1,7 +1,7 @@
 ---
 id: "ARCH-129"
 title: "docs/module-boundaries.md describes the current layout"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
