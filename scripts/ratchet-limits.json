@@ -1,4 +1,7 @@
 {
+  "anyTypes": {
+    "src/tools": 14
+  },
   "css": {
     "maxFamilyDuplication": 0.65,
     "maxPageDeadBytes": 10000,

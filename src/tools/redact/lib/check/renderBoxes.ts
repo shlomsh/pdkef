@@ -7,12 +7,13 @@
  */
 import { getPdfRenderContext } from '../../../../lib/pdfRender.js';
 import { boxSolidity } from './boxSolidity.ts';
+import type { PdfPage, PdfRenderParameters } from '../../../../lib/pdfTypes.ts';
 import type { BoxSolidity, CheckBox } from './types.ts';
 
 const RENDER_SCALE = 2;
 
 export async function checkBoxesOnPage(
-  page: any,
+  page: PdfPage,
   boxes: CheckBox[],
   createCanvas: (w: number, h: number) => HTMLCanvasElement | OffscreenCanvas,
 ): Promise<BoxSolidity[]> {
@@ -20,7 +21,7 @@ export async function checkBoxesOnPage(
   const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
   const ctx = getPdfRenderContext(canvas as HTMLCanvasElement);
 
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  await page.render({ canvasContext: ctx, viewport } as PdfRenderParameters).promise;
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   // Free the page's decoded resources and the canvas's backing store: a

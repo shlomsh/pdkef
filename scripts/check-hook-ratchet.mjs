@@ -18,7 +18,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Comments and the insides of string and template literals blanked to spaces (newlines
 // kept), so a hook name in prose or text is not a call. Regex literals are not tracked.
-function blankNonCode(source) {
+export function blankNonCode(source) {
   let out = '';
   let quote = null;
   for (let i = 0; i < source.length; i++) {

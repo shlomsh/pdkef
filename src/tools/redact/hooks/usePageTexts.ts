@@ -43,7 +43,7 @@ export default function usePageTexts(
       const pages: SearchablePage[] = [];
       let glyphsKept = 0;
       try {
-        const pdfjs: any = await getPdfjs();
+        const pdfjs = await getPdfjs();
         for (let pageIndex = 0; pageIndex < numPages; pageIndex += 1) {
           const page = await pdfDocument.getPage(pageIndex + 1);
           const items = (await readTextItems(page)).filter(isTextItem);
