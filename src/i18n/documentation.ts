@@ -10,6 +10,7 @@ import {
   type DocumentationFreshness,
   type DocumentationSourceHash,
 } from './documentationFreshness';
+import { getEntryData } from './contentEntries';
 
 export type DocumentationStatus = 'draft' | 'published';
 export type DocumentationVariant = {
@@ -49,10 +50,7 @@ export const isDocumentationPreview = () =>
 // time. This code runs only while Astro generates article routes and never
 // enters a tool's client bundle.
 async function collections() {
-  const { getCollection } = (await import('astro:content')) as unknown as {
-    getCollection: (name: string) => Promise<Array<{ id: string; data: Record<string, any> }>>;
-  };
-  return Promise.all([getCollection('contentPages'), getCollection('localizedPages')]);
+  return Promise.all([getEntryData('contentPages'), getEntryData('localizedPages')]);
 }
 
 function localeId(value: string): DocumentationLocaleId {

@@ -17,5 +17,5 @@ const page = await loadLocalizedToolPage('sign', Astro.props.localeId, Astro.par
 ---
 
 <LocalizedToolLayout page={page}>
-  <PdfSignTool client:load shellMessages={page.shellMessages} messages={page.toolMessages as any} />
+  <PdfSignTool client:load shellMessages={page.shellMessages} messages={page.toolMessages} />
 </LocalizedToolLayout>
