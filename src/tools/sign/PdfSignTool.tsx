@@ -27,13 +27,8 @@ import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
 import useFieldNavigation from './hooks/useFieldNavigation.ts';
-import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
-import { isFillMode } from './lib/fill/fillMode.ts';
-import { viewportContent, zoomsOnFocus } from './lib/fill/viewportZoomLock.ts';
-import { freeSlotKey } from './lib/fill/fillSlots.ts';
-import { FillContext, FILL_OFF, type FillContextValue } from './components/fill/FillContext.tsx';
-import { useFillFocus } from './hooks/fill/useFillFocus.ts';
-import type { PagePoint } from './lib/fill/fillTypes.ts';
+import { FillContext, FILL_OFF } from './components/fill/FillContext.tsx';
+import { useFillMode } from './hooks/useFillMode.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
   getAppStyle,
@@ -165,100 +160,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // useEditorDraftPersistence writes to the draft.
   const style = useDocumentStyle();
 
-  // Fill mode (SNG-15), opt-in on `?next=1` alone (docs/sign-fill-mode.md).
-  // Read once, lazily, rather than on every render: the island is
-  // prerendered (output: 'static'), so `window` may not exist yet, and the
-  // flag must not flip mid-session once a real `window.location.search` is
-  // available on hydration.
-  const [enabled] = useState(() => typeof window !== 'undefined' && isFillMode(window.location.search));
-  const coarse = useCoarsePointer();
-  const [aimedKey, setAimedKey] = useState<string | null>(null);
-  const [freeAt, setFreeAt] = useState<PagePoint | null>(null);
-  const [pendingFocusKey, setPendingFocusKey] = useState<string | null>(null);
-  const proxyRef = useRef<HTMLInputElement>(null);
-
-  // The workspace builds the free slot from `freeAt` with the typography a new text
-  // box takes; its key comes from the point alone, so focus can be queued now.
-  const openFreeSlot = useCallback((at: PagePoint) => {
-    setFreeAt(at);
-    setPendingFocusKey(freeSlotKey(at));
-  }, []);
-
-  const closeFreeSlot = useCallback(() => setFreeAt(null), []);
-
-  // SNG-17: iOS zooms the page in on any focused field under 16px and never
-  // zooms back, which leaves the toolbar off screen; in fill mode nearly every
-  // tap focuses a field. `maximum-scale=1` stops that zoom-on-focus, while iOS
-  // still honours the person's own pinch (measured 2026-09-26: iOS 26
-  // Simulator in Safari, and Shlomi's iPhone in Chrome). Fill mode only, at
-  // runtime, on iOS only, so production's static viewport meta is untouched.
-  //
-  // Zoomed in, iOS re-zooms every focused field to its own 16px level, so
-  // `viewportContent` holds the limits at the person's pinch instead
-  // (SNG-17). They follow the pinch once it settles: `visualViewport`'s
-  // 'resize' fires through the gesture, and the meta is rewritten only after
-  // it goes quiet.
-  useEffect(() => {
-    if (!enabled || !zoomsOnFocus(navigator)) return undefined;
-    const meta = document.querySelector('meta[name="viewport"]');
-    const original = meta?.getAttribute('content') ?? '';
-    let pinching = false;
-    const apply = () => {
-      const next = viewportContent(original, window.visualViewport?.scale ?? 1, pinching);
-      if (meta?.getAttribute('content') !== next) meta?.setAttribute('content', next);
-    };
-    let settle: ReturnType<typeof setTimeout> | undefined;
-    const applyWhenSettled = () => {
-      clearTimeout(settle);
-      settle = setTimeout(apply, 250);
-    };
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length < 2) return;
-      pinching = true;
-      clearTimeout(settle);
-      apply();
-    };
-    const onTouchEnd = (event: TouchEvent) => {
-      if (!pinching || event.touches.length > 0) return;
-      pinching = false;
-      applyWhenSettled();
-    };
-    apply();
-    window.visualViewport?.addEventListener('resize', applyWhenSettled);
-    document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
-    document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
-    document.addEventListener('touchcancel', onTouchEnd, { capture: true, passive: true });
-    return () => {
-      clearTimeout(settle);
-      window.visualViewport?.removeEventListener('resize', applyWhenSettled);
-      document.removeEventListener('touchstart', onTouchStart, { capture: true });
-      document.removeEventListener('touchend', onTouchEnd, { capture: true });
-      document.removeEventListener('touchcancel', onTouchEnd, { capture: true });
-      meta?.setAttribute('content', original);
-    };
-  }, [enabled]);
-
-  useFillFocus({
-    enabled,
-    dispatch,
-    textOf: (elementId) => {
-      const element = elements.find((el) => el.id === elementId);
-      return element?.type === 'text' ? element.text : undefined;
-    },
-  });
-
-  const fillContextValue = useMemo<FillContextValue>(() => ({
-    enabled,
-    coarse,
-    aimedKey,
-    setAimedKey,
-    freeAt,
-    openFreeSlot,
-    closeFreeSlot,
-    pendingFocusKey,
-    setPendingFocusKey,
-    proxyRef,
-  }), [enabled, coarse, aimedKey, freeAt, openFreeSlot, closeFreeSlot, pendingFocusKey]);
+  // Fill mode (SNG-15): see hooks/useFillMode.ts.
+  const { enabled, fillContextValue } = useFillMode(dispatch, elements);
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
