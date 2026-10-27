@@ -327,13 +327,7 @@ export default withIslandBoundary(function PdfMergeTool({
       onFilesAdded={addFiles}
       intake={{ accept: 'application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png' }}
       identity={{ hidden: true }}
-      empty={{
-        cloudDriveHint: true,
-        heading: t.emptyHeading,
-        message: t.dropHere,
-        body: t.emptyBody,
-        art: <MergeVerb />,
-      }}
+      empty={{ cloudDriveHint: true, heading: t.emptyHeading, message: t.dropHere, body: t.emptyBody, art: <MergeVerb /> }}
       draft={{ checking: !hasFiles && state.status === 'checking-draft' }}
       clearAll={{
         onClear: reset,

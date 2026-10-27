@@ -869,21 +869,9 @@ export default withIslandBoundary(function PdfCompressTool({
       hasFiles={hasFiles}
       onFilesAdded={handleFilesAdded}
       intake={{ multiple: false, accept: 'application/pdf,image/jpeg,image/png' }}
-      identity={{
-        file,
-        label: file?.name,
-        metaExtra: sizesExtra,
-        note: <span data-compress-note>{stripNote}</span>,
-        hidden: true,
-      }}
-      empty={{
-        art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />,
-        message: emptyStateMessage ?? t.dropHint,
-      }}
-      analytics={{
-        tool: analyticsTool,
-        status: status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap,
-      }}
+      identity={{ file, label: file?.name, metaExtra: sizesExtra, note: <span data-compress-note>{stripNote}</span>, hidden: true }}
+      empty={{ art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />, message: emptyStateMessage ?? t.dropHint }}
+      analytics={{ tool: analyticsTool, status: status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap }}
       shellMessages={shellMessages}
     >
       {rejectedFiles.length > 0 && (

@@ -1,5 +1,4 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
 import { recordAction } from '../../../lib/actionTrail.ts';
@@ -25,10 +24,9 @@ import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ExportHandoffs from '../../../shell/ExportHandoffs.tsx';
 import { Eraser, Shrink } from 'lucide-preact';
 import FormFieldHints from './FormFieldHints.tsx';
-import type { FormFieldRegions } from '../hooks/useFormFieldRegions.ts';
 import { describeFormDetectionFailure } from '../lib/formDetectionDetail.ts';
 import type { FieldNavigation } from '../hooks/useFieldNavigation.ts';
-import useWorkspaceGestures, { type PendingSignaturePlacement } from '../hooks/useWorkspaceGestures.ts';
+import useWorkspaceGestures from '../hooks/useWorkspaceGestures.ts';
 import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import { useAutoFontProvisioning } from '../hooks/useAutoFontProvisioning.js';
@@ -38,7 +36,6 @@ import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
-  type HistoryLogger,
 } from '../../../editor/model/actionHistory.ts';
 import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import { uniqueId } from '../../../editor/model/ids.ts';
@@ -66,7 +63,7 @@ import { elementForSlot, type SlotElementBase } from '../lib/fill/slotElement.ts
 import { fillKeyOf, focusNextFillInput } from '../lib/fill/fillDom.ts';
 import type { FillItem, FillSlot, ReachTarget } from '../lib/fill/fillTypes.ts';
 import fillStyles from './fill/fill.module.css';
-import type { SignStatus } from '../state/signState.ts';
+import type { PdfWorkspaceProps } from './pdfWorkspaceProps.ts';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
@@ -150,72 +147,7 @@ export default function PdfWorkspace({
   handoff,
   signature,
   announce: setAnnouncement,
-}: {
-  status: SignStatus;
-  /** Overrides the default error copy below with a specific, nameable reason. */
-  errorDetail?: string | null;
-  /** Next/Previous across detected fields (MOBI-06); PdfSignTool.tsx builds the
-   * real one so its own Tab shortcut and this toolbar's control share one
-   * hasNext/hasPrevious and one goToNext/goToPrevious. */
-  fieldNavigation?: FieldNavigation;
-  /** LOC-09 stage 1: the toolbar row's own catalogue, passed straight through
-   * from PdfSignTool.tsx to SignToolbar.tsx - see src/editor/registry/messages.ts's
-   * SignMessages. Optional and English-default so PdfWorkspace.test.tsx (which
-   * never passes it) is unaffected. Also supplies EditorPageHeader's lang/dir
-   * (bidi-isolation wrapper, 5a1af03) for each rendered page. */
-  messages?: Partial<SignMessages>;
-  document: {
-    numPages: number;
-    pageSizes: PageGeometry[];
-    /** Printed grids recovered from the page's own content (MOBI-03); empty until detected. */
-    formRegions?: FormFieldRegions;
-    pdfDocument: PDFDocumentProxy | null;
-  };
-  refs: {
-    workspace: { current: HTMLDivElement | null };
-    pageWrappers: { current: (HTMLDivElement | null)[] };
-  };
-  fullscreen: {
-    isPseudo: boolean;
-    active: boolean;
-    toggle: () => void;
-  };
-  history: {
-    log: HistoryLogger<EditorElement>;
-    /** The tool's own single-step undo and redo, passed through to the toolbar.
-     * They come from PdfSignTool rather than straight from the reducer because
-     * each one also announces what it moved. `canRedo` is read from the context
-     * below, beside `actionHistory`. */
-    undo: () => void;
-    redo: () => void;
-  };
-  output: {
-    save: () => void;
-    download: () => void;
-    share: () => void;
-    canShare?: boolean;
-    shareReady?: boolean;
-  };
-  handoff?: {
-    /** Whether a signed export of the document as it stands exists to carry on. */
-    exportReady?: boolean;
-    busy?: boolean;
-    failed?: boolean;
-    onHandoff?: (tool: string) => void;
-  };
-  signature: {
-    hold: (placement: PendingSignaturePlacement) => void;
-    showDialog: (open: boolean) => void;
-    placeAt: (
-      dataUrl: string,
-      aspectRatio: number,
-      pageIndex: number,
-      leftPercent: number,
-      topPercent: number,
-    ) => void;
-  };
-  announce: (msg: string) => void;
-}) {
+}: PdfWorkspaceProps) {
   const {
     numPages,
     pageSizes,
@@ -225,19 +157,8 @@ export default function PdfWorkspace({
   const { workspace: workspaceRef, pageWrappers: pageWrapperRefs } = refs;
   const { isPseudo: isPseudoFullscreen, active: isFullscreen, toggle: toggleFullscreen } = fullscreen;
   const { log: logAction, undo: onUndo, redo: onRedo } = history;
-  const {
-    save: handleSavePdf,
-    download: handleDownloadPdf,
-    share: handleSharePdf,
-    canShare: canSharePdf = false,
-    shareReady = false,
-  } = output;
-  const {
-    exportReady: handoffExport = false,
-    busy: handoffBusy = false,
-    failed: handoffFailed = false,
-    onHandoff = NOOP_HANDOFF,
-  } = handoff ?? {};
+  const { save: handleSavePdf, download: handleDownloadPdf, share: handleSharePdf, canShare: canSharePdf = false, shareReady = false } = output;
+  const { exportReady: handoffExport = false, busy: handoffBusy = false, failed: handoffFailed = false, onHandoff = NOOP_HANDOFF } = handoff ?? {};
   const { hold: setTempPlacement, showDialog: setDialogOpen, placeAt: placeSignatureAt } = signature;
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
