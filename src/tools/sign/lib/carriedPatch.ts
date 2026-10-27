@@ -11,7 +11,7 @@ import { appWideStyleOf, type DocumentStyle } from '../../../editor/model/docume
  * remembered field) carry nothing, same as today.
  *
  * `detectDirection` is injected rather than imported directly
- * (`detectTextDirection`, `src/editor/text/signHelpers.js`) because model code may
+ * (`detectTextDirection`, `src/editor/text/textDirection.js`) because model code may
  * only depend on other model code - `test:editor-dependency-directions`
  * enforces it.
  */

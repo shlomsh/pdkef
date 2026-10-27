@@ -65,7 +65,7 @@ make `lib -> site-test -> editor -> lib`. Paths below that name the test fixture
 **`site-test` (DEBT-04, second pass):** before this project existed, `src/test/` had no Nx project of
 its own, so `@nx/js`'s inference fell back to attributing it to `site` (root project, `sourceRoot:
 "src"`) - the same "unowned file" fallback `ownerOf()` uses, just at the Nx-graph layer instead of
-`affected-scope.mjs`'s own. Five files import from it in a way that mattered: `src/editor/text/signHelpers.test.js`
+`affected-scope.mjs`'s own. Five files import from it in a way that mattered: `src/editor/text/textDirection.test.js`
 and `src/editor/text/{bidiRuns,fonts}.test.js` import `src/test/support/fixtures/wysiwygStrings.js`;
 `src/shell/{FileDropzone,BasePdfTool}.test.tsx` import `src/test/support/setInputFiles.js`. That gave `lib` and
 `editor` a real edge to `site` (on top of `shell`'s), which is exactly what DEBT-07 needs gone before

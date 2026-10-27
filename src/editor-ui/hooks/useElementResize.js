@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
-import { getEffectiveTextDirection } from '../../editor/text/signHelpers.js';
+import { getEffectiveTextDirection } from '../../editor/text/textDirection.js';
 import {
   DEFAULT_START_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
@@ -239,7 +239,7 @@ export default function useElementResize({
         // "snaps to an arbitrary width" bug this measurement exists to avoid.
         const measuredStartWidth = textStartSizePercent ? textStartSizePercent.width : startWidth;
         // A span handle produces a fixed-span box, which anchors on its left
-        // edge in both directions (see signHelpers' textAnchorsRightEdge). An RTL
+        // edge in both directions (see textLayout's textAnchorsRightEdge). An RTL
         // box that has no width yet is still storing its *right* edge in
         // `left`, so convert once, here, rather than letting the box jump a
         // width sideways the frame it becomes a comb.

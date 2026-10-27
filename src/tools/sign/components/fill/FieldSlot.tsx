@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { fieldTextInset, textElementLayout } from '../../../../editor/text/signHelpers.js';
+import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
 import { combLayout, isComb } from '../../../../editor/text/comb.js';
 import CombCells from '../nodes/CombCells.tsx';
 import { useCombCaret } from '../nodes/useCombCaret.ts';
@@ -37,7 +37,7 @@ function textWidthPx(text: string, font: { fontSize: number; fontFamily: string;
  * should reach it (fillTap.ts) and what a commit turns into (a `TextElement`
  * via `placeTextOnField`, elsewhere) are all decided above it, never here.
  *
- * Position and typography both come from `textElementLayout` (signHelpers.js),
+ * Position and typography both come from `textElementLayout` (textLayout.js),
  * called on `elementOf(value)` - the exact element `ADD_ELEMENT` would commit -
  * the same function TextNode.tsx calls on the placed element, with the same
  * scaleFactor derived from the page's own rendered width via
@@ -108,7 +108,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   }, [pageWidthPoints]);
 
   // The element this slot would become right now, with whatever is typed so
-  // far - the one source of truth `textElementLayout` (signHelpers.js) reads
+  // far - the one source of truth `textElementLayout` (textLayout.js) reads
   // for both geometry and typography, so the slot can never drift from the
   // text element it becomes on commit (elsewhere TextNode.tsx calls the same
   // function on the same element shape). comb.js's isComb/combLayout read

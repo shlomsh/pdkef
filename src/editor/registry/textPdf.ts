@@ -13,7 +13,9 @@ import { DEFAULT_LINE_HEIGHT_EM } from '../model/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../text/comb.js';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting } from '../text/textTransforms.js';
-import { fieldTextInset, getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../text/signHelpers.js';
+import { getEffectiveTextDirection } from '../text/textDirection.js';
+import { fieldTextInset, getTextAlign } from '../text/textLayout.js';
+import { hexToRgbFractions } from '../text/imageTint.js';
 import { resolveTypography } from '../text/fonts.js';
 import { fontkitFont, pdfFontEmbedder, type BidiDirection } from '../text/textMetrics.ts';
 import { layoutRun, shapedWidth } from '../text/shapeRun.ts';
@@ -98,7 +100,7 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
   if (isComb(element)) {
     const widthPoints = ((element.width || 0) / 100) * pdfWidth;
     const cellCount = combCellCount(element);
-    // A comb's span is fixed (see signHelpers' textAnchorsRightEdge), so its
+    // A comb's span is fixed (see textLayout's textAnchorsRightEdge), so its
     // left edge is `element.left` whichever way the text reads; only the cell
     // order mirrors, which combCellCenterFraction owns.
     const boxLeft = pdfX;

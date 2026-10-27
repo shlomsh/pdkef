@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
-import { textAnchorsRightEdge } from '../../editor/text/signHelpers.js';
+import { textAnchorsRightEdge } from '../../editor/text/textLayout.js';
 import { touchClaimsElement } from '../../editor/gestures/touchClaim.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
@@ -239,7 +239,7 @@ export default function useDraggableElement({
       const rawDyPercent = pageRect.height ? (dy / pageRect.height) * 100 : 0;
 
       // `left` is the right edge of a free RTL box and the left edge of
-      // everything else, a comb or a form-cell box included (signHelpers'
+      // everything else, a comb or a form-cell box included (textLayout'
       // textAnchorsRightEdge), so the clamp asks the same question the
       // wrapper's CSS does.
       const anchorsRight = textAnchorsRightEdge(element);
