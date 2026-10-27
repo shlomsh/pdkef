@@ -50,7 +50,7 @@ const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FO
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 
 // The Scan guide's photos (about 750 KB) are shown only on a controlled page and cached then, at runtime.
-export const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/'];
+const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/'];
 
 export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;

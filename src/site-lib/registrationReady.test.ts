@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ISLAND_SELECTOR, whenReadyToRegister } from './registrationReady';
+import { whenReadyToRegister } from './registrationReady';
 
 // A fake page: `islands` is how many astro-island[client="load"][ssr] are
 // still waiting; hydrate() removes one and notifies the observer.
@@ -10,7 +10,7 @@ function makePage(islands: number) {
   let resolveLoaded: () => void = () => {};
   const loaded = new Promise<void>((r) => { resolveLoaded = r; });
   const document = {
-    querySelector: (sel: string) => (sel === ISLAND_SELECTOR && remaining > 0 ? {} : null),
+    querySelector: (sel: string) => (sel === 'astro-island[client="load"][ssr]' && remaining > 0 ? {} : null),
   };
   const MutationObserver = class {
     constructor(cb: () => void) { notify = cb; }
