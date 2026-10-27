@@ -149,7 +149,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
               document,
               requestIdleCallback: window.requestIdleCallback?.bind(window),
               setTimeout: (fn, ms) => setTimeout(fn, ms),
-              clearTimeout: (id) => clearTimeout(id),
+              clearTimeout: (id) => clearTimeout(id as number),
               MutationObserver: window.MutationObserver,
             }),
             serviceWorker: navigator.serviceWorker,
