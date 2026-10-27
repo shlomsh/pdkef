@@ -25,3 +25,12 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 - [ ] The share is reported in the CI summary.
 - [ ] A decision on the shared-code cases is recorded in the ticket.
+
+## Measured 2026-10-27
+
+The scope verdict replayed on 58 consecutive pushes to main: 14 docs-only (24%), 30 everything (52%),
+12 narrowed (21%), 1 nothing. 24 of the 30 wide pushes also ran the 25 font guards. The window is
+skewed by CI-maintenance work (10 of the wide pushes touched `ci.yml`). The fixes this exposed are
+QUAL-32 to QUAL-42; QUAL-34 is the shared-code and unowned-file case. The CI summary report is still
+to do.
+
