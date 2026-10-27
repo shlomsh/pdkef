@@ -1,0 +1,116 @@
+/**
+ * RED-17: runs the whole check of a saved file. The one module here that
+ * loads pdf.js and reads pages; the island reaches it only through a dynamic
+ * import after an export, so nobody who never downloads pays for it.
+ *
+ * The result keeps its `context` so a term the person types later is checked
+ * with the pure `checkSavedFile` alone, without reading the file again.
+ */
+import { openPdfDoc } from '../../../../lib/openPdfDoc';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { readDocumentTraces } from '../documentTraces.js';
+import type { DocumentTraces } from '../documentTraces.js';
+import { getPdfjs } from '../../../../editor/adapters/pdf/pdfjsLoader.js';
+import { readGlyphs } from '../readGlyphs.js';
+import { pageGeometryFromPdfJsPage } from '../../../../editor/geometry/coords.ts';
+import { PDFJS_WASM_URL } from '../../../../lib/pdfjsWasm.js';
+import { readTextItems } from '../../../../lib/pdfTextItems.ts';
+import type { SearchablePage } from '../find/findMatches.ts';
+import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
+import type { MeasureText } from '../find/matchBoxes.ts';
+import { buildPageText } from '../find/pageText.ts';
+import type { TextItemLike } from '../find/types.ts';
+import { checkSavedFile } from './checkSavedFile.ts';
+import { coveredTerms } from './coveredTerms.ts';
+import { uniqueTerms } from './deletedTerms.ts';
+import { readSavedFile } from './readSavedFile.ts';
+import { checkBoxesOnPage } from './renderBoxes.ts';
+import type { CheckBox, CheckTerm, SavedFile, TermResult } from './types.ts';
+
+export interface CheckContext {
+  original: SearchablePage[];
+  boxes: CheckBox[];
+  saved: SavedFile;
+  measure?: MeasureText;
+}
+
+export interface CheckOutcome {
+  context: CheckContext;
+  results: TermResult[];
+  /** Pages with a Blackout or Whiteout that didn't come out one flat colour. */
+  unsolidPages: number[];
+  /** RED-59: what the original file said about itself, and what the saved one still does. */
+  traces: { original: DocumentTraces; saved: DocumentTraces };
+}
+
+const isTextItem = (item: object): item is TextItemLike => typeof (item as TextItemLike).str === 'string';
+
+const createCanvas = (width: number, height: number) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+};
+
+export async function runSavedFileCheck({
+  originalDoc,
+  savedBytes,
+  originalBytes,
+  boxes,
+  extraTerms,
+  picturePages,
+  measure,
+}: {
+  originalDoc: PDFDocumentProxy;
+  savedBytes: Uint8Array;
+  originalBytes: Uint8Array;
+  boxes: CheckBox[];
+  /** Words the person deleted. */
+  extraTerms: CheckTerm[];
+  /** Pages the export saved as pictures. */
+  picturePages: number[];
+  /** Find's text measurement, so match positions agree with Find's. */
+  measure?: MeasureText;
+}): Promise<CheckOutcome> {
+  const pdfjs: any = await getPdfjs();
+
+  const original: SearchablePage[] = [];
+  const coveredPages = [];
+  let glyphsKept = 0;
+  for (let pageIndex = 0; pageIndex < originalDoc.numPages; pageIndex += 1) {
+    const page = await originalDoc.getPage(pageIndex + 1);
+    const geometry = pageGeometryFromPdfJsPage(page);
+    const items = (await readTextItems(page)).filter(isTextItem);
+    // RED-15: every page's glyphs (within the budget), so a repeat the check
+    // offers to cover is boxed on its real letters, as Find boxes it.
+    const glyphs = glyphsKept < GLYPH_BUDGET || boxes.some((box) => box.pageIndex === pageIndex) ? await readGlyphs(pdfjs, page) : null;
+    glyphsKept += glyphs?.length ?? 0;
+    original.push({ text: buildPageText(pageIndex, items), geometry, glyphs });
+    const pageBoxes = boxes.filter((box) => box.pageIndex === pageIndex);
+    if (pageBoxes.length === 0) continue;
+    // A page whose text can't be read gives no covered term; its boxes still
+    // count for Find's and typed terms, and the page was saved as a picture.
+    if (glyphs) coveredPages.push({ glyphs, geometry, boxes: pageBoxes });
+  }
+
+  const loadingTask = pdfjs.getDocument({ data: savedBytes.slice(), wasmUrl: PDFJS_WASM_URL });
+  try {
+    const savedDoc = await loadingTask.promise;
+    const saved = await readSavedFile(pdfjs, savedDoc, { picturePages, bytes: savedBytes });
+
+    const unsolidPages: number[] = [];
+    const solidBoxPages = [...new Set(boxes.filter((box) => box.type !== 'blur').map((box) => box.pageIndex))];
+    for (const pageIndex of solidBoxPages) {
+      const page = await savedDoc.getPage(pageIndex + 1);
+      const solidity = await checkBoxesOnPage(page, boxes.filter((box) => box.pageIndex === pageIndex), createCanvas);
+      if (solidity.some((entry) => !entry.solid)) unsolidPages.push(pageIndex);
+    }
+
+    const context = { original, boxes, saved, measure };
+    const terms = uniqueTerms([...coveredTerms(coveredPages), ...extraTerms]);
+    const readTraces = async (bytes: Uint8Array) =>
+      readDocumentTraces((await openPdfDoc(bytes, { updateMetadata: false, fast: true })).doc);
+    const traces = { original: await readTraces(originalBytes), saved: await readTraces(savedBytes) };
+    return { context, results: checkSavedFile({ ...context, terms }), unsolidPages, traces };
+  } finally { void loadingTask.destroy(); /* reason: destroy is best effort cleanup after the check has finished */ }
+}

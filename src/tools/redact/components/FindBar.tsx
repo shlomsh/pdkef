@@ -1,0 +1,217 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { ChevronDown, ChevronUp, Search, X } from 'lucide-preact';
+import ToolbarMenu from '../../../editor-ui/ToolbarMenu.tsx';
+import type { PresetKey } from '../lib/find/types.ts';
+import { coverAllQueueStep } from '../lib/find/coverAllQueue.ts';
+import styles from './FindBar.module.css';
+import { englishRedactMessages as t } from '../messages.ts';
+import { formatMessage } from '../../../lib/formatMessage.ts';
+
+/** What a found match becomes. Whiteout is left out on purpose: it hides
+ * text on a white page only, and a search result is exactly where that
+ * assumption would go unchecked. */
+export type FindRedactStyle = 'blackout' | 'blur';
+
+export const PRESET_LABELS: Record<PresetKey, string> = {
+  email: 'Email addresses',
+  phone: 'Phone numbers',
+  idNumber: 'ID and card numbers',
+};
+
+export interface FindSummary {
+  /** Matches not yet under a redaction box. */
+  open: number;
+  /** Matches already covered. */
+  covered: number;
+  /** 1-based position of the current match among all matches, or 0. */
+  position: number;
+  total: number;
+  pages: number;
+  /** Pages read so far, while the text is still being read. */
+  reading: { done: number; of: number } | null;
+  failed: boolean;
+  currentCovered: boolean;
+}
+
+/**
+ * RED-02: the find row under Redact's toolbar. Presentational only - the
+ * island owns the query, the matches and every edit. It proposes; the person
+ * decides which matches become boxes, one at a time or all at once.
+ */
+export default function FindBar({
+  term,
+  preset,
+  onTermChange,
+  onPresetChange,
+  summary,
+  onPrev,
+  onNext,
+  redactStyle,
+  onRedactStyleChange,
+  onRedactCurrent,
+  onRedactAll,
+  onClose,
+}: {
+  term: string;
+  preset: PresetKey | null;
+  onTermChange: (term: string) => void;
+  onPresetChange: (preset: PresetKey | null) => void;
+  summary: FindSummary;
+  onPrev: () => void;
+  onNext: () => void;
+  redactStyle: FindRedactStyle;
+  onRedactStyleChange: (style: FindRedactStyle) => void;
+  onRedactCurrent: () => void;
+  onRedactAll: () => void;
+  onClose: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // RED-38: Cover all pressed mid-read waits for every page, then fires once
+  // through the same callback. Closing Find unmounts the bar, which cancels it.
+  const [queued, setQueued] = useState(false);
+  const onRedactAllRef = useRef(onRedactAll);
+  onRedactAllRef.current = onRedactAll;
+  const isReading = summary.reading !== null;
+  const step = coverAllQueueStep({ queued, reading: isReading, failed: summary.failed, open: summary.open });
+  useEffect(() => {
+    if (step === 'deliver') onRedactAllRef.current();
+    if (step === 'deliver' || step === 'drop') setQueued(false);
+  }, [step]);
+
+  const searching = preset !== null || term.trim() !== '';
+  const hasMatches = summary.total > 0;
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (event.shiftKey) onPrev(); else onNext();
+    } else if (event.key === 'Escape') {
+      // Escape in Find closes Find only; the island's window listener must
+      // not also disarm the tool.
+      event.preventDefault();
+      event.stopPropagation();
+      setQueued(false);
+      onClose();
+    }
+  };
+
+  const readingStatus = summary.reading ? `Reading page ${summary.reading.done} of ${summary.reading.of}` : '';
+  let status = '';
+  if (summary.failed) status = 'Could not read this file\'s text';
+  else if (!searching) status = summary.reading ? readingStatus : '';
+  else if (!hasMatches) status = summary.reading ? readingStatus : 'No matches';
+  else {
+    status = `${summary.position} of ${summary.total}`;
+    if (summary.pages > 1) status += ` on ${summary.pages} pages`;
+    if (summary.covered > 0) status += `, ${summary.covered} covered`;
+    if (summary.reading) status += queued ? `. ${readingStatus}, then covering all` : `. ${readingStatus}`;
+  }
+
+  // A phone has room for the count alone; the full sentence stays for
+  // screen readers and wider screens.
+  const shortStatus = searching && hasMatches ? `${summary.position}/${summary.total}` : status;
+
+  return (
+    <div className={styles['find-bar']} role="search" aria-label={t.findAndCover} data-redact-find-bar>
+      <div className={styles.field}>
+        <Search size={16} aria-hidden="true" className={styles['field-icon']} />
+        {preset ? (
+          <span className={styles.chip} data-redact-find-preset-chip>
+            {PRESET_LABELS[preset]}
+            <button type="button" className={styles['chip-clear']} onClick={() => { onPresetChange(null); inputRef.current?.focus(); }} aria-label={t.clear}>
+              <X size={12} aria-hidden="true" />
+            </button>
+          </span>
+        ) : null}
+        <input
+          ref={inputRef}
+          type="search"
+          dir="auto"
+          className={styles.input}
+          value={preset ? '' : term}
+          placeholder={preset ? '' : t.findTitle}
+          aria-label={t.findTitle}
+          onInput={(event) => {
+            setQueued(false);
+            if (preset) onPresetChange(null);
+            onTermChange((event.target as HTMLInputElement).value);
+          }}
+          onKeyDown={onKeyDown}
+          spellcheck={false}
+          autocomplete="off"
+          data-redact-find-input
+        />
+        <ToolbarMenu
+          title={t.kindsOfDetail}
+          triggerClassName={styles['preset-trigger']}
+          triggerAttrs={{ 'data-redact-find-presets': true }}
+          triggerContent={<><span>{t.kinds}</span><ChevronDown size={14} aria-hidden="true" /></>}
+          items={(Object.keys(PRESET_LABELS) as PresetKey[]).map((key) => ({
+            label: PRESET_LABELS[key],
+            onSelect: () => { onPresetChange(key); inputRef.current?.focus(); },
+            attrs: { 'data-redact-find-preset': key },
+          }))}
+        />
+      </div>
+
+      <span className={styles.status} data-redact-find-status-box>
+        <span className={styles['status-long']} aria-live="polite" data-redact-find-status>{status}</span>
+        <span className={styles['status-short']} aria-hidden="true">{shortStatus}</span>
+      </span>
+
+      <div className={styles.nav}>
+        <button type="button" className={styles['icon-button']} onClick={onPrev} disabled={!hasMatches} title={t.previousMatch} aria-label={t.previousMatch}>
+          <ChevronUp size={18} aria-hidden="true" />
+        </button>
+        <button type="button" className={styles['icon-button']} onClick={onNext} disabled={!hasMatches} title={t.nextMatch} aria-label={t.nextMatch}>
+          <ChevronDown size={18} aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className={styles.segmented} role="group" aria-label={t.coverWith}>
+        {(['blackout', 'blur'] as const).map((style) => (
+          <button
+            key={style}
+            type="button"
+            aria-pressed={redactStyle === style}
+            className={`${styles.segment}${redactStyle === style ? ` ${styles.selected}` : ''}`}
+            onClick={() => onRedactStyleChange(style)}
+          >
+            {t.toolCopy[style].button}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={styles.action}
+          onClick={onRedactCurrent}
+          disabled={!hasMatches || summary.currentCovered}
+          data-redact-find-this
+        >
+          {t.coverThis}
+        </button>
+        <button
+          type="button"
+          className={`${styles.action} ${styles.primary}`}
+          onClick={() => {
+            if (isReading) setQueued((was) => !was);
+            else onRedactAll();
+          }}
+          aria-pressed={isReading ? queued : undefined}
+          disabled={isReading ? !searching : summary.open === 0}
+          data-redact-find-all
+        >
+          {!isReading && summary.open > 0 ? formatMessage(t.coverAllCount, { count: summary.open }) : t.coverAll}
+        </button>
+      </div>
+
+      <button type="button" className={`${styles['icon-button']} ${styles.close}`} onClick={onClose} title={t.closeFind} aria-label={t.closeFind} data-redact-find-close>
+        <X size={18} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}

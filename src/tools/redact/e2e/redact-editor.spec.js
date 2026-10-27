@@ -676,7 +676,7 @@ test.describe('repeat a box on every page (RED-03)', () => {
 });
 
 // RED-02: find and redact. The finders, reading order and box arithmetic are
-// unit-tested under src/tools/redact/find/; this proves what jsdom cannot:
+// unit-tested under src/tools/redact/lib/find/; this proves what jsdom cannot:
 // pdf.js's real text positions land the highlight on the drawn words, and
 // "Redact all" adds every box as one undo step.
 test.describe('find and redact (RED-02)', () => {
