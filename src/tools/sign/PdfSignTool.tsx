@@ -1,4 +1,4 @@
-import { useReducer, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
+import { useReducer, useRef, useMemo, useCallback } from 'preact/hooks';
 import type {
   EditorElement,
   SignToolType,
@@ -10,16 +10,13 @@ import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages } from './messages';
 import type { SignMessages } from '../../editor/registry/messages';
 import type { ShellMessages } from '../../shell/shellMessages';
-import { formatMessage } from '../../lib/formatMessage';
 import { SignToolProvider, useDocumentStyle, useSignTool } from './components/SignToolContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
 import SignatureDialog from './components/SignatureDialog.tsx';
-import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage } from '../../editor/geometry/coords.js';
 import { DEFAULT_INK_COLOR } from '../../editor/model/signGeometry.js';
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
 import useFieldNavigation from './hooks/useFieldNavigation.ts';
 import { FillContext, FILL_OFF } from './components/fill/FillContext.tsx';
@@ -31,54 +28,18 @@ import { useFormDetectionTelemetry } from './hooks/useFormDetectionTelemetry.ts'
 import { useSignKeyboard } from './hooks/useSignKeyboard.ts';
 import { useElementClipboard } from './hooks/useElementClipboard.ts';
 import { useSignaturePlacement } from './hooks/useSignaturePlacement.ts';
+import { useSignExport } from './hooks/useSignExport.ts';
+import { useSpeculativeExport } from './hooks/useSpeculativeExport.ts';
 import { useSavedSignatures } from './hooks/useSavedSignatures.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { getSignExportReadiness } from './lib/signExportReadiness.ts';
-import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
-import {
-  reportMaintenanceEvent,
-  signExportFailed,
-  signExportSucceeded,
-  beaconMaintenanceTransport,
-} from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
-import { reportError } from '../../lib/errorReport.ts';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
-import { sendHandoff } from '../../lib/sendHandoff.ts';
-import { isEncryptedPdfError } from '../../lib/encryptedPdfError.ts';
 import { initialSignLifecycleState, signLifecycleReducer } from './state/signState.ts';
-import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './lib/exportHandoff.ts';
-import { signedFileName } from './lib/signedFileName.ts';
-
-// Recoverable export failures keep the editor open. Name unsupported text
-// precisely; other failures explain that the user can retry without losing
-// their edits. Document-load errors use the workspace's separate default copy.
-function describeSignFailure(err: unknown, t: SignMessages): string {
-  if (err instanceof Error && err.name === 'UnrepresentableTextError') {
-    // Worded by src/tools/sign/components/textMessages.ts, the same UI message module the
-    // while-typing warning
-    // reads from, so the heads-up and the refusal can never name different
-    // characters or point at different pages.
-    const coverageError = err as Error & { characters: string[]; pageNumbers?: number[] };
-    return describeUnrepresentableText(coverageError.characters, coverageError.pageNumbers ?? [], { saving: true }, t);
-  }
-  if (err instanceof Error && err.name === 'FontUnavailableError') {
-    const family = (err as Error & { family?: string }).family;
-    return family && family !== 'Arimo'
-      ? formatMessage(t.fontNotReadyTemplate, { family })
-      : t.defaultFontUnavailable;
-  }
-  return t.exportGenericFailure;
-}
-
-// How long to wait after the last edit before speculatively re-exporting in
-// the background (MOBI-07). Generous on purpose: re-signing rasterizes every
-// page on the device the user is holding, so this must not fire mid-edit.
-const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
+import { signExportReady, type SignedExport } from './lib/exportHandoff.ts';
 
 /* The editor itself stays English (LOC-02's pilot decision); the dropzone,
    file row and confirmations around it are the shared shell and follow the
@@ -120,12 +81,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
   // ENC-07: a protected PDF is a precondition, not a failure. Set by the load gate (or the export
   // belt) and shown as NeedsUnlock (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
-  const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
+  const share = usePdfShare();
+  const { canSharePdf, shareReady, prepare, clearPrepared } = share;
   // The last signed export of the document as it stands (the Compress it / Redact it
   // hand-offs carry it on), and the most recent one prepared for sharing, which the
   // Download and Share taps promote to it. Both retire with the document revision.
   const preparedExportRef = useRef<SignedExport | null>(null);
-  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
 
   // Every setting a person chooses while filling (colour, font, size,
   // direction, alignment, bold, italic, date format, symbol mark and size,
@@ -258,166 +219,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   useElementClipboard({ dispatch, elements, activeElementId, logAction, setAnnouncement, messages: t });
 
-  // Shared by both export actions below: signs the PDF and hands the result to
-  // `onSigned`, which decides what to do with it (share vs. plain download).
-  // Status/progress/error handling lives here once so the two actions can't
-  // drift on how a failure recovers.
-  // `speculative` (MOBI-07) drives a background pre-generation run: it must
-  // never surface as the "signing" UI, never emit signExportSucceeded/
-  // signExportFailed maintenance telemetry (SIGN-13's export-duration signal
-  // is a real-export-only measurement), and a failure stays silent since the
-  // user never asked for this run - they'll get the honest error if they
-  // later tap an export button themselves.
-  const runExport = async (
-    onSigned: (signedBlob: Blob, filename: string) => void,
-    { speculative = false }: { speculative?: boolean } = {},
-  ) => {
-    if (!file) return;
-    const sourceFile = file;
-    // DEBT-51: the bytes read at load time, so a file moved on disk after
-    // picking cannot fail the export (the browser rejects a second read).
-    const sourceBytes = fileBytesRef.current ?? sourceFile;
-    const ticket = exportRun.begin();
-    activeExportSpeculativeRef.current = speculative;
-    if (!speculative) {
-      lifecycleDispatch({ type: 'EXPORT_STARTED', announcement: t.writingSignaturesIntoPdf });
-      reportToolLifecycleEvent('tool_operation_started', 'sign');
-      recordAction('export');
-    }
-    const exportStartedAt = performance.now();
-    // beaconMaintenanceTransport sends only in production builds (the gate is in sendBeacon).
-    const telemetryTransport = beaconMaintenanceTransport;
-
-    try {
-      const { signPdf } = await import('./lib/sign.js');
-      const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
-        if (!speculative && ticket.isCurrent()) lifecycleDispatch({ type: 'EXPORT_PROGRESSED', progress: p });
-      });
-      if (!ticket.isCurrent()) return;
-      ticket.settle();
-      if (!speculative) {
-        reportMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
-        reportToolLifecycleEvent('tool_result_ready', 'sign');
-      }
-      onSigned(signedBlob, signedFileName(sourceFile.name));
-    } catch (err) {
-      if (!ticket.isCurrent()) return;
-      ticket.settle();
-      if (speculative) {
-        console.error(err);
-        return;
-      }
-      reportError('sign_export', err, 'export');
-      reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
-      reportToolLifecycleEvent('tool_operation_failed', 'sign');
-      console.error(err);
-      // ENC-07: the load gate should have caught a protected file, so this is reported above (a gate
-      // miss), but the person gets the way on rather than a retry that can never work.
-      if (isEncryptedPdfError(err)) {
-        lifecycleDispatch({ type: 'EXPORT_NEEDS_UNLOCK', announcement: t.protectedOwnerOnlyTitle });
-        return;
-      }
-      const detail = describeSignFailure(err, t);
-      lifecycleDispatch({ type: 'EXPORT_FAILED', detail, announcement: `${t.signingStoppedLabel} ${detail}` });
-    }
-  };
-
-  // Apply signing and prepare the PDF for sharing or downloading.
-  const handleSavePdf = () => runExport((signedBlob, filename) => {
-    const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
-    if (prepare(signedBlob, filename)) {
-      preparedExportRef.current = made;
-      // navigator.share() needs a fresh user activation. PDF generation is
-      // asynchronous, so retain the File and let the next tap open the
-      // native share sheet instead of risking a browser-blocked request.
-      lifecycleDispatch({ type: 'EXPORT_FINISHED', signedExport: made, announcement: t.signedPdfReadyToShare });
-      return;
-    }
-
-    recordAction('download');
-    download(signedBlob, filename);
-    lifecycleDispatch({ type: 'EXPORT_FINISHED', announcement: t.pdfSignedDownloadStarted });
+  const { runExport, handleSavePdf, handleDownloadPdf, handleSharePdf, requestHandoff, handoffBusy } = useSignExport({
+    file, fileBytesRef, elements, exportRun, activeExportSpeculativeRef, documentRevisionRef, preparedExportRef,
+    signedExport, share, lifecycleDispatch, setAnnouncement, messages: t,
   });
-
-  const handleDownloadPdf = () => {
-    lifecycleDispatch({ type: 'EXPORT_ERROR_CLEARED' });
-    if (downloadPrepared()) {
-      recordAction('download');
-      lifecycleDispatch({
-        type: 'EXPORT_DELIVERED',
-        signedExport: exportAtRevision(preparedExportRef.current, documentRevisionRef.current),
-        announcement: t.downloadStarted,
-      });
-      return;
-    }
-
-    void runExport((signedBlob, filename) => { // reason: runExport catches its own failure and shows it
-      recordAction('download');
-      download(signedBlob, filename);
-      lifecycleDispatch({
-        type: 'EXPORT_FINISHED',
-        signedExport: { blob: signedBlob, name: filename, revision: documentRevisionRef.current },
-        announcement: t.pdfSignedDownloadStarted,
-      });
-    });
-  };
-
-  const handleSharePdf = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') {
-      recordAction('share');
-      lifecycleDispatch({
-        type: 'EXPORT_DELIVERED',
-        signedExport: exportAtRevision(preparedExportRef.current, documentRevisionRef.current),
-        announcement: t.pdfSignedSuccessfully,
-      });
-    } else if (result.status === 'canceled') {
-      setAnnouncement(t.sharingCanceledStillReady);
-    } else if (result.status === 'error') {
-      console.error(result.error);
-      setAnnouncement(t.shareOpenFailed);
-    }
-  };
-
-  // Carries a signed export to another tool through the one-shot hand-off baton
-  // (draftStore's saveHandoff, taken by useHandoffIntake on the other end), as Redact does.
-  const carryOn = async (tool: string, current: SignedExport) => {
-    try {
-      await sendHandoff(
-        tool,
-        { fileName: current.name, fileType: 'application/pdf', fileBytes: await current.blob.arrayBuffer() },
-        { href: handoffHref(tool, window.location.pathname) },
-      );
-    } catch (err) {
-      // expected: saveHandoff reports its own failure, this shows the quiet line
-      console.error(err);
-      lifecycleDispatch({ type: 'HANDOFF_FAILED' });
-      setHandoffBusy(false);
-    }
-  };
-
-  // The chips show whenever export is ready. A file already made for this revision
-  // (a download, or the prepared share file) goes straight on; otherwise the export
-  // runs first, without downloading, and its result is handed on.
-  const requestHandoff = async (tool: string) => {
-    if (handoffBusy) return;
-    setHandoffBusy(true);
-    const ready = exportToHandOff(signedExport, preparedExportRef.current, documentRevisionRef.current);
-    lifecycleDispatch({ type: 'HANDOFF_REQUESTED', ready });
-    if (ready) {
-      await carryOn(tool, ready);
-      return;
-    }
-    let handedOn = false;
-    await runExport((signedBlob, filename) => {
-      handedOn = true;
-      const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
-      lifecycleDispatch({ type: 'EXPORT_FINISHED', signedExport: made });
-      void carryOn(tool, made); // reason: carryOn catches its own failure and shows the hand-off error
-    });
-    // A failed or superseded export hands nothing on: runExport shows its own error.
-    if (!handedOn) setHandoffBusy(false);
-  };
 
   // Whether the current elements contain text no bundled font can draw. Mirrors
   // PdfWorkspace's own computation (getSignExportReadiness is pure over
@@ -425,27 +230,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // down as a prop would only be to satisfy this one background effect.
   const exportReadiness = useMemo(() => getSignExportReadiness(elements), [elements]);
 
-  // MOBI-07: once at least one element is placed, speculatively re-export on a
-  // debounced idle so the Share button is already in its ready state by the
-  // time the user reaches for it, instead of making them tap once to
-  // generate and again to share. Gated on `status === 'editing'` so this
-  // never fires mid-load, mid-sign, or while a load error is showing, and on
-  // `!exportReadiness.blocked` so it never burns CPU on a run that would be
-  // refused anyway. Depending on `documentRevision` (not a raw elements
-  // reference) means this can only ever fire after a gesture has committed
-  // its one state update on release - never while a drag/resize/create is
-  // still live, per the gesture golden rule - and re-fires on every later
-  // edit, letting each speculative export invalidate the previous one.
-  useEffect(() => {
-    if (!file || !signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })) return;
-    const timer = setTimeout(() => {
-      void runExport((signedBlob, filename) => { // reason: runExport catches its own failure and shows it
-        if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
-      }, { speculative: true });
-    }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, documentRevision, exportReadiness.blocked, status]);
+  // MOBI-07: re-export in the background once idle (hooks/useSpeculativeExport.ts).
+  useSpeculativeExport({
+    file, status, elementCount: elements.length, documentRevision, blocked: exportReadiness.blocked,
+    runExport, prepare, preparedExportRef, documentRevisionRef,
+  });
 
   const hasFiles = !!file;
 
