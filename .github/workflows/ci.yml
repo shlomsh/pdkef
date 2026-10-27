@@ -154,6 +154,11 @@ jobs:
         BASE: ${{ needs.scope.outputs.base }}
       run: npm run test:ratchet-raises -- --base "$BASE"
 
+    # ARCH-50: files over 800 lines and functions over 300 are recorded in the same
+    # JSON; one that grew, or a new one over the threshold, fails.
+    - name: Verify size ratchet
+      run: npm run test:size-ratchet
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
