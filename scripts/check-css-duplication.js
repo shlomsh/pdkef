@@ -120,7 +120,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 // Two facts about how distinct rule bytes get computed, unrelated to page
 // count but still true: each page family compiles only the files its entry
 // sheet lists with `@source`, so nothing outside src/ (the design skill that
-// once sat under .github/skills/ is now a local install) can inflate this
+// once sat under a skills folder is now a local install) can inflate this
 // number with classes no page uses. Tailwind's `/*! tailwindcss
 // ... */` banner comment sits glued to `@layer properties`'s prelude, which
 // is why `stripComments()` exists below - without it the whole properties
@@ -132,7 +132,7 @@ const MAX_FAMILY_DUPLICATION = cssLimits.maxFamilyDuplication;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
-//     plugin's rule tables under .github/skills/, which now has an `@source not`
+//     plugin's rule tables under a skills folder, which now has an `@source not`
 //     rule in global.css. x22 pages, that was ~20KB shipped for classes no page
 //     uses, and 118 brotli bytes on /sign/.
 //   - 1,557 bytes per page were this script's own mis-parse: Tailwind's banner

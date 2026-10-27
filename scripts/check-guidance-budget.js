@@ -11,6 +11,9 @@
 //      that silently never loads, which is worse than no rule.
 // Source-only; CI runs it right after check:backlog, before anything that builds.
 //
+// A fifth check (ARCH-94, scripts/check-cited-paths.mjs): every repo path cited in a rule, CLAUDE.md, a
+// docs/*.md file or a source comment must exist; its header says what counts as a path.
+//
 // A fourth check, beyond the three above: every file under the five core
 // folders (src/shell/, src/editor-ui/, src/editor/, src/tools/, src/lib/)
 // must be matched by at least one rule's paths: glob, not just editor.md's.
@@ -21,6 +24,7 @@
 import { readFileSync, readdirSync, globSync, statSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { scanRepo } from './check-cited-paths.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CLAUDE_MD_MAX_LINES = 200;
@@ -66,5 +70,7 @@ for (const prefix of CORE_PREFIXES) {
   }
 }
 
+for (const d of scanRepo(root)) failures.push(`${d.file} cites ${d.path}, which does not exist (moved or deleted: point at where it lives now, or drop the reference).`);
+
 if (failures.length) { console.error('Guidance budget check failed:\n' + failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
-console.log(`Guidance budget OK: CLAUDE.md ${claudeLines}/${CLAUDE_MD_MAX_LINES} lines; every rule is path-scoped, every glob matches, and every core-folder file is covered.`);
+console.log(`Guidance budget OK: CLAUDE.md ${claudeLines}/${CLAUDE_MD_MAX_LINES} lines; every rule is path-scoped, every glob matches, every core-folder file is covered, and every cited path exists.`);

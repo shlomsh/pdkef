@@ -26,7 +26,7 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // These are seams, not broad layer permissions. Keeping them explicit makes a
 // new renderer or framework hook a deliberate architectural decision.
 //
-// ARCH-19 removed the `renderers.ts -> src/components/SignTool/` targetPrefix
+// ARCH-19 removed the `renderers.ts -> SignTool/` targetPrefix
 // exception below: the registry used to import the Preact node components
 // directly, an editor -> tool edge. It is inverted now (renderers.ts exports
 // createElementRenderers, a factory each tool calls once with its own node
@@ -43,7 +43,7 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // `useEditorDraftPersistence.ts -> SignTool/useDraftPersistence.js` exception:
 // that hook had no Sign-specific logic (only draftStore.js/draftValidation.ts,
 // both already core) and simply moved to
-// src/editor/workspace/useDraftPersistence.js, re-exported from its old
+// src/lib/drafts/useDraftPersistence.js, re-exported from its old
 // SignTool path for callers outside the editor, which is why a
 // `useDraftPersistence.js -> preact/hooks` exception existed for a while.
 // DEBT-04 (move A) moved `draftStore.js`/`draftPolicy.js`/`useDraftPersistence.js`

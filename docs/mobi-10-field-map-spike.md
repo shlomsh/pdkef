@@ -168,7 +168,7 @@ field" stays a first-class action. Bring the cell heuristic's remaining failure 
 unit fixtures from these two forms, and add a Latin-script form to the corpus.
 
 **Step 1, done 2026-09-17:** `label.mjs` and `cells.mjs` are lifted into product code -
-`src/editor/adapters/pdf/fieldLabels.js` (`labelFieldCandidates`) and `formCells.js`
+`src/tools/sign/lib/fieldLabels.js` (`labelFieldCandidates`) and `formCells.js`
 (`detectCellCandidates`/`detectPageCellCandidates`) - in the editor's own page-percent
 coordinate model (0..100, top-left, y down; the one transform `formGrid.js` already uses, see
 SIGN-05/ARCH-02), with unit tests (`fieldLabels.test.js`, `formCells.test.js`, synthetic content

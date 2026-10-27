@@ -30,10 +30,10 @@ already muted from reports, `src/lib/errorReport.ts:31`). A file that is only pr
 (owner password, empty user password) opens in pdf.js with no prompt, so the editor mounts and the person
 starts working. Then two `PDFDocument.load` calls without `ignoreEncryption` throw `EncryptedPDFError`:
 
-- `list_objects`: `listDeletableObjects` loads at `src/editor/adapters/pdf/deleteObjects.js:628`, from an
+- `list_objects`: `listDeletableObjects` loads at `src/tools/redact/lib/deleteObjects.js:628`, from an
   effect that fires on every open (`src/tools/redact/hooks/useDeletableObjects.js:26-48`, reported at `:40`),
   before pdf.js has even finished. It is swallowed, so Delete mode quietly has no targets.
-- `export`: `redactPdf` loads at `src/editor/adapters/pdf/redact.js:200` (or `deleteObjectsFromPdf` at
+- `export`: `redactPdf` loads at `src/tools/redact/lib/redact.js:200` (or `deleteObjectsFromPdf` at
   `deleteObjects.js:36` when Delete marks exist), reached from `handleSavePdf`
   (`PdfRedactTool.tsx:790-852`). The catch reports, counts `tool_operation_failed`, and says "Could not
   export the PDF. Your edits are still here. Try again." (`:849`), which can never succeed.
@@ -107,7 +107,7 @@ calls `getCreationDate()` outside its try and throws on the garbled string, so s
 ### What is already there (read)
 
 - `saveHandoff(tool, {fileName, fileType, fileBytes})` and `takeHandoff(tool)` in
-  `src/lib/drafts/draftStore.js:165-245`: a one-shot, 5-minute, read-and-delete record in the same
+  `src/lib/drafts/draftStore.ts:165-245`: a one-shot, 5-minute, read-and-delete record in the same
   IndexedDB database, keyed `handoff:<target tool>`. It writes no entry, work or pointer. A full
   same-origin navigation follows (`window.location.href`). Merge, Split, Redact and the home dropzone all
   send this way.

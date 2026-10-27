@@ -89,7 +89,7 @@ brief that commissioned this work.
    `remapGlyphForSubset` when subsetting shipped - see §4.2's correction and item 7 of §9; the test moved
    with it.) What was genuinely true when this was written was
    **nothing renders the produced PDF and looks at the ink** - closed 2026-08-27 (W1) by
-   `e2e/sign/export-render-guard.spec.js`; see §8 Stage 1.
+   `e2e/export/export-render-guard.spec.js`; see §8 Stage 1.
 5. **"Blink shapes word by word, so a feature whose context crosses a space never fires on screen"**
    (`f10af8e`'s H9, `docs/hebrew-text-shaping-export.md` "The browser shapes word by word", and the
    first version of this table's row 4). True only of what H9 measured with: canvas `measureText` with
@@ -228,7 +228,7 @@ have decomposed it under NFC and drawn it correctly.
 thisFontsHasGlyph)` - the same string `layout()` receives. The measurement above still stands as the
 reproduction that motivated the fix: `שלום ά` in Heebo now reports `[U+03AC]` instead of `[]`, and the
 mirror case, pasted U+FB1D in Alef, now reports `[]` instead of a refusal. Tests live in
-`src/editor/registry/textShaping.test.js` ("the normalization seam") and `src/lib/textCoverage.test.js`
+`src/editor/registry/textShaping.test.js` ("the normalization seam") and `src/test/cross-tool/textCoverage.test.js`
 ("the normalization seam, at policy level"), both directions, both against the real font bytes. See
 §8 Stage 2 for the full record, including the note that 'יִ' will not reproduce
 the false-refusal case - `String.fromCodePoint(0xfb1d)` is required.
@@ -331,7 +331,7 @@ section implied it was.** `resolveFontSubstitution`'s `missing` (in both step 4 
 box is using Alef instead" - and it fires whenever `family !== requested`, including the ordinary
 successful-substitution case where nothing is actually at risk. It is not, and was never routed as,
 the "this will stop the download" warning. That warning is a separate computation on a separate path:
-`signPdf` (`src/editor/adapters/pdf/sign.js`) calls `findUnrepresentableCharacters` in `textCoverage.js`, which resolves each element's family via
+`signPdf` (`src/tools/sign/lib/sign.js`) calls `findUnrepresentableCharacters` in `textCoverage.js`, which resolves each element's family via
 `resolveFontFamily` (the thin wrapper that returns just `resolveFontSubstitution(...).family`, discarding
 `missing`) and then re-derives coverage from scratch against the *actually loaded* font instance via
 `unrepresentableCharacters` in `src/editor/registry/text.ts` - not from anything `resolveFontSubstitution`
@@ -829,7 +829,7 @@ before stage 9 depends on stage 9 landing, and stages 4 through 8 are independen
 
 ### Stage 1 - Render the PDF and look at it
 
-**Landed 2026-08-27 (W1).** `e2e/sign/export-render-guard.spec.js`, with `fixtures/exportRenderHarness.js`,
+**Landed 2026-08-27 (W1).** `e2e/export/export-render-guard.spec.js`, with `fixtures/exportRenderHarness.js`,
 `fixtures/exportRenderCorpus.js` and `fixtures/exportRenderBaseline.json`, bundles the real `signPdf`
 into `dist/` and runs it in the browser, rasterising with pdf.js at 3x against a 48x24 per-cell mean-ink
 baseline over 21 cases (never poppler against Chromium - that is the cross-rasteriser comparison the
@@ -976,7 +976,7 @@ Beyond the existing seven CI checks, and beyond stage 1 above.
 
 1. **A render-and-compare guard on the produced PDF** (stage 1). One rasteriser, per-case baselines, a
    non-vacuity assertion, and never "is there ink" as a pass condition. **Exists**, landed 2026-08-27 (W1)
-   as `e2e/sign/export-render-guard.spec.js` plus its `fixtures/exportRender*` files - see §8 Stage 1.
+   as `e2e/export/export-render-guard.spec.js` plus its `fixtures/exportRender*` files - see §8 Stage 1.
 2. **A resolver guard, judged against the real font bytes.** `fontCoverage.test.js` today verifies the
    catalogue's *claims*. The coverage rule makes claims unnecessary - the resolver reads the bytes - so
    the test should verify the *resolver*: for an enumerated set of script combinations, assert it returns
@@ -986,7 +986,7 @@ Beyond the existing seven CI checks, and beyond stage 1 above.
 3. **A normalization-seam test.** Both directions of §1.4, named as such, so the fix cannot be undone by
    someone tidying the coverage check back to "check the typed string". **Exists**, landed 2026-08-27 (W2)
    as the "normalization seam" describe blocks in `src/editor/registry/textShaping.test.js` and
-   `src/lib/textCoverage.test.js` - see §8 Stage 2.
+   `src/test/cross-tool/textCoverage.test.js` - see §8 Stage 2.
 4. **An extraction guard.** Round-trip the produced PDF through both `pdftotext` and pdf.js and assert
    the codepoint sequence against the typed text. Two extractors, because §7 shows they disagree with
    each other and a single-extractor guard would have called today's behaviour fine.

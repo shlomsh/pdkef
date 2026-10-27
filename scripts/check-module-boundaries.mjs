@@ -185,7 +185,7 @@ export function classify(relPath) {
 
 // A top-level src/ entry that classify() has no row for would classify as null and so escape every
 // rule. These are the only ones allowed to: not part of the module graph on purpose. Anything else
-// (a new src/foo/ folder) fails loudly until it gets a MODULE_PREFIXES row or is listed here.
+// (a new top-level folder under src) fails loudly until it gets a MODULE_PREFIXES row or is listed here.
 const OUTSIDE_THE_GRAPH = new Set(['assets', 'content.config.ts', 'project.json']);
 const CLASSIFIED_TOP_LEVEL = new Set(['components', 'tools', ...MODULE_PREFIXES.map(([p]) => p.split('/')[1])]);
 
@@ -524,7 +524,7 @@ export function toolSpecRouteViolations() {
 // this pass walks public/ and e2e/ too, of its own accord, rather than
 // widening that shared walk - public/ has no ES imports today (public/sw.js
 // is a plain script) and e2e/ is Playwright specs that may import fixtures,
-// so either could gain a real edge into scripts/ the src/-only walk would miss.
+// so either could gain a real edge into scripts/ the walk over src only would miss.
 const RULE8_ROOTS = [SRC, path.join(ROOT, 'public'), path.join(ROOT, 'e2e')];
 
 export function scriptsImportViolation(toRelPath) {

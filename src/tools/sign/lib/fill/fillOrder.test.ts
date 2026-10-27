@@ -4,7 +4,7 @@ import type { FillItem } from './fillTypes.ts';
 import type { PercentBox } from '../combPlacement.ts';
 
 // A4 page percentages throughout, the same fixture shape as
-// src/editor/text/fieldOrder.test.ts: enough to tell "rows top to bottom"
+// src/tools/sign/lib/fieldOrder.test.ts: enough to tell "rows top to bottom"
 // from "within a row by direction" from "page by page" apart, mixing slot
 // and text items so kind never leaks into the order.
 function slot(key: string, pageIndex: number, left: number, top: number, width = 15, height = 0.84): FillItem {

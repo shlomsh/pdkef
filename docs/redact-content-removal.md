@@ -6,7 +6,7 @@
 ## Where we are
 
 Today every page with a Blur, Blackout or Whiteout box is exported as one JPEG
-(`src/editor/adapters/pdf/redact.js`). The secret is gone, but so is every other word's text on that
+(`src/tools/redact/lib/redact.js`). The secret is gone, but so is every other word's text on that
 page: nothing can be selected, searched or read aloud. The goal is to remove only the glyphs, image
 pixels and marks under each box and leave the rest of the page as it was.
 

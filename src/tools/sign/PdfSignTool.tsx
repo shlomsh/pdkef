@@ -81,7 +81,7 @@ import { signedFileName } from './lib/signedFileName.ts';
 // their edits. Document-load errors use the workspace's separate default copy.
 function describeSignFailure(err: unknown, t: SignMessages): string {
   if (err instanceof Error && err.name === 'UnrepresentableTextError') {
-    // Worded by SignTool/textMessages.ts, the same UI message module the
+    // Worded by src/tools/sign/components/textMessages.ts, the same UI message module the
     // while-typing warning
     // reads from, so the heads-up and the refusal can never name different
     // characters or point at different pages.

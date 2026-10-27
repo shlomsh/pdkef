@@ -205,7 +205,7 @@ const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 const FONT_FACE_KEY = { normal: { normal: 'normal', italic: 'italic' }, bold: { normal: 'bold', italic: 'boldItalic' } };
 
 /**
- * The filename `loadCustomFont()` (src/editor/adapters/pdf/sign.js) would *request* for
+ * The filename `loadCustomFont()` (src/tools/sign/lib/sign.js) would *request* for
  * `(family, weight, style)`, before any 404 fallback - i.e. the file that
  * actually carries this exact weight/style, not whatever ends up embedded.
  * The manifest stores this explicitly rather than deriving it from a family
@@ -242,7 +242,7 @@ export function hasRealFace(family, weight, style) {
 
 /**
  * The exact filename that will actually be embedded for `(family, weight,
- * style)` - mirroring src/editor/adapters/pdf/sign.js's `loadCustomFont()` fallback chain
+ * style)` - mirroring src/tools/sign/lib/sign.js's `loadCustomFont()` fallback chain
  * (request the specific weight/style file, fall back to `-Regular.ttf` if it
  * 404s) without doing any network I/O. The exporter calls this function too,
  * so this is one shared decision rather than a mirrored fallback chain.
@@ -263,7 +263,7 @@ export function embeddedFontFile(family, weight, style) {
  * `text`, once `text` has gone through the same normalize/strip/compose chain
  * that will actually reach the shaper? See
  * docs/wysiwyg-text-architecture.md §3.1 for the exact five steps and why
- * each one matters; `findMissingGlyphs` (src/lib/textTransforms.js) is that
+ * each one matters; `findMissingGlyphs` (src/editor/text/textTransforms.js) is that
  * chain's one implementation, shared with `unrepresentableCharacters` in
  * src/editor/registry/text.ts so the two can never diverge.
  *

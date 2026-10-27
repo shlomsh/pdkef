@@ -27,7 +27,7 @@ into or out of `src/tools/merge/` or `src/editor/`.
 
 ## Draft persistence (flagship, on-device) - one memory space (MEM-01)
 
-`src/lib/drafts/draftStore.js` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-workspace`,
+`src/lib/drafts/draftStore.ts` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-workspace`,
 store `workspace`, keyPath `tool`) holding **one memory space**, not a per-tool draft: the unit is an
 **entry**, keyed by content hash (`sourceIdForBytes`/`sourceIdForFiles`), carrying its source bytes
 once and a `work` map of what every tool has done to it (`{ sign: {...}, redact: {...} }`), so the

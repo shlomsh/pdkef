@@ -36,16 +36,16 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/tools/merge/PdfMergeTool.tsx:1065 | Show PWA install prompt | EXPECTED | optional browser API, user may dismiss | |
 | src/tools/merge/PdfMergeTool.tsx:1095 | Hand merged PDF to Compress/Sign | EXPECTED | origin is saveHandoff (reports itself) or its synthetic throw; [surfaced: handoffFailed state] | |
 | src/tools/merge/lib/merge.js:95 | Read PDF creation date for sorting | EXPECTED | contract is resolve-null; unreadable file just sorts without a date | |
-| src/tools/merge/components/PagePreviewDialog.tsx:93 | Render large page preview | DEFECT | renderer threw on a loaded doc; must skip AbortError (signal aborted on close) | pdf_render |
+| src/shell/PagePreviewDialog.tsx:93 | Render large page preview | DEFECT | renderer threw on a loaded doc; must skip AbortError (signal aborted on close) | pdf_render |
 | src/tools/merge/hooks/usePreparedMerge.ts:98 | Build merged PDF | DEFECT | export step threw (AbortError already filtered); [surfaced: state error + console.error] | merge |
 | src/tools/merge/hooks/useMergeDraft.ts:260 | Save merge draft | DEFECT | saveDraft rejected (it normally returns false); a throw here is our code; result becomes "not saved" | drafts |
-| src/tools/merge/components/PageStrip.tsx:167 | Destroy released pdf.js source | EXPECTED | best-effort cleanup | |
-| src/tools/merge/components/PageStrip.tsx:214 | Render one page thumbnail in strip | DEFECT | pdf.js page render threw on a doc that loaded; skip aborts (check aborted before) | pdf_render |
-| src/tools/merge/components/PageStrip.tsx:379 | Lazy-load PagePreviewDialog chunk | DEFECT | dynamic import failed, preview never opens | chunk_load |
-| src/tools/security/security.js:36 | Check if PDF is encrypted | EXPECTED | maps to UnreadablePdfError, a user-facing outcome | |
-| src/tools/security/security.js:51 | Decrypt PDF with password | EXPECTED | maps to WrongPasswordError, normal flow (see unsure: swallows non-password errors too) | |
-| src/tools/security/security.js:69 | Load PDF before protecting | EXPECTED | maps to "might already be encrypted" user message; user file | |
-| src/tools/security/security.js:77 | Encrypt and save protected PDF | DEFECT | pdf-lib encrypt/save threw on a PDF that loaded; [surfaced: SecurityError shown] | security |
+| src/shell/pageGrid/PageGrid.tsx:167 | Destroy released pdf.js source | EXPECTED | best-effort cleanup | |
+| src/shell/pageGrid/PageGrid.tsx:214 | Render one page thumbnail in strip | DEFECT | pdf.js page render threw on a doc that loaded; skip aborts (check aborted before) | pdf_render |
+| src/shell/pageGrid/PageGrid.tsx:379 | Lazy-load PagePreviewDialog chunk | DEFECT | dynamic import failed, preview never opens | chunk_load |
+| src/tools/security/lib/security.js:36 | Check if PDF is encrypted | EXPECTED | maps to UnreadablePdfError, a user-facing outcome | |
+| src/tools/security/lib/security.js:51 | Decrypt PDF with password | EXPECTED | maps to WrongPasswordError, normal flow (see unsure: swallows non-password errors too) | |
+| src/tools/security/lib/security.js:69 | Load PDF before protecting | EXPECTED | maps to "might already be encrypted" user message; user file | |
+| src/tools/security/lib/security.js:77 | Encrypt and save protected PDF | DEFECT | pdf-lib encrypt/save threw on a PDF that loaded; [surfaced: SecurityError shown] | security |
 | src/tools/edit-pages/PdfEditPagesTool.tsx:138 | Generate page thumbnails | DEFECT | renderer threw; [surfaced: console.error only] | pdf_render |
 | src/tools/edit-pages/PdfEditPagesTool.tsx:141 | Load PDF into edit-pages | DEFECT | load threw (filter pdf.js Password/InvalidPDF names); [surfaced: status error + console.error] | pdf_tool_run |
 | src/tools/edit-pages/PdfEditPagesTool.tsx:248 | Apply page edits and export | DEFECT | export step threw; [surfaced: status error + console.error] | pdf_tool_run |
@@ -90,44 +90,44 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/lib/drafts/useDraftPersistence.js:24 | Detect installed standalone mode | EXPECTED | feature detect | |
 | src/lib/drafts/useDraftPersistence.js:172 | Save editor draft | DEFECT | saveDraft rejected (it normally returns false); our code threw; becomes "not saved" | drafts |
 | src/lib/drafts/useDraftPersistence.js:298 | Render draft preview thumbnail | EXPECTED | comment: decoration; encrypted/malformed PDFs refused by pdf.js | |
-| src/lib/drafts/draftStore.js:65 | Read/set tab writer id in sessionStorage | EXPECTED | blocked storage, falls back to random id | |
-| src/lib/drafts/draftStore.js:73 | Broadcast draft change via localStorage | EXPECTED | advisory, blocked storage | |
-| src/lib/drafts/draftStore.js:95 | Parse cross-tab storage event | EXPECTED | corrupt advisory record ignored | |
-| src/lib/drafts/draftStore.js:141 | Hash file bytes (sourceIdForFiles) | EXPECTED | crypto.subtle missing on plain-http LAN; null means "no drafts" | |
-| src/lib/drafts/draftStore.js:192 | Save handoff to IndexedDB | DEFECT | IDB write threw after hasIndexedDB passed (see unsure: quota); [surfaced: console.error, returns false] | handoff |
-| src/lib/drafts/draftStore.js:222 | Take handoff from IndexedDB | DEFECT | IDB read/delete threw; [surfaced: console.error, returns null] | handoff |
-| src/lib/drafts/draftStore.js:244 | Set current-entry pointer | EXPECTED | best-effort localStorage write | |
-| src/lib/drafts/draftStore.js:253 | Clear current-entry pointer | EXPECTED | best-effort localStorage | |
-| src/lib/drafts/draftStore.js:264 | Read current-entry pointer | EXPECTED | blocked storage returns null | |
-| src/lib/drafts/draftStore.js:283 | Write recent-files index | EXPECTED | quota/blocked storage, convenience | |
-| src/lib/drafts/draftStore.js:317 | Parse recent-files index | EXPECTED | unparseable stored value falls back to [] | |
-| src/lib/drafts/draftStore.js:399 | Prune orphan recent entries | EXPECTED | best-effort cleanup; [surfaced: console.error] | |
-| src/lib/drafts/draftStore.js:413 | Hash bytes in cacheRecentFile | EXPECTED | crypto.subtle missing; returns false | |
-| src/lib/drafts/draftStore.js:436 | Cache recent file in IndexedDB | DEFECT | IDB write threw (see unsure: quota/private); [surfaced: console.error, returns false] | drafts |
-| src/lib/drafts/draftStore.js:475 | Load recent file from IndexedDB | DEFECT | IDB read/delete threw on an opened entry; [surfaced: console.error, returns null] | drafts |
-| src/lib/drafts/draftStore.js:520 | Attach draft preview to index | EXPECTED | quota error costs a thumbnail only (comment) | |
-| src/lib/drafts/draftStore.js:552 | Read current draft meta | EXPECTED | sync best-effort read | |
-| src/lib/drafts/draftStore.js:586 | hasDraftHint | EXPECTED | sync best-effort read | |
-| src/lib/drafts/draftStore.js:595 | Test whether index parses | EXPECTED | parse probe | |
-| src/lib/drafts/draftStore.js:603 | Access indexedDB | EXPECTED | can throw in private/locked-down contexts (comment) | |
-| src/lib/drafts/draftStore.js:638 | storage.persist() | EXPECTED | optional browser API; false is normal (comment) | |
-| src/lib/drafts/draftStore.js:639 | storage.persist() sync throw | EXPECTED | optional browser API | |
-| src/lib/drafts/draftStore.js:660 | storage.persisted() | EXPECTED | optional browser API, returns 'unknown' | |
-| src/lib/drafts/draftStore.js:765 | Hash bytes in saveDraft (multi) | EXPECTED | crypto.subtle missing; save skipped | |
-| src/lib/drafts/draftStore.js:766 | Hash bytes in saveDraft (single) | EXPECTED | crypto.subtle missing; save skipped | |
-| src/lib/drafts/draftStore.js:799 | Save draft to IndexedDB | DEFECT | the flagship save; IDB write threw (see unsure: quota); [surfaced: console.error, returns false] | drafts |
-| src/lib/drafts/draftStore.js:829 | Re-read draft to notify other tabs | EXPECTED | advisory, after a committed save | |
-| src/lib/drafts/draftStore.js:905 | Load draft from IndexedDB | DEFECT | restore threw, pointer cleared and work lost; [surfaced: console.error, returns null] | drafts |
-| src/lib/drafts/draftStore.js:951 | Delete draft work in IndexedDB | DEFECT | IDB delete threw; [surfaced: console.error, returns false] | drafts |
-| src/lib/drafts/draftStore.js:970 | Remove legacy hint key | EXPECTED | best-effort cleanup | |
-| src/lib/drafts/draftStore.js:971 | Remove legacy meta key | EXPECTED | best-effort cleanup | |
-| src/lib/drafts/draftStore.js:994 | Legacy draft migration (outer) | DEFECT | migrateLegacyDraft catches its own IDB errors, so this is a bug in our code; [surfaced: console.error] | drafts |
-| src/lib/drafts/draftStore.js:1013 | Read legacy draft record | DEFECT | IDB read threw (same class as loadDraft); [surfaced: console.error] | drafts |
-| src/lib/drafts/draftStore.js:1022 | Delete expired legacy record | EXPECTED | best-effort cleanup; [surfaced: console.error] | |
-| src/lib/drafts/draftStore.js:1029 | Hash legacy bytes (multi) | EXPECTED | crypto.subtle missing, record dropped | |
-| src/lib/drafts/draftStore.js:1030 | Hash legacy bytes (single) | EXPECTED | crypto.subtle missing, record dropped | |
-| src/lib/drafts/draftStore.js:1036 | Delete unaddressable legacy record | EXPECTED | best-effort cleanup; [surfaced: console.error] | |
-| src/lib/drafts/draftStore.js:1077 | Write migrated legacy record | DEFECT | IDB write threw; [surfaced: console.error] | drafts |
+| src/lib/drafts/draftStore.ts:65 | Read/set tab writer id in sessionStorage | EXPECTED | blocked storage, falls back to random id | |
+| src/lib/drafts/draftStore.ts:73 | Broadcast draft change via localStorage | EXPECTED | advisory, blocked storage | |
+| src/lib/drafts/draftStore.ts:95 | Parse cross-tab storage event | EXPECTED | corrupt advisory record ignored | |
+| src/lib/drafts/draftStore.ts:141 | Hash file bytes (sourceIdForFiles) | EXPECTED | crypto.subtle missing on plain-http LAN; null means "no drafts" | |
+| src/lib/drafts/draftStore.ts:192 | Save handoff to IndexedDB | DEFECT | IDB write threw after hasIndexedDB passed (see unsure: quota); [surfaced: console.error, returns false] | handoff |
+| src/lib/drafts/draftStore.ts:222 | Take handoff from IndexedDB | DEFECT | IDB read/delete threw; [surfaced: console.error, returns null] | handoff |
+| src/lib/drafts/draftStore.ts:244 | Set current-entry pointer | EXPECTED | best-effort localStorage write | |
+| src/lib/drafts/draftStore.ts:253 | Clear current-entry pointer | EXPECTED | best-effort localStorage | |
+| src/lib/drafts/draftStore.ts:264 | Read current-entry pointer | EXPECTED | blocked storage returns null | |
+| src/lib/drafts/draftStore.ts:283 | Write recent-files index | EXPECTED | quota/blocked storage, convenience | |
+| src/lib/drafts/draftStore.ts:317 | Parse recent-files index | EXPECTED | unparseable stored value falls back to [] | |
+| src/lib/drafts/draftStore.ts:399 | Prune orphan recent entries | EXPECTED | best-effort cleanup; [surfaced: console.error] | |
+| src/lib/drafts/draftStore.ts:413 | Hash bytes in cacheRecentFile | EXPECTED | crypto.subtle missing; returns false | |
+| src/lib/drafts/draftStore.ts:436 | Cache recent file in IndexedDB | DEFECT | IDB write threw (see unsure: quota/private); [surfaced: console.error, returns false] | drafts |
+| src/lib/drafts/draftStore.ts:475 | Load recent file from IndexedDB | DEFECT | IDB read/delete threw on an opened entry; [surfaced: console.error, returns null] | drafts |
+| src/lib/drafts/draftStore.ts:520 | Attach draft preview to index | EXPECTED | quota error costs a thumbnail only (comment) | |
+| src/lib/drafts/draftStore.ts:552 | Read current draft meta | EXPECTED | sync best-effort read | |
+| src/lib/drafts/draftStore.ts:586 | hasDraftHint | EXPECTED | sync best-effort read | |
+| src/lib/drafts/draftStore.ts:595 | Test whether index parses | EXPECTED | parse probe | |
+| src/lib/drafts/draftStore.ts:603 | Access indexedDB | EXPECTED | can throw in private/locked-down contexts (comment) | |
+| src/lib/drafts/draftStore.ts:638 | storage.persist() | EXPECTED | optional browser API; false is normal (comment) | |
+| src/lib/drafts/draftStore.ts:639 | storage.persist() sync throw | EXPECTED | optional browser API | |
+| src/lib/drafts/draftStore.ts:660 | storage.persisted() | EXPECTED | optional browser API, returns 'unknown' | |
+| src/lib/drafts/draftStore.ts:765 | Hash bytes in saveDraft (multi) | EXPECTED | crypto.subtle missing; save skipped | |
+| src/lib/drafts/draftStore.ts:766 | Hash bytes in saveDraft (single) | EXPECTED | crypto.subtle missing; save skipped | |
+| src/lib/drafts/draftStore.ts:799 | Save draft to IndexedDB | DEFECT | the flagship save; IDB write threw (see unsure: quota); [surfaced: console.error, returns false] | drafts |
+| src/lib/drafts/draftStore.ts:829 | Re-read draft to notify other tabs | EXPECTED | advisory, after a committed save | |
+| src/lib/drafts/draftStore.ts:905 | Load draft from IndexedDB | DEFECT | restore threw, pointer cleared and work lost; [surfaced: console.error, returns null] | drafts |
+| src/lib/drafts/draftStore.ts:951 | Delete draft work in IndexedDB | DEFECT | IDB delete threw; [surfaced: console.error, returns false] | drafts |
+| src/lib/drafts/draftStore.ts:970 | Remove legacy hint key | EXPECTED | best-effort cleanup | |
+| src/lib/drafts/draftStore.ts:971 | Remove legacy meta key | EXPECTED | best-effort cleanup | |
+| src/lib/drafts/draftStore.ts:994 | Legacy draft migration (outer) | DEFECT | migrateLegacyDraft catches its own IDB errors, so this is a bug in our code; [surfaced: console.error] | drafts |
+| src/lib/drafts/draftStore.ts:1013 | Read legacy draft record | DEFECT | IDB read threw (same class as loadDraft); [surfaced: console.error] | drafts |
+| src/lib/drafts/draftStore.ts:1022 | Delete expired legacy record | EXPECTED | best-effort cleanup; [surfaced: console.error] | |
+| src/lib/drafts/draftStore.ts:1029 | Hash legacy bytes (multi) | EXPECTED | crypto.subtle missing, record dropped | |
+| src/lib/drafts/draftStore.ts:1030 | Hash legacy bytes (single) | EXPECTED | crypto.subtle missing, record dropped | |
+| src/lib/drafts/draftStore.ts:1036 | Delete unaddressable legacy record | EXPECTED | best-effort cleanup; [surfaced: console.error] | |
+| src/lib/drafts/draftStore.ts:1077 | Write migrated legacy record | DEFECT | IDB write threw; [surfaced: console.error] | drafts |
 | src/site-lib/FileDropzone.tsx:75 | Hand file from home page to a tool | EXPECTED | origin is saveHandoff or its synthetic throw; [surfaced: handoffFailed message] | |
 | src/site-lib/FileDropzone.tsx:166 | Fetch and open sample PDF | EXPECTED | same-origin fetch can fail offline; [surfaced: sampleLoadFailed message] | |
 | src/site-lib/gitLastModified.js:53 | git shallow-repo probe | EXPECTED | build-time script, not browser code | |
@@ -136,19 +136,19 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/editor/workspace/useEditorDraftPersistence.ts:116 | Delete malformed draft work | EXPECTED | best-effort cleanup | |
 | src/editor/workspace/loadPdf.ts:61 | Destroy pdf.js handle | EXPECTED | comment: rejection on cancel is expected | |
 | src/editor/workspace/loadPdf.ts:143 | Load PDF for Sign/Redact | DEFECT | pdf.js load threw (filter Password/InvalidPDF names); [surfaced: fail(loadFailed) + console.error] | pdf_render |
-| src/editor/adapters/pdf/sign.js:67 | Read fontkit metrics for baseline | EXPECTED | falls back to Helvetica offset | |
-| src/editor/adapters/pdf/sign.js:82 | Read /UserUnit | EXPECTED | invalid producer output defaults to 1 | |
-| src/editor/adapters/pdf/sign.js:131 | Fetch embedded custom font | DEFECT | export font fetch failed, glyphs fall to fallback (see unsure: offline); [surfaced: console.warn] | fonts |
-| src/editor/adapters/pdf/textLayer.ts:131 | Invert a glyph text matrix | EXPECTED | degenerate matrix, comment says shows nothing | |
+| src/tools/sign/lib/sign.js:67 | Read fontkit metrics for baseline | EXPECTED | falls back to Helvetica offset | |
+| src/tools/sign/lib/sign.js:82 | Read /UserUnit | EXPECTED | invalid producer output defaults to 1 | |
+| src/tools/sign/lib/sign.js:131 | Fetch embedded custom font | DEFECT | export font fetch failed, glyphs fall to fallback (see unsure: offline); [surfaced: console.warn] | fonts |
+| src/tools/redact/lib/textLayer.ts:131 | Invert a glyph text matrix | EXPECTED | degenerate matrix, comment says shows nothing | |
 | src/editor/adapters/pdf/pdfObjects.js:927 | Walk a Form XObject | DEFECT | our content-stream walker threw; objects rolled back; [surfaced: console.error only] | redact |
-| src/editor/adapters/pdf/readGlyphs.js:15 | commonObjs.get(font name) | EXPECTED | pdf.js throws for an unresolved font, handled as null | |
-| src/editor/adapters/pdf/readGlyphs.js:19 | Read glyphs of a page | DEFECT | operator-list/glyph reader threw; [surfaced: console.error, returns null] | redact |
-| src/editor/adapters/pdf/deleteObjects.js:633 | Extract objects on one page | DEFECT | our extractor threw; page skipped; [surfaced: console.error only] | redact |
-| src/editor/text/liveFontCoverage.js:83 | Load weight-specific font instance | EXPECTED | falls back to the default face | |
-| src/editor/text/liveFontCoverage.js:90 | Compute unsupported characters | EXPECTED | mixes offline font fetch with fontkit bugs; returns [] (see unsure) | |
-| src/editor/text/liveFontCoverage.js:119 | Load font instance (weighted) | EXPECTED | tries default face next | |
-| src/editor/text/liveFontCoverage.js:123 | Load font instance (default face) | EXPECTED | offline/missing font returns null (doc: never invent a warning) | |
-| src/editor/text/liveFontCoverage.js:128 | Document-wide coverage scan | DEFECT | inner font loads already caught, so only findUnrepresentableCharacters can land here | fonts |
+| src/tools/redact/lib/readGlyphs.js:15 | commonObjs.get(font name) | EXPECTED | pdf.js throws for an unresolved font, handled as null | |
+| src/tools/redact/lib/readGlyphs.js:19 | Read glyphs of a page | DEFECT | operator-list/glyph reader threw; [surfaced: console.error, returns null] | redact |
+| src/tools/redact/lib/deleteObjects.js:633 | Extract objects on one page | DEFECT | our extractor threw; page skipped; [surfaced: console.error only] | redact |
+| liveFontCoverage.js:83 (since deleted) | Load weight-specific font instance | EXPECTED | falls back to the default face | |
+| liveFontCoverage.js (since deleted):90 | Compute unsupported characters | EXPECTED | mixes offline font fetch with fontkit bugs; returns [] (see unsure) | |
+| liveFontCoverage.js (since deleted):119 | Load font instance (weighted) | EXPECTED | tries default face next | |
+| liveFontCoverage.js (since deleted):123 | Load font instance (default face) | EXPECTED | offline/missing font returns null (doc: never invent a warning) | |
+| liveFontCoverage.js (since deleted):128 | Document-wide coverage scan | DEFECT | inner font loads already caught, so only findUnrepresentableCharacters can land here | fonts |
 | src/editor/text/dateFormat.ts:49 | navigator.language | EXPECTED | optional API, falls back to en-US | |
 | src/editor/workspace/preferenceStore.ts:91 | Parse saved-signatures JSON | EXPECTED | stored value will not parse, returns null | |
 | src/editor/workspace/preferenceStore.ts:166 | Read legacy signature record | EXPECTED | stored value will not parse | |
