@@ -27,6 +27,8 @@ fix to watch the test go red is a backstop, not the method. RED-53's reviews fou
 fail (storage seeded before mount, a default compared with itself, a zoom fixed at 1), all written after
 the fix.
 
+Test seams (ARCH-61): an export that only tests import carries a `/** @testSeam */` JSDoc tag; untagged, `scripts/check-unused-exports.mjs` counts it as test-only against the ratchet.
+
 ## Test environments and E2E scope
 
 Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any

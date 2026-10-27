@@ -1,8 +1,6 @@
-import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
-
 /**
  * Redact's strings. English only for now. Components read the English table directly (there is no
- * localized edition to thread); `getRedactMessages` is the entry a Hebrew edition would extend.
+ * localized edition to thread).
  * `{name}`-style tokens are filled with formatMessage; a sentence that holds a link is split
  * around it and the component supplies the link.
  */
@@ -487,7 +485,3 @@ export const englishRedactMessages: RedactMessages = {
     addedMoreMany: 'Added the box to {count} more pages',
   },
 };
-
-export function getRedactMessages(_locale: DocumentationLocaleId): RedactMessages {
-  return englishRedactMessages;
-}

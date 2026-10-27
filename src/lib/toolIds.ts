@@ -64,8 +64,6 @@ export const TOOL_PAGES = [
   { slug: 'add-page-numbers-to-pdf', href: '/add-page-numbers-to-pdf/', id: 'edit-pdf', variantOf: 'organize-pdf' },
 ] as const satisfies readonly ToolPage[];
 
-export type ToolPageSlug = (typeof TOOL_PAGES)[number]['slug'];
-
 /** Protect is a mode of the Unlock page: it counts and rates as itself but has no page of its own. */
 const PAGELESS_IDS = ['protect'] as const;
 
