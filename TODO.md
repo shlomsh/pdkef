@@ -14,7 +14,14 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
+- [ARCH-51](backlog/tasks/ARCH-51.md) P2 · Merge keeps its lifecycle in one reducer and its decisions in mergePlan (in progress)
+- [ARCH-52](backlog/tasks/ARCH-52.md) P2 · Sign keeps its document and finish lifecycle in one typed reducer (in progress)
+- [ARCH-53](backlog/tasks/ARCH-53.md) P2 · Compress runs its build and gate lifecycle through one explicit state machine (in progress)
 - [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
+- [ARCH-55](backlog/tasks/ARCH-55.md) P2 · pdfObjects.js splits into a parser, one text-state interpreter and extractors (in progress)
+- [ARCH-67](backlog/tasks/ARCH-67.md) P2 · The draft store is TypeScript with one record type parsed where it is read (in progress)
+- [ARCH-79](backlog/tasks/ARCH-79.md) P2 · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet (in progress)
+- [ARCH-88](backlog/tasks/ARCH-88.md) P2 · Shadows and scrims are tokens, and color literals outside :root fail a check (in progress)
 
 ### Search and languages
 

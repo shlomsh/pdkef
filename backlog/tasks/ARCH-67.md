@@ -1,7 +1,7 @@
 ---
 id: "ARCH-67"
 title: "The draft store is TypeScript with one record type parsed where it is read"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

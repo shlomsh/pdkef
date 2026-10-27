@@ -1,7 +1,7 @@
 ---
 id: "ARCH-79"
 title: "E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

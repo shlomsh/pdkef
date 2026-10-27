@@ -1,7 +1,7 @@
 ---
 id: "ARCH-88"
 title: "Shadows and scrims are tokens, and color literals outside :root fail a check"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

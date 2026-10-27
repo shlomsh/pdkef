@@ -1,7 +1,7 @@
 ---
 id: "ARCH-55"
 title: "pdfObjects.js splits into a parser, one text-state interpreter and extractors"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
