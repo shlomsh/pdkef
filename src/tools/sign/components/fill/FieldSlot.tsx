@@ -1,0 +1,315 @@
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
+import { fieldTextInset, textElementLayout } from '../../../../editor/text/signHelpers.js';
+import { combLayout, isComb } from '../../../../editor/text/comb.js';
+import CombCells from '../nodes/CombCells.tsx';
+import { useCombCaret } from '../nodes/useCombCaret.ts';
+import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
+import elementStyles from '../../../../editor-ui/EditorElement.module.css';
+import type { TextElement } from '../../../../editor/model/editorModel.ts';
+import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from '../../lib/fill/fillTypes.ts';
+import { slotFrame } from '../../lib/fill/slotFrame.ts';
+import styles from './fill.module.css';
+
+let measureContext: CanvasRenderingContext2D | null = null;
+
+/**
+ * The typed text's own advance width in CSS px: what the committed element's
+ * unpadded `.text-measure` span measures for `fieldTextInset` (TextNode.tsx).
+ * A bare `<input>` has no such span, so the same font draws the same text on
+ * a canvas instead. 0 for empty text, or where there is no canvas (jsdom).
+ */
+function textWidthPx(text: string, font: { fontSize: number; fontFamily: string; fontWeight: string; fontStyle: string }): number {
+  if (!text) return 0;
+  measureContext ??= document.createElement('canvas').getContext('2d');
+  if (!measureContext) return 0;
+  measureContext.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize}px ${font.fontFamily}`;
+  return measureContext.measureText(text).width;
+}
+
+/**
+ * Fill mode (SNG-15): an empty writing spot, before it is ever left with
+ * text in it (docs/sign-fill-mode.md, "A slot while empty, an element once
+ * filled"). A real, single-line, uncontrolled `<input type="text">` - iOS's
+ * own keyboard arrows, Tab and VoiceOver all need a genuine focusable input
+ * to land on, not a styled div standing in for one. This component renders
+ * and forwards events only: what "aimed" means (fillReach.ts), when a tap
+ * should reach it (fillTap.ts) and what a commit turns into (a `TextElement`
+ * via `placeTextOnField`, elsewhere) are all decided above it, never here.
+ *
+ * Position and typography both come from `textElementLayout` (signHelpers.js),
+ * called on `elementOf(value)` - the exact element `ADD_ELEMENT` would commit -
+ * the same function TextNode.tsx calls on the placed element, with the same
+ * scaleFactor derived from the page's own rendered width via
+ * `usePdfCoordinates`. So a slot reads identically to the text element it
+ * becomes the instant it commits; nothing visibly jumps.
+ *
+ * Comb fields (`slot.placement.combCells`) draw their cells live, the same
+ * way TextNode.tsx draws them while editing a placed comb field: the real
+ * input keeps taking the typing (transparent text, no native caret - see
+ * `.slot-comb`), and a `CombCells` overlay on top renders `combLayout` of
+ * the input's own live value plus a caret bar of its own, at `caretIndex`
+ * (the input's live `selectionStart`) - `elementOf(value)`, the same
+ * `elementForSlot` call the commit uses, so the cells the slot shows are
+ * exactly the cells the committed element will show. A `letter-spacing`
+ * approximation was considered and
+ * rejected: it adds a fixed gap after each glyph's own (variable) advance
+ * rather than pinning characters to fixed-width cells, so it drifts from
+ * the printed pitch in precisely the way `comb.js`'s own docstring says a
+ * comb must not.
+ */
+export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, label, elementOf, onEnter, onCommit, onLeave }: {
+  slot: FillSlot;
+  enterKeyHint: EnterKeyHint;
+  /** The droppable look: this slot is what the armed tool's own reach would tap next. */
+  aimed: boolean;
+  pageWidthPoints: number;
+  label: string;
+  /** The element this slot becomes with `text` in it (elementForSlot): what decides the
+   * live comb layout and the direction the slot starts in and follows while typing. */
+  elementOf: (text: string) => TextElement;
+  /** Enter, without Shift and not composing: move to the next fill input. */
+  onEnter: () => void;
+  /** Blurred with a non-blank value: the caller turns this slot into a text element. */
+  onCommit: (text: string) => void;
+  /** Every blur, after onCommit when there was text: the free slot closes on it. */
+  onLeave?: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const { getScaleFactor, getDimensions } = usePdfCoordinates();
+  const [scaleFactor, setScaleFactor] = useState(1);
+  // The page's own rendered height in CSS px (slotFrame.ts): field slots need
+  // it to convert the field's and the element's page-percent tops into the
+  // same px the frame and its padding are computed in.
+  const [pageHeightPx, setPageHeightPx] = useState(0);
+  // Mirrors the real, uncontrolled input's value (never drives it) so the
+  // comb preview and the direction can follow every keystroke, the same as
+  // TextNode's own textarea does through committed element state.
+  const [value, setValue] = useState('');
+  // SNG-15: whether the real input currently has focus, so the visible focus
+  // line can be drawn on the separate field-frame element below (a plain CSS
+  // `:focus-visible` on the input itself cannot reach a sibling).
+  const [focused, setFocused] = useState(false);
+
+  // The same measurement TextNode.tsx makes for its own fontSize: the page
+  // can be shown at any rendered width, so points only become the right CSS
+  // px through the page wrapper's actual size, kept in sync as it resizes.
+  useLayoutEffect(() => {
+    const pageWrapper = inputRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
+    if (!pageWrapper) return undefined;
+    const updateScale = () => {
+      setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));
+      setPageHeightPx(getDimensions(pageWrapper).height);
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(pageWrapper);
+    return () => observer.disconnect();
+  }, [pageWidthPoints]);
+
+  // The element this slot would become right now, with whatever is typed so
+  // far - the one source of truth `textElementLayout` (signHelpers.js) reads
+  // for both geometry and typography, so the slot can never drift from the
+  // text element it becomes on commit (elsewhere TextNode.tsx calls the same
+  // function on the same element shape). comb.js's isComb/combLayout read
+  // the same element too (SIGN-34's "one rule for every box" applies here).
+  const element = elementOf(value);
+  const layout = textElementLayout(element, scaleFactor);
+  const direction = layout.direction;
+  const comb = isComb(element);
+  const cells = comb ? combLayout(element, direction === 'rtl') : null;
+  // A field slot's element always carries a comb `width` or a cell
+  // `minWidth` (placeTextOnField always sets one or the other), so `layout.box`
+  // already has a real span. A free slot (nothing detected) has neither - a
+  // committed free text box only gets a width once it is measured on screen
+  // (TextNode's own auto-sizing measure div), which a bare `<input>` cannot
+  // reproduce - so it keeps its own placement's span instead.
+  // A field slot's layout.box carries height: 'auto' (textElementLayout); an
+  // inline style beats the class, so drop it here and let fill.module.css's
+  // .slot rule size the box instead (it must equal .text-input's own padded
+  // line box, which `calc()` cannot compute in this object).
+  const { height: _fieldSlotHeight, ...fieldBoxRaw } = layout.box;
+  // An <input> cannot shrink-wrap the way the committed div does: with
+  // width: 'auto' plus a cell minWidth, the input takes its own intrinsic
+  // width (measured 207.5px against a 196px cell) instead of the cell. Pin
+  // it to the cell itself - what the committed element looks like while the
+  // text still fits.
+  const fieldBox = fieldBoxRaw.width === 'auto' && fieldBoxRaw.minWidth
+    ? { ...fieldBoxRaw, width: fieldBoxRaw.minWidth }
+    : fieldBoxRaw;
+  // The frame a field slot's own INPUT sits in (slotFrame.ts): the union of
+  // the printed field and the element's full padded line box, so the frame
+  // always covers the whole detected field even when the text line is
+  // shorter or sits above/below it. Left/width stay `fieldBox`'s own
+  // (including the cell-width pin above); only top/height and the input's
+  // own padding come from the frame. `pageHeightPx` is 0 until the page
+  // wrapper is first measured, so there is nothing to frame yet.
+  const fieldRegion = slot.field?.region ? (slot.field.region.writable ?? slot.field.region) : null;
+  const frame = fieldRegion && pageHeightPx > 0
+    ? slotFrame({
+      field: fieldRegion,
+      element,
+      fontSizePx: layout.font.fontSize,
+      padEm: layout.font.paddingEm,
+      pageHeightPx,
+    })
+    : null;
+  // Sideways, a plain field slot sets its text in exactly as far as the
+  // committed element will: TextNode.tsx pads a box on a detected cell
+  // (`minWidth`, not a comb) by `fieldTextInset` on both sides instead of
+  // `.text-input`'s fixed 4px, and aligns it by `layout.textAlign`. The span
+  // is the cell in px (the input is pinned to it above); a text wider than
+  // the cell leaves no slack, so both come out 0. A free slot keeps the CSS
+  // default: a committed free box keeps `.text-input`'s 4px too. A comb's
+  // input text is transparent (the overlay draws it), so it needs neither.
+  const spannedField = !comb && !!element.minWidth;
+  const inlineInsetPx = spannedField
+    ? fieldTextInset((element.minWidth! / 100) * scaleFactor * pageWidthPoints, textWidthPx(value, layout.font), layout.font.fontSize)
+    : null;
+  const box = slot.field
+    ? (frame ? { ...fieldBox, top: `${frame.top}%`, height: `${frame.height}%` } : fieldBox)
+    : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
+  // SNG-15: the visible frame (at-rest border, aimed and focus states) is
+  // drawn on this separate box, never on `box` above - `box` is the INPUT's
+  // own box, which `frame` (slotFrame.ts) may enlarge past the printed field
+  // so a tall element's line still fits inside it. Drawing the ring on that
+  // enlarged box is what let a focused field's ring cover the printed label
+  // above it, and let two adjacent fields' at-rest frames overlap. `fieldRegion`
+  // (already computed above) is the printed field's own box in page percent,
+  // never enlarged, so neighbouring fields' frames can never touch. Only a
+  // field slot needs this: a free slot's own `box` already is its whole
+  // placement, nothing to enlarge past.
+  const fieldFrameBox = fieldRegion
+    ? {
+      left: `${fieldRegion.left}%`,
+      top: `${fieldRegion.top}%`,
+      width: `${fieldRegion.width}%`,
+      height: `${fieldRegion.height}%`,
+    }
+    : null;
+
+  const handleInput = (event: Event) => {
+    setValue((event.currentTarget as HTMLInputElement).value);
+  };
+
+  // The comb caret (useCombCaret.ts): null while the input has no focus, the
+  // live selectionStart while it does. The real input's own caret is hidden
+  // for a comb (.slot-comb below) because it sits at the unspaced text
+  // position, not the cell boundary the next character lands at.
+  const { caretIndex, caretEvents, sync: syncCaret } = useCombCaret(inputRef, comb);
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    onEnter();
+  };
+
+  const handleBlur = (event: FocusEvent) => {
+    setFocused(false);
+    const text = (event.currentTarget as HTMLInputElement).value.trim();
+    if (text) onCommit(text);
+    caretEvents.onBlur?.();
+    onLeave?.();
+  };
+
+  const handleFocus = () => {
+    setFocused(true);
+    caretEvents.onFocus?.();
+  };
+
+  return (
+    <>
+      {fieldFrameBox && (
+        // SNG-15: the visible at-rest/aimed/focus chrome, sized to the
+        // printed field only (see `fieldFrameBox` above) - never the input's
+        // own (possibly enlarged) box. Rendered before the input so the
+        // input's text always paints on top of this tint, never under it.
+        <div
+          aria-hidden="true"
+          className={`${styles['field-frame']}${aimed ? ` ${styles.aimed}` : ''}${focused ? ` ${styles.focused}` : ''}`}
+          style={fieldFrameBox}
+        />
+      )}
+      <input
+        ref={inputRef}
+        type="text"
+        data-fill-input
+        data-fill-key={slot.key}
+        className={`${styles.slot}${fieldFrameBox ? ` ${styles['field-slot']}` : ''}${aimed ? ` ${styles.aimed}` : ''}${comb ? ` ${styles['slot-comb']}` : ''}`}
+        enterKeyHint={enterKeyHint}
+        dir={direction}
+        aria-label={label}
+        autocomplete="off"
+        // Names, numbers and addresses are not prose, and iOS applies a pending
+        // autocorrection as focus leaves for the next field (AUTOCORRECT_OFF).
+        autocorrect={AUTOCORRECT_OFF}
+        spellcheck={false}
+        onInput={comb ? (event) => { handleInput(event); syncCaret(); } : handleInput}
+        onKeyDown={handleKeyDown}
+        onKeyUp={caretEvents.onKeyUp}
+        onFocus={handleFocus}
+        onClick={caretEvents.onClick}
+        onSelect={caretEvents.onSelect}
+        onBlur={handleBlur}
+        style={{
+          ...box,
+          fontSize: `${layout.font.fontSize}px`,
+          fontFamily: layout.font.fontFamily,
+          fontWeight: layout.font.fontWeight,
+          fontStyle: layout.font.fontStyle,
+          '--text-pad-em': `${layout.font.paddingEm}em`,
+          // A field slot's own padding comes from the frame (slotFrame.ts),
+          // not the CSS default: it is whatever is left between the frame's
+          // (possibly field-sized) edges and the text line itself, so the
+          // line still lands exactly where the committed element's line
+          // will even though the box around it had to grow to cover the
+          // field. A free slot keeps the CSS default (fill.module.css's
+          // .slot rule).
+          ...(frame ? { paddingTop: `${frame.paddingTopPx}px`, paddingBottom: `${frame.paddingBottomPx}px` } : {}),
+          ...(inlineInsetPx !== null
+            ? { paddingLeft: `${inlineInsetPx}px`, paddingRight: `${inlineInsetPx}px`, textAlign: layout.textAlign }
+            : {}),
+          // The committed element's own ink; a comb's input text stays
+          // transparent (.slot-comb), the overlay draws it.
+          ...(comb ? {} : { color: element.color }),
+        }}
+      />
+      {cells && (
+        <div
+          aria-hidden="true"
+          className={styles['comb-overlay']}
+          style={{
+            // The overlay draws the element's own box, not the frame: it
+            // paints the comb digits on the element's own line, and that
+            // line never moves regardless of how big the frame around the
+            // input has to be to cover the field.
+            ...fieldBox,
+            fontSize: `${layout.font.fontSize}px`,
+            '--text-pad-em': `${layout.font.paddingEm}em`,
+          }}
+        >
+          {/* The committed element's own display shell (TextNode.tsx's
+              `.text-display[data-comb="on"]`), so the cells inherit its
+              line-height, grid and clipping from the one rule that draws the
+              committed comb, never a parallel copy. Without it the cells took
+              the page's inherited line-height (1.6 against 1.05) and every
+              digit sat 0.275em below where it lands on commit (form 101's
+              date of birth and postal code, Shlomi's phone). */}
+          <div className={elementStyles['text-display']} data-comb="on">
+            <CombCells
+              cells={cells}
+              isRtl={direction === 'rtl'}
+              showGuides={false}
+              visible
+              caretIndex={caretIndex}
+              color={element.color || '#000000'}
+              fontFamily={layout.font.fontFamily}
+              fontWeight={layout.font.fontWeight}
+              fontStyle={layout.font.fontStyle}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

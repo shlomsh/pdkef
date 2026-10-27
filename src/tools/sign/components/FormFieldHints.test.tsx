@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import FormFieldHints from './FormFieldHints.tsx';
-import { boxKey } from '../fill/fillDom.ts';
+import { boxKey } from '../lib/fill/fillDom.ts';
 import styles from './FormFieldHints.module.css';
 
 /**

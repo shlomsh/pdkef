@@ -18,7 +18,7 @@
  *   - view state: dialogs, fullscreen, the armed signature, aim and focus.
  */
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
-import type { SignedExport } from '../exportHandoff.ts';
+import type { SignedExport } from '../lib/exportHandoff.ts';
 import { unlessUnchanged } from '../../../lib/unchangedState.ts';
 
 export type SignStatus = 'idle' | 'loading' | 'editing' | 'signing' | 'done' | 'error';

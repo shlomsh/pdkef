@@ -11,7 +11,7 @@ import { test, expect, devices } from '@playwright/test';
  *    `maximum-scale=1` stopped iOS zooming in on focus, but iOS re-applies
  *    the viewport meta on every focus change, so it also snapped his own
  *    pinch back to 1 the moment he moved to the next field.
- *    `viewportContent` (`src/tools/sign/fill/viewportZoomLock.ts`) adds that
+ *    `viewportContent` (`src/tools/sign/lib/fill/viewportZoomLock.ts`) adds that
  *    clamp only at rest; zoomed, it holds minimum and maximum at the pinched
  *    scale, since iOS otherwise re-zooms each focused field to 16px text
  *    (3.97x became 2.12x on a 7.53px field, iOS Simulator).

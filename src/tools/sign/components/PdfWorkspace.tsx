@@ -13,26 +13,26 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import { autoColorChanges, followsPage } from '../../../editor-ui/whiteout/pageColor.ts';
-import { samplePageColor } from '../whiteoutPageColor.ts';
+import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
 import { createElementId } from '../../../editor/model/ids.ts';
 import { orderTypableFields } from '../lib/fieldOrder.ts';
 import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
-import { chooseStyle } from '../chooseStyle.ts';
+import { chooseStyle } from '../lib/chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ExportHandoffs from '../../../shell/ExportHandoffs.tsx';
 import { Eraser, Shrink } from 'lucide-preact';
 import FormFieldHints from './FormFieldHints.tsx';
-import type { FormFieldRegions } from '../useFormFieldRegions.ts';
-import { describeFormDetectionFailure } from '../formDetectionDetail.ts';
-import type { FieldNavigation } from '../useFieldNavigation.ts';
-import useWorkspaceGestures, { type PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
+import type { FormFieldRegions } from '../hooks/useFormFieldRegions.ts';
+import { describeFormDetectionFailure } from '../lib/formDetectionDetail.ts';
+import type { FieldNavigation } from '../hooks/useFieldNavigation.ts';
+import useWorkspaceGestures, { type PendingSignaturePlacement } from '../hooks/useWorkspaceGestures.ts';
 import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
-import { useAutoFontProvisioning } from '../useAutoFontProvisioning.js';
-import { getSignExportReadiness } from '../signExportReadiness.ts';
+import { useAutoFontProvisioning } from '../hooks/useAutoFontProvisioning.js';
+import { getSignExportReadiness } from '../lib/signExportReadiness.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import {
@@ -55,17 +55,17 @@ import {
   readTapSample,
   type TapGestureSample,
 } from '../../../lib/gestures/tapOutsideDeselect.ts';
-import { useFill } from '../fill/FillContext.tsx';
-import FillLayer from '../fill/FillLayer.tsx';
-import FocusProxy from '../fill/FocusProxy.tsx';
-import useFillTap from '../fill/useFillTap.ts';
-import { fillToolOf } from '../fill/fillTap.ts';
-import { enterKeyHint } from '../fill/fillOrder.ts';
-import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from '../fill/fillWorkspace.ts';
-import { elementForSlot, type SlotElementBase } from '../fill/slotElement.ts';
-import { fillKeyOf, focusNextFillInput } from '../fill/fillDom.ts';
-import type { FillItem, FillSlot, ReachTarget } from '../fill/fillTypes.ts';
-import fillStyles from '../fill/fill.module.css';
+import { useFill } from './fill/FillContext.tsx';
+import FillLayer from './fill/FillLayer.tsx';
+import FocusProxy from './fill/FocusProxy.tsx';
+import useFillTap from '../hooks/fill/useFillTap.ts';
+import { fillToolOf } from '../lib/fill/fillTap.ts';
+import { enterKeyHint } from '../lib/fill/fillOrder.ts';
+import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from '../lib/fill/fillWorkspace.ts';
+import { elementForSlot, type SlotElementBase } from '../lib/fill/slotElement.ts';
+import { fillKeyOf, focusNextFillInput } from '../lib/fill/fillDom.ts';
+import type { FillItem, FillSlot, ReachTarget } from '../lib/fill/fillTypes.ts';
+import fillStyles from './fill/fill.module.css';
 import type { SignStatus } from '../state/signState.ts';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({

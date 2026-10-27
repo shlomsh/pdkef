@@ -5,7 +5,7 @@ import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
 import { rememberRecentWhiteoutColor } from '../../../editor/workspace/preferenceStore.ts';
-import { samplePageColor } from '../whiteoutPageColor.ts';
+import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
@@ -163,8 +163,8 @@ function mountStatefulWorkspace(options: StatefulWorkspaceOptions): HTMLDivEleme
   return mount(<StatefulWorkspace {...options} />);
 }
 
-vi.mock('../whiteoutPageColor.ts', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../whiteoutPageColor.ts')>()),
+vi.mock('../lib/whiteoutPageColor.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/whiteoutPageColor.ts')>()),
   samplePageColor: vi.fn(() => null),
 }));
 
