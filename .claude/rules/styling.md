@@ -49,6 +49,8 @@ English, `documentationMessages.ts`) inside `ToolHero.astro`'s subhead when it o
 highlighter on "Free" reads as a price sticker and the H1's own query words are not the thing to point
 at (QUAL-15, superseding QUAL-13's h1 stroke).
 
+`node scripts/check-color-literals.mjs` (ARCH-88) fails any hex/rgb()/hsl() literal in a `.css` under `src/` outside `:root`; exceptions go in `scripts/color-literal-allowlist.json` with a reason.
+
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update
 `theme-color` in `BaseLayout.astro`, `theme_color`/`background_color` in

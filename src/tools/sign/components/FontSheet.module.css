@@ -15,13 +15,13 @@
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   padding: 0;
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg), 0 -4px 20px rgba(0, 0, 0, .08);
+  box-shadow: var(--shadow-lg), var(--shadow-sheet-lift);
   display: flex;
   flex-direction: column;
 }
 
 .sheet::backdrop {
-  background: rgba(0, 0, 0, .32);
+  background: var(--scrim-light);
 }
 
 .handle {
