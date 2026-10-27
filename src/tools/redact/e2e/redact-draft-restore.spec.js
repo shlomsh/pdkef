@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* MEM-02: mirrors sign-draft-restore.spec.js - see its header comment for why
    this needs a real browser rather than jsdom, and for the shape of what it
@@ -15,7 +16,7 @@ const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text:
 async function openRedactTool(page, buffer, fileName) {
   await page.addInitScript(() => { localStorage.clear(); });
   await page.goto('/redact/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -103,7 +104,7 @@ test('Redact resumes a closed tab\'s work, and moving the pointer to a second fi
   await reopened.setViewportSize({ width: 1440, height: 900 });
   await measureRestoreCls(reopened);
   await reopened.goto('/redact/');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(1, { timeout: 10_000 });
   expect(await reopened.evaluate(() => window.__savedWorkRestoreCls())).toBeLessThanOrEqual(0.1);
 
@@ -115,14 +116,14 @@ test('Redact resumes a closed tab\'s work, and moving the pointer to a second fi
   await putSecondEntryOnPointer(reopened, fileB, 'redact-restore-b.pdf');
 
   await reopened.goto('/redact/');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('.redact-draw-area')).toBeVisible({ timeout: 10_000 });
   await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(0);
 
   await reopened.goto('/');
   await reopened.evaluate((id) => localStorage.setItem('pdf-toolkit:workspace:current:redact', id), entryAId);
   await reopened.goto('/redact/');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(1, { timeout: 10_000 });
 });
 
@@ -153,7 +154,7 @@ test('a reopened tab restores blur and whiteout boxes, not only blackout', async
   await page.close();
   const reopened = await context.newPage();
   await reopened.goto('/redact/');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(2, { timeout: 10_000 });
 
   // Read the restored types out of the store, so the assertion is about what

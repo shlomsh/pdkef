@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
-import { PDFDocument, PDFName, PDFString, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { readDocumentTraces } from '../lib/documentTraces.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makeHiddenTracesPdf } from '../../../../e2e/support/pdf.js';
 
 // RED-59: the file's details are the person's. An untouched download keeps
 // them (and drops only the cached page pictures); an altered or deleted one
@@ -14,36 +16,7 @@ test.use({ serviceWorkers: 'block' });
 const ATTACHMENT = 'original-unredacted.pdf';
 const N = PDFName.of;
 
-async function makeFixture() {
-  const doc = await PDFDocument.create({ updateMetadata: false });
-  const ctx = doc.context;
-  const p1 = doc.addPage([300, 400]);
-  const p2 = doc.addPage([300, 400]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  p1.drawText('KEEP ME', { x: 40, y: 320, size: 20, font });
-  p1.drawText('SECRET 123', { x: 40, y: 80, size: 20, font });
-
-  const thumb = () => ctx.register(ctx.stream(new Uint8Array(16), {
-    Type: 'XObject', Subtype: 'Image', Width: 4, Height: 4, ColorSpace: 'DeviceGray', BitsPerComponent: 8,
-  }));
-  const spec = (name, payload) => ctx.register(ctx.obj({
-    Type: 'Filespec', F: PDFString.of(name), UF: PDFString.of(name),
-    EF: { F: ctx.register(ctx.stream(payload, { Type: 'EmbeddedFile' })) },
-  }));
-
-  const info = doc.getInfoDict();
-  info.set(N('Title'), PDFString.of('Lease draft'));
-  info.set(N('Author'), PDFString.of('Dana Levi'));
-  info.set(N('Creator'), PDFString.of('CamScanner'));
-  info.set(N('CreationDate'), PDFString.of("D:20261007091400+03'00'"));
-
-  doc.catalog.set(N('Names'), ctx.obj({
-    EmbeddedFiles: { Names: [PDFString.of(ATTACHMENT), spec(ATTACHMENT, '%PDF-1.7 the unredacted original')] },
-  }));
-  p1.node.set(N('Thumb'), thumb());
-  p2.node.set(N('Thumb'), thumb());
-  return Buffer.from(await doc.save({ useObjectStreams: false }));
-}
+const makeFixture = () => makeHiddenTracesPdf({ attachment: ATTACHMENT });
 
 async function savedBytes(download) {
   const savedPath = await download.path();
@@ -53,7 +26,7 @@ async function savedBytes(download) {
 
 async function openAndMark(page) {
   await page.goto('/redact/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'lease.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });
@@ -141,7 +114,7 @@ test.describe('Redact keeps the file\'s details unless the person changes them',
     // Time on purpose: lets the debounced draft save land before the reload.
     await page.waitForTimeout(1500);
     await page.reload();
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await expect(footer).toBeVisible();
     await openSheet();
     await expect(sheet.locator('[data-detail-row="author"]')).toHaveAttribute('data-detail-state', 'deleted');

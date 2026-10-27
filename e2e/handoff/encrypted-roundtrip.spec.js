@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { openTool } from '../support/tool.js';
+import { openTool, waitForIsland } from '../support/tool.js';
 
 /* ENC-05: a protected PDF is a precondition, not a failure. Redact shows one quiet state, "Unlock it"
    parks the file as a hand-off and opens /unlock/ with it loaded, and Unlock leads with "Continue in
@@ -38,7 +38,7 @@ test('an owner-only file in Redact goes to Unlock with no prompt and comes back 
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
   await page.waitForURL(/\/unlock\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   // The line changes to "The protection is off." once unlocking finishes, which a fast runner reaches
   // before this assertion first polls, so accept either wording.
   await expect(page.getByText(/No password needed\. (This takes the protection off|The protection is off)/)).toBeVisible({ timeout: 10_000 });
@@ -46,7 +46,7 @@ test('an owner-only file in Redact goes to Unlock with no prompt and comes back 
 
   await page.getByRole('button', { name: 'Continue in Redact' }).click();
   await page.waitForURL(/\/redact\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.locator('.redact-draw-area').first()).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('[data-tool-shell]')).toContainText('owner-only_unlocked.pdf');
 
@@ -63,7 +63,7 @@ test('a file that needs a password asks for it in Unlock, refuses a wrong one, a
   await page.getByRole('button', { name: 'Unlock it' }).click();
 
   await page.waitForURL(/\/unlock\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const password = page.getByLabel('PDF password');
   await expect(password).toBeVisible({ timeout: 10_000 });
 
@@ -77,7 +77,7 @@ test('a file that needs a password asks for it in Unlock, refuses a wrong one, a
 
   await page.getByRole('button', { name: 'Continue in Redact' }).click();
   await page.waitForURL(/\/redact\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.locator('.redact-draw-area').first()).toBeVisible({ timeout: 10_000 });
 
   expect(reports.filter((body) => /EncryptedPDFError/.test(body))).toEqual([]);

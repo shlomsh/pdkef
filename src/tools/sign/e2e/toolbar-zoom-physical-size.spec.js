@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * MOBI-17: on an iPhone zoomed page (auto-zoom on focusing a small-font
@@ -94,7 +95,7 @@ test.use({ hasTouch: true, isMobile: true, viewport: { width: 440, height: 956 }
 
 async function openWithFixture(page, file) {
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({

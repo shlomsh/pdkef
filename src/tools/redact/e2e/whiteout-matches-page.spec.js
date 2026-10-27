@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
-import { PDFDocument, StandardFonts, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makeCreamBandPdf } from '../../../../e2e/support/pdf.js';
 
 // RED-51: a new Whiteout patch takes the colour of the page around it (the
 // median of a ring just outside it), follows the page when moved, can be set
@@ -12,23 +14,7 @@ const BLUE = [222, 235, 247];
 
 // One page, a full cream sheet, a pale blue band across its lower middle and
 // three lines of text on the cream (PDF points, bottom-left origin).
-async function makeMatchPdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawRectangle({ x: 0, y: 0, width: 612, height: 792, color: rgb(247 / 255, 241 / 255, 222 / 255) });
-  page.drawRectangle({ x: 0, y: 150, width: 612, height: 220, color: rgb(222 / 255, 235 / 255, 247 / 255) });
-  for (const [i, y] of [660, 626, 592].entries()) {
-    page.drawText(`Cream page, line ${i + 1}: the quick brown fox jumps`, {
-      x: 56,
-      y,
-      size: 14,
-      font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-  }
-  return Buffer.from(await doc.save());
-}
+const makeMatchPdfBuffer = makeCreamBandPdf;
 
 // Same raw-JPEG read as redact-editor.spec.js: DCTDecode streams already ARE
 // the JPEG bytes.
@@ -83,7 +69,7 @@ async function openRedactTool(page, buffer) {
   await page.goto('/redact');
 
   // Wait for hydration before touching the file input (see redact-editor.spec.js).
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;

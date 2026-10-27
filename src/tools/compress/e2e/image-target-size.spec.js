@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // SEO-19 - the image half of the compress island (compressImage.js) always
 // re-encodes its output as a real JPEG via canvas.toBlob, and flattens a
@@ -164,7 +165,7 @@ async function makeFixtureInPage(page, kind) {
 
 async function openCompressPage(page) {
   await page.goto('/compress/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
 }
 
 async function dropFile(page, { name, mimeType, buffer }) {

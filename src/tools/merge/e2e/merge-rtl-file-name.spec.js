@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* UX guideline 9 (Bidi is part of the design): the loaded heading is a file name,
    "merged_<first file>" + ".pdf". On /he/merge/ the page is RTL, and a ".pdf" outside any
@@ -11,7 +12,7 @@ test.use({ serviceWorkers: 'block' });
 async function loadFiles(page, route, names) {
   const response = await page.goto(route);
   test.skip(!response || response.status() === 404, `${route} is not built`);
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   const files = await Promise.all(names.map(async (name) => ({
     name,
     mimeType: 'application/pdf',

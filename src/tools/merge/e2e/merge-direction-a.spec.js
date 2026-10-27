@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* Direction A (2026-09-13): three guards the critique's writeup called out
    as P0/P1, added alongside the rewritten specs rather than folded into
@@ -10,7 +11,7 @@ const makePdfBuffer = (label, pageCount = 1) => buildPdf(label, { pages: pageCou
 
 test('the Download element keeps the same DOM node across preparing and ready (MERGE-16)', async ({ page }, testInfo) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
     name,
@@ -91,7 +92,7 @@ test('the Download element keeps the same DOM node across preparing and ready (M
 
 test('a caption is visible, not painted under the thumbnail (critique P0)', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   // Wave 5 (2026-09-13): a full-width caption row exists only for a run of
   // four pages or more (shorter runs carry a small tag in their first cell),
@@ -131,7 +132,7 @@ test('a clicked cell lets go of its action buttons when the pointer moves on', a
   // shows its cluster.
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles([
     { name: 'six.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('six', 6) },
   ]);
@@ -167,7 +168,7 @@ test('a phone-width window with a mouse: a click on a page reveals its controls'
   // the same click path.
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles([
     { name: 'three.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('three', 3) },
   ]);
@@ -183,7 +184,7 @@ test('a phone-width window with a mouse: a click on a page reveals its controls'
 test('the phone subhead has no clipped last line at 375x812', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const sentences = page.locator('[data-hero-sub] [data-hero-sentence]');
   const total = await sentences.count();
@@ -226,7 +227,7 @@ test.describe('thumbnails after a reload', () => {
   test('a reload from the bottom of the page opens on the grid and renders the first visible page', async ({ page }, testInfo) => {
     if (testInfo.project.name === 'chromium') await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
       name,
@@ -243,7 +244,7 @@ test.describe('thumbnails after a reload', () => {
     // Time on purpose: lets the scroll position persist before the reload (debounce not ruled out).
     await page.waitForTimeout(400);
     await page.reload();
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
     const cells = page.locator('li[class*="page"][data-key]');
     await expect(cells).toHaveCount(9, { timeout: 10_000 });
 
