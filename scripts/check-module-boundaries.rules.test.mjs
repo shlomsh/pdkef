@@ -475,6 +475,6 @@ describe('module boundaries: ruleViolation() - rule 11, the site does not import
   });
 
   it('the site may still import lib', () => {
-    expect(check('src/pages/licenses.astro', 'src/lib/fonts/fontLicenses.js')).toBeNull();
+    expect(check('src/pages/licenses.astro', 'src/lib/fonts/fontLicenses.ts')).toBeNull();
   });
 });
