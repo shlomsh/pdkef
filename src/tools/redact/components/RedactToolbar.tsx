@@ -45,97 +45,109 @@ const stopSelect = (e: Event) => e.preventDefault();
 const blockSelection = (el: HTMLButtonElement | null) => el?.addEventListener('selectstart', stopSelect);
 
 export default function RedactToolbar({
-  activeStyle,
-  toolLocked,
-  setTool,
-  setAnnouncement,
-  toggleFullscreen,
-  isFullscreen,
-  handleDownloadPdf,
-  handlePrepareShare,
-  handleSharePdf,
-  canSharePdf = false,
-  shareReady = false,
+  tool,
+  announce: setAnnouncement,
+  fullscreen,
+  output,
+  history,
+  undoChip = {},
   elementsCount,
-  actionHistory,
-  onUndo,
-  onRedo,
-  canRedo,
-  exporting = false,
-  undoAction = null,
-  onUndoAction,
-  showWelcomeTip = true,
-  restoredNote = false,
-  brushControls = null,
-  brushMode = false,
-  findOpen = false,
-  onToggleFind,
-  findBar = null,
-  statusMessage,
-  downloadConfirmed = false,
-  doneStrip = null,
-  peeking = false,
-  onPeekChange,
+  status = {},
+  find = {},
+  slots = {},
+  peek = {},
 }: {
-  activeStyle: RedactToolType | null;
-  toolLocked: boolean;
-  setTool: (tool: RedactToolType | null, locked?: boolean) => void;
-  setAnnouncement: (msg: string) => void;
-  toggleFullscreen: () => void;
-  isFullscreen: boolean;
-  handleDownloadPdf: () => void;
-  handlePrepareShare: () => void;
-  handleSharePdf: () => void;
-  canSharePdf?: boolean;
-  shareReady?: boolean;
-  elementsCount: number;
-  /** Newest-first log of the add/delete commands Undo can step back through;
-   * the toolbar reads only its length, to disable Undo at the start. */
-  actionHistory: ActionHistoryEntry[];
-  /** One tap, one step back - the same thing Cmd/Ctrl+Z does. The toolbar's
-   * Undo used to open a change-history dialog instead, which meant a phone
-   * had no single-step undo at all and no way to reach Redo, since the dialog
-   * was the only place it lived and reverting closed it. */
-  onUndo: () => void;
-  onRedo: () => void;
-  /** Whether anything has been undone that Redo could bring back. Required,
-   * not defaulted: a caller that wired the handlers and forgot the flag would
-   * typecheck and ship a Redo button that never enables. */
-  canRedo: boolean;
-  /** True while a redacted PDF is being generated - guards Download/Share
-   * against re-entry so a second click can't start an overlapping export. */
-  exporting?: boolean;
+  tool: {
+    active: RedactToolType | null;
+    locked: boolean;
+    set: (tool: RedactToolType | null, locked?: boolean) => void;
+    /** Blur or Whiteout is armed as a brush: the status line says how to paint. */
+    brushMode?: boolean;
+  };
+  announce: (msg: string) => void;
+  fullscreen: { active: boolean; toggle: () => void };
+  output: {
+    download: () => void;
+    prepareShare: () => void;
+    share: () => void;
+    canShare?: boolean;
+    shareReady?: boolean;
+    /** True while a redacted PDF is being generated - guards Download/Share
+     * against re-entry so a second click can't start an overlapping export. */
+    exporting?: boolean;
+    /** RED-66: the toolbar Download says "Saved" for a moment after it saved. */
+    downloadConfirmed?: boolean;
+  };
+  history: {
+    /** Newest-first log of the add/delete commands Undo can step back through;
+     * the toolbar reads only its length, to disable Undo at the start. */
+    entries: ActionHistoryEntry[];
+    /** One tap, one step back - the same thing Cmd/Ctrl+Z does. The toolbar's
+     * Undo used to open a change-history dialog instead, which meant a phone
+     * had no single-step undo at all and no way to reach Redo, since the dialog
+     * was the only place it lived and reverting closed it. */
+    undo: () => void;
+    redo: () => void;
+    /** Whether anything has been undone that Redo could bring back. Required,
+     * not defaulted: a caller that wired the handlers and forgot the flag would
+     * typecheck and ship a Redo button that never enables. */
+    canRedo: boolean;
+  };
   /** Finding #3: a pending short-lived undo (a box removed, or a page
    * cleared). Present, this wins the status line's slot over the armed-tool
    * hint, the same way Merge's own undo chip wins its header slot. */
-  undoAction?: { message: string; extra?: { label: string; onSelect: () => void } } | null;
-  onUndoAction?: () => void;
-  /** A restored document is already in progress, so omit the newcomer-only
-   * idle tip until the person selects a tool. */
-  showWelcomeTip?: boolean;
-  /** RED-45: true while a reopened document's work is untouched. */
-  restoredNote?: boolean;
+  undoChip?: {
+    action?: { message: string; extra?: { label: string; onSelect: () => void } } | null;
+    run?: () => void;
+  };
+  elementsCount: number;
+  status?: {
+    /** A message from the island (export progress, done, an export cancelled by
+     * an edit) for the status slot. The undo chip wins the slot when both exist. */
+    message?: ComponentChildren;
+    /** A restored document is already in progress, so omit the newcomer-only
+     * idle tip until the person selects a tool. */
+    welcomeTip?: boolean;
+    /** RED-45: true while a reopened document's work is untouched. */
+    restoredNote?: boolean;
+  };
   /** RED-02: whether the find row is open, and the row itself. It renders
    * inside this sticky card, under the buttons, so it stays in reach while
    * the pages scroll. */
-  /** RED-32: the Box / Brush row for Blur and Whiteout, under the buttons. */
-  brushControls?: ComponentChildren;
-  /** Blur or Whiteout is armed as a brush: the status line says how to paint. */
-  brushMode?: boolean;
-  findOpen?: boolean;
-  onToggleFind?: () => void;
-  findBar?: ComponentChildren;
-  /** A message from the island (export progress, done, an export cancelled by
-   * an edit) for the status slot. The undo chip wins the slot when both exist. */
-  statusMessage?: ComponentChildren;
-  /** RED-66: the toolbar Download says "Saved" for a moment after it saved. */
-  downloadConfirmed?: boolean;
-  /** RED-66: the done strip, hung under this sticky card so it stays where the person clicked. */
-  doneStrip?: ComponentChildren;
-  /** RED-31: the Peek button is held down (or Space is). View state only. */
-  peeking?: boolean;
-  onPeekChange?: (on: boolean) => void;
+  find?: {
+    open?: boolean;
+    toggle?: () => void;
+    bar?: ComponentChildren;
+  };
+  slots?: {
+    /** RED-32: the Box / Brush row for Blur and Whiteout, under the buttons. */
+    brushControls?: ComponentChildren;
+    /** RED-66: the done strip, hung under this sticky card so it stays where the person clicked. */
+    doneStrip?: ComponentChildren;
+  };
+  peek?: {
+    /** RED-31: the Peek button is held down (or Space is). View state only. */
+    active?: boolean;
+    onChange?: (on: boolean) => void;
+  };
 }) {
+  const { active: activeStyle, locked: toolLocked, set: setTool, brushMode = false } = tool;
+  const { active: isFullscreen, toggle: toggleFullscreen } = fullscreen;
+  const {
+    download: handleDownloadPdf,
+    prepareShare: handlePrepareShare,
+    share: handleSharePdf,
+    canShare: canSharePdf = false,
+    shareReady = false,
+    exporting = false,
+    downloadConfirmed = false,
+  } = output;
+  const { entries: actionHistory, undo: onUndo, redo: onRedo, canRedo } = history;
+  const { action: undoAction = null, run: onUndoAction } = undoChip;
+  const { message: statusMessage, welcomeTip: showWelcomeTip = true, restoredNote = false } = status;
+  const { open: findOpen = false, toggle: onToggleFind, bar: findBar = null } = find;
+  const { brushControls = null, doneStrip = null } = slots;
+  const { active: peeking = false, onChange: onPeekChange } = peek;
   const { requestReplace } = useToolShell();
 
   // One-shot arming, double-click to lock - the same gesture the Sign toolbar
