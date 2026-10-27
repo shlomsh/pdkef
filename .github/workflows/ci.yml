@@ -254,6 +254,31 @@ jobs:
     - name: Run tests
       run: npx vitest run
 
+  # ARCH-86: a dependency bump that breaks the build fails once here instead of in every job that
+  # builds; skipped on every other run, so it costs no wall time there.
+  dependency-gate:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'dependabot/')
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
   # The build and every guard that reads dist/. The product e2e suite is the
   # `e2e` job below, which builds again rather than waiting for this job; the
   # font guards have their own job further down.
@@ -341,8 +366,8 @@ jobs:
   # `build` still vouch for what these specs load.
   e2e:
     runs-on: ubuntu-latest
-    needs: [scope, playwright-version]
-    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, playwright-version, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -434,8 +459,8 @@ jobs:
     # every webkit test failed at launch. Back to ubuntu-latest once a
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
-    needs: [scope, playwright-version]
-    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, playwright-version, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
     # need already in it. `install-deps` used to fetch about 119 MB of WebKit libraries from the Azure
     # Ubuntu mirror on every run, usually in 30s but in 35-55 min on 6 runs that day (48 kB/s, run
@@ -715,8 +740,8 @@ jobs:
   # `export-guards` job below, alongside the guard that owns the baseline.
   font-guards:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -796,8 +821,8 @@ jobs:
   # specs do not need sharding.
   export-guards:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
