@@ -7,6 +7,75 @@
   "e2eSleeps": {
     "waitForTimeout": 44
   },
+  "hooks": {
+    "fileThreshold": 10,
+    "files": {
+      "src/shell/BasePdfTool.tsx": {
+        "effects": 6,
+        "hooks": 21
+      },
+      "src/shell/OutputName.tsx": {
+        "effects": 1,
+        "hooks": 13
+      },
+      "src/shell/pageGrid/PageGrid.tsx": {
+        "effects": 10,
+        "hooks": 37
+      },
+      "src/tools/compress/PdfCompressTool.tsx": {
+        "effects": 4,
+        "hooks": 18
+      },
+      "src/tools/edit-pages/PdfEditPagesTool.tsx": {
+        "effects": 0,
+        "hooks": 13
+      },
+      "src/tools/image-to-pdf/PdfImageToPdfTool.tsx": {
+        "effects": 1,
+        "hooks": 23
+      },
+      "src/tools/merge/PdfMergeTool.tsx": {
+        "effects": 0,
+        "hooks": 32
+      },
+      "src/tools/redact/PdfRedactTool.tsx": {
+        "effects": 12,
+        "hooks": 43
+      },
+      "src/tools/scan/PdfScanTool.tsx": {
+        "effects": 12,
+        "hooks": 28
+      },
+      "src/tools/security/PdfSecurityTool.tsx": {
+        "effects": 1,
+        "hooks": 13
+      },
+      "src/tools/sign/PdfSignTool.tsx": {
+        "effects": 9,
+        "hooks": 34
+      },
+      "src/tools/sign/components/PdfWorkspace.tsx": {
+        "effects": 1,
+        "hooks": 29
+      },
+      "src/tools/sign/components/SignToolbar.tsx": {
+        "effects": 1,
+        "hooks": 11
+      },
+      "src/tools/sign/components/SignatureDialog.tsx": {
+        "effects": 5,
+        "hooks": 14
+      },
+      "src/tools/sign/components/nodes/TextNode.tsx": {
+        "effects": 4,
+        "hooks": 13
+      },
+      "src/tools/split/PdfSplitTool.tsx": {
+        "effects": 0,
+        "hooks": 11
+      }
+    }
+  },
   "jsFiles": {
     "src/editor": 29,
     "src/lib": 29,
