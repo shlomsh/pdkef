@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
-- [DEBT-67](backlog/tasks/DEBT-67.md) P2 · Merge's "a clicked cell lets go of its action buttons" e2e times out on main (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [MEM-21](backlog/tasks/MEM-21.md) P3 · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB (in progress)
 
