@@ -49,20 +49,20 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/tools/edit-pages/PdfEditPagesTool.tsx:138 | Generate page thumbnails | DEFECT | renderer threw; [surfaced: console.error only] | pdf_render |
 | src/tools/edit-pages/PdfEditPagesTool.tsx:141 | Load PDF into edit-pages | DEFECT | load threw (filter pdf.js Password/InvalidPDF names); [surfaced: status error + console.error] | pdf_tool_run |
 | src/tools/edit-pages/PdfEditPagesTool.tsx:248 | Apply page edits and export | DEFECT | export step threw; [surfaced: status error + console.error] | pdf_tool_run |
-| src/tools/redact/useSavedFileCheck.ts:52 | Check saved redacted file | DEFECT | the verifier threw on our own output; [surfaced: state failed + console.error] | redact |
-| src/tools/redact/useDeletePreviews.ts:67 | Destroy preview pdf.js doc | EXPECTED | best-effort cleanup | |
-| src/tools/redact/useDeletePreviews.ts:201 | Build Delete previews | DEFECT | rewrite/render threw; page falls back to original render; [surfaced: console.error only] | redact |
-| src/tools/redact/BrushControls.tsx:56 | Sample canvas pixel colour | EXPECTED | getImageData can throw on tainted/zero canvas; returns null | |
-| src/tools/redact/usePageTexts.ts:58 | Read page text for Find | DEFECT | text extraction threw; [surfaced: state failed + console.error] | redact |
-| src/tools/redact/usePageSizesPt.ts:31 | Read page sizes | DEFECT | pdf.js getPage/getViewport threw; [surfaced: console.error only] | redact |
-| src/tools/redact/useDeletableObjects.js:38 | List deletable objects | DEFECT | object parser threw; [surfaced: console.error, empties list] | redact |
-| src/tools/redact/useObjectPreviews.ts:65 | Read text of Delete objects | DEFECT | glyph/preview code threw; [surfaced: console.error only] | redact |
+| src/tools/redact/hooks/useSavedFileCheck.ts:52 | Check saved redacted file | DEFECT | the verifier threw on our own output; [surfaced: state failed + console.error] | redact |
+| src/tools/redact/hooks/useDeletePreviews.ts:67 | Destroy preview pdf.js doc | EXPECTED | best-effort cleanup | |
+| src/tools/redact/hooks/useDeletePreviews.ts:201 | Build Delete previews | DEFECT | rewrite/render threw; page falls back to original render; [surfaced: console.error only] | redact |
+| src/tools/redact/components/BrushControls.tsx:56 | Sample canvas pixel colour | EXPECTED | getImageData can throw on tainted/zero canvas; returns null | |
+| src/tools/redact/hooks/usePageTexts.ts:58 | Read page text for Find | DEFECT | text extraction threw; [surfaced: state failed + console.error] | redact |
+| src/tools/redact/hooks/usePageSizesPt.ts:31 | Read page sizes | DEFECT | pdf.js getPage/getViewport threw; [surfaced: console.error only] | redact |
+| src/tools/redact/hooks/useDeletableObjects.js:38 | List deletable objects | DEFECT | object parser threw; [surfaced: console.error, empties list] | redact |
+| src/tools/redact/hooks/useObjectPreviews.ts:65 | Read text of Delete objects | DEFECT | glyph/preview code threw; [surfaced: console.error only] | redact |
 | src/tools/redact/PdfRedactTool.tsx:332 | requestFullscreen | EXPECTED | optional browser API, falls back to pseudo-fullscreen | |
 | src/tools/redact/PdfRedactTool.tsx:759 | Remove an unused place from saved file | DEFECT | removePlace threw (PlaceNotFound handled earlier); [surfaced: REMOVE_FAILED + console.error] | redact |
 | src/tools/redact/PdfRedactTool.tsx:810 | Export redacted PDF | DEFECT | export step threw; [surfaced: EXPORT_FAILED + console.error] | redact |
 | src/tools/redact/PdfRedactTool.tsx:872 | Hand redacted PDF to next tool | EXPECTED | origin is saveHandoff or its synthetic throw; [surfaced: HANDOFF_FAILED + console.error] | |
-| src/tools/redact/check/readSavedFile.ts:134 | Find unused parts in saved file | DEFECT | pdf-lib failed to open our own saved output (see unsure); returns [] silently | redact |
-| src/tools/redact/check/unusedParts.ts:40 | Decode a PDF stream | EXPECTED | comment: undecodable filter / damaged stream, nothing to read | |
+| src/tools/redact/lib/check/readSavedFile.ts:134 | Find unused parts in saved file | DEFECT | pdf-lib failed to open our own saved output (see unsure); returns [] silently | redact |
+| src/tools/redact/lib/check/unusedParts.ts:40 | Decode a PDF stream | EXPECTED | comment: undecodable filter / damaged stream, nothing to read | |
 | src/tools/image-to-pdf/PdfImageToPdfTool.tsx:168 | Convert images to PDF | DEFECT | export step threw (corrupt image is possible); [surfaced: status error + console.error] | pdf_tool_run |
 | src/tools/sign/useFormFieldRegions.ts:289 | Detect form fields | DEFECT | the detector threw or failed to load; [surfaced: console.warn + detectionError/detectionIssue state] | sign_form_detection |
 | src/tools/sign/useAutoFontProvisioning.js:33 | Provision a font pack | EXPECTED | background fetch, retried by clearing `attempted`; offline is the norm (see unsure) | |

@@ -93,11 +93,11 @@ export function findInlineEnglish(source) {
 // copy modules are stricter: they hold words only, so one word ("Title") counts too.
 /** Plain .ts files whose multi-word strings are not UI text, each with the reason. */
 const TS_NOT_UI = {
-  'redact/useFind.ts': 'a canvas font shorthand used to measure glyphs',
+  'redact/hooks/useFind.ts': 'a canvas font shorthand used to measure glyphs',
   'scan/edges/corpus.ts': 'names of edge-detection fixtures, shown only in test output',
   'sign/useFormFieldRegions.ts': 'developer diagnostics sent to the error report, not shown to a person',
 };
-const COPY_MODULES = new Set(['redact/check/checkCopy.ts', 'redact/details/describeDetails.ts']);
+const COPY_MODULES = new Set(['redact/lib/check/checkCopy.ts', 'redact/lib/details/describeDetails.ts']);
 const SENTENCE = /[A-Za-z]{2,} (?:\{\} )*[A-Za-z]{2,}/;
 const CAPITAL_WORD = /^[A-Z][a-z]{2,}/;
 const LOGGERS = new Set(['reportError']);

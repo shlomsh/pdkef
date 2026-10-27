@@ -32,7 +32,7 @@
       "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 452,
       "src/tools/merge/components/useMergeDraft.ts#useMergeDraft": 309,
       "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1204,
-      "src/tools/redact/RedactToolbar.tsx#RedactToolbar": 315,
+      "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 315,
       "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 952,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 321,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 955,

@@ -5,7 +5,7 @@ import { compressedFileName } from '../../tools/compress/outputName.ts';
 import { modifiedTitle } from '../../tools/edit-pages/outputName.ts';
 import { outputFileName as securityName } from '../../tools/security/outputName.ts';
 import { signedFileName } from '../../tools/sign/signedFileName.ts';
-import { redactedFileName } from '../../tools/redact/redactFileName.ts';
+import { redactedFileName } from '../../tools/redact/lib/redactFileName.ts';
 import { imageBaseName, imageFileName } from '../../tools/to-image/toImage.js';
 import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';
 import { defaultOutputName } from '../../lib/pageOrder.js';
