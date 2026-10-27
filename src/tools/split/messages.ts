@@ -1,6 +1,6 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { PageGridMessages, DownloadMessages } from '../../shell/shellMessages';
-import type { PageToolMessages } from '../../shell/pageWorkspace/pageGridMessages.ts';
+import type { PageToolMessages } from '../../shell/pageWorkspace/pageToolMessages.ts';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /**
