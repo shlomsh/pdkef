@@ -37,6 +37,8 @@ export interface ToolPage {
   readonly restoresFileList?: true;
   /** Merge: the English page says that there is no file limit. */
   readonly unlimitedNote?: true;
+  /** A finished output can be handed to this tool (the hand-off row after a download). */
+  readonly handoffTarget?: true;
   /** A tool whose protected files detour through Unlock and come back (Unlock's "Continue in ..."). */
   readonly unlockReturn?: true;
 }
@@ -45,18 +47,18 @@ const PDF: readonly FileKind[] = ['pdf'];
 const IMAGE: readonly FileKind[] = ['image'];
 
 export const TOOL_PAGES = [
-  { slug: 'sign', href: '/sign/', id: 'sign', accepts: { kinds: PDF, several: false }, localizedIsland: true, editorLayout: true, iconTone: 'sign', unlockReturn: true },
-  { slug: 'redact', href: '/redact/', id: 'redact', accepts: { kinds: PDF, several: false }, editorLayout: true, iconTone: 'redact', unlockReturn: true },
-  { slug: 'merge', href: '/merge/', id: 'merge', accepts: { kinds: ['pdf', 'image'], several: true, needsPdf: true }, localizedIsland: true, restoresFileList: true, unlimitedNote: true, unlockReturn: true },
+  { slug: 'sign', href: '/sign/', id: 'sign', accepts: { kinds: PDF, several: false }, localizedIsland: true, editorLayout: true, iconTone: 'sign', unlockReturn: true, handoffTarget: true },
+  { slug: 'redact', href: '/redact/', id: 'redact', accepts: { kinds: PDF, several: false }, editorLayout: true, iconTone: 'redact', unlockReturn: true, handoffTarget: true },
+  { slug: 'merge', href: '/merge/', id: 'merge', accepts: { kinds: ['pdf', 'image'], several: true, needsPdf: true }, localizedIsland: true, restoresFileList: true, unlimitedNote: true, unlockReturn: true, handoffTarget: true },
   { slug: 'pdf-to-image', href: '/pdf-to-image/', id: 'pdf-to-image', accepts: { kinds: PDF, several: false }, localizedIsland: true },
   { slug: 'image-to-pdf', href: '/image-to-pdf/', id: 'image-to-pdf', accepts: { kinds: IMAGE, several: true }, localizedIsland: true },
   { slug: 'scan-to-pdf', href: '/scan-to-pdf/', id: 'scan-to-pdf' },
   { slug: 'split', href: '/split/', id: 'split', accepts: { kinds: PDF, several: false }, localizedIsland: true },
   { slug: 'extract-pdf-pages', href: '/extract-pdf-pages/', id: 'split', variantOf: 'split' },
-  { slug: 'compress', href: '/compress/', id: 'compress', accepts: { kinds: PDF, several: false }, localizedIsland: true, unlockReturn: true },
+  { slug: 'compress', href: '/compress/', id: 'compress', accepts: { kinds: PDF, several: false }, localizedIsland: true, unlockReturn: true, handoffTarget: true },
   { slug: 'compress-image', href: '/compress-image/', id: 'compress-image', handoffKey: 'compress', accepts: { kinds: IMAGE, several: false } },
   { slug: 'unlock', href: '/unlock/', id: 'unlock', accepts: { kinds: PDF, several: false } },
-  { slug: 'organize-pdf', href: '/organize-pdf/', id: 'edit-pdf', accepts: { kinds: PDF, several: false }, unlockReturn: true },
+  { slug: 'organize-pdf', href: '/organize-pdf/', id: 'edit-pdf', accepts: { kinds: PDF, several: false }, unlockReturn: true, handoffTarget: true },
   { slug: 'rotate-pdf', href: '/rotate-pdf/', id: 'edit-pdf', variantOf: 'organize-pdf' },
   { slug: 'remove-pages', href: '/remove-pages/', id: 'edit-pdf', variantOf: 'organize-pdf' },
   { slug: 'add-page-numbers-to-pdf', href: '/add-page-numbers-to-pdf/', id: 'edit-pdf', variantOf: 'organize-pdf' },
@@ -97,6 +99,8 @@ export const LOCALIZED_ISLAND_SLUGS: readonly string[] = pages.filter((p) => p.l
 
 /** What the home dropzone can offer a file, in page order. */
 export const FILE_CAPABILITIES = pages.flatMap((p) => (p.accepts ? [{ slug: p.slug, ...p.accepts }] : []));
+
+export type HandoffTargetId = Extract<(typeof TOOL_PAGES)[number], { handoffTarget: true }>['id'];
 
 export type UnlockReturnId = Extract<(typeof TOOL_PAGES)[number], { unlockReturn: true }>['id'];
 
