@@ -650,20 +650,18 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
   return (
     <BasePdfTool
-      emptyArt={<ScanVerb />}
-      emptyAction={<TakePhotoButton onFiles={addFiles} primary />}
       hasFiles={pages.length > 0}
-      analyticsTool="scan-to-pdf"
-      analyticsStatus={analyticsStatus}
       onFilesAdded={addFiles}
-      accept={ACCEPT}
-      emptyStateMessage={t.dropHere}
-      fileLabel={pagesLabel(pages.length, englishShellMessages)}
-      onClearAll={reset}
-      clearSummary={pagesLabel(pages.length, englishShellMessages)}
-      hideIdentity
-      ownsRating
-      needsPdfjs={false}
+      intake={{ accept: ACCEPT, needsPdfjs: false }}
+      identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
+      empty={{
+        art: <ScanVerb />,
+        action: <TakePhotoButton onFiles={addFiles} primary />,
+        message: t.dropHere,
+      }}
+      clearAll={{ onClear: reset, summary: pagesLabel(pages.length, englishShellMessages) }}
+      analytics={{ tool: 'scan-to-pdf', status: analyticsStatus }}
+      owns={{ rating: true }}
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">

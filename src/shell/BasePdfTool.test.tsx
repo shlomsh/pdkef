@@ -17,6 +17,27 @@ vi.mock('../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
 }));
 
+// The tests below are written with flat props; BasePdfTool takes them grouped.
+const GROUPS = {
+  intake: { multiple: 'multiple', accept: 'accept', dropAnywhere: 'dropAnywhere', needsPdfjs: 'needsPdfjs' },
+  identity: { file: 'file', fileLabel: 'label', fileMeta: 'meta', fileMetaExtra: 'metaExtra', fileNote: 'note', hideIdentity: 'hidden' },
+  empty: { emptyStateMessage: 'message', emptyArt: 'art', emptyHeading: 'heading', emptyBody: 'body', emptyAction: 'action', showIosFilesHint: 'iosFilesHint', showCloudDriveHint: 'cloudDriveHint' },
+  draft: { draftSaveState: 'saveState', checkingDraft: 'checking' },
+  analytics: { analyticsTool: 'tool', analyticsStatus: 'status', pageTool: 'pageTool' },
+  owns: { ownsShell: 'shell', ownsRating: 'rating' },
+};
+function nest(flat) {
+  const out = {};
+  for (const [key, value] of Object.entries(flat)) {
+    const group = Object.keys(GROUPS).find((g) => key in GROUPS[g]);
+    if (group) (out[group] ??= {})[GROUPS[group][key]] = value;
+    else if (key === 'onClearAll') (out.clearAll ??= {}).onClear = value;
+    else if (key === 'clearSummary') (out.clearAll ??= {}).summary = value;
+    else out[key] = value;
+  }
+  return out;
+}
+
 function fileDragEvent(type, { withFiles = true, bubbles = true, files = null } = {}) {
   const event = new Event(type, { bubbles, cancelable: true });
   event.dataTransfer = {
@@ -60,7 +81,7 @@ describe('BasePdfTool', () => {
     document.body.appendChild(container);
     act(() => {
       render(
-        <BasePdfTool {...props}>
+        <BasePdfTool {...nest(props)}>
           {props.children || null}
         </BasePdfTool>,
         container
@@ -144,7 +165,7 @@ describe('BasePdfTool', () => {
 
     act(() => {
       render(
-        <BasePdfTool hasFiles={false} onFilesAdded={vi.fn()} checkingDraft={false} />,
+        <BasePdfTool hasFiles={false} onFilesAdded={vi.fn()} draft={{ checking: false }} />,
         container
       );
     });
@@ -724,7 +745,7 @@ describe('BasePdfTool', () => {
     it('sends tool_page_viewed once on mount', () => {
       mount({ hasFiles: false, onFilesAdded: vi.fn(), analyticsTool: 'sign' });
       expect(calls('tool_page_viewed')).toEqual([['tool_page_viewed', 'sign']]);
-      act(() => render(<BasePdfTool hasFiles={false} onFilesAdded={vi.fn()} analyticsTool="sign" />, container));
+      act(() => render(<BasePdfTool hasFiles={false} onFilesAdded={vi.fn()} analytics={{ tool: 'sign' }} />, container));
       expect(calls('tool_page_viewed')).toHaveLength(1);
     });
 
@@ -779,7 +800,7 @@ describe('BasePdfTool', () => {
     it('a page whose tool is only known later (Unlock/Protect) still sends its page view on mount, once', () => {
       mount({ hasFiles: false, onFilesAdded: vi.fn(), pageTool: 'unlock' });
       expect(calls('tool_page_viewed')).toEqual([['tool_page_viewed', 'unlock']]);
-      act(() => render(<BasePdfTool hasFiles onFilesAdded={vi.fn()} pageTool="unlock" analyticsTool="protect" />, container));
+      act(() => render(<BasePdfTool hasFiles onFilesAdded={vi.fn()} analytics={{ pageTool: 'unlock', tool: 'protect' }} />, container));
       expect(calls('tool_page_viewed')).toHaveLength(1);
     });
 
@@ -789,7 +810,7 @@ describe('BasePdfTool', () => {
       const props = { hasFiles: true, multiple: false, onFilesAdded: vi.fn(), analyticsTool: 'sign' };
       mount({ ...props, file: a });
       expect(calls('tool_file_accepted')).toHaveLength(1);
-      const rerender = (file) => act(() => render(<BasePdfTool {...props} file={file} />, container));
+      const rerender = (file) => act(() => render(<BasePdfTool {...nest({ ...props, file })} />, container));
       rerender(a);
       expect(calls('tool_file_accepted')).toHaveLength(1);
       rerender(b);
@@ -799,7 +820,7 @@ describe('BasePdfTool', () => {
     it('a restore sends one accepted and marks nothing', () => {
       const props = { onFilesAdded: vi.fn(), analyticsTool: 'sign', multiple: false };
       mount({ ...props, hasFiles: false, checkingDraft: true });
-      act(() => render(<BasePdfTool {...props} hasFiles={true} checkingDraft={false} file={new File([''], 'r.pdf')} />, container));
+      act(() => render(<BasePdfTool {...nest({ ...props, hasFiles: true, checkingDraft: false, file: new File([''], 'r.pdf') })} />, container));
       expect(calls('tool_file_accepted')).toHaveLength(1);
       expect(markArrival).not.toHaveBeenCalled();
     });

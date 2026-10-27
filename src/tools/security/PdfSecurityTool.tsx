@@ -244,19 +244,20 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
 
   return (
     <BasePdfTool
-      emptyArt={<UnlockVerb />}
       hasFiles={hasFiles}
-      analyticsTool={mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined}
-      pageTool={intent === 'protect' ? 'protect' : 'unlock'}
-      // A mistyped password is the form working, not an operation that failed: it stays out of the failure count.
-      analyticsStatus={status === 'error' && errorText === WRONG_PASSWORD ? 'needs_password' : status}
       onFilesAdded={(files: FileList | File[]) => handleFilesAdded(files)}
-      multiple={false}
-      emptyStateMessage={intent === 'unlock' ? t.emptyUnlock : t.emptyProtect}
-      file={file}
-      fileLabel={file?.name}
-      fileMeta={describeFile(file)}
-      hideIdentity
+      intake={{ multiple: false }}
+      identity={{ file, label: file?.name, meta: describeFile(file), hidden: true }}
+      empty={{
+        art: <UnlockVerb />,
+        message: intent === 'unlock' ? t.emptyUnlock : t.emptyProtect,
+      }}
+      analytics={{
+        tool: mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined,
+        pageTool: intent === 'protect' ? 'protect' : 'unlock',
+        // A mistyped password is the form working, not an operation that failed: it stays out of the failure count.
+        status: status === 'error' && errorText === WRONG_PASSWORD ? 'needs_password' : status,
+      }}
     >
       {hasFiles && (
         <div class={styles['loaded-layout']}>
