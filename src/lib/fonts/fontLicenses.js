@@ -1,6 +1,6 @@
 /**
  * Per-family OFL license metadata (version, spec URL, copyright line), keyed
- * by family name exactly as it appears in src/editor/text/fontManifest.js.
+ * by family name exactly as it appears in src/lib/fonts/fontManifest.js.
  *
  * Kept out of fontManifest.js on purpose: the editor and the exporter both
  * import that module on every Sign session, and copyright prose has no

@@ -31,7 +31,7 @@
   },
   {
     "rule": 9,
-    "file": "src/editor/text/fontLicenses.js",
-    "reason": "read only by src/pages/licenses.astro, but src/editor/text/fontAttribution.test.js guards it against the font manifest, so moving it to src/site-lib/ would make editor depend on site-lib (a project cycle)"
+    "file": "src/lib/fonts/fontLicenses.js",
+    "reason": "read only by src/pages/licenses.astro; src/lib/fonts/fontLicenses.test.js and src/editor/text/fontAttribution.test.js guard it against the manifest, and a test is not a consumer, so it stays beside fontManifest.js rather than split from it"
   }
 ]

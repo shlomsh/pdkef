@@ -24,7 +24,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync } from 'node:zlib';
 import fontkit from '@pdf-lib/fontkit';
-import { FONT_FILES } from '../src/editor/text/fontManifest.js';
+import { FONT_FILES } from '../src/lib/fonts/fontManifest.js';
 import { DISPLAY_ONLY_FONTS } from '../src/editor/text/displayOnlyFonts.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
