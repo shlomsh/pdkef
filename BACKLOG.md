@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 65 live: 10 up next, 11 then, 26 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 120 live: 25 up next, 33 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -71,6 +71,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
+| DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly |  |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 
 ### Then, in order
@@ -113,13 +114,72 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-76 | P2 | [ARCH-76](backlog/tasks/ARCH-76.md) · Ratchet limits live in one committed file that CI refuses to raise |  |
+| ARCH-50 | P2 | [ARCH-50](backlog/tasks/ARCH-50.md) · File and function length are ratchets that only shrink |  |
+| ARCH-42 | P2 | [ARCH-42](backlog/tasks/ARCH-42.md) · The Nx project graph is asserted acyclic in test:module-boundaries |  |
+| ARCH-58 | P2 | [ARCH-58](backlog/tasks/ARCH-58.md) · The three page tools share one usePageToolSession hook and one messages base |  |
+| ARCH-59 | P2 | [ARCH-59](backlog/tasks/ARCH-59.md) · Every dialog opens and closes through one useModalDialog hook |  |
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
+| ARCH-62 | P3 | [ARCH-62](backlog/tasks/ARCH-62.md) · liveFontCoverage.js is wired in or deleted, and comments stop calling it live |  |
+| ARCH-64 | P2 | [ARCH-64](backlog/tasks/ARCH-64.md) · Tool-keyed types derive from ToolId |  |
+| ARCH-69 | P2 | [ARCH-69](backlog/tasks/ARCH-69.md) · tsconfig states strict mode explicitly |  |
+| ARCH-77 | P2 | [ARCH-77](backlog/tasks/ARCH-77.md) · End-to-end specs share one fixture and navigation helper module |  |
+| ARCH-87 | P2 | [ARCH-87](backlog/tasks/ARCH-87.md) · CSS Modules with no importer and classes never referenced fail the class check |  |
+| ARCH-90 | P2 | [ARCH-90](backlog/tasks/ARCH-90.md) · Dependency overrides pin patched versions, not vulnerable ones |  |
+| ARCH-91 | P2 | [ARCH-91](backlog/tasks/ARCH-91.md) · The runtime-scope zod alert has an override or an owned, expiring exception |  |
+| ARCH-93 | P2 | [ARCH-93](backlog/tasks/ARCH-93.md) · docs/module-boundaries.md holds only current rules, generated from or checked against the script |  |
+| ARCH-95 | P3 | [ARCH-95](backlog/tasks/ARCH-95.md) · The routing rule names toolIds.ts as the one place a new tool starts |  |
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ARCH-45 | P2 | [ARCH-45](backlog/tasks/ARCH-45.md) · Every tool folder follows one template, checked in CI |  |
+| ARCH-46 | P2 | [ARCH-46](backlog/tasks/ARCH-46.md) · Single-tool modules leave the editor core, and rule 9 covers src/editor |  |
+| ARCH-51 | P2 | [ARCH-51](backlog/tasks/ARCH-51.md) · Merge keeps its lifecycle in one reducer and its decisions in mergePlan |  |
+| ARCH-52 | P2 | [ARCH-52](backlog/tasks/ARCH-52.md) · Sign keeps its document and finish lifecycle in one typed reducer |  |
+| ARCH-53 | P2 | [ARCH-53](backlog/tasks/ARCH-53.md) · Compress runs its build and gate lifecycle through one explicit state machine |  |
+| ARCH-55 | P2 | [ARCH-55](backlog/tasks/ARCH-55.md) · pdfObjects.js splits into a parser, one text-state interpreter and extractors |  |
+| ARCH-60 | P3 | [ARCH-60](backlog/tasks/ARCH-60.md) · Sign and Redact read tap samples through one function |  |
+| ARCH-61 | P2 | [ARCH-61](backlog/tasks/ARCH-61.md) · Unused exports and locals are a CI ratchet |  |
+| ARCH-67 | P2 | [ARCH-67](backlog/tasks/ARCH-67.md) · The draft store is TypeScript with one record type parsed where it is read |  |
+| ARCH-68 | P2 | [ARCH-68](backlog/tasks/ARCH-68.md) · JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers |  |
+| ARCH-71 | P3 | [ARCH-71](backlog/tasks/ARCH-71.md) · Message registries and content helpers are typed, removing any and double casts |  |
+| ARCH-72 | P2 | [ARCH-72](backlog/tasks/ARCH-72.md) · Uncaught-error reporting installs from the layout, and every island has an error boundary |  |
+| ARCH-73 | P2 | [ARCH-73](backlog/tasks/ARCH-73.md) · Floating promises are checked in CI |  |
+| ARCH-74 | P3 | [ARCH-74](backlog/tasks/ARCH-74.md) · The swallowed-errors check covers api/ and middleware, and expected reasons carry words |  |
+| ARCH-78 | P2 | [ARCH-78](backlog/tasks/ARCH-78.md) · Island tests mock only the storage and network edge, through one harness |  |
+| ARCH-79 | P2 | [ARCH-79](backlog/tasks/ARCH-79.md) · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet |  |
+| ARCH-83 | P2 | [ARCH-83](backlog/tasks/ARCH-83.md) · Every CI run reports how far affected-scope narrowed it |  |
+| ARCH-84 | P2 | [ARCH-84](backlog/tasks/ARCH-84.md) · The prose-only invariants each get a small guard |  |
+| ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly |  |
+| ARCH-88 | P2 | [ARCH-88](backlog/tasks/ARCH-88.md) · Shadows and scrims are tokens, and color literals outside :root fail a check |  |
+| ARCH-92 | P2 | [ARCH-92](backlog/tasks/ARCH-92.md) · Patched dependencies are pinned to the version their patch names |  |
+| ARCH-94 | P2 | [ARCH-94](backlog/tasks/ARCH-94.md) · Guidance and source comments cite only paths that exist |  |
 
 ### Parked
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-43 | P3 | [ARCH-43](backlog/tasks/ARCH-43.md) · The site reads font tables from a data module, not from the editor core |  |
 | ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control |  |
+| ARCH-44 | P3 | [ARCH-44](backlog/tasks/ARCH-44.md) · Imports across layers use one path alias per layer |  |
+| ARCH-47 | P3 | [ARCH-47](backlog/tasks/ARCH-47.md) · signHelpers.js splits into text direction, text layout and image tint modules |  |
+| ARCH-48 | P3 | [ARCH-48](backlog/tasks/ARCH-48.md) · The components layer holds only .astro files, and its special rule goes |  |
+| ARCH-49 | P3 | [ARCH-49](backlog/tasks/ARCH-49.md) · The import graph sees every import form, or rejects the ones it cannot read |  |
+| ARCH-54 | P3 | [ARCH-54](backlog/tasks/ARCH-54.md) · Scan moves its ref-held state into a typed state module |  |
+| ARCH-56 | P3 | [ARCH-56](backlog/tasks/ARCH-56.md) · Home and tool page layouts are composed of section components |  |
+| ARCH-57 | P3 | [ARCH-57](backlog/tasks/ARCH-57.md) · The widest components take grouped, typed props instead of 25 to 31 loose ones |  |
+| ARCH-63 | P3 | [ARCH-63](backlog/tasks/ARCH-63.md) · Each tool has one id used by code, with folder and label fields in TOOL_PAGES |  |
+| ARCH-65 | P3 | [ARCH-65](backlog/tasks/ARCH-65.md) · Merge drag options and detection confidence weights are named constants |  |
+| ARCH-66 | P3 | [ARCH-66](backlog/tasks/ARCH-66.md) · Hooks and effects per component are a ratchet |  |
+| ARCH-70 | P3 | [ARCH-70](backlog/tasks/ARCH-70.md) · pdf.js and pdf-lib results are typed once in lib, and tools stop using any |  |
+| ARCH-75 | P3 | [ARCH-75](backlog/tasks/ARCH-75.md) · Abort detection goes through one isAbortError helper |  |
+| ARCH-80 | P3 | [ARCH-80](backlog/tasks/ARCH-80.md) · Test files are type-checked against the code they cover |  |
+| ARCH-81 | P3 | [ARCH-81](backlog/tasks/ARCH-81.md) · Every pure module has a test that references it |  |
+| ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names |  |
+| ARCH-86 | P3 | [ARCH-86](backlog/tasks/ARCH-86.md) · The unit suite runs as its own CI job beside the guards |  |
+| ARCH-89 | P3 | [ARCH-89](backlog/tasks/ARCH-89.md) · Repeated CSS blocks and static inline styles move to shared rules |  |
 
 ## Search and languages
 
