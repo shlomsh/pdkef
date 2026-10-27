@@ -125,10 +125,20 @@ export function keysUsed(source, binding) {
   return keys;
 }
 
+// Non-empty literal prefixes of template-literal keys: styles[`field-hint-${kind}`] -> 'field-hint-'.
+// An empty prefix (styles[`${x}`]) says nothing, so it still needs the dynamic-key allowlist.
+export function keyPrefixesUsed(source, binding) {
+  const out = new Set();
+  const b = binding.replace(/\$/g, '\\$');
+  for (const m of source.matchAll(new RegExp(`\\b${b}\\[\\s*\`([^\`$]*)\\$\\{`, 'g'))) if (m[1]) out.add(m[1]);
+  return out;
+}
+
 // modules: Map<file, Set<defined class>>; importers: Map<file, Set<importer file>>;
 // used: Map<file, Set<referenced key>> (imports + composes); allowlist: [{ file, class, reason }].
-export function reverseProblems({ modules, importers, used, allowlist }) {
+export function reverseProblems({ modules, importers, used, prefixes = new Map(), allowlist }) {
   const problems = [];
+  const byPrefix = (file, name) => [...(prefixes.get(file) ?? [])].some((p) => name.startsWith(p));
   const allowed = new Set(allowlist.map((e) => `${e.file}::${e.class}`));
   for (const [file, classes] of modules) {
     if (!importers.get(file)?.size) {
@@ -136,7 +146,7 @@ export function reverseProblems({ modules, importers, used, allowlist }) {
       continue;
     }
     for (const name of classes) {
-      if (used.get(file)?.has(name) || allowed.has(`${file}::${name}`)) continue;
+      if (used.get(file)?.has(name) || byPrefix(file, name) || allowed.has(`${file}::${name}`)) continue;
       problems.push(
         `${file}  defines .${name}, which no importer references.\n` +
           `    Delete the rule, or (for a key built dynamically) add it to scripts/css-module-class-allowlist.json naming the code that builds it.`,
@@ -146,7 +156,7 @@ export function reverseProblems({ modules, importers, used, allowlist }) {
   for (const e of allowlist) {
     if (!modules.get(e.file)?.has(e.class)) {
       problems.push(`css-module-class-allowlist.json: ${e.file} no longer defines .${e.class}. Remove the entry.`);
-    } else if (used.get(e.file)?.has(e.class)) {
+    } else if (used.get(e.file)?.has(e.class) || byPrefix(e.file, e.class)) {
       problems.push(`css-module-class-allowlist.json: .${e.class} in ${e.file} is referenced directly now. Remove the entry.`);
     }
   }
@@ -164,10 +174,13 @@ export function collectReverseInputs(allFiles, readFile = (f) => fs.readFileSync
   }
   const importers = new Map([...modules.keys()].map((f) => [f, new Set()]));
   const used = new Map([...modules.keys()].map((f) => [f, new Set()]));
+  const prefixes = new Map([...modules.keys()].map((f) => [f, new Set()]));
   const aliases = new Map();
   const sourceExt = /\.(?:[cm]?[jt]sx?|astro)$/;
+  // Tests and specs neither import a module nor read a class for the purposes of this check.
+  const isReader = (f) => sourceExt.test(f) && !/\.(?:test|spec)\.[^/]*$/.test(f);
   for (const f of allFiles) {
-    if (!sourceExt.test(f)) continue;
+    if (!isReader(f)) continue;
     const source = readFile(f);
     for (const { binding, spec } of moduleImportsIn(source)) {
       const target = path.resolve(path.dirname(f), spec);
@@ -175,15 +188,19 @@ export function collectReverseInputs(allFiles, readFile = (f) => fs.readFileSync
       importers.get(target).add(f);
       if (binding) {
         for (const k of keysUsed(source, binding)) used.get(target).add(k);
+        for (const k of keyPrefixesUsed(source, binding)) prefixes.get(target).add(k);
         for (const alias of reexportedAliases(source, binding)) aliases.set(alias, target);
       }
     }
   }
   for (const f of allFiles) {
-    if (!sourceExt.test(f)) continue;
+    if (!isReader(f)) continue;
     const source = readFile(f);
     for (const [alias, target] of aliases) {
-      if (source.includes(alias)) for (const k of keysUsed(source, alias)) used.get(target).add(k);
+      if (source.includes(alias)) {
+        for (const k of keysUsed(source, alias)) used.get(target).add(k);
+        for (const k of keyPrefixesUsed(source, alias)) prefixes.get(target).add(k);
+      }
     }
   }
   for (const [file, css] of cssSources) {
@@ -192,7 +209,7 @@ export function collectReverseInputs(allFiles, readFile = (f) => fs.readFileSync
       if (used.has(target)) for (const n of names) used.get(target).add(n);
     }
   }
-  return { modules, importers, used };
+  return { modules, importers, used, prefixes };
 }
 
 function walk(dir, out = []) {
@@ -322,6 +339,7 @@ const reverseList = reverseProblems({
   modules: relMap(reverse.modules),
   importers: relMap(reverse.importers),
   used: relMap(reverse.used),
+  prefixes: relMap(reverse.prefixes),
   allowlist,
 });
 problems.push(...reverseList);
