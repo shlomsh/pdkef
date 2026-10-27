@@ -1,5 +1,6 @@
 import { useReducer, useRef, useEffect, useCallback, useState, useMemo } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import RedactVerb from './verb/RedactVerb.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId } from '../../editor/model/ids.ts';
@@ -52,8 +53,7 @@ import type { FindMatch } from './find/types.ts';
 import type { ActionHistoryEntry, HistoryPlace, PlaceHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
   initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
-  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces, selectDetailEdits,
-  type SavedExport,
+  canRedo as canRedoOf, restoredNoteVisible, selectRemovedPlaces, selectDetailEdits, type SavedExport,
 } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
@@ -113,7 +113,7 @@ const UNDO_WINDOW_MS = 5000;
 /** A call right after a dispatch passes the fresh values the closure has not seen yet (removedPlaces newest first). */
 type ExportOverrides = { removedPlaces?: HistoryPlace[]; details?: DetailEdits };
 
-export default function PdfRedactTool() {
+export default withIslandBoundary(function PdfRedactTool() {
   // SNG-08: the island's state lives in redactState.ts; the preferences it
   // starts from are read once, here.
   const [state, dispatch] = useReducer(redactReducer, undefined, () => initialRedactState({
@@ -1316,7 +1316,7 @@ export default function PdfRedactTool() {
 
     </BasePdfTool>
   );
-}
+});
 
 // RED-39: a failed load used to leave no way out on a phone - the file is
 // already set, so no dropzone shows, and Replace lives in the toolbar that

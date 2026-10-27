@@ -7,6 +7,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
 import PagePreview from './PagePreview.tsx';
 import { planPreview } from './previewPlan.js';
@@ -50,7 +51,7 @@ type ReturnTool = UnlockReturnId;
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
 
 
-export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; }, messages }: {
+export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; }, messages }: {
   intent?: string;
   /** Tests only: jsdom cannot navigate. */
   navigate?: (href: string) => void;
@@ -370,7 +371,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
 
     </BasePdfTool>
   );
-}
+});
 
 /** The done state's primary control when another tool sent the file here: the way back to that tool. */
 function ContinueButton({ tool, name, label, disabled, onClick }: { tool: ReturnTool; name: string; label: string; disabled: boolean; onClick: () => void }) {
