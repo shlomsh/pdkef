@@ -23,8 +23,9 @@ const STATIC_IMPORT = new RegExp(
 );
 const REEXPORT = new RegExp(`export\\s*(?:\\*|\\{[^}]*\\})\\s*from\\s*${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}`, 'g');
 const DYNAMIC_IMPORT = new RegExp(`import\\(\\s*${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}\\s*\\)`, 'g');
-// Vite's preload list: `m.f=["_astro/a.js","_astro/b.css"]`, relative to the site root.
-const MAP_DEPS = /m\.f=\[([^\]]*)\]/g;
+// Vite's preload list, assigned inside `__vite__mapDeps`: `m.f=["_astro/a.js","_astro/b.css"]`, relative to
+// the site root. The minifier picks the variable's letter, so any identifier matches.
+const MAP_DEPS = /(?<![\w$])[\w$]+\.f=\[([^\]]*)\]/g;
 const QUOTED = new RegExp(`${QUOTE}([^"'\`]+)${QUOTE}`, 'g');
 // A worker or chunk spelled as an absolute path string.
 const ASTRO_STRING = new RegExp(`${QUOTE}(/_astro/[^"'\`\\s]+\\.(?:m?js|css|wasm))${QUOTE}`, 'g');
@@ -139,7 +140,12 @@ function staticDeps(relative, source) {
 
 function dynamicDeps(relative, source) {
   const found = matchAll(source, DYNAMIC_IMPORT).map((ref) => joinRelative(relative, `./${ref}`));
-  for (const list of matchAll(source, MAP_DEPS)) found.push(...matchAll(list, QUOTED));
+  const lists = matchAll(source, MAP_DEPS);
+  // Chunks and CSS named only in this list are reached only through it; a form we cannot read must break the build, not drop files.
+  if (source.includes('__vite__mapDeps') && lists.length === 0) {
+    throw new Error(`${relative} mentions __vite__mapDeps but no preload list matched MAP_DEPS in scripts/precacheClosure.mjs; the minifier output changed shape`);
+  }
+  for (const list of lists) found.push(...matchAll(list, QUOTED));
   for (const url of matchAll(source, ASTRO_STRING)) found.push(url.slice(1));
   for (const url of matchAll(source, IMAGES_STRING)) found.push(url.slice(1));
   for (const ref of matchAll(source, URL_FROM_META)) found.push(joinRelative(relative, ref));

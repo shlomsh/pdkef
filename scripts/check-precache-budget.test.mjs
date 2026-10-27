@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findUnhandledAssets, installUrls } from './check-precache-budget.mjs';
+import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -95,5 +95,43 @@ describe('home budget', () => {
     const f = findBudgetFailures({ shell: [], pages, toolPages: new Set(), sizes, budgets: b });
     expect(f).toHaveLength(1);
     expect(f[0]).toContain('/article/');
+  });
+});
+
+describe('findOrphanedAssets', () => {
+  const pages = { '/x/': ['/_astro/a.AAAA.js'] };
+  it('names a script, style or wasm file in dist/_astro that no list of the install carries', () => {
+    const f = findOrphanedAssets({ astroFiles: ['_astro/a.AAAA.js', '_astro/lost.BBBB.js', '_astro/lost.CCCC.css', '_astro/lost.DDDD.wasm', '_astro/lost.EEEE.mjs', '_astro/pic.FFFF.webp'], shell: [], pages });
+    expect(f).toHaveLength(4);
+    expect(f[0]).toContain('_astro/lost.BBBB.js');
+    expect(f.join('\n')).not.toContain('pic.FFFF.webp');
+  });
+  it('counts the shell as part of the install', () => {
+    expect(findOrphanedAssets({ astroFiles: ['_astro/a.AAAA.js'], shell: ['/_astro/a.AAAA.js'], pages: {} })).toEqual([]);
+  });
+  it('lets a known orphan through by name stem, whatever its hash, and says why in the allowlist', () => {
+    expect(findOrphanedAssets({ astroFiles: ['_astro/PageWorkspace.NEWHASH.css'], shell: [], pages })).toEqual([]);
+    expect(findOrphanedAssets({ astroFiles: ['_astro/PageWorkspace.NEWHASH.js'], shell: [], pages })).toHaveLength(1);
+    for (const reason of Object.values(KNOWN_ORPHANS)) expect(reason.length).toBeGreaterThan(10);
+  });
+});
+
+describe('findMissingIslands', () => {
+  it('names a tool page whose closure lacks its own island entry chunk', () => {
+    const f = findMissingIslands({ pages: { '/alpha/': ['/alpha/', '/a.js'], '/beta/': ['/PdfBeta.2.js'] }, islands: { '/alpha/': ['/PdfAlpha.1.js'], '/beta/': ['/PdfBeta.2.js'] } });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain('/alpha/');
+    expect(f[0]).toContain('/PdfAlpha.1.js');
+  });
+  it('ignores pages with no tool island', () => {
+    expect(findMissingIslands({ pages: { '/article/': [] }, islands: { '/article/': [] } })).toEqual([]);
+  });
+});
+
+describe('checkPrecache coverage', () => {
+  it('runs both coverage rules', () => {
+    const r = checkPrecache({ shell: [], pages: { '/alpha/': ['/a.js'] }, islands: { '/alpha/': ['/PdfAlpha.1.js'] }, sizes, budgets, astroFiles: ['_astro/orphan.AAAA.js'] });
+    expect(r.some((m) => m.includes('_astro/orphan.AAAA.js'))).toBe(true);
+    expect(r.some((m) => m.includes('/PdfAlpha.1.js'))).toBe(true);
   });
 });
