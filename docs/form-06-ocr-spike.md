@@ -18,8 +18,8 @@ MOBI-10 samples (same sha256).
 
 | Form | File | sha256 | Reference runs scored |
 | --- | --- | --- | --- |
-| Health declaration (2021) | `src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf` | `ccd0cb02...94adba53` | 391 (362 with Hebrew, 279 label-like) |
-| Income-tax form 101 (2024) | `src/tools/sign/fields/corpus/scoring/forms/income-tax-101-2024.pdf` | `a5bfa867...9913f8ad` | 157 (123 with Hebrew, 115 label-like) |
+| Health declaration (2021) | `src/tools/sign/lib/fields/corpus/scoring/forms/health-declaration-2021.pdf` | `ccd0cb02...94adba53` | 391 (362 with Hebrew, 279 label-like) |
+| Income-tax form 101 (2024) | `src/tools/sign/lib/fields/corpus/scoring/forms/income-tax-101-2024.pdf` | `a5bfa867...9913f8ad` | 157 (123 with Hebrew, 115 label-like) |
 
 Model data: `heb.traineddata` from `tesseract-ocr/tessdata_fast`, 961,404 bytes raw, 481,530 bytes
 gzipped, sha256 `11f9e43a...0904db`. Engine: `tesseract.js` 7.0.0 with `tesseract.js-core` 7.0.0,

@@ -35,7 +35,7 @@ Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.
 (the gesture controller, moved out of `src/editor/` under DEBT-04 part 2 since `CompareSlider`, shell,
 needed it too), and a short named list of `.test.js` files that decode images or drive pdf.js
 (compress/compressImage/thumbnails/toImage in both their `src/lib/` and `src/tools/<tool>/` locations,
-`src/tools/sign/useWorkspaceGestures.test.js`, `src/editor/adapters/pdf/redact.test.js`). Booting
+`src/tools/sign/hooks/useWorkspaceGestures.test.js`, `src/editor/adapters/pdf/redact.test.js`). Booting
 jsdom cost more than the tests it hosted, so a pure-logic test in `src/lib`, `src/tools/<tool>/` or
 `src/editor` pays nothing for a DOM it never touches; one that does need it goes in that list or
 starts with `// @vitest-environment jsdom`.

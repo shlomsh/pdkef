@@ -6,7 +6,7 @@ a phone. This page records what the detectors find, how their answers are reconc
 on each kind of field, and the live-form measurements that fixed the numbers the code comments used to
 carry. The code comments keep the reasons; the measurements live here.
 
-Detection is pure geometry behind `detectFormFields` (`src/tools/sign/fields/`), and nothing about how the
+Detection is pure geometry behind `detectFormFields` (`src/tools/sign/lib/fields/`), and nothing about how the
 UI draws or walks a field feeds back into it (`test:detection-purity`).
 
 ## What the detectors find
@@ -144,7 +144,7 @@ and measurement imprecision.
 ## The measurements behind the numbers
 
 Everything below was measured on the scored corpus (the two MOBI-10 spike forms, itc form 101 and the
-health declaration, plus `irs-1040-2024`) and is pinned by `src/tools/sign/fields/corpus/`.
+health declaration, plus `irs-1040-2024`) and is pinned by `src/tools/sign/lib/fields/corpus/`.
 
 **Cell bounds are the band under the caption, not the ruled box.** Form 101 rules one box per field and
 prints the caption inside it, in a band above the writing line. Publishing the whole box put its bounds

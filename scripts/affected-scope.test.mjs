@@ -691,7 +691,7 @@ const reach = (changedFiles) => narrowByReachability({ changedFiles, ...GRAPH })
 
 describe('makeToolOf', () => {
   it('names the tool of a file under src/tools/<t>/ and of a tool route page, nothing else', () => {
-    expect(toolOf('src/tools/sign/fields/detect.ts')).toBe('sign');
+    expect(toolOf('src/tools/sign/lib/fields/detect.ts')).toBe('sign');
     expect(toolOf('src/pages/redact.astro')).toBe('redact');
     expect(toolOf('src/pages/index.astro')).toBe(null);
     expect(toolOf('src/lib/shared.ts')).toBe(null);

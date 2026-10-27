@@ -54,8 +54,8 @@ const DPI = Number(flag('dpi', 300)) || 300; // 300 for the record; 200 and 150 
 const SCALE = DPI / 72;
 const CROP_PAD = 6; // px, "a few px" around the pdf.js item box
 const FORMS = [
-  { id: 'health', title: 'Health declaration 2021', pdf: 'src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf' },
-  { id: 'itc101', title: 'Income-tax 101 (2024)', pdf: 'src/tools/sign/fields/corpus/scoring/forms/income-tax-101-2024.pdf' },
+  { id: 'health', title: 'Health declaration 2021', pdf: 'src/tools/sign/lib/fields/corpus/scoring/forms/health-declaration-2021.pdf' },
+  { id: 'itc101', title: 'Income-tax 101 (2024)', pdf: 'src/tools/sign/lib/fields/corpus/scoring/forms/income-tax-101-2024.pdf' },
 ].filter((form) => !ONLY || form.id === ONLY);
 
 const repoRequire = createRequire(path.resolve('package.json'));

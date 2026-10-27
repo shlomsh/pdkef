@@ -10,7 +10,7 @@ import { fieldLayout, PALETTE_TOKENS } from './practice-form-content.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLE_PDF = path.resolve(here, '../public/images/redaction-guide/sample.pdf');
 const TRUTH_JSON = path.resolve(
-  here, '../src/tools/sign/fields/corpus/scoring/ground-truth/practice-form-page1.json',
+  here, '../src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json',
 );
 
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');

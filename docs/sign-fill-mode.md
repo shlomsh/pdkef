@@ -5,7 +5,7 @@ default; `?next=0` opens the old editor until SNG-06 retires it. Every
 writing spot is a real, focusable input in reading order. The platform's own next and previous do the
 hopping: the arrows above the iOS keyboard, the return key's "next", and Tab on desktop. Everything
 else is production's own: signature, shapes, colour, thickness, text formatting, date formats, undo,
-drafts and export. The types are in `src/tools/sign/fill/fillTypes.ts`. That file and this page are the
+drafts and export. The types are in `src/tools/sign/lib/fill/fillTypes.ts`. That file and this page are the
 contract; change them first, then the pieces.
 
 ## The model
@@ -94,7 +94,7 @@ contract; change them first, then the pieces.
 
 ## Modules and who owns them
 
-All new files are in `src/tools/sign/fill/`. They are single-consumer, so they live with the tool
+All new files are in `src/tools/sign/{components,hooks,lib}/fill/`. They are single-consumer, so they live with the tool
 (`docs/module-boundaries.md`).
 
 | File | Kind | Owns |

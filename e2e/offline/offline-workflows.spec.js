@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/languageAcceptance.js';
+import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/lib/languageAcceptance.js';
 import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 
 const offlineLanguageLayouts = new Map([
