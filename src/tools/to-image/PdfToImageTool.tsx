@@ -19,6 +19,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import SkippedFilesNote from '../../shell/pageWorkspace/SkippedFilesNote.tsx';
 import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
@@ -60,6 +61,7 @@ export default withIslandBoundary(function PdfToImageTool({ messages: messagesPr
   const [format, setFormat] = useState<ImageFormat>('image/png');
   const [scale, setScale] = useState(2);
   const [layout, setLayout] = useState<ImageLayout>('separate');
+  const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [renderedCount, setRenderedCount] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const gridRef = useRef<HTMLUListElement | null>(null);
@@ -82,6 +84,7 @@ export default withIslandBoundary(function PdfToImageTool({ messages: messagesPr
       setRenderedCount(0);
       // Format, quality and output are the person's choices and outlast a replaced file.
     },
+    onRejected: setRejectedFiles,
   });
   const { plan } = present;
   useHoldUpdate(file !== null, 'open');
@@ -242,6 +245,8 @@ export default withIslandBoundary(function PdfToImageTool({ messages: messagesPr
       shellMessages={shellMessages}
       hideIdentity
     >
+      <SkippedFilesNote names={rejectedFiles} messages={t} dir={t.dir} />
+
       {file && loadStatus === 'loading-file' && (
         <div class={pdfToolStyles['status-block']}>
           <p class={pdfToolStyles['status-text-muted']}>{t.loadingPages}</p>

@@ -148,6 +148,20 @@ export default function SignatureDialog({
 
   useModalDialog(dialogRef, isOpen, onClose, { escape: false, fallback: false, syncOn: onClose });
 
+  // Escape and light dismiss (closedby="any") close the native dialog on their own: tell Sign, as Cancel does.
+  // A close that Sign itself caused (isOpen already false) is not reported again.
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return undefined;
+    const handleClose = () => {
+      if (isOpenRef.current) onClose();
+    };
+    dialog.addEventListener('close', handleClose);
+    return () => dialog.removeEventListener('close', handleClose);
+  }, [onClose]);
+
   // Safari light-dismiss fallback
   useEffect(() => {
     const dialog = dialogRef.current;
