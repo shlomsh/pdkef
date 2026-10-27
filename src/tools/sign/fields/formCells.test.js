@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry } from '../../../editor/geometry/coords.ts';
-import { placeTextOnCell } from '../../../editor/text/combPlacement.ts';
+import { placeTextOnCell } from '../lib/combPlacement.ts';
 import { detectCellCandidates } from './formCells.js';
 
 // A 100x100pt page makes the PDF-point <-> page-percent arithmetic trivial to read: percent

@@ -2,17 +2,17 @@ import { createElementId } from '../../editor/model/ids.ts';
 import { captureAddedElement, type HistoryLogger } from '../../editor/model/actionHistory.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
-import { carriedTextStyle } from '../../editor/model/elementDefaults.ts';
+import { carriedTextStyle } from './lib/elementDefaults.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
-import { placeTextOnField } from '../../editor/text/combPlacement.ts';
+import { placeTextOnField } from './lib/combPlacement.ts';
 import {
   elementOnField,
   fieldPosition,
   orderTypableFields,
   type PlacedText,
   type TypableField,
-} from '../../editor/text/fieldOrder.ts';
+} from './lib/fieldOrder.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { visibleViewportOrigin } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import { englishSignMessages } from './messages';

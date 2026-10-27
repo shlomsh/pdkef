@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { useModalDialog } from '../../../shell/useModalDialog.ts';
-import { expandDetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
-import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
+import { expandDetailEdits } from '../lib/detailEdits.js';
+import type { DetailEdit, DetailEdits } from '../lib/detailEdits.js';
 import type { DetailRow } from './describeDetails.ts';
 import {
   DETAILS_CLOSE, DETAILS_THUMBS, DETAILS_TITLE, DETAIL_DELETE, DETAIL_DONE, DETAIL_EDIT, DETAIL_IMPLIED, DETAIL_UNDO,

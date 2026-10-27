@@ -11,8 +11,8 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import { buildPageText } from '../find/pageText.ts';
-import { listDeletableObjects } from '../../../editor/adapters/pdf/deleteObjects.js';
-import { withPreviews } from '../../../editor/adapters/pdf/objectPreviews.test-helper.js';
+import { listDeletableObjects } from '../lib/deleteObjects.js';
+import { withPreviews } from '../lib/objectPreviews.test-helper.js';
 
 const CORPUS_DIR = path.resolve(__dirname, '../../../../spikes/red-01/corpus');
 const collapse = (text) => text.replace(/\s+/g, ' ').trim();

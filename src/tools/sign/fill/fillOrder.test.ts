@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { enterKeyHint, fillOrder } from './fillOrder.ts';
 import type { FillItem } from './fillTypes.ts';
-import type { PercentBox } from '../../../editor/text/combPlacement.ts';
+import type { PercentBox } from '../lib/combPlacement.ts';
 
 // A4 page percentages throughout, the same fixture shape as
 // src/editor/text/fieldOrder.test.ts: enough to tell "rows top to bottom"

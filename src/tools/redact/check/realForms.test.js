@@ -11,7 +11,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { describe, expect, it, beforeAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { readGlyphs } from '../../../editor/adapters/pdf/readGlyphs.js';
+import { readGlyphs } from '../lib/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { readTextItems } from '../../../lib/pdfTextItems.ts';

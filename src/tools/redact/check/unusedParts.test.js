@@ -4,14 +4,14 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, PDFString, StandardFonts } from '@cantoo/pdf-lib';
-import { unreachableRefs } from '../../../editor/adapters/pdf/reachability.js';
+import { unreachableRefs } from '../lib/reachability.js';
 import { termFinder } from '../find/finders.ts';
 import { checkSavedFile } from './checkSavedFile.ts';
 import { canRemove, findingText } from './checkCopy.ts';
 import { locatePlaces, isSamePlace } from './placeLocator.ts';
 import { readSavedFile } from './readSavedFile.ts';
 import { removePlaces } from './removePlaces.ts';
-import { dropUnreachable } from '../../../editor/adapters/pdf/reachability.js';
+import { dropUnreachable } from '../lib/reachability.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 
 beforeAll(() => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { getPdfjs } from '../../editor/adapters/pdf/pdfjsLoader.js';
-import { readGlyphs } from '../../editor/adapters/pdf/readGlyphs.js';
+import { readGlyphs } from './lib/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../editor/geometry/coords.ts';
 import { readTextItems } from '../../lib/pdfTextItems.ts';
 import { GLYPH_BUDGET } from './find/itemGlyphs.ts';

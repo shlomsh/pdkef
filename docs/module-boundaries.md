@@ -91,14 +91,13 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    beside the script it tests, in `scripts/`, never under `src/test/`. Rules 1-7 only
    ever needed to walk `src/`; rule 8's own pass (`scriptsImportViolations()`) also walks `public/`
    and `e2e/`, since either could gain a real edge into `scripts/` that a `src/`-only walk would miss.
-9. **A module in a common layer (`shell`, `editor-ui`, `lib`) needs two or more distinct consumers,
+9. **A module in a common layer (`shell`, `editor-ui`, `editor`, `lib`) needs two or more distinct consumers,
    or it does not belong in a common layer** (ARCH-25). Plainly: "common" means used by two.
-   `editor` is out of scope for this rule: it is a layered headless core whose per-tool adapters
-   (Sign-only form detection and export, Redact-only page-edit and delete adapters, and the like)
-   serve one tool by design, not by oversight, and its shape is already governed by
-   `check-editor-dependency-directions.mjs` and, for field detection specifically, by ARCH-24 - a
-   module a mechanical count would flag stays right where it is, no exception needed, because the
-   rule never reaches it. A consumer is a tool (`src/tools/<name>/` - one identity per tool, no
+   `editor` is in scope (ARCH-46): a module only one tool imports moves under that tool, into
+   `src/tools/<tool>/lib/`. The one exemption is an explicit `src/editor/<tool>-adapters/` folder,
+   for a single-tool module that other `src/editor/` code imports (the editor never imports a
+   tool, so it cannot move under one); the folder name states the intent, so rule 9 does not
+   count it. A consumer is a tool (`src/tools/<name>/` - one identity per tool, no
    matter how many of its own files import the module) **or the site, counted once** (ARCH-26): a
    page, a layout, an `.astro` component, an `i18n`/`data` module, a `src/site-lib/` helper, and a
    file a layout loads via `<script src>` all credit one single "site" identity, the same way a tool
@@ -118,7 +117,9 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    site-classified node instead of the node's own path, and moved the shell modules that reading
    now correctly flagged as site-only (`FileDropzone.tsx`, `homeWorkspace.ts`, `RecentFiles.tsx`,
    `sampleDocument.ts`) into `src/site-lib/`. Enforced by `commonLayerConsumerViolations()`, with no
-   ratcheting allowlist and no exception list of any kind (like rules 6 and 8): it holds at zero
+   ratcheting allowlist (like rules 6 and 8) beyond `{ rule: 9, file, reason }` entries in
+   `scripts/module-boundaries-allowlist.json` for `src/editor/` files only tests, generators or e2e
+   guards read (ARCH-46; a stale entry fails, `*.test-helper.js` is never counted): it holds at zero
    violations, so a module that fails it moves into the tool that actually uses it, or is deleted if
    nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
    and thickness pickers (`FontPickerMenu`, `FontOptionsList`, `FontSheet`, `ThicknessPickerMenu`)

@@ -4,7 +4,7 @@ import { describe, expect, it, vi, afterEach, beforeEach, type Mock } from 'vite
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
-import { redactPdf } from '../../editor/adapters/pdf/redact.js';
+import { redactPdf } from './lib/redact.js';
 import * as pdfjsDist from 'pdfjs-dist';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -119,7 +119,7 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
-vi.mock('../../editor/adapters/pdf/redact.js', () => ({
+vi.mock('./lib/redact.js', () => ({
   redactPdf: vi.fn(async () => ({
     blob: new Blob(['redacted'], { type: 'application/pdf' }),
   }))
@@ -1251,7 +1251,7 @@ describe('PdfRedactTool UI flow', () => {
         // RED-16: previews come from the glyph read, not the parser, so read
         // them the way the island does. The source has the "1" (the control
         // that keeps this from passing vacuously); the export does not.
-        const { withPreviews } = await import('../../editor/adapters/pdf/objectPreviews.test-helper.js');
+        const { withPreviews } = await import('./lib/objectPreviews.test-helper.js');
         const previewsOf = async (bytes: Uint8Array) => {
           const doc = await PDFDocument.load(bytes);
           const { objects } = extractPageObjects(doc.getPage(0), 0);

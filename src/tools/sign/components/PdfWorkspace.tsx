@@ -16,7 +16,7 @@ import { autoColorChanges, followsPage } from '../../../editor-ui/whiteout/pageC
 import { samplePageColor } from '../whiteoutPageColor.ts';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
 import { createElementId } from '../../../editor/model/ids.ts';
-import { orderTypableFields } from '../../../editor/text/fieldOrder.ts';
+import { orderTypableFields } from '../lib/fieldOrder.ts';
 import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
 import { chooseStyle } from '../chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
@@ -30,7 +30,7 @@ import { describeFormDetectionFailure } from '../formDetectionDetail.ts';
 import type { FieldNavigation } from '../useFieldNavigation.ts';
 import useWorkspaceGestures, { type PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
 import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
-import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
+import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import { useAutoFontProvisioning } from '../useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../signExportReadiness.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';

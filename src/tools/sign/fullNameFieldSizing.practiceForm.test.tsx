@@ -12,7 +12,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
-import { placeTextOnField } from '../../editor/text/combPlacement.ts';
+import { placeTextOnField } from './lib/combPlacement.ts';
 import { DEFAULT_FONT_FAMILY, TEXT_BOX_LINE_HEIGHT_EM } from '../../editor/model/signGeometry.js';
 
 /**

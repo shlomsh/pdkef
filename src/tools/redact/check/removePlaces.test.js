@@ -5,7 +5,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFStream, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { readSavedFile } from './readSavedFile.ts';
 import { removePlaces } from './removePlaces.ts';
-import { dropUnreachable } from '../../../editor/adapters/pdf/reachability.js';
+import { dropUnreachable } from '../lib/reachability.js';
 import { locatePlaces } from './placeLocator.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 

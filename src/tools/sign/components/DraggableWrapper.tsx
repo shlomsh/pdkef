@@ -5,7 +5,7 @@ import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { getEffectiveTextDirection, textElementLayout } from '../../../editor/text/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
-import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
+import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';

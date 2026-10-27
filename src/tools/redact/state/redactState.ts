@@ -33,7 +33,7 @@ import type { RedactToolType } from '../../../editor/model/editorModel.ts';
 import type { BrushSettings } from '../BrushControls.tsx';
 import type { FinishPhase } from '../finishState.ts';
 import type { RedactElement } from '../redactElements.ts';
-import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/documentTraces.js';
+import type { DetailEdit, DetailEdits } from '../lib/documentTraces.js';
 
 export type RedactStatus = 'idle' | 'loading' | 'editing' | 'redacting' | 'error';
 

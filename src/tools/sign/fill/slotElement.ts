@@ -13,9 +13,9 @@
  * makes the same point about its first two callers.
  */
 import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { fieldFontSize, placeTextOnField } from '../../../editor/text/combPlacement.ts';
+import { fieldFontSize, placeTextOnField } from '../lib/combPlacement.ts';
 import { resolveFontFamily } from '../../../editor/text/fonts.js';
-import { carriedTextStyle } from '../../../editor/model/elementDefaults.ts';
+import { carriedTextStyle } from '../lib/elementDefaults.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
 import { DEFAULT_FONT_FAMILY, DEFAULT_STROKE_WIDTH } from '../../../editor/model/signGeometry.js';
