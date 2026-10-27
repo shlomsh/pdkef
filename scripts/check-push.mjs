@@ -170,6 +170,7 @@ export const ALWAYS_GUARD_STEPS = [
   'test:reveal-observers',
   'test:fetch-sites',
   'test:patch-pins',
+  'test:tool-shape',
   'test:gesture-golden-rule',
   'test:swallowed-errors',
   'test:navigating-away',
