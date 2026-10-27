@@ -1,10 +1,9 @@
 ---
 id: "QUAL-30"
 title: "merge-ready-time guards the wait and the poll, not the merge"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -152,7 +151,7 @@ build.
 - [x] Series collected for 244 job attempts back to 2026-09-28; when it moved is dated above
 - [x] Red then green: the spec as written fails `< 2600` at 3x throttle on an unchanged app; the new
       spec passes up to 5x and fails at 6x and 7x
-- [ ] Landed on `main` (Shlomi confirms the push)
+- [x] Landed on `main` as dd720079, CI run 40506497041 green
 - [x] One CI run on a Linux runner prints `MERGE-12: built ...`: run 40485609159 (workflow_dispatch on
       `merge-ready-margin`, 04dcdb2e) printed `built 1170.6ms`, green, about 3.4 times the Mac and on the
       3x throttle line. The spec comment now carries it. One reading, from a fast-population runner.
