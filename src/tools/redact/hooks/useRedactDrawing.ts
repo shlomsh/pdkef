@@ -12,7 +12,7 @@ import type { RedactCommands } from './useRedactCommands.ts';
 import { englishRedactMessages as t } from '../messages.ts';
 import styles from '../PdfRedactTool.module.css';
 
-export type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
+type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 
 /**
  * Drawing a box by dragging on a page, and committing a brush stroke. The drag

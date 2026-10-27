@@ -151,7 +151,7 @@ function ScanErrors({ pages, failedIds, buildFailed }: { pages: ScanPage[]; fail
   );
 }
 
-export interface ScanWorkspaceProps {
+interface ScanWorkspaceProps {
   bridge: { requestReplace: () => void; requestClear: () => void };
   pages: ScanPage[];
   failedIds: number[];

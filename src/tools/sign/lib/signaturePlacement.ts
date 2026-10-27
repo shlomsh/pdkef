@@ -4,7 +4,7 @@ import { widthPercentToHeightPercent } from '../../../editor/geometry/coords.js'
 /** The page wrapper's size in CSS pixels when it is not on screen to measure. */
 const FALLBACK_WRAPPER_SIZE = { width: 600, height: 800 };
 
-export interface PlacedSignatureInput {
+interface PlacedSignatureInput {
   id: string;
   dataUrl: string;
   aspectRatio: number;

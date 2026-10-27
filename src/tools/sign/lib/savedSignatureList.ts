@@ -1,6 +1,8 @@
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
 
-/** How many saved signatures the on-device library keeps; the newest first. */
+/** How many saved signatures the on-device library keeps; the newest first.
+ * @testSeam
+ */
 export const MAX_SAVED_SIGNATURES = 10;
 
 export function createSavedSignature(
