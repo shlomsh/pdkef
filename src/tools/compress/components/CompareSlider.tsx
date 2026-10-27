@@ -1,5 +1,6 @@
+import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { startGesture } from '../../../lib/gestures/controller.ts';
+import { startGesture, type GestureEvent } from '../../../lib/gestures/controller.ts';
 import { formatMessage } from '../../../lib/formatMessage';
 import { englishCompressMessages } from '../messages';
 import styles from './CompareSlider.module.css';
@@ -19,10 +20,12 @@ interface CompareSliderProps {
   tags?: boolean;
 }
 
-function getClientX(event: any): number {
-  if (event.touches && event.touches.length) return event.touches[0].clientX;
-  if (event.changedTouches && event.changedTouches.length) return event.changedTouches[0].clientX;
-  return event.clientX;
+function getClientX(event: GestureEvent): number {
+  if ('touches' in event) {
+    if (event.touches && event.touches.length) return event.touches[0].clientX;
+    if (event.changedTouches && event.changedTouches.length) return event.changedTouches[0].clientX;
+  }
+  return (event as MouseEvent).clientX;
 }
 
 const ARROW_STEP = 5;
@@ -61,14 +64,14 @@ export default function CompareSlider({
     containerRef.current?.style.setProperty('--reveal', `${percent}%`);
   };
 
-  const handleStart = (event: any) => {
+  const handleStart = (event: GestureEvent) => {
     const container = containerRef.current;
     if (!container) return;
     // In fill mode a touch must stay free to scroll the dialog (touch-action:
     // pan-y): a vertical swipe makes the browser fire touchcancel, which the
     // controller turns into cancel() below and the handle goes back where it
     // was. Mouse presses are still prevented (no text selection / image drag).
-    if (event.cancelable && !(fill && event.touches)) event.preventDefault();
+    if (event.cancelable && !(fill && 'touches' in event && event.touches)) event.preventDefault();
     const rect = container.getBoundingClientRect();
     const committedAtStart = position;
 
@@ -77,8 +80,8 @@ export default function CompareSlider({
     writeDOM(startPercent);
 
     cancelRef.current = startGesture({
-      computePatch: (moveEvent: any) => {
-        if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
+      computePatch: (moveEvent) => {
+        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
         return clampPercent(getClientX(moveEvent), rect, startPercent);
       },
       writeDOM,
@@ -93,7 +96,7 @@ export default function CompareSlider({
     });
   };
 
-  const handleKeyDown = (event: any) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       setPosition((p) => Math.max(0, p - ARROW_STEP));
@@ -115,7 +118,7 @@ export default function CompareSlider({
     <div
       ref={containerRef}
       class={fill ? `${styles['compare-slider']} ${styles['compare-fill']}` : styles['compare-slider']}
-      style={{ '--reveal': `${position}%` } as any}
+      style={{ '--reveal': `${position}%` } as JSX.CSSProperties}
       onMouseDown={handleStart}
       onTouchStart={handleStart}
     >

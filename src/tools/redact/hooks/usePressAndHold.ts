@@ -19,7 +19,10 @@ export function holdDecision(elapsedMs: number, movedPx: number): HoldDecision {
 
 type PressEvent = MouseEvent | TouchEvent | { touches?: ArrayLike<{ clientX: number; clientY: number }>; clientX?: number; clientY?: number };
 
-function pointOf(e: any): { x: number; y: number } {
+type ClientPoint = { clientX: number; clientY: number };
+type PointerLike = { touches?: ArrayLike<ClientPoint>; changedTouches?: ArrayLike<ClientPoint>; clientX?: number; clientY?: number };
+
+function pointOf(e: PointerLike): { x: number; y: number } {
   const t = e.touches?.[0] ?? e.changedTouches?.[0];
   return t ? { x: t.clientX, y: t.clientY } : { x: e.clientX ?? 0, y: e.clientY ?? 0 };
 }
@@ -66,7 +69,7 @@ export default function usePressAndHold({ onPeekChange }: { onPeekChange: (on: b
       if (peeking) callbackRef.current(false);
     };
     const onMenu = (ev: Event) => ev.preventDefault();
-    const onMove = (ev: any) => {
+    const onMove = (ev: MouseEvent | TouchEvent) => {
       if (peeking) {
         ev.stopImmediatePropagation();
         if (ev.cancelable) ev.preventDefault();

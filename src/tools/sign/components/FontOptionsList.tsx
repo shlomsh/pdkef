@@ -86,7 +86,7 @@ export function FontOptionsList({
   return (
     <div className={className}>
       <input
-        ref={searchRef as any}
+        ref={searchRef}
         type="search"
         value={query}
         className={styles['font-menu-search']}
