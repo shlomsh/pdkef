@@ -103,6 +103,8 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     Response,
     URL,
     AbortController,
+    TransformStream,
+    ReadableStream,
     Promise,
     Error,
     Array,
@@ -248,7 +250,7 @@ describe('offline-first service worker', () => {
   });
 
   describe('MEM-23: precache request time limit', () => {
-    const LIMIT = Number(/const PRECACHE_FETCH_TIMEOUT_MS = (\d+);/.exec(workerSource)?.[1] ?? 30000);
+    const LIMIT = Number(/const PRECACHE_STALL_MS = (\d+);/.exec(workerSource)?.[1] ?? 30000);
     // A fetch that never settles on its own: it rejects only when its request is aborted.
     const hang = (request) => new Promise((_resolve, reject) => {
       request.signal.addEventListener('abort', () => reject(new Error('aborted')));
@@ -293,6 +295,44 @@ describe('offline-first service worker', () => {
         await install;
         expect(worker.entries.has('https://pdkef.test/_astro/app.js')).toBe(true);
         expect(worker.entries.has('https://pdkef.test/sign/')).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('does not abort a body that keeps arriving, however long it takes in total', async () => {
+      vi.useFakeTimers();
+      try {
+        const base = manifestResponder(['/', '/sign/', '/_astro/app.js']);
+        const slowBody = () => new ReadableStream({
+          start(controller) {
+            let sent = 0;
+            const tick = setInterval(() => {
+              controller.enqueue(new Uint8Array(4));
+              sent += 1;
+              if (sent === 6) {
+                clearInterval(tick);
+                controller.close();
+              }
+            }, 10000);
+          },
+        });
+        const worker = createWorker(vi.fn((request) => (
+          new URL(requestUrl(request)).pathname === '/sign/' ? Promise.resolve(new Response(slowBody())) : base(request)
+        )));
+        const store = worker.cache.put.getMockImplementation();
+        worker.cache.put.mockImplementation(async (request, response) => {
+          if (new URL(requestUrl(request)).pathname === '/sign/') {
+            const bytes = await response.arrayBuffer();
+            return store(request, new Response(bytes, { headers: response.headers }));
+          }
+          return store(request, response);
+        });
+        const install = dispatchInstall(worker);
+        await vi.advanceTimersByTimeAsync(70000);
+        await install;
+        expect(worker.entries.has('https://pdkef.test/sign/')).toBe(true);
+        expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(true);
       } finally {
         vi.useRealTimers();
       }
