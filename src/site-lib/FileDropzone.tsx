@@ -11,6 +11,7 @@ import { withFillModeParam } from './withFillModeParam.ts';
 import { tools, pageForToolId } from '../data/tools.js';
 import { englishFileDropzoneMessages, type FileDropzoneMessages } from './fileDropzoneMessages';
 import { formatMessage } from '../lib/formatMessage';
+import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
 import type { RecentFilesMessages } from './recentFilesMessages';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
@@ -124,7 +125,7 @@ function wakeDock(tools: string[]) {
   return first;
 }
 
-export default function FileDropzone({
+function FileDropzone({
   toolTarget,
   final = false,
   messages = englishFileDropzoneMessages,
@@ -450,3 +451,5 @@ export default function FileDropzone({
     </div>
   );
 }
+
+export default withIslandBoundary(FileDropzone);
