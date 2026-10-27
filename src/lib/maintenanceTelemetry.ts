@@ -47,6 +47,7 @@ function bucketDuration(durationMs: number): ExportDurationBucket {
 /**
  * The comparison is intentionally against a small fixed list. We never retain
  * or emit `error.name`, `error.message`, a stack, or any custom error fields.
+ * @testSeam
  */
 export function classifyExportError(error: unknown): ExportErrorCode {
   if (error instanceof Error) {
@@ -181,6 +182,7 @@ export function reportMaintenanceEvent(
   }
 }
 
+/** @testSeam */
 export const MAX_EVENTS_PER_PAGE = 20;
 
 let eventsSent = 0;

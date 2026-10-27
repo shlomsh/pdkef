@@ -13,6 +13,7 @@
  */
 import { FONT_MANIFEST } from './fontManifest.ts';
 
+/** @testSeam */
 export const FONT_LICENSES: Readonly<Record<string, { version: string; url: string; copyright: string }>> = Object.freeze({
   Caveat: { version: '1.1', url: 'https://fonts.google.com/specimen/Caveat', copyright: 'Copyright The Caveat Project Authors' },
   'Dancing Script': { version: '1.1', url: 'https://fonts.google.com/specimen/Dancing+Script', copyright: 'Copyright The Dancing Script Project Authors' },

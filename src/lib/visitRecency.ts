@@ -10,13 +10,19 @@ import { RECENT_FILES_META_KEY } from './drafts/recentFilesKey.js';
 const LAST_VISIT_KEY = 'pdkef:last-tool-visit';
 const DAY_MS = 864e5;
 
-/** Local calendar day as YYYY-MM-DD: "today" means the person's today, not UTC's. */
+/**
+ * Local calendar day as YYYY-MM-DD: "today" means the person's today, not UTC's.
+ * @testSeam
+ */
 export function localDay(now: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** Pure: the bucket for a last-visit day against today's. An unreadable or future day counts as new. */
+/**
+ * Pure: the bucket for a last-visit day against today's. An unreadable or future day counts as new.
+ * @testSeam
+ */
 export function visitFor(lastDay: string | null, today: string): Visit {
   if (!lastDay || !/^\d{4}-\d{2}-\d{2}$/.test(lastDay)) return 'new';
   const days = Math.round((Date.parse(today) - Date.parse(lastDay)) / DAY_MS);
@@ -31,6 +37,7 @@ export function visitFor(lastDay: string | null, today: string): Visit {
  * Pure (DEBT-61): the local day of the newest file in the recent-files index, or null. The visit day
  * only exists since 21 Oct 2026, so a browser that used PDkef before has none; its recent files (kept
  * 28 days) still say it was here and when.
+ * @testSeam
  */
 export function lastDayFromRecents(raw: string | null): string | null {
   if (!raw) return null;

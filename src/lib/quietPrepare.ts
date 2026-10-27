@@ -8,9 +8,13 @@ export interface QuietPolicy {
   burstWindowMs: number;
 }
 
+/** @testSeam */
 export const DEFAULT_QUIET: QuietPolicy = { baseMs: 1500, stepMs: 500, maxMs: 4000, burstWindowMs: 3000 };
 
-/** Wait after the latest change: baseMs plus stepMs per earlier change in the burst, capped at maxMs. */
+/**
+ * Wait after the latest change: baseMs plus stepMs per earlier change in the burst, capped at maxMs.
+ * @testSeam
+ */
 export function quietDelay(changeTimes: readonly number[], _now: number, policy: QuietPolicy = DEFAULT_QUIET): number {
   let earlier = 0;
   for (let i = changeTimes.length - 1; i > 0; i--) {
@@ -20,7 +24,10 @@ export function quietDelay(changeTimes: readonly number[], _now: number, policy:
   return Math.min(policy.maxMs, policy.baseMs + earlier * policy.stepMs);
 }
 
-/** Small LRU of prepared results, keyed by a caller-built state key. */
+/**
+ * Small LRU of prepared results, keyed by a caller-built state key.
+ * @testSeam
+ */
 export function createResultCache<T>(limit = 4) {
   const map = new Map<string, T>();
   return {
