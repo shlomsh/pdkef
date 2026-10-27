@@ -1,11 +1,9 @@
 ---
 id: "ARCH-46"
 title: "Single-tool modules leave the editor core, and rule 9 covers src/editor"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 2
 depends_on: []
 ---
 
@@ -26,4 +24,8 @@ Area: Architecture. Criterion: Cohesion and organization. Structure only: no beh
 
 ## Acceptance
 
-- [ ] Rule 9 reports no single-consumer module in `src/editor`.
+- [x] Rule 9 reports no single-consumer module in `src/editor`.
+
+## Done (2026-10-27)
+
+Rule 9 covers src/editor (planted single-tool module fails, test first) and reports nothing on the real tree. Applying it found 34 single-consumer modules, not the 7 named: 23 moved under their tool (11 to src/tools/sign/lib/, 12 to src/tools/redact/lib/, tests beside them); none needed an editor/<tool>-adapters/ folder. Seven with no product consumer (font corpora and reports read by scripts and guards, the unused gesture machine) are on the rule 9 allowlist with their reasons, for ARCH-61 to judge; fontLicenses.js stays allowlisted because moving it to site-lib made a project cycle. Test helpers are outside rule 9.
