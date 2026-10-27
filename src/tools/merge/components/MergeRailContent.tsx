@@ -111,7 +111,7 @@ export default function MergeRailContent({
       </ul>
 
       {rearranged ? (
-        <div class={railStyles['rearranged-note']} role="status">
+        <div class={railStyles['rearranged-note']} data-rearranged-note role="status">
           <span>{t.pagesRearranged}</span>
           <button type="button" class={railStyles['reset-order']} onClick={onResetOrder}>
             {t.resetOrder}
@@ -150,7 +150,7 @@ export default function MergeRailContent({
         </div>
       )}
 
-      <div class={workspaceStyles['quiet-row']}>
+      <div class={workspaceStyles['quiet-row']} data-quiet-row>
         {/* Shlomi (2026-09-13): the two actions are bordered
             buttons now, so the "·" that used to separate them as
             text links is gone; the row's gap does the separating. */}

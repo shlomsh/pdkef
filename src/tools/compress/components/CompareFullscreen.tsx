@@ -27,7 +27,7 @@ export default function CompareFullscreen({ t, compare, caption }: CompareFullsc
       <div class={styles['compare-fullscreen-body']}>
         {compare.fullscreen.status === 'loading' && (
           <>
-            <div class={styles['compare-skeleton']} aria-hidden="true" />
+            <div class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />
             <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
           </>
         )}

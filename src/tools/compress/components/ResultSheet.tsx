@@ -39,6 +39,8 @@ export default function ResultSheet(props: ResultSheetProps) {
     <div
       ref={sheetRef}
       class={`${styles['result-action']}${hasSheet ? ` ${styles['result-sheet']}` : ''}`}
+      data-result-action
+      data-result-sheet={hasSheet || undefined}
       hidden={!hasSheet}
       onPointerEnter={warmBuild}
       onFocusIn={warmBuild}
@@ -49,7 +51,7 @@ export default function ResultSheet(props: ResultSheetProps) {
           {t.tryAgain}
         </button>
       ) : tappedBusy ? (
-        <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} disabled>
+        <button type="button" class={`${pdfToolStyles['tool-primary-action']} ${pdfToolStyles['is-processing']}`} data-processing disabled>
           <ProgressRing progress={progress} label={t.compressing} />
         </button>
       ) : isDone && !passthrough && downloadUrl ? (
