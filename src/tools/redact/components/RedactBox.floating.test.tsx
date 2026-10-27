@@ -37,9 +37,9 @@ describe('RedactBox floating middleware options (RED-53)', () => {
     document.body.appendChild(container);
     const wrapper = document.createElement('div');
     act(() => render(
-      <RedactBox el={EL} isSelected={true} onSelect={() => {}} onChange={() => {}}
-        getPageWrapper={() => wrapper} onHoverEnter={() => {}} onHoverLeave={() => {}} onDelete={() => {}}
-        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}} onChangeStrength={() => {}} onDuplicate={() => {}} />,
+      <RedactBox el={EL} isSelected={true} pointer={{ onSelect: () => {}, onChange: () => {}, getPageWrapper: () => wrapper, onHoverEnter: () => {}, onHoverLeave: () => {} }}
+        actions={{ onDelete: () => {}, onDuplicate: () => {}, onChangeStrength: () => {} }}
+        color={{ onPick: () => {}, onMatchPage: () => {}, eyedropping: false, onToggleEyedropper: () => {} }} />,
       container,
     ));
     expect(clampSpy).toHaveBeenCalledWith(expect.objectContaining({ mainAxisGap: BOX_TOOLBAR_GAP }));

@@ -55,68 +55,73 @@ const ELEMENT_RENDERERS = createElementRenderers({});
 export default function RedactBox({
   el,
   isSelected,
-  onSelect,
-  onChange,
-  getPageWrapper,
-  onHoverEnter,
-  onHoverLeave,
-  onDelete,
-  onPickColor,
-  onMatchPage,
-  eyedropping,
-  onToggleEyedropper,
-  onChangeStrength,
-  onDuplicate,
-  onRepeatOnEveryPage,
-  repeatGroupSize,
-  onUnlinkFromGroup,
-  onKeepOnlyThisPage,
-  onRemoveGroup,
-  findSetSize,
-  onRemoveFindSet,
-  pageWidthPoints,
-  pageHeightPoints,
   peekAll = false,
-  recentColors,
+  pageSize = {},
+  pointer,
+  actions,
+  color,
+  repeatGroup = {},
+  findSet = {},
 }: {
   el: any;
   isSelected: boolean;
-  onSelect: (id: string) => void;
-  onChange: (id: string, patch: any) => void;
-  getPageWrapper: (...args: any[]) => any;
-  onHoverEnter: (...args: any[]) => void;
-  onHoverLeave: (...args: any[]) => void;
-  onDelete: (id: string) => void;
-  onPickColor: (id: string, color: string) => void;
-  /** RED-51: back to following the page's colour. */
-  onMatchPage: (id: string) => void;
-  eyedropping: boolean;
-  onToggleEyedropper: () => void;
-  onChangeStrength: (id: string, strength: BlurStrength) => void;
-  /** RED-03: duplicates `el`'s whole repeat group by id - the toolbar's own
-   * pre-built clone object is ignored (see onClone below). */
-  onDuplicate: (id: string) => void;
-  /** RED-03: only passed when repeating would add at least one box. */
-  onRepeatOnEveryPage?: (id: string) => void;
-  /** RED-03: how many pages carry a copy of this box's group, `el` included. */
-  repeatGroupSize?: number;
-  onUnlinkFromGroup?: () => void;
-  /** RED-65: removes the group's copies on every other page. */
-  onKeepOnlyThisPage?: () => void;
-  onRemoveGroup?: () => void;
-  /** RED-11: how many boxes are in this box's find set, `el` included. */
-  findSetSize?: number;
-  onRemoveFindSet?: () => void;
+  /** RED-31: view state only - every box shows what is under it. */
+  peekAll?: boolean;
   /** The page's size in points: a blur's on-screen radius (RED-24), a stroke's
    * round brush (RED-32) and a box's arrow-key move (RED-43). Until it is
    * known, the arrow keys leave a box where it is. */
-  pageWidthPoints?: number;
-  pageHeightPoints?: number;
-  /** RED-31: view state only - every box shows what is under it. */
-  peekAll?: boolean;
-  /** RED-53: last custom whiteout colours, most recent first, lowercase '#rrggbb'. */
-  recentColors?: readonly string[];
+  pageSize?: { width?: number; height?: number };
+  pointer: {
+    onSelect: (id: string) => void;
+    onChange: (id: string, patch: any) => void;
+    getPageWrapper: (...args: any[]) => any;
+    onHoverEnter: (...args: any[]) => void;
+    onHoverLeave: (...args: any[]) => void;
+  };
+  actions: {
+    onDelete: (id: string) => void;
+    /** RED-03: duplicates `el`'s whole repeat group by id - the toolbar's own
+     * pre-built clone object is ignored (see onClone below). */
+    onDuplicate: (id: string) => void;
+    onChangeStrength: (id: string, strength: BlurStrength) => void;
+  };
+  color: {
+    onPick: (id: string, color: string) => void;
+    /** RED-51: back to following the page's colour. */
+    onMatchPage: (id: string) => void;
+    /** RED-53: last custom whiteout colours, most recent first, lowercase '#rrggbb'. */
+    recent?: readonly string[];
+    eyedropping: boolean;
+    onToggleEyedropper: () => void;
+  };
+  repeatGroup?: {
+    /** RED-03: how many pages carry a copy of this box's group, `el` included. */
+    size?: number;
+    /** RED-03: only passed when repeating would add at least one box. */
+    onRepeatOnEveryPage?: (id: string) => void;
+    onUnlink?: () => void;
+    /** RED-65: removes the group's copies on every other page. */
+    onKeepOnlyThisPage?: () => void;
+    onRemove?: () => void;
+  };
+  findSet?: {
+    /** RED-11: how many boxes are in this box's find set, `el` included. */
+    size?: number;
+    onRemove?: () => void;
+  };
 }) {
+  const { width: pageWidthPoints, height: pageHeightPoints } = pageSize;
+  const { onSelect, onChange, getPageWrapper, onHoverEnter, onHoverLeave } = pointer;
+  const { onDelete, onDuplicate, onChangeStrength } = actions;
+  const { onPick: onPickColor, onMatchPage, recent: recentColors, eyedropping, onToggleEyedropper } = color;
+  const {
+    size: repeatGroupSize,
+    onRepeatOnEveryPage,
+    onUnlink: onUnlinkFromGroup,
+    onKeepOnlyThisPage,
+    onRemove: onRemoveGroup,
+  } = repeatGroup;
+  const { size: findSetSize, onRemove: onRemoveFindSet } = findSet;
   const elementRef = useRef<HTMLDivElement | null>(null);
   const coarsePointer = useCoarsePointer();
   const { refs, floatingStyles, placement, update } = useFloating({

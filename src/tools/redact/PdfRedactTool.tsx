@@ -1036,79 +1036,81 @@ export default withIslandBoundary(function PdfRedactTool() {
           data-redact-workspace-ready={numPages > 0 && sizedPageCount === numPages ? 'true' : 'false'}
         >
           <RedactToolbar
-            activeStyle={activeStyle}
-            toolLocked={toolLocked}
-            setTool={setTool}
-            setAnnouncement={setAnnouncement}
-            toggleFullscreen={toggleFullscreen}
-            isFullscreen={isFullscreenActive}
-            handleDownloadPdf={handleToolbarDownload}
-            downloadConfirmed={downloadConfirmed}
-            doneStrip={showStrip && (
-              <RedactDoneStrip
-                facts={finishFacts}
-                handoffBusy={handoffBusy}
-                handoffFailed={handoffFailed}
-                onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
-                onClose={() => setStripOpen(false)}
-              >
-                {rating}
-              </RedactDoneStrip>
-            )}
-            handlePrepareShare={() => handleSavePdf('share')}
-            handleSharePdf={handleSharePdf}
-            canSharePdf={canSharePdf}
-            shareReady={shareReady}
-            elementsCount={elements.length}
-            actionHistory={actionHistory}
-            onUndo={undoLast}
-            onRedo={redoLast}
-            canRedo={canRedoOf(state)}
-            exporting={status === 'redacting'}
-            undoAction={undoAction && {
-              message: undoAction.message,
-              extra: undoAction.extra && {
-                label: undoAction.extra.label,
-                // Pressing it spends the chip, like Undo; the action it runs may register its own.
-                onSelect: () => { const run = undoAction.extra!.onSelect; clearUndoChip(); run(); },
-              },
+            tool={{ active: activeStyle, locked: toolLocked, set: setTool, brushMode: brushKind !== null }}
+            announce={setAnnouncement}
+            fullscreen={{ active: isFullscreenActive, toggle: toggleFullscreen }}
+            output={{
+              download: handleToolbarDownload,
+              prepareShare: () => handleSavePdf('share'),
+              share: handleSharePdf,
+              canShare: canSharePdf,
+              shareReady,
+              exporting: status === 'redacting',
+              downloadConfirmed,
             }}
-            onUndoAction={runUndoChip}
-            statusMessage={showStrip ? null : finishStatusText(finishFacts)}
-            peeking={peekAll}
-            onPeekChange={setPeekAll}
-            showWelcomeTip={showWelcomeTip}
-            restoredNote={restoredNoteVisible(state)}
-            brushControls={(activeStyle === 'blur' || activeStyle === 'whiteout') && (
-              <BrushControls
-                tool={activeStyle}
-                settings={brush}
-                onSettings={(next) => { changeBrush(next); recordAction('change_setting'); }}
-                color={activeColor}
-                onColor={(color) => { rememberColor(color); recordAction('change_setting'); }}
-                eyedropping={eyedropping === 'brush'}
-                onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
-              />
-            )}
-            brushMode={brushKind !== null}
-            findOpen={find.open}
-            onToggleFind={() => find.setOpen(!find.open)}
-            findBar={find.open && (
-              <FindBar
-                term={find.term}
-                preset={find.preset}
-                onTermChange={find.setTerm}
-                onPresetChange={find.setPreset}
-                summary={find.summary}
-                onPrev={find.prev}
-                onNext={find.next}
-                redactStyle={find.redactStyle}
-                onRedactStyleChange={find.setRedactStyle}
-                onRedactCurrent={() => { if (find.current) redactMatches([find.current]); }}
-                onRedactAll={() => redactMatches(find.openMatches)}
-                onClose={() => find.setOpen(false)}
-              />
-            )}
+            history={{ entries: actionHistory, undo: undoLast, redo: redoLast, canRedo: canRedoOf(state) }}
+            undoChip={{
+              action: undoAction && {
+                message: undoAction.message,
+                extra: undoAction.extra && {
+                  label: undoAction.extra.label,
+                  // Pressing it spends the chip, like Undo; the action it runs may register its own.
+                  onSelect: () => { const run = undoAction.extra!.onSelect; clearUndoChip(); run(); },
+                },
+              },
+              run: runUndoChip,
+            }}
+            elementsCount={elements.length}
+            status={{
+              message: showStrip ? null : finishStatusText(finishFacts),
+              welcomeTip: showWelcomeTip,
+              restoredNote: restoredNoteVisible(state),
+            }}
+            find={{
+              open: find.open,
+              toggle: () => find.setOpen(!find.open),
+              bar: find.open && (
+                <FindBar
+                  term={find.term}
+                  preset={find.preset}
+                  onTermChange={find.setTerm}
+                  onPresetChange={find.setPreset}
+                  summary={find.summary}
+                  onPrev={find.prev}
+                  onNext={find.next}
+                  redactStyle={find.redactStyle}
+                  onRedactStyleChange={find.setRedactStyle}
+                  onRedactCurrent={() => { if (find.current) redactMatches([find.current]); }}
+                  onRedactAll={() => redactMatches(find.openMatches)}
+                  onClose={() => find.setOpen(false)}
+                />
+              ),
+            }}
+            slots={{
+              brushControls: (activeStyle === 'blur' || activeStyle === 'whiteout') && (
+                <BrushControls
+                  tool={activeStyle}
+                  settings={brush}
+                  onSettings={(next) => { changeBrush(next); recordAction('change_setting'); }}
+                  color={activeColor}
+                  onColor={(color) => { rememberColor(color); recordAction('change_setting'); }}
+                  eyedropping={eyedropping === 'brush'}
+                  onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
+                />
+              ),
+              doneStrip: showStrip && (
+                <RedactDoneStrip
+                  facts={finishFacts}
+                  handoffBusy={handoffBusy}
+                  handoffFailed={handoffFailed}
+                  onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
+                  onClose={() => setStripOpen(false)}
+                >
+                  {rating}
+                </RedactDoneStrip>
+              ),
+            }}
+            peek={{ active: peekAll, onChange: setPeekAll }}
           />
 
           <div
@@ -1166,29 +1168,34 @@ export default withIslandBoundary(function PdfRedactTool() {
                         key={el.id}
                         el={el}
                         isSelected={el.id === selectedBoxId}
-                        onSelect={(id: string) => dispatch({ type: 'BOX_SELECTED', id })}
-                        onChange={updateElement}
-                        getPageWrapper={() => pageWrapperRefs.current[el.pageIndex]}
-                        onHoverEnter={() => dispatch({ type: 'BOX_HOVERED', id: el.id })}
-                        onHoverLeave={() => dispatch({ type: 'BOX_UNHOVERED', id: el.id })}
-                        onDelete={deleteElement}
-                        onPickColor={pickColor}
-                        recentColors={recentColors}
-                        onMatchPage={matchPage}
-                        eyedropping={eyedropping === 'box'}
-                        onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'box' })}
-                        onChangeStrength={changeBlurStrength}
-                        onDuplicate={duplicateElement}
-                        onRepeatOnEveryPage={canRepeat ? repeatOnEveryPage : undefined}
-                        repeatGroupSize={selected ? groupMembers(elements, el.id).length : undefined}
-                        onUnlinkFromGroup={() => unlinkFromGroup(el.id)}
-                        onKeepOnlyThisPage={() => keepOnlyThis(el.id)}
-                        onRemoveGroup={() => removeLinked(el.id, 'repeatGroup')}
-                        findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
-                        onRemoveFindSet={() => removeLinked(el.id, 'findSet')}
-                        pageWidthPoints={pageSizesPt[el.pageIndex]?.width}
-                        pageHeightPoints={pageSizesPt[el.pageIndex]?.height}
                         peekAll={peekAll}
+                        pageSize={{ width: pageSizesPt[el.pageIndex]?.width, height: pageSizesPt[el.pageIndex]?.height }}
+                        pointer={{
+                          onSelect: (id: string) => dispatch({ type: 'BOX_SELECTED', id }),
+                          onChange: updateElement,
+                          getPageWrapper: () => pageWrapperRefs.current[el.pageIndex],
+                          onHoverEnter: () => dispatch({ type: 'BOX_HOVERED', id: el.id }),
+                          onHoverLeave: () => dispatch({ type: 'BOX_UNHOVERED', id: el.id }),
+                        }}
+                        actions={{ onDelete: deleteElement, onDuplicate: duplicateElement, onChangeStrength: changeBlurStrength }}
+                        color={{
+                          onPick: pickColor,
+                          onMatchPage: matchPage,
+                          recent: recentColors,
+                          eyedropping: eyedropping === 'box',
+                          onToggleEyedropper: () => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'box' }),
+                        }}
+                        repeatGroup={{
+                          size: selected ? groupMembers(elements, el.id).length : undefined,
+                          onRepeatOnEveryPage: canRepeat ? repeatOnEveryPage : undefined,
+                          onUnlink: () => unlinkFromGroup(el.id),
+                          onKeepOnlyThisPage: () => keepOnlyThis(el.id),
+                          onRemove: () => removeLinked(el.id, 'repeatGroup'),
+                        }}
+                        findSet={{
+                          size: selected ? findSetMembers(elements, el.id).length : undefined,
+                          onRemove: () => removeLinked(el.id, 'findSet'),
+                        }}
                       />
                     );
                   })}
