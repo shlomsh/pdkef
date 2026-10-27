@@ -1,7 +1,7 @@
 ---
 id: "ARCH-70"
 title: "pdf.js and pdf-lib results are typed once in lib, and tools stop using any"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
