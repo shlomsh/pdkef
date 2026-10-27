@@ -1843,7 +1843,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     expect(box().textContent).toContain('6 pages');
     expect(built()).toBe(0);
     await advance(200);
-    expect(built()).toBe(1);
+    await waitUntil(() => expect(built()).toBe(1));
     expect(box().getAttribute('href')).toBeTruthy();
   });
 
@@ -1856,7 +1856,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await advance(2400);
     expect(built()).toBe(0);
     await advance(200);
-    expect(built()).toBe(1);
+    await waitUntil(() => expect(built()).toBe(1));
   });
 
   it('is ready at once, with no build, after an undo back to a built set', async () => {
@@ -1901,7 +1901,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await act(async () => { box().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     // Well inside the quiet wait, the build is already under way and lands.
     await advance(300);
-    expect(built()).toBe(1);
+    await waitUntil(() => expect(built()).toBe(1));
   });
   // MERGE-24 review: the done strip's pending tap and wide screens.
   function stubMedia(initialMatches) {
