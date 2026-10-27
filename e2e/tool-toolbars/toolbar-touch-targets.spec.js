@@ -1,38 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { openTool as openSharedTool } from '../support/tool.js';
 
 // 44 CSS px is the touch-target minimum WCAG 2.5.5 (AAA) and Apple's HIG both
 // settle on, and the value `--btn-min-size` encodes in SignToolbar.module.css -
 // the CSS module Sign and Redact's main toolbar both share.
 const MIN_TARGET = 44;
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Toolbar target-size fixture', {
-    x: 72,
-    y: 720,
-    size: 18,
-    font,
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Toolbar target-size fixture' }] });
 
-async function openTool(page, toolPath, fixtureName) {
-  await page.goto(toolPath);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Choose file', { exact: true }).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles({
-    name: fixtureName,
-    mimeType: 'application/pdf',
-    buffer: await makePdfBuffer(),
-  });
-  await expect(page.locator('[role="toolbar"]')).toBeVisible();
-}
+const openTool = async (page, toolPath, fixtureName) => {
+  await openSharedTool(page, toolPath, { file: { name: fixtureName, buffer: await makePdfBuffer() }, expectToolbar: true });
+};
 
 // Reads the rendered rect of every top-level toolbar control, grouped into the
 // rows they wrapped onto. Some controls are a bare <button>, others are a

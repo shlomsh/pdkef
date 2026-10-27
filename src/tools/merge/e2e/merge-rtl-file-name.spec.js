@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* UX guideline 9 (Bidi is part of the design): the loaded heading is a file name,
    "merged_<first file>" + ".pdf". On /he/merge/ the page is RTL, and a ".pdf" outside any
@@ -7,13 +7,6 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    heading's rendered order character by character with a Range, left to right, so it
    catches the reordering whatever markup produces it. */
 test.use({ serviceWorkers: 'block' });
-
-async function makePdfBuffer(label) {
-  const document = await PDFDocument.create();
-  document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
 
 async function loadFiles(page, route, names) {
   const response = await page.goto(route);

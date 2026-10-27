@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* A Merge restore is unlike Sign/Redact: it rebuilds several files, then
  * asynchronously derives each file's page count and preview before mounting
@@ -16,17 +16,11 @@ const RESTORE_CASES = [
   { name: 'mobile', viewport: { width: 390, height: 844 }, hasRailStatus: false },
 ];
 
-async function makePdfBuffer(label, pageCount = 9) {
-  const document = await PDFDocument.create();
-  const font = await document.embedFont(StandardFonts.Helvetica);
-  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-    const page = document.addPage([612, 792]);
-    page.drawText(`${label} — saved work page ${pageIndex + 1}`, {
-      x: 72, y: 720, size: 16, font, color: rgb(0.1, 0.1, 0.1),
-    });
-  }
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (label, pageCount = 9) => buildPdf(label, {
+  title: false,
+  pages: pageCount,
+  lines: (pageIndex) => [{ text: `${label} — saved work page ${pageIndex + 1}`, size: 16 }],
+});
 
 async function readMergeWork(page) {
   return page.evaluate(async () => {
