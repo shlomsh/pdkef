@@ -41,6 +41,14 @@ can disagree on whether it's retired with no build error, and the redirect alway
 `toolId` (optional, `src/data/tools.js`): the island's id when it differs from the slug (`organize-pdf` has `toolId: 'edit-pdf'`); drafts, recents, telemetry and hand-offs keep that id.
 `variantOf` (optional): marks a landing page over another tool's island (slug = URL); it stays out of the dock and cross-link cards, and the island keeps writing its own `toolId`.
 
+**Adding a tool starts at its row in `TOOL_PAGES` (`src/lib/toolIds.ts`).** From that row come `TOOL_IDS`
+(the analytics and rating schemas validate against it), the hand-off keys and hrefs, `LOCALIZED_ISLAND_SLUGS`,
+`FILE_CAPABILITIES` (what the home dropzone offers a file), `UNLOCK_RETURN_IDS`, the layout slugs, and the
+types `ToolId`, `HandoffTool` (rows flagged `handoffTarget`) and `ToolSlug` (rows with `accepts`). Still by
+hand: the SEO entry in `src/data/tools.js` (`src/test/cross-tool/toolIds.test.ts` fails when the two
+registries name different pages), the page `src/pages/<slug>.astro`, the redirect pair in `vercel.json`, the
+island folder `src/tools/<tool>/`, and the page family's entry sheet in `src/styles/` (`toolPage.css`).
+
 **Definition of done for a new tool page, as one unit:** real `src/lib/` logic with no network calls;
 the island calls it and downloads the result (mirror `PdfMergeTool.tsx`); a visible "How it works" +
 FAQ section on the `.astro` page with a matching `<SeoSchema>` (FAQ schema only, no HowTo: Google
