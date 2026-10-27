@@ -1843,7 +1843,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     expect(box().textContent).toContain('6 pages');
     expect(built()).toBe(0);
     await advance(200);
-    expect(built()).toBe(1);
+    await waitUntil(() => expect(built()).toBe(1), { dueFakeTimers: true });
     expect(box().getAttribute('href')).toBeTruthy();
   });
 
@@ -1856,7 +1856,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await advance(2400);
     expect(built()).toBe(0);
     await advance(200);
-    expect(built()).toBe(1);
+    await waitUntil(() => expect(built()).toBe(1), { dueFakeTimers: true });
   });
 
   it('is ready at once, with no build, after an undo back to a built set', async () => {
@@ -1881,15 +1881,12 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await advance(1700);
     // The build loads pdf-lib and the page-number font before its first read: real work, not fake time.
     // Waits on the real loop only, so the fake clock stays at 1700 ms.
-    for (const until = performance.now() + 5000; !reads.isBlocked() && performance.now() < until;) {
-      await act(() => new Promise((resolve) => setImmediate(resolve)));
-    }
-    expect(reads.isBlocked()).toBe(true);
+    await waitUntil(() => expect(reads.isBlocked()).toBe(true), { dueFakeTimers: true });
     expect(box().getAttribute('data-state')).toBe('ready');
     await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     expect(box().getAttribute('data-state')).toBe('preparing');
     await act(async () => { finish(); await vi.advanceTimersByTimeAsync(50); });
-    expect(clickSpy).toHaveBeenCalledTimes(1);
+    await waitUntil(() => expect(clickSpy).toHaveBeenCalledTimes(1), { dueFakeTimers: true });
     expect(box().getAttribute('data-state')).toBe('saved');
     clickSpy.mockRestore();
   });
@@ -1901,7 +1898,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await act(async () => { box().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
     // Well inside the quiet wait, the build is already under way and lands.
     await advance(300);
-    expect(built()).toBe(1);
+    await waitUntil(() => expect(built()).toBe(1), { dueFakeTimers: true });
   });
   // MERGE-24 review: the done strip's pending tap and wide screens.
   function stubMedia(initialMatches) {
@@ -1932,7 +1929,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
       await advance(200);
       await act(async () => { container.querySelector('[data-quiet-download]').click(); });
       await advance(5000);
-      expect(box().getAttribute('data-state')).toBe('saved');
+      await waitUntil(() => expect(box().getAttribute('data-state')).toBe('saved'), { dueFakeTimers: true });
       expect(strip()).not.toBeNull();
     } finally {
       clickSpy.mockRestore();
