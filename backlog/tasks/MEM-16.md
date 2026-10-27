@@ -1,7 +1,7 @@
 ---
 id: "MEM-16"
 title: "A new build's cache carries every unchanged content-hashed file over from the previous cache"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"

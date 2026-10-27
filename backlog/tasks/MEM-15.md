@@ -1,7 +1,7 @@
 ---
 id: "MEM-15"
 title: "The precache manifest is per page: a visit caches the shell plus that page's import closure"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"

@@ -1,7 +1,7 @@
 ---
 id: "MEM-18"
 title: "CI budgets each page's precache closure and keeps tool-specific assets out of other tools' closures"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"
