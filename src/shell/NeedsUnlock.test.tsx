@@ -60,6 +60,7 @@ describe('NeedsUnlock', () => {
   it('names the file it is about, under a heading, with a decorative lock', () => {
     mount();
     expect(container.querySelector('h2')!.textContent).toBe('This PDF has a password');
+    expect(container.querySelector('h2')!.nextElementSibling!.hasAttribute('data-file-chip')).toBe(true);
     expect(container.querySelector('[data-file-chip]')!.textContent).toContain('Quarterly report.pdf');
     expect(container.querySelector('[data-needs-unlock] > [aria-hidden="true"]')!.getAttribute('aria-hidden')).toBe('true');
   });

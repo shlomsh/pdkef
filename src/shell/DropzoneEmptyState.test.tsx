@@ -133,17 +133,13 @@ describe('DropzoneEmptyState', () => {
   it('puts an action in one row with the pick button, as an equal choice, and nothing extra without one', () => {
     mount({ action: <button type="button" data-testid="extra">Take a photo</button> });
     const picker = container.querySelector('label');
-    const row = picker.closest('[data-pick-row]');
-    const extra = row.querySelector('[data-testid="extra"]');
-    expect(extra).not.toBeNull();
-    expect(picker.compareDocumentPosition(extra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(picker.parentElement.hasAttribute('data-pick-row')).toBe(true);
+    expect(picker.nextElementSibling.getAttribute('data-testid')).toBe('extra');
     act(() => render(null, container));
     container.remove();
     mount();
     expect(container.querySelector('[data-testid="extra"]')).toBeNull();
-    const label = container.querySelector('label');
-    expect(label.closest('[data-pick-row]')).toBeNull();
-    expect(label.compareDocumentPosition(container.querySelector('[data-privacy-line]')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector('label').nextElementSibling.hasAttribute('data-privacy-line')).toBe(true);
   });
 
   it('renders one plain strong and line when no heading or body is given', () => {
