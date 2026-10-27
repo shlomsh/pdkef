@@ -14,6 +14,7 @@ import { saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
+// Styling contracts kept on purpose: the file-name bidi class, the chip-remove class and the Sortable draggable selector.
 import railStyles from './components/MergeRail.module.css';
 import sortMenuStyles from '../../shell/SortMenu.module.css';
 import docStyles from './components/MergeDocument.module.css';
@@ -202,8 +203,8 @@ describe('PdfMergeTool UI flow', () => {
   }
 
   // Every row has been read: a page count, or the lock or error it turned out to carry.
-  const rowsRead = () => Array.from(container.querySelectorAll(`.${railStyles['file-row']}`)).every((row) => (
-    row.hasAttribute('data-error') || row.hasAttribute('data-locked') || !row.querySelector(`.${railStyles['file-pages']}`).textContent.includes('\u2026')
+  const rowsRead = () => Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li')).every((row) => (
+    row.hasAttribute('data-error') || row.hasAttribute('data-locked') || !row.querySelector('[data-testid="file-pages"]').textContent.includes('\u2026')
   ));
 
   async function loadFiles(files, { wait = true } = {}) {
@@ -229,7 +230,7 @@ describe('PdfMergeTool UI flow', () => {
     });
   }
 
-  const fileNames = () => Array.from(container.querySelectorAll(`.${railStyles['file-name']}`)).map((el) => el.textContent);
+  const fileNames = () => Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li [dir="auto"]')).map((el) => el.textContent);
   const undoButton = () => container.querySelector('button[aria-label="Undo last change"]');
   const redoButton = () => container.querySelector('button[aria-label="Redo last undone change"]');
   const downloadBox = () => container.querySelector(`.${downloadStyles.box}`);
@@ -242,8 +243,8 @@ describe('PdfMergeTool UI flow', () => {
   // The page plan as the grid shows it: `name:page:rotation:skipped` per cell, in order.
   const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
   const planOf = () => {
-    const names = new Map(Array.from(container.querySelectorAll(`.${railStyles['file-row']}`))
-      .map((row) => [row.getAttribute('data-file-id'), row.querySelector(`.${railStyles['file-name']}`).textContent]));
+    const names = new Map(Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li'))
+      .map((row) => [row.getAttribute('data-file-id'), row.querySelector('[dir="auto"]').textContent]));
     return cells().map((cell) => `${names.get(cell.getAttribute('data-file-id')).replace('.pdf', '')}:${cell.getAttribute('data-key').split(':')[1]}:${cell.getAttribute('data-rotation') ?? 0}:${cell.hasAttribute('data-skipped') ? 's' : '-'}`);
   };
   const clearAll = async () => {
@@ -290,7 +291,7 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['one.pdf']);
 
     expect(fileNames()).toEqual(['one.pdf']);
-    expect(container.querySelector(`.${railStyles['file-pages']}`).textContent).toBe('3');
+    expect(container.querySelector('[data-testid="file-pages"]').textContent).toBe('3');
 
     const box = downloadBox();
     expect(box.getAttribute('data-state')).toBe('one-file');
@@ -345,7 +346,7 @@ describe('PdfMergeTool UI flow', () => {
   it('the rail row\'s file name is bidi plaintext with dir="auto"', async () => {
     mount();
     await loadFiles(['one.pdf']);
-    const name = container.querySelector(`.${railStyles['file-row']} .${railStyles['file-name']}`);
+    const name = container.querySelector('ul[aria-describedby="reorder-hint"] > li [dir="auto"]');
     expect(name.getAttribute('dir')).toBe('auto');
     expect(name.className).toContain(railStyles['file-name']);
   });
@@ -554,7 +555,7 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(undoButton().disabled).toBe(true);
 
-    const removeBtns = container.querySelectorAll(`.${railStyles['file-remove']}`);
+    const removeBtns = container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li button[aria-label]');
     await act(async () => {
       removeBtns[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -628,7 +629,7 @@ describe('PdfMergeTool UI flow', () => {
 
     it('reorders files, then Undo and Redo restore the list and the pages', async () => {
       await mountWithPages();
-      const grip = container.querySelector(`.${railStyles.grip}`);
+      const grip = container.querySelector('ul[aria-describedby="reorder-hint"] > li [role="button"]');
       await act(async () => { grip.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })); });
       expect(fileNames()).toEqual(['b.pdf', 'a.pdf']);
       expect(planOf()[0]).toBe('b:0:0:-');
@@ -651,7 +652,7 @@ describe('PdfMergeTool UI flow', () => {
       await until(() => cells().length === 2);
       expect(planOf()).toEqual(['b:0:0:-', 'b:1:0:-']);
       await act(async () => {
-        container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        container.querySelector('ul[aria-describedby="reorder-hint"] > li button[aria-label]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
       expect(fileNames()).toEqual(['b.pdf']);
       if (!afterUndo) await act(async () => { finish(); await flush(10); });
@@ -724,7 +725,7 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(await firstEdits()).toEqual([]);
 
-    const removeBtns = container.querySelectorAll(`.${railStyles['file-remove']}`);
+    const removeBtns = container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li button[aria-label]');
     await act(async () => {
       removeBtns[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -864,7 +865,7 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => fileButtons[1].click());
     const dialog = Array.from(container.querySelectorAll('dialog')).find((d) => d.open);
     expect(dialog?.textContent).toContain('Clear all files?');
-    expect(container.querySelector(`ul.${railStyles['file-list']}`)).not.toBeNull();
+    expect(container.querySelector('ul[aria-describedby="reorder-hint"]')).not.toBeNull();
   });
 
   it('exposes mobile file controls in order: Add files, Clear all files, Sort, Reset order', async () => {
@@ -908,15 +909,15 @@ describe('PdfMergeTool UI flow', () => {
     expect(notice.querySelector('a').getAttribute('href')).toBe('/unlock/');
     expect(container.textContent).not.toContain("That didn't work");
     expect(container.querySelector('[role="alert"]')).toBeNull();
-    const row = container.querySelector(`.${railStyles['file-row']}[data-locked]`);
-    expect(row.querySelector(`.${railStyles['file-name']}`).textContent).toBe('locked.pdf');
+    const row = container.querySelector('ul[aria-describedby="reorder-hint"] > li[data-locked]');
+    expect(row.querySelector('[dir="auto"]').textContent).toBe('locked.pdf');
     expect(row.hasAttribute('data-error')).toBe(false);
-    expect(row.querySelector(`.${railStyles['file-pages']}`).textContent).not.toMatch(/\d/);
+    expect(row.querySelector('[data-testid="file-pages"]').textContent).not.toMatch(/\d/);
     // The lock is read out, not only drawn: true of a password and an owner-only lock alike.
-    expect(row.querySelector(`.${railStyles['file-pages']}`).textContent).toBe('This PDF is protected');
+    expect(row.querySelector('[data-testid="file-pages"]').textContent).toBe('This PDF is protected');
     // The phone chip agrees with the rail row: a lock, not a page count.
-    const chip = container.querySelector(`.${docStyles.chip}[data-locked]`);
-    expect(chip.querySelector(`.${docStyles['chip-pages']}`).textContent).toBe('This PDF is protected');
+    const chip = container.querySelector('[data-testid="chip"][data-locked]');
+    expect(chip.querySelector('[data-testid="chip-pages"]').textContent).toBe('This PDF is protected');
     expect(downloadBox().getAttribute('data-state')).toBe('error');
 
     await act(async () => {
@@ -1183,8 +1184,8 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
-    await until(() => container.querySelector(`.${railStyles['draft-status-row']}`)?.textContent === 'Draft not saved');
-    const statusRow = container.querySelector(`.${railStyles['draft-status-row']}`);
+    await until(() => container.querySelector('[data-testid="draft-status-row"]')?.textContent === 'Draft not saved');
+    const statusRow = container.querySelector('[data-testid="draft-status-row"]');
     expect(statusRow).not.toBeNull();
     expect(statusRow.textContent).toBe('Draft not saved');
     expect(container.textContent).not.toContain('Draft saved');
@@ -1252,7 +1253,7 @@ describe('PdfMergeTool UI flow', () => {
     await untilFake(() => container.textContent.includes('Draft saved'));
     vi.useRealTimers();
     // MEM-11: the retention hint's trigger rides along with the saved chip.
-    const statusRow = container.querySelector(`.${railStyles['draft-status-row']}`);
+    const statusRow = container.querySelector('[data-testid="draft-status-row"]');
     expect(statusRow.querySelector('[tabindex="0"][aria-describedby]')).not.toBeNull();
     expect((await harness.storedDraft('merge')).plan.map((p) => p.rotation)).toEqual([90, 0, 0, 90]);
 
@@ -1346,7 +1347,7 @@ describe('PdfMergeTool UI flow', () => {
       const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === 'Name A to Z');
       await act(async () => { option.click(); });
       await act(async () => {
-        container.querySelector(`.${railStyles['file-remove']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        container.querySelector('ul[aria-describedby="reorder-hint"] > li button[aria-label]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
       expect(trigger().textContent).toContain('Name A to Z');
       expect(undoButton().disabled).toBe(false);
@@ -1362,7 +1363,7 @@ describe('PdfMergeTool UI flow', () => {
   it('keeps visible mobile controls outside the sortable chip list', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+    const chipRow = container.querySelector('[data-testid="chip-row"]');
     const controls = container.querySelector('[data-merge-file-controls]');
     expect(chipRow).not.toBeNull();
     expect(controls).not.toBeNull();
@@ -1374,14 +1375,14 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['one.pdf', 'two.pdf', 'three.pdf']);
     await settle();
-    const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+    const chipRow = container.querySelector('[data-testid="chip-row"]');
     const remove = chipRow.querySelector('button[aria-label*="two.pdf"]');
     expect(remove).not.toBeNull();
     expect(remove.classList.contains(docStyles['chip-remove'])).toBe(true);
     await act(async () => {
       remove.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(chipRow.querySelectorAll(`.${docStyles.chip}`).length).toBe(2);
+    expect(chipRow.querySelectorAll('[data-testid="chip"]').length).toBe(2);
     expect(chipRow.textContent).not.toContain('two.pdf');
   });
 
@@ -1394,7 +1395,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await until(() => fileNames().length === 2);
 
-    const headerChip = container.querySelector(`.${workspaceStyles['doc-header-right']} .${docStyles['header-draft-chip']}`);
+    const headerChip = container.querySelector(`.${workspaceStyles['doc-header-right']} [data-testid="header-draft-chip"]`);
     expect(headerChip).not.toBeNull();
     expect(headerChip.textContent).toContain('Picked up where you left off');
     const startFresh = Array.from(headerChip.querySelectorAll('button')).find((b) => b.textContent === 'Start fresh');
@@ -1409,8 +1410,8 @@ describe('PdfMergeTool UI flow', () => {
 
     await loadFiles(['a.pdf', 'b.pdf']);
 
-    const list = container.querySelector(`ul.${railStyles['file-list']}`);
-    const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+    const list = container.querySelector('ul[aria-describedby="reorder-hint"]');
+    const chipRow = container.querySelector('[data-testid="chip-row"]');
     expect(list).not.toBeNull();
     expect(chipRow).not.toBeNull();
     expect(createSpy).toHaveBeenCalledTimes(2);
@@ -1438,11 +1439,11 @@ describe('PdfMergeTool UI flow', () => {
       await act(async () => clearTrigger.click());
       const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
       await act(async () => clearButtons.at(-1).click());
-      expect(container.querySelector(`ul.${railStyles['file-list']}`)).toBeNull();
+      expect(container.querySelector('ul[aria-describedby="reorder-hint"]')).toBeNull();
 
       await loadFiles(['c.pdf', 'd.pdf']);
-      const listOf = () => container.querySelector(`ul.${railStyles['file-list']}`);
-      const chipRowOf = () => container.querySelector(`ul.${docStyles['chip-row']}`);
+      const listOf = () => container.querySelector('ul[aria-describedby="reorder-hint"]');
+      const chipRowOf = () => container.querySelector('[data-testid="chip-row"]');
       await waitUntil(() => {
         expect(listOf()).not.toBeNull();
         expect(chipRowOf()).not.toBeNull();
@@ -1479,7 +1480,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
 
-    const list = container.querySelector(`ul.${railStyles['file-list']}`);
+    const list = container.querySelector('ul[aria-describedby="reorder-hint"]');
     const railCallIndex = createSpy.mock.calls.findIndex(([element]) => element === list);
     const railOptions = createSpy.mock.calls[railCallIndex][1];
     const railSortable = createSpy.mock.results[railCallIndex].value;
@@ -1489,7 +1490,7 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => { cells()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); });
 
     expect(container.textContent).toContain('Pages moved across files');
-    expect(container.querySelectorAll(`.${railStyles.grip}`)).toHaveLength(2);
+    expect(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li [role="button"]')).toHaveLength(2);
     expect(railSortable.option('disabled')).toBe(false);
 
     await act(async () => {
@@ -1541,8 +1542,8 @@ describe('PdfMergeTool UI flow', () => {
       expect(nameEl().getAttribute('role')).toBe('textbox');
       // No border/background/input chrome ever appears - the name is one
       // element throughout, so there is nothing to swap in or out.
-      expect(container.querySelector(`.${docStyles['name-input']}`)).toBeNull();
-      expect(container.querySelector(`.${docStyles['name-button']}`)).toBeNull();
+      expect(container.querySelector('input[type="text"]')).toBeNull();
+      expect(nameEl().closest('button')).toBeNull();
 
       await type('March invoices');
       await pressEnter();
@@ -1618,7 +1619,7 @@ describe('PdfMergeTool UI flow', () => {
       expect(nameEl().textContent).toBe('My renamed merge');
 
       // Nor does removing one.
-      const removeButtons = Array.from(container.querySelectorAll(`.${railStyles['file-remove']}`));
+      const removeButtons = Array.from(container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li button[aria-label]'));
       await act(async () => removeButtons[0].click());
       expect(nameEl().textContent).toBe('My renamed merge');
 
@@ -1860,7 +1861,7 @@ describe('PdfMergeTool quiet-time prepare', () => {
   });
 
   it('is ready at once, with no build, after an undo back to a built set', async () => {
-    const removeButtons = container.querySelectorAll(`.${railStyles['file-remove']}`);
+    const removeButtons = container.querySelectorAll('ul[aria-describedby="reorder-hint"] > li button[aria-label]');
     await act(async () => removeButtons[1].dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await advance(300);
     const undo = container.querySelector('button[aria-label="Undo last change"]');

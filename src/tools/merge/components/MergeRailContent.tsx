@@ -79,12 +79,12 @@ export default function MergeRailContent({
             <span class={railStyles['tag-square']} style={tagStyle(index)} aria-hidden="true" />
             <FileName name={entry.file.name} className={railStyles['file-name']} />
             {entry.error === 'encrypted' ? (
-              <span class={railStyles['file-pages']} title={t.protectedOwnerOnlyTitle}>
+              <span data-testid="file-pages" class={railStyles['file-pages']} title={t.protectedOwnerOnlyTitle}>
                 <LockKeyhole size={12} aria-hidden="true" />
                 <span class="sr-only">{t.protectedOwnerOnlyTitle}</span>
               </span>
             ) : (
-              <span class={railStyles['file-pages']}>
+              <span data-testid="file-pages" class={railStyles['file-pages']}>
                 <FileIcon size={12} aria-hidden="true" />
                 {entry.pageCount ?? '…'}
               </span>
@@ -126,7 +126,7 @@ export default function MergeRailContent({
           on the first real edit), so its going never pulls the rows
           below it up. A fresh pick has no row until its first save. */}
       {(showPickedUpSentence || draftStatusLabel || isRestoredWorkspace) && (
-        <div class={railStyles['draft-status-row']}>
+        <div data-testid="draft-status-row" class={railStyles['draft-status-row']}>
           {showPickedUpSentence ? (
             <>
               {t.pickedUp} <button type="button" class={workspaceStyles['quiet-button']} onClick={onClear}>{t.startFresh}</button>
