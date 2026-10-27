@@ -1,7 +1,7 @@
 ---
 id: "ARCH-58"
 title: "The three page tools share one usePageToolSession hook and one messages base"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

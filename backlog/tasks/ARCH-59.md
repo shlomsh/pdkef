@@ -1,7 +1,7 @@
 ---
 id: "ARCH-59"
 title: "Every dialog opens and closes through one useModalDialog hook"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

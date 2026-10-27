@@ -1,7 +1,7 @@
 ---
 id: "ARCH-69"
 title: "tsconfig states strict mode explicitly"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

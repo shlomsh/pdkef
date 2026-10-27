@@ -1,7 +1,7 @@
 ---
 id: "ARCH-93"
 title: "docs/module-boundaries.md holds only current rules, generated from or checked against the script"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

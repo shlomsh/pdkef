@@ -1,7 +1,7 @@
 ---
 id: "ARCH-62"
 title: "liveFontCoverage.js is wired in or deleted, and comments stop calling it live"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "now"

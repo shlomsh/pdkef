@@ -1,7 +1,7 @@
 ---
 id: "ARCH-77"
 title: "End-to-end specs share one fixture and navigation helper module"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

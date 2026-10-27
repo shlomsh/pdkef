@@ -1,7 +1,7 @@
 ---
 id: "ARCH-95"
 title: "The routing rule names toolIds.ts as the one place a new tool starts"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "now"
