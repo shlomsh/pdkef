@@ -196,7 +196,7 @@ export function sitemapIsNoindexed(vercelConfig) {
 }
 
 /** Pages documented as having no Markdown twin: middleware.ts answers them with the Markdown 404 fallback. */
-export const NO_MARKDOWN_TWIN = new Set(['/licenses/']);
+export const NO_MARKDOWN_TWIN = new Set(['/licenses/', '/open/']);
 
 /**
  * The URL paths ('/', '/he/sign/') whose built page has no sibling Markdown

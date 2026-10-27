@@ -1,0 +1,8 @@
+/* Entry stylesheet for /open/, imported by src/pages/open.astro. See
+   toolPage.css for the four-tier CSS ownership note and why each family
+   compiles its own utility set. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../pages/open.astro";

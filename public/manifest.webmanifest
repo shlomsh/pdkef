@@ -24,7 +24,7 @@
   },
   "file_handlers": [
     {
-      "action": "/sign/",
+      "action": "/open/",
       "accept": { "application/pdf": [".pdf"] }
     }
   ]
