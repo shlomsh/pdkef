@@ -26,6 +26,16 @@ describe('findUntestedModuleProblems (ARCH-81)', () => {
     ]);
   });
 
+  it('skips a type-only module: nothing in it runs (wave 4 review)', () => {
+    const root = plant({
+      'src/lib/types.ts': "import type { X } from './x';\n/** doc */\nexport interface A { a: X }\nexport type B = A[];\nexport type { X };\n",
+      'src/lib/mixed.ts': 'export type C = number;\nexport const c: C = 1;\n',
+    });
+    expect(findUntestedModuleProblems(root, [])).toEqual([
+      { file: 'src/lib/mixed.ts', reason: 'no test references it: write a test for it' },
+    ]);
+  });
+
   it('passes a module with a sibling test', () => {
     const root = plant({ 'src/lib/a.ts': 'export const a = 1;\n', 'src/lib/a.test.ts': '' });
     expect(findUntestedModuleProblems(root, [])).toEqual([]);
@@ -62,7 +72,7 @@ describe('findUntestedModuleProblems (ARCH-81)', () => {
   it('fails an allowlist entry whose file no longer exists', () => {
     const root = plant({ 'src/lib/b.ts': '', 'src/lib/b.test.ts': '' });
     expect(findUntestedModuleProblems(root, ['src/lib/gone.ts'])).toEqual([
-      { file: 'src/lib/gone.ts', reason: 'allowlisted but no longer exists: remove it from the allowlist' },
+      { file: 'src/lib/gone.ts', reason: 'allowlisted but no longer a candidate (gone, moved or type-only): remove it from the allowlist' },
     ]);
   });
 

@@ -181,7 +181,7 @@ export function readPageGlyphs(
         setFont(args[0], args[1]);
         break;
       case ops.setGState:
-        for (const [key, value] of (args[0] ?? []) as [string, any][]) {
+        for (const [key, value] of (args[0] ?? []) as [string, unknown][]) {
           if (key === 'Font' && Array.isArray(value)) setFont(value[0], value[1]);
         }
         break;

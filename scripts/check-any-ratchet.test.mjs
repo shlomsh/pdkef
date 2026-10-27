@@ -6,6 +6,13 @@ describe('countAny (ARCH-70)', () => {
     const src = 'const a: any = 1;\nconst b = x as any;\nlet c: any[] = [];\nconst d = new Map<any>();\nfunction f(e: any) {}';
     expect(countAny(src)).toBe(5);
   });
+  it('counts any inside generics, tuples and unions (wave 4 review)', () => {
+    const src = 'let a: Record<string, any>;\nlet b: Map<K, any>;\nlet c = x as [string, any][];\nlet d: X | any;\nlet e: any | X;';
+    expect(countAny(src)).toBe(5);
+  });
+  it('does not count a property, a key or a call named any', () => {
+    expect(countAny('const o = { any: 1 };\nif (list.any) {}\nany(x);\nconst anyway = 1;')).toBe(0);
+  });
   it('does not count any in a comment or a string', () => {
     const src = "// x: any\n/* y as any */\nconst s = ': any';\nconst t = `as any`;\nconst u = \"<any>\";\nconst v: string = 'any';";
     expect(countAny(src)).toBe(0);
