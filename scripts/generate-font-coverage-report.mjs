@@ -179,6 +179,7 @@ function generateSource(languageCoverage, combinationCoverage, cyrillicAnchor) {
  *   full: CoveringFamily[],
  *   partial: PartialCoveringFamily[],
  * }>}
+ * @testSeam
  */
 export const LANGUAGE_COVERAGE = {
 ${languageEntries}
@@ -191,6 +192,7 @@ ${languageEntries}
  * character sets, not a loose union.
  *
  * @type {Array<{ a: string, b: string, aLabel: string, bLabel: string, families: CoveringFamily[] }>}
+ * @testSeam
  */
 export const COMBINATION_COVERAGE = [
 ${combinationEntries}
@@ -202,6 +204,7 @@ ${combinationEntries}
  * Macedonian and Kazakh at once (whole alphabet, including capitals).
  *
  * @type {{ languages: string[], familiesCoveringAllSeven: CoveringFamily[] }}
+ * @testSeam
  */
 export const CYRILLIC_ANCHOR = {
   languages: ${JSON.stringify(cyrillicAnchor.languages)},
