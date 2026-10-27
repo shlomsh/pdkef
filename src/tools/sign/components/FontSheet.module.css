@@ -21,7 +21,7 @@
 }
 
 .sheet::backdrop {
-  background: var(--scrim-light);
+  background: rgba(0, 0, 0, .32);
 }
 
 .handle {

@@ -142,8 +142,6 @@
   /* ARCH-88: scrims, shadows and translucent inks that used to be literals in
      CSS Modules. Each value is exactly the literal it replaced, defined once
      here and not redefined per theme (they were theme-independent). */
-  --scrim: rgba(0,0,0,.4);
-  --scrim-light: rgba(0, 0, 0, .32);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);
   --shadow-pop-teal: 0 8px 24px rgb(0 70 70 / 12%);
   --shadow-popover-lift: 0 4px 20px rgba(0,0,0,.08);
