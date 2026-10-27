@@ -11,5 +11,5 @@ const page = await loadLocalizedToolPage('pdf-to-image', Astro.props.localeId, A
 ---
 
 <LocalizedToolLayout page={page}>
-  <PdfToImageTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+  <PdfToImageTool client:load messages={page.toolMessages} shellMessages={page.shellMessages} />
 </LocalizedToolLayout>

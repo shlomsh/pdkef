@@ -23,7 +23,7 @@ import {
   LOCALIZED_TOOL_ISLANDS,
 } from '../i18n/localizedTools';
 import { getDocumentationShellMessages } from '../i18n/documentationMessages';
-import { getToolMessages } from './toolMessageRegistry';
+import { getToolMessages, type ToolMessageSlug, type ToolMessagesFor } from './toolMessageRegistry';
 import { getShellMessages } from '../shell/shellMessages';
 import { toolsBySlug } from '../data/tools.js';
 
@@ -40,7 +40,7 @@ export async function localizedToolPaths(toolSlug: string) {
     });
 }
 
-export async function loadLocalizedToolPage(toolSlug: string, localeId: string, routePrefix: string) {
+async function loadLocalizedToolPageImpl(toolSlug: string, localeId: string, routePrefix: string) {
   const routeLocale = getDocumentationLocaleByPrefix(routePrefix);
   if (!routeLocale || routeLocale.id !== localeId) {
     throw new Error(`Invalid localized tool route: ${routePrefix}`);
@@ -75,4 +75,13 @@ export async function loadLocalizedToolPage(toolSlug: string, localeId: string, 
   return { toolSlug, context, tool, messages, stale, islandLocalized, shellMessages, toolMessages };
 }
 
-export type LocalizedToolPage = Awaited<ReturnType<typeof loadLocalizedToolPage>>;
+/** Per-slug typing: the page's `toolMessages` is exactly that island's catalogue type. */
+export function loadLocalizedToolPage<T extends ToolMessageSlug>(toolSlug: T, localeId: string, routePrefix: string): Promise<LocalizedToolPageFor<ToolMessagesFor<T>>>;
+export function loadLocalizedToolPage(toolSlug: string, localeId: string, routePrefix: string): Promise<LocalizedToolPageFor<unknown>>;
+export function loadLocalizedToolPage(toolSlug: string, localeId: string, routePrefix: string) {
+  return loadLocalizedToolPageImpl(toolSlug, localeId, routePrefix);
+}
+
+type LocalizedToolPageBase = Omit<Awaited<ReturnType<typeof loadLocalizedToolPageImpl>>, 'toolMessages'>;
+type LocalizedToolPageFor<M> = LocalizedToolPageBase & { toolMessages: M | undefined };
+export type LocalizedToolPage = LocalizedToolPageFor<unknown>;
