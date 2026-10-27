@@ -21,9 +21,13 @@ the chips are `shrink-0` / `flex: none`, so the crumb is the only thing that giv
 viewport minus a constant (brand, 2rem badge, three 2rem chips, four gaps), and that constant leaves
 almost nothing on a phone. Name width available to "Scan to PDF" (80px to show it whole):
 
-| viewport | 320 | 360 | 375 | 390 | 414 | 721 | 744 | 768 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| before | 7.9px | 47.9px | 62.9px | 77.9px | 79.7px | 31.1px | 54.1px | 78.1px |
+| viewport | 320 | 360 | 375 | 390 | 414 | 721 | 768 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before | 7.9px | 47.9px | 62.9px | 77.9px | 79.7px (whole) | 31.1px | 78.1px |
+| after | hidden | hidden | hidden | 77.9px, cut with an ellipsis if longer | whole | hidden | 78.1px, cut with an ellipsis if longer |
+
+After is the same in `astro dev` and in `npm run build` served from `dist/` (checked on /scan-to-pdf/,
+/merge/ and the Hebrew /he/merge/, which mirrors); the 744 and 760px widths in between are hidden too.
 
 The second squeeze is 721 to about 765px: the chips get their labels back at 721, the badge shows its
 word again, and the crumb is the one thing left to pay for it. `TrustChips.astro`'s header says as
