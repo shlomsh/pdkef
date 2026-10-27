@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { recordAction } from '../../../lib/actionTrail.ts';
 import { dropCause, reportError } from '../../../lib/errorReport.ts';
+import { isEncryptedPdfError } from '../../../lib/encryptedPdfError.ts';
 import { sendHandoff } from '../../../lib/sendHandoff.ts';
 import { reportToolLifecycleEvent } from '../../../lib/productAnalytics.ts';
 import { formatMessage } from '../../../lib/formatMessage.ts';
@@ -98,7 +99,7 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
     const hasBoxes = elements.some((el) => el.type !== 'delete');
     dispatch({
       type: 'EXPORT_STARTED',
-      announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
+      announcement: hasBoxes ? t.exportSaving : t.exportDeleting,
     });
     recordAction('export');
     reportToolLifecycleEvent('tool_operation_started', 'redact');
@@ -157,9 +158,7 @@ export default function useRedactExport({ state, dispatch, setAnnouncement, setN
       console.error(err);
       // ENC-02: the load gate should have caught a protected file, so this is reported above (a gate
       // miss), but the person gets the way on rather than a Try again that can never work.
-      const name = Reflect.get(Object(err), 'name');
-      const message = String(Reflect.get(Object(err), 'message') ?? '');
-      if (run.isCurrent() && (name === 'EncryptedPDFError' || message.includes('is encrypted'))) {
+      if (run.isCurrent() && isEncryptedPdfError(err)) {
         run.settle();
         setNeedsUnlock('owner-restricted');
         dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: t.pdfProtected });
