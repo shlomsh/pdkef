@@ -57,10 +57,6 @@
   }
 }
 
-.caption-target {
-  scroll-margin-top: var(--space-3);
-}
-
 /* The "Start fresh" action of the phone header's restore sentence
    (`.header-draft-chip`); the desktop rail's copy uses the rail's own
    quiet-button. */
