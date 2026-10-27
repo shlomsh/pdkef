@@ -112,6 +112,7 @@ export function useEditorFileSession<TElement extends HistoryElement>(options: E
         if (!isCurrent()) return;
         // The cache holds source bytes only, never the editable state. Saving after pdf.js accepts
         // the file avoids advertising a corrupt PDF on the home page.
+        // reason: cacheRecentFile reports its own store failure
         void cacheRecentFile(tool, {
           fileName: selected.name,
           fileType: selected.type || 'application/pdf',

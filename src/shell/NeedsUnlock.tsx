@@ -88,7 +88,10 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
       )}
       <p class={styles.body}>{body}</p>
       <div class={styles.actions}>
-        <button type="button" class={styles.unlock} disabled={busy} onClick={() => { void unlock(); }}>
+        <button type="button" class={styles.unlock} disabled={busy} onClick={() => {
+          // reason: unlock catches its own failure and shows it
+          void unlock();
+        }}>
           <LockKeyhole size={18} stroke-width={2} aria-hidden="true" />
           {unlockIt}
         </button>

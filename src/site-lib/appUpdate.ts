@@ -34,6 +34,7 @@ import {
   onExportInFlightChange,
   onUpdateHoldChange,
 } from '../lib/appUpdate/updateHolds.ts';
+import { reportError } from '../lib/errorReport.ts';
 
 export const CHANNEL_NAME = 'pdkef:app-update';
 export const BUSY_QUERY = 'pdkef:busy-query';
@@ -238,7 +239,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
         if (reloading) return;
         forced = false;
         forcing = null;
-        void refreshLine();
+        recheck();
       }, CRITICAL_ABANDON_MS);
     }
     forcing ??= respondToCriticalUpdate({
@@ -249,7 +250,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
       setTimeout: deps.setTimeout,
       clearTimeout: deps.clearTimeout,
     });
-    void forcing.then((reply) => port?.postMessage?.(reply));
+    forcing.then((reply) => port?.postMessage?.(reply)).catch((err) => reportError('drafts', err, 'critical_update_reply'));
   }
 
   function waitForRelease(): Promise<void> {
@@ -320,6 +321,12 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   }
 
   let refreshSeq = 0;
+  // refreshLine only awaits `ask`, which resolves null on a timeout instead of rejecting.
+  function recheck(): void {
+    // reason: refreshLine cannot reject, see above
+    void refreshLine();
+  }
+
   async function refreshLine(): Promise<void> {
     if (reloading || forced) return;
     const seq = ++refreshSeq;
@@ -343,9 +350,9 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
 
   channel?.addEventListener('message', (event) => {
     const type = event.data?.type;
-    if (type === 'busy-changed') void refreshLine();
+    if (type === 'busy-changed') recheck();
     // The closing window is still a client while its pagehide runs.
-    else if (type === 'tab-closed') deps.setTimeout(() => { void refreshLine(); }, TAB_CLOSED_RECHECK_MS);
+    else if (type === 'tab-closed') deps.setTimeout(() => { recheck(); }, TAB_CLOSED_RECHECK_MS);
   });
 
   line?.querySelector('[data-app-update-dismiss]')?.addEventListener('click', () => {
@@ -356,7 +363,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   function watchInstalling(worker: WorkerLike | null) {
     worker?.addEventListener?.('statechange', () => {
       if (worker.state !== 'installed') return;
-      void refreshLine();
+      recheck();
       // A force started at the end of install has no event keeping that worker
       // alive; this message restarts it under waitUntil.
       nudgeWaiting();
@@ -384,7 +391,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   }
   doc.addEventListener('visibilitychange', () => {
     if (doc.visibilityState !== 'visible') return;
-    void refreshLine();
+    recheck();
     if (shouldCheckForUpdate(lastCheck, deps.now(), VISIBLE_CHECK_MIN_MS)) checkForUpdate();
   });
   deps.setInterval(() => {
@@ -392,15 +399,15 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   }, CHECK_EVERY_MS);
 
   deps.window.addEventListener('online', () => {
-    void refreshLine();
+    recheck();
     checkForUpdate();
   });
-  deps.window.addEventListener('offline', () => { void refreshLine(); });
+  deps.window.addEventListener('offline', () => { recheck(); });
   deps.window.addEventListener('pagehide', () => post({ type: 'tab-closed' }));
   // A shown line follows the other tabs closely (a holder that crashed sends
   // nothing); a hidden one only needs the occasional look.
-  deps.setInterval(() => { if (state !== 'hidden') void refreshLine(); }, RECHECK_SHOWN_MS);
-  deps.setInterval(() => { if (state === 'hidden' && reg.waiting) void refreshLine(); }, REFRESH_EVERY_MS);
+  deps.setInterval(() => { if (state !== 'hidden') recheck(); }, RECHECK_SHOWN_MS);
+  deps.setInterval(() => { if (state === 'hidden' && reg.waiting) recheck(); }, REFRESH_EVERY_MS);
 
   // A build already waiting when this page loads (found while it was offline).
   nudgeWaiting();

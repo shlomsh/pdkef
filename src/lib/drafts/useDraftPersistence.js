@@ -207,7 +207,8 @@ export function useDraftPersistence({
     persistenceCheckedRef.current = true;
     if (!isInstalledStandalone()) return;
     let cancelled = false;
-    isStoragePersisted().then((persisted) => {
+    // reason: isStoragePersisted resolves "unknown" instead of rejecting
+    void isStoragePersisted().then((persisted) => {
       // Only a definite `false` counts. `'unknown'` (no Storage API, a throw,
       // a rejection) is not evidence of anything and must not cry wolf over a
       // browser that simply cannot answer.
@@ -298,6 +299,7 @@ export function useDraftPersistence({
         // pointer names, and cacheRecentFile only moves the pointer to this
         // file once it has hashed and stored it, so the previous file's tile
         // took this file's thumbnail (MEM-14).
+        // reason: cacheRecentFile reports its own store failure
         if (fileBytes) void cacheRecentFile(tool, {
           fileName: file.name,
           fileType: file.type || 'application/pdf',

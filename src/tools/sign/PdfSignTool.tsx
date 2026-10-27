@@ -857,7 +857,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       return;
     }
 
-    runExport((signedBlob, filename) => {
+    // reason: runExport catches its own failure and shows it
+    void runExport((signedBlob, filename) => {
       recordAction('download');
       download(signedBlob, filename);
       lifecycleDispatch({
@@ -919,6 +920,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       handedOn = true;
       const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
       lifecycleDispatch({ type: 'EXPORT_FINISHED', signedExport: made });
+      // reason: carryOn catches its own failure and shows the hand-off error
       void carryOn(tool, made);
     });
     // A failed or superseded export hands nothing on: runExport shows its own error.
@@ -945,7 +947,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   useEffect(() => {
     if (!file || !signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })) return;
     const timer = setTimeout(() => {
-      runExport((signedBlob, filename) => {
+      // reason: runExport catches its own failure and shows it
+      void runExport((signedBlob, filename) => {
         if (prepare(signedBlob, filename)) preparedExportRef.current = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
       }, { speculative: true });
     }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
@@ -1028,7 +1031,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
                 handoffExport={handoffBusy || signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })}
                 handoffBusy={handoffBusy}
                 handoffFailed={handoffFailed}
-                onHandoff={(tool) => { void requestHandoff(tool); }}
+                onHandoff={(tool) => {
+                  // reason: requestHandoff catches its own failure and shows the hand-off error
+                  void requestHandoff(tool);
+                }}
                 errorDetail={errorDetail}
                 fieldNavigation={fieldNavigation}
                 messages={t}
