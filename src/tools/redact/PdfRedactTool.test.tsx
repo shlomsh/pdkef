@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeAll, beforeEach, type Mock }
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
+import { CHECKING } from './lib/check/checkCopy.ts';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -195,7 +196,10 @@ describe('PdfRedactTool UI flow', () => {
     })) as any;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // A saved-file check still running after a download keeps reading through pdf.js; let it finish
+    // here, or those reads take the next test's pdf.js fakes and its report lands in that test.
+    if (container.isConnected) await waitUntil(() => !container.textContent.includes(CHECKING));
     if (container.isConnected) {
       act(() => render(null, container));
       container.remove();
