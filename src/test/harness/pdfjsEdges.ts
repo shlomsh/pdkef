@@ -11,13 +11,14 @@
  * calls it, so each test starts from the same fakes.
  */
 import { vi } from 'vitest';
-import type { PdfProtection } from '../../lib/pdfEncryption.ts';
+import type { probeEncryption } from '../../lib/pdfEncryption.ts';
+type ProbeAnswer = Awaited<ReturnType<typeof probeEncryption>>;
 
 type Bytes = ArrayBuffer | Uint8Array;
 
 // ---- the encryption probe -----------------------------------------------------------------------------------
 
-const probe = vi.fn<(bytes: Bytes, ...rest: unknown[]) => Promise<PdfProtection>>();
+const probe = vi.fn<(bytes: Bytes, ...rest: unknown[]) => Promise<ProbeAnswer>>();
 
 // ---- the thumbnail source and previews -------------------------------------------------------------------------
 
@@ -124,16 +125,16 @@ export function createPdfjsHarness() {
     /** The probe spy, for `mockImplementation` and call assertions. */
     probe,
     /** Every probe from now on answers `protection`. */
-    probeAs(protection: PdfProtection) { probe.mockResolvedValue(protection); },
+    probeAs(protection: ProbeAnswer) { probe.mockResolvedValue(protection); },
     /** Every probe from now on never answers (the check is still running). */
     probeNeverAnswers() { probe.mockReturnValue(new Promise(() => {})); },
     /** The next probe waits; the test settles it with `release(protection)` or `reject(error)`. Later probes keep their answer. */
     holdNextProbe() {
-      let settleOk!: (protection: PdfProtection) => void;
+      let settleOk!: (protection: ProbeAnswer) => void;
       let settleFail!: (error: unknown) => void;
-      probe.mockImplementationOnce(() => new Promise<PdfProtection>((resolve, reject) => { settleOk = resolve; settleFail = reject; }));
+      probe.mockImplementationOnce(() => new Promise<ProbeAnswer>((resolve, reject) => { settleOk = resolve; settleFail = reject; }));
       return {
-        release: (protection: PdfProtection = 'open') => settleOk(protection),
+        release: (protection: ProbeAnswer = 'open') => settleOk(protection),
         reject: (error: unknown) => settleFail(error),
       };
     },
