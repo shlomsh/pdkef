@@ -17,8 +17,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [ARCH-82](backlog/tasks/ARCH-82.md) P3 · Behaviour tests find elements by role and label, not CSS Module class names (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
-- [ARCH-103](backlog/tasks/ARCH-103.md) P2 · No tool island function is over 300 lines (in progress)
-- [ARCH-130](backlog/tasks/ARCH-130.md) P3 · Exports only tests use, and exports nothing uses, are deleted (in progress)
 
 ### Search and languages
 
