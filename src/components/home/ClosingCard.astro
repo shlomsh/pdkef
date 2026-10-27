@@ -1,0 +1,162 @@
+---
+import FeatureCard from '../FeatureCard.astro';
+import CardDecor from '../CardDecor.astro';
+import FileDropzone from '../../site-lib/FileDropzone.tsx';
+import { PenLine } from 'lucide-preact';
+
+interface Props {
+  closing: any;
+  dropzoneMessages: any;
+  recentFilesMessages: any;
+  signToolDisplayName: string;
+  toolHrefs?: Record<string, string>;
+}
+const { closing, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
+
+const closingHeadingStroke = closing.headingStroke;
+const closingHeadingStrokeIndex = closingHeadingStroke ? closing.heading.indexOf(closingHeadingStroke) : -1;
+const closingHeadingStrokeIsUnique =
+  closingHeadingStrokeIndex !== -1 && closing.heading.indexOf(closingHeadingStroke, closingHeadingStrokeIndex + 1) === -1;
+const closingHeadingBefore = closingHeadingStrokeIsUnique ? closing.heading.slice(0, closingHeadingStrokeIndex) : closing.heading;
+const closingHeadingAfter = closingHeadingStrokeIsUnique
+  ? closing.heading.slice(closingHeadingStrokeIndex + closingHeadingStroke!.length)
+  : '';
+// Its full stop, when it ends with one, is The O's dot (TheO.astro), landing
+// after the stroke is drawn. The "." stays in the text, so textContent is
+// still closing.heading.
+const closingHeadingHasStop = closingHeadingStrokeIsUnique && closingHeadingAfter.endsWith('.');
+const closingHeadingTail = closingHeadingHasStop ? closingHeadingAfter.slice(0, -1) : closingHeadingAfter;
+---
+<FeatureCard id="try-workspace" density="flow" class="try-workspace relative isolate overflow-hidden" aria-labelledby="try-heading" data-working-area>
+  <CardDecor sketch="waves" icon={PenLine} iconPos="br" iconSize={300} parallax />
+  <h2 id="try-heading">{closingHeadingStrokeIsUnique ? <>{closingHeadingBefore}<span class="try-word">{closingHeadingStroke}</span>{closingHeadingTail}{closingHeadingHasStop && <span class="try-stop">.</span>}</> : closing.heading}</h2>
+  {/* No explanatory paragraph. The two things you can do here are a file
+      and a dropzone, and both are now drawn rather than described, so a
+      sentence saying "use your own PDF, or open the bundled practice
+      document" was captioning two controls that already say it. The
+      heading carries the invitation; the controls carry the choice. */}
+  <FileDropzone client:load toolTarget="sign" final messages={dropzoneMessages} recentFilesMessages={recentFilesMessages} toolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
+  <a href="#home-tour" data-workspace-return>{closing.backLink}</a>
+</FeatureCard>
+
+<style>
+  .try-workspace h2 .try-word { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
+  .try-workspace h2 .try-word::before {
+    content: '';
+    position: absolute;
+    inset: 58% -0.08em 0.04em;
+    background: var(--color-citron);
+    border-radius: 0.3em 0.14em 0.26em 0.12em;
+    rotate: -0.6deg;
+    z-index: -1;
+  }
+  /* The page's last word: once the closing card is well into view, the stroke
+     under "try" is swiped on like a marker instead of printed in place, and
+     then its full stop drops in, as the paper plane lands in The O
+     (TheO.astro). The scroll sets the cue (--try-marked) and the rest runs in
+     time. The heading runs the cue on the card's own timeline (the card is
+     overflow: hidden, a scroll container, so a view() inside it never moves),
+     its spans read it, and they hand it to their ::before through inherited
+     custom properties: Safari never re-evaluates a style query on a
+     pseudo-element when an animation changes the property it asks about.
+     Without style queries the stroke and the stop simply stay drawn. */
+  @property --try-marked { syntax: '<integer>'; inherits: true; initial-value: 0; }
+  @keyframes try-cue { to { --try-marked: 1; } }
+  @keyframes try-drop { from { translate: 0 -1.2em; opacity: 0; } 1% { opacity: 1; } to { translate: 0 0; opacity: 1; } }
+  @keyframes try-squash { from { scale: 1.4 0.65; } }
+  @keyframes try-ripple { from { outline-color: var(--color-primary); outline-offset: 0; } to { outline-color: transparent; outline-offset: 0.7em; outline-width: 0.02em; } }
+  /* The closing full stop is The O's dot, landing on the end of the stroke:
+     the stroke runs on past "try" to make it a pad, and the dot is in the
+     word's own ink, because a citron dot all but disappears on this light
+     card. The "." is still there, transparent, so the heading reads and copies
+     as written; the dot is an empty inline-block on its baseline, pulled back
+     over the stop's own advance. */
+  .try-workspace h2 .try-word:has(+ .try-stop)::before { inset-inline-end: -0.4em; }
+  .try-workspace h2 .try-stop { color: transparent; }
+  .try-workspace h2 .try-stop::before {
+    content: '';
+    display: inline-block;
+    width: 0.19em;
+    height: 0.19em;
+    margin-inline: 0.045em -0.235em;
+    vertical-align: baseline;
+    border-radius: 50%;
+    background: var(--color-primary-text);
+    outline: 0.05em solid transparent;
+    transform-origin: 50% 100%;
+    opacity: var(--try-dot, 1);
+    animation: var(--try-land, none);
+  }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* The cue runs on the heading, not the card: the card already runs
+         FeatureCard's card-reveal-settle, and the two animation declarations
+         then compete on order, which the production bundle and the dev server
+         resolve differently (on pdkef.com the cue lost and the stroke never
+         drew). The heading reads the card's own timeline, since the card is
+         a scroll container and a view() inside it never moves. */
+      .try-workspace { view-timeline: --try-card block; }
+      /* Longhands only: beside an animation shorthand, the minifier folds the
+         timeline into it ("animation: step-start both try-cue --try-card"),
+         which browsers reject whole, and the cue never runs. */
+      .try-workspace h2 { animation-name: try-cue; animation-duration: auto; animation-timing-function: step-start; animation-fill-mode: both; animation-timeline: --try-card; animation-range: entry 45% entry 100%; }
+      .try-workspace h2 .try-word::before { clip-path: inset(0 var(--try-hide, 0%) 0 0); transition: clip-path var(--try-swipe, 0.6s) cubic-bezier(0.65, 0, 0.35, 1) var(--try-wait, 0.15s); }
+      .try-workspace h2 .try-word:dir(rtl)::before { clip-path: inset(0 0 0 var(--try-hide, 0%)); }
+      @container not style(--try-marked: 1) {
+        .try-workspace h2 .try-word { --try-hide: 100%; --try-swipe: 0.2s; --try-wait: 0s; }
+        .try-workspace h2 .try-stop { --try-dot: 0; }
+      }
+      @container style(--try-marked: 1) {
+        .try-workspace h2 .try-stop { --try-land: try-drop 0.3s cubic-bezier(0.5, 0, 0.75, 0) 0.75s both, try-squash 0.35s var(--ease-out) 1.05s forwards, try-ripple 0.9s var(--ease-out) 1.05s forwards; }
+      }
+    }
+  }
+  [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
+  .try-workspace { position: relative; z-index: 1; }
+  .try-workspace {
+    /* Reserve the credit footer below this card. Unlike the story cards, the
+       closing card has a known next section, so a full visible band here would
+       make its footer require a second scroll. */
+    --closing-footer-reserve: 6.25rem;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1080px;
+    /* This card takes over directly from the final sticky story card. A gap
+       here exposes that card's decorative layer above the closing surface. */
+    margin-block: 0 2rem;
+    margin-inline: auto;
+    min-height: calc(100svh - var(--closing-footer-reserve));
+    padding: var(--space-section-block) 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg);
+    background-image: linear-gradient(180deg, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 60%, var(--color-primary-tint)) 45%, var(--color-primary-tint) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .try-workspace h2 { font-size: 2rem; margin: 0 0 16px; }
+  .try-workspace > :global(.w-full) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .try-workspace > :global(.w-full) > a { margin-top: 16px; }
+  /* The same inline margin as every FeatureCard above it (mx-6). */
+  @media (max-width: 1080px) {
+    .try-workspace { width: auto; margin-inline: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .try-workspace {
+      min-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--stack-gap) - var(--stack-gap));
+      margin-block: 2rem var(--stack-gap);
+    }
+  }
+  /* Below 768px the story cards are not sticky, so nothing takes over from
+     the card above: the closing card keeps the stack's 2rem gap. */
+  @media (max-width: 767px) {
+    .try-workspace { min-height: 0; margin-block-start: 2rem; padding: 2rem 1.5rem; }
+  }
+</style>
