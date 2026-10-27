@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 66 live: 11 up next, 11 then, 26 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 67 live: 12 up next, 11 then, 26 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -72,6 +72,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
+| QUAL-30 | P2 | [QUAL-30](backlog/tasks/QUAL-30.md) · merge-ready-time guards the wait and the poll, not the merge | In progress |
 
 ### Then, in order
 

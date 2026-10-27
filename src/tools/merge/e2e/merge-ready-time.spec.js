@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 
-/* MERGE-12: pre-merge on idle so Download is instant. Budget: under 500ms of
-   real work plus the 600ms idle debounce (usePreparedMerge.ts's
-   PREPARE_DEBOUNCE_MS), so under 1100ms total from the files landing to the
-   Download link carrying a usable href. A distinct page width per file lets
-   pdf-lib identify which file's page ended up first in the output, without
-   drawing any text (kept small and fast to build).
+/* MERGE-12: the merge is built in the background, so Download is instant.
+   Budget: under 500ms of real work for 20 files / 200 pages. The wait before
+   the build (src/lib/quietPrepare.ts's DEFAULT_QUIET, 1500ms) is the policy,
+   not the work, and is not in the number; QUAL-30 has the history. A distinct
+   page width per file lets pdf-lib identify which file's page ended up first
+   in the output, without drawing any text (kept small and fast to build).
 
    Direction A (2026-09-13): the file rows this spec waits on are the rail's
    (MergeRail.module.css's `.file-row`), a 320px glance-at column beside the
@@ -32,50 +32,59 @@ async function buildFixtureFiles() {
   );
 }
 
-test('Download is ready well under a second for a 20-file, 200-page set', async ({ page }) => {
+test('Download is built within the budget once it is warmed, for a 20-file, 200-page set', async ({ page }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
   const files = await buildFixtureFiles();
 
-  await page.evaluate(() => { window.__mergeReadyStart = performance.now(); });
   await page.locator('input[type="file"]').setInputFiles(files);
   const rows = page.locator('ul[class*="file-list"] > li[class*="file-row"]');
   await expect(rows).toHaveCount(FILE_COUNT);
-  // "The last change" in the ticket's sense is the moment the set is known:
-  // every row has its page count, which is when the idle wait starts. What
-  // comes before it (inspecting twenty files, rendering twenty thumbnails) is
-  // work per file added, not part of the pre-merge this guards. The rail row
-  // (MergeRail.module.css's `.file-pages`) shows the raw count, not a
-  // localized "N pages" string - "…" until inspectPdf resolves it.
+  // The set is known once every row has its page count. What comes before it
+  // (inspecting twenty files, rendering twenty thumbnails) is work per file
+  // added, not the merge this guards. The rail row (MergeRail.module.css's
+  // `.file-pages`) shows the raw count, not a localized "N pages" string -
+  // "…" until inspectPdf resolves it.
   await expect(rows.last().locator('[class*="file-pages"]')).not.toHaveText('…');
-  const knownAtMs = await page.evaluate(() => performance.now() - window.__mergeReadyStart);
+
+  // Focusing the Download element is what a hover or a keyboard visit does: it
+  // ends the quiet wait and starts the build (DownloadElement's onFocus, then
+  // usePreparedOutput's prepareNow). The clock and the watcher both live in the
+  // page, because Playwright's expect() polls at 100, 250 and 500ms, then every
+  // second: a link that appeared at 1.6s was reported at 1.85s, and one that
+  // appeared at 1.9s at 2.85s (QUAL-30).
+  const buildMs = await page.evaluate(() => new Promise((resolve, reject) => {
+    const element = [...document.querySelectorAll('a[data-state]')].find((a) => /Download merged PDF/.test(a.textContent || ''));
+    if (!element) { reject(new Error('The Download element is not on the page')); return; }
+    const built = () => !!document.querySelector('a[href^="blob:"][download]');
+    if (built()) { reject(new Error('The merge was built before the Download element was warmed')); return; }
+    const startedAt = performance.now();
+    const watcher = new MutationObserver(() => {
+      if (!built()) return;
+      watcher.disconnect();
+      resolve(performance.now() - startedAt);
+    });
+    watcher.observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ['href'] });
+    setTimeout(() => { watcher.disconnect(); reject(new Error('The merge was not built within 8s of warming')); }, 8_000);
+    element.focus();
+  }));
+  // eslint-disable-next-line no-console
+  console.log(`MERGE-12: built ${buildMs.toFixed(1)}ms after warming for ${FILE_COUNT} files / ${FILE_COUNT * PAGES_PER_FILE} pages`);
+  // MERGE-12 asks for under 500ms on desktop: 331 to 363ms here (macOS,
+  // 2026-10-27). CI's runners are slower and vary. CDP CPU throttling gives
+  // 740 to 790ms at 2x, 1190 to 1300ms at 3x, 1710 to 1980ms at 4x, 2230 to
+  // 2350ms at 5x, 2700 to 2890ms at 6x. The old whole-window reading (the
+  // 1500ms wait, the build and up to half a second of poll lag) failed its
+  // 2600ms bound at 3x with the app unchanged, the same 2.5 to 2.9s CI read
+  // on its slow runners. 2500ms passes a CPU five times slower and fails one
+  // six times slower, with about twice the headroom the 3x figure needs. The
+  // first CI run that prints the line above replaces these throttle-derived
+  // figures.
+  expect(buildMs).toBeLessThan(2500);
 
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
-  await expect(downloadLink).toHaveAttribute('href', /^blob:/, { timeout: 5_000 });
-
-  const elapsedMs = await page.evaluate(() => performance.now() - window.__mergeReadyStart);
-  const fromLastChangeMs = elapsedMs - knownAtMs;
-  // eslint-disable-next-line no-console
-  console.log(`MERGE-12: ready ${fromLastChangeMs.toFixed(1)}ms after the last change (${elapsedMs.toFixed(1)}ms after the files landed) for ${FILE_COUNT} files / ${FILE_COUNT * PAGES_PER_FILE} pages`);
-  // 600 ms of idle plus the merge. Measured locally at 400 to 450 ms for the
-  // merge (1006 to 1049 ms here) on a 2026 MacBook; the bound leaves room for
-  // a CI runner at roughly half that speed, and the console line above is
-  // the number to read. The ticket's own target (under 500 ms on desktop) is
-  // the local figure, recorded in MERGE-12.
-  //
-  // Recalibrated 2026-09-28: the 1600ms bound had lost its CI margin, not
-  // because mergePdfs/usePreparedMerge or @cantoo/pdf-lib's version changed
-  // (neither did since 09-13), but because this exact assertion failed on
-  // `main` three times in four days (1625.7/1713.9ms on 09-25,
-  // 2143.1/1777.5ms on 09-26, 2097.2/1779.2ms on 09-28) while the very next
-  // push after the last failure read 1523.8ms - only 76ms under the old
-  // bound. merge-thumbnail-throughput.spec.js's 2500ms budget, measured on
-  // the same runners in the same job, never came close to its ceiling in any
-  // of those runs, so this is this spec's own margin eroding (general app
-  // growth since 09-13 raising fixed overhead), not CI-wide noise. 2600ms
-  // clears the worst run observed (2143.1ms) by about 20%.
-  expect(fromLastChangeMs).toBeLessThan(2600);
+  await expect(downloadLink).toHaveAttribute('href', /^blob:/);
 
   await expect(downloadLink).toContainText(`${FILE_COUNT * PAGES_PER_FILE} pages`);
 
