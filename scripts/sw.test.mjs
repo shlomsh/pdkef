@@ -354,7 +354,6 @@ describe('offline-first service worker', () => {
     });
   });
 
-
   it('revalidates provisioned font packs into an upgraded cache before deleting the old cache', async () => {
     const worker = createWorker(vi.fn(async (request) => new Response(`fresh:${new URL(request.url).pathname}`)));
     const oldEntries = worker.entriesByCache.get('pdkef-previous');

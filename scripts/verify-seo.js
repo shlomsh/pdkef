@@ -23,8 +23,7 @@ const htmlFiles = getHtmlFiles(distDir);
 let hasError = false;
 const pagesByCanonical = new Map();
 const alternateLinks = [];
-// LOC-02: the localized-page guards (language purity, sitemap membership,
-// offline pack) need every page's canonical and noindex state first, so they
+// LOC-02: the localized-page guards (language purity, sitemap membership) need every page's canonical and noindex state first, so they
 // run in a second pass below.
 const localizedPages = [];
 const sitemapPath = path.join(distDir, 'sitemap.xml');
@@ -200,7 +199,7 @@ for (const file of htmlFiles) {
   }
 }
 
-// LOC-02 guards 3-5 over every localized page, now that every page's
+// LOC-02 guards 3-4 over every localized page, now that every page's
 // canonical and noindex state is known. See scripts/localizedSeoChecks.mjs.
 for (const page of localizedPages) {
   // 2026-09-14 shallow-clone incident: a published (indexed) localized

@@ -88,6 +88,10 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(fileCannotReachDist('scripts/generate-language-acceptance.mjs')).toBe(false);
     expect(fileCannotReachDist('scripts/generate-precache-manifest.mjs')).toBe(false);
     expect(fileCannotReachDist('scripts/buildId.mjs')).toBe(false);
+    expect(fileCannotReachDist('scripts/buildCommit.mjs')).toBe(false);
+    expect(fileCannotReachDist('scripts/minifyServiceWorker.mjs')).toBe(false);
+    expect(fileCannotReachDist('scripts/precacheClosure.mjs')).toBe(false);
+    expect(reachesDist(['scripts/precacheClosure.mjs'])).toBe(true);
   });
 
   it.each(['vercel.json', 'package.json', 'astro.config.mjs', 'middleware.ts', 'src/lib/format.js', 'public/fonts/Kalam-Regular.ttf'])(

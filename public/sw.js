@@ -55,8 +55,8 @@ const REQUIRED_URL = '/';
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
-// SIGN-23: non-default faces are opt-in family packs, not part of the initial
-// ~37 MB app download. A successful provision stores this synthetic marker
+// SIGN-23: non-default faces are opt-in family packs, provisioned separately and
+// not part of the app install. A successful provision stores this synthetic marker
 // beside every face in the current build cache. The marker is the explicit
 // contract that distinguishes "a face happened to be fetched once" from
 // "every advertised style in this family is ready for a disconnected edit
