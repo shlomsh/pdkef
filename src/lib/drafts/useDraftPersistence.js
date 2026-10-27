@@ -96,7 +96,8 @@ export const RESTORE_TIMEOUT_MS = 4000;
  *   RESTORE_TIMEOUT_MS elapses - the caller's cue to hold off on an empty state
  *   that a file is about to replace anyway. A visitor with no hint never enters
  *   this state at all, so a plain first visit is exactly as fast as before. See
- *   BasePdfTool.tsx's `checkingDraft` prop.
+ *   BasePdfTool.tsx's `checkingDraft` prop. `clearDraft` also resolves a boolean; the
+ *   contract stays Promise<void>, hence the cast at the return.
  */
 export function useDraftPersistence({
   tool,
@@ -422,6 +423,5 @@ export function useDraftPersistence({
   // resolve within a force's wait.
   useHoldUpdate(draftSaveState === 'error', 'open');
 
-  // Declared Promise<void> since the hook's public contract; the callback also resolves a boolean.
   return { clearDraft: /** @type {() => Promise<void>} */ (/** @type {unknown} */ (clearDraft)), isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }
