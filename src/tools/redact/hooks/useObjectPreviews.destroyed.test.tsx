@@ -1,24 +1,32 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
+import { fakePdfDocument } from '../../../test/support/fakePdfJs.ts';
+
+// The project carries no Node ambient types; Vitest provides this at runtime.
+declare const process: { on(event: string, handler: (reason: unknown) => void): void; off(event: string, handler: (reason: unknown) => void): void };
 
 const reportError = vi.fn();
-vi.mock('../../../lib/errorReport.ts', () => ({ reportError: (...a) => reportError(...a) }));
+vi.mock('../../../lib/errorReport.ts', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
 vi.mock('../../../editor/adapters/pdf/pdfjsLoader.js', () => ({
   getPdfjs: async () => ({ AnnotationMode: { DISABLE: 0 }, OPS: {} }),
 }));
 
 import useObjectPreviews from './useObjectPreviews.ts';
 
-const flush = () => new Promise((r) => setTimeout(r, 0));
+const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 
 // pdf.js reads `this._intentStates` on a page whose document was destroyed.
+const anObject = (): DeletablePdfObject => ({ id: 'a', kind: 'text', pageIndex: 0, rect: { left: 0, top: 0, width: 1, height: 1 }, start: 0, end: 1 });
+
 const destroyedError = () => new TypeError("Cannot read properties of undefined (reading '_intentStates')");
 
 describe('useObjectPreviews when the document is replaced and destroyed mid-read', () => {
   let host: HTMLElement | null = null;
-  let unhandled;
-  const onUnhandled = (e) => unhandled.push(e.reason ?? e);
+  let unhandled: unknown[];
+  const onUnhandled = (e: unknown) => unhandled.push(e);
 
   beforeEach(() => {
     reportError.mockClear();
@@ -37,18 +45,18 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
 
   it('reports nothing and commits no previews for the destroyed document (getOperatorList throws)', async () => {
     let destroyed = false;
-    let releaseOps;
+    let releaseOps!: () => void;
     const page = {
       getOperatorList: () => new Promise((_, reject) => {
         releaseOps = () => reject(destroyedError());
       }),
       commonObjs: { get: () => null },
     };
-    const oldDoc = { getPage: vi.fn(async () => page) };
-    const newDoc = { getPage: vi.fn(() => new Promise(() => {})) };
-    const objects = [{ id: 'a', kind: 'text', pageIndex: 0 }];
-    const seen = [];
-    const Probe = ({ doc }) => {
+    const oldDoc = fakePdfDocument({ getPage: vi.fn(async () => page) });
+    const newDoc = fakePdfDocument({ getPage: vi.fn(() => new Promise(() => {})) });
+    const objects = [anObject()];
+    const seen: unknown[] = [];
+    const Probe = ({ doc }: { doc: PDFDocumentProxy }) => {
       seen.push(useObjectPreviews(doc, objects));
       return null;
     };
@@ -72,11 +80,11 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
   });
 
   it('reports nothing when getPage itself throws after the document was replaced', async () => {
-    let rejectPage;
-    const oldDoc = { getPage: () => new Promise((_, reject) => { rejectPage = () => reject(destroyedError()); }) };
-    const newDoc = { getPage: () => new Promise(() => {}) };
-    const objects = [{ id: 'a', kind: 'text', pageIndex: 0 }];
-    const Probe = ({ doc }) => { useObjectPreviews(doc, objects); return null; };
+    let rejectPage!: () => void;
+    const oldDoc = fakePdfDocument({ getPage: () => new Promise((_, reject) => { rejectPage = () => reject(destroyedError()); }) });
+    const newDoc = fakePdfDocument({ getPage: () => new Promise(() => {}) });
+    const objects = [anObject()];
+    const Probe = ({ doc }: { doc: PDFDocumentProxy }) => { useObjectPreviews(doc, objects); return null; };
 
     act(() => render(<Probe doc={oldDoc} />, host!));
     await act(flush);
@@ -93,8 +101,8 @@ describe('useObjectPreviews genuine errors', () => {
   it('still reports an error from a document that is current', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const page = { getOperatorList: async () => { throw new Error('bad stream'); }, commonObjs: { get: () => null } };
-    const doc = { getPage: async () => page };
-    const objects = [{ id: 'a', kind: 'text', pageIndex: 0 }];
+    const doc = fakePdfDocument({ getPage: async () => page });
+    const objects = [anObject()];
     const host = document.createElement('div');
     document.body.appendChild(host);
     reportError.mockClear();
