@@ -16,6 +16,7 @@ import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
 // The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs.
 // Everything else (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over it.
@@ -287,7 +288,8 @@ describe('PdfEditPagesTool UI flow', () => {
     await prepareNow();
     const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
     vi.stubGlobal('location', { href: '/organize-pdf/' });
-    await act(async () => { compress.click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { compress.click(); });
+    await waitUntil(() => expect(window.location.href).toBe('/compress/'));
     const handoff = await harness.takeHandoff('compress');
     expect(handoff).toMatchObject({ fileName: 'document_modified.pdf', fileType: 'application/pdf' });
     expect(await pagesOf(new Blob([handoff.fileBytes]))).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS });

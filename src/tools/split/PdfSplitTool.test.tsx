@@ -17,6 +17,7 @@ import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewSplitMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 
@@ -324,7 +325,8 @@ describe('PdfSplitTool UI flow', () => {
       await open({ navigate });
       await click(skipButton(1));
       await builtWith(4);
-      await act(async () => { button(label).click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+      await act(async () => { button(label).click(); });
+      await waitUntil(() => expect(navigate).toHaveBeenCalledWith(href));
       // Parked under the target tool's own key, and under no other.
       const otherTool = tool === 'compress' ? 'sign' : 'compress';
       expect(await harness.takeHandoff(otherTool)).toBeNull();
@@ -371,7 +373,8 @@ describe('PdfSplitTool UI flow', () => {
     await until(() => cells().length > 0 && downloadElement()?.getAttribute('data-state') === 'ready' && harness.createdBlobs().length > 0);
     expect(cells()).toHaveLength(3);
     expect((await pagesOf(shownOutput())).widths).toEqual([200, 300, 400]);
-    await act(async () => { button('Compress').click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { button('Compress').click(); });
+    await waitUntil(() => expect(navigate).toHaveBeenCalled());
     const handoff = await harness.takeHandoff('compress');
     expect(handoff?.fileName).toBe('extracted_broken.pdf');
     expect((await pagesOf(new Blob([handoff.fileBytes]))).widths).toEqual([200, 300, 400]);

@@ -17,6 +17,7 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '../../lib/actionTrail.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { ANALYSIS_SHAPES, buildAnalysisPdf } from '../../test/support/analysisPdfFixtures.ts';
 
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
@@ -408,7 +409,7 @@ describe('PdfCompressTool UI flow', () => {
     nativeShare.share.mockImplementationOnce(() => Promise.reject(rejection));
     await loadPdf('test_doc.pdf', 100000);
     await act(async () => container.querySelector(`.${pdfToolStyles['pdf-share-button']}`).click());
-    await wait(20);
+    await waitUntil(() => expect(container.textContent).toContain(expected));
     expect(nativeShare.share).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain(expected);
     expect(recentActions()).not.toContain('share');
@@ -439,8 +440,8 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       resolveBefore();
       resolveAfter();
-      await new Promise((resolve) => setTimeout(resolve, 10));
     });
+    await waitUntil(() => expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(2));
 
     expect(container.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
     expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(2);
@@ -463,7 +464,7 @@ describe('PdfCompressTool UI flow', () => {
     // While A is 'processing', B lands through the same no-confirm path a
     // workspace drop or Replace pick takes mid-compress.
     await pick(makePdfFile('run_b.pdf', 40000), () => stripName().includes('run_b.pdf'));
-    await wait(50);
+    await waitUntil(() => expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2));
     expect(stripName()).toContain('run_b.pdf');
     // B starts at once (A's compressor takes no abort signal, so A can only be dropped, not stopped).
     expect(imagesLib.compressPdfImages).toHaveBeenCalledTimes(2);
@@ -517,8 +518,8 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       beforeResolvers[1]();
       afterResolvers[1]();
-      await new Promise((resolve) => setTimeout(resolve, 10));
     });
+    await waitUntil(() => expect(container.querySelector(`.${styles['compare-panel']}`)?.querySelectorAll('img')).toHaveLength(2));
 
     let panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
@@ -567,7 +568,7 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => {
         findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await wait(10);
+      await waitUntil(() => expect(container.querySelector(`.${styles['compare-fullscreen']}`)?.querySelectorAll(`.${sliderStyles['compare-tag']}`)).toHaveLength(2));
       const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
       expect(dialog.querySelectorAll(`.${sliderStyles['compare-tag']}`)).toHaveLength(2);
     });
@@ -616,7 +617,7 @@ describe('PdfCompressTool UI flow', () => {
         compressImageLib.compressImageToTarget.mockImplementation(() => run.promise);
         mount();
         const photo = await pick(makeImageFile('decode.jpg', 900_000), ran(compressImageLib.compressImageToTarget, 1));
-        await wait(20);
+        await waitUntil(() => expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull());
         expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
         expect(result().querySelector('img')).toBeNull();
         await act(async () => {
@@ -660,6 +661,8 @@ describe('PdfCompressTool UI flow', () => {
 
     it('renders the original once per file: one render at pick, one for the compressed page after the run', async () => {
       const file = await loadPdf('once.pdf', 100000);
+      await waitUntil(() => expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls.length).toBeGreaterThanOrEqual(2));
+      // The count is exact: a short settle so a third render would show.
       await wait(20);
       const calls = harness.pdfjs.thumbnails.renderComparePreview.mock.calls;
       expect(calls).toHaveLength(2);
@@ -681,8 +684,8 @@ describe('PdfCompressTool UI flow', () => {
       await pick(makePdfFile('b.pdf', 100000), () => resolvers.length === 2);
       await act(async () => {
         resolvers[1]();
-        await new Promise((r) => setTimeout(r, 10));
       });
+      await waitUntil(() => expect(result().querySelector('img')?.getAttribute('src')).toBe('data:image/png;base64,orig-b.pdf'));
       expect(result().querySelector('img').getAttribute('src')).toBe('data:image/png;base64,orig-b.pdf');
       await act(async () => {
         resolvers[0]();
@@ -874,7 +877,7 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       fullScreen.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await wait(10);
+    await waitUntil(() => expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).not.toBeNull());
 
     const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
     expect(dialog).not.toBeNull();
@@ -1603,7 +1606,6 @@ describe('PdfCompressTool UI flow', () => {
     await waitFor(ran(imagesLib.compressPdfImagesToTarget, 2));
     await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await act(async () => { held.resolve(imagesResult()); });
-    await wait(300);
-    expect(statusOf()).toBe('done');
+    await waitUntil(() => expect(statusOf()).toBe('done'));
   });
 });

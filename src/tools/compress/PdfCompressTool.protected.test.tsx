@@ -10,6 +10,7 @@ import * as imagesLib from './lib/compressImages.js';
 import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
 // (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
@@ -77,11 +78,10 @@ describe('PdfCompressTool with a protected PDF', () => {
   const pick = async (file, settle = true) => {
     input ??= container.querySelector('input[type="file"]');
     await act(async () => { setInputFiles(input, [file]); });
-    const end = Date.now() + 4000;
     const done = () =>
       container.querySelector('[data-needs-unlock]') !== null
       || ['done', 'error'].includes(container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status'));
-    while (settle && !done() && Date.now() < end) await nap(20);
+    if (settle) await waitUntil(done, { timeout: 4000 }).catch(() => {});
     await nap(settle ? 20 : 200);
   };
   const buttons = () => Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
@@ -134,8 +134,8 @@ describe('PdfCompressTool with a protected PDF', () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Unlock it').click();
-      await new Promise((resolve) => setTimeout(resolve, 100));
     });
+    await waitUntil(() => expect(location.href).toBe('/unlock/'));
 
     const parked = await harness.takeHandoff('unlock');
     expect(parked).toEqual(expect.objectContaining({ from: 'compress', fileName: 'needs-password.pdf' }));
@@ -164,8 +164,8 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(runs()).toBe('0');
     expect(statusNow()).not.toMatch(/^(processing|done)$/);
     await act(async () => { release('open'); });
-    for (let i = 0; i < 100 && statusNow() !== 'done'; i++) await nap(20);
-    expect(statusNow()).toBe('done');
+    await waitUntil(() => expect(statusNow()).toBe('done'));
+    // The count is exact: a short settle so a second build would show.
     await nap(100);
     expect(compressImagesSpy).toHaveBeenCalledTimes(1);
     expect(runs()).toBe('1');
