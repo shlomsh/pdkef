@@ -56,9 +56,13 @@ import { isLocalizedPath } from '../i18n/localePrefixes.js';
 const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 
+// The Scan guide's photos (about 750 KB) are shown only on a controlled page and cached then, at runtime.
+export const RUNTIME_ONLY_IMAGE_DIRS = ['/images/scan-guide/'];
+
 export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;
   if (relative.startsWith('fonts/')) return PRECACHED_FONTS.includes(relative);
+  if (RUNTIME_ONLY_IMAGE_DIRS.some((dir) => `/${relative}`.startsWith(dir))) return false;
   if (relative.endsWith('.html') && isLocalizedPath(relative)) return false;
   return true;
 }

@@ -14,6 +14,7 @@ const SIGN_HTML = `<html><head>
 <script type="module" src="/_astro/boot.js"></script>
 </head><body>
 <a href="/merge/">Merge</a><img src="/images/photo.jpg"><picture><source srcset="/images/photo.webp"></picture>
+<img src="/_astro/logo.a.webp" srcset="/_astro/logo.a.webp 1x, /_astro/logo.b.webp 2x" width="48"><img loading="lazy" src="/images/lazy.jpg" srcset="/images/lazy.jpg 1x, /images/lazy2.jpg 2x">
 <astro-island component-url="/_astro/PdfSignTool.js" renderer-url="/_astro/client.js" before-hydration-url="/_astro/hydrate.js"></astro-island>
 </body></html>`;
 
@@ -29,15 +30,17 @@ const files = new Map([
   ['_astro/hydrate.js', 'export const h=1;'],
   ['_astro/page.css', '.x{background:url(../fonts/Alef-Regular.ttf)}.y{background:url("data:image/png;base64,AAA")}'],
   ['_astro/PdfSignTool.js', 'import{a}from"./shared.js";const load=()=>import("./pdf-lib.js");const w=`/_astro/pdfWorker.js`;const d=(i)=>i.map(i=>m.f[i]);m.f=["_astro/mapped.js","_astro/page.css"];'],
-  ['_astro/pdf-lib.js', 'const wasm="/pdfjs-dist-wasm/";export default wasm;'],
+  ['_astro/pdf-lib.js', 'const wasm="/pdfjs-dist-wasm/";const s="/images/redaction-guide/sample.pdf",p=`/images/redaction-guide/sample-preview.jpg`,g="/images/scan-guide/one.jpg";const k="/_astro/worker.mjs";export default wasm;'],
   ['_astro/mapped.js', 'export const m=1;'],
   ['_astro/pdfWorker.js', 'const u=new URL("./workerHelper.js",import.meta.url);const w=["openjpeg","jbig2"];'],
+  ['_astro/worker.mjs', 'import{d}from"./dep.mjs";export const w=1;'],
+  ['_astro/dep.mjs', 'export const d=1;'],
   ['_astro/workerHelper.js', 'export const wh=1;'],
   ['_astro/PdfMergeTool.js', 'export const merge=1;'],
 ]);
 const paths = [
   ...files.keys(),
-  '_astro/never.js', 'images/photo.jpg', 'images/photo.webp', 'icons/favicon.png', 'manifest.webmanifest',
+  '_astro/never.js', '_astro/logo.a.webp', '_astro/logo.b.webp', 'images/lazy.jpg', 'images/lazy2.jpg', 'images/redaction-guide/sample.pdf', 'images/redaction-guide/sample-preview.jpg', 'images/scan-guide/one.jpg', '_astro/worker.mjs', '_astro/dep.mjs', 'images/photo.jpg', 'images/photo.webp', 'icons/favicon.png', 'manifest.webmanifest',
   'fonts/Arimo-Regular.ttf', 'fonts/Heebo-Bold.ttf', 'fonts/Alef-Regular.ttf',
   'pdfjs-dist-wasm/openjpeg.wasm', 'pdfjs-dist-wasm/jbig2.wasm', 'pdfjs-dist-wasm/openjpeg_nowasm_fallback.js',
   'pdfjs-dist-wasm/quickjs-eval.wasm', 'pdfjs-dist-wasm/quickjs-eval.js', 'sign/index.md',
@@ -68,10 +71,31 @@ describe('pageClosure', () => {
     expect(sign).not.toContain('/pdfjs-dist-wasm/quickjs-eval.js');
   });
 
-  it('leaves out other pages, html-only rasters, ld+json strings, fallbacks and Markdown twins', () => {
+  it('adds eager <img> src and srcset rasters but not lazy images or <source>', () => {
+    expect(sign).toContain('/_astro/logo.a.webp');
+    expect(sign).toContain('/_astro/logo.b.webp');
+    expect(sign).toContain('/images/photo.jpg');
+    expect(sign).not.toContain('/images/lazy.jpg');
+    expect(sign).not.toContain('/images/lazy2.jpg');
+    expect(sign).not.toContain('/images/photo.webp');
+  });
+
+  it('adds /images/ paths a chunk names, then lets the byte policy drop runtime-only directories', () => {
+    expect(sign).toContain('/images/redaction-guide/sample.pdf');
+    expect(sign).toContain('/images/redaction-guide/sample-preview.jpg');
+    const scanKeep = (relative) => keep(relative) && !relative.startsWith('images/scan-guide/');
+    expect(pageClosure(view, 'sign/index.html', { keep })).toContain('/images/scan-guide/one.jpg');
+    expect(pageClosure(view, 'sign/index.html', { keep: scanKeep })).not.toContain('/images/scan-guide/one.jpg');
+  });
+
+  it('treats .mjs like .js: referenced by /_astro/ string and walked for its imports', () => {
+    expect(sign).toContain('/_astro/worker.mjs');
+    expect(sign).toContain('/_astro/dep.mjs');
+  });
+
+  it('leaves out other pages, lazy and <source> rasters, ld+json strings, fallbacks and Markdown twins', () => {
     expect(sign).not.toContain('/merge/');
     expect(sign).not.toContain('/_astro/PdfMergeTool.js');
-    expect(sign).not.toContain('/images/photo.jpg');
     expect(sign).not.toContain('/images/photo.webp');
     expect(sign).not.toContain('/_astro/never.js');
     expect(sign).not.toContain('/pdfjs-dist-wasm/openjpeg_nowasm_fallback.js');
