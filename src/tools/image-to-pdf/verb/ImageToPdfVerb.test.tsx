@@ -1,4 +1,3 @@
-// @ts-nocheck - matches the other .tsx island tests
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it } from 'vitest';
@@ -17,7 +16,7 @@ describe('ImageToPdfVerb', () => {
   });
 
   it('hides the whole stage from assistive tech', () => {
-    expect(mount().firstElementChild.getAttribute('aria-hidden')).toBe('true');
+    expect(mount().firstElementChild?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('never carries a style attribute (CSP)', () => {

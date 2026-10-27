@@ -1,35 +1,34 @@
-// @ts-nocheck - test-only, mirrors PdfMergeTool.test.tsx's untyped style. Lives in cross-tool/ because it renders the shell with Merge's real catalogue.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import DownloadElement from '../../shell/DownloadElement.tsx';
+import DownloadElement, { type DownloadElementProps } from '../../shell/DownloadElement.tsx';
 import styles from '../../shell/DownloadElement.module.css';
 import { englishMergeMessages } from '../../tools/merge/messages';
 
 describe('DownloadElement', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
   });
 
-  function mount(props) {
+  function mount(props: Omit<DownloadElementProps, 'messages'>) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    let current = { messages: englishMergeMessages, ...props };
-    act(() => render(<DownloadElement {...current} />, container));
-    const rerender = (next) => {
+    let current: DownloadElementProps = { messages: englishMergeMessages, ...props };
+    act(() => render(<DownloadElement {...current} />, container!));
+    const rerender = (next: Partial<DownloadElementProps>) => {
       current = { ...current, ...next };
-      act(() => render(<DownloadElement {...current} />, container));
+      act(() => render(<DownloadElement {...current} />, container!));
     };
     return { rerender };
   }
 
-  const box = () => container.querySelector(`.${styles.box}`);
+  const box = () => container!.querySelector(`.${styles.box}`);
 
   it('one-file: a sentence, plain surface (not a button), and a real "Choose files" button', () => {
     const onChooseFiles = vi.fn();
@@ -88,7 +87,7 @@ describe('DownloadElement', () => {
 
   it('ready: a real link with the page/size detail, full white on the primary teal', () => {
     mount({ state: 'ready', href: 'blob:x', fileName: 'merged.pdf', detail: '18 pages · 9.6 MB' });
-    const el = container.querySelector('a[href="blob:x"]');
+    const el = container!.querySelector('a[href="blob:x"]');
     expect(el).not.toBeNull();
     expect(el.getAttribute('role')).toBeNull();
     expect(el.textContent).toContain('Download merged PDF');
@@ -137,7 +136,7 @@ describe('DownloadElement', () => {
     // element's own 'saved' detail line matches 'ready' (page count and
     // size), not the file name.
     mount({ state: 'saved', href: 'blob:x', fileName: 'merged.pdf', detail: '18 pages · 9.6 MB' });
-    const el = container.querySelector('a[href="blob:x"]');
+    const el = container!.querySelector('a[href="blob:x"]');
     expect(el).not.toBeNull();
     expect(el.textContent).toContain('Saved');
     expect(el.textContent).toContain('18 pages · 9.6 MB');

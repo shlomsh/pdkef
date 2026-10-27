@@ -1,4 +1,3 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -23,19 +22,19 @@ const REDACT_BOX = redactStyles['redact-box'];
 // resolves relative to the manual pick, instead of depending on real IndexedDB timing
 // (which jsdom doesn't even implement).
 
-function makePdfFile(name) {
+function makePdfFile(name: string) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
 
 function deferred() {
-  let resolve;
-  const promise = new Promise((res) => {
+  let resolve!: (value: unknown) => void;
+  const promise = new Promise<unknown>((res) => {
     resolve = res;
   });
   return { promise, resolve };
 }
 
-function staleDraftRecord(fileName, elements) {
+function staleDraftRecord(fileName: string, elements: unknown[]) {
   return {
     fileName,
     fileSize: 8,
@@ -48,7 +47,7 @@ function staleDraftRecord(fileName, elements) {
   };
 }
 
-let loadDraftDeferred;
+let loadDraftDeferred: ReturnType<typeof deferred>;
 
 vi.mock('../../lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
@@ -88,7 +87,7 @@ async function waitAsync(ms = 30) {
   });
 }
 
-async function pickFile(container, file) {
+async function pickFile(container: HTMLElement, file: File) {
   const input = container.querySelector('input[type="file"]');
   await act(async () => {
     setInputFiles(input, [file]);
@@ -96,7 +95,7 @@ async function pickFile(container, file) {
 }
 
 describe('draft-restore vs. manual file pick race', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   beforeEach(() => {
     loadDraftDeferred = deferred();
@@ -104,7 +103,7 @@ describe('draft-restore vs. manual file pick race', () => {
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -115,7 +114,7 @@ describe('draft-restore vs. manual file pick race', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSignTool />, container);
+      render(<PdfSignTool />, container!);
     });
 
     // Restore's loadDraft() is now in flight and unresolved.
@@ -148,7 +147,7 @@ describe('draft-restore vs. manual file pick race', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSignTool />, container);
+      render(<PdfSignTool />, container!);
     });
 
     await act(async () => {
@@ -164,7 +163,7 @@ describe('draft-restore vs. manual file pick race', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRedactTool />, container);
+      render(<PdfRedactTool />, container!);
     });
 
     await pickFile(container, makePdfFile('fresh-user-pick.pdf'));
@@ -193,7 +192,7 @@ describe('draft-restore vs. manual file pick race', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRedactTool />, container);
+      render(<PdfRedactTool />, container!);
     });
 
     await act(async () => {
@@ -215,7 +214,7 @@ describe('draft-restore vs. manual file pick race', () => {
   // it *before* loadDraft rather than racing it, so which document opens is decided
   // by intent and not by which IndexedDB read happened to settle first.
   it('PdfSignTool: a pending home-page handoff opens ahead of the saved draft', async () => {
-    takeHandoff.mockResolvedValueOnce({
+    vi.mocked(takeHandoff).mockResolvedValueOnce({
       fileName: 'dropped-on-home.pdf',
       fileType: 'application/pdf',
       fileBytes: new TextEncoder().encode('%PDF-1.4').buffer
@@ -224,7 +223,7 @@ describe('draft-restore vs. manual file pick race', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSignTool />, container);
+      render(<PdfSignTool />, container!);
     });
 
     // Let the draft resolve too: it must lose, and it must lose deterministically
@@ -243,7 +242,7 @@ describe('draft-restore vs. manual file pick race', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSignTool />, container);
+      render(<PdfSignTool />, container!);
     });
 
     await act(async () => {

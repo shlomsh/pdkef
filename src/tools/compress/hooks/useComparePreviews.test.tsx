@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only, mirrors usePreparedOutput.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -14,16 +13,18 @@ const pdf = () => new File(['%PDF'], 'a.pdf', { type: 'application/pdf' });
 const photo = () => new File(['jpg'], 'a.jpg', { type: 'image/jpeg' });
 const blob = (type = 'application/pdf') => new Blob(['out'], { type });
 
-function Harness({ apiRef, runTokenRef }) {
+type Api = ReturnType<typeof useComparePreviews>;
+
+function Harness({ apiRef, runTokenRef }: { apiRef: { current: Api | null }; runTokenRef: { current: number } }) {
   apiRef.current = useComparePreviews({ runTokenRef });
   return null;
 }
 
 describe('useComparePreviews', () => {
-  let root;
-  let api;
-  let runTokenRef;
-  let urls;
+  let root: HTMLElement;
+  let api: { current: Api | null };
+  let runTokenRef: { current: number };
+  let urls: string[];
   beforeEach(() => {
     root = document.createElement('div');
     api = { current: null };
@@ -32,7 +33,7 @@ describe('useComparePreviews', () => {
     URL.createObjectURL = vi.fn(() => { const u = `blob:u${urls.length}`; urls.push(u); return u; });
     URL.revokeObjectURL = vi.fn();
     vi.clearAllMocks();
-    thumbnails.renderComparePreview.mockImplementation((fileOrBlob) => Promise.resolve(`data:${fileOrBlob instanceof File ? 'before' : 'after'}`));
+    vi.mocked(thumbnails.renderComparePreview).mockImplementation((fileOrBlob) => Promise.resolve(`data:${fileOrBlob instanceof File ? 'before' : 'after'}`));
     act(() => render(<Harness apiRef={api} runTokenRef={runTokenRef} />, root));
   });
   afterEach(() => act(() => render(null, root)));
@@ -40,70 +41,70 @@ describe('useComparePreviews', () => {
   const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 20)));
 
   it('renders a PDF pair from the already rendered original and the result', async () => {
-    await act(async () => api.current.loadOriginal(pdf()));
+    await act(async () => api.current!.loadOriginal(pdf()));
     await settle();
-    expect(api.current.original).toBe('data:before');
-    expect(api.current.originalPending).toBe(false);
-    await act(async () => api.current.open(pdf(), blob()));
+    expect(api.current!.original).toBe('data:before');
+    expect(api.current!.originalPending).toBe(false);
+    await act(async () => api.current!.open(pdf(), blob()));
     await settle();
-    expect(api.current.previews).toEqual({ before: 'data:before', after: 'data:after' });
-    expect(api.current.status).toBe('idle');
+    expect(api.current!.previews).toEqual({ before: 'data:before', after: 'data:after' });
+    expect(api.current!.status).toBe('idle');
     // the original was reused: one render for it, one for the result
     expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
   });
 
   it('makes an image pair from object urls, with no rendering, and revokes the result side on clear', async () => {
     const file = photo();
-    await act(async () => api.current.open(file, blob('image/jpeg')));
-    expect(api.current.previews).toEqual({ before: urls[0], after: urls[1] });
+    await act(async () => api.current!.open(file, blob('image/jpeg')));
+    expect(api.current!.previews).toEqual({ before: urls[0], after: urls[1] });
     expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
-    act(() => api.current.clear());
+    act(() => api.current!.clear());
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(urls[1]);
-    expect(api.current.previews).toBeNull();
+    expect(api.current!.previews).toBeNull();
   });
 
   it('lands nothing when the run token moved while rendering', async () => {
-    const open = api.current.open(pdf(), blob());
+    const open = api.current!.open(pdf(), blob());
     runTokenRef.current += 1;
     await act(async () => { await open; });
     await settle();
-    expect(api.current.previews).toBeNull();
+    expect(api.current!.previews).toBeNull();
   });
 
   it('reports a failed render as the error status', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    thumbnails.renderComparePreview.mockRejectedValue(new Error('boom'));
-    await act(async () => api.current.open(pdf(), blob()));
+    vi.mocked(thumbnails.renderComparePreview).mockRejectedValue(new Error('boom'));
+    await act(async () => api.current!.open(pdf(), blob()));
     await settle();
-    expect(api.current.status).toBe('error');
-    act(() => api.current.resetStatus());
-    expect(api.current.status).toBe('idle');
+    expect(api.current!.status).toBe('error');
+    act(() => api.current!.resetStatus());
+    expect(api.current!.status).toBe('idle');
   });
 
   it('renders the full screen pair once per result and clears it with the result', async () => {
     const file = pdf();
     const out = blob();
-    await act(async () => api.current.openFullscreen(file, out));
+    await act(async () => api.current!.openFullscreen(file, out));
     await settle();
-    expect(api.current.fullscreen.open).toBe(true);
-    expect(api.current.fullscreen.previews).toEqual({ before: 'data:before', after: 'data:after' });
-    const calls = thumbnails.renderComparePreview.mock.calls.length;
-    act(() => api.current.closeFullscreen());
-    expect(api.current.fullscreen.open).toBe(false);
-    await act(async () => api.current.openFullscreen(file, out));
-    expect(thumbnails.renderComparePreview.mock.calls.length).toBe(calls);
-    act(() => api.current.clear());
-    expect(api.current.fullscreen.open).toBe(false);
-    expect(api.current.fullscreen.previews).toBeNull();
+    expect(api.current!.fullscreen.open).toBe(true);
+    expect(api.current!.fullscreen.previews).toEqual({ before: 'data:before', after: 'data:after' });
+    const calls = vi.mocked(thumbnails.renderComparePreview).mock.calls.length;
+    act(() => api.current!.closeFullscreen());
+    expect(api.current!.fullscreen.open).toBe(false);
+    await act(async () => api.current!.openFullscreen(file, out));
+    expect(vi.mocked(thumbnails.renderComparePreview).mock.calls.length).toBe(calls);
+    act(() => api.current!.clear());
+    expect(api.current!.fullscreen.open).toBe(false);
+    expect(api.current!.fullscreen.previews).toBeNull();
   });
 
   it('drops the original of the previous file and revokes an image original', async () => {
-    await act(async () => api.current.loadOriginal(photo()));
+    await act(async () => api.current!.loadOriginal(photo()));
     await settle();
-    expect(api.current.original).toBe(urls[0]);
-    act(() => api.current.clearOriginal());
+    expect(api.current!.original).toBe(urls[0]);
+    act(() => api.current!.clearOriginal());
     expect(URL.revokeObjectURL).toHaveBeenCalledWith(urls[0]);
-    expect(api.current.original).toBeNull();
-    expect(api.current.originalPending).toBe(false);
+    expect(api.current!.original).toBeNull();
+    expect(api.current!.originalPending).toBe(false);
   });
 });

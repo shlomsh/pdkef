@@ -1,4 +1,3 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -14,14 +13,14 @@ import { RESTORE_TIMEOUT_MS } from '../../lib/drafts/useDraftPersistence.js';
 // depending on real IndexedDB timing (which jsdom doesn't implement).
 
 function deferred() {
-  let resolve;
-  const promise = new Promise((res) => {
+  let resolve!: (value: unknown) => void;
+  const promise = new Promise<unknown>((res) => {
     resolve = res;
   });
   return { promise, resolve };
 }
 
-function draftRecord(fileName) {
+function draftRecord(fileName: string) {
   return {
     fileName,
     fileSize: 8,
@@ -34,8 +33,8 @@ function draftRecord(fileName) {
   };
 }
 
-let loadDraftDeferred;
-let hint;
+let loadDraftDeferred: ReturnType<typeof deferred>;
+let hint: boolean | undefined;
 
 vi.mock('../../lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
@@ -64,7 +63,7 @@ vi.mock('pdfjs-dist', () => ({
 }));
 
 describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   beforeEach(() => {
     loadDraftDeferred = deferred();
@@ -73,7 +72,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -85,7 +84,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSignTool />, container);
+      render(<PdfSignTool />, container!);
     });
 
     expect(container.textContent).toContain('Drop PDF');
@@ -98,7 +97,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfSignTool />, container);
+      render(<PdfSignTool />, container!);
     });
 
     // Draft check is in flight: neither the "add a file" invitation nor its
@@ -126,7 +125,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => {
-        render(<PdfSignTool />, container);
+        render(<PdfSignTool />, container!);
       });
 
       expect(container.querySelector(`.${styles.dropzone}`)?.getAttribute('aria-busy')).toBe('true');

@@ -1,5 +1,4 @@
-// @ts-nocheck - renders islands from several tools; this folder is the cross-tool exemption
-import { render } from 'preact';
+import { render, type VNode } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
 import PdfMergeTool from '../../tools/merge/PdfMergeTool.tsx';
@@ -18,7 +17,7 @@ import dropzone from '../../shell/Dropzone.module.css';
 // docs/tool-hero-show-the-verb.md, Guards: every page-grid tool's empty sheet shows its
 // verb (VerbStage) instead of the generic file-plus icon.
 
-const WITH_VERB = [
+const WITH_VERB: [string, () => VNode][] = [
   ['merge', () => <PdfMergeTool />],
   ['image-to-pdf', () => <PdfImageToPdfTool />],
   ['security (unlock/protect)', () => <PdfSecurityTool />],
@@ -32,13 +31,13 @@ const WITH_VERB = [
   ['scan-to-pdf', () => <PdfScanTool />],
 ];
 
-let container;
+let container: HTMLElement | null = null;
 
-function renderEmpty(make) {
+function renderEmpty(make: () => VNode) {
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => {
-    render(make(), container);
+    render(make(), container!);
   });
   const sheet = container.querySelector('[data-empty-state]');
   expect(sheet).not.toBeNull();
@@ -47,7 +46,7 @@ function renderEmpty(make) {
 
 afterEach(() => {
   if (container) {
-    act(() => render(null, container));
+    act(() => render(null, container!));
     container.remove();
     container = null;
   }

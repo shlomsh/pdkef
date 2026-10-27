@@ -1,4 +1,3 @@
-// @ts-nocheck - matches the rest of the lib hook tests
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, vi } from 'vitest';
@@ -16,25 +15,25 @@ function Leaving({ onLeave = () => {} }) {
   >{navigatingAway ? 'leaving' : 'go'}</button>;
 }
 
-function pageShow(persisted) {
-  const event = new Event('pageshow');
+function pageShow(persisted: boolean) {
+  const event = new Event('pageshow') as Event & { persisted: boolean };
   event.persisted = persisted;
   act(() => { window.dispatchEvent(event); });
 }
 
 describe('useNavigatingAway', () => {
-  let container = null;
+  let container: HTMLElement | null = null;
 
-  function mount(props = {}) {
+  function mount(props: { onLeave?: () => void } = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<Leaving {...props} />, container));
-    return container.querySelector('button');
+    act(() => render(<Leaving {...props} />, container!));
+    return container.querySelector<HTMLButtonElement>('button')!;
   }
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -81,7 +80,7 @@ describe('useNavigatingAway', () => {
     const handler = added.mock.calls.find(([type]) => type === 'pageshow')?.[1];
     expect(handler).toBeTypeOf('function');
 
-    act(() => render(null, container));
+    act(() => render(null, container!));
 
     expect(removed).toHaveBeenCalledWith('pageshow', handler);
     added.mockRestore();
