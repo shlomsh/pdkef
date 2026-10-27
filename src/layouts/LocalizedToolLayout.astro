@@ -3,7 +3,7 @@
 // The route owns its island import (so only that tool's CSS is inlined); this
 // layout owns the ToolPageLayout props, computed by loadLocalizedToolPage.
 import ToolPageLayout from './ToolPageLayout.astro';
-import type { LocalizedToolPage } from '../i18n/localizedToolPage';
+import type { LocalizedToolPage } from '../site-lib/localizedToolPage';
 
 interface Props {
   page: LocalizedToolPage;

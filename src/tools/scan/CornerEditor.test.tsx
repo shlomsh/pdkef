@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import CornerEditor from './CornerEditor.tsx';
+import { isConvexQuad } from './quad.ts';
 
 const QUAD = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
 const LABELS = { group: 'Page corners', corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] };
@@ -52,15 +53,22 @@ describe('CornerEditor', () => {
     expect(next[1]).toEqual(QUAD[1]);
   });
 
-  it('commits nothing and restores the handle when the drag makes a bow tie', () => {
+  it('stops the handle at the last valid shape when the drag crosses the opposite corner', () => {
     const onCommit = vi.fn();
     mount(onCommit);
     mouse('mousedown', 70, 40, handle(0));
-    mouse('mousemove', 240, 110); // top-left dragged past the bottom-right corner
+    // Down the diagonal toward the bottom-right corner: valid at 0.25 and 0.4, collinear (not a page) from 0.55 on.
+    for (const t of [0.25, 0.4, 0.55, 0.7, 0.85]) mouse('mousemove', 50 + 200 * t, 20 + 100 * t);
+    mouse('mousemove', 240, 110); // dropped past the bottom-right corner
+    expect(handle(0).style.left).toBe('40%');
+    expect(handle(0).style.top).toBe('40%');
     mouse('mouseup', 240, 110);
-    expect(onCommit).not.toHaveBeenCalled();
-    expect(handle(0).style.left).toBe('10%');
-    expect(handle(0).style.top).toBe('10%');
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    const next = onCommit.mock.calls[0][0];
+    expect(isConvexQuad(next)).toBe(true);
+    expect(next[0].x).toBeCloseTo(0.4);
+    expect(next[0].y).toBeCloseTo(0.4);
+    expect(next[1]).toEqual(QUAD[1]);
   });
 
   it('nudges a focused handle with the arrow keys and commits each press', () => {

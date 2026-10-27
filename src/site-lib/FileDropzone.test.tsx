@@ -4,10 +4,10 @@ import { act } from 'preact/test-utils';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
-import { englishFileDropzoneMessages as en } from '../i18n/toolMessages';
+import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '../lib/fileArrival.ts';
 import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import { setInputFiles } from '../test/support/setInputFiles.js';
 
 vi.mock('../lib/drafts/draftStore.js', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),

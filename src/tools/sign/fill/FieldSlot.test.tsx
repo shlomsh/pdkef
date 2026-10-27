@@ -5,7 +5,7 @@ import FieldSlot from './FieldSlot.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from './fill.module.css';
-import { fieldTextInset, textElementLayout } from '../../../lib/signHelpers.js';
+import { fieldTextInset, textElementLayout } from '../../../editor/text/signHelpers.js';
 import { combLayout } from '../../../editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';
@@ -739,7 +739,7 @@ describe('FieldSlot component', () => {
 
   describe('sideways inset on a spanned field (fieldTextInset, SNG-15)', () => {
     it('pads a plain field slot inline by fieldTextInset, symmetric, and aligns it by layout.textAlign', () => {
-      // jsdom has no canvas (src/test/setup.js), so textWidthPx measures 0
+      // jsdom has no canvas (src/test/support/setup.js), so textWidthPx measures 0
       // for every value here - the same "no canvas" fallback the component
       // itself falls back to. fieldTextInset with a 0 text width is still
       // the real function under test: half the cell's slack, capped at a

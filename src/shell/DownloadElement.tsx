@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import styles from './DownloadElement.module.css';
-import { formatMessage, type DownloadMessages } from '../i18n/toolMessages';
+import { type DownloadMessages } from './shellMessages';
+import { formatMessage } from '../lib/formatMessage';
 
 export type DownloadElementState = 'one-file' | 'preparing' | 'ready' | 'saved' | 'error' | 'nothing';
 
@@ -29,6 +30,8 @@ export interface DownloadElementProps {
   onChooseFiles?: () => void;
   /** A tap before the quiet-time build has landed: 'preparing' state, or 'ready' without a link yet. */
   onPreparingTap?: () => void;
+  /** A tap on the error state: a tool that knows what holds the file back can take the person there. */
+  onErrorTap?: () => void;
   /** Hover, focus or pointerdown: the person is about to tap, so build now. */
   onWarm?: () => void;
   onDownloadClick?: (event: MouseEvent) => void;
@@ -68,6 +71,7 @@ export default function DownloadElement({
   chooseFilesLabel,
   onChooseFiles,
   onPreparingTap,
+  onErrorTap,
   onWarm,
   onDownloadClick,
   isOutputNameBeingRenamed = false,
@@ -120,6 +124,7 @@ export default function DownloadElement({
       onPreparingTap?.();
     } else if (state === 'error' || state === 'nothing') {
       event.preventDefault();
+      if (state === 'error') onErrorTap?.();
     } else {
       // ready / saved: the browser's own anchor download happens through
       // `href`/`download`; the tool only observes the tap.

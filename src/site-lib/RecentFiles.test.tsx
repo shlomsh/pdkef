@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import RecentFiles, { retentionNotice } from './RecentFiles.tsx';
-import { englishRecentFilesMessages } from '../i18n/toolMessages';
+import { englishRecentFilesMessages } from './recentFilesMessages';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

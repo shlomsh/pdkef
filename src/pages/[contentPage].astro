@@ -10,7 +10,7 @@ import { contentPages } from '../data/contentPages.js';
 import { getDocumentationContext } from '../i18n/documentation';
 import { getDocumentationShellMessages } from '../i18n/documentationMessages';
 import { documentationSourceFiles, lastModifiedFor } from '../site-lib/gitLastModified.js';
-import { registerContentPageStyles } from '../site-lib/inlineStyles';
+import { registerContentPageStyles } from '../components/inlineStyles';
 
 export async function getStaticPaths() {
   const entries = await getCollection('contentPages');

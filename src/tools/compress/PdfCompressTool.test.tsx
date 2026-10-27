@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
-import { englishCompressMessages, hebrewCompressMessages } from '../../i18n/toolMessages';
+import { englishCompressMessages, hebrewCompressMessages } from './messages';
 import * as compressLib from './compress.js';
 import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
@@ -14,8 +14,8 @@ import styles from './PdfCompressTool.module.css';
 import sliderStyles from './CompareSlider.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 const { lifecycleSpy, editSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), editSpy: vi.fn() }));
@@ -459,6 +459,23 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_doc-compressed.pdf');
 
+    nativeShare.restore();
+  });
+
+  // The Share ladder is the shared download flow's (useDownloadFlow): a closed sheet is not a failure.
+  it.each([
+    ['cancelled', Object.assign(new Error('closed'), { name: 'AbortError' }), englishCompressMessages.sharingCanceled],
+    ['failed', new Error('no share target'), englishCompressMessages.shareError],
+  ])('a share that is %s says so in the live region and records no share', async (_name, rejection, expected) => {
+    const nativeShare = mockNativeFileShare();
+    nativeShare.share.mockImplementationOnce(() => Promise.reject(rejection));
+    resetActionTrailForTests();
+    await loadPdf('test_doc.pdf', 100000);
+    await act(async () => container.querySelector(`.${pdfToolStyles['pdf-share-button']}`).click());
+    await wait(20);
+    expect(nativeShare.share).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain(expected);
+    expect(recentActions()).not.toContain('share');
     nativeShare.restore();
   });
 
@@ -1653,5 +1670,18 @@ describe('PdfCompressTool UI flow', () => {
       expect(detail).not.toContain('⁦');
       expect(detail).not.toContain('⁩');
     });
+  });
+
+  it('re-clicking the selected target preset while its build is in flight still lands the result', async () => {
+    await loadPdf('big_scan.pdf', 5_000_000);
+    await choose('Exact size');
+    const held = deferred();
+    imagesLib.compressPdfImagesToTarget.mockImplementationOnce(() => held.promise);
+    await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await waitFor(ran(imagesLib.compressPdfImagesToTarget, 2));
+    await act(async () => { preset('200 KB').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await act(async () => { held.resolve(imagesResult()); });
+    await wait(300);
+    expect(statusOf()).toBe('done');
   });
 });

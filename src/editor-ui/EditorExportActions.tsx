@@ -41,8 +41,8 @@ export interface EditorExportActionsProps {
    * export is blocked. Sign wires this to ExportReadinessNotice; Redact has
    * no such notice and leaves it undefined. */
   describedBy?: string;
-  /** Label and bidi overrides, read from src/i18n/toolMessages.ts's
-   * SignMessages by SignToolbar.tsx and PdfWorkspace.tsx. Default to this
+  /** Label and bidi overrides, read from SignMessages
+   * (src/editor/registry/messages.ts) by SignToolbar.tsx and PdfWorkspace.tsx. Default to this
    * file's own long-standing English literals, so Redact (which passes none of
    * these) is unaffected. The toolbar variant applies dir/lang to the two
    * buttons directly, since it renders them as a bare Fragment on purpose (see

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { planForFile, rotateEntry, withIncludedPages } from '../../lib/pagePlan.ts';
-import { englishToImageMessages } from '../../i18n/toolMessages';
+import { englishToImageMessages } from './messages';
 
 const { convert } = vi.hoisted(() => ({ convert: vi.fn() }));
 vi.mock('./toImage.js', async (importOriginal) => ({ ...(await importOriginal<object>()), convertPdfToImages: convert }));

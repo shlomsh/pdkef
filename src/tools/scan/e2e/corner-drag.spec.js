@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // SCAN-01 - what jsdom cannot prove about the corner editor: a real pointer
 // drag moves the handle while it is held, the handle stays where it was dropped,
 // the dropped corners reprocess the page (new strip thumbnail), and a drag
-// across the opposite corner (a bow tie) snaps the handle back.
+// across the opposite corner (a bow tie) stops the handle at the last valid shape.
 
 // A phone-like photo: dark desk, a lighter page turned about 6 degrees, dark text bars.
 async function makePhotoBytes(page) {
@@ -38,7 +38,7 @@ async function waitForScrollToSettle(page) {
 const center = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
 test.describe('scan - corner drag', () => {
-  test('a dragged corner follows the pointer, stays where dropped, reprocesses the page, and a bow tie snaps back', async ({ page }) => {
+  test('a dragged corner follows the pointer, stays where dropped, reprocesses the page, and a bow tie stops at the last valid shape', async ({ page }) => {
     await page.goto('/scan-to-pdf/');
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
 
@@ -95,7 +95,18 @@ test.describe('scan - corner drag', () => {
     await page.mouse.move(f.x + f.width * 0.98, f.y + f.height * 0.98, { steps: 4 });
     await page.mouse.up();
 
-    const snapped = center(await handle.boundingBox());
-    expect(Math.hypot(snapped.x - settled.x, snapped.y - settled.y)).toBeLessThan(3);
+    const stopped = center(await handle.boundingBox());
+    const drop = { x: f.x + f.width * 0.98, y: f.y + f.height * 0.98 };
+    // Neither at the drop point nor back at the start: it stopped on the way.
+    expect(Math.hypot(stopped.x - drop.x, stopped.y - drop.y)).toBeGreaterThan(8);
+    expect(Math.hypot(stopped.x - settled.x, stopped.y - settled.y)).toBeGreaterThan(3);
+    // The outline never shows an invalid shape: every turn of the polygon goes the same way.
+    const points = (await frame.locator('polygon').getAttribute('points')).trim().split(/\s+/).map((p) => p.split(',').map(Number));
+    const turns = points.map((p, i) => {
+      const q = points[(i + 1) % 4];
+      const r = points[(i + 2) % 4];
+      return (q[0] - p[0]) * (r[1] - q[1]) - (q[1] - p[1]) * (r[0] - q[0]);
+    });
+    expect(turns.every((t) => t > 0) || turns.every((t) => t < 0)).toBe(true);
   });
 });

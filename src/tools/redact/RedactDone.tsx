@@ -1,8 +1,9 @@
 import { FileSignature, Shrink } from 'lucide-preact';
-import ExportHandoffs from '../../editor-ui/ExportHandoffs.tsx';
+import ExportHandoffs from '../../shell/ExportHandoffs.tsx';
 import { formatFileSize } from '../../lib/format.js';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './RedactDone.module.css';
+import { englishRedactMessages as t } from './messages.ts';
 import { finishPagesText, finishStatusText, type FinishFacts } from './finishState.ts';
 
 /** The saved result: what was saved, then the one line about pictures. Shared by the pinned strip and the bottom row. */
@@ -27,17 +28,17 @@ export interface DoneHandoffsProps {
 
 /** Compress it (carrying the size) and Sign it, plus the failure line. */
 export function DoneHandoffs({ fileSize, busy, failed, onHandoff }: DoneHandoffsProps) {
-  const compress = { tool: 'compress', label: 'Compress it', Icon: Shrink, ...(typeof fileSize === 'number' ? { detail: formatFileSize(fileSize) } : {}) };
+  const compress = { tool: 'compress', label: t.compressIt, Icon: Shrink, ...(typeof fileSize === 'number' ? { detail: formatFileSize(fileSize) } : {}) };
   return (
     <>
       <ExportHandoffs
-        items={[compress, { tool: 'sign', label: 'Sign it', Icon: FileSignature }]}
+        items={[compress, { tool: 'sign', label: t.signIt, Icon: FileSignature }]}
         busy={busy}
         onHandoff={(tool) => onHandoff(tool as 'compress' | 'sign')}
       />
       {failed && (
         <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-          Could not hand this off. Download it instead and open it there.
+          {t.handoffFailed}
         </p>
       )}
     </>

@@ -35,3 +35,12 @@ export function mimeTypeOf(file) {
   if (file.type) return file.type;
   return /\.png$/i.test(file.name) ? 'image/png' : 'image/jpeg';
 }
+
+/**
+ * True for a PDF by MIME type, or by `.pdf` extension when the browser reports
+ * no type. Every tool's intake filter goes through this, never `file.type`.
+ *
+ * @param {File | null | undefined} file
+ * @returns {boolean}
+ */
+export const isPdfFile = (file) => deriveFileKind(file) === 'pdf';

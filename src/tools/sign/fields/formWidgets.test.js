@@ -14,7 +14,7 @@ import {
 } from './formWidgets.js';
 import { reconcile } from './fieldRegions.js';
 import { createPageGeometry } from '../../../editor/geometry/coords.ts';
-import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 
 /**
  * The frozen v1 practice form, against the whole field detector.

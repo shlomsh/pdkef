@@ -19,6 +19,7 @@ export default function ResultPage({ src, place, exact, labels, detail }: Result
   const ready = src !== null && place !== null;
   const w = ready ? place.pageWidth : A4_W;
   const h = ready ? place.pageHeight : A4_H;
+  const updating = ready && !exact;
   const caption = !ready ? labels.making : exact ? (detail ? `${labels.exact} · ${detail}` : labels.exact) : labels.updating;
 
   return (
@@ -27,11 +28,12 @@ export default function ResultPage({ src, place, exact, labels, detail }: Result
         class={styles.paper}
         data-paper
         data-exact={ready && exact ? '' : undefined}
-        style={{ aspectRatio: `${w} / ${h}`, width: `min(100%, calc(62svh * ${w} / ${h}))` }}
+        data-updating={updating ? '' : undefined}
+        style={{ aspectRatio: `${w} / ${h}`, width: `min(100%, calc(var(--scan-paper-h, 62svh) * ${w} / ${h}))` }}
       >
         {ready ? (
           <img
-            class={exact ? styles.img : `${styles.img} ${styles.stale}`}
+            class={styles.img}
             src={src}
             alt=""
             draggable={false}
@@ -45,8 +47,21 @@ export default function ResultPage({ src, place, exact, labels, detail }: Result
         ) : (
           <span class={styles.making}>{labels.making}</span>
         )}
+        {updating && (
+          <div class={styles.updating} aria-hidden="true">
+            <span class={styles.beam} />
+            <span class={styles.pill}>
+              <span class={styles.spinner} />
+              {labels.updating}
+            </span>
+          </div>
+        )}
       </div>
-      <figcaption class={styles.caption} aria-live="polite">{caption}</figcaption>
+      <figcaption class={styles.caption} aria-live="polite">
+        {/* While it rebuilds, the pill on the page says so: the caption keeps the words for screen
+            readers and its line, so nothing below moves. */}
+        {updating ? <><span class="sr-only">{caption}</span>{'\u00a0'}</> : caption}
+      </figcaption>
     </figure>
   );
 }

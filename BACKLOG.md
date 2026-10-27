@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 71 live: 11 up next, 16 then, 26 waiting, 18 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 65 live: 10 up next, 11 then, 26 waiting, 18 parked.
 
 ## Redact: finish removal
 
@@ -70,6 +70,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 
 ### Then, in order
@@ -112,25 +113,13 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-62 | P1 | [DEBT-62](backlog/tasks/DEBT-62.md) · Every tool accepts a PDF the browser reports with no file type |  |
-| DEBT-63 | P2 | [DEBT-63](backlog/tasks/DEBT-63.md) · Compress and PDF to Image stay inside the browser's canvas limit on very large pages |  |
-| ARCH-34 | P1 | [ARCH-34](backlog/tasks/ARCH-34.md) · A change to one core project reaches only the projects that use it |  |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| ARCH-35 | P2 | [ARCH-35](backlog/tasks/ARCH-35.md) · Tool text lives with each tool in one convention |  |
-| ARCH-36 | P2 | [ARCH-36](backlog/tasks/ARCH-36.md) · Compress, Image to PDF and Unlock/Protect finish through the shared flow |  |
-| ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool |  |
-| ARCH-38 | P2 | [ARCH-38](backlog/tasks/ARCH-38.md) · Adding a tool edits one registry, and hand-offs go through one function |  |
-| ARCH-39 | P2 | [ARCH-39](backlog/tasks/ARCH-39.md) · One set of PDF primitives in lib |  |
+| ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
 
 ### Parked
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ARCH-40 | P3 | [ARCH-40](backlog/tasks/ARCH-40.md) · Small seams from the October review |  |
+| ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control |  |
 
 ## Search and languages
 
@@ -208,9 +197,9 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
 - Robustness and debt: 57 done, 4 retired
-- Unify the tools, narrow the graph: 0 done, 0 retired
+- Unify the tools, narrow the graph: 8 done, 0 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 16 done, 1 retired
+- Polish: 17 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired

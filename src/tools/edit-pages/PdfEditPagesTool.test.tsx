@@ -7,8 +7,9 @@ import { editPages } from './editPages.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { until } from '../../test/support/until.js';
 import { reportError } from '../../lib/errorReport.ts';
 
 function makePdfFile(name) {
@@ -92,7 +93,7 @@ describe('PdfEditPagesTool UI flow', () => {
     container.addEventListener('click', (e) => e.preventDefault());
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile(name)]); });
-    await flush();
+    await until(() => cells().length > 0);
   }
 
   const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
@@ -102,15 +103,17 @@ describe('PdfEditPagesTool UI flow', () => {
   // The rail's Download element, the one with a state; the phone bar's quiet button has none.
   const downloadElement = () => container.querySelector('a[data-state]');
   // A pointer on the Download element asks for the build now instead of after the quiet wait.
-  const prepareNow = async () => {
+  // It settles once the built file is on the element; a test that holds the build open passes settles = false.
+  const prepareNow = async (settles = true) => {
+    const before = editPages.mock.calls.length;
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    await flush();
+    await until(() => (settles ? downloadElement()?.getAttribute('href') || downloadElement()?.dataset.state === 'error' : editPages.mock.calls.length > before));
   };
 
   it('skipping every page says so on the Download element, not that it is preparing', async () => {
     await load();
     await click(button('Skip all'));
-    await flush();
+    await until(() => downloadElement()?.getAttribute('data-state') === 'nothing');
     expect(downloadElement().getAttribute('data-state')).toBe('nothing');
     expect(downloadElement().textContent).toContain('Every page is skipped');
     expect(downloadElement().textContent).not.toContain('Preparing 0');
@@ -160,7 +163,7 @@ describe('PdfEditPagesTool UI flow', () => {
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('document.pdf')]); });
     expect(container.textContent).toContain('Loading PDF file structure');
-    await flush();
+    await until(() => !container.textContent.includes('Loading PDF file structure'));
     expect(container.textContent).not.toContain('Loading PDF file structure');
   });
 
@@ -300,8 +303,7 @@ describe('PdfEditPagesTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
-    await flush();
-    await flush();
+    await until(() => cells().length === 3);
     expect(takeHandoffMock).toHaveBeenCalledWith('edit-pdf');
     expect(heading().textContent).toContain('handed_modified.pdf');
     expect(cells().length).toBe(3);
@@ -312,15 +314,14 @@ describe('PdfEditPagesTool UI flow', () => {
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [file]); });
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
-    await flush();
-    await flush();
+    await until(() => cells().length > 0 && !container.textContent.includes('Loading PDF file structure'));
   };
 
   it('replacing the file drops a Download tapped before the build landed', async () => {
     let finishFirst;
     editPages.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }));
     await load('a.pdf');
-    await prepareNow();
+    await prepareNow(false);
     await click(downloadElement());
     expect(downloadElement().dataset.state).toBe('preparing');
 
@@ -338,7 +339,7 @@ describe('PdfEditPagesTool UI flow', () => {
     await act(async () => { name.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
     await act(async () => { name.textContent = 'my edit'; });
     await act(async () => { name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
-    await flush();
+    await until(() => downloadElement()?.getAttribute('download') === 'my edit.pdf');
     expect(downloadElement().getAttribute('download')).toBe('my edit.pdf');
     expect(downloadElement().getAttribute('href')).toBe('blob:testurl');
     expect(editPages).toHaveBeenCalledTimes(1);
@@ -351,7 +352,7 @@ describe('PdfEditPagesTool UI flow', () => {
     container.addEventListener('click', (e) => e.preventDefault());
     act(() => { render(<PdfEditPagesTool />, container); });
     await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [same()]); });
-    await flush();
+    await until(() => cells().length > 0);
     await prepareNow();
     expect(editPages).toHaveBeenCalledTimes(1);
 

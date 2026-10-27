@@ -218,6 +218,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/components/HeroDemo/HeroDemo.tsx',
       'backlog/tasks/ARCH-28.md',
       'scripts/errors-read.mjs',
+      'e2e/home/project.json',
     ];
     const example = candidates.find((c) => rule.match(c));
     expect(example, `no candidate path in this test matches rule "${id}" - add one`).toBeDefined();
@@ -292,6 +293,11 @@ describe('selectUnitTests: local mode (QUAL-24) never widens to the whole suite'
     expect(scope.all).toBe(false);
     expect(scope.seeds).toEqual([ORACLE_FILE]);
     expect(scope.reasons[0]).toBe(`CI runs the full suite: CI oracle changed: ${ORACLE_FILE}`);
+  });
+
+  it('an e2e project.json change selects the e2e-projects guard that reads it with fs/git', () => {
+    const scope = local([file('e2e/home/project.json')]);
+    expect(scope.seeds).toContain('scripts/e2e-projects.test.mjs');
   });
 
   it('an unpaired deletion contributes nothing and does not widen', () => {

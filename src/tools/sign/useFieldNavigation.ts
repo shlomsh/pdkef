@@ -15,14 +15,16 @@ import {
 } from '../../editor/text/fieldOrder.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { visibleViewportOrigin } from '../../editor-ui/hooks/visualViewportClamp.ts';
-import { englishSignMessages, formatMessage, type SignMessages } from '../../i18n/toolMessages';
+import { englishSignMessages } from './messages';
+import type { SignMessages } from '../../editor/registry/messages';
+import { formatMessage } from '../../lib/formatMessage';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS,
-} from '../../constants/signGeometry.js';
+} from '../../editor/model/signGeometry.js';
 
 /**
  * Next/Previous across a page's detected form fields (MOBI-06).

@@ -4,7 +4,7 @@ import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import TextNode from './nodes/TextNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
-import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../../constants/signGeometry.js';
+import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../../editor/model/signGeometry.js';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
@@ -168,7 +168,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     // These tests are about the desktop popover path
     // (FontPickerMenu.tsx's mouseenter-hover preview and
     // `[data-font-picker-menu]`), not the phone sheet SNG-17 added. Without
-    // this, src/test/setup.js's blanket `matchMedia` stub (matches: true for
+    // this, src/test/support/setup.js's blanket `matchMedia` stub (matches: true for
     // any query, tuned for ArmHint's `pointer: fine` query) would also make
     // `(pointer: coarse)` match, and the font trigger would open the sheet
     // instead - see FontPickerMenu.test.tsx's own `installMatchMedia` for the

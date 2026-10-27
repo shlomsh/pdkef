@@ -6,7 +6,7 @@
  * The result keeps its `context` so a term the person types later is checked
  * with the pure `checkSavedFile` alone, without reading the file again.
  */
-import { PDFDocument, ParseSpeeds } from '@cantoo/pdf-lib';
+import { openPdfDoc } from '../../../lib/openPdfDoc';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { readDocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
 import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
@@ -109,7 +109,7 @@ export async function runSavedFileCheck({
     const context = { original, boxes, saved, measure };
     const terms = uniqueTerms([...coveredTerms(coveredPages), ...extraTerms]);
     const readTraces = async (bytes: Uint8Array) =>
-      readDocumentTraces(await PDFDocument.load(bytes, { updateMetadata: false, parseSpeed: ParseSpeeds.Fastest }));
+      readDocumentTraces((await openPdfDoc(bytes, { updateMetadata: false, fast: true })).doc);
     const traces = { original: await readTraces(originalBytes), saved: await readTraces(savedBytes) };
     return { context, results: checkSavedFile({ ...context, terms }), unsolidPages, traces };
   } finally {

@@ -39,20 +39,22 @@ function usePageImage(source: Blob | null, quiet: () => boolean): { image: strin
 }
 
 /** The loaded state's centre: the document's first page on a sunken ground, with a small tag for its state. */
-export default function PagePreview({ plan, source, failed = false, pending = false }: {
+export default function PagePreview({ plan, source, failed = false, pending = false, label }: {
   plan: Plan;
   source: Blob | null;
   /** The tool's own run failed for this file: a preview failure is the same fault, not a second report. */
   failed?: boolean;
   /** No source yet because the file is still being checked. */
   pending?: boolean;
+  /** The section's accessible name. */
+  label: string;
 }) {
   const failedRef = useRef(failed);
   failedRef.current = failed;
   const { image, busy: rendering } = usePageImage(source, () => failedRef.current);
   const busy = rendering || pending;
   return (
-    <section class={styles.result} data-security-preview aria-label="First page">
+    <section class={styles.result} data-security-preview aria-label={label}>
       <span class={styles.tag} data-preview-tag>
         {plan.protectedDone && <Lock size={12} aria-hidden="true" />}
         {plan.tag}

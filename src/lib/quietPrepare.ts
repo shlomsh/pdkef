@@ -131,6 +131,10 @@ export function createQuietPreparer<T>(opts: {
       cancel();
       latest = null;
     },
+    /** Forgets every built result (a different document starts here); a build in flight is untouched. */
+    clearCache(): void {
+      cache.clear();
+    },
     get pendingKey(): string | null {
       return latest;
     },

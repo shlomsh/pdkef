@@ -6,8 +6,8 @@ import PdfSecurityTool from './PdfSecurityTool.tsx';
 import * as securityLib from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../../test/mockFileShare.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -253,6 +253,61 @@ describe('PdfSecurityTool', () => {
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_unlocked.pdf');
     nativeShare.restore();
+  });
+
+  describe('Share through the shared download flow', () => {
+    const shareDone = async (shareRejection?: Error) => {
+      const nativeShare = mockNativeFileShare();
+      if (shareRejection) nativeShare.share.mockRejectedValueOnce(shareRejection);
+      probeEncryption.mockResolvedValue('needs-password');
+      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked'], { type: 'application/pdf' }));
+      mount();
+      await loadFile();
+      const passwordInput = container.querySelector('input[type="password"]');
+      await act(async () => {
+        passwordInput.value = 'secret';
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+      resetActionTrailForTests();
+      const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
+      await act(async () => { shareButton.click(); await new Promise((resolve) => setTimeout(resolve, 10)); });
+      return nativeShare;
+    };
+    const announced = () => container.querySelector('p.sr-only[role="status"]').textContent.trim();
+
+    it('says the PDF is still ready when the share sheet is canceled, and records nothing', async () => {
+      const nativeShare = await shareDone(Object.assign(new Error('cancel'), { name: 'AbortError' }));
+      expect(announced()).toBe('Sharing canceled. Your PDF is still ready.');
+      expect(recentActions()).toEqual([]);
+      nativeShare.restore();
+    });
+
+    it('says the sheet could not open when sharing fails, and records nothing', async () => {
+      const nativeShare = await shareDone(new Error('boom'));
+      expect(announced()).toBe('Could not open the share sheet. Please try again.');
+      expect(recentActions()).toEqual([]);
+      nativeShare.restore();
+    });
+
+    it('records the Download tap by the name "download"', async () => {
+      const nativeShare = await shareDone();
+      resetActionTrailForTests();
+      const link = container.querySelector(`a.${pdfToolStyles['download-button']}`);
+      await act(async () => { link.addEventListener('click', (e) => e.preventDefault()); link.click(); });
+      expect(recentActions()).toEqual(['download']);
+      nativeShare.restore();
+    });
+
+    it('announces and records a completed share', async () => {
+      const nativeShare = await shareDone();
+      expect(announced()).toBe('Unlocked PDF shared successfully.');
+      expect(recentActions()).toEqual(['share']);
+      nativeShare.restore();
+    });
   });
 
   it('performs protecting successfully', async () => {

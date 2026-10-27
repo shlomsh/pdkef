@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
-import { DEFAULT_COLOR_BLUE } from '../../../../constants/signGeometry.js';
+import { DEFAULT_COLOR_BLUE } from '../../../../editor/model/signGeometry.js';
 import { DESIGN_BOX, markGeometry, markPathData } from '../../../../editor/registry/symbolMarks.ts';
 import type { SymbolElement, SymbolMark } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';

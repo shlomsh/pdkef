@@ -5,12 +5,14 @@ import ColorPickerMenu from '../../../editor-ui/ColorPickerMenu.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import { getEffectiveTextDirection, getTextAlign } from '../../../lib/signHelpers.js';
+import { getEffectiveTextDirection, getTextAlign } from '../../../editor/text/signHelpers.js';
 import { resolveTypography } from '../../../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../../../editor/text/comb.js';
-import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/text/dateFormat.ts';
-import { englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import type { SignMessages } from '../../../editor/registry/messages';
+import { formatMessage } from '../../../lib/formatMessage';
 import styles from '../../../editor-ui/EditorControls.module.css';
 
 export default function ElementToolbar({

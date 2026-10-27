@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import styles from './Dropzone.module.css';
-import { hebrewShellMessages } from '../i18n/toolMessages';
+import { hebrewShellMessages } from './shellMessages';
 
 const IPHONE_NAVIGATOR = {
   platform: 'iPhone',

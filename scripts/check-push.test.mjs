@@ -106,7 +106,7 @@ describe('fileCannotReachDist / reachesDist', () => {
 
 describe('planSteps', () => {
   it('docs-only runs only what CI runs for a docs-only push, regardless of every other field', () => {
-    const steps = planSteps({ docsOnly: true, everything: true, unit_paths: '', e2e_paths: '', fonts: true, export_guards: true, reachesDist: true });
+    const steps = planSteps({ docsOnly: true, everything: true, e2e_paths: '', fonts: true, export_guards: true, reachesDist: true });
     expect(steps).toEqual(DOCS_ONLY_STEPS);
   });
 
@@ -121,7 +121,6 @@ describe('planSteps', () => {
   it('a scripts-only diff (tooling, no build script touched): unit + typecheck, no build, no e2e', () => {
     const files = ['scripts/generate-backlog.mjs'];
     const scope = deriveScope({ files, affected: ['tooling'], roots: ROOTS });
-    expect(scope.unit_paths).toBe('scripts/ src/test/');
     const steps = planSteps({ ...scope, docsOnly: classify(files).docs_only, reachesDist: reachesDist(files) });
     expect(steps).toEqual([...ALWAYS_GUARD_STEPS, 'unit', 'typecheck']);
   });

@@ -13,24 +13,13 @@
  * browser, no time finer than the day the endpoint files it under.
  */
 
-// No imports, and none may be added: `api/report.ts` loads this file in the
-// deployed function (see errorReportSchema.ts and functionImports.test.js).
+// The one import is `toolIds.js` (ARCH-38), itself import-free: `api/report.ts` loads this file in the
+// deployed function (see errorReportSchema.ts and functionImports.test.js), where a `.ts` specifier fails.
+import { TOOL_IDS, type ToolId } from './toolIds.js';
 
-export const ANALYTICS_TOOLS = [
-  'merge',
-  'split',
-  'edit-pdf',
-  'compress',
-  'compress-image',
-  'pdf-to-image',
-  'image-to-pdf',
-  'scan-to-pdf',
-  'sign',
-  'redact',
-  'unlock',
-  'protect',
-] as const;
-export type AnalyticsTool = (typeof ANALYTICS_TOOLS)[number];
+/** Every tool that counts as itself: the registry's ids (src/lib/toolIds.ts). */
+export const ANALYTICS_TOOLS = TOOL_IDS;
+export type AnalyticsTool = ToolId;
 
 /**
  * DEBT-61: pages that only count their own views, on `tool_page_viewed` and nothing else. Not tools:

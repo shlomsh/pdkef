@@ -8,7 +8,7 @@
  * client-imported (RecentFiles renders from it), so a translation bundle
  * there would ship to every visitor's browser, and contentPages.js is the
  * English registry a content file is cross-checked against. Same pattern as
- * documentationMessages.ts and toolMessages.ts - one typed table per locale,
+ * documentationMessages.ts and the tools' messages.ts - one typed table per locale,
  * in the file the reviewer pass touches. A card whose slug has no entry here
  * falls back to its English copy; ToolCrossLinks / RelatedGuides say so with
  * the shell's `inEnglish` hint when the target has no edition in the locale.

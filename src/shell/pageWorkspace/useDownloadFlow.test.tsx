@@ -68,7 +68,6 @@ describe('useDownloadFlow', () => {
   const base = (prepared: Prepared, blocked: DownloadFlowInput['blocked'] = null): DownloadFlowInput => ({
     prepared,
     fileName: 'out.pdf',
-    hrefs: { compress: '/compress/', sign: '/sign/', merge: '/merge/' },
     blocked,
     announce,
     messages: { ready: 'Ready', shared: 'Shared', canceled: 'Canceled', shareError: 'Failed' },
@@ -266,15 +265,25 @@ describe('useDownloadFlow', () => {
     expect(navigate).toHaveBeenCalledWith('/merge/');
   });
 
-  it('a hand-off with no href for its tool does nothing: no save, no navigation, no failure', async () => {
+  it.each([['redact', '/redact/'], ['edit-pdf', '/organize-pdf/']] as const)(
+    'a tool with no Compress or Sign hand-off (Unlock) hands off to %s under its own id',
+    async (tool, href) => {
+      store.saveHandoff.mockResolvedValue(true);
+      const navigate = vi.fn();
+      mount({ ...base(ready()), navigate });
+      await act(async () => { await flow.requestHandoff(tool); });
+      expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe(tool);
+      expect(navigate).toHaveBeenCalledWith(href);
+    },
+  );
+
+  it('a hand-off goes to the page the caller names instead of the registry page (a locale edition)', async () => {
     store.saveHandoff.mockResolvedValue(true);
     const navigate = vi.fn();
-    mount({ ...base(ready()), hrefs: { compress: '/compress/', sign: '/sign/' }, navigate });
-    await act(async () => { await flow.requestHandoff('merge'); });
-    expect(store.saveHandoff).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
-    expect(flow.handoffBusy).toBe(false);
-    expect(flow.handoffFailed).toBe(false);
+    mount({ ...base(ready()), hrefs: { compress: '/he/compress/' }, navigate });
+    await act(async () => { await flow.requestHandoff('compress'); });
+    expect(store.saveHandoff.mock.calls.at(-1)[0]).toBe('compress');
+    expect(navigate).toHaveBeenCalledWith('/he/compress/');
   });
 
   it('parts: requestHandoff does nothing', async () => {
@@ -295,6 +304,22 @@ describe('useDownloadFlow', () => {
     await act(async () => { finish(true); await run; });
     expect(navigate).not.toHaveBeenCalled();
     expect(flow.handoffBusy).toBe(false);
+  });
+
+  it('a superseded hand-off whose save fails later leaves the newer hand-off busy', async () => {
+    let failA!: (saved: boolean) => void;
+    store.saveHandoff
+      .mockReturnValueOnce(new Promise<boolean>((resolve) => { failA = resolve; }))
+      .mockReturnValueOnce(new Promise<boolean>(() => {}));
+    mount({ ...base(ready()), navigate: vi.fn() });
+    let runA!: Promise<void>;
+    await act(async () => { runA = flow.requestHandoff('compress'); await Promise.resolve(); });
+    act(() => flow.reset());
+    await act(async () => { void flow.requestHandoff('merge'); await Promise.resolve(); });
+    expect(flow.handoffBusy).toBe(true);
+    await act(async () => { failA(false); await runA; });
+    expect(flow.handoffBusy).toBe(true);
+    expect(flow.handoffFailed).toBe(false);
   });
 
   it('a completed Share counts as a tap (processing, then done); a canceled one does not', async () => {

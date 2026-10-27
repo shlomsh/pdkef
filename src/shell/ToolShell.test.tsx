@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ToolShell, { ToolShellContext } from './ToolShell.tsx';
 import styles from './ToolShell.module.css';
-import { englishShellMessages } from '../i18n/toolMessages';
+import { englishShellMessages } from './shellMessages';
 
 /* BasePdfTool.test.tsx covers the default shell (thumbnail, actions). This is
    the editor variant Sign and Redact mount themselves. */

@@ -1,19 +1,72 @@
-/* Scan's loaded state: the selected page's corners above, the strip of finished pages below. */
+/* Scan's loaded state: the selected page (its corners, or the page as it will download) and the
+   pages. From 1024px the pages are a column at the inline start, sticky like the rail; below it
+   they follow the page's controls and the phone bar carries the way to add the next one (SCAN-02). */
+
+.workbench {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 
 .editor {
   /* The flatten animation's overlay is placed against it. */
   position: relative;
-  /* Clear of the sticky app bar when the first photos scroll it into view. */
-  scroll-margin-top: 96px;
+  /* Clear of the sticky app bar and the phone bar (3.25rem) when a view change scrolls it into view. */
+  scroll-margin-top: calc(3.5rem + 3.25rem + var(--space-2));
+  /* How tall the photo (corners) and the paper (result) may be: what is left of the screen under the
+     bars once the rows around them are counted (on a phone the hint's second line and the two rows
+     of corner controls), so Use these corners and the caption are on the same screen. */
+  --scan-view-h: max(15rem, calc(100svh - 18.5rem));
+  --scan-paper-h: max(15rem, calc(100svh - 21rem));
   display: grid;
   gap: 10px;
   justify-items: center;
+  min-width: 0;
 }
 
-/* Below 1024px the quiet Download bar sticks under the app bar: about 170px of chrome together. */
+/* Below 1024px the selected page is exactly one screen under the app bar and the phone bar: its
+   rows take what they need (the head wraps on a narrow phone) and the photo or the paper takes the
+   rest, so Use these corners is always on that screen. A landscape phone gets a floor and scrolls;
+   full screen is the room for it there. */
 @media (max-width: 1023px) {
   .editor {
-    scroll-margin-top: 184px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: max(26rem, calc(100svh - 3.5rem - 3.25rem - 1rem));
+  }
+
+  .photo-area,
+  .paper-area {
+    flex: 1 1 0;
+    min-height: 0;
+    container-type: size;
+  }
+
+  .photo-area {
+    --scan-view-h: 100cqh;
+  }
+
+  /* The caption under the paper takes two lines on a narrow phone. */
+  .paper-area {
+    --scan-paper-h: calc(100cqh - 3rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .workbench {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'pages editor';
+    align-items: start;
+  }
+
+  .editor {
+    grid-area: editor;
+    /* Level with the sticky rail and the pages column. */
+    scroll-margin-top: calc(3.5rem + var(--space-3));
+    --scan-view-h: max(20rem, calc(100svh - 11.5rem));
+    --scan-paper-h: max(18rem, calc(100svh - 17.5rem));
   }
 }
 
@@ -26,10 +79,21 @@
   width: 100%;
 }
 
+/* Rotate and Adjust corners, together at the head's end. */
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* "Page 2 of 3" and, in corners, what to do: one line where it fits. */
 .editor-title {
   margin: 0;
   outline: none;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
   font-weight: 600;
 }
 
@@ -53,36 +117,139 @@
   max-width: 32rem;
 }
 
-/* The photo's own shape, held while its preview is made, so nothing below jumps when it lands. */
+/* The photo's own shape and size (inline), held while its preview is made, so nothing below jumps
+   when it lands. */
 .corners-wait {
   display: grid;
   place-items: center;
-  width: min(100%, 22rem);
+  max-width: 100%;
   border-radius: 6px;
   background: var(--color-surface-sunken);
   color: var(--color-muted);
   font-size: 0.9rem;
 }
 
+/* Full screen for the corners: the editor is the whole screen, and the photo takes what its rows
+   leave. The browser's own full screen puts the editor in the top layer; the layer (iPhone) is a
+   fixed sheet over the page, under the notch and home bar's safe areas. */
+.editor[data-full] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.editor[data-full='layer'] {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overscroll-behavior: contain;
+}
+
+.editor[data-full] .photo-area {
+  flex: 1 1 0;
+  min-height: 0;
+  container-type: size;
+  --scan-view-h: 100cqh;
+}
+
+/* Where the photo (corners) and the paper (result) sit: centred, as wide as the editor. */
+.photo-area,
+.paper-area {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Room above and below the photo for the corner rings: at the photo's edge (Whole photo) they
+   touched the head and the row of controls. */
+.photo-area {
+  box-sizing: border-box;
+  padding-block: 12px;
+}
+
+/* Desktop, once measured (useFloorHeight.ts): the workbench is exactly the card's first screen, the
+   editor a column, and the photo or the paper takes whatever its rows leave, sized to that box
+   (container units) in both directions. */
+@media (min-width: 1024px) {
+  /* The floor keeps a usable photo when banners above take the room (two banners at 1024x700). */
+  .workbench[data-fitted] {
+    height: max(18rem, var(--scan-stage-h));
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .workbench[data-fitted] .editor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .workbench[data-fitted] .pages {
+    align-self: stretch;
+    max-height: none;
+    min-height: 0;
+  }
+
+  .workbench[data-fitted] .photo-area,
+  .workbench[data-fitted] .paper-area {
+    flex: 1 1 0;
+    min-height: 0;
+    container-type: size;
+  }
+
+  .workbench[data-fitted] .photo-area {
+    --scan-view-h: 100cqh;
+  }
+
+  /* The caption and its gap sit under the paper. */
+  .workbench[data-fitted] .paper-area {
+    --scan-paper-h: calc(100cqh - 2rem);
+  }
+}
+
+/* Auto-detect, Whole photo, then Use these corners: one row where all three fit, and where they
+   do not, the one that moves on takes the full width under the other two. */
 .corners-actions {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  width: min(100%, 26rem);
+  width: min(100%, 36rem);
 }
 
-.corners-quiet {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.corners-actions > button {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding-inline: 0.5rem;
 }
 
-/* Use these corners (or Done): the one primary control in corners mode, full width. */
+.corners-actions svg {
+  flex-shrink: 0;
+}
+
+/* Use these corners (or Done): the one primary control in corners mode. */
 .corners-actions .done-button {
-  min-height: 3rem;
+  flex: 1 1 11rem;
   font-size: 1rem;
   color: var(--color-surface);
   background: var(--color-primary);
   border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .corners-actions .done-button:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
 }
 
 .editor-hint {
@@ -91,20 +258,61 @@
   color: var(--color-muted);
 }
 
-/* One row of pages that scrolls sideways: on a phone the corners keep the screen. */
+/* The pages and, at their end, the tiles that add more. */
+.pages {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* One row of pages that scrolls sideways under the page's controls. */
 .strip {
   list-style: none;
-  margin: 16px 0 0;
-  padding: 4px 4px 8px;
+  margin: 0;
+  /* Room for the selected ring and the remove disc, which sits over the tile's corner. */
+  padding: 10px 10px 8px;
   display: flex;
   gap: 10px;
+  min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
 }
 
+.strip:empty {
+  display: none;
+}
+
 .tile {
   position: relative;
-  flex: 0 0 96px;
+  flex: 0 0 88px;
+}
+
+@media (min-width: 1024px) {
+  /* A column of pages beside the selected one, sticky under the app bar like the rail. Only the
+     pages scroll; the add tiles stay at its foot. */
+  .pages {
+    grid-area: pages;
+    position: sticky;
+    top: calc(3.5rem + var(--space-3));
+    flex-direction: column;
+    align-items: stretch;
+    width: 108px;
+    max-height: calc(100svh - 3.5rem - 2 * var(--space-3));
+  }
+
+  .strip {
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .tile {
+    flex: none;
+  }
 }
 
 .page {
@@ -178,15 +386,26 @@
   cursor: pointer;
 }
 
-.remove:hover {
-  color: var(--color-danger);
+@media (hover: hover) {
+  .remove:hover {
+    color: var(--color-danger);
+  }
 }
 
 .add-tile {
-  flex: 0 0 96px;
+  flex: 0 0 88px;
   display: grid;
   gap: 8px;
   align-content: start;
+  /* Level with the first page tile, below the strip's own padding. */
+  padding-top: 10px;
+}
+
+@media (min-width: 1024px) {
+  .add-tile {
+    flex: none;
+    padding: 0 10px 2px;
+  }
 }
 
 .add-button,
@@ -209,12 +428,25 @@
   cursor: pointer;
 }
 
-.add-button:hover,
+/* Below 1024px the add tile is the strip's last page slot, the same 3:4 shape as a page. */
+@media (max-width: 1023px) {
+  .add-button {
+    aspect-ratio: 3 / 4;
+  }
+}
+
 .add-button:focus-visible,
-.take-photo-button:hover,
 .take-photo-button:focus-visible {
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .add-button:hover,
+  .take-photo-button:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
 }
 
 /* The camera is a phone's: a mouse has nothing to point at a page. */
@@ -226,6 +458,76 @@
   .take-photo {
     display: none;
   }
+}
+
+/* The phone bar's add button, at its start, opposite the quiet Download: the same quiet bar style. */
+.bar-add {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.bar-add:focus-visible {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .bar-add:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
+}
+
+/* With a mouse the bar offers the picker instead of the camera. */
+.bar-pick {
+  display: none;
+}
+
+@media (pointer: fine) {
+  .bar-pick {
+    display: inline-flex;
+  }
+}
+
+/* Below 1024px the bar carries Take a photo, and with a mouse Add photos too, so the strip's end
+   keeps only what the bar does not: the picker, on a phone. */
+@media (max-width: 1023px) {
+  .add-tile .take-photo {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) and (pointer: fine) {
+  .add-tile {
+    display: none;
+  }
+}
+
+.rating-slot {
+  /* Its own height, never squeezed by the column, with the ask's margin inside it, so
+     useFloorHeight measures all of it. */
+  flex: none;
+  display: flow-root;
+}
+
+/* The ask's box is a fixed one-line height above a 40rem viewport (RatingPrompt), but in this
+   column the question wraps over its stars and they spilled out of it (1024x700). Here its own
+   height: the photo above already makes the room. */
+.rating-slot > div {
+  height: auto;
 }
 
 .phone-options {

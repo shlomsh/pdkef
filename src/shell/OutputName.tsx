@@ -171,12 +171,17 @@ export default function OutputName({
   }, [editing]);
 
   const commit = useCallback(() => {
-    const sanitized = sanitizeOutputName(nameRef.current?.textContent ?? '');
+    let sanitized = sanitizeOutputName(nameRef.current?.textContent ?? '');
+    // The extension is shown after the name, so one the person typed too
+    // ("x.pdf") would double up ("x.pdf.pdf"); drop a single trailing copy.
+    if (sanitized.toLowerCase().endsWith(extension.toLowerCase())) {
+      sanitized = sanitized.slice(0, sanitized.length - extension.length).trim();
+    }
     setEditing(false);
     remountKey.current += 1;
     onRename(sanitized);
     recordAction('change_setting');
-  }, [onRename, setEditing]);
+  }, [onRename, setEditing, extension]);
 
   const cancel = useCallback(() => {
     skipNextBlurCommit.current = true;
