@@ -1,7 +1,7 @@
 ---
 id: "SCAN-03"
 title: "The Scan guide photos load lazily"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "polish"
 horizon: "later"

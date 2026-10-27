@@ -1,7 +1,7 @@
 ---
 id: "MEM-19"
 title: "The deploying commit lives outside the page HTML, so an update re-downloads only the pages that changed"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"

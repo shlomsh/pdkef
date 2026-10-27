@@ -1,7 +1,7 @@
 ---
 id: "MEM-23"
 title: "Each precache request has a time limit"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "later"

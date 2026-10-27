@@ -1,7 +1,7 @@
 ---
 id: "QUAL-31"
 title: "check:push typechecks .astro scripts when the diff reaches an .astro file"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"

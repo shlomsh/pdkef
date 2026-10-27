@@ -10,9 +10,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
-- [MEM-19](backlog/tasks/MEM-19.md) P2 · The deploying commit lives outside the page HTML, so an update re-downloads only the pages that changed
-- [MEM-20](backlog/tasks/MEM-20.md) P2 · Each page's CSP hash list is emitted in a stable order
+- [MEM-19](backlog/tasks/MEM-19.md) P2 · The deploying commit lives outside the page HTML, so an update re-downloads only the pages that changed (in progress)
+- [MEM-20](backlog/tasks/MEM-20.md) P2 · Each page's CSP hash list is emitted in a stable order (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+- [QUAL-31](backlog/tasks/QUAL-31.md) P2 · check:push typechecks .astro scripts when the diff reaches an .astro file (in progress)
+- [MEM-23](backlog/tasks/MEM-23.md) P3 · Each precache request has a time limit (in progress)
 
 ### Unify the tools, narrow the graph
 
@@ -31,6 +33,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Polish
 
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
+- [SCAN-03](backlog/tasks/SCAN-03.md) P3 · The Scan guide photos load lazily (in progress)
 
 ## Waiting, by date
 
