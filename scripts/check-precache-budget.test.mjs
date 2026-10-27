@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pageHash } from './pageHash.mjs';
 import { describe, expect, it } from 'vitest';
-import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls } from './check-precache-budget.mjs';
+import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls, repoOnlyProblems } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -208,5 +208,14 @@ describe('distFontUrls (MEM-22)', () => {
   });
   it('lists nothing when dist/ has no fonts folder', () => {
     expect(distFontUrls(fs.mkdtempSync(path.join(os.tmpdir(), 'nofonts-')))).toEqual([]);
+  });
+});
+
+describe('repo-only files in dist/', () => {
+  it('fails the check on a project.json that public/ copied into dist/', () => {
+    const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'precache-repo-only-'));
+    fs.mkdirSync(path.join(dist, 'fonts'));
+    fs.writeFileSync(path.join(dist, 'fonts', 'project.json'), '{}');
+    expect(repoOnlyProblems(dist)).toEqual(['fonts/project.json: repo config shipped in dist/ (an Nx project.json inside public/ is copied verbatim and served; run scripts/repoOnlyFiles.mjs or move it)']);
   });
 });
