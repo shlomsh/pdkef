@@ -7,7 +7,7 @@ import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
-import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
+import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
 import { markArrival } from '../lib/fileArrival.ts';
 import type { FileSource } from '../lib/usageEventSchema.ts';
@@ -102,15 +102,15 @@ interface BasePdfToolProps {
  * identity + control row, the file input behind both, and the confirmation any
  * destructive file action goes through.
  *
- * It owns all of that on purpose. Nine tools each deciding for themselves what
+ * It owns all of that on purpose. Ten tool islands (fifteen pages in `src/data/tools.js`) each deciding for themselves what
  * "start over" meant is what produced two class names, two labels and two
  * behaviours for one action, plus three hand-copied confirmation dialogs and
- * three tools out of nine that quietly threw the user's work away. What differs
+ * three tools that quietly threw the user's work away. What differs
  * between tools is declared here as configuration - one file or many, what work
  * a replacement would cost - not re-implemented per tool.
  */
 
-export default function BasePdfTool({
+function BasePdfToolInner({
   hasFiles,
   onFilesAdded,
   children,
@@ -170,10 +170,6 @@ export default function BasePdfTool({
   const previouslyHadFilesRef = useRef(false);
   const previousFileRef = useRef<File | null>(null);
   const previousAnalyticsStatusRef = useRef<string | undefined>(undefined);
-
-  useEffect(() => {
-    installUncaughtErrorReporting();
-  }, []);
 
   // Null on the server and on the first client render (no navigator to read),
   // so hydration matches. It is only shown once a file is added: an old
@@ -542,3 +538,6 @@ export default function BasePdfTool({
     </ToolShellContext.Provider>
   );
 }
+
+/** Every tool island renders inside the shared error boundary (ARCH-72). */
+export default withIslandBoundary(BasePdfToolInner);

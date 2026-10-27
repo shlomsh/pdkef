@@ -252,12 +252,27 @@ export function resetErrorReportingForTests(): void {
 
 let installed = false;
 
+// Errors a render boundary already reported; the window handler must not send them twice.
+const reported = new WeakSet<object>();
+
+/** Marks a thrown value as already reported (no-op for primitives). */
+export function markReported(error: unknown): void {
+  if (typeof error === 'object' && error !== null) reported.add(error);
+}
+
+/** Whether a boundary already reported this thrown value. */
+export function isReported(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && reported.has(error);
+}
+
 /** Reports window `error` and `unhandledrejection`; calling it twice adds nothing. */
 export function installUncaughtErrorReporting(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
-  window.addEventListener('error', (event) => reportError('uncaught', event.error, 'window_error'));
-  window.addEventListener('unhandledrejection', (event) =>
-    reportError('uncaught', event.reason, 'unhandled_rejection'),
-  );
+  window.addEventListener('error', (event) => {
+    if (!isReported(event.error)) reportError('uncaught', event.error, 'window_error');
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    if (!isReported(event.reason)) reportError('uncaught', event.reason, 'unhandled_rejection');
+  });
 }
