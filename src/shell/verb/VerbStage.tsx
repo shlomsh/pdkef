@@ -39,7 +39,7 @@ export default function VerbStage({ children, class: className }: VerbStageProps
   }, []);
 
   return (
-    <div class={cls} aria-hidden="true" data-testid="verb-stage" ref={ref}>
+    <div class={cls} aria-hidden="true" ref={ref}>
       {children}
       <span class={styles.floor} />
     </div>

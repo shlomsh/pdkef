@@ -81,7 +81,7 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
       </div>
       <h2 class={styles.title}>{title}</h2>
       {file && (
-        <div class={styles.file} data-testid="needs-unlock-file">
+        <div class={styles.file}>
           <FileText size={14} stroke-width={1.75} aria-hidden="true" />
           <FileName name={file.name} className={styles.name} />
         </div>

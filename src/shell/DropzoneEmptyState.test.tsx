@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
-// Asserts the sheet-end and file-input classes: the hooks CSS waits on and keeps off display:none.
+// Asserts the sheet-end, file-input, pick-row and privacy-line classes: the layout hooks CSS waits on and keeps off display:none.
 import styles from './Dropzone.module.css';
 import { hebrewShellMessages } from './shellMessages';
 
@@ -112,7 +112,7 @@ describe('DropzoneEmptyState', () => {
   it('takes its heading and body from props, with Choose files after them', () => {
     mount({ heading: 'Drop PDFs here, or paste', body: 'Files never leave your device.' });
     expect(container.querySelector('strong').textContent).toContain('Drop PDFs here, or paste');
-    expect(container.querySelector('[data-testid="privacy-line"]').textContent).toContain('Files never leave your device.');
+    expect(container.querySelector(`.${styles['privacy-line']}`).textContent).toContain('Files never leave your device.');
     expect(container.textContent).toContain('Choose files');
   });
 
@@ -121,33 +121,31 @@ describe('DropzoneEmptyState', () => {
   it('holds a phone and a desktop span for a heading and body that differ from the defaults', () => {
     mount({ message: 'Drop here', heading: 'Drop here, or paste', body: 'Desktop line.' });
     const strong = container.querySelector('strong');
-    const phone = strong.querySelector('[data-testid="empty-phone"]');
-    const desktop = strong.querySelector('[data-testid="empty-desktop"]');
+    const [phone, desktop] = strong.querySelectorAll(':scope > span');
     expect(phone.textContent).toBe('Drop here');
     expect(desktop.textContent).toBe('Drop here, or paste');
-    const line = container.querySelector('[data-testid="privacy-line"]');
-    expect(line.querySelector('[data-testid="empty-phone"]').textContent).toBe('Private. Files never leave your device.');
-    expect(line.querySelector('[data-testid="empty-desktop"]').textContent).toBe('Desktop line.');
+    const line = container.querySelector(`.${styles['privacy-line']}`);
+    expect(line.querySelectorAll(':scope > span')[0].textContent).toBe('Private. Files never leave your device.');
+    expect(line.querySelectorAll(':scope > span')[1].textContent).toBe('Desktop line.');
   });
 
   it('puts an action in one row with the pick button, as an equal choice, and nothing extra without one', () => {
     mount({ action: <button type="button" data-testid="extra">Take a photo</button> });
     const picker = container.querySelector('label');
-    expect(picker.parentElement.getAttribute('data-testid')).toBe('pick-row');
+    expect(picker.parentElement.className).toBe(styles['pick-row']);
     expect(picker.nextElementSibling.getAttribute('data-testid')).toBe('extra');
     act(() => render(null, container));
     container.remove();
     mount();
     expect(container.querySelector('[data-testid="extra"]')).toBeNull();
-    expect(container.querySelector('label').nextElementSibling.getAttribute('data-testid')).toBe('privacy-line');
+    expect(container.querySelector('label').nextElementSibling.className).toBe(styles['privacy-line']);
   });
 
   it('renders one plain strong and line when no heading or body is given', () => {
     mount({ message: 'Drop here' });
     expect(container.querySelector('strong').children.length).toBe(0);
     expect(container.querySelector('strong').textContent).toBe('Drop here');
-    expect(container.querySelector('[data-testid="empty-phone"]')).toBeNull();
-    expect(container.querySelector('[data-testid="empty-desktop"]')).toBeNull();
+    expect(container.querySelectorAll(`strong span, .${styles['privacy-line']} > span`)).toHaveLength(0);
   });
 
   // QUAL-22: `hidden` is display:none, which removes the input from the tab
@@ -161,7 +159,7 @@ describe('DropzoneEmptyState', () => {
   });
 
   describe('drag-over caption', () => {
-    const caption = () => container.querySelector('strong[data-testid="drag-caption"]');
+    const caption = () => container.querySelector('strong:nth-of-type(2)');
 
     it('renders the many caption in English, without adding a span to the heading', () => {
       mount({ showIosFilesHint: false });

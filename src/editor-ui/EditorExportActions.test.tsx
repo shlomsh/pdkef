@@ -64,7 +64,7 @@ describe('EditorExportActions parity contract', () => {
           render(<EditorExportActions {...PROFILES[tool].makeProps()} />, container);
         });
 
-        const row = required(container.querySelector('[data-testid="export-actions"]'), 'export-actions row');
+        const row = required(container.firstElementChild, 'export-actions row');
         expect(row).not.toBeNull();
       });
 

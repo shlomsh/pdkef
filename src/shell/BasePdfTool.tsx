@@ -392,7 +392,7 @@ function BasePdfTool({
   return (
     <ToolShellContext.Provider value={shell}>
     <div
-      class={pdfToolStyles['tool-card']} data-testid="tool-card"
+      class={pdfToolStyles['tool-card']}
       /* Direction A reduction: the "has a file" signal for a tool that hides
          ToolShell (`hideIdentity`), so the page-level `:has()` gate in
          ToolPageLayout.astro (the two-column grid applies only while neither
@@ -416,7 +416,7 @@ function BasePdfTool({
           // Same dropzone box, so nothing resizes when this resolves either way -
           // just a neutral holding message instead of "drop a file here", which
           // would be actively misleading the moment before a draft loads over it.
-          <div class={styles.dropzone} aria-busy="true" data-testid="dropzone">
+          <div class={styles.dropzone} aria-busy="true">
             <p class={styles['dropzone-text']}>{sm.checkingDraft}</p>
           </div>
         ) : (
@@ -459,7 +459,7 @@ function BasePdfTool({
       )}
 
       {hasFiles && isDraggingOverWorkspace && (
-        <div class={styles['drop-overlay']} aria-hidden="true" data-testid="drop-overlay">
+        <div class={styles['drop-overlay']} aria-hidden="true">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
             <path
               d="M6 3.5h7l5 5V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V3.5Z"
