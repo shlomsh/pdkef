@@ -1,4 +1,3 @@
-// @ts-nocheck - matches the rest of the lib hook tests
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, vi } from 'vitest';
@@ -23,18 +22,18 @@ function pageShow(persisted) {
 }
 
 describe('useNavigatingAway', () => {
-  let container = null;
+  let container: HTMLElement | null = null;
 
   function mount(props = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<Leaving {...props} />, container));
+    act(() => render(<Leaving {...props} />, container!));
     return container.querySelector('button');
   }
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -81,7 +80,7 @@ describe('useNavigatingAway', () => {
     const handler = added.mock.calls.find(([type]) => type === 'pageshow')?.[1];
     expect(handler).toBeTypeOf('function');
 
-    act(() => render(null, container));
+    act(() => render(null, container!));
 
     expect(removed).toHaveBeenCalledWith('pageshow', handler);
     added.mockRestore();

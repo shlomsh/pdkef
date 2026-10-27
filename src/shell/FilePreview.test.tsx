@@ -1,4 +1,3 @@
-// @ts-nocheck - matches BasePdfTool.test.tsx / PdfCompressTool.test.tsx, not yet typed
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
@@ -32,7 +31,7 @@ vi.mock('../lib/thumbnails.js', () => ({
 }));
 
 describe('FilePreview', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,7 +39,7 @@ describe('FilePreview', () => {
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -50,13 +49,13 @@ describe('FilePreview', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<FilePreview {...props} />, container);
+      render(<FilePreview {...props} />, container!);
     });
   }
 
   it('renders the glyph when no file is given', () => {
     mount({ file: null });
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon).not.toBeNull();
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('svg')).not.toBeNull();
@@ -72,7 +71,7 @@ describe('FilePreview', () => {
     const file = makeImageFile();
     mount({ file });
 
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
     const img = icon.querySelector(`img.${styles.thumbnail}`);
     expect(img).not.toBeNull();
@@ -81,7 +80,7 @@ describe('FilePreview', () => {
     expect(window.URL.createObjectURL).toHaveBeenCalledWith(file);
     expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
 
-    act(() => render(null, container));
+    act(() => render(null, container!));
     expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-photo');
 
     window.URL.createObjectURL = originalCreateObjectURL;
@@ -96,7 +95,7 @@ describe('FilePreview', () => {
     const file = makeImageFile('photo.png', '');
     mount({ file });
 
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
     const img = icon.querySelector(`img.${styles.thumbnail}`);
     expect(img).not.toBeNull();
@@ -126,7 +125,7 @@ describe('FilePreview', () => {
 
     expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 192 });
     // Still the glyph until the render settles.
-    let icon = container.querySelector(`.${toolShellStyles.icon}`);
+    let icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.querySelector('img')).toBeNull();
     expect(icon.querySelector('svg')).not.toBeNull();
 
@@ -135,7 +134,7 @@ describe('FilePreview', () => {
       await promise;
     });
 
-    icon = container.querySelector(`.${toolShellStyles.icon}`);
+    icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
     const img = icon.querySelector(`img.${styles.thumbnail}`);
     expect(img).not.toBeNull();
@@ -157,7 +156,7 @@ describe('FilePreview', () => {
       await promise.catch(() => {});
     });
 
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
     expect(icon.querySelector('svg')).not.toBeNull();
@@ -168,7 +167,7 @@ describe('FilePreview', () => {
     mount({ file });
 
     expect(thumbnailsLib.renderThumbnail).not.toHaveBeenCalled();
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container!.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
   });

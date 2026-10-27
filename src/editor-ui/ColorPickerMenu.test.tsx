@@ -1,15 +1,14 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 
 describe('ColorPickerMenu (Popover Refactor)', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -24,7 +23,7 @@ describe('ColorPickerMenu (Popover Refactor)', () => {
     act(() => {
       render(
         <ColorPickerMenu value="#000000" onChange={() => {}} title="Test Color" />,
-        container
+        container!
       );
     });
 
@@ -53,13 +52,13 @@ describe('ColorPickerMenu (Popover Refactor)', () => {
     act(() => {
       render(
         <ColorPickerMenu value="#000000" onChange={() => {}} title="Test Color" />,
-        container
+        container!
       );
     });
 
     // Open the popover
     await act(async () => {
-      container.querySelector('button').click();
+      container!.querySelector('button').click();
     });
 
     // Grab the menu (wherever it rendered)

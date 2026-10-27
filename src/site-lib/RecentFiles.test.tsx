@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only, mirrors FileDropzone.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
@@ -8,11 +7,11 @@ import { englishRecentFilesMessages } from './recentFilesMessages';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 describe('RecentFiles', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -22,25 +21,25 @@ describe('RecentFiles', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<RecentFiles files={files} {...props} />, container);
+      render(<RecentFiles files={files} {...props} />, container!);
     });
   }
 
   it('renders nothing for an empty list', () => {
     mount([]);
-    expect(container.querySelector('[data-home-recents]')).toBeNull();
+    expect(container!.querySelector('[data-home-recents]')).toBeNull();
   });
 
   it('lays each file name out in its own direction, so a digit-led name keeps its order on /he/', () => {
     mount([{ tool: 'sign', fileName: '2025-invoice.pdf', cacheId: 'sha256:a', savedAt: Date.now() }]);
-    const name = container.querySelector('[data-home-recents] span[title="2025-invoice.pdf"]');
+    const name = container!.querySelector('[data-home-recents] span[title="2025-invoice.pdf"]');
     expect(name).not.toBeNull();
     expect(name.getAttribute('dir')).toBe('auto');
   });
 
   it('renders the bundled sample as a button, unaffected by the draft branch', () => {
     mount([{ tool: 'sign', fileName: 'PDkef practice form.pdf', bundledSample: true }]);
-    const button = container.querySelector('button[aria-label^="Open bundled sample PDF"]');
+    const button = container!.querySelector('button[aria-label^="Open bundled sample PDF"]');
     expect(button).not.toBeNull();
     expect(button.textContent).toContain('Sign & Fill PDF');
   });
@@ -49,7 +48,7 @@ describe('RecentFiles', () => {
     const onOpenRecent = vi.fn();
     const file = { cacheId: 'sha256:x', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now() };
     mount([file], { onOpenRecent });
-    const button = container.querySelector('button[aria-label^="Open recent PDF"]');
+    const button = container!.querySelector('button[aria-label^="Open recent PDF"]');
     expect(button).not.toBeNull();
     button.click();
     expect(onOpenRecent).toHaveBeenCalledWith(file);
@@ -67,8 +66,8 @@ describe('RecentFiles', () => {
     };
     mount([file], { onOpenRecent });
 
-    expect(container.querySelector('a')).toBeNull();
-    const button = container.querySelector('button[aria-label^="Open recent PDF"]');
+    expect(container!.querySelector('a')).toBeNull();
+    const button = container!.querySelector('button[aria-label^="Open recent PDF"]');
     expect(button).not.toBeNull();
     expect(button.textContent).toContain('invoice + 2 more');
     expect(button.textContent).toContain('Merge PDF');
@@ -79,7 +78,7 @@ describe('RecentFiles', () => {
 
   it('omits the page count line when a file has none', () => {
     mount([{ cacheId: 'sha256:x', tool: 'sign', fileName: 'a.pdf' }]);
-    expect(container.querySelector('button').textContent).not.toMatch(/page/);
+    expect(container!.querySelector('button').textContent).not.toMatch(/page/);
   });
 
   // On /he/ (dir="rtl") the browser-locale "2 days ago" is an LTR string in
@@ -87,16 +86,16 @@ describe('RecentFiles', () => {
   // element carries its own base direction. <bdi> is dir="auto" by default.
   it('wraps the saved-at label in a <bdi> so it keeps its own direction on an RTL page', () => {
     mount([{ cacheId: 'sha256:x', tool: 'sign', fileName: 'a.pdf', savedAt: Date.now() - 2 * 86_400_000 }]);
-    const bdi = container.querySelector('button bdi');
+    const bdi = container!.querySelector('button bdi');
     expect(bdi).not.toBeNull();
     expect(bdi.textContent).toBe(new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(-2, 'day'));
-    expect(bdi.parentElement.tagName).toBe('SPAN');
+    expect(bdi.parentElement!.tagName).toBe('SPAN');
   });
 
   it('routes the "just now" fallback through the same <bdi> wrapper', () => {
     mount([{ cacheId: 'sha256:x', tool: 'sign', fileName: 'a.pdf', savedAt: Date.now() }],
       { messages: { heading: 'h', openSampleAriaLabel: 's {name}', openRecentAriaLabel: 'Open recent PDF, {name}', justNow: 'הרגע', pageCountOne: '1', pageCountOther: '{count}' } });
-    const bdi = container.querySelector('button bdi');
+    const bdi = container!.querySelector('button bdi');
     expect(bdi).not.toBeNull();
     expect(bdi.textContent).toBe('הרגע');
   });
@@ -133,7 +132,7 @@ describe('RecentFiles', () => {
     const soonToExpire = { cacheId: 'sha256:e', tool: 'sign', fileName: 'expiring.pdf', savedAt: now - 26 * DAY_MS };
     const ordinary = { cacheId: 'sha256:f', tool: 'sign', fileName: 'ordinary.pdf', savedAt: now - DAY_MS };
     mount([soonToExpire, ordinary]);
-    const buttons = container.querySelectorAll('button');
+    const buttons = container!.querySelectorAll('button');
     expect(buttons).toHaveLength(2);
     const subCounts = Array.from(buttons).map((button) => button.querySelectorAll('[class*="sub"]').length);
     // Both tiles must carry the same sub-line count: the notice replaces text

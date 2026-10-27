@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only, mirrors PdfEditPagesTool.test.tsx's untyped style
 import { render, options } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
@@ -17,10 +16,10 @@ const twoPages = () => buildPdf({
   3: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 500] >>',
   4: '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 500] >>',
 });
-let container;
-const cells = () => container.querySelectorAll('ul[data-page-grid] > li[data-key]');
+let container: HTMLElement | null = null;
+const cells = () => container!.querySelectorAll('ul[data-page-grid] > li[data-key]');
 // Waits for the grid of the file called `name` to be drawn.
-const settle = (name) => until(() => cells().length > 0 && container.querySelector('#page-grid-heading')?.textContent.includes(`${name}_modified.pdf`));
+const settle = (name) => until(() => cells().length > 0 && container!.querySelector('#page-grid-heading')?.textContent.includes(`${name}_modified.pdf`));
 
 describe('PdfEditPagesTool replace file', () => {
   let harness;
@@ -42,7 +41,7 @@ describe('PdfEditPagesTool replace file', () => {
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -73,15 +72,15 @@ describe('PdfEditPagesTool replace file', () => {
 
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfEditPagesTool />, container));
-    await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('a.pdf')]));
+    act(() => render(<PdfEditPagesTool />, container!));
+    await act(async () => setInputFiles(container!.querySelector('input[type="file"]'), [pdf('a.pdf')]));
     await settle('a');
     expect(cells().length).toBe(3);
 
-    await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('b.pdf')]));
+    await act(async () => setInputFiles(container!.querySelector('input[type="file"]'), [pdf('b.pdf')]));
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     const confirm = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file');
-    await act(async () => confirm.click());
+    await act(async () => confirm!.click());
     await settle('b');
 
     window.removeEventListener('error', onError);
@@ -94,19 +93,19 @@ describe('PdfEditPagesTool replace file', () => {
   it('a new file starts fresh: its own name, its own pages, and nothing to undo', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfEditPagesTool />, container));
-    await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('a.pdf')]));
+    act(() => render(<PdfEditPagesTool />, container!));
+    await act(async () => setInputFiles(container!.querySelector('input[type="file"]'), [pdf('a.pdf')]));
     await settle('a');
-    await act(async () => container.querySelector('[aria-label="Skip page 1"]').click());
-    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(false);
+    await act(async () => container!.querySelector('[aria-label="Skip page 1"]').click());
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Undo last change"]').disabled).toBe(false);
 
-    await act(async () => setInputFiles(container.querySelector('input[type="file"]'), [pdf('b.pdf', twoPages())]));
+    await act(async () => setInputFiles(container!.querySelector('input[type="file"]'), [pdf('b.pdf', twoPages())]));
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     await act(async () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace file').click());
     await settle('b');
 
     expect(cells().length).toBe(2);
     expect(Array.from(cells()).some((c) => c.hasAttribute('data-skipped'))).toBe(false);
-    expect(container.querySelector('[aria-label="Undo last change"]').disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Undo last change"]').disabled).toBe(true);
   });
 });

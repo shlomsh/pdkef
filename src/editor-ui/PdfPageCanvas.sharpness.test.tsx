@@ -1,4 +1,3 @@
-// @ts-nocheck - drives the component with hand-made pdf.js doubles
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,7 +13,7 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 const UNIT = { width: 595, height: 842 };
 
 describe('PdfPageCanvas renders at the size the page is shown', () => {
-  let host;
+  let host: HTMLElement | null = null;
   let shownWidth;
   let observers;
   let scales;
@@ -45,8 +44,8 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
     document.body.appendChild(host);
   });
   afterEach(() => {
-    act(() => render(null, host));
-    host.remove();
+    act(() => render(null, host!));
+    host!.remove();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -56,9 +55,9 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
   });
 
   it('paints the first time at the displayed device-pixel width, once', async () => {
-    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
+    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     await act(flush);
-    const canvas = host.querySelector('canvas');
+    const canvas = host!.querySelector('canvas');
     expect(canvas.width).toBe(Math.floor(UNIT.width * expected(790)));
     expect(canvas.width).toBeGreaterThan(UNIT.width * 1.5);
     // one paint: the scale-1 size probe plus one render viewport, no repaint at mount
@@ -66,7 +65,7 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
   });
 
   it('repaints sharper when the shown width grows, and not for a few pixels', async () => {
-    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
+    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     await act(flush);
     const before = scales.length;
 
@@ -78,13 +77,13 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
     shownWidth = 1200;
     act(() => observers.forEach((o) => o.cb()));
     await act(flush);
-    expect(host.querySelector('canvas').width).toBe(Math.floor(UNIT.width * expected(1200)));
+    expect(host!.querySelector('canvas').width).toBe(Math.floor(UNIT.width * expected(1200)));
   });
 
   it('keeps the old fixed scale when the width cannot be measured', async () => {
     shownWidth = 0;
-    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host));
+    act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     await act(flush);
-    expect(host.querySelector('canvas').width).toBe(Math.floor(UNIT.width * 1.5));
+    expect(host!.querySelector('canvas').width).toBe(Math.floor(UNIT.width * 1.5));
   });
 });

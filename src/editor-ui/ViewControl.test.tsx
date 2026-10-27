@@ -1,4 +1,3 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
@@ -8,7 +7,7 @@ import styles from './ViewControl.module.css';
 const STORAGE_KEY = 'pdf-toolkit:view-density';
 
 describe('ViewControl', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   beforeEach(() => {
     localStorage.clear();
@@ -18,8 +17,8 @@ describe('ViewControl', () => {
   });
 
   afterEach(() => {
-    act(() => render(null, container));
-    container.remove();
+    act(() => render(null, container!));
+    container!.remove();
     document.documentElement.removeAttribute('data-view-density');
   });
 
@@ -28,17 +27,17 @@ describe('ViewControl', () => {
     act(() => {
       render(
         <ViewControl isFullscreen={false} toggleFullscreen={toggleFullscreen} {...props} />,
-        container
+        container!
       );
     });
     return { toggleFullscreen };
   };
 
-  const getRadios = () => Array.from(container.querySelectorAll('[role="radio"]'));
+  const getRadios = () => Array.from(container!.querySelectorAll('[role="radio"]'));
 
   it('renders three radios in a radiogroup', () => {
     renderControl();
-    const group = container.querySelector('[role="radiogroup"]');
+    const group = container!.querySelector('[role="radiogroup"]');
     expect(group).not.toBeNull();
     expect(group.getAttribute('aria-label')).toBe('View density');
     expect(getRadios()).toHaveLength(3);
@@ -69,7 +68,7 @@ describe('ViewControl', () => {
     await act(async () => {
       radios[0].click();
     });
-    expect(container.querySelector('[role="radiogroup"]').children[0].getAttribute('aria-checked')).toBe('true');
+    expect(container!.querySelector('[role="radiogroup"]').children[0].getAttribute('aria-checked')).toBe('true');
     expect(localStorage.getItem(STORAGE_KEY)).toBe('relaxed');
   });
 
@@ -102,7 +101,7 @@ describe('ViewControl', () => {
 
   it('arrow keys move the roving tabindex and select a density segment', async () => {
     renderControl(); // density defaults to 'condensed' -> segment 1 starts active
-    const group = container.querySelector('[role="radiogroup"]');
+    const group = container!.querySelector('[role="radiogroup"]');
 
     await act(async () => {
       group.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
@@ -121,7 +120,7 @@ describe('ViewControl', () => {
 
   it('End moves to the Full screen segment and calls toggleFullscreen (isFullscreen is prop-driven, not local state)', async () => {
     const { toggleFullscreen } = renderControl();
-    const group = container.querySelector('[role="radiogroup"]');
+    const group = container!.querySelector('[role="radiogroup"]');
 
     await act(async () => {
       group.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
@@ -134,8 +133,8 @@ describe('ViewControl', () => {
     // FullscreenButton uses SignToolbar.module.css's .button/.label, not this
     // module's classes, and must stay a direct sibling (not nested in a
     // wrapper) so it remains a direct .toolbar child - see ViewControl.tsx.
-    const segmented = container.querySelector(`.${styles.segmented}`);
-    const fallbackButton = container.querySelector('button:not([role="radio"])');
+    const segmented = container!.querySelector(`.${styles.segmented}`);
+    const fallbackButton = container!.querySelector('button:not([role="radio"])');
     expect(fallbackButton).not.toBeNull();
     expect(fallbackButton.previousElementSibling).toBe(segmented);
     expect(fallbackButton.parentElement).toBe(container);
