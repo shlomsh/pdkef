@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { initialScanState, reduceScan, type ScanState } from './scanState.ts';
+import { initialScanState, reduceScan } from './scanState.ts';
+
+type ScanState = Parameters<typeof reduceScan>[0];
 import { FULL_QUAD } from '../lib/quad.ts';
 
 const corners: ScanState = { ...initialScanState, phase: 'corners', selectedId: 1 };

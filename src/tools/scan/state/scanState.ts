@@ -5,9 +5,9 @@ import type { Quad } from '../lib/quad.ts';
  * for a page, full screen, and the scroll and focus the next view change owes the person.
  * Pages, results and options are data and stay with the island; this is only where the work is.
  */
-export type FullMode = 'native' | 'layer' | null;
+type FullMode = 'native' | 'layer' | null;
 /** Approved full screen: the page whose flatten starts once the card is back on screen. */
-export interface Landing { quad: Quad; turns: number }
+interface Landing { quad: Quad; turns: number }
 
 interface Shared {
   selectedId: number | null;
@@ -26,9 +26,9 @@ interface Shared {
 }
 
 /** The centre shows the page as it will download (`result`); corners are a mode you step into. */
-export type ScanState = Shared & ({ phase: 'result' } | { phase: 'corners' });
+type ScanState = Shared & ({ phase: 'result' } | { phase: 'corners' });
 
-export type ScanEvent =
+type ScanEvent =
   | { type: 'photosAdded'; firstId: number }
   | { type: 'pageSelected'; id: number }
   | { type: 'cornersOpened'; focus: boolean }
