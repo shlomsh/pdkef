@@ -8,7 +8,7 @@
     "maxSinglePageUtilities": 148
   },
   "e2eSleeps": {
-    "waitForTimeout": 44
+    "waitForTimeout": 42
   },
   "hooks": {
     "fileThreshold": 10,

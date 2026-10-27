@@ -318,8 +318,20 @@ test.describe('a field move scrolls once', () => {
     await openWithFixture(page);
     await tapFirstCellHint(page);
     await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
-    // Time on purpose: lets the page settle so the trace starts from rest.
-    await page.waitForTimeout(600);
+    // The page is at rest (scroll offset unchanged for 30 frames) so the trace starts from rest.
+    await page.evaluate(() => new Promise((resolve) => {
+      const at = () => Math.max(window.scrollY, document.scrollingElement.scrollTop);
+      let last = at();
+      let still = 0;
+      const frame = () => {
+        const now = at();
+        still = now === last ? still + 1 : 0;
+        last = now;
+        if (still >= 30) resolve();
+        else requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    }));
 
     const trace = await traceScroll(page, () => page.evaluate(() => {
       document.querySelector(

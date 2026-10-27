@@ -213,8 +213,11 @@ for (const [route, width, height] of [['/merge/', 900, 800], ['/compress/', 900,
     const verb = await page.locator('[data-empty-state] div[aria-hidden="true"]').first().boundingBox();
     expect(verb.height, 'verb box height').toBeLessThanOrEqual(300);
     await expectInViewport(page, page.locator(PICKER).first(), 'Choose files');
-    // Time on purpose: the verb plays to its last frame before overflow is read.
-    await page.waitForTimeout(2500);
+    // The verb has played to its last frame before overflow is read.
+    await page.waitForFunction(() => {
+      const anims = document.querySelector('[data-empty-state] div[aria-hidden="true"]')?.getAnimations({ subtree: true }) ?? [];
+      return anims.length > 0 && anims.every((a) => a.playState === 'finished');
+    });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0);
   });
