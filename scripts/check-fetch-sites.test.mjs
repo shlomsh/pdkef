@@ -18,4 +18,10 @@ describe('check-fetch-sites', () => {
     expect(isScanned('src/x/e2e/a.spec.js')).toBe(false);
     expect(isScanned('src/x/up.ts')).toBe(true);
   });
+  it('is strict: a second site in an allowlisted file and a stale entry fail', () => {
+    const allow = [{ file: 'src/x/up.ts', includes: 'fetch("/fonts/', reason: 'r' }];
+    const one = 'await fetch("/fonts/a.ttf");';
+    expect(findFetchSites({ file: 'src/x/up.ts', text: `${one}\n${one}`, allow })).toEqual([expect.objectContaining({ line: 2, kind: 'unlisted' })]);
+    expect(findFetchSites({ file: 'src/x/up.ts', text: 'none', allow })).toEqual([expect.objectContaining({ kind: 'stale' })]);
+  });
 });
