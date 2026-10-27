@@ -1,7 +1,7 @@
 ---
 id: "ARCH-78"
 title: "Island tests mock only the storage and network edge, through one harness"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
