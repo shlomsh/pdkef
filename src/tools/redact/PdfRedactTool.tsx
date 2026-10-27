@@ -79,6 +79,7 @@ import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import { formatMessage } from '../../lib/formatMessage.ts';
 import { englishRedactMessages as t } from './messages.ts';
+import type { RedactHandoffTarget } from '../../lib/toolIds.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -924,7 +925,7 @@ export default withIslandBoundary(function PdfRedactTool() {
   // boundaries). The chips show whenever Download is enabled: an export that
   // still matches the document (any edit drops it) is handed on as is, else
   // the same export Download runs is made first, without saving it to the device.
-  const requestHandoff = async (tool: 'compress' | 'sign') => {
+  const requestHandoff = async (tool: RedactHandoffTarget) => {
     if (handoffBusy) return;
     setHandoffBusy(true);
     dispatch({ type: 'HANDOFF_STARTED' });
