@@ -1888,7 +1888,8 @@ describe('PdfMergeTool quiet-time prepare', () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await act(async () => pageNumbersBox().click());
     await advance(1700);
-    expect(reads.isBlocked()).toBe(true);
+    // The build loads pdf-lib and the page-number font before its first read: real work, not fake time.
+    await vi.waitFor(() => expect(reads.isBlocked()).toBe(true));
     expect(box().getAttribute('data-state')).toBe('ready');
     await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     expect(box().getAttribute('data-state')).toBe('preparing');
