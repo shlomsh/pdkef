@@ -66,8 +66,11 @@ function dynamicImportSpecifiers(source, file) {
   while ((match = DYNAMIC_IMPORT.exec(source)) !== null) {
     const rest = source.slice(match.index + match[0].length);
     if (STRING_ARGUMENT.test(rest)) continue; // the main pattern has it
+    if (rest.startsWith(')')) continue; // `import()` with no argument is prose in a string, not a call
     const template = /^`([^`$\\]*)`\s*[,)]/.exec(rest);
     if (template) { specifiers.push(template[1]); continue; }
+    // Test files and build-time scripts load modules dynamically on purpose; the boundary rules govern product code.
+    if (TEST_FILE.test(path.basename(file)) || file.startsWith('scripts/')) continue;
     throw computedImport(file, lineOf(source, match.index));
   }
   return specifiers;

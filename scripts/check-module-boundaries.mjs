@@ -286,7 +286,7 @@ export function testImportViolations() {
   for (const file of files) {
     const from = relOf(file);
     const source = fs.readFileSync(file, 'utf8');
-    for (const specifier of importSpecifiers(source)) {
+    for (const specifier of importSpecifiers(source, from)) {
       if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
       const resolved = resolveRelativeImport(file, specifier);
       if (!resolved) continue;
@@ -548,7 +548,7 @@ export function scriptsImportViolations() {
     for (const file of files) {
       const from = relOf(file);
       const source = fs.readFileSync(file, 'utf8');
-      for (const specifier of importSpecifiers(source)) {
+      for (const specifier of importSpecifiers(source, from)) {
         if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
         const resolved = resolveRelativeImport(file, specifier);
         if (!resolved) continue;

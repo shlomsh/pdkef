@@ -87,6 +87,11 @@ describe('importSpecifiers side doors', () => {
   it('throws on a non-literal import argument', () => {
     expect(() => importSpecifiers('import(name)', 'src/y.ts')).toThrow(/computed import at src\/y\.ts:1/);
   });
+  it('a computed import in a test file is skipped, not thrown', () => {
+    const source = "const m = await import(`${x}`);\nconst a = await import('./a.js');\n";
+    expect(importSpecifiers(source, 'src/x/foo.test.js')).toEqual(['./a.js']);
+    expect(() => importSpecifiers(source, 'src/x/foo.js')).toThrow('computed import at src/x/foo.js:1');
+  });
   it('keeps plain string and no-substitution template imports working', () => {
     expect(importSpecifiers("import('./a.js')")).toEqual(['./a.js']);
     expect(importSpecifiers('import(`./a.js`)')).toEqual(['./a.js']);
