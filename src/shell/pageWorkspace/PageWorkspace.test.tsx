@@ -7,10 +7,10 @@ describe('PageWorkspace', () => {
   let host: HTMLElement | null = null;
   afterEach(() => { act(() => render(null, host!)); host!.remove(); });
 
-  const mount = (props) => {
+  const mount = (props: Record<string, unknown> = {}) => {
     host = document.createElement('div');
     document.body.appendChild(host);
-    act(() => render(<PageWorkspace railContent={<p>rail</p>} {...props}><p>body</p></PageWorkspace>, host!));
+    act(() => render(<PageWorkspace heading={undefined} railContent={<p>rail</p>} {...props}><p>body</p></PageWorkspace>, host!));
     return host;
   };
 

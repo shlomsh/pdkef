@@ -15,8 +15,8 @@ function Leaving({ onLeave = () => {} }) {
   >{navigatingAway ? 'leaving' : 'go'}</button>;
 }
 
-function pageShow(persisted) {
-  const event = new Event('pageshow');
+function pageShow(persisted: boolean) {
+  const event = new Event('pageshow') as Event & { persisted: boolean };
   event.persisted = persisted;
   act(() => { window.dispatchEvent(event); });
 }
@@ -24,11 +24,11 @@ function pageShow(persisted) {
 describe('useNavigatingAway', () => {
   let container: HTMLElement | null = null;
 
-  function mount(props = {}) {
+  function mount(props: { onLeave?: () => void } = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => render(<Leaving {...props} />, container!));
-    return container.querySelector('button');
+    return container.querySelector<HTMLButtonElement>('button')!;
   }
 
   afterEach(() => {

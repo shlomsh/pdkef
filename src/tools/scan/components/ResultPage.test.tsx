@@ -7,10 +7,10 @@ const LABELS = { exact: 'Exactly as it downloads', updating: 'Updating...', maki
 const A4 = { pageWidth: 600, pageHeight: 800 };
 
 let container: HTMLElement | null = null;
-function mount(props) {
+function mount(props: Record<string, unknown> = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  act(() => render(<ResultPage labels={LABELS} exact={true} {...props} />, container!));
+  act(() => render(<ResultPage src={null} place={null} labels={LABELS} exact={true} {...props} />, container!));
   return container;
 }
 afterEach(() => {
@@ -88,7 +88,7 @@ describe('ResultPage', () => {
     mount({ src: 'a.jpg', place: { ...A4, x: 0, y: 0, width: 600, height: 800 }, exact: false });
     const caption = container!.querySelector('figcaption');
     expect(caption.textContent).toContain(LABELS.updating);
-    const visible = Array.from(caption.childNodes).filter((n) => !(n.nodeType === 1 && n.classList.contains('sr-only'))).map((n) => n.textContent).join('').trim();
+    const visible = Array.from(caption.childNodes).filter((n) => !(n instanceof Element && n.classList.contains('sr-only'))).map((n) => n.textContent).join('').trim();
     expect(visible).toBe('');
     expect(caption.getAttribute('aria-live')).toBe('polite');
   });

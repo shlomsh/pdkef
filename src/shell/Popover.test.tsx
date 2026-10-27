@@ -18,14 +18,14 @@ import Popover, { createPopoverMiddleware } from './Popover.tsx';
 const setPositionReferenceSpy = vi.fn();
 const patchedRefs = new WeakSet<object>();
 vi.mock('@floating-ui/react', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('@floating-ui/react')>();
   return {
     ...actual,
-    useFloating: (options) => {
+    useFloating: (options: Parameters<typeof actual.useFloating>[0]) => {
       const result = actual.useFloating(options);
       if (!patchedRefs.has(result.refs)) {
         const original = result.refs.setPositionReference;
-        result.refs.setPositionReference = (node) => {
+        result.refs.setPositionReference = (node: Parameters<typeof original>[0]) => {
           setPositionReferenceSpy(node);
           original(node);
         };
