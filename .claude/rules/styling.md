@@ -134,7 +134,7 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
 - **Editor CSS ratchet** (`check-editor-global-css.js`): zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
   selectors in `global.css`.
 - **CSS duplication** (`check-css-duplication.js`): hard ratchets that only go down. Limits as of
-  2026-09-15 (41 pages): **0.65x** duplication (measured 0.64x), **10,000**
+  2026-09-15 (41 pages; they now live in `scripts/ratchet-limits.json` under `css`, and `npm run test:ratchet-raises` fails a raise): **0.65x** duplication (measured 0.64x), **10,000**
   worst-page dead bytes (9,802 on `/compress-image/`), **148** single-page utilities (32). Duplication is
   the heaviest page family's mean shipped bytes per page over the site's distinct CSS (families are
   pages sharing an inlined entry sheet, grouped by hashing each page's largest `<style>` block, not a
@@ -144,7 +144,7 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
   2026-09-12, having missed three re-bases (7.75x, 9.00x, 9.78x) as LOC-02/03/05/09 published the
   Hebrew edition - a stale figure in guidance is worse than no figure, because it reads as a budget
   someone has already blown. `node scripts/check-css-duplication.js` prints every limit beside its
-  measured value, and the constants in that file carry the dated re-base history. Date any correction
+  measured value, and the comments beside the constants in that file carry the dated re-base history. Date any correction
   here, or leave the numbers out.
   **A component few pages of a shared route render is the first place to narrow.** Astro attaches a
   component's scoped `<style>` to every page whose module graph imports it, rendered or not, and it

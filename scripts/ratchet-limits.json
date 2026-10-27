@@ -1,0 +1,52 @@
+{
+  "css": {
+    "maxFamilyDuplication": 0.65,
+    "maxPageDeadBytes": 10000,
+    "maxSinglePageUtilities": 148
+  },
+  "size": {
+    "fileLines": {
+      "src/data/tools.js": 1030,
+      "src/editor/adapters/pdf/pdfObjects.js": 1335,
+      "src/lib/drafts/draftStore.js": 1156,
+      "src/shell/pageGrid/PageGrid.tsx": 890,
+      "src/tools/compress/PdfCompressTool.tsx": 974,
+      "src/tools/merge/PdfMergeTool.tsx": 1440,
+      "src/tools/redact/PdfRedactTool.tsx": 1332,
+      "src/tools/scan/PdfScanTool.tsx": 1075,
+      "src/tools/sign/PdfSignTool.tsx": 1087,
+      "src/tools/sign/components/PdfWorkspace.tsx": 856,
+      "src/tools/sign/components/SignToolbar.tsx": 833,
+      "src/tools/sign/fields/formCells.js": 1062
+    },
+    "fileThreshold": 800,
+    "functionLines": {
+      "src/editor/adapters/pdf/pdfObjects.js#extractPageObjects": 472,
+      "src/editor/adapters/pdf/pdfObjects.js#extractPageObjects.walkStream": 382,
+      "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 326,
+      "src/shell/BasePdfTool.tsx#BasePdfTool": 432,
+      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 696,
+      "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
+      "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 873,
+      "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 348,
+      "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 1246,
+      "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool.(anonymous)~47": 403,
+      "src/tools/merge/components/useMergeDraft.ts#useMergeDraft": 309,
+      "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1204,
+      "src/tools/redact/RedactToolbar.tsx#RedactToolbar": 315,
+      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 952,
+      "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 321,
+      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 967,
+      "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
+      "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
+      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 718,
+      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 756,
+      "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 545,
+      "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
+      "src/tools/sign/useWorkspaceGestures.ts#useWorkspaceGestures": 426,
+      "src/tools/split/PdfSplitTool.tsx#PdfSplitTool": 356,
+      "src/tools/to-image/PdfToImageTool.tsx#PdfToImageTool": 355
+    },
+    "functionThreshold": 300
+  }
+}
