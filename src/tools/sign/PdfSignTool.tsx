@@ -4,7 +4,6 @@ import type {
   SignatureElement,
   SignToolType,
 } from '../../editor/model/editorModel.ts';
-import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import SignVerb from './verb/SignVerb.tsx';
@@ -23,29 +22,23 @@ import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/signGeometry.js';
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
-import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
 import useFieldNavigation from './hooks/useFieldNavigation.ts';
 import { FillContext, FILL_OFF } from './components/fill/FillContext.tsx';
 import { useFillMode } from './hooks/useFillMode.ts';
+import { useSignFullscreen } from './hooks/useSignFullscreen.ts';
+import { useExportRun } from './hooks/useExportRun.ts';
+import { useSignHistory } from './hooks/useSignHistory.ts';
+import { useSavedSignatures } from './hooks/useSavedSignatures.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
-import {
-  getAppStyle,
-  getSavedSignatures,
-  setSavedSignatures as persistSavedSignatures,
-  subscribeToSavedSignatures,
-} from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
-  createActionEntry,
-  type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
-import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
-import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { getSignExportReadiness } from './lib/signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import {
@@ -60,7 +53,6 @@ import {
 } from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
-import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './hooks/useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
@@ -135,7 +127,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const setAnnouncement = useCallback((message: string) => lifecycleDispatch({ type: 'ANNOUNCED', message }), []);
   useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [signatureToDelete, setSignatureToDelete] = useState<string | null>(null);
+  const [tempPlacement, setTempPlacement] = useState<PendingSignaturePlacement | null>(null);
   // ENC-07: a protected PDF is a precondition, not a failure. Set by the load gate (or the export
   // belt) and shown as NeedsUnlock (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
@@ -163,160 +155,19 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // Fill mode (SNG-15): see hooks/useFillMode.ts.
   const { enabled, fillContextValue } = useFillMode(dispatch, elements);
 
-  // Saved signatures and active signature state
-  const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
-  const [activeSignature, setActiveSignature] = useState<SavedSignature | null>(null);
+  const { pageWrapperRefs, workspaceRef, isFullscreen, isPseudoFullscreen, isFullscreenActive, currentPage, toggleFullscreen } = useSignFullscreen(numPages);
 
-  // Refs
-  // Live DOM nodes for each page wrapper, read imperatively at event time (e.g.
-  // placeSignatureAt reads getBoundingClientRect to size a dropped signature).
-  // These are NOT passed to overlay elements for sizing — each element measures its
-  // own container via the DOM instead (see DraggableOverlayElement), so there's no
-  // render-time dependency on this array being populated yet.
-  const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const copiedElementRef = useRef<EditorElement | null>(null);
-  const workspaceRef = useRef<HTMLDivElement | null>(null);
-  // Whether the export currently tracked by `exportRun` is a
-  // background speculative one (MOBI-07) rather than a real, user-initiated
-  // one. The invalidation effect below reads this to decide whether getting
-  // superseded is user-visible news or routine background churn.
-  const activeExportSpeculativeRef = useRef(false);
-  const documentRevisionRef = useRef(documentRevision);
-  documentRevisionRef.current = documentRevision;
-  // An export is only wanted while the file and revision it started from are still on screen.
-  const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
-  const [tempPlacement, setTempPlacement] = useState<PendingSignaturePlacement | null>(null);
-  const isFullscreenActive = isFullscreen || isPseudoFullscreen;
-  const currentPage = useCurrentPage({
-    active: isFullscreenActive,
-    rootRef: workspaceRef,
-    pageRefs: pageWrapperRefs,
-    numPages,
+  // Which export is still wanted, retired by an edit or by leaving the tree.
+  const { exportRun, activeExportSpeculativeRef, documentRevisionRef } = useExportRun({
+    file, documentRevision, lifecycleDispatch, clearPrepared, preparedExportRef, messages: t,
   });
 
-  // Track fullscreen state (also covers exiting via Esc, not just our own button)
-  useFullscreenChange(workspaceRef, setIsFullscreen);
+  const { logAction, undoLast, redoLast } = useSignHistory({ dispatch, actionHistory, redoHistory, setAnnouncement, messages: t });
 
-  // pdf.js owns worker and document resources outside Preact. Release the
-  // active one when the editor leaves the tree, rather than letting a late
-  // loading/render completion write into an unmounted workspace.
-  useEffect(() => () => {
-    exportRun.invalidate();
-  }, []);
-
-  // A prepared export is only valid for the current annotation state. An edit
-  // also revokes a PDF currently being generated: its completion must not make
-  // an older version available for download or sharing.
-  useEffect(() => {
-    clearPrepared();
-    preparedExportRef.current = null;
-    lifecycleDispatch({ type: 'EXPORT_RETIRED' });
-    // Retires the export in flight (if any) and says whether one was live.
-    const wasLive = exportRun.invalidate();
-    if (!wasLive) return;
-    // A speculative background export getting superseded by a further edit is
-    // routine (MOBI-07) - it never surfaced as "preparing" in the first place,
-    // so silently discarding it (runExport's own guards handle that) is
-    // correct. Only a real, user-initiated export in flight is worth telling
-    // the user their edit invalidated it.
-    if (activeExportSpeculativeRef.current) return;
-    lifecycleDispatch({ type: 'EXPORT_INTERRUPTED', announcement: t.editsChangedWhilePreparing });
-  }, [file, documentRevision, clearPrepared, exportRun]);
-
-  const toggleFullscreen = () => toggleWorkspaceFullscreen(workspaceRef.current, isPseudoFullscreen, setIsPseudoFullscreen);
-
-  const logAction: HistoryLogger<EditorElement> = (operation, type, pageIndex, description, snapshots) => {
-    dispatch({
-      type: 'ADD_ACTION_HISTORY',
-      payload: createActionEntry({ operation, type, pageIndex, description, elements: snapshots })
-    });
-  };
-
-  // Cmd/Ctrl+Z, and the toolbar's Undo: undo the single most recently logged
-  // action (see actionHistory.ts).
-  const undoLast = () => {
-    if (actionHistory.length === 0) return;
-    const lastAction = actionHistory[0];
-    dispatch({ type: 'UNDO' });
-    recordAction('undo');
-    setAnnouncement(formatMessage(t.undidActionTemplate, { description: lastAction.description }));
-  };
-
-  // Shift+Cmd/Ctrl+Z, Ctrl+Y, and the toolbar's Redo: redo the single most
-  // recently undone action (see historyStack.ts). The exact mirror of
-  // undoLast above.
-  const redoLast = () => {
-    if (redoHistory.length === 0) return;
-    const nextAction = redoHistory[0];
-    dispatch({ type: 'REDO' });
-    recordAction('redo');
-    setAnnouncement(formatMessage(t.redidActionTemplate, { description: nextAction.description }));
-  };
-  useHistoryShortcuts(undoLast, redoLast);
-
-  // Load saved signatures from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getSavedSignatures();
-    if (stored) {
-      setSavedSignatures(stored);
-      if (stored.length > 0) {
-        setActiveSignature(stored[0]);
-      }
-    }
-  }, []);
-
-  // Storage events are only delivered to the *other* same-user tabs. Local
-  // interactions update state directly; these subscriptions apply the store's
-  // revision-ordered last-writer-wins result everywhere else.
-  useEffect(() => {
-    const stops = [
-      subscribeToSavedSignatures(({ value }) => {
-        const next = value ?? [];
-        setSavedSignatures(next);
-        setActiveSignature((current) => next.find((signature) => signature.id === current?.id) ?? next[0] ?? null);
-      }),
-    ];
-    return () => stops.forEach((stop) => stop());
-  }, []);
-
-  // Save new signature to list & localStorage
-  const saveNewSignature = (dataUrl: string, aspectRatio: number) => {
-    const newSig = {
-      id: `sig-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-      dataUrl,
-      aspectRatio
-    };
-    const updated = [newSig, ...savedSignatures].slice(0, 10);
-    setSavedSignatures(updated);
-    const persisted = persistSavedSignatures(updated);
-    return { signature: newSig, persisted };
-  };
-
-  // Confirm delete saved signature
-  const deleteSavedSignature = (id: string, event?: Event) => {
-    event?.stopPropagation();
-    setSignatureToDelete(id);
-  };
-
-  const proceedDeleteSignature = () => {
-    if (!signatureToDelete) return;
-    const updated = savedSignatures.filter((sig) => sig.id !== signatureToDelete);
-    setSavedSignatures(updated);
-    const persisted = persistSavedSignatures(updated);
-    if (activeSignature && activeSignature.id === signatureToDelete) {
-      const fallback = updated.length > 0 ? updated[0] : null;
-      setActiveSignature(fallback);
-      if (!fallback && selectedTool === 'signature') {
-        setSelectedTool(null);
-      }
-    }
-    setSignatureToDelete(null);
-    setAnnouncement(persisted
-      ? t.signatureDeleted
-      : t.signatureDeletedNotSaved);
-  };
+  const {
+    savedSignatures, activeSignature, setActiveSignature, signatureToDelete, cancelDelete,
+    saveNewSignature, deleteSavedSignature, proceedDeleteSignature,
+  } = useSavedSignatures({ selectedTool, setSelectedTool, setAnnouncement, messages: t });
 
   // Printed grids and free-text cells on the loaded form, so placing a text
   // box on one takes its span and cell count instead of needing a
@@ -587,6 +438,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // cheap next to what a Tab press silently doing the wrong thing would cost.
   }, [activeElementId, editingElementId, elements, fieldNavigation, enabled]);
 
+  const copiedElementRef = useRef<EditorElement | null>(null);
   // Handle element copy and paste actions
   useEffect(() => {
     const handleCopy = (e: ClipboardEvent) => {
@@ -944,7 +796,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         // SignMessages instead of staying hardcoded English.
         cancelLabel={shellMessages?.cancel}
         closeLabel={shellMessages?.closeDialog}
-        onCancel={() => setSignatureToDelete(null)}
+        onCancel={cancelDelete}
         onConfirm={proceedDeleteSignature}
       >
         {t.deleteSignatureConfirmBody}
