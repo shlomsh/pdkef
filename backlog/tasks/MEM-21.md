@@ -1,7 +1,7 @@
 ---
 id: "MEM-21"
 title: "A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"

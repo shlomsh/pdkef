@@ -11,6 +11,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+- [MEM-21](backlog/tasks/MEM-21.md) P3 · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB (in progress)
 
 ### Unify the tools, narrow the graph
 
