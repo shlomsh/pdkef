@@ -18,7 +18,6 @@
   "size": {
     "fileLines": {
       "src/data/tools.js": 1030,
-      "src/layouts/HomePageLayout.astro": 1394,
       "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 882,
       "src/tools/compress/PdfCompressTool.tsx": 956,
