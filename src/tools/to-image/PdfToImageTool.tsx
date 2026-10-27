@@ -11,6 +11,7 @@ import { englishToImageMessages, type ToImageMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
@@ -51,7 +52,7 @@ export interface PdfToImageToolProps {
   quietPolicy?: QuietPolicy;
 }
 
-export default function PdfToImageTool({ messages: messagesProp, shellMessages, quietPolicy }: PdfToImageToolProps = {}) {
+export default withIslandBoundary(function PdfToImageTool({ messages: messagesProp, shellMessages, quietPolicy }: PdfToImageToolProps = {}) {
   const t: ToImageMessages = { ...englishToImageMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const resetDownloadFlowRef = useRef<() => void>(() => {});
@@ -378,4 +379,4 @@ export default function PdfToImageTool({ messages: messagesProp, shellMessages, 
       </p>
     </BasePdfTool>
   );
-}
+});

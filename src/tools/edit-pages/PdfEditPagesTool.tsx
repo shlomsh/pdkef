@@ -10,6 +10,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { englishShellMessages as sm } from '../../shell/shellMessages';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
@@ -41,7 +42,7 @@ const VERBS = { organize: EditPagesVerb, rotate: RotatePagesVerb, remove: Remove
 // The one file has one source in the shared plan.
 const FILE_ID = 0;
 
-export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }) {
+export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }) {
   const Verb = VERBS[job];
   // The download flow is made after this callback, so it reaches its reset through a ref.
   const resetDownloadFlowRef = useRef<() => void>(() => {});
@@ -302,4 +303,4 @@ export default function PdfEditPagesTool({ job = 'organize' }: { job?: PageJob }
       </p>
     </BasePdfTool>
   );
-}
+});

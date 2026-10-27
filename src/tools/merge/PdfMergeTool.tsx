@@ -8,6 +8,7 @@ import { isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import MergeVerb from './verb/MergeVerb.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
@@ -81,7 +82,7 @@ interface PdfMergeToolProps {
   navigate?: (href: string) => void;
 }
 
-export default function PdfMergeTool({
+export default withIslandBoundary(function PdfMergeTool({
   messages: messagesProp,
   shellMessages,
   unlockHref = '/unlock/',
@@ -532,4 +533,4 @@ export default function PdfMergeTool({
       {!showStrip && rating}
     </BasePdfTool>
   );
-}
+});
