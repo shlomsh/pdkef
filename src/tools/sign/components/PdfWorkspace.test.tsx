@@ -6,6 +6,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
 import { rememberRecentWhiteoutColor } from '../../../editor/workspace/preferenceStore.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
+// Asserts the is-processing state class.
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
@@ -233,14 +234,14 @@ describe('PdfWorkspace Component', () => {
     const state = testState();
 
     host = mountWorkspace({ state, dispatch });
-    const pageBefore = host.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    const pageBefore = host.querySelector('[data-sign-page-surface]');
 
     act(() => {
       render(workspaceTree({ state, dispatch, props: { status: 'signing' } }), host!);
     });
 
-    expect(host.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(pageBefore);
-    const workspace = required(host.querySelector(`.${workspaceStyles.workspace}`), 'workspace');
+    expect(host.querySelector('[data-sign-page-surface]')).toBe(pageBefore);
+    const workspace = required(host.querySelector('[data-testid="workspace"]'), 'workspace');
     expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
     expect(workspace.getAttribute('aria-busy')).toBe('true');
   });
@@ -253,7 +254,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
 
     // Mock bounding rectangle so coordinate calculations resolve nicely
     overlay.getBoundingClientRect = () => rect(100, 100, 1000, 1000);
@@ -371,7 +372,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const pageWrapper = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-wrapper']}`), 'page wrapper');
+    const pageWrapper = required(host.querySelector<HTMLDivElement>('[data-sign-page-surface]'), 'page wrapper');
     pageWrapper.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     const handle = required(host.querySelector('[data-editor-resizer="bottom-right"]'), 'bottom-right resizer');
@@ -415,7 +416,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -488,7 +489,7 @@ describe('PdfWorkspace Component', () => {
     const state = testState({ selectedTool: 'text', carried: { direction: 'rtl' } });
 
     host = mountWorkspace({ state, dispatch });
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -507,7 +508,7 @@ describe('PdfWorkspace Component', () => {
     const state = testState({ selectedTool: 'text' });
 
     host = mountWorkspace({ state, dispatch });
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -636,7 +637,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 600, 800);
 
     act(() => {
@@ -666,7 +667,7 @@ describe('PdfWorkspace Component', () => {
 
     it('marks each page surface with its index, for the page sampler and the eyedropper', () => {
       host = mountWorkspace({ state: testState() });
-      expect(host.querySelector(`.${workspaceStyles['page-wrapper']}`)?.getAttribute('data-sign-page-surface')).toBe('0');
+      expect(host.querySelector('[data-sign-page-surface]')?.getAttribute('data-sign-page-surface')).toBe('0');
     });
 
     it('Auto restores following the page: the sampled colour joins the same single history entry, nothing is carried', () => {
@@ -801,7 +802,7 @@ describe('PdfWorkspace Component', () => {
     }
 
     function pagesContainer(host: HTMLDivElement): HTMLDivElement {
-      return required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['pages-container']}`), 'pages container');
+      return required(host.querySelector<HTMLDivElement>('[data-testid="pages-container"]'), 'pages container');
     }
 
     it('deselects on a stationary touch tap on blank page area', () => {
@@ -981,7 +982,7 @@ describe('PdfWorkspace Component', () => {
       // Ends the session the same way a real deselect does: a click on blank
       // page area (PdfWorkspace's `deactivateAll`, wired to the pages
       // container's onClick).
-      const container = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['pages-container']}`), 'pages container');
+      const container = required(host.querySelector<HTMLDivElement>('[data-testid="pages-container"]'), 'pages container');
       act(() => {
         container.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -1020,7 +1021,7 @@ describe('PdfWorkspace Component', () => {
       host = mountStatefulWorkspace({ initialState, stateRef });
 
       const element = required(host.querySelector<HTMLElement>('[data-editor-element]'), 'element');
-      const pageWrapper = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-wrapper']}`), 'page wrapper');
+      const pageWrapper = required(host.querySelector<HTMLDivElement>('[data-sign-page-surface]'), 'page wrapper');
       pageWrapper.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
       act(() => {

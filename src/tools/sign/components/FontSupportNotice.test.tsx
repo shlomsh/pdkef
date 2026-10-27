@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import FontSupportNotice, { getFontNoticePosition } from './FontSupportNotice.tsx';
 import type { FontSupportNoticeProps } from './FontSupportNotice.tsx';
+// Asserts the marker and detail state classes.
 import styles from './FontSupportNotice.module.css';
 
 describe('getFontNoticePosition', () => {
