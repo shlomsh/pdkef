@@ -40,7 +40,7 @@ import { test, expect } from '@playwright/test';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(here, '..', '..', '..', '..');
 const PRACTICE_FORM = path.join(REPO, 'public', 'images', 'redaction-guide', 'sample.pdf');
-const FORM_101 = path.join(REPO, 'src', 'tools', 'sign', 'fields', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf');
+const FORM_101 = path.join(REPO, 'src', 'tools', 'sign', 'lib', 'fields', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf');
 
 // The phone the comb and frame bugs were reported on. A device scale of 3 keeps
 // the ink measurements below a third of a CSS pixel apart, where the text on a

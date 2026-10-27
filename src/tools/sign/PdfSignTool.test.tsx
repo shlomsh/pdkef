@@ -19,8 +19,8 @@ declare const __dirname: string;
 // FORM-35: lets one test hand the tool a finished walk with a chosen page kind;
 // null leaves the real hook alone, which is what every other test here wants.
 const formRegionsOverride = vi.hoisted(() => ({ value: null as Record<string, unknown> | null }));
-vi.mock('./useFormFieldRegions.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./useFormFieldRegions.ts')>();
+vi.mock('./hooks/useFormFieldRegions.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./hooks/useFormFieldRegions.ts')>();
   return {
     ...actual,
     default: (...args: Parameters<typeof actual.default>) => {

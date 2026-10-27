@@ -7,7 +7,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { FILE_ACTIONS } from '../../../shell/ToolShell.tsx';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
-import { FillContext, FILL_OFF, type FillContextValue } from '../fill/FillContext.tsx';
+import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../messages';
