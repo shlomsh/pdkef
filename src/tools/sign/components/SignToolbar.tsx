@@ -23,17 +23,10 @@ import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import type { FieldNavigation } from '../hooks/useFieldNavigation.ts';
 import type { FormDetectionState } from '../hooks/useFormFieldRegions.ts';
 import styles from '../../../editor-ui/SignToolbar.module.css';
+import { isShapeTool, toolButtonProps, type ShapeTool } from './toolButtonProps.ts';
 import UndoRedoButtons from '../../../editor-ui/UndoRedoButtons.tsx';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 import { recordAction } from '../../../lib/actionTrail.ts';
-
-// The tools that live behind the Shapes button, so its pressed/locked state and
-// its lock target read from one list instead of three copies of the same array.
-type ShapeTool = Extract<SignToolType, 'ellipse' | 'rectangle' | 'line'>;
-const SHAPE_TOOLS: readonly ShapeTool[] = ['ellipse', 'rectangle', 'line'];
-const isShapeTool = (tool: SignToolType | null): tool is ShapeTool => (
-  tool !== null && SHAPE_TOOLS.includes(tool as ShapeTool)
-);
 
 // Every SignToolType TOOL_COPY (below) has an entry for - a static list rather
 // than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built
@@ -472,7 +465,7 @@ export default function SignToolbar({
           <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
-              className={`${styles.button}${textChosen ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
+              {...toolButtonProps(textChosen, selectedTool === 'text' && toolLocked)}
               onClick={armTool('text')}
               aria-pressed={textChosen}
             >
@@ -488,7 +481,7 @@ export default function SignToolbar({
           <ArmHint tool="date" label={t.dateButton} action={TOOL_COPY.date.action} locked={selectedTool === 'date' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
-              className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
+              {...toolButtonProps(selectedTool === 'date', toolLocked)}
               onClick={armTool('date')}
               aria-pressed={selectedTool === 'date'}
               // Labelled again, and present at every width. Date gave its
@@ -513,7 +506,7 @@ export default function SignToolbar({
           <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
-              className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
+              {...toolButtonProps(selectedTool === 'symbol', toolLocked)}
               onClick={armTool('symbol')}
               aria-pressed={selectedTool === 'symbol'}
             >
@@ -562,7 +555,7 @@ export default function SignToolbar({
                 trigger={
                   <button
                     type="button"
-                    className={`${styles.button}${isShapeTool(selectedTool) ? ` ${styles.active}` : ''}${isShapeTool(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
+                    {...toolButtonProps(isShapeTool(selectedTool), toolLocked)}
                     onClick={(e: MouseEvent) => { if (isDoubleTap('shapes', e, showShapesDropdown)) lockShape(); }}
                     aria-pressed={isShapeTool(selectedTool)}
                   >
@@ -628,7 +621,7 @@ export default function SignToolbar({
           <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
-              className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
+              {...toolButtonProps(selectedTool === 'whiteout', toolLocked)}
               onClick={armTool('whiteout')}
             >
               <WhiteoutIcon strokeWidth={2.5} />
@@ -664,7 +657,7 @@ export default function SignToolbar({
                 trigger={
                   <button
                     type="button"
-                    className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}${selectedTool === 'signature' && toolLocked ? ` ${styles.locked}` : ''}`}
+                    {...toolButtonProps(selectedTool === 'signature', toolLocked)}
                     onClick={handleSignatureBtnClick}
                     // Only said here when there is nothing yet for ArmHint to
                     // teach: once a signature exists, ArmHint's own bubble

@@ -3,8 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import FontSupportNotice, { getFontNoticePosition } from './FontSupportNotice.tsx';
 import type { FontSupportNoticeProps } from './FontSupportNotice.tsx';
-// Asserts the marker and detail state classes.
-import styles from './FontSupportNotice.module.css';
+// Asserts the marker and detail state via data-notice-mode.
 
 describe('getFontNoticePosition', () => {
   it.each([
@@ -68,7 +67,7 @@ describe('FontSupportNotice component', () => {
   it('renders an icon-only, keyboard-accessible LTR marker with no stale visible label', () => {
     const { notice } = show();
     const button = notice.querySelector('button')!;
-    expect(notice.classList.contains(styles.marker)).toBe(true);
+    expect(notice.dataset.noticeMode).toBe('marker');
     expect(notice.dataset.editorFontPlacement).toBe('bottom-end');
     expect(notice.dataset.editorFontMarkerSide).toBe('right');
     expect(button.textContent).toBe('');
@@ -108,7 +107,7 @@ describe('FontSupportNotice component', () => {
 
   it('replaces the marker with the detailed message while active', () => {
     const { notice } = show({ isActive: true, direction: 'rtl' });
-    expect(notice.classList.contains(styles.detail)).toBe(true);
+    expect(notice.dataset.noticeMode).toBe('detail');
     expect(notice.dataset.editorFontPlacement).toBe('bottom-end');
     expect(notice.hasAttribute('data-editor-font-marker-side')).toBe(false);
     expect(notice.querySelector('button')).toBeNull();
