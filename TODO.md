@@ -17,6 +17,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
+- [ARCH-100](backlog/tasks/ARCH-100.md) P1 · Island tests wait for what they assert, not for a fixed sleep (in progress)
 - [ARCH-83](backlog/tasks/ARCH-83.md) P2 · Every CI run reports how far affected-scope narrowed it (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 
