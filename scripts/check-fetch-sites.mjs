@@ -1,42 +1,31 @@
 #!/usr/bin/env node
-// Fetch-site guard (ARCH-84): "no file bytes ever leave the device" is backstopped at runtime by CSP
-// `connect-src 'self'`; this is the static half. Every `fetch(` call site in src/ (and a `fetch`
-// passed as a default parameter, or called through a `fetchImpl` alias) must be listed in
-// scripts/fetch-sites-allowlist.json with the reason it cannot send file bytes. Telemetry goes
-// through navigator.sendBeacon in src/lib/errorReport.ts, not fetch. Test, e2e and support files are
-// not scanned.
+// Fetch-site guard (ARCH-84): static half of 'no file bytes leave the device' (CSP connect-src is the runtime half). Every fetch( call, fetch default parameter and fetchImpl( alias call in src/ needs one allowlist entry with its reason; telemetry uses sendBeacon.
 import { readFileSync, globSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pairSites } from './allowlist-sites.mjs';
 
 const PATTERN = /(?<![\w.$])fetch\s*\(|\bfetchImpl\s*\(|=\s*fetch\b/;
 
 export const isScanned = (file) =>
   !/\.(test|spec)\.[cm]?[jt]sx?$/.test(file) && !/(^|\/)(e2e|test)\//.test(file) && !/test-helper\./.test(file);
 
-const isComment = (t) => /^\s*(\/\/|\*|\/\*)/.test(t);
-
+// Each allowlist entry covers exactly one site; an extra site or a stale entry both fail.
 export function findFetchSites({ file, text, allow }) {
-  const hits = [];
-  text.split('\n').forEach((t, i) => {
-    if (isComment(t) || !PATTERN.test(t)) return;
-    if (allow.some((a) => file.endsWith(a.file) && t.includes(a.includes))) return;
-    hits.push({ file, line: i + 1, text: t.trim() });
-  });
-  return hits;
+  return pairSites({ files: [{ file, text }], allow: allow.filter((a) => file.endsWith(a.file)), pattern: PATTERN });
 }
 
 function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const allow = JSON.parse(readFileSync(new URL('./fetch-sites-allowlist.json', import.meta.url), 'utf8'));
   const files = globSync('src/**/*.{js,jsx,ts,tsx,mjs,astro}', { cwd: root }).filter(isScanned).sort();
-  const hits = files.flatMap((file) => findFetchSites({ file, text: readFileSync(resolve(root, file), 'utf8'), allow }));
-  for (const h of hits) console.error(`${h.file}:${h.line}  unlisted fetch site\n    ${h.text}`);
+  const hits = pairSites({ files: files.map((file) => ({ file, text: readFileSync(resolve(root, file), 'utf8') })), allow, pattern: PATTERN });
+  for (const h of hits) console.error(h.kind === 'stale' ? `${h.file}  stale allowlist entry (no matching site): ${h.text}` : `${h.file}:${h.line}  unlisted fetch site\n    ${h.text}`);
   if (hits.length) {
-    console.error(`\ncheck:fetch-sites: ${hits.length} unlisted fetch site(s). File bytes never leave the device (CLAUDE.md). If this one cannot send file bytes, allowlist it in scripts/fetch-sites-allowlist.json with a reason.`);
+    console.error(`\ncheck-fetch-sites: ${hits.length} problem(s). Each allowlist entry in scripts/fetch-sites-allowlist.json covers exactly one site: add an entry with a reason for a new site, remove an entry whose site is gone. File bytes never leave the device (CLAUDE.md).`);
     process.exit(1);
   }
-  console.log('check:fetch-sites: every fetch call site is allowlisted.');
+  console.log('check-fetch-sites: every site is allowlisted, one entry each.');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
