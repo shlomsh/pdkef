@@ -1,5 +1,4 @@
 import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../editor/text/fontManifest.js';
-import { isLocalizedPath } from '../i18n/localePrefixes.js';
 
 /**
  * ARCH-22: this is product behaviour, not build tooling - it decides what
@@ -44,10 +43,8 @@ import { isLocalizedPath } from '../i18n/localePrefixes.js';
  * and why it's read off `faces.normal` rather than every entry the
  * manifest's (currently unused) `precache` flag would pull in.
  *
- * Localized HTML (`/he/...`, any prefix in src/i18n/localePrefixes.js) is
- * not part of the shell (LOC-02): a locale must cost only its own visitors
- * bytes. A localized page is cached like any other, as its own closure, when
- * its visitor opens it.
+ * Localized pages (`/he/...`, `/id/...`) are part of the whole-app install
+ * like any other page: each is cached with its own closure.
  */
 const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
@@ -59,6 +56,5 @@ export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;
   if (relative.startsWith('fonts/')) return PRECACHED_FONTS.includes(relative);
   if (RUNTIME_ONLY_IMAGE_DIRS.some((dir) => `/${relative}`.startsWith(dir))) return false;
-  if (relative.endsWith('.html') && isLocalizedPath(relative)) return false;
   return true;
 }
