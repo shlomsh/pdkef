@@ -23,7 +23,7 @@ import {
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const cache = new Map();
 
-// Mirrors what liveFontCoverage's loader hands the policy: a fontkit instance
+// Mirrors what signPdf's font loader hands the policy: a fontkit instance
 // wrapped so it looks like a pdf-lib font's `.embedder.font`.
 async function loadFont(family) {
   const file = `${family.replace(/\s+/g, '')}-Regular.ttf`;

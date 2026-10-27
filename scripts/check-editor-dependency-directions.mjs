@@ -57,7 +57,7 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // `textCoverage.js -> registry/text.ts` exception the same way: the real
 // `unrepresentableCharacters` already lived in the text layer
 // (`text/textMetrics.ts`), with `registry/text.ts` only re-exporting it, so
-// `textCoverage.js` (and `liveFontCoverage.js`, the same shape) now import it
+// `textCoverage.js` now imports it
 // from `textMetrics.ts` directly - a text -> text edge, no bridge needed.
 const EXCEPTIONS = [
   {
