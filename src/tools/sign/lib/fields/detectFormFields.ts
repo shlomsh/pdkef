@@ -1,0 +1,226 @@
+import type { PDFDocument, PDFPage } from '@cantoo/pdf-lib';
+import { createPageGeometry, toPagePercentBox, type PageGeometry } from '../../../../editor/geometry/coords.ts';
+import type { CombRegion, FieldRegion } from '../combPlacement.ts';
+import type {
+  DetectedCell,
+  DetectionContext,
+  FieldSource,
+  PageTextRun,
+  SourceRegions,
+} from './fieldTypes.ts';
+import { collectPageInk, pageCropBox } from './pageInk.js';
+import { detectPageRegions } from './formGrid.js';
+import { detectCellCandidates } from './formCells.js';
+import { detectLineCandidates } from './formLines.js';
+import { detectLeaderCandidates } from './formLeaders.js';
+import { detectWidgetRegions, collectCheckboxWidgets, widgetFootprints, dropUnwiredCells } from './formWidgets.js';
+import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
+import { titleLineWritable } from './combTitleLine.js';
+import { horizontalRules } from './inkEdges.js';
+
+/** The tallest captioned box a comb's `writable` may reach up through, in points (formCells.js's row cap). */
+const MAX_CAPTIONED_BOX_POINTS = 45;
+
+/**
+ * ARCH-24 step A: the one entry point onto field detection. `useFormFieldRegions.ts`
+ * (Sign), the element corpus (`corpus/corpus.test.js`) and the scored corpus
+ * (`corpus/scoring/score.js`) all call this now, instead of each assembling the
+ * same five modules itself - see ARCH-24 for why that assembly was the actual
+ * gap (`src/tools/sign/lib/fields/formGrid.js` and its siblings were already pure
+ * functions; nothing knew them as one capability).
+ *
+ * A caller needs more than the detection call itself to gather what it passes
+ * in: `toPageTextRuns` (re-exported below, from `textRuns.js`) turns pdf.js
+ * text items into the page-percent runs this module's `textRuns` parameter
+ * expects, and `pageGeometry` (below) builds the same per-page geometry this
+ * module builds internally. Both are exported from here, not from their own
+ * modules directly, so a consumer - the hook is the one this matters for -
+ * reaches every detector-adjacent piece through this one module and cannot
+ * drift from what `detectFormFields` itself uses.
+ *
+ * Two sources today, `ink` and `widgets`, each a thin async wrapper around
+ * functions that already existed and are unchanged by this step. Precedence
+ * between what they find is declared data, not code here: `fieldRegions.js`'s
+ * `reconcile` is driven by its own exported `SOURCE_ORDER` and
+ * `KIND_PRECEDENCE` (ARCH-24 step B), so this function no longer knows the
+ * two source names by name, or how many there are - it hands every source's
+ * raw regions to `reconcile` keyed by name and gets back one set of fields.
+ *
+ * Never touches pdf.js or the DOM. `document` is an already-loaded
+ * `@cantoo/pdf-lib` document, and `pageDirections` is not part of the return
+ * value even though the old assembly computed it here: it is read straight
+ * off the same text runs the caller already has in hand
+ * (`dominantTextDirection`), so `useFormFieldRegions.ts` computes it itself
+ * rather than asking a detector for something that is not geometry.
+ */
+
+/** See the module doc above: re-exported so a caller reaches the pdf.js-item
+ * conversion through this one module rather than importing `textRuns.js`
+ * directly. */
+export { toPageTextRuns } from './textRuns.js';
+
+/** Re-exported for the same reason: FORM-35's page kind rides this lazy chunk. */
+export { firstPageKind } from './pageKind.js';
+
+/**
+ * The source contract - `PageTextRun`, `DetectionContext`, `SourceRegions`,
+ * `FieldSource` - lives in `fieldTypes.ts` now (FORM-23), next to the kind
+ * vocabulary a source's regions carry. Re-exported here so an existing
+ * `import type { FieldSource } from './detectFormFields.ts'` (or the other
+ * three) keeps working unchanged; a new import should prefer `fieldTypes.ts`
+ * directly.
+ */
+export type { PageTextRun, DetectionContext, SourceRegions, FieldSource };
+
+/**
+ * The page's own drawn ink: comb teeth, checkbox squares and glyphs, ruled
+ * cells, and open signature/date lines. Wraps `detectPageRegions` (combs +
+ * checkboxes, which already folds in checkbox widgets read straight off
+ * `/Annots` - see its own docstring), `detectCellCandidates` (closed cells,
+ * which needs the page's ink, geometry and text runs for label lookup) - the
+ * two calls `useFormFieldRegions.ts` made directly before this file existed -
+ * and `detectLineCandidates` (SNG-10: a bare, captioned rule neither of the
+ * other two ever looks at), appended to the same `cells` array. Both cell
+ * sources run against the one `ink` this source already collected, and the
+ * line pass is handed the other two's regions so it never re-reports ground
+ * either of them already explains (`formLines.js`'s own module doc). An open
+ * comb none of those cells encloses gets its `writable` from the text on its
+ * own line (`combTitleLine.js`, FORM-27).
+ */
+const inkSource: FieldSource = {
+  name: 'ink',
+  async detect(page, { geometry, pageIndex, textRuns }) {
+    const { combs, checkboxes } = detectPageRegions(page, pageIndex);
+    const ink = collectPageInk(page);
+    const cells = detectCellCandidates(ink, geometry, pageIndex, textRuns);
+    const lines = detectLineCandidates(ink, geometry, pageIndex, textRuns, [...combs, ...checkboxes, ...cells]);
+    // A comb no cell encloses reads its height off the title printed on its line (FORM-27).
+    // A comb above which a caption is printed in its box reads its height from under that caption
+    // (FORM-28); both take the page's rules in page percent.
+    const rules = horizontalRules(ink, { includeRectSides: true })
+      .map((rule: { x0: number; x1: number; y: number }) => toPagePercentBox(geometry, { x0: rule.x0, y0: rule.y, x1: rule.x1, y1: rule.y }));
+    const maxHeight = toPagePercentBox(geometry, { x0: 0, y0: 0, x1: 1, y1: MAX_CAPTIONED_BOX_POINTS }).height;
+    return {
+      combs: titleLineWritable(combs, { cells: [...cells, ...lines], checkboxes, textRuns, rules, maxHeight }),
+      checkboxes,
+      // A page that wires nearly every drawn cell to a widget has left the rest blank on purpose, so
+      // those are dropped here (FORM-15). The line pass above still saw them, as ground a cell explains.
+      cells: [...dropUnwiredCells(cells, widgetFootprints(page, geometry)), ...lines],
+    };
+  },
+};
+
+/**
+ * A form's own `/Tx` widgets: what a live AcroForm says about itself,
+ * independent of anything printed. Reports no checkboxes of its own -
+ * checkbox widgets are already folded into the ink source above
+ * (`detectPageRegions` reads `/Annots` for them too), so a second copy here
+ * would double-count them.
+ */
+const widgetsSource: FieldSource = {
+  name: 'widgets',
+  async detect(page, { pageIndex }) {
+    const { combs, cells } = detectWidgetRegions(page, pageIndex);
+    return { combs, checkboxes: [], cells };
+  },
+};
+
+/**
+ * Printed dotted leaders ("ชื่อ.........."): a label and a run of dots is text, not ink, so this
+ * reads the text layer alone (FORM-19, `formLeaders.js`). A source of its own, last in
+ * `SOURCE_ORDER`, because it is the weakest evidence there is: where a live widget or a drawn
+ * cell already explains a spot, `reconcile` keeps that and drops the leader.
+ */
+const leadersSource: FieldSource = {
+  name: 'leaders',
+  async detect(page, { pageIndex, textRuns }) {
+    // A page that declares its own widgets has already said where its fields are: the dotted
+    // blanks left on it are not fillable, so a leader there is noise, not a field.
+    const widgets = detectWidgetRegions(page, pageIndex);
+    if (widgets.combs.length + widgets.cells.length + collectCheckboxWidgets(page).length > 0) {
+      return { combs: [], checkboxes: [], cells: [] };
+    }
+    return { combs: [], checkboxes: [], cells: detectLeaderCandidates(pageIndex, textRuns) as DetectedCell[] };
+  },
+};
+
+/**
+ * The sources this module ships. A caller may pass its own `sources`
+ * list (a future OCR or metadata source, or the corpus's ARCH-24 step C
+ * stub, `corpus/thirdSourceContract.test.js`) - `detectFormFields` runs
+ * whatever it is given and hands every source's regions to `reconcile` by
+ * name. A source not named in `fieldRegions.js`'s `SOURCE_ORDER` is still
+ * folded in, appended after every source that is named there (`reconcile`'s
+ * own module doc); it just cannot win a same-kind tie against `ink` or
+ * `widgets` until it earns a deliberate line in `SOURCE_ORDER`. This module
+ * itself never has to change either way - that is the whole point of step C.
+ */
+export const DEFAULT_SOURCES: FieldSource[] = [inkSource, widgetsSource, leadersSource];
+
+/**
+ * One page's geometry (crop box plus rotation), exactly as `detectFormFields`
+ * builds it for each page below. Exported so a caller that needs the same
+ * geometry to gather text runs - the hook, the scored corpus - computes it
+ * through this one function instead of repeating `createPageGeometry({
+ * cropBox: pageCropBox(page), rotation: ... })` itself. Before this, two call
+ * sites building "the same" geometry by convention was exactly the kind of
+ * drift ARCH-24's acceptance line rules out: nothing enforced that a second
+ * copy stayed identical to this one.
+ */
+export function pageGeometry(page: PDFPage): PageGeometry {
+  return createPageGeometry({
+    cropBox: pageCropBox(page),
+    rotation: page.getRotation().angle,
+  });
+}
+
+/**
+ * Detects every comb, checkbox and free-text cell in a document.
+ *
+ * `textRuns` is required, per page, and never defaulted: the element corpus
+ * passes `[]` (or a case's own `text`, for the few rows that pin text-plus-
+ * geometry behaviour) to isolate a geometry rule in isolation, and the
+ * scored corpus and the Sign tool pass real pdf.js text runs to measure or
+ * run the shipped pipeline. Defaulting either one to the other would
+ * silently start measuring the wrong thing - MOBI-13 found this the
+ * expensive way, when leaving text out cost the health declaration 14 points
+ * of precision and nobody had decided that on purpose.
+ *
+ * `cells` comes back typed as `DetectedCell[]`, not the plain `FieldRegion[]`
+ * a source itself reports (`SourceRegions.cells`): every real cell a source
+ * produces does carry a `kind` (`formCells.js`'s and `formWidgets.js`'s own
+ * JSDoc types say so), so the entry point asserts that once here rather than
+ * leaving every caller to re-assert it with its own widening cast.
+ *
+ * @param document an already-loaded `@cantoo/pdf-lib` document.
+ */
+export async function detectFormFields(
+  document: PDFDocument,
+  { textRuns, sources = DEFAULT_SOURCES }: { textRuns: PageTextRun[][]; sources?: FieldSource[] },
+): Promise<{ combs: CombRegion[]; checkboxes: FieldRegion[]; cells: DetectedCell[] }> {
+  const found: { combs: CombRegion[]; checkboxes: FieldRegion[]; cells: DetectedCell[] } = {
+    combs: [],
+    checkboxes: [],
+    cells: [],
+  };
+  for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
+    const page = document.getPage(pageIndex);
+    const geometry = pageGeometry(page);
+    const context: DetectionContext = { textRuns: textRuns[pageIndex], geometry, pageIndex };
+
+    // Every source runs against the same page and context - order here does
+    // not matter, since `reconcile` below is what decides precedence, from
+    // `SOURCE_ORDER` and `KIND_PRECEDENCE` (fieldRegions.js), not from the
+    // order these promises settle in.
+    const results = await Promise.all(sources.map((source) => source.detect(page, context)));
+    const sourceResults: Record<string, SourceRegions> = {};
+    sources.forEach((source, index) => {
+      sourceResults[source.name] = results[index];
+    });
+    const { combs, checkboxes, cells } = reconcile(sourceResults, { sourceOrder: SOURCE_ORDER, kindPrecedence: KIND_PRECEDENCE });
+    found.combs.push(...combs);
+    found.cells.push(...cells);
+    found.checkboxes.push(...checkboxes);
+  }
+  return found;
+}

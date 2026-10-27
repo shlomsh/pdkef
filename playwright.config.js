@@ -50,7 +50,7 @@ const FONT_GUARDS = [
 // rasterises the real `signPdf` output against a runner-pinned baseline;
 // language-acceptance.spec.js runs the same bundle over every shipped
 // language/face combination. Both esbuild the real export path
-// (src/editor/adapters/pdf/sign.js, src/tools/sign/languageAcceptance.js),
+// (src/editor/adapters/pdf/sign.js, src/tools/sign/lib/languageAcceptance.js),
 // so - unlike `fonts` above - their own Nx project (e2e/export/project.json)
 // keeps a coarse, whole-project implicitDependencies edge to editor/lib/
 // tool-sign: a Sign toolbar or tooltip change still runs these two (cheap,

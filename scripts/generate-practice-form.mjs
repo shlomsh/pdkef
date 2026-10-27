@@ -21,8 +21,8 @@ import {
  * v2 is flat: no `/AcroForm`, no widgets. Every box, comb cell and checkbox is drawn with the raw
  * `re` path-construction operator (`rectangle()` + `fillAndStroke()`), never `@cantoo/pdf-lib`'s
  * own `page.drawRectangle()` - that method builds every rectangle as an SVG path (`m`/`l`/`h`) and
- * never emits `re` at all (see `src/tools/sign/fields/corpus/README.md`, "pdf-lib never emits the
- * re operator"). `findCheckboxes` (`src/tools/sign/fields/formGrid.js`) reads only `ink.rects`,
+ * never emits `re` at all (see `src/tools/sign/lib/fields/corpus/README.md`, "pdf-lib never emits the
+ * re operator"). `findCheckboxes` (`src/tools/sign/lib/fields/formGrid.js`) reads only `ink.rects`,
  * which only a real `re` populates, so a path-drawn checkbox would be invisible to it - not a
  * hypothetical, the corpus's own "known gap" row pins exactly that limitation. Drawing every
  * rectangle with `re` is also simply what a real form producer's own rectangles look like on the
@@ -50,7 +50,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PDF = path.resolve(here, '../public/images/redaction-guide/sample.pdf');
 const OUTPUT_PREVIEW = path.resolve(here, '../public/images/redaction-guide/sample-preview.jpg');
 const OUTPUT_TRUTH = path.resolve(
-  here, '../src/tools/sign/fields/corpus/scoring/ground-truth/practice-form-page1.json',
+  here, '../src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json',
 );
 const GLOBAL_CSS_PATH = path.resolve(here, '../src/styles/global.css');
 const LOGO_PATH = path.resolve(here, './practice-form-logo.png');

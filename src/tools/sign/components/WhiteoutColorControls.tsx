@@ -5,7 +5,7 @@ import { useRecentWhiteoutColors } from '../../../editor-ui/whiteout/useRecentWh
 import type { ColorMode } from '../../../editor/model/editorModel.ts';
 import { whiteoutColorLabels } from '../../../editor/registry/signLabels';
 import type { SignMessages } from '../../../editor/registry/messages';
-import { SIGN_PAGE_SURFACE } from '../whiteoutPageColor.ts';
+import { SIGN_PAGE_SURFACE } from '../lib/whiteoutPageColor.ts';
 
 /** Paints a colour on a whiteout's DOM only: the picker's live preview. */
 function paintWhiteout(id: string, color: string) {

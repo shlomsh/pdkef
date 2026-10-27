@@ -5,8 +5,8 @@ import RawTextNode from './TextNode.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import { WYSIWYG_STRING_CASES } from '../../../../test/support/fixtures/wysiwygStrings.js';
-import { TextFillContext } from '../../fill/FillContext.tsx';
-import type { TextFillProps } from '../../fill/fillTypes.ts';
+import { TextFillContext } from '../fill/FillContext.tsx';
+import type { TextFillProps } from '../../lib/fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 

@@ -27,15 +27,15 @@ import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/s
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
 import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import useFormFieldRegions from './useFormFieldRegions.ts';
-import useFieldNavigation from './useFieldNavigation.ts';
+import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
+import useFieldNavigation from './hooks/useFieldNavigation.ts';
 import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
-import { isFillMode } from './fill/fillMode.ts';
-import { viewportContent, zoomsOnFocus } from './fill/viewportZoomLock.ts';
-import { freeSlotKey } from './fill/fillSlots.ts';
-import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
-import { useFillFocus } from './fill/useFillFocus.ts';
-import type { PagePoint } from './fill/fillTypes.ts';
+import { isFillMode } from './lib/fill/fillMode.ts';
+import { viewportContent, zoomsOnFocus } from './lib/fill/viewportZoomLock.ts';
+import { freeSlotKey } from './lib/fill/fillSlots.ts';
+import { FillContext, FILL_OFF, type FillContextValue } from './components/fill/FillContext.tsx';
+import { useFillFocus } from './hooks/fill/useFillFocus.ts';
+import type { PagePoint } from './lib/fill/fillTypes.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
   getAppStyle,
@@ -53,7 +53,7 @@ import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
-import { getSignExportReadiness } from './signExportReadiness.ts';
+import { getSignExportReadiness } from './lib/signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import {
   reportMaintenanceEvent,
@@ -68,13 +68,13 @@ import {
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
-import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
+import type { PendingSignaturePlacement } from './hooks/useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { initialSignLifecycleState, signLifecycleReducer, type SignStatus } from './state/signState.ts';
-import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './exportHandoff.ts';
-import { signedFileName } from './signedFileName.ts';
+import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './lib/exportHandoff.ts';
+import { signedFileName } from './lib/signedFileName.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing

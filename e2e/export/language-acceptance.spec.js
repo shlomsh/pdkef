@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/languageAcceptance.js';
+import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/lib/languageAcceptance.js';
 import { FONT_MANIFEST } from '../../src/editor/text/fontManifest.js';
 import {
   buildSignBundle,

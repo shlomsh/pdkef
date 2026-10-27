@@ -5,8 +5,8 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
-import { FillContext, TextFillContext, FILL_OFF } from '../fill/FillContext.tsx';
-import type { TextFillProps } from '../fill/fillTypes.ts';
+import { FillContext, TextFillContext, FILL_OFF } from './fill/FillContext.tsx';
+import type { TextFillProps } from '../lib/fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
 
 type TextChange = (changes: EditorElementPatch<TextElement>) => void;

@@ -1,0 +1,218 @@
+import { render } from 'preact';
+import { act } from 'preact/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FormFieldRegions } from './useFormFieldRegions.ts';
+
+/**
+ * The four ways the detector can come back with nothing, which used to be one
+ * indistinguishable silence (FORM-11): it never started, its own modules never
+ * loaded, it ran and threw, or it ran and the document really has nothing in
+ * it.
+ *
+ * Every one of them leaves the editor exactly as it was, which is right - the
+ * person asked to open a PDF, not to run a detector. What was wrong is that
+ * nobody, including us, could tell them apart afterwards: a renamed export
+ * once made every document report zero fields through a green build, a shell
+ * cached before a deploy does the same thing to a browser for as long as the
+ * cache serves it, and the precondition bail does it with nothing thrown at
+ * all.
+ *
+ * The modules arrive by dynamic import, so each case is set up by mocking one
+ * of them and re-importing the hook, which is also the only way to prove the
+ * "the detector never loaded" branch at all.
+ */
+describe('useFormFieldRegions detection state', () => {
+  let container: HTMLDivElement;
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    // The failure is meant to be loud in the console and nowhere else; this
+    // keeps the suite's output readable without weakening that.
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    warn.mockRestore();
+    vi.doUnmock('@cantoo/pdf-lib');
+    vi.doUnmock('../lib/fields/formWidgets.js');
+    vi.resetModules();
+  });
+
+  /** A pdf.js document whose pages carry no text - enough for the walk to run. */
+  const pdfDocument = {
+    getPage: async () => ({ getTextContent: async () => ({ items: [] }) }),
+  } as never;
+
+  async function detect(
+    inputs: [ArrayBuffer | null, number, unknown] = [new ArrayBuffer(8), 1, pdfDocument],
+  ): Promise<FormFieldRegions> {
+    const { default: useFormFieldRegions } = await import('./useFormFieldRegions.ts');
+    let latest!: FormFieldRegions;
+    function Probe() {
+      latest = useFormFieldRegions(inputs[0], inputs[1], inputs[2] as never);
+      return null;
+    }
+    await act(async () => { render(<Probe />, container); });
+    await vi.waitFor(() => expect(latest.detection).not.toBe('pending'), { timeout: 5000, interval: 10 });
+    return latest;
+  }
+
+  // The state that was never a state: the effect's own precondition bail. It
+  // throws nothing, logs nothing and reaches no catch, and it produces the
+  // exact reported symptom - no outlines, no snapping, an editor that looks
+  // like it read a form with nothing in it. It is reported only after a grace
+  // period, because a load sets the bytes in one step and the pdf.js document
+  // in a later one and being half-ready in between is normal.
+  it('says detection never started, and which input was missing, when the effect bails', async () => {
+    vi.resetModules();
+    const regions = await detect([new ArrayBuffer(4_096), 3, null]);
+
+    expect(regions.detection).toBe('not-started');
+    expect(regions.detectionIssue).toContain('no pdf.js document');
+    // A length is a number the file row already shows; the bytes themselves
+    // never leave this module.
+    expect(regions.detectionIssue).toContain('bytes=4096');
+    expect(regions.detectionIssue).toContain('pages=3');
+  });
+
+  it('names an empty or detached buffer as such, rather than letting it look like an empty form', async () => {
+    vi.resetModules();
+    const regions = await detect([new ArrayBuffer(0), 3, pdfDocument]);
+
+    expect(regions.detection).toBe('not-started');
+    expect(regions.detectionIssue).toContain('0 bytes');
+    expect(regions.detectionIssue).toContain('empty or detached');
+  });
+
+  // The blank editor before a file is chosen is not a bail, and saying so
+  // would be reporting an empty page.
+  it('claims nothing at all when nothing has been opened', async () => {
+    vi.resetModules();
+    const { default: useFormFieldRegions } = await import('./useFormFieldRegions.ts');
+    let latest!: FormFieldRegions;
+    function Probe() {
+      latest = useFormFieldRegions(null, 0, null);
+      return null;
+    }
+    await act(async () => { render(<Probe />, container); });
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    expect(latest.detection).toBe('pending');
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  // The live report this branch was built for: the shell is served
+  // cache-first and has no skipWaiting(), so a copy cached before a deploy
+  // goes on asking for chunk names that deploy replaced. The import rejects,
+  // and every document looks like a document with no fields - permanently,
+  // and identically on every reload.
+  it('says the detector never loaded when its own chunks fail to import', async () => {
+    vi.resetModules();
+    vi.doMock('../lib/fields/formWidgets.js', () => {
+      throw new TypeError('Importing a module script failed.');
+    });
+
+    const regions = await detect();
+    expect(regions.detection).toBe('unavailable');
+    expect(regions.combs).toEqual([]);
+    expect(regions.cells).toEqual([]);
+    expect(String(warn.mock.calls[0][0])).toContain('stale cached copy');
+  });
+
+  it('says the walk failed when the detector loaded and then threw', async () => {
+    vi.resetModules();
+    vi.doMock('@cantoo/pdf-lib', () => ({
+      PDFDocument: { load: async () => { throw new TypeError('p.findLast is not a function'); } },
+    }));
+
+    const regions = await detect();
+    expect(regions.detection).toBe('failed');
+    // The throw is kept for the caller to classify and sanitise, and for the
+    // console. It is never rendered.
+    expect(regions.detectionError).toBeInstanceOf(TypeError);
+    expect(String(warn.mock.calls[0][0])).toContain('did not complete');
+  });
+
+  it('reports a detector that loaded and then threw, and not one that never loaded', async () => {
+    const reportError = vi.fn();
+    const theError = new TypeError('p.findLast is not a function');
+    vi.resetModules();
+    vi.doMock('../../../lib/errorReport.ts', () => ({ reportError }));
+    vi.doMock('@cantoo/pdf-lib', () => ({
+      PDFDocument: { load: async () => { throw theError; } },
+    }));
+
+    await detect();
+    expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError, 'detect_fields');
+    vi.doUnmock('../../../lib/errorReport.ts');
+  });
+
+  // An honest zero: the run finished, and this document has nothing in it the
+  // detector recognises. No error is carried, because there was none.
+  it('says the walk finished when it ran and found nothing', async () => {
+    vi.resetModules();
+    vi.doMock('@cantoo/pdf-lib', () => ({
+      PDFDocument: { load: async () => ({ getPageCount: () => 0 }) },
+    }));
+
+    const regions = await detect();
+    expect(regions.detection).toBe('done');
+    expect(regions.detectionError).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  // FORM-35: a finished run says what page 1 is made of. A document with no
+  // pages has nothing on it, which is the 'none' answer rather than a gap.
+  it('carries a page kind once the walk is done', async () => {
+    vi.resetModules();
+    vi.doMock('@cantoo/pdf-lib', () => ({
+      PDFDocument: { load: async () => ({ getPageCount: () => 0 }) },
+    }));
+
+    const regions = await detect();
+    expect(regions.detection).toBe('done');
+    expect(['text', 'vector', 'image', 'none']).toContain(regions.pageKind);
+  });
+});
+
+/**
+ * The iOS bug of 2026-09-20, as a test: detection found zero fields on every
+ * document on iOS 26.6.2 because pdf.js's `getTextContent()` ends in
+ * `for await (const value of readableStream)`, and Safari has never shipped
+ * async iteration of a native ReadableStream (WebKit bug 194379).
+ *
+ * The stream here is deliberately hostile in the way iOS is: it has a working
+ * `getReader()` and NO `Symbol.asyncIterator`. Anything that reaches for async
+ * iteration throws `undefined is not a function` against it, exactly as the
+ * device did; reading it with a reader works. Every engine available to CI has
+ * the feature (measured: Playwright's Linux WebKit and Chromium both report
+ * `'function'`), so without a fixture like this one nothing here can fail.
+ */
+describe('reading a page\'s text on an engine without ReadableStream async iteration', () => {
+  function iosLikeStream(chunks: Array<{ items: object[] }>) {
+    let i = 0;
+    return {
+      getReader: () => ({
+        read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined }),
+      }),
+      // Symbol.asyncIterator deliberately absent, as on iOS WebKit.
+    };
+  }
+
+  it('drains the text stream with a reader, not by async iteration', async () => {
+    const stream = iosLikeStream([{ items: [{ str: 'a' }] }, { items: [{ str: 'b' }] }]);
+    expect((stream as Record<symbol, unknown>)[Symbol.asyncIterator]).toBeUndefined();
+    await expect((async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-empty
+      for await (const _ of stream as any) { /* the shape iOS cannot do */ }
+    })()).rejects.toThrow();
+
+    const reader = stream.getReader();
+    const items: object[] = [];
+    for (let c = await reader.read(); !c.done; c = await reader.read()) items.push(...(c.value?.items ?? []));
+    expect(items).toEqual([{ str: 'a' }, { str: 'b' }]);
+  });
+});

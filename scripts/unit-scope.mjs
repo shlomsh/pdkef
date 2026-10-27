@@ -123,12 +123,12 @@ export const WIDEN_RULES = [
   },
   {
     id: 'sign-field-fixtures',
-    reason: 'PDF fixtures read by path under src/tools/sign/fields/__fixtures__/',
-    match: (f) => f.startsWith('src/tools/sign/fields/__fixtures__/'),
+    reason: 'PDF fixtures read by path under src/tools/sign/lib/fields/__fixtures__/',
+    match: (f) => f.startsWith('src/tools/sign/lib/fields/__fixtures__/'),
     tests: [
-      'src/tools/sign/fieldOrder.fixtures.test.js',
-      'src/tools/sign/fields/formGrid.fixtures.test.js',
-      'src/tools/sign/fields/corpus/corpus.test.js',
+      'src/tools/sign/lib/fieldOrder.fixtures.test.js',
+      'src/tools/sign/lib/fields/formGrid.fixtures.test.js',
+      'src/tools/sign/lib/fields/corpus/corpus.test.js',
     ],
   },
   {
@@ -136,17 +136,17 @@ export const WIDEN_RULES = [
     reason: 'the committed practice-form PDF is read by path, not imported',
     match: (f) => f === 'public/images/redaction-guide/sample.pdf',
     tests: [
-      'src/tools/sign/fields/formWidgets.test.js',
-      'src/tools/sign/fields/formGrid.fixtures.test.js',
-      'src/tools/sign/fields/corpus/corpus.test.js',
-      'src/tools/sign/fields/corpus/scoring/scoring.test.js',
+      'src/tools/sign/lib/fields/formWidgets.test.js',
+      'src/tools/sign/lib/fields/formGrid.fixtures.test.js',
+      'src/tools/sign/lib/fields/corpus/corpus.test.js',
+      'src/tools/sign/lib/fields/corpus/scoring/scoring.test.js',
     ],
   },
   {
     id: 'scoring-corpus',
     reason: 'baselines.json, its forms and ground-truth files are all read by path from scoring.test.js',
-    match: (f) => f.startsWith('src/tools/sign/fields/corpus/scoring/') || f.startsWith('scripts/spike/mobi-10/ground-truth/'),
-    tests: ['src/tools/sign/fields/corpus/scoring/scoring.test.js'],
+    match: (f) => f.startsWith('src/tools/sign/lib/fields/corpus/scoring/') || f.startsWith('scripts/spike/mobi-10/ground-truth/'),
+    tests: ['src/tools/sign/lib/fields/corpus/scoring/scoring.test.js'],
   },
   {
     id: 'font-binaries',
@@ -221,8 +221,8 @@ export const WIDEN_RULES = [
   {
     id: 'form-field-regions-text-parse',
     reason: 'read as text and statically parsed (deliberately not imported - a .js test can\'t import a .ts file here)',
-    match: (f) => f === 'src/tools/sign/useFormFieldRegions.ts',
-    tests: ['src/tools/sign/useFormFieldRegions.wiring.test.js'],
+    match: (f) => f === 'src/tools/sign/hooks/useFormFieldRegions.ts',
+    tests: ['src/tools/sign/hooks/useFormFieldRegions.wiring.test.js'],
   },
   {
     id: 'editor-dependency-directions-subprocess',
