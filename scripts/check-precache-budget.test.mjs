@@ -1,6 +1,9 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { pageHash } from './pageHash.mjs';
 import { describe, expect, it } from 'vitest';
-import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems } from './check-precache-budget.mjs';
+import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -140,7 +143,7 @@ describe('checkPrecache coverage', () => {
 describe('manifestIdentityProblems (MEM-22)', () => {
   const bytes = { '/a/': '<html>a</html>', '/b/': '<html>b</html>', '/icons/i.png': 'png' };
   const readPage = (url) => bytes[url];
-  const workerSource = 'const c=`pdkef-c3-0123456789ab`;';
+  const workerSource = 'const b=`0123456789ab`;const c=`pdkef-c3-0123456789ab`;';
   const clean = {
     build: '0123456789ab',
     shell: ['/icons/i.png', '/_astro/x.js'],
@@ -149,6 +152,11 @@ describe('manifestIdentityProblems (MEM-22)', () => {
   };
   it('passes a manifest whose build is in the worker and whose hashes match', () => {
     expect(manifestIdentityProblems(clean, { readPage, workerSource })).toEqual([]);
+  });
+  it('wants the build id twice in the worker, as BUILD_ID and as CACHE_VERSION', () => {
+    const f = manifestIdentityProblems(clean, { readPage, workerSource: 'const BUILD_ID=`0123456789ab`;' });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain('twice');
   });
   it('names a missing build', () => {
     const { build, ...rest } = clean;
@@ -188,5 +196,17 @@ describe('manifestIdentityProblems (MEM-22)', () => {
     const f = manifestIdentityProblems(clean, { readPage: (u) => (u === '/icons/i.png' ? 'changed' : bytes[u]), workerSource });
     expect(f).toHaveLength(1);
     expect(f[0]).toContain('/icons/i.png');
+  });
+});
+
+describe('distFontUrls (MEM-22)', () => {
+  it('lists every file in dist/fonts, whatever its name', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fonts-'));
+    fs.mkdirSync(path.join(dir, 'fonts'));
+    for (const f of ['Heebo-Regular.ttf', 'Foo.subset.ttf', 'Bar_Baz.woff2']) fs.writeFileSync(path.join(dir, 'fonts', f), 'x');
+    expect(distFontUrls(dir).sort()).toEqual(['/fonts/Bar_Baz.woff2', '/fonts/Foo.subset.ttf', '/fonts/Heebo-Regular.ttf']);
+  });
+  it('lists nothing when dist/ has no fonts folder', () => {
+    expect(distFontUrls(fs.mkdtempSync(path.join(os.tmpdir(), 'nofonts-')))).toEqual([]);
   });
 });

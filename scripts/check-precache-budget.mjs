@@ -155,13 +155,19 @@ export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFile
   ];
 }
 
+// Every file in dist/fonts/, as a URL: a font pack fetches them at runtime, so each needs a hash.
+export function distFontUrls(distDir) {
+  const fontsDir = path.join(distDir, 'fonts');
+  return fs.existsSync(fontsDir) ? fs.readdirSync(fontsDir).map((f) => `/fonts/${f}`) : [];
+}
+
 // MEM-22: the manifest names its build (the id in sw.js's CACHE_VERSION) and the hash of the final bytes of
 // every precached URL that is not a content-hashed /_astro/ file, plus every dist font (a font pack fetches those
-// at runtime). `readPage(url)` returns the bytes dist/ holds; `distFonts` lists the /fonts/<name>.ttf URLs there.
+// at runtime). `readPage(url)` returns the bytes dist/ holds; `distFonts` lists the /fonts/<name> URLs there.
 export function manifestIdentityProblems(manifest, { readPage, workerSource, distFonts = [] }) {
   const problems = [];
   if (!manifest.build) problems.push('manifest: no "build" id');
-  else if (!workerSource.includes(manifest.build)) problems.push(`manifest: build ${manifest.build} is not in the worker's CACHE_VERSION`);
+  else if (workerSource.split(manifest.build).length - 1 < 2) problems.push(`manifest: build ${manifest.build} must appear twice in the worker (BUILD_ID and CACHE_VERSION)`);
   const hashes = manifest.hashes ?? {};
   const expected = new Set([...manifest.shell, ...Object.values(manifest.pages).flat(), ...distFonts].filter((url) => !url.startsWith('/_astro/')));
   for (const url of expected) if (!(url in hashes)) problems.push(`${url}: is served unhashed but has no hash`);
@@ -215,7 +221,7 @@ function main() {
   failures.push(...manifestIdentityProblems(manifest, {
     readPage: (url) => fs.readFileSync(path.join(dist, decodeURIComponent(fileOf(url)))),
     workerSource: fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'),
-    distFonts: fs.existsSync(path.join(dist, 'fonts')) ? fs.readdirSync(path.join(dist, 'fonts')).filter((f) => /^[A-Za-z0-9-]+\.ttf$/.test(f)).map((f) => `/fonts/${f}`) : [],
+    distFonts: distFontUrls(dist),
   }));
   if (failures.length) {
     console.error(failures.join('\n'));

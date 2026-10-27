@@ -264,6 +264,7 @@ function validManifest(manifest) {
   if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
+  if (!hashes || typeof hashes !== 'object') throw new Error('Precache manifest has no hashes.');
   return { version, build, shell, pages, hashes };
 }
 
@@ -344,7 +345,7 @@ async function precacheAppShell({ skipCached = false } = {}) {
     // No readable previous cache.
   }
   const urls = appUrls(manifest);
-  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes ?? {} });
+  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
