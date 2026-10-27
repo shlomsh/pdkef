@@ -4,6 +4,7 @@ import { describe, expect, it, vi, afterEach, beforeAll, beforeEach, type Mock }
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -234,14 +235,10 @@ describe('PdfRedactTool UI flow', () => {
       setInputFiles(input, [file]);
     });
 
-    // Wait for async file loading
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    // Verify hint message appears indicating editing mode. Nothing is armed on
+    // Verify hint message appears indicating editing mode (once the async file load lands). Nothing is armed on
     // load - a tool is one-shot here now, exactly as in the Sign editor - so
     // this is the idle tip, not any tool's own copy.
+    await waitUntil(() => expect(query(container, `.${toolbarStyles.help}`).textContent).toContain('pick a tool'));
     const header = query(container, `.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
     expect(header.textContent).toContain('pick a tool');
@@ -1239,9 +1236,7 @@ describe('PdfRedactTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [file]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await waitUntil(() => query(container, '.redact-draw-area'));
 
     const drawArea = query<HTMLElement>(container, '.redact-draw-area');
     drawArea.getBoundingClientRect = () => ({
@@ -2008,9 +2003,7 @@ describe('PdfRedactTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [file]);
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+    await waitUntil(() => query(container, '.redact-draw-area'));
 
     const drawArea = query<HTMLElement>(container, '.redact-draw-area');
     drawArea.getBoundingClientRect = () => ({
@@ -3549,8 +3542,8 @@ describe('PdfRedactTool UI flow', () => {
         // The replacement finishes loading and gets a clean editor of its own.
         await act(async () => {
           resolveReplacementDocument(harness.pdfjs.fakeDocument(2));
-          await new Promise((resolve) => setTimeout(resolve, 0));
         });
+        await waitUntil(() => expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull());
         expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
         expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
 
@@ -3627,7 +3620,8 @@ describe('PdfRedactTool UI flow', () => {
       document.body.appendChild(container);
       act(() => { render(<PdfRedactTool />, container); });
       await act(async () => { setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [file]); });
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      // The file has been read: either the needs-unlock state or the editor is on screen.
+      await waitUntil(() => state() !== null || container.querySelector(`.${workspaceStyles.workspace}`) !== null);
     }
 
     const state = () => container.querySelector<HTMLElement>('[data-needs-unlock]');
@@ -3706,7 +3700,7 @@ describe('PdfRedactTool UI flow', () => {
       const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
         .find((button) => button.textContent?.trim() === 'Replace file'), 'Replace file button');
       await act(async () => { confirmReplace.click(); });
-      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      await waitUntil(() => container.querySelector(`.${workspaceStyles.workspace}`) !== null);
       expect(state()).toBeNull();
     });
   });
