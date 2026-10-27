@@ -1,4 +1,3 @@
-import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
 import type { PageToolMessages } from '../../shell/pageWorkspace/pageToolMessages.ts';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
@@ -100,7 +99,3 @@ export const englishEditPagesMessages: EditPagesMessages = {
   failureUnlock: 'Unlock',
   failureTail: 'first. Otherwise the file may be damaged - try another PDF.',
 };
-
-export function getEditPagesMessages(_locale: DocumentationLocaleId): EditPagesMessages {
-  return englishEditPagesMessages;
-}

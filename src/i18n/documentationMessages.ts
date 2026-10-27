@@ -82,7 +82,6 @@ export interface DocumentationShellMessages {
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'homepageAriaLabel' | 'onDevice'>;
-export type FaqMessages = Pick<DocumentationShellMessages, 'faqTag' | 'faqHeading'>;
 export type OtherGuidesMessages = Pick<DocumentationShellMessages, 'otherDevices' | 'openSignTool'>;
 export type RelatedGuidesMessages = Pick<DocumentationShellMessages, 'relatedHeading'>;
 export type CrossLinksMessages = Pick<DocumentationShellMessages, 'crossLinksKicker' | 'crossLinksHeading' | 'crossLinksSubhead'>;
