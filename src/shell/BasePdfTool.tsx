@@ -8,6 +8,7 @@ import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
 import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
+import { reportError } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
 import { markArrival } from '../lib/fileArrival.ts';
 import type { FileSource } from '../lib/usageEventSchema.ts';
@@ -317,7 +318,9 @@ function BasePdfToolInner({
   // walking it is async, so only that case leaves the synchronous path.
   const receiveDrop = (dataTransfer: DataTransfer | null | undefined) => {
     if (dropHasDirectory(dataTransfer)) {
-      void filesFromDataTransfer(dataTransfer).then((files) => receiveFiles(files, 'drop'));
+      filesFromDataTransfer(dataTransfer)
+        .then((files) => receiveFiles(files, 'drop'))
+        .catch((err) => reportError('pdf_tool_run', err, 'read_dropped_folder'));
       return;
     }
     receiveFiles(dataTransfer?.files, 'drop');

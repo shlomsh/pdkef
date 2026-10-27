@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { recordAction } from '../../lib/actionTrail.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 /**
  * ARCH-37: the editors' fullscreen toggle, once. Real fullscreen when the browser allows it on the
@@ -18,7 +19,7 @@ export function toggleWorkspaceFullscreen(
     return;
   }
   if (document.fullscreenElement) {
-    document.exitFullscreen();
+    Promise.resolve(document.exitFullscreen()).catch((err) => reportError('pdf_tool_run', err, 'exit_fullscreen'));
   } else if (workspace?.requestFullscreen && document.fullscreenEnabled !== false) {
     const promise = workspace.requestFullscreen();
     // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
