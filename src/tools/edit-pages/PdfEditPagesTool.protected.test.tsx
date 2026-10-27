@@ -7,6 +7,7 @@ import path from 'node:path';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // A protected PDF is a precondition, not a failure: Edit Pages shows NeedsUnlock (src/shell/NeedsUnlock.tsx)
@@ -100,8 +101,8 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     vi.stubGlobal('location', location);
     await act(async () => {
       Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Unlock it').click();
-      await new Promise((resolve) => setTimeout(resolve, 100));
     });
+    await waitUntil(() => expect(location.href).toBe('/unlock/'));
 
     expect(await harness.takeHandoff('unlock')).toMatchObject({ from: 'edit-pdf', fileName: 'needs-password.pdf' });
     expect(location.href).toBe('/unlock/');

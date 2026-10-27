@@ -9,6 +9,7 @@ import { buildPdf, healthy, noPagesKey, ORIGINAL_WIDTHS } from '../../test/suppo
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
 // DEBT-54: a file whose page list was lost is repaired once on open; the
 // grid (pdf.js) and the export must both read the repaired bytes while the
@@ -89,13 +90,16 @@ describe('PdfEditPagesTool working file after a repair', () => {
   async function build() {
     await act(async () => {
       container.querySelector('a[data-state]').dispatchEvent(new Event('pointerdown', { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 50));
     });
+    await waitUntil(() => expect(harness.createdBlobs().length).toBeGreaterThan(0));
+    // The tests assert exactly one export: a short settle so a second one would show.
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
   }
 
   it('hands the repaired bytes, under the original name, to the grid and the export', async () => {
     await open();
 
+    await waitUntil(() => expect(harness.pdfjs.thumbnails.openThumbnailSource).toHaveBeenCalled());
     const gridFile = harness.pdfjs.thumbnails.openThumbnailSource.mock.calls[0][0];
     expect(gridFile).not.toBe(original);
     expect(gridFile.name).toBe('document.pdf');
@@ -117,6 +121,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     original = new File([healthy()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     const editPagesSpy = vi.spyOn(editPagesLib, 'editPages');
     await open();
+    await waitUntil(() => expect(harness.pdfjs.thumbnails.openThumbnailSource).toHaveBeenCalled());
     expect(harness.pdfjs.thumbnails.openThumbnailSource.mock.calls[0][0]).toBe(original);
 
     await build();
