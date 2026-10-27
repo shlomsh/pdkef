@@ -1,78 +1,78 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from './lib/editPages.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
+import { getPdfLib } from '../../lib/pdfLib.js';
+import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
+import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
+import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
-import { reportError } from '../../lib/errorReport.ts';
 
-function makePdfFile(name) {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
-}
+// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
+// (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over the harness.
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
 
-const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 3 } }));
-
-vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportError: vi.fn(),
-}));
-
-// Mock pdf-lib
-vi.mock('@cantoo/pdf-lib', () => ({
-  PDFDocument: {
-    load: vi.fn(() => Promise.resolve({
-      getPageCount: () => mockState.numPages,
-    })),
-  },
-}));
-
-// The shared grid reads pdf.js through this source; no real rendering here.
+// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
 vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => ({
-    file,
-    pageCount: mockState.numPages,
-    render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-    destroy: vi.fn(async () => {}),
-  })),
+  openThumbnailSource: vi.fn(async (file) => {
+    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
+    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
+    return {
+      file,
+      pageCount,
+      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
+      destroy: vi.fn(async () => {}),
+    };
+  }),
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
   renderPdfThumbnails: vi.fn(async () => 0),
 }));
 
-// Mock core page editing logic
-vi.mock('./lib/editPages.js', () => ({
-  editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
-}));
-
-const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({
-  takeHandoffMock: vi.fn(() => Promise.resolve(null)),
-  saveHandoffMock: vi.fn(() => Promise.resolve(true)),
-}));
-
-// SITE-42: the home page hands picked files over through the draft store's hand-off slot.
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: takeHandoffMock,
-  saveHandoff: saveHandoffMock,
-}));
+// A real three-page PDF whose pages are told apart by width (200, 300, 400).
+function makePdfFile(name, bytes = healthy()) {
+  return new File([bytes], name, { type: 'application/pdf' });
+}
+const encryptedFixture = (name) => readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`));
+// What a built blob holds: its pages' widths in order, their rotations, and whether each carries a font (a page number).
+const pagesOf = async (blob) => {
+  const { PDFDocument, PDFName } = await getPdfLib();
+  const doc = await PDFDocument.load(await blob.arrayBuffer());
+  return {
+    count: doc.getPageCount(),
+    widths: doc.getPages().map((p) => p.getWidth()),
+    rotations: doc.getPages().map((p) => p.getRotation().angle),
+    fonts: doc.getPages().map((p) => Boolean(p.node.Resources()?.lookup(PDFName.of('Font')))),
+  };
+};
 
 const flush = (ms = 50) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
 describe('PdfEditPagesTool UI flow', () => {
   let container;
+  let harness;
 
   beforeEach(() => {
-    editPages.mockClear();
-    reportError.mockClear();
-    saveHandoffMock.mockClear();
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
-    window.URL.revokeObjectURL = vi.fn();
+    harness = installToolHarness();
+    // jsdom's Blob has no arrayBuffer().
+    if (!Blob.prototype.arrayBuffer) {
+      Blob.prototype.arrayBuffer = function arrayBuffer() {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(this);
+        });
+      };
+    }
   });
 
   afterEach(() => {
@@ -81,18 +81,18 @@ describe('PdfEditPagesTool UI flow', () => {
       container.remove();
       container = null;
     }
-    mockState.numPages = 3;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    harness.restore();
   });
 
-  async function load(name = 'document.pdf') {
+  async function load(name = 'document.pdf', bytes = healthy()) {
     container = document.createElement('div');
     document.body.appendChild(container);
     // jsdom cannot follow a download link.
     container.addEventListener('click', (e) => e.preventDefault());
     act(() => { render(<PdfEditPagesTool />, container); });
-    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile(name)]); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile(name, bytes)]); });
     await until(() => cells().length > 0);
   }
 
@@ -104,11 +104,25 @@ describe('PdfEditPagesTool UI flow', () => {
   const downloadElement = () => container.querySelector('a[data-state]');
   // A pointer on the Download element asks for the build now instead of after the quiet wait.
   // It settles once the built file is on the element; a test that holds the build open passes settles = false.
-  const prepareNow = async (settles = true) => {
-    const before = editPages.mock.calls.length;
+  const prepareNow = async (settles = true, gate = null) => {
     await act(async () => { downloadElement().dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    await until(() => (settles ? downloadElement()?.getAttribute('href') || downloadElement()?.dataset.state === 'error' : editPages.mock.calls.length > before));
+    await until(() => (settles ? downloadElement()?.getAttribute('href') || downloadElement()?.dataset.state === 'error' : gate.started));
   };
+  // Not a fake: the build still runs for real. The gate holds the NEXT build open right after it has started
+  // (a real pdf-lib run gives no way to pause it), so a test can supersede it while it is in flight.
+  const holdNextBuild = async () => {
+    const { PDFDocument } = await getPdfLib();
+    const create = PDFDocument.create;
+    const gate = { started: false, release: () => {} };
+    vi.spyOn(PDFDocument, 'create').mockImplementationOnce(async (...args) => {
+      gate.started = true;
+      await new Promise((resolve) => { gate.release = resolve; });
+      return create.apply(PDFDocument, args);
+    });
+    return gate;
+  };
+  // The output the Download element points at.
+  const shownOutput = () => harness.blobForUrl(downloadElement().getAttribute('href'));
 
   it('skipping every page says so on the Download element, not that it is preparing', async () => {
     await load();
@@ -213,16 +227,17 @@ describe('PdfEditPagesTool UI flow', () => {
   });
 
   it('a failed build points to Unlock, where a protected PDF can be opened', async () => {
-    editPages.mockRejectedValueOnce(new Error('This PDF is password protected.'));
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    await load();
+    // The probe calls this owner-only file open (no unlock offered), so the build itself refuses it.
+    await load('document.pdf', encryptedFixture('owner-only'));
     await click(skipButton(2));
     await prepareNow();
+    await harness.flush();
 
     const alert = container.querySelector('[role="alert"]');
     expect(alert.querySelector('a[href="/unlock/"]')).not.toBeNull();
     expect(downloadElement().dataset.state).toBe('error');
-    expect(reportError).toHaveBeenCalledWith('pdf_tool_run', expect.any(Error), 'apply_page_edits');
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'apply_page_edits', type: 'Error' }]);
   });
 
   it('builds the edited PDF from the plan and offers it as a download under the output name', async () => {
@@ -230,17 +245,13 @@ describe('PdfEditPagesTool UI flow', () => {
     await click(skipButton(2));
     await prepareNow();
 
-    expect(editPages).toHaveBeenCalledTimes(1);
-    const [, options] = editPages.mock.calls[0];
-    expect(options).toEqual({
-      pageOrder: [1, 2, 3],
-      removedPageNums: new Set([2]),
-      rotations: {},
-      addPageNumbers: false,
-    });
+    expect(harness.createdBlobs()).toHaveLength(1);
     const link = downloadElement();
+    // Page 2 is removed, the others stay in order (told apart by width), nothing is rotated or numbered.
+    expect(await pagesOf(shownOutput())).toEqual({
+      count: 2, widths: [ORIGINAL_WIDTHS[0], ORIGINAL_WIDTHS[2]], rotations: [0, 0], fonts: [false, false],
+    });
     expect(link.dataset.state).toBe('ready');
-    expect(link.getAttribute('href')).toBe('blob:testurl');
     expect(link.getAttribute('download')).toBe('document_modified.pdf');
     expect(link.textContent).toContain('Download edited PDF');
   });
@@ -249,7 +260,7 @@ describe('PdfEditPagesTool UI flow', () => {
     await load();
     await click(container.querySelector('input[type="checkbox"]'));
     await prepareNow();
-    expect(editPages.mock.calls.at(-1)[1].addPageNumbers).toBe(true);
+    expect(await pagesOf(shownOutput())).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS, fonts: [true, true, true] });
   });
 
   it('a tap on a ready Download opens the done strip with Share and the hand-offs', async () => {
@@ -279,9 +290,9 @@ describe('PdfEditPagesTool UI flow', () => {
     const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
     vi.stubGlobal('location', { href: '/organize-pdf/' });
     await act(async () => { compress.click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
-    expect(saveHandoffMock).toHaveBeenCalledWith('compress', expect.objectContaining({
-      fileName: 'document_modified.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),
-    }));
+    const handoff = await harness.takeHandoff('compress');
+    expect(handoff).toMatchObject({ fileName: 'document_modified.pdf', fileType: 'application/pdf' });
+    expect(await pagesOf(new Blob([handoff.fileBytes]))).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS });
     expect(window.location.href).toBe('/compress/');
   });
 
@@ -295,16 +306,13 @@ describe('PdfEditPagesTool UI flow', () => {
   });
 
   it('loads a PDF handed off from the home page as if picked', async () => {
-    takeHandoffMock.mockResolvedValueOnce({
-      fileName: 'handed.pdf',
-      fileType: 'application/pdf',
-      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
-    });
+    await saveHandoff('edit-pdf', { fileName: 'handed.pdf', fileType: 'application/pdf', fileBytes: healthy().buffer });
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => { render(<PdfEditPagesTool />, container); });
     await until(() => cells().length === 3);
-    expect(takeHandoffMock).toHaveBeenCalledWith('edit-pdf');
+    // The hand-off was collected: nothing is left parked for the next visit.
+    expect(await harness.takeHandoff('edit-pdf')).toBeNull();
     expect(heading().textContent).toContain('handed_modified.pdf');
     expect(cells().length).toBe(3);
   });
@@ -318,52 +326,65 @@ describe('PdfEditPagesTool UI flow', () => {
   };
 
   it('replacing the file drops a Download tapped before the build landed', async () => {
-    let finishFirst;
-    editPages.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }));
     await load('a.pdf');
-    await prepareNow(false);
+    const first = await holdNextBuild();
+    await prepareNow(false, first);
     await click(downloadElement());
     expect(downloadElement().dataset.state).toBe('preparing');
 
     await replaceWith(makePdfFile('b.pdf'));
     await prepareNow();
     expect(downloadElement().dataset.state).toBe('ready');
-    finishFirst?.(new Blob(['late']));
+    first.release();
   });
 
   it('renaming the output keeps the built PDF: no rebuild, still ready', async () => {
     await load();
     await prepareNow();
-    expect(editPages).toHaveBeenCalledTimes(1);
+    expect(harness.createdBlobs()).toHaveLength(1);
+    const builtHref = downloadElement().getAttribute('href');
     const name = container.querySelector('[contenteditable]');
     await act(async () => { name.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
     await act(async () => { name.textContent = 'my edit'; });
     await act(async () => { name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); });
     await until(() => downloadElement()?.getAttribute('download') === 'my edit.pdf');
     expect(downloadElement().getAttribute('download')).toBe('my edit.pdf');
-    expect(downloadElement().getAttribute('href')).toBe('blob:testurl');
-    expect(editPages).toHaveBeenCalledTimes(1);
+    expect(downloadElement().getAttribute('href')).toBe(builtHref);
+    expect(downloadElement().dataset.state).toBe('ready');
+    expect(harness.createdBlobs()).toHaveLength(1);
   });
 
   it('a different file with the same name, size and date is built, not served from the cache', async () => {
-    const same = () => new File(['%PDF-1.4'], 'same.pdf', { type: 'application/pdf', lastModified: 1000 });
+    // Two different PDFs of the same size: a trailing comment differs by one character.
+    const same = (mark) => new File([healthy(), `%${mark}`], 'same.pdf', { type: 'application/pdf', lastModified: 1000 });
     container = document.createElement('div');
     document.body.appendChild(container);
     container.addEventListener('click', (e) => e.preventDefault());
     act(() => { render(<PdfEditPagesTool />, container); });
-    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [same()]); });
+    await act(async () => { setInputFiles(container.querySelector('input[type="file"]'), [same('a')]); });
     await until(() => cells().length > 0);
     await prepareNow();
-    expect(editPages).toHaveBeenCalledTimes(1);
+    expect(harness.createdBlobs()).toHaveLength(1);
 
-    await replaceWith(same());
+    await replaceWith(same('b'));
     await prepareNow();
-    expect(editPages).toHaveBeenCalledTimes(2);
+    expect(harness.createdBlobs()).toHaveLength(2);
   });
 
   it('the signal of a superseded build is aborted and handed to editPages', async () => {
+    const { PDFDocument } = await getPdfLib();
+    const saves = vi.spyOn(PDFDocument.prototype, 'save');
     await load();
+    const first = await holdNextBuild();
+    await prepareNow(false, first);
+    // Changing the plan supersedes the build that is in flight; the new one runs to the end.
+    await click(skipButton(2));
     await prepareNow();
-    expect(editPages.mock.calls[0][3]).toBeInstanceOf(AbortSignal);
+    expect(saves).toHaveBeenCalledTimes(1);
+    // The superseded build wakes up, sees its aborted signal and stops before saving.
+    first.release();
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
+    expect(saves).toHaveBeenCalledTimes(1);
+    expect(await pagesOf(shownOutput())).toMatchObject({ count: 2 });
   });
 });
