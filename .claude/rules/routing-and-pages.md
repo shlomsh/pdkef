@@ -29,9 +29,10 @@ through the content collection in [content-and-copy], not `tools.js`.
 
 All eleven tools are implemented and indexed; `src/data/tools.js` is the registry (title, description,
 FAQ, href), and `src/pages/sitemap.xml.js` generates `/sitemap.xml` from it. Retired routes stay as
-redirects: `/protect` → `/unlock/` (one tool covers both intents by auto-detecting encryption).
-`/edit-pdf/` (SEO-47's old name for `/organize-pdf/`) has no redirect: Google never indexed it, so it
-404s. `/offline-pdf-form-filler/` was retired to `/install-pdf-app/` for a
+redirects: `/protect` → `/unlock/` (one tool covers both intents by auto-detecting encryption),
+`/edit-pdf/` → `/organize-pdf/` (SEO-47's rename; dropped on 2026-10-26 and put back on 2026-10-27 because
+Vercel Analytics still lists the path, so visitors with the old URL reach the tool; drop it again once
+those visits fade). `/offline-pdf-form-filler/` was retired to `/install-pdf-app/` for a
 while, then relaunched as its own content page (commit `b4ffd96`) without removing the old redirect,
 which silently 301'd the live page away for weeks. A route's build output and its `vercel.json` entry
 can disagree on whether it's retired with no build error, and the redirect always wins, so check

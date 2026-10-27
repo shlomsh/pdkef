@@ -96,6 +96,10 @@ Exported helpers next to `tools`: `toolIdOf(entry)`, `listedTools` (entries with
 - Later on 2026-10-26, after requesting indexing for the five, Shlomi dropped the `/edit-pdf/` redirect:
   Google never indexed that URL, so there is nothing to pass on, and it now 404s. Nothing in the product
   links to it; the internal tool id stays `'edit-pdf'`.
+- 2026-10-27: Shlomi saw `/edit-pdf` in Vercel Analytics (34 visitors, 51 views over 30 days; the URL was the
+  tool's own page until the rename on 2026-10-26, so most of that predates it) and asked for the redirects
+  back for a while: the two `vercel.json` entries (308 to `/organize-pdf/`) are restored. Drop them again once
+  the visits fade.
 
 ## Acceptance
 
