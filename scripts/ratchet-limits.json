@@ -55,7 +55,7 @@
       },
       "src/tools/sign/PdfSignTool.tsx": {
         "effects": 9,
-        "hooks": 34
+        "hooks": 33
       },
       "src/tools/sign/components/PdfWorkspace.tsx": {
         "effects": 1,
@@ -95,7 +95,7 @@
       "src/tools/compress/PdfCompressTool.tsx": 949,
       "src/tools/redact/PdfRedactTool.tsx": 1329,
       "src/tools/scan/PdfScanTool.tsx": 932,
-      "src/tools/sign/PdfSignTool.tsx": 1068,
+      "src/tools/sign/PdfSignTool.tsx": 1056,
       "src/tools/sign/components/SignToolbar.tsx": 833,
       "src/tools/sign/lib/fields/formCells.js": 1061
     },
@@ -112,7 +112,7 @@
       "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1202,
       "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 864,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
-      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 946,
+      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 936,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 649,
