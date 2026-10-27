@@ -138,7 +138,10 @@ export default defineConfig({
   // on an M2 Pro: 221s serialized, 84s on 3 workers, 69s on 5. The one spec
   // that failed under load (home/handoff) had a real setup race, fixed there.
   workers: process.env.CI ? 2 : 4,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // ARCH-85: the JSON report is what the nightly flake aggregation reads; its own folder, because the html reporter owns playwright-report/.
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never' }], ['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME || 'playwright-json/results.json' }]]
+    : 'list',
   use: {
     baseURL,
     trace: 'on-first-retry',
