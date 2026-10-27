@@ -12,7 +12,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { CELL_RATIO, MIN_CELL, useStageFit } from './useStageFit.ts';
 import { usePageAspects } from './usePageAspects.ts';
-import { useThumbnailSources, type ThumbnailSource } from './useThumbnailSources.ts';
+import { useThumbnailSources } from './useThumbnailSources.ts';
 import { FIT_PATIENCE_MS, fitSettled, rasterWidthForItem, type FitItem } from './stageFit.ts';
 
 export interface GridSource {
