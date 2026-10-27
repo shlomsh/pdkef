@@ -62,10 +62,10 @@
   },
   "dependencies": {
     "@astrojs/preact": "^6.1.1",
-    "@cantoo/pdf-lib": "^2.11.1",
+    "@cantoo/pdf-lib": "2.11.1",
     "@floating-ui/dom": "^1.8.0",
     "@floating-ui/react": "^0.27.20",
-    "@pdf-lib/fontkit": "^1.1.1",
+    "@pdf-lib/fontkit": "1.1.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.10.3",
     "@vercel/speed-insights": "^2.0.0",
