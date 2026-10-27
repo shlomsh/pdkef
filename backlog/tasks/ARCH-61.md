@@ -1,11 +1,9 @@
 ---
 id: "ARCH-61"
 title: "Unused exports and locals are a CI ratchet"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 8
 depends_on: ["ARCH-76"]
 ---
 
@@ -26,9 +24,13 @@ Area: Code. Criterion: Dead code and unused surface. Structure only: no behaviou
 
 ## Acceptance
 
-- [ ] The 15 never-used symbols are deleted; the ratchet records the rest.
-- [ ] Typecheck green with the new flags.
+- [x] The 15 never-used symbols are deleted; the ratchet records the rest.
+- [x] Typecheck green with the new flags.
 
 ## Progress (2026-10-27)
 
 scripts/check-unused-exports.mjs ratchets never-used, own-file-only and test-only exports (7 / 250 / 346) with a /** @testSeam */ convention; noUnusedLocals and noUnusedParameters are on and typecheck is green. Nine never-used symbols were deleted. Open: seven never-used symbols are kept for the owner: the six SNG-04 proposed constants in src/editor/interaction/constants.ts, and HistoryOperation, which .claude/rules/editor.md and docs/sign-next-gen.md name.
+
+## Done (2026-10-27)
+
+Decision (2026-10-27, lead with the owner's go-ahead): the seven never-used symbols stay on purpose and are recorded in the ratchet. The six SNG-04 constants in src/editor/interaction/constants.ts are the next-gen gesture spec values waiting for gestureMachine, and HistoryOperation is the type the editor rule and docs/sign-next-gen.md name.
