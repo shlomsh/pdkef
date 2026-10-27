@@ -1,7 +1,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import DownloadElement, { type DownloadElementProps } from '../../shell/DownloadElement.tsx';
+import type { ComponentProps } from 'preact';
+import DownloadElement from '../../shell/DownloadElement.tsx';
+
+type DownloadElementProps = ComponentProps<typeof DownloadElement>;
 import styles from '../../shell/DownloadElement.module.css';
 import { englishMergeMessages } from '../../tools/merge/messages';
 
