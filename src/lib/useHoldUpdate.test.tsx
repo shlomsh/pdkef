@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { isExportInFlight, isUpdateHeld } from './appUpdate/updateHolds.ts';
 import { useHoldUpdate } from './useHoldUpdate.ts';
 
-function Probe({ active, kind }) {
+function Probe({ active, kind }: { active: boolean; kind?: 'export' | 'open' }) {
   useHoldUpdate(active, kind);
   return null;
 }
@@ -12,7 +12,7 @@ function Probe({ active, kind }) {
 describe('useHoldUpdate', () => {
   let container: HTMLElement | null = null;
 
-  function show(active, kind) {
+  function show(active: boolean, kind?: 'export' | 'open') {
     if (!container) {
       container = document.createElement('div');
       document.body.appendChild(container);
