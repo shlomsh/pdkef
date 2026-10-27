@@ -352,6 +352,11 @@ jobs:
     - name: Check Sign-only modules stay out of every page's first paint
       run: npm run test:lazy-modules
 
+    # What the service worker downloads: the shell and each page's closure,
+    # budgeted, and no page carrying another tool's island chunk.
+    - name: Check precache closures stay within budget
+      run: npm run test:precache-budget
+
   # The product e2e suite, split into shards (QUAL-05: two; QUAL-23,
   # 2026-10-18: four). Files shard whole and in path order, so two shards put
   # every e2e/** spec in shard 1 (355s of test time on run 39124382451) and

@@ -216,15 +216,12 @@ export const LOCALIZED_TOOL_ISLANDS: ReadonlySet<string> = new Set(LOCALIZED_ISL
 
 /**
  * Every published page of one edition - the locale's home page, its tool
- * pages and its guides - as site paths, for the offline locale pack a
- * localized page asks sw.js to warm (LOC-02). Published only, whatever the
- * build mode: a draft has nothing to warm, and the pack a page names is one
- * of verify-seo's guards.
+ * pages and its guides - as site paths, so cross-links (related guides, tool
+ * cards, the home dock) point only at pages that exist in that locale. Published
+ * only, whatever the build mode: a draft has nothing to link to.
  *
- * The home edition (LOC-09) has to be in here, and was missed when the
- * collection landed. sw.js's navigation fallback is `/` - the *English*
- * shell - so a locale root left out of its own pack is the one page in the
- * edition an installed PWA answers in the wrong language offline.
+ * The home edition (LOC-09) has to be in here, so the dock links to the
+ * locale's own home page rather than the English one.
  */
 export async function getPublishedEditionPaths(locale: DocumentationLocaleId): Promise<string[]> {
   const [homeVariants, toolVariants, guideVariants] = await Promise.all([

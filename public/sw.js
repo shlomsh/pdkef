@@ -3,14 +3,15 @@
 // own cache and no two builds ever share one.
 //
 // Strategy:
-//   - The built application shell (every page, script and style - everything
-//     except fonts) is precached during install, best-effort per URL except
-//     the root fallback (see precacheAppShell and precacheFilter.mjs). A
-//     service worker can never intercept the navigation that first registers
-//     it, so a page's own first-ever load - including a `client:load`
-//     island's hydration bundle - happens uncontrolled and uncached; without
-//     precaching the app up front, reopening any tool offline would need a
-//     second, separate online visit first just to warm it.
+//   - Install precaches the whole app, defined by the build manifest (v2) as
+//     the shell (`/`, the offline fallback, and what every page shares) plus
+//     every page's list: that page's HTML and every script, style, worker and
+//     wasm file it reaches, computed at build time and deduped here (appUrls).
+//     Guide photos and files no page reaches are left to runtime caching.
+//     Best-effort per URL except the root fallback (see precacheUrls). A new
+//     build copies its unchanged content-hashed /_astro/ files from the
+//     previous build's cache and fetches only the rest, so a redeploy costs
+//     the diff, not the site.
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable.
 //   - Other same-origin assets are cache-first after precache or first use.
@@ -54,8 +55,8 @@ const REQUIRED_URL = '/';
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
-// SIGN-23: non-default faces are opt-in family packs, not part of the initial
-// ~37 MB app download. A successful provision stores this synthetic marker
+// SIGN-23: non-default faces are opt-in family packs, provisioned separately and
+// not part of the app install. A successful provision stores this synthetic marker
 // beside every face in the current build cache. The marker is the explicit
 // contract that distinguishes "a face happened to be fetched once" from
 // "every advertised style in this family is ready for a disconnected edit
@@ -96,25 +97,6 @@ const UNANSWERED_COOLDOWN_MS = 30_000;
 const FONT_PACK_MESSAGE = {
   status: 'pdkef:font-pack-status',
   provision: 'pdkef:font-pack-provision',
-};
-
-// LOC-02: localized editions are the same idea one level up. Their HTML is
-// left out of the precache manifest (scripts/precacheFilter.mjs) so an
-// English visitor never downloads a Hebrew page shell; a localized page then
-// asks for its edition's published pages as a pack. The JS those pages
-// hydrate with is the same content-hashed chunk set the English pages use,
-// already in the app-shell precache, so a pack is HTML only.
-//
-// Deliberately NOT migrated across builds the way font packs are: a page
-// shell from a previous build references that build's chunks, which the
-// activate handler is about to delete, so retaining it offline would be the
-// exact "page renders, PDF silently never appears" failure the no-skipWaiting
-// rule exists to prevent. The marker goes with the old cache, and the next
-// online visit to any page of the edition re-provisions it.
-const LOCALE_PACK_MARKER_PATH = '/__pdkef/offline-locale-pack/';
-const LOCALE_PACK_MESSAGE = {
-  status: 'pdkef:locale-pack-status',
-  provision: 'pdkef:locale-pack-provision',
 };
 
 // Raised when this origin serves no build manifest at all — a 404, not a
@@ -158,11 +140,55 @@ function isCriticalOver(ownVersion, otherKeys) {
   return otherKeys.length > 0 && ownVersion > Math.min(...otherKeys.map(criticalVersionOf));
 }
 
+// 'no-cache', not 'reload': still validated with the server on every call, so
+// a deploy is never served stale, but an unchanged file comes back as a 304
+// instead of being downloaded again (reload sends no conditional request).
 function fetchFresh(url) {
-  return fetch(new Request(resolve(url), { cache: 'reload' }));
+  return fetch(new Request(resolve(url), { cache: 'no-cache' }));
 }
 
-async function loadPrecacheManifest() {
+// MEM-16: only /_astro/ files are content-hashed, so their bytes never change
+// under the same URL. Everything else (pages, fonts, wasm, icons) can.
+function isHashedUrl(url) {
+  return url.startsWith('/_astro/');
+}
+
+// Which manifest URLs install copies out of a previous build's cache and which
+// it fetches. Pure: previouslyCached is the set of pathnames those caches hold.
+// Only a hashed URL already held there is copied; a page or an unhashed asset
+// is always fetched, because the same URL may now name different bytes.
+function planPrecache(urls, previouslyCached) {
+  const copy = [];
+  const toFetch = [];
+  for (const url of urls) {
+    (isHashedUrl(url) && previouslyCached.has(url) ? copy : toFetch).push(url);
+  }
+  return { copy, fetch: toFetch };
+}
+
+async function previousCacheHandles() {
+  const keys = await caches.keys();
+  return Promise.all(keys.filter((key) => isOwnCache(key) && key !== CACHE_VERSION).map((key) => caches.open(key)));
+}
+
+async function pathnamesIn(previousCaches) {
+  const held = new Set();
+  for (const oldCache of previousCaches) {
+    for (const request of await oldCache.keys()) held.add(new URL(request.url).pathname);
+  }
+  return held;
+}
+
+// The hashed file from the first previous cache that holds it, or null.
+async function findInPrevious(previousCaches, url) {
+  for (const oldCache of previousCaches) {
+    const response = await oldCache.match(resolve(url));
+    if (response) return response;
+  }
+  return null;
+}
+
+async function loadManifest() {
   const response = await fetchFresh(PRECACHE_MANIFEST_URL);
   if (response.status === 404) {
     throw new OrphanedWorkerError('This origin serves no precache manifest.');
@@ -170,11 +196,20 @@ async function loadPrecacheManifest() {
   if (!response.ok) {
     throw new Error(`Failed to load precache manifest: ${response.status}`);
   }
-  const { urls } = await response.json();
-  if (!Array.isArray(urls) || urls.length === 0) {
+  return validManifest(await response.json());
+}
+
+// MEM-15: the whole app is the shell plus every page's list, each URL once.
+function appUrls({ shell, pages }) {
+  return [...new Set([...shell, ...Object.values(pages).flat()])];
+}
+
+function validManifest(manifest) {
+  const { version, shell, pages } = manifest ?? {};
+  if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
-  return urls;
+  return { version, shell, pages };
 }
 
 // Run task over items with at most `limit` in flight. A rejection propagates and
@@ -189,24 +224,37 @@ async function forEachLimited(items, limit, task) {
   await Promise.all(lanes);
 }
 
-async function precacheAppShell({ skipCached = false } = {}) {
-  const urls = await loadPrecacheManifest();
-  const cache = await caches.open(CACHE_VERSION);
-
-  // Per-URL tolerance is deliberate. This precaches every page and script
-  // chunk in the build, so on a weak connection something will eventually
-  // fail, and an earlier version failed the whole install on the first bad
-  // response - the visitor then got no offline shell at all and
-  // re-downloaded the entire site on their next visit, silently, forever.
-  // Anything missed here still resolves over the network on demand and is
-  // cached on first use by the fetch handler below, so a miss costs nothing
-  // but the offline guarantee for that one asset. Only REQUIRED_URL ('/')
-  // is load-bearing enough to fail the install over.
+// Per-URL tolerance is deliberate. A weak connection will eventually fail
+// something, and an earlier version failed the whole install on the first bad
+// response - the visitor then got no offline shell at all and re-downloaded
+// the site on their next visit, silently, forever. Anything missed here still
+// resolves over the network on demand and is cached on first use by the fetch
+// handler below, so a miss costs nothing but the offline guarantee for that one
+// asset. Only REQUIRED_URL ('/') is load-bearing enough to fail the install
+// over. Resolves to the URLs it did not cache.
+async function precacheUrls(cache, urls, previousCaches, { skipCached = false } = {}) {
   const missed = [];
+  // MEM-16: carry unchanged hashed files over from the previous build's cache
+  // instead of downloading them again. Activate deletes those caches only
+  // after this install, so they are still here to read.
+  let plan = { copy: [], fetch: urls };
+  try {
+    plan = planPrecache(urls, await pathnamesIn(previousCaches));
+  } catch {
+    // No readable previous cache: fetch everything, as a first install does.
+  }
+  const toCopy = new Set(plan.copy);
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
     if (skipCached && await cache.match(url)) return;
     try {
-      const response = await fetchFresh(url);
+      if (toCopy.has(url)) {
+        const kept = await findInPrevious(previousCaches, url).catch(() => null);
+        if (kept) {
+          await cache.put(url, kept);
+          return;
+        }
+      }
+      const response = isHashedUrl(url) ? await fetch(new Request(resolve(url))) : await fetchFresh(url);
       if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
       await cache.put(url, response);
     } catch (error) {
@@ -214,7 +262,21 @@ async function precacheAppShell({ skipCached = false } = {}) {
       missed.push(url);
     }
   });
+  return missed;
+}
 
+// MEM-15: the whole app (see appUrls). Resolves to the number of URLs missed.
+async function precacheAppShell({ skipCached = false } = {}) {
+  const manifest = await loadManifest();
+  const cache = await caches.open(CACHE_VERSION);
+  let previousCaches = [];
+  try {
+    previousCaches = await previousCacheHandles();
+  } catch {
+    // No readable previous cache.
+  }
+  const urls = appUrls(manifest);
+  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
@@ -222,9 +284,8 @@ async function precacheAppShell({ skipCached = false } = {}) {
 }
 
 // A build is ready to take over from the previous one only when it is fully
-// precached and the device is online. Offline, activation could not
-// re-provision anything (localized page packs are deliberately not migrated,
-// see LOCALE_PACK_MARKER_PATH), so the old build's offline coverage would be
+// precached and the device is online. Offline, a build that is not
+// fully cached would replace one that is, and the offline coverage would be
 // lost for good.
 async function readyToTakeOver() {
   const cache = await caches.open(CACHE_VERSION);
@@ -352,58 +413,6 @@ async function migrateFontPacks(previousCaches, currentCache) {
     }
     if (complete) await writeFontPackMarker(currentCache, pack);
   });
-}
-
-// A pack names one edition by its URL prefix and only pages under that
-// prefix; anything else is refused rather than cached, so a page cannot ask
-// the worker to warm URLs outside its own edition.
-function validLocalePack(pack) {
-  return !!pack
-    && typeof pack.prefix === 'string'
-    && /^[a-z]{2,3}(?:-[a-z0-9]+)?$/.test(pack.prefix)
-    && Array.isArray(pack.urls)
-    && pack.urls.length > 0
-    && pack.urls.length <= 64
-    && pack.urls.every((url) => typeof url === 'string'
-      && url.startsWith(`/${pack.prefix}/`)
-      && /^\/[a-z]{2,3}(?:-[a-z0-9]+)?\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/.test(url));
-}
-
-function localePackMarker(prefix) {
-  return `${LOCALE_PACK_MARKER_PATH}${encodeURIComponent(prefix)}`;
-}
-
-async function localePackReady(cache, pack) {
-  if (!await cache.match(resolve(localePackMarker(pack.prefix)))) return false;
-  const pages = await Promise.all(pack.urls.map((url) => cache.match(url)));
-  return pages.every(Boolean);
-}
-
-async function provisionLocalePack(cache, pack) {
-  // Same key shape the navigation handler reads back (the bare pathname, see
-  // navigationCacheKey), so a provisioned page serves offline on its first
-  // navigation rather than only after it has been visited once.
-  await forEachLimited(pack.urls, PRECACHE_CONCURRENCY, async (url) => {
-    if (await cache.match(url)) return;
-    const response = await fetchFresh(url);
-    if (!response.ok) throw new Error(`Failed to provision ${url}: ${response.status}`);
-    await cache.put(url, response);
-  });
-  await cache.put(resolve(localePackMarker(pack.prefix)), new Response(JSON.stringify(pack), {
-    headers: { 'Content-Type': 'application/json' },
-  }));
-}
-
-async function handleLocalePackMessage(data) {
-  const packs = Array.isArray(data?.packs) ? data.packs : [];
-  if (packs.length === 0 || !packs.every(validLocalePack)) throw new Error('Invalid offline locale pack.');
-  const cache = await caches.open(CACHE_VERSION);
-  if (data.type === LOCALE_PACK_MESSAGE.provision) {
-    await forEachLimited(packs, 1, (pack) => provisionLocalePack(cache, pack));
-  }
-  return Object.fromEntries(await Promise.all(
-    packs.map(async (pack) => [pack.prefix, await localePackReady(cache, pack)]),
-  ));
 }
 
 async function handleFontPackMessage(data) {
@@ -784,13 +793,11 @@ self.addEventListener('message', (event) => {
     event.waitUntil(handleUpdateStatus(event));
     return;
   }
-  const isFontPack = [FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type);
-  const isLocalePack = [LOCALE_PACK_MESSAGE.status, LOCALE_PACK_MESSAGE.provision].includes(type);
-  if (!isFontPack && !isLocalePack) return;
+  if (![FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type)) return;
   const reply = event.ports?.[0];
   if (!reply) return;
   event.waitUntil(
-    (isFontPack ? handleFontPackMessage(event.data) : handleLocalePackMessage(event.data))
+    handleFontPackMessage(event.data)
       .then((ready) => reply.postMessage({ ok: true, ready }))
       .catch((error) => reply.postMessage({ ok: false, error: error.message })),
   );

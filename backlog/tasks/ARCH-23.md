@@ -104,8 +104,8 @@ reproduce):**
   `fonts=true` was never a separate, gradable decision until now - see "Mechanism" below).
 - Narrowing further to the actual list this ticket proposes (registry/catalogue files named below,
   not the whole `src/editor/text/` directory) leaves only **6 of those 13** genuinely rightful:
-  `16c67378`, `19dca856` and `fdc3648a` touch `fonts.js`/`fontManifest.ts`/`fontCoverageTable.js`/
-  `fontCoverageReport.js`/`fontLicenses.ts`/`displayOnlyFonts.js`/`languageAlphabets.js` or a guard
+  `16c67378`, `19dca856` and `fdc3648a` touch `fonts.js`/`fontManifest.js`/`fontCoverageTable.js`/
+  `fontCoverageReport.js`/`fontLicenses.js`/`displayOnlyFonts.js`/`languageAlphabets.js` or a guard
   spec/fixture directly; `3fad9714`, `657725de` and `14925730` touch `playwright.config.js` (which
   defines the `fonts-shard-1`/`fonts-shard-2` split itself). The other **7** are files that live in
   `src/editor/text/` but are shaping/runtime logic, not the catalogue: `combPlacement.ts` (4 runs:
@@ -140,7 +140,7 @@ of what was proposed, not as a description of the shipped behavior.
 - `public/fonts/**` (the font assets themselves);
 - the font registry/catalogue/coverage files in `src/editor/text/` - named explicitly, not the whole
   directory, because that directory also holds shaping/runtime code (see below):
-  `fonts.js` (the resolver and `SCRIPT_FALLBACKS`), `fontManifest.ts`, `fontLicenses.ts`,
+  `fonts.js` (the resolver and `SCRIPT_FALLBACKS`), `fontManifest.js`, `fontLicenses.js`,
   `fontCoverageTable.js`, `fontCoverageReport.js`, `fontCoverageLookup.js`, `displayOnlyFonts.js`,
   `languageAlphabets.js`, and each of those files' own `.test.js`/`.test.ts` companion plus
   `fontAttribution.test.js`, `fontCoverage.test.js` and `languageCoverage.test.js` (these are the unit

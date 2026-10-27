@@ -93,7 +93,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?:
     line, reg, sw, doc, win, reload,
     dismiss: line.querySelector('[data-app-update-dismiss]') as HTMLButtonElement,
     advanceClock: (ms: number) => { clock += ms; },
-    start: (extra: { loaded?: Promise<void> } = {}) => startAppUpdates({
+    start: (extra: { ready?: Promise<void> } = {}) => startAppUpdates({
       serviceWorker: sw,
       line,
       createChannel: () => new FakeChannel(bus),
@@ -194,11 +194,22 @@ describe('busy answer', () => {
 
   it('answers before the page has loaded', () => {
     const tab = makeTab(new Bus());
-    void tab.start({ loaded: new Promise<void>(() => {}) });
+    void tab.start({ ready: new Promise<void>(() => {}) });
     expect(askBusy(tab)).toEqual([{ busy: false }]);
     hold();
     expect(askBusy(tab)).toEqual([{ busy: true }]);
     expect(tab.sw.register).not.toHaveBeenCalled();
+  });
+
+  it('registers only once ready resolves', async () => {
+    const tab = makeTab(new Bus());
+    let release!: () => void;
+    void tab.start({ ready: new Promise<void>((r) => { release = r; }) });
+    await settle();
+    expect(tab.sw.register).not.toHaveBeenCalled();
+    release();
+    await settle();
+    expect(tab.sw.register).toHaveBeenCalledWith('/sw.js');
   });
 
   it('starts the message queue when the browser has one', async () => {
@@ -634,7 +645,7 @@ describe('forced update in the tab', () => {
 
   it('answers before the page has loaded', async () => {
     const tab = makeTab(new Bus());
-    void tab.start({ loaded: new Promise<void>(() => {}) });
+    void tab.start({ ready: new Promise<void>(() => {}) });
     const reply = sendCritical(tab);
     await settle();
     expect(reply.mock.calls).toEqual([[{ ready: true }]]);

@@ -123,9 +123,9 @@ export function normalizePagePath(url) {
 
 /**
  * Splits a normalized path into its locale prefix and the English sibling's
- * path, or null if the path isn't under a locale prefix at all. Mirrors
- * isLocalizedPath's own rule (a bare `/he/` is the not-yet-built Hebrew home
- * page, not a page with an English sibling, so it is excluded the same way).
+ * path, or null if the path isn't under a locale prefix at all. A bare `/he/`
+ * is the Hebrew home page, not a page with an English sibling, so it is
+ * excluded.
  */
 function localeSplit(path) {
   const segments = path.replace(/^\//, '').split('/').filter(Boolean);

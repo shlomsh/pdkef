@@ -185,6 +185,30 @@ test.describe('offline workflows (SIGN-07)', () => {
     }
   });
 
+  test('a fresh visit to the home page alone makes a tool and a localized tool open offline', async ({ page, context }) => {
+    await page.goto('/');
+    await waitForServiceWorkerControl(page);
+    // The worker installs the whole app after it takes control; offline starts once the last page is cached.
+    const offlinePages = ['/compress/', '/he/merge/'];
+    await page.waitForFunction(
+      async (urls) => (await Promise.all(urls.map((url) => caches.match(url)))).every(Boolean),
+      offlinePages,
+      { timeout: 60_000 },
+    );
+
+    await context.setOffline(true);
+    try {
+      for (const url of offlinePages) {
+        await page.goto(url);
+        await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+        // The empty state is the file picker; its label is localized, the input is not.
+        await expect(page.locator('astro-island input[type="file"]')).toBeAttached();
+      }
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
   test('Sign: restoring a draft and exporting complete fully offline', async ({ page, context }) => {
     await openSignToolWithFile(page, await makePdfBuffer('offline sign fixture'));
     await waitForServiceWorkerControl(page);
