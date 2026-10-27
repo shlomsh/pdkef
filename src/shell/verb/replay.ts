@@ -29,8 +29,7 @@ export function createReplayer(getAnimations: () => AnimationLike[]): () => void
       a.updatePlaybackRate(REWIND_RATE);
       a.play();
     });
-    // reason: settled never rejects, and the chain only toggles animation state
-    void settled(back)
+    void settled(back) // reason: settled never rejects, and the chain only toggles animation state
       .then(() => {
         all.forEach((a) => {
           a.updatePlaybackRate(1);

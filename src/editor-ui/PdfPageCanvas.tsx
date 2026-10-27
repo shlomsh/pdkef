@@ -103,8 +103,7 @@ export default function PdfPageCanvas({
       }
     };
 
-    // reason: renderPage catches and reports its own failure (pdf_render)
-    void renderPage();
+    void renderPage(); // reason: renderPage catches and reports its own failure (pdf_render)
     return () => {
       active = false;
       renderTask?.cancel?.();

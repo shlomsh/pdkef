@@ -318,9 +318,7 @@ function BasePdfTool({
   // walking it is async, so only that case leaves the synchronous path.
   const receiveDrop = (dataTransfer: DataTransfer | null | undefined) => {
     if (dropHasDirectory(dataTransfer)) {
-      filesFromDataTransfer(dataTransfer)
-        .then((files) => receiveFiles(files, 'drop'))
-        .catch((err) => reportError('pdf_tool_run', err, 'read_dropped_folder'));
+      filesFromDataTransfer(dataTransfer).then((files) => receiveFiles(files, 'drop')).catch((err) => reportError('pdf_tool_run', err, 'read_dropped_folder'));
       return;
     }
     receiveFiles(dataTransfer?.files, 'drop');

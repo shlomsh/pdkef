@@ -901,8 +901,7 @@ export default function PdfRedactTool() {
       recordAction('download');
       return;
     }
-    // reason: exportRedacted catches and reports its own failure
-    void handleSavePdf('download');
+    void handleSavePdf('download'); // reason: exportRedacted catches and reports its own failure
   };
 
   const handleSharePdf = async () => {
@@ -1053,10 +1052,7 @@ export default function PdfRedactTool() {
                 facts={finishFacts}
                 handoffBusy={handoffBusy}
                 handoffFailed={handoffFailed}
-                onHandoff={(tool) => {
-                  // reason: requestHandoff catches its own failure and shows the hand-off error
-                  void requestHandoff(tool);
-                }}
+                onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
                 onClose={() => setStripOpen(false)}
               >
                 {rating}
@@ -1285,10 +1281,7 @@ export default function PdfRedactTool() {
             onDownload={handleDownloadPdf}
             onPrepareShare={() => handleSavePdf('share')}
             onShare={handleSharePdf}
-            onHandoff={(tool) => {
-              // reason: requestHandoff catches its own failure and shows the hand-off error
-              void requestHandoff(tool);
-            }}
+            onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
             handoffBusy={handoffBusy}
             handoffFailed={handoffFailed}
             rating={showStrip ? null : rating}

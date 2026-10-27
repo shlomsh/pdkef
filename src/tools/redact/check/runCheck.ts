@@ -112,8 +112,5 @@ export async function runSavedFileCheck({
       readDocumentTraces((await openPdfDoc(bytes, { updateMetadata: false, fast: true })).doc);
     const traces = { original: await readTraces(originalBytes), saved: await readTraces(savedBytes) };
     return { context, results: checkSavedFile({ ...context, terms }), unsolidPages, traces };
-  } finally {
-    // reason: destroy is best effort cleanup after the check has finished
-    void loadingTask.destroy();
-  }
+  } finally { void loadingTask.destroy(); /* reason: destroy is best effort cleanup after the check has finished */ }
 }
