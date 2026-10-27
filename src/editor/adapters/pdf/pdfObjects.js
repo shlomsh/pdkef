@@ -59,6 +59,7 @@ const IDENTITY = [1, 0, 0, 1, 0, 0];
  *
  * @param {import('@cantoo/pdf-lib').PDFDocument} pdfDoc
  * @returns {boolean}
+ * @testSeam
  */
 export function hasFillableAcroForm(pdfDoc) {
   const acroForm = pdfDoc.catalog.getAcroForm();

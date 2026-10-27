@@ -33,6 +33,7 @@ export function recentActions(): readonly ActionName[] {
   return [...trail];
 }
 
+/** @testSeam */
 export function resetActionTrailForTests(): void {
   trail.length = 0;
 }

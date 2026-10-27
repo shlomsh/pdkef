@@ -9,7 +9,6 @@ import {
   pdfPointToPagePercent,
   pxToPercent,
   pxDeltaToPercent,
-  percentToPx,
   percentToPoints,
   pointsToPercent,
   pointsToPx,
@@ -27,11 +26,6 @@ describe('coords.js', () => {
   it('pxDeltaToPercent converts a pixel delta to a percentage of the parent', () => {
     expect(pxDeltaToPercent(20, 400)).toBe(5);
     expect(pxDeltaToPercent(-20, 400)).toBe(-5);
-  });
-
-  it('percentToPx is the inverse of pxToPercent', () => {
-    expect(percentToPx(25, 200)).toBe(50);
-    expect(percentToPx(pxToPercent(73, 500), 500)).toBeCloseTo(73);
   });
 
   it('percentToPoints maps a page-relative percentage to PDF points', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  makeStroke, simplifyStroke, strokeBBox, strokeInPixels, strokeSvgInPoints, strokeSvgPath, STROKE_MIN_STEP_PT,
+  makeStroke, simplifyStroke, strokeBBox, strokeInPixels, strokeSvgInPoints, STROKE_MIN_STEP_PT,
   type StrokePoint,
 } from './strokeGeometry.ts';
 
@@ -105,26 +105,6 @@ describe('makeStroke', () => {
 
   it('uses the half-point step', () => {
     expect(STROKE_MIN_STEP_PT).toBe(0.5);
-  });
-});
-
-describe('strokeSvgPath', () => {
-  it('maps points into 0..100 relative to the bbox', () => {
-    const bbox = { left: 10, top: 20, width: 40, height: 10 };
-    expect(strokeSvgPath([[10, 20], [30, 25], [50, 30]], bbox)).toBe('M 0 0 L 50 50 L 100 100');
-  });
-
-  it('draws a single point as a zero-length segment so round caps still show a dot', () => {
-    const bbox = { left: 10, top: 10, width: 10, height: 10 };
-    expect(strokeSvgPath([[15, 15]], bbox)).toBe('M 50 50 L 50 50');
-  });
-
-  it('survives a zero-size bbox', () => {
-    expect(strokeSvgPath([[10, 10]], { left: 10, top: 10, width: 0, height: 0 })).toBe('M 0 0 L 0 0');
-  });
-
-  it('is empty without points', () => {
-    expect(strokeSvgPath([], { left: 0, top: 0, width: 1, height: 1 })).toBe('');
   });
 });
 

@@ -41,6 +41,7 @@
  *   full: CoveringFamily[],
  *   partial: PartialCoveringFamily[],
  * }>}
+ * @testSeam
  */
 export const LANGUAGE_COVERAGE = {
   "latin": {
@@ -220,6 +221,7 @@ export const LANGUAGE_COVERAGE = {
  * character sets, not a loose union.
  *
  * @type {Array<{ a: string, b: string, aLabel: string, bLabel: string, families: CoveringFamily[] }>}
+ * @testSeam
  */
 export const COMBINATION_COVERAGE = [
   { a: "hebrew", b: "latin", aLabel: "Hebrew", bLabel: "Latin", families: [{ family: "Gveret Levin", style: "handwriting" }, { family: "Amatic SC", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }] },
@@ -237,6 +239,7 @@ export const COMBINATION_COVERAGE = [
  * Macedonian and Kazakh at once (whole alphabet, including capitals).
  *
  * @type {{ languages: string[], familiesCoveringAllSeven: CoveringFamily[] }}
+ * @testSeam
  */
 export const CYRILLIC_ANCHOR = {
   languages: ["cyrillicRussian","cyrillicUkrainian","cyrillicBelarusian","cyrillicBulgarian","cyrillicSerbian","cyrillicMacedonian","cyrillicKazakh"],

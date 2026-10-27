@@ -14,7 +14,6 @@ import {
   eventCommands,
   fingerprintField,
   readEnv,
-  reportCommands,
   usageCapCommands,
   withDayExpiry,
   usageCommands,
@@ -74,7 +73,6 @@ describe('commands', () => {
       ],
       ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
     ]);
-    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(5);
     expect(DAILY_CAP).toBe(1000);
   });
 });

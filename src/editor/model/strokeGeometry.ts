@@ -117,13 +117,6 @@ function polyline(points: readonly StrokePoint[], map: (p: StrokePoint) => Strok
   return parts.join(' ');
 }
 
-/** An SVG path in a 0..100 viewBox relative to the bbox (x and y scaled separately). */
-export function strokeSvgPath(points: readonly StrokePoint[], bbox: StrokeBBox): string {
-  const w = bbox.width > 0 ? bbox.width : 1;
-  const h = bbox.height > 0 ? bbox.height : 1;
-  return polyline(points, ([x, y]) => [((x - bbox.left) / w) * 100, ((y - bbox.top) / h) * 100]);
-}
-
 interface StrokeSvgInPoints {
   /** `0 0 <bbox width in pt> <bbox height in pt>`: uniform, so the round stroke stays round. */
   viewBox: string;

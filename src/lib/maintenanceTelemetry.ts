@@ -187,6 +187,7 @@ export const MAX_EVENTS_PER_PAGE = 20;
 
 let eventsSent = 0;
 
+/** @testSeam */
 export function resetMaintenanceEventsForTests(): void {
   eventsSent = 0;
 }
@@ -201,18 +202,6 @@ export const beaconMaintenanceTransport: MaintenanceTransport = (event) => {
   if (!parsed || eventsSent >= MAX_EVENTS_PER_PAGE) return;
   if (sendBeacon(parsed)) eventsSent++;
 };
-
-/** Strip queries, fragments, origins, and malformed values before page views leave the browser. */
-export function sanitizeAnalyticsPath(url: string): string {
-  try {
-    const parsed = new URL(url, 'https://pdkef.invalid');
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '/';
-    return parsed.pathname || '/';
-  } catch {
-    // expected: an unparseable URL falls back to the root path
-    return '/';
-  }
-}
 
 interface AnalyticsBeforeSendEvent {
   type: 'pageview' | 'event';

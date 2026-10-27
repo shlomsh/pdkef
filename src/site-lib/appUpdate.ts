@@ -78,11 +78,6 @@ type UpdateMessage = { type: 'busy-changed' } | { type: 'tab-closed' };
 /** The waiting worker's answer to `pdkef:update-status`, about the other tabs. */
 interface StatusReply { ready?: boolean; windows?: number; busy?: number; silent?: number }
 
-/** An update, never a first install: a waiting worker beside a controller. */
-export function isUpdateWaiting(reg: { waiting?: unknown } | null | undefined, controller: unknown): boolean {
-  return !!reg?.waiting && !!controller;
-}
-
 /**
  * The line only for a ready build that another tab holds up. Nothing when the
  * build is not ready (it would cost offline coverage) or nothing holds it: the
