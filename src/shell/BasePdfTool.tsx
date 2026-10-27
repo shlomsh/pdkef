@@ -16,7 +16,7 @@ import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
-import { useAdoptPrePickedFiles } from './prePickedFiles.ts';
+import { takeInputFiles, useAdoptPrePickedFiles } from './prePickedFiles.ts';
 import RatingPrompt, { useDownloaded } from './RatingPrompt.tsx';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
 import { formatMessage } from '../lib/formatMessage';
@@ -280,20 +280,10 @@ function BasePdfTool({
     setPendingFiles(acceptable);
   }, [costsSomething, handOn, accept]);
 
-  // A file chosen in the server-rendered input before this island could listen is taken now, as
-  // a pick (see prePickedFiles.ts). Every tool and the empty state's input come through here.
+  // A pick made before this island could listen is taken on mount; later ones on change. Every
+  // tool and the empty state's input come through here (prePickedFiles.ts).
   useAdoptPrePickedFiles(fileInputRef, (files) => receiveFiles(files, 'pick'), !checkingDraft);
-
-  const onInputChange = (event: Event) => {
-    // Copy the FileList out before clearing the input. `value = ''` resets the
-    // selection, and `files` is a live list, so it empties underneath you - in
-    // a real browser only. jsdom's stubbed `files` survives it, so this reads
-    // as working in unit tests and does nothing at all in the built app.
-    const target = event.currentTarget as HTMLInputElement;
-    const files = Array.from(target.files || []);
-    target.value = '';
-    receiveFiles(files, 'pick');
-  };
+  const onInputChange = (event: Event) => receiveFiles(takeInputFiles(event.currentTarget as HTMLInputElement), 'pick');
 
   // Once a file is loaded, the small dropzone is gone, so the whole tool
   // area becomes the drop target instead (with an overlay while dragging).

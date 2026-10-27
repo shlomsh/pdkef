@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
-import { Camera, Check, Crop, Eraser, FileSignature, ImagePlus, Maximize, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { Check, Crop, Eraser, FileSignature, ImagePlus, Maximize, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
 import { isAbortError, throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
@@ -16,12 +16,10 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
-import { useAdoptPrePickedFiles } from '../../shell/prePickedFiles.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import dropzoneStyles from '../../shell/Dropzone.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel } from '../../shell/pageWorkspace/pageCounts.ts';
@@ -33,6 +31,7 @@ import { useMediaQuery } from './hooks/useMediaQuery.ts';
 import { englishShellMessages } from '../../shell/shellMessages';
 import CornerEditor from './components/CornerEditor.tsx';
 import FullScreenButton from './components/FullScreenButton.tsx';
+import TakePhotoButton from './components/TakePhotoButton.tsx';
 import ResultPage from './components/ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
 import { playFlatten, relativeBox, type FlattenFrom } from './lib/flattenAnimation.ts';
@@ -61,39 +60,6 @@ let pipelinePromise: Promise<Pipeline> | null = null;
 // The warp, filter and edge code load once, when the first photo arrives (docs/scan-to-pdf.md).
 const loadPipeline = () => (pipelinePromise ??= import('./lib/scanPipeline.ts'));
 
-/** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS).
- * `primary` is the empty state's, the equal of Choose files: the same label-around-input as the shell's
- * picker, so iOS opens the camera natively. The pages column's is a quiet tile, the phone bar's a bar button. */
-function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'] }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  // The empty state's camera button is server-rendered, so a photo can be taken before this loads.
-  useAdoptPrePickedFiles(inputRef, onFiles);
-  const onChange = (event: Event) => {
-    const input = event.currentTarget as HTMLInputElement;
-    if (input.files?.length) onFiles(Array.from(input.files));
-    input.value = '';
-  };
-  if (primary) {
-    return (
-      <span class={styles['take-photo']}>
-        {/* No icon: it pairs with Choose files, which has none, as two equal buttons. */}
-        <label class={dropzoneStyles['file-picker-button']}>
-          {t.takePhoto}
-          <input ref={inputRef} type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
-        </label>
-      </span>
-    );
-  }
-  return (
-    <span class={styles['take-photo']}>
-      <button type="button" class={buttonClass} onClick={() => inputRef.current?.click()}>
-        <Camera size={18} aria-hidden="true" />
-        {t.takePhoto}
-      </button>
-      <input ref={inputRef} type="file" accept={ACCEPT} capture="environment" class="sr-only" tabIndex={-1} aria-hidden="true" onChange={onChange} />
-    </span>
-  );
-}
 export interface PdfScanToolProps {
   quietPolicy?: QuietPolicy;
   /** Tests only: jsdom cannot navigate. */
