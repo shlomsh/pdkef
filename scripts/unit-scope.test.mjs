@@ -244,6 +244,14 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
   });
 });
 
+describe('selectUnitTests: the home source-text tests follow the hero', () => {
+  it('a HomeHero.astro edit seeds the two tests that read it as text (ARCH-56)', () => {
+    const scope = selectUnitTests({ files: [file('src/components/home/HomeHero.astro')], exists: () => true });
+    expect(scope.seeds).toContain('src/styles/colorContrast.test.js');
+    expect(scope.seeds).toContain('src/pages/__tests__/index.test.js');
+  });
+});
+
 describe('runUnitByImpact', () => {
   function fakeSpawn(results) {
     const calls = [];
