@@ -131,8 +131,9 @@ export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/chan
 // service worker build id, repo-only pruning), which e2e/offline and the rest of the suite exercise,
 // yet it lives in the `tooling` project that no e2e project depends on. So it is wide, like the
 // oracle. The set is derived, not listed: every `node <file>` in package.json's `build` script, plus
-// everything those reach through relative imports, transitively. `readFile(rel)` returns the text or
-// null/undefined when the file does not exist.
+// everything those reach through relative imports, transitively. A `--check` step only verifies a
+// committed file and does not shape dist/, so it and what only it imports keep their own scope.
+// `readFile(rel)` returns the text or null/undefined when the file does not exist.
 export function buildPipelineFiles(packageJsonText, readFile) {
   let build = '';
   try {
@@ -141,7 +142,8 @@ export function buildPipelineFiles(packageJsonText, readFile) {
     return new Set();
   }
   const found = new Set();
-  const queue = [...build.matchAll(/\bnode\s+((?:\.\/)?[\w./-]+\.[cm]?[jt]s)\b/g)].map((m) => m[1].replace(/^\.\//, ''));
+  const shaping = build.split('&&').filter((step) => !/(^|\s)--check(\s|$)/.test(step)).join('&&');
+  const queue = [...shaping.matchAll(/\bnode\s+((?:\.\/)?[\w./-]+\.[cm]?[jt]s)\b/g)].map((m) => m[1].replace(/^\.\//, ''));
   const resolve = (from, spec) => {
     const base = join(dirname(from), spec).split('\\').join('/');
     const stem = base.replace(/\.[cm]?[jt]sx?$/, '');
