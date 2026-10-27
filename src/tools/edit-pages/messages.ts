@@ -1,6 +1,6 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
-import type { PageToolMessages } from '../../shell/pageWorkspace/pageGridMessages.ts';
+import type { PageToolMessages } from '../../shell/pageWorkspace/pageToolMessages.ts';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /* Edit Pages' one English catalogue: the slices the shared page grid, the
