@@ -310,31 +310,37 @@ describe('build field', () => {
 });
 
 describe('readBuildCommit', () => {
-  const docWith = (content: string | null) => ({
-    querySelector: (sel: string) =>
-      sel === 'meta[name="pdkef-build"]' && content !== null ? { getAttribute: () => content } : null,
-  }) as unknown as Pick<Document, 'querySelector'>;
-  it('reads a valid tag', () => expect(readBuildCommit(docWith('abc1234'))).toBe('abc1234'));
-  it('is undefined with no tag', () => expect(readBuildCommit(docWith(null))).toBeUndefined());
+  const perfWith = (timing: { name: string; description: string }[] | null) => ({
+    getEntriesByType: (type: string) => (type === 'navigation' && timing ? [{ serverTiming: timing }] : []),
+  }) as unknown as Pick<Performance, 'getEntriesByType'>;
+  const build = (description: string) => [{ name: 'build', description }];
+  it('reads a valid build entry', () => expect(readBuildCommit(perfWith(build('abc1234')))).toBe('abc1234'));
+  it('finds it among other entries', () => {
+    expect(readBuildCommit(perfWith([{ name: 'cdn', description: 'hit' }, ...build('abc1234')]))).toBe('abc1234');
+  });
+  it('is undefined with no navigation entry or no build entry', () => {
+    expect(readBuildCommit(perfWith(null))).toBeUndefined();
+    expect(readBuildCommit(perfWith([{ name: 'cdn', description: 'hit' }]))).toBeUndefined();
+  });
   it('is undefined for invalid content', () => {
     for (const bad of ['', 'ABC1234', 'abc123', 'abc12345', 'zzzzzzz']) {
-      expect(readBuildCommit(docWith(bad))).toBeUndefined();
+      expect(readBuildCommit(perfWith(build(bad)))).toBeUndefined();
     }
   });
-  it('never throws when querySelector throws', () => {
-    const throwing = { querySelector: () => { throw new Error('no'); } } as unknown as Pick<Document, 'querySelector'>;
+  it('never throws when the performance object throws', () => {
+    const throwing = { getEntriesByType: () => { throw new Error('no'); } } as unknown as Pick<Performance, 'getEntriesByType'>;
     expect(readBuildCommit(throwing)).toBeUndefined();
   });
 });
 
 describe('build in the page context and report', () => {
   const stubPage = (content: string | null) => {
+    const timing = content === null ? [] : [{ name: 'build', description: content }];
+    vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: timing }] });
     vi.stubGlobal('location', { pathname: '/sign/' });
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     vi.stubGlobal('navigator', {});
-    vi.stubGlobal('document', {
-      querySelector: () => (content === null ? null : { getAttribute: () => content }),
-    });
+    vi.stubGlobal('document', { documentElement: { className: '' } });
   };
   it('readPageContext includes build only when the tag is valid', () => {
     stubPage('abc1234');
