@@ -3,36 +3,29 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
-import * as securityLib from './lib/security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const fixtureFile = (name: string) =>
-  new File([readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`))], `${name}.pdf`, { type: 'application/pdf' });
+const fixtureBytes = (name: string) => new Uint8Array(readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`)));
+const fixtureFile = (name: string) => new File([fixtureBytes(name)], `${name}.pdf`, { type: 'application/pdf' });
 
-const { takeHandoffMock, saveHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn(), saveHandoffMock: vi.fn() }));
-
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: takeHandoffMock,
-  saveHandoff: saveHandoffMock,
-}));
-
+// EDGE: pdf.js cannot run its worker in jsdom, so the probe cannot ask it; a test says what it answers
+// (`probeAs`) and loads a real file of that kind. `realProbe` is the real classifier over pdf.js's Node
+// build, for checking output bytes. Every other module (security.js, draftStore, analytics, error
+// reports) runs for real.
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
+const realProbe = async (bytes: ArrayBuffer | Uint8Array) => {
+  const actual: any = await vi.importActual('../../lib/pdfEncryption.ts');
+  return actual.probeEncryption(bytes, () => import('pdfjs-dist/legacy/build/pdf.mjs'));
+};
 
-const { lifecycleSpy, reportErrorSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), reportErrorSpy: vi.fn() }));
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportToolLifecycleEvent: lifecycleSpy,
-}));
-vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportError: reportErrorSpy,
-}));
+// EDGE: pdf.js cannot render in jsdom, so the page preview cannot be drawn.
 const { renderPreviewMock } = vi.hoisted(() => ({ renderPreviewMock: vi.fn() }));
 vi.mock('../../lib/thumbnails.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -40,26 +33,43 @@ vi.mock('../../lib/thumbnails.js', async (importOriginal) => ({
 }));
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
-vi.mock('./lib/security.js', () => ({
-  unlockPdf: vi.fn(),
-  protectPdf: vi.fn(),
-  UnreadablePdfError: class UnreadablePdfError extends Error {
-    constructor(cause) { super('unreadable', { cause }); this.name = 'UnreadablePdfError'; }
-  },
-  WrongPasswordError: class WrongPasswordError extends Error {
-    constructor() { super('Incorrect password'); this.name = 'WrongPasswordError'; }
-  },
-  SecurityError: class SecurityError extends Error {
-    constructor(msg) { super(msg); this.name = 'SecurityError'; }
-  }
-}));
+// What each protection answer looks like as a real file, so unlock and protect run for real on it.
+type Protection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';
+const BYTES: Record<Protection, Uint8Array> = {
+  open: fixtureBytes('plain'),
+  'needs-password': fixtureBytes('needs-password'),
+  'owner-restricted': fixtureBytes('owner-only'),
+  unreadable: new TextEncoder().encode('this is not a PDF'),
+};
+// The fixture's own user password is "u"; any password protects.
+const UNLOCK_PASSWORD = 'u';
+const bufferOf = (bytes: Uint8Array) => bytes.slice().buffer as ArrayBuffer;
 
 describe('PdfSecurityTool', () => {
   let container;
+  let harness: ToolHarness;
+  // What the probe answers, and so which real file `loadFile` picks by default.
+  let state: Protection = 'open';
+  const probeAs = (next: Protection) => { state = next; probeEncryption.mockResolvedValue(next); };
+  const goodPassword = () => (state === 'needs-password' ? UNLOCK_PASSWORD : 'secret');
+  const realFile = (name = 'test.pdf', kind: Protection = state) => new File([BYTES[kind]], name, { type: 'application/pdf' });
+  // A real file whose next read (the one unlock or protect makes) can be held or failed.
+  function gated(file: File) {
+    const original = file.arrayBuffer.bind(file);
+    const gate: { armed: boolean; skip: number; release: null | (() => void); failWith: Error | null } = { armed: false, skip: 0, release: null, failWith: null };
+    file.arrayBuffer = () => {
+      if (!gate.armed) return original();
+      if (gate.skip > 0) { gate.skip -= 1; return original(); }
+      gate.armed = false;
+      if (gate.failWith) return Promise.reject(gate.failWith);
+      return new Promise((resolve) => { gate.release = () => resolve(original()); });
+    };
+    return { file, gate };
+  }
 
   beforeEach(() => {
-    takeHandoffMock.mockResolvedValue(null);
-    saveHandoffMock.mockResolvedValue(true);
+    harness = installToolHarness();
+    probeAs('open');
     renderPreviewMock.mockResolvedValue('data:image/png;base64,AAAA');
   });
 
@@ -70,9 +80,19 @@ describe('PdfSecurityTool', () => {
       container = null;
     }
     vi.clearAllMocks();
+    harness.restore();
   });
 
   const flush = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+  // The bytes behind the Download link.
+  const outputBlob = () => harness.blobForUrl(container.querySelector('a[download]').getAttribute('href'));
+  // Unlock and protect now run for real (pdf-lib), so wait for the run to finish instead of a fixed sleep.
+  const settle = async () => {
+    for (let waited = 0; waited < 5000 && container.querySelector(`.${pdfToolStyles['is-processing']}`); waited += 25) {
+      await act(() => new Promise((resolve) => setTimeout(resolve, 25)));
+    }
+    await harness.flush();
+  };
 
   function mount(props = {}) {
     container = document.createElement('div');
@@ -82,7 +102,7 @@ describe('PdfSecurityTool', () => {
     });
   }
 
-  async function loadFile(name = 'test.pdf', file = new File(['dummy'], name, { type: 'application/pdf' })) {
+  async function loadFile(name = 'test.pdf', file = realFile(name)) {
     const input = container.querySelector('input[type="file"]');
     
     await act(async () => {
@@ -92,16 +112,15 @@ describe('PdfSecurityTool', () => {
   }
 
   it('sends the page view on load, before any file says unlock or protect, and only once (DEBT-58)', async () => {
-    lifecycleSpy.mockClear();
     mount({ intent: 'unlock' });
-    const views = () => lifecycleSpy.mock.calls.filter(([name]) => name === 'tool_page_viewed');
-    expect(views()).toEqual([['tool_page_viewed', 'unlock']]);
+    const views = async () => { await harness.flush(); return harness.usageEvents('tool_page_viewed'); };
+    expect(await views()).toMatchObject([{ name: 'tool_page_viewed', properties: { tool: 'unlock' } }]);
     await loadFile();
-    expect(views()).toHaveLength(1);
+    expect(await views()).toHaveLength(1);
   });
 
   it('detects encrypted PDF and prompts to unlock', async () => {
-    probeEncryption.mockResolvedValue('needs-password');
+    probeAs('needs-password');
     mount();
     
     await loadFile();
@@ -112,7 +131,7 @@ describe('PdfSecurityTool', () => {
   });
 
   it('detects unencrypted PDF and prompts to protect', async () => {
-    probeEncryption.mockResolvedValue('open');
+    probeAs('open');
     mount();
     
     await loadFile();
@@ -124,7 +143,7 @@ describe('PdfSecurityTool', () => {
 
   it('shows a read error, no form and no "Checking file" when the check fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    probeEncryption.mockResolvedValue('unreadable');
+    probeAs('unreadable');
     mount();
 
     await loadFile('broken.pdf');
@@ -137,12 +156,13 @@ describe('PdfSecurityTool', () => {
 
   it('does not count an unreadable file as a failed operation (DEBT-44)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    probeEncryption.mockResolvedValue('unreadable');
+    probeAs('unreadable');
     mount();
     await loadFile('broken.pdf');
 
     expect(container.querySelector('[role="alert"]').textContent).toContain('could not be read');
-    expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', expect.anything());
+    await harness.flush();
+    expect(harness.usageEvents('tool_operation_failed')).toEqual([]);
   });
 
   it('ignores a stale read failure after the file was replaced', async () => {
@@ -172,7 +192,7 @@ describe('PdfSecurityTool', () => {
   // beside it saying the same thing, once in the form above and again under the
   // result. Swapping the file while a password is typed still has to ask.
   it('confirms before a replacement closes the file with a password typed', async () => {
-    probeEncryption.mockResolvedValue('needs-password');
+    probeAs('needs-password');
     mount();
 
     await loadFile();
@@ -214,7 +234,7 @@ describe('PdfSecurityTool', () => {
   // longer guards work (the file stays in recent files with whatever was done
   // to it); it catches an unintended click.
   it('still asks before replacing when nothing has been entered yet', async () => {
-    probeEncryption.mockResolvedValue('needs-password');
+    probeAs('needs-password');
     mount();
 
     await loadFile();
@@ -228,15 +248,14 @@ describe('PdfSecurityTool', () => {
 
   it('performs unlocking successfully', async () => {
     const nativeShare = mockNativeFileShare();
-    probeEncryption.mockResolvedValue('needs-password');
-    securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked'], { type: 'application/pdf' }));
+    probeAs('needs-password');
     mount();
     
     await loadFile();
 
     const passwordInput = container.querySelector('input[type="password"]');
     await act(async () => {
-      passwordInput.value = 'secret';
+      passwordInput.value = goodPassword();
       passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
@@ -245,8 +264,10 @@ describe('PdfSecurityTool', () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await new Promise(resolve => setTimeout(resolve, 10));
     });
+    await settle();
 
-    expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
+    // The real unlock ran with the typed password: what came out opens with none.
+    expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
     expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_unlocked.pdf');
     const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
     expect(shareButton).not.toBeUndefined();
@@ -259,19 +280,19 @@ describe('PdfSecurityTool', () => {
     const shareDone = async (shareRejection?: Error) => {
       const nativeShare = mockNativeFileShare();
       if (shareRejection) nativeShare.share.mockRejectedValueOnce(shareRejection);
-      probeEncryption.mockResolvedValue('needs-password');
-      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked'], { type: 'application/pdf' }));
+      probeAs('needs-password');
       mount();
       await loadFile();
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
+      await settle();
       resetActionTrailForTests();
       const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
       await act(async () => { shareButton.click(); await new Promise((resolve) => setTimeout(resolve, 10)); });
@@ -311,15 +332,14 @@ describe('PdfSecurityTool', () => {
   });
 
   it('performs protecting successfully', async () => {
-    probeEncryption.mockResolvedValue('open');
-    securityLib.protectPdf.mockResolvedValue(new Blob(['protected'], { type: 'application/pdf' }));
+    probeAs('open');
     mount();
     
     await loadFile();
 
     const passwordInput = container.querySelector('input[type="password"]');
     await act(async () => {
-      passwordInput.value = 'secret';
+      passwordInput.value = goodPassword();
       passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
@@ -328,14 +348,15 @@ describe('PdfSecurityTool', () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await new Promise(resolve => setTimeout(resolve, 10));
     });
+    await settle();
 
-    expect(securityLib.protectPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
+    // The real protect ran with the typed password: what came out asks for it.
+    expect(await realProbe(await outputBlob().arrayBuffer())).toBe('needs-password');
     expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_protected.pdf');
   });
 
   it('handles wrong password during unlock', async () => {
-    probeEncryption.mockResolvedValue('needs-password');
-    securityLib.unlockPdf.mockRejectedValue(new securityLib.WrongPasswordError());
+    probeAs('needs-password');
     mount();
     
     await loadFile();
@@ -351,16 +372,17 @@ describe('PdfSecurityTool', () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await new Promise(resolve => setTimeout(resolve, 10));
     });
+    await settle();
 
     expect(container.textContent).toContain("The password may be incorrect.");
   });
 
   it('says a damaged file could not be unlocked, not that the password is wrong', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    probeEncryption.mockResolvedValue('needs-password');
-    securityLib.unlockPdf.mockRejectedValue(new securityLib.UnreadablePdfError());
+    probeAs('needs-password');
     mount();
-    await loadFile();
+    // The probe called it locked, but the bytes are damaged: unlock itself cannot read them.
+    await loadFile('test.pdf', realFile('test.pdf', 'unreadable'));
     const passwordInput = container.querySelector('input[type="password"]');
     await act(async () => {
       passwordInput.value = 'whatever';
@@ -370,6 +392,7 @@ describe('PdfSecurityTool', () => {
       container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
+    await settle();
 
     expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.');
     expect(container.textContent).not.toContain('The password may be incorrect.');
@@ -386,60 +409,61 @@ describe('PdfSecurityTool', () => {
       container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
+    await settle();
   }
 
   it('does not count a wrong password as a failed operation', async () => {
-    probeEncryption.mockResolvedValue('needs-password');
-    securityLib.unlockPdf.mockRejectedValue(new securityLib.WrongPasswordError());
+    probeAs('needs-password');
     mount();
     await loadFile();
     await submitPassword('wrong');
     await submitPassword('wrong again');
 
     expect(container.textContent).toContain('The password may be incorrect.');
-    expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'unlock');
-    expect(reportErrorSpy).not.toHaveBeenCalled();
+    expect(harness.usageEvents('tool_operation_failed')).toEqual([]);
+    expect(harness.reports()).toEqual([]);
   });
 
   it('counts a failure that is not the password as failed, and does not blame the file for our own error', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    probeEncryption.mockResolvedValue('needs-password');
-    const ours = new ReferenceError('x is not defined');
-    securityLib.unlockPdf.mockRejectedValue(ours);
+    probeAs('needs-password');
+    // Our own defect, not the file's: the read unlock makes fails with a ReferenceError.
+    const { file, gate } = gated(realFile());
+    gate.failWith = new ReferenceError('x is not defined');
     mount();
-    await loadFile();
-    await submitPassword('right');
+    await loadFile('test.pdf', file);
+    gate.armed = true;
+    await submitPassword(UNLOCK_PASSWORD);
 
     expect(container.textContent).toContain('Something went wrong while unlocking this file. Please try again.');
     expect(container.textContent).not.toContain('It may be damaged.');
-    expect(lifecycleSpy).toHaveBeenCalledWith('tool_operation_failed', 'unlock');
-    expect(reportErrorSpy).toHaveBeenCalledWith('pdf_tool_run', ours, 'unlock');
+    expect(harness.usageEvents('tool_operation_failed')).toMatchObject([{ properties: { tool: 'unlock' } }]);
+    expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'unlock', type: 'ReferenceError' }]);
   });
 
   it('reports what made a file unreadable, not the wrapper that says so', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    probeEncryption.mockResolvedValue('needs-password');
-    const cause = new TypeError('inside the library');
-    securityLib.unlockPdf.mockRejectedValue(new securityLib.UnreadablePdfError(cause));
-    mount();
-    await loadFile();
-    await submitPassword('whatever');
+    probeAs('needs-password');
+    // A report only carries frames from our own built assets, which a test run has none of. Let each error
+    // name its own class as that frame, so a report says which error it was made from.
+    const prepare = Error.prepareStackTrace;
+    Error.prepareStackTrace = (error) => `${error.name}: ${error.message}\n    at run (https://pdkef.com/_astro/${error.constructor.name}.js:1:1)`;
+    try {
+      mount();
+      await loadFile('test.pdf', realFile('test.pdf', 'unreadable'));
+      await submitPassword('whatever');
 
-    expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.');
-    expect(reportErrorSpy).toHaveBeenCalledWith('pdf_tool_run', cause, 'unlock');
+      expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.');
+      // What pdf-lib threw (no PDF header), not the UnreadablePdfError wrapper around it.
+      expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'unlock', name: 'MissingPDFHeaderError', stack: ['MissingPDFHeaderError.js:1:1'] }]);
+    } finally {
+      Error.prepareStackTrace = prepare;
+    }
   });
 
   describe('Unlock with the real fixtures', () => {
-    // The real classifier (under pdf.js's Node build) and the real unlock; only the browser seams are faked.
-    async function useRealLibs() {
-      const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
-      const realSecurity = await vi.importActual('./lib/security.js');
-      const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
-      probeEncryption.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
-      securityLib.unlockPdf.mockImplementation(realSecurity.unlockPdf);
-      securityLib.WrongPasswordError = realSecurity.WrongPasswordError;
-      return realSecurity;
-    }
+    // The probe classifies the fixture bytes themselves (pdf.js's Node build) instead of answering a fixed state.
+    const useRealProbe = () => probeEncryption.mockImplementation((bytes) => realProbe(bytes));
     const type = async (value) => {
       const input = container.querySelector('input[type="password"]');
       await act(async () => {
@@ -447,13 +471,16 @@ describe('PdfSecurityTool', () => {
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
     };
-    const submit = () => act(async () => {
-      container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    });
+    const submit = async () => {
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      });
+      await settle();
+    };
 
     it('unlocks an owner-password-only file with no input', async () => {
-      await useRealLibs();
+      useRealProbe();
       mount();
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('owner-only')]);
@@ -464,28 +491,24 @@ describe('PdfSecurityTool', () => {
         await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
       }
 
-      expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), '');
+      // Unlocked with the empty password: no field, and the bytes behind Download classify as open.
       expect(container.querySelector('input[type="password"]')).toBeNull();
       expect(container.textContent).toContain('No password needed. The protection is off.');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('owner-only_unlocked.pdf');
+      expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
     });
 
     it('still asks for the password of a file that needs one, and tells wrong from right', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      const realSecurity = await useRealLibs();
-      // The component compares against the mocked class, so the real one stands in for it here.
-      securityLib.unlockPdf.mockImplementation(async (file, pw) => {
-        try { return await realSecurity.unlockPdf(file, pw); } catch (err) {
-          throw err instanceof realSecurity.WrongPasswordError ? new securityLib.WrongPasswordError() : err;
-        }
-      });
+      useRealProbe();
       mount();
       await act(async () => {
         setInputFiles(container.querySelector('input[type="file"]'), [fixtureFile('needs-password')]);
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
       expect(container.textContent).toContain('Enter its password to unlock');
-      expect(securityLib.unlockPdf).not.toHaveBeenCalled();
+      // Nothing is unlocked before a password is submitted.
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
 
       await type('wrong');
       await submit();
@@ -495,34 +518,32 @@ describe('PdfSecurityTool', () => {
       await submit();
       expect(container.textContent).not.toContain('The password may be incorrect.');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
-      const blob = await securityLib.unlockPdf.mock.results.at(-1).value;
-      const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
-      const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
-      expect(await realProbe(await blob.arrayBuffer(), legacyPdfjs)).toBe('open');
+      expect(await realProbe(await outputBlob().arrayBuffer())).toBe('open');
     });
   });
 
   describe('a file Redact sent here', () => {
     const buttonByText = (text) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === text);
 
+    // The file another tool parked for Unlock, written through the real store the island reads on mount.
+    const parkFor = (record) => saveHandoff('unlock', { fileType: 'application/pdf', ...record });
+
     async function unlockFromRedact(navigate) {
-      probeEncryption.mockResolvedValue('needs-password');
-      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked-bytes'], { type: 'application/pdf' }));
-      takeHandoffMock.mockResolvedValue({
-        fileName: 'form.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1, 2, 3]).buffer, from: 'redact',
-      });
+      probeAs('needs-password');
+      await parkFor({ fileName: 'form.pdf', fileBytes: bufferOf(BYTES['needs-password']), from: 'redact' });
       const nativeShare = mockNativeFileShare();
       mount({ navigate });
       await flush();
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await settle();
       return nativeShare;
     }
 
@@ -543,23 +564,26 @@ describe('PdfSecurityTool', () => {
     });
 
     it.each([['sign', 'Continue in Sign', '/sign/'], ['compress', 'Continue in Compress', '/compress/'], ['edit-pdf', 'Continue in Organize PDF', '/organize-pdf/'], ['merge', 'Continue in Merge', '/merge/']])('leads back to whichever tool sent it (%s)', async (from, label, href) => {
-      probeEncryption.mockResolvedValue('owner-restricted');
-      securityLib.unlockPdf.mockResolvedValue(new Blob(['u'], { type: 'application/pdf' }));
-      takeHandoffMock.mockResolvedValue({ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1]).buffer, from });
+      probeAs('owner-restricted');
+      await parkFor({ fileName: 'a.pdf', fileBytes: bufferOf(BYTES['owner-restricted']), from });
       const navigate = vi.fn();
       mount({ navigate });
       await flush();
+      await settle();
       await act(async () => { buttonByText(label).click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
-      expect(saveHandoffMock.mock.calls[0][0]).toBe(from);
+      // The unlocked file is parked under the key of the tool that sent it.
+      const parked = await harness.takeHandoff(from);
+      expect(parked?.fileName).toBe('a_unlocked.pdf');
+      expect(await realProbe(parked.fileBytes)).toBe('open');
       expect(navigate).toHaveBeenCalledWith(href);
     });
 
     it('ignores a sender it does not know and shows the ordinary next steps', async () => {
-      probeEncryption.mockResolvedValue('owner-restricted');
-      securityLib.unlockPdf.mockResolvedValue(new Blob(['u'], { type: 'application/pdf' }));
-      takeHandoffMock.mockResolvedValue({ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1]).buffer, from: 'nowhere' });
+      probeAs('owner-restricted');
+      await parkFor({ fileName: 'a.pdf', fileBytes: bufferOf(BYTES['owner-restricted']), from: 'nowhere' });
       mount({ navigate: vi.fn() });
       await flush();
+      await settle();
       expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.startsWith('Continue in'))).toBe(false);
       expect(buttonByText('Redact it')).not.toBeUndefined();
     });
@@ -568,26 +592,26 @@ describe('PdfSecurityTool', () => {
       const navigate = vi.fn();
       await unlockFromRedact(navigate);
       await act(async () => { buttonByText('Continue in Redact').click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
-      const [tool, record] = saveHandoffMock.mock.calls[0];
-      expect(tool).toBe('redact');
-      expect(record.fileName).toBe('form_unlocked.pdf');
-      expect(new TextDecoder().decode(record.fileBytes)).toBe('unlocked-bytes');
+      const record = await harness.takeHandoff('redact');
+      expect(record?.fileName).toBe('form_unlocked.pdf');
+      expect(await realProbe(record.fileBytes)).toBe('open');
       expect(navigate).toHaveBeenCalledWith('/redact/');
     });
   });
 
   describe('a file handed off from another tool', () => {
     it('loads as if picked here and shows the password prompt', async () => {
-      probeEncryption.mockResolvedValue('needs-password');
-      takeHandoffMock.mockResolvedValue({
+      probeAs('needs-password');
+      await saveHandoff('unlock', {
         fileName: 'from-redact.pdf',
         fileType: 'application/pdf',
-        fileBytes: new Uint8Array([1, 2, 3]).buffer,
+        fileBytes: bufferOf(BYTES['needs-password']),
       });
       mount();
       await flush();
 
-      expect(takeHandoffMock).toHaveBeenCalledWith('unlock');
+      // The island collected it: a hand-off is read once and consumed.
+      expect(await harness.takeHandoff('unlock')).toBeNull();
       expect(container.textContent).toContain('from-redact.pdf');
       expect(container.querySelector('button[type="submit"]').textContent).toContain('Unlock PDF');
       expect(container.textContent).toContain('Enter its password to unlock');
@@ -598,19 +622,19 @@ describe('PdfSecurityTool', () => {
     const buttonByText = (text) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === text);
 
     async function unlockDone(navigate) {
-      probeEncryption.mockResolvedValue('needs-password');
-      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked-bytes'], { type: 'application/pdf' }));
+      probeAs('needs-password');
       mount({ navigate });
       await loadFile('doc.pdf');
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await settle();
     }
 
     it('the finished unlock replaces the form: the Unlock button becomes the Download', async () => {
@@ -622,19 +646,19 @@ describe('PdfSecurityTool', () => {
     });
 
     it('protect keeps its password as the setting and swaps only the button for Download', async () => {
-      probeEncryption.mockResolvedValue('open');
-      securityLib.protectPdf.mockResolvedValue(new Blob(['p'], { type: 'application/pdf' }));
+      probeAs('open');
       mount();
       await loadFile();
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await settle();
       expect(container.querySelector('input[type="password"]')).not.toBeNull();
       expect(buttonByText('Protect PDF')).toBeUndefined();
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
@@ -655,19 +679,19 @@ describe('PdfSecurityTool', () => {
 
     it('protect done shows Download and Share, and no next-tool actions', async () => {
       const nativeShare = mockNativeFileShare();
-      probeEncryption.mockResolvedValue('open');
-      securityLib.protectPdf.mockResolvedValue(new Blob(['p'], { type: 'application/pdf' }));
+      probeAs('open');
       mount();
       await loadFile();
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await settle();
       expect(container.querySelector(`a.${pdfToolStyles['download-button']}`)).not.toBeNull();
       expect(buttonByText('Share')).not.toBeUndefined();
       expect(buttonByText('Redact it')).toBeUndefined();
@@ -687,20 +711,22 @@ describe('PdfSecurityTool', () => {
       await unlockDone(navigate);
       await act(async () => { buttonByText(label).click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
 
-      expect(saveHandoffMock).toHaveBeenCalledTimes(1);
-      const [tool, record] = saveHandoffMock.mock.calls[0];
-      expect(tool).toBe(key);
-      expect(record.fileName).toBe('doc_unlocked.pdf');
+      // Parked once, under the key of the tool it goes to and no other.
+      const other = key === 'redact' ? 'sign' : 'redact';
+      expect(await harness.takeHandoff(other)).toBeNull();
+      const record = await harness.takeHandoff(key);
+      expect(record?.fileName).toBe('doc_unlocked.pdf');
       expect(record.fileType).toBe('application/pdf');
-      expect(new TextDecoder().decode(record.fileBytes)).toBe('unlocked-bytes');
+      expect(await realProbe(record.fileBytes)).toBe('open');
       expect(navigate).toHaveBeenCalledWith(href);
     });
 
     it('shows a quiet line and re-enables the buttons when the save fails', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      saveHandoffMock.mockResolvedValue(false);
       const navigate = vi.fn();
       await unlockDone(navigate);
+      // Storage refuses the write (a locked-down browser has no IndexedDB), so the real save answers false.
+      globalThis.indexedDB = undefined;
       await act(async () => { buttonByText('Sign it').click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
 
       expect(navigate).not.toHaveBeenCalled();
@@ -710,19 +736,19 @@ describe('PdfSecurityTool', () => {
     });
 
     it('does not offer them after protecting', async () => {
-      probeEncryption.mockResolvedValue('open');
-      securityLib.protectPdf.mockResolvedValue(new Blob(['p'], { type: 'application/pdf' }));
+      probeAs('open');
       mount();
       await loadFile();
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await settle();
       expect(buttonByText('Redact it')).toBeUndefined();
       expect(buttonByText('Sign it')).toBeUndefined();
     });
@@ -769,30 +795,33 @@ describe('PdfSecurityTool', () => {
     });
 
     it('never writes the replaced file\'s bytes under the new file\'s name', async () => {
-      let resolveProtect;
-      probeEncryption.mockResolvedValue('open');
-      securityLib.protectPdf.mockImplementationOnce(() => new Promise((resolve) => { resolveProtect = resolve; }));
+      probeAs('open');
+      // The first file's protect is held open at the read it makes, after the file is loaded.
+      const { file: firstFile, gate } = gated(realFile('first.pdf'));
       mount();
 
-      await loadFile('first.pdf');
+      await loadFile('first.pdf', firstFile);
+      gate.armed = true;
       const passwordInput = container.querySelector('input[type="password"]');
       await act(async () => {
-        passwordInput.value = 'secret';
+        passwordInput.value = goodPassword();
         passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
-      expect(securityLib.protectPdf).toHaveBeenCalledTimes(1);
+      // The protect has started and is waiting on the first file's read.
+      expect(typeof gate.release).toBe('function');
 
       await loadFile('second.pdf');
       await confirmReplace();
 
       await act(async () => {
-        resolveProtect(new Blob(['first-file-bytes'], { type: 'application/pdf' }));
+        gate.release();
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
+      await settle();
 
       expect(container.textContent).toContain('second.pdf');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
@@ -802,9 +831,7 @@ describe('PdfSecurityTool', () => {
 
   it('records add and export by name only; the password never reaches the trail', async () => {
     resetActionTrailForTests();
-    probeEncryption.mockResolvedValue('open');
-    securityLib.protectPdf.mockResolvedValue(new Blob(['x'], { type: 'application/pdf' }));
-    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    probeAs('open');
     mount();
     await loadFile('private_name.pdf');
     const input = container.querySelector('#security-password');
@@ -816,6 +843,7 @@ describe('PdfSecurityTool', () => {
       container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await new Promise((r) => setTimeout(r, 20));
     });
+    await settle();
     expect(recentActions()).toEqual(['add_files', 'export']);
     expect(JSON.stringify(recentActions())).not.toMatch(/hunter2|private_name/);
   });
@@ -832,10 +860,11 @@ describe('PdfSecurityTool', () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
+      await settle();
     };
 
     it('shows a Locked placeholder, with no render attempted, for a file that needs a password', async () => {
-      probeEncryption.mockResolvedValue('needs-password');
+      probeAs('needs-password');
       mount();
       await loadFile();
       expect(container.querySelector('[data-security-preview]')).not.toBeNull();
@@ -845,7 +874,7 @@ describe('PdfSecurityTool', () => {
     });
 
     it('renders page 1 of the input, tagged Not protected, in protect mode', async () => {
-      probeEncryption.mockResolvedValue('open');
+      probeAs('open');
       mount();
       await loadFile();
       await flush();
@@ -856,56 +885,58 @@ describe('PdfSecurityTool', () => {
     });
 
     it('renders the unlocked output bytes, tagged Unlocked, after a successful unlock', async () => {
-      probeEncryption.mockResolvedValue('needs-password');
-      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked'], { type: 'application/pdf' }));
+      probeAs('needs-password');
       mount();
       await loadFile();
-      await submitWith('secret');
+      await submitWith(goodPassword());
       await flush();
       expect(tagOf()).toBe('Unlocked');
       const last = renderPreviewMock.mock.calls.at(-1)[0];
       expect(last).not.toBeInstanceOf(File);
-      expect(last.size).toBe('unlocked'.length);
+      // What is drawn is the unlocked output, which no longer asks for a password.
+      expect(await realProbe(await last.arrayBuffer())).toBe('open');
     });
 
     it('is tagged Protected after protecting', async () => {
-      probeEncryption.mockResolvedValue('open');
-      securityLib.protectPdf.mockResolvedValue(new Blob(['protected'], { type: 'application/pdf' }));
+      probeAs('open');
       mount();
       await loadFile();
-      await submitWith('secret');
+      await submitWith(goodPassword());
       await flush();
       expect(tagOf()).toBe('Protected');
     });
 
     it('keeps the placeholder and reports when the render throws', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      probeEncryption.mockResolvedValue('open');
+      probeAs('open');
       const boom = new Error('render failed');
       renderPreviewMock.mockRejectedValue(boom);
       mount();
       await loadFile();
       await flush();
-      expect(reportErrorSpy).toHaveBeenCalledWith('pdf_render', boom, 'render_security_preview');
+      await harness.flush();
+      expect(harness.reports()).toMatchObject([{ area: 'pdf_render', step: 'render_security_preview', type: 'Error' }]);
       expect(container.querySelector('[data-security-preview] img')).toBeNull();
       expect(tagOf()).toBe('Not protected');
     });
 
     it('keeps the previous image on screen until the new render lands', async () => {
-      probeEncryption.mockResolvedValue('owner-restricted');
-      let finishUnlock;
-      securityLib.unlockPdf.mockImplementation(() => new Promise((resolve) => { finishUnlock = () => resolve(new Blob(['unlocked'], { type: 'application/pdf' })); }));
+      probeAs('owner-restricted');
+      // The automatic unlock is held open at the read it makes, after the probe's own read.
+      const { file, gate } = gated(realFile());
+      gate.armed = true;
+      gate.skip = 1;
       let resolveNew;
       renderPreviewMock.mockReset();
       renderPreviewMock
         .mockResolvedValueOnce('data:image/png;base64,OLD')
         .mockReturnValueOnce(new Promise((resolve) => { resolveNew = resolve; }));
       mount();
-      await loadFile();
+      await loadFile('test.pdf', file);
       // The input page is drawn while the unlock runs; then the output replaces it.
       await act(async () => { await new Promise((resolve) => setTimeout(resolve, 15)); });
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
-      await act(async () => { finishUnlock(); });
+      await act(async () => { gate.release(); });
       for (let i = 0; i < 10 && renderPreviewMock.mock.calls.length < 2; i += 1) await flush();
       expect(renderPreviewMock).toHaveBeenCalledTimes(2);
       expect(container.querySelector('[data-security-preview] img').getAttribute('src')).toBe('data:image/png;base64,OLD');
@@ -917,14 +948,15 @@ describe('PdfSecurityTool', () => {
 
     it('does not report the preview when the tool run already failed for the same file', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      probeEncryption.mockResolvedValue('owner-restricted');
-      securityLib.unlockPdf.mockRejectedValue(new securityLib.UnreadablePdfError(new Error('bad xref')));
+      probeAs('owner-restricted');
       renderPreviewMock.mockImplementation(() => new Promise((_, reject) => setTimeout(() => reject(new Error('render failed')), 5)));
       mount();
-      await loadFile();
+      // The unlock reads damaged bytes and fails; the preview render failing for the same file adds no second report.
+      await loadFile('test.pdf', realFile('test.pdf', 'unreadable'));
       await flush();
-      expect(reportErrorSpy).toHaveBeenCalledTimes(1);
-      expect(reportErrorSpy.mock.calls[0][0]).toBe('pdf_tool_run');
+      await settle();
+      expect(harness.reports()).toHaveLength(1);
+      expect(harness.reports()[0]).toMatchObject({ area: 'pdf_tool_run', step: 'unlock' });
     });
   });
 
@@ -932,7 +964,7 @@ describe('PdfSecurityTool', () => {
     const stripText = () => container.querySelector('[class*="strip"]')?.textContent ?? '';
     it('keeps the file name and Replace when the file cannot be read', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      probeEncryption.mockResolvedValue('unreadable');
+      probeAs('unreadable');
       mount();
       await loadFile('broken.pdf');
       expect(stripText()).toContain('broken.pdf');
