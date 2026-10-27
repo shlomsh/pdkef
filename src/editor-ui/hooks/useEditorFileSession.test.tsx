@@ -61,7 +61,7 @@ function mount(overrides: Partial<EditorFileSessionOptions<any>> = {}) {
         needsPassword: 'This PDF has a password. Unlock opens it.',
         ownerRestricted: 'This PDF is protected. Unlock takes the protection off.',
       },
-      draft: { elements: [], actionHistory: [], isDirty: false, isElement: (v: unknown): v is any => true },
+      draft: { elements: [], actionHistory: [], isDirty: false, isElement: (_v: unknown): _v is any => true },
       ...spies,
       ...overrides,
     });
@@ -133,7 +133,7 @@ describe('useEditorFileSession', () => {
     const { session } = mount({
       tool: 'sign',
       status: 'editing',
-      draft: { elements, actionHistory: [], carried: { color: '#000' } as any, details: { a: 1 } as any, isDirty: true, isElement: (v: unknown): v is any => true },
+      draft: { elements, actionHistory: [], carried: { color: '#000' } as any, details: { a: 1 } as any, isDirty: true, isElement: (_v: unknown): _v is any => true },
     });
     const options = mockedDraft.mock.calls.at(-1)![0];
     expect(options).toMatchObject({ tool: 'sign', status: 'editing', elements, isDirty: true, details: { a: 1 }, carried: { color: '#000' } });

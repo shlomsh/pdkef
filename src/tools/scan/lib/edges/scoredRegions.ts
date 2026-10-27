@@ -185,7 +185,7 @@ export const guessByScoredRegions: EdgeGuesser = (image: GrayImage): Quad | null
     const raw = new Uint8Array(n);
     for (let i = 0; i < n; i += 1) raw[i] = blurred[i] > t ? 1 : 0;
     const { labels, sizes } = label(open(raw, w, h), w, h);
-    const ids = sizes.map((s, id) => id).filter((id) => id > 0 && sizes[id] >= MIN_COMPONENT * n)
+    const ids = sizes.map((_s, id) => id).filter((id) => id > 0 && sizes[id] >= MIN_COMPONENT * n)
       .sort((a, b) => sizes[b] - sizes[a]).slice(0, PER_MASK);
     for (const id of ids) {
       const quadPx = maxAreaQuad(convexHull(rowExtremes(labels, id, w, h)));

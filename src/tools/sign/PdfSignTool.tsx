@@ -72,7 +72,7 @@ import type { PendingSignaturePlacement } from './hooks/useWorkspaceGestures.ts'
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
-import { initialSignLifecycleState, signLifecycleReducer, type SignStatus } from './state/signState.ts';
+import { initialSignLifecycleState, signLifecycleReducer } from './state/signState.ts';
 import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './lib/exportHandoff.ts';
 import { signedFileName } from './lib/signedFileName.ts';
 
