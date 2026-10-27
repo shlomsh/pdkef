@@ -3,7 +3,7 @@
     "src/tools": 3
   },
   "css": {
-    "maxFamilyDuplication": 0.65,
+    "maxFamilyDuplication": 0.46,
     "maxPageDeadBytes": 10000,
     "maxSinglePageUtilities": 148
   },

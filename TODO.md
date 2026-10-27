@@ -16,13 +16,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
-- [ARCH-48](backlog/tasks/ARCH-48.md) P3 · The components layer holds only .astro files, and its special rule goes (in progress)
-- [ARCH-57](backlog/tasks/ARCH-57.md) P3 · The widest components take grouped, typed props instead of 25 to 31 loose ones (in progress)
-- [ARCH-66](backlog/tasks/ARCH-66.md) P3 · Hooks and effects per component are a ratchet (in progress)
-- [ARCH-70](backlog/tasks/ARCH-70.md) P3 · pdf.js and pdf-lib results are typed once in lib, and tools stop using any (in progress)
-- [ARCH-75](backlog/tasks/ARCH-75.md) P3 · Abort detection goes through one isAbortError helper (in progress)
-- [ARCH-80](backlog/tasks/ARCH-80.md) P3 · Test files are type-checked against the code they cover (in progress)
-- [ARCH-81](backlog/tasks/ARCH-81.md) P3 · Every pure module has a test that references it (in progress)
 - [ARCH-89](backlog/tasks/ARCH-89.md) P3 · Repeated CSS blocks and static inline styles move to shared rules (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 

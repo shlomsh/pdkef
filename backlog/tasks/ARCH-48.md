@@ -1,11 +1,9 @@
 ---
 id: "ARCH-48"
 title: "The components layer holds only .astro files, and its special rule goes"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 4
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Architecture. Criterion: Layering and dependency direction. Structure only
 
 ## Acceptance
 
-- [ ] `classify()` has no components special case; the boundary check is green.
+- [x] `classify()` has no components special case; the boundary check is green.
+
+## Closed 2026-10-27
+
+src/components/ classifies as `site` in one MODULE_PREFIXES row; classify() has no special case and rule 5 is retired (rules 6-11 keep their numbers). test:module-boundaries green with no allowlist change. Consequence, accepted: a non-.astro file under src/components/ may now reach a tool's island entry or messages.ts, as every .astro component already could (rule 4).

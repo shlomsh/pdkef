@@ -126,7 +126,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 // is why `stripComments()` exists below - without it the whole properties
 // layer parses as one dead leaf rule.
 //
-// Limit (scripts/ratchet-limits.json, css.maxFamilyDuplication; ARCH-76 refuses a raise): the smallest two-decimal value above the measured 0.6412x.
+// Limit (scripts/ratchet-limits.json, css.maxFamilyDuplication; ARCH-76 refuses a raise): the smallest two-decimal value above the measured 0.4540x (ARCH-89, 2026-10-27).
 const cssLimits = readRatchetLimits().css;
 const MAX_FAMILY_DUPLICATION = cssLimits.maxFamilyDuplication;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took

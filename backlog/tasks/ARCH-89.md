@@ -26,3 +26,17 @@ Area: Supporting. Criterion: Styling architecture. Structure only: no behaviour 
 ## Acceptance
 
 - [ ] The CSS duplication factor drops and is recorded; no static inline style remains in those files.
+
+## Status 2026-10-27
+
+- **Done:** the hit target composes from src/shell/hitTarget.module.css in five modules. The Compress and Image to PDF loaded layout composes from loadedLayout.module.css. Keyframe names are unique, and static inline styles are classes in ShapeNode, LineNode and PdfRedactTool.
+- **Left alone as drift:**
+  - ToolShell.module.css:399 has the same block, but under `.shell:not(.editor) .action::before`, which `composes` cannot take.
+  - PageGrid.module.css:458 differs.
+  - PdfSecurityTool's `.loaded-layout` has other areas.
+- **Measured** (astro build of the wave start against the wave end):
+  - Distinct CSS: 331,347 -> 330,846 bytes.
+  - Shipped CSS: 3,605,981 -> 3,605,678 bytes.
+  - Heaviest-family factor: 45.30% -> 45.40% (Redact). The new .drawing-preview class adds about 94 bytes to Redact's page, and the distinct total shrank.
+- **Recorded:** the CI limit is now 0.46 (was 0.65).
+
