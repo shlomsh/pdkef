@@ -50,6 +50,7 @@
 @source "../components/ToolFaqCard.astro";
 @source "../components/ToolHero.astro";
 @source "../components/ToolLanguagesCard.astro";
+@source "../components/tool-page";
 @source "../data/tools.js";
 @source "../data/contentPages.js";
 @source "../pages/add-page-numbers-to-pdf.astro";

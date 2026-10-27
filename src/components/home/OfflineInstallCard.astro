@@ -1,0 +1,97 @@
+---
+import FeatureCard from '../FeatureCard.astro';
+import CardDecor from '../CardDecor.astro';
+import { Monitor, Smartphone, Compass, WifiOff } from 'lucide-preact';
+import { renderInline } from '../../site-lib/contentMarkup';
+
+interface Props {
+  offlineInstall: any;
+  messages: any;
+}
+const { offlineInstall, messages } = Astro.props;
+---
+<FeatureCard id="offline-app" class="relative isolate overflow-hidden">
+  <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} parallax />
+  <div class="mx-auto mb-5 max-w-[750px] text-center">
+    <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{offlineInstall.heading}</h2>
+    <p class="type-lead m-0 text-[var(--color-muted)]">{offlineInstall.lead}</p>
+  </div>
+
+  <div class="box-border mx-auto w-full max-w-[680px] overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+    <div class="flex border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] max-[640px]:flex-col" role="tablist" aria-label={messages.installGuidesAriaLabel}>
+      <button class="offline-tab-btn active flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary-text)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-s-[3px] max-[640px]:border-s-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-s-[var(--color-primary)]" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
+        <Monitor size={16} class="me-2" />
+        {offlineInstall.tabs[0].label}
+      </button>
+      <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary-text)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-s-[3px] max-[640px]:border-s-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-s-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
+        <Smartphone size={16} class="me-2" />
+        {offlineInstall.tabs[1].label}
+      </button>
+      <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary-text)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-s-[3px] max-[640px]:border-s-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-s-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
+        <Compass size={16} class="me-2" />
+        {offlineInstall.tabs[2].label}
+      </button>
+    </div>
+
+    <div class="p-5">
+      <div class="offline-tab-panel active hidden [&.active]:block" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
+        <ol class="m-0 flex list-none flex-col gap-3 p-0">
+          {offlineInstall.tabs[0].steps.map((step: string, index: number) => (
+            <li class="flex items-start gap-4">
+              <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">{index + 1}</span>
+              <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]" set:html={renderInline(step, 'body')} />
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div class="offline-tab-panel hidden [&.active]:block" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
+        <ol class="m-0 flex list-none flex-col gap-3 p-0">
+          {offlineInstall.tabs[1].steps.map((step: string, index: number) => (
+            <li class="flex items-start gap-4">
+              <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">{index + 1}</span>
+              <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]" set:html={renderInline(step, 'body')} />
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div class="offline-tab-panel hidden [&.active]:block" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
+        <ol class="m-0 flex list-none flex-col gap-3 p-0">
+          {offlineInstall.tabs[2].steps.map((step: string, index: number) => (
+            <li class="flex items-start gap-4">
+              <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">{index + 1}</span>
+              <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]" set:html={renderInline(step, 'body')} />
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  </div>
+</FeatureCard>
+
+<script>
+  const tabs = document.querySelectorAll('.offline-tab-btn');
+  const panels = document.querySelectorAll('.offline-tab-panel');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Deactivate current active tab & panel
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      panels.forEach(p => p.classList.remove('active'));
+
+      // Activate clicked tab & panel (visibility is handled by CSS on .active)
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      const panelId = tab.getAttribute('aria-controls');
+      if (!panelId) return;
+      const targetPanel = document.getElementById(panelId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+      }
+    });
+  });
+</script>
