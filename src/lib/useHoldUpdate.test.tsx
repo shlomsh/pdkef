@@ -1,29 +1,28 @@
-// @ts-nocheck - matches the rest of the lib hook tests
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import { isExportInFlight, isUpdateHeld } from './appUpdate/updateHolds.ts';
 import { useHoldUpdate } from './useHoldUpdate.ts';
 
-function Probe({ active, kind }) {
+function Probe({ active, kind }: { active: boolean; kind?: 'export' | 'open' }) {
   useHoldUpdate(active, kind);
   return null;
 }
 
 describe('useHoldUpdate', () => {
-  let container = null;
+  let container: HTMLElement | null = null;
 
-  function show(active, kind) {
+  function show(active: boolean, kind?: 'export' | 'open') {
     if (!container) {
       container = document.createElement('div');
       document.body.appendChild(container);
     }
-    act(() => render(<Probe active={active} kind={kind} />, container));
+    act(() => render(<Probe active={active} kind={kind} />, container!));
   }
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -53,7 +52,7 @@ describe('useHoldUpdate', () => {
 
   it('releases on unmount', () => {
     show(true);
-    act(() => render(null, container));
+    act(() => render(null, container!));
     expect(isUpdateHeld()).toBe(false);
   });
 });

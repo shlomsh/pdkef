@@ -1,42 +1,42 @@
-// @ts-nocheck - matches the other .tsx island tests
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
-import { planForFile, skipAll, withIncludedPages } from '../../lib/pagePlan.ts';
+import { type PlanEntry, planForFile, skipAll, withIncludedPages } from '../../lib/pagePlan.ts';
 import { englishSplitMessages as t } from '../../tools/split/messages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 describe('PageRangeField', () => {
-  let host;
+  let host: HTMLElement | null = null;
   afterEach(() => {
     if (host) {
-      act(() => render(null, host));
+      act(() => render(null, host!));
       host.remove();
-      host = undefined;
+      host = null;
     }
     resetActionTrailForTests();
   });
 
-  const mount = (plan, onSelect = vi.fn()) => {
+  const mount = (plan: PlanEntry[], onSelect = vi.fn()) => {
     host = document.createElement('div');
     document.body.appendChild(host);
-    const draw = (next) => act(() => render(
-      <PageRangeField plan={next} pageCount={next.length} onSelect={onSelect} messages={t} />, host,
+    const draw = (next: PlanEntry[]) => act(() => render(
+      <PageRangeField plan={next} pageCount={next.length} onSelect={onSelect} messages={t} />, host!,
     ));
     draw(plan);
     return { draw, onSelect };
   };
-  const input = () => host.querySelector('#page-selector-input');
-  const type = (value) => act(() => {
+  const input = () => host!.querySelector<HTMLInputElement>('#page-selector-input')!;
+  const type = (value: string) => act(() => {
     input().value = value;
     input().dispatchEvent(new Event('input', { bubbles: true }));
   });
 
   it('is labelled Pages and shows the whole document as a range', () => {
     mount(planForFile(0, 6));
-    expect(host.querySelector('label[for="page-selector-input"]').textContent).toBe('Pages');
+    expect(host!.querySelector('label[for="page-selector-input"]').textContent).toBe('Pages');
     expect(input().value).toBe('1-6');
   });
 
@@ -71,7 +71,7 @@ describe('PageRangeField', () => {
     const { onSelect } = mount(planForFile(0, 6));
     type('2-3, 5');
     expect(onSelect).toHaveBeenCalledWith([2, 3, 5], { merge: false });
-    expect(recentActions().map((a) => a.action ?? a)).toContain('select_pages');
+    expect(recentActions()).toContain('select_pages');
   });
 
   it('does not commit when the parse keeps the same pages', () => {
@@ -91,7 +91,7 @@ describe('PageRangeField', () => {
     const { onSelect } = mount(planForFile(0, 4));
     type('9');
     expect(onSelect).not.toHaveBeenCalled();
-    expect(host.querySelector('[role="alert"]').textContent).toBe('Page number 9 out of range (1-4)');
+    expect(host!.querySelector('[role="alert"]').textContent).toBe('Page number 9 out of range (1-4)');
     expect(input().getAttribute('aria-invalid')).toBe('true');
     expect(input().value).toBe('9');
   });
@@ -99,13 +99,13 @@ describe('PageRangeField', () => {
   it('holds the error back while the text ends in a dash or a comma', () => {
     mount(planForFile(0, 4));
     type('2-');
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     type('2,');
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     type('x,');
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     type('x');
-    expect(host.querySelector('[role="alert"]')).not.toBeNull();
+    expect(host!.querySelector('[role="alert"]')).not.toBeNull();
   });
 
   it('rewrites the text when the plan changes from elsewhere', () => {
@@ -130,7 +130,7 @@ describe('PageRangeField', () => {
     const { draw } = mount(plan);
     type('9');
     draw(withIncludedPages(plan, [2]));
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     expect(input().value).toBe('2');
   });
 
@@ -138,7 +138,7 @@ describe('PageRangeField', () => {
     const { hebrewSplitMessages } = await import('../../tools/split/messages');
     host = document.createElement('div');
     document.body.appendChild(host);
-    act(() => render(<PageRangeField plan={planForFile(0, 4)} pageCount={4} onSelect={vi.fn()} messages={hebrewSplitMessages} />, host));
+    act(() => render(<PageRangeField plan={planForFile(0, 4)} pageCount={4} onSelect={vi.fn()} messages={hebrewSplitMessages} />, host!));
     type('9');
     expect(host.querySelector('[role="alert"]').textContent).toContain('9');
   });

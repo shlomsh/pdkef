@@ -1,25 +1,29 @@
-// @ts-nocheck - test double wiring, same as the sibling PdfEditPagesTool.test.tsx
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
+// @ts-expect-error -- same: no Node ambient types.
 import path from 'node:path';
+import type { PdfProtection } from '../../lib/pdfEncryption.ts';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
-import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // A protected PDF is a precondition, not a failure: Edit Pages shows NeedsUnlock (src/shell/NeedsUnlock.tsx)
 // in place of the page grid. The real classifier runs under pdf.js's Node build against the real fixtures.
 
+declare const __dirname: string;
+
 const fixtureFile = (name: string) =>
   new File([readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`))], `${name}.pdf`, { type: 'application/pdf' });
 
 describe('PdfEditPagesTool with a protected PDF', () => {
-  let container;
-  let input;
-  let harness;
+  let container: HTMLElement | null = null;
+  let input: HTMLInputElement | undefined;
+  let harness: ToolHarness;
 
   beforeEach(async () => {
     harness = installToolHarness();
@@ -28,21 +32,21 @@ describe('PdfEditPagesTool with a protected PDF', () => {
       Blob.prototype.arrayBuffer = function arrayBuffer() {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
           reader.onerror = () => reject(reader.error);
           reader.readAsArrayBuffer(this);
         });
       };
     }
     input = undefined;
-    const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
-    const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
+    const realProbe = (await vi.importActual<typeof import('../../lib/pdfEncryption.ts')>('../../lib/pdfEncryption.ts')).probeEncryption;
+    const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs') as never;
     harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
   });
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -51,23 +55,23 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     harness.restore();
   });
 
-  const nap = (ms) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
-  const pick = async (file) => {
+  const nap = (ms: number) => act(async () => { await new Promise((resolve) => setTimeout(resolve, ms)); });
+  const pick = async (file: File) => {
     container ??= Object.assign(document.createElement('div'));
-    if (!container.isConnected) {
-      document.body.appendChild(container);
-      act(() => render(<PdfEditPagesTool />, container));
+    if (!container!.isConnected) {
+      document.body.appendChild(container!);
+      act(() => render(<PdfEditPagesTool />, container!));
     }
-    input ??= container.querySelector('input[type="file"]');
+    input ??= container!.querySelector<HTMLInputElement>('input[type="file"]')!;
     await act(async () => { setInputFiles(input, [file]); });
     const end = Date.now() + 4000;
     while (
-      !container.querySelector('[data-needs-unlock]') && !container.querySelector('ul[data-page-grid]')
+      !container!.querySelector('[data-needs-unlock]') && !container!.querySelector('ul[data-page-grid]')
       && Date.now() < end
     ) await nap(20);
     await nap(50);
   };
-  const buttons = () => Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
+  const buttons = () => Array.from(container!.querySelectorAll('button')).map((b) => b.textContent!.trim());
 
   it.each([
     ['needs-password', 'This PDF has a password'],
@@ -76,12 +80,12 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     const editPagesSpy = vi.spyOn(editPagesLib, 'editPages');
     await pick(fixtureFile(name));
 
-    expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
-    expect(container.textContent).toContain(title);
-    expect(container.textContent).toContain('edit it');
+    expect(container!.querySelector('[data-needs-unlock]')).not.toBeNull();
+    expect(container!.textContent).toContain(title);
+    expect(container!.textContent).toContain('edit it');
     expect(buttons()).toContain('Unlock it');
-    expect(container.querySelector('ul[data-page-grid]')).toBeNull();
-    expect(container.textContent).not.toMatch(/Could not edit|Undo|Download/);
+    expect(container!.querySelector('ul[data-page-grid]')).toBeNull();
+    expect(container!.textContent).not.toMatch(/Could not edit|Undo|Download/);
     // Nothing was built, and the export never ran.
     expect(editPagesSpy).not.toHaveBeenCalled();
     expect(harness.createdBlobs()).toHaveLength(0);
@@ -90,9 +94,9 @@ describe('PdfEditPagesTool with a protected PDF', () => {
 
   it('records the kind each protected fixture gets', async () => {
     await pick(fixtureFile('needs-password'));
-    expect(container.querySelector('[data-needs-unlock]').getAttribute('data-needs-unlock')).toBe('needs-password');
+    expect(container!.querySelector('[data-needs-unlock]')!.getAttribute('data-needs-unlock')).toBe('needs-password');
     await pick(fixtureFile('owner-only'));
-    expect(container.querySelector('[data-needs-unlock]').getAttribute('data-needs-unlock')).toBe('owner-restricted');
+    expect(container!.querySelector('[data-needs-unlock]')!.getAttribute('data-needs-unlock')).toBe('owner-restricted');
   });
 
   it('"Unlock it" parks the file for Unlock and goes there', async () => {
@@ -100,7 +104,7 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     const location = { href: '/organize-pdf/' };
     vi.stubGlobal('location', location);
     await act(async () => {
-      Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Unlock it').click();
+      Array.from(container!.querySelectorAll('button')).find((b) => b.textContent!.trim() === 'Unlock it')!.click();
     });
     await waitUntil(() => expect(location.href).toBe('/unlock/'));
 
@@ -112,17 +116,17 @@ describe('PdfEditPagesTool with a protected PDF', () => {
     await pick(fixtureFile('needs-password'));
     await pick(fixtureFile('plain'));
 
-    expect(container.querySelector('[data-needs-unlock]')).toBeNull();
-    expect(container.querySelector('ul[data-page-grid]')).not.toBeNull();
+    expect(container!.querySelector('[data-needs-unlock]')).toBeNull();
+    expect(container!.querySelector('ul[data-page-grid]')).not.toBeNull();
   });
 
   it('drops a probe result that lands after a newer pick', async () => {
-    let release;
+    let release!: (kind: PdfProtection) => void;
     harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
     container = document.createElement('div');
     document.body.appendChild(container);
-    act(() => render(<PdfEditPagesTool />, container));
-    input = container.querySelector('input[type="file"]');
+    act(() => render(<PdfEditPagesTool />, container!));
+    input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
     await act(async () => { setInputFiles(input, [fixtureFile('needs-password')]); });
     await pick(fixtureFile('plain'));
     await act(async () => { release('needs-password'); await new Promise((resolve) => setTimeout(resolve, 50)); });

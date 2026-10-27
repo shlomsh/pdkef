@@ -1,39 +1,38 @@
-// @ts-nocheck
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import CornerEditor from './CornerEditor.tsx';
-import { isConvexQuad } from '../lib/quad.ts';
+import { isConvexQuad, type Quad } from '../lib/quad.ts';
 
-const QUAD = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
-const LABELS = { group: 'Page corners', corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] };
+const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+const LABELS: { group: string; corners: [string, string, string, string] } = { group: 'Page corners', corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] };
 // 200x100 box at (50, 20): a real rect, not jsdom's 0x0.
-const RECT = { left: 50, top: 20, width: 200, height: 100, right: 250, bottom: 120, x: 50, y: 20 };
+const RECT = { left: 50, top: 20, width: 200, height: 100, right: 250, bottom: 120, x: 50, y: 20, toJSON: () => ({}) };
 
-let container;
-function mount(onCommit, quad = QUAD) {
+let container: HTMLElement | null = null;
+function mount(onCommit: (quad: Quad) => void, quad: Quad = QUAD) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  act(() => render(<CornerEditor src="x.jpg" quad={quad} onCommit={onCommit} labels={LABELS} />, container));
+  act(() => render(<CornerEditor src="x.jpg" quad={quad} onCommit={onCommit} labels={LABELS} />, container!));
   container.querySelector('[data-corner-frame]').getBoundingClientRect = () => RECT;
   return container;
 }
-const handle = (i) => container.querySelectorAll('button')[i];
-const mouse = (type, x, y, target = window) =>
+const handle = (i: number) => container!.querySelectorAll('button')[i];
+const mouse = (type: string, x: number, y: number, target: EventTarget = window) =>
   act(() => { target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })); });
 
 afterEach(() => {
-  if (container) { act(() => render(null, container)); container.remove(); container = null; }
+  if (container) { act(() => render(null, container!)); container.remove(); container = null; }
 });
 
 describe('CornerEditor', () => {
   it('renders a labelled group of four handles and a kebab-cased outline', () => {
     mount(vi.fn());
-    expect(container.querySelector('[role="group"]').getAttribute('aria-label')).toBe('Page corners');
+    expect(container!.querySelector('[role="group"]').getAttribute('aria-label')).toBe('Page corners');
     expect(handle(0).getAttribute('aria-label')).toBe('Top-left corner');
     expect(handle(0).style.left).toBe('10%');
     expect(handle(0).style.top).toBe('10%');
-    expect(container.querySelector('polygon').getAttribute('vector-effect')).toBe('non-scaling-stroke');
+    expect(container!.querySelector('polygon').getAttribute('vector-effect')).toBe('non-scaling-stroke');
   });
 
   it('moves the handle during a drag and commits once on release', () => {
@@ -83,7 +82,7 @@ describe('CornerEditor', () => {
 
   it('refuses a sliver: a convex quad too thin to be a page is never committed', () => {
     const onCommit = vi.fn();
-    const sliver = [{ x: 0.1, y: 0.5 }, { x: 0.9, y: 0.5 }, { x: 0.9, y: 0.505 }, { x: 0.1, y: 0.505 }];
+    const sliver: Quad = [{ x: 0.1, y: 0.5 }, { x: 0.9, y: 0.5 }, { x: 0.9, y: 0.505 }, { x: 0.1, y: 0.505 }];
     mount(onCommit, sliver);
     act(() => { handle(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true })); });
     expect(onCommit).not.toHaveBeenCalled();

@@ -1,14 +1,18 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
-import { render } from 'preact';
+import { render, type VNode } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
+import type { LineElement, RectangleElement, WhiteoutElement, EllipseElement } from '../../../editor/model/editorModel.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 
-function mount(vnode) {
+const noop = () => {};
+const base = { id: 'e1', pageIndex: 0 };
+const box = { left: 0, top: 0, width: 10, height: 10 };
+
+function mount(vnode: VNode) {
   const host = document.createElement('div');
   document.body.appendChild(host);
   act(() => {
@@ -24,7 +28,7 @@ function mount(vnode) {
 // tool's thickness picker do nothing. Assert the real kebab-case attributes land.
 describe('SVG stroke attributes render as kebab-case', () => {
   it('ShapeElement ellipse carries stroke-width + vector-effect', () => {
-    const host = mount(<ShapeNode element={{ type: 'ellipse', strokeWidth: 16, color: '#000' }} />);
+    const host = mount(<ShapeNode element={{ ...base, ...box, type: 'ellipse', strokeWidth: 16, color: '#000' }} isActive={false} onResizeStart={noop} />);
     const el = host.querySelector('ellipse');
     expect(el.getAttribute('stroke-width')).toBe('16');
     expect(el.getAttribute('vector-effect')).toBe('non-scaling-stroke');
@@ -33,13 +37,13 @@ describe('SVG stroke attributes render as kebab-case', () => {
   });
 
   it('ShapeElement rectangle carries stroke-width', () => {
-    const host = mount(<ShapeNode element={{ type: 'rectangle', strokeWidth: 8, color: '#000' }} />);
+    const host = mount(<ShapeNode element={{ ...base, ...box, type: 'rectangle', strokeWidth: 8, color: '#000' }} isActive={false} onResizeStart={noop} />);
     expect(host.querySelector('rect').getAttribute('stroke-width')).toBe('8');
   });
 
   it('LineElement renders a visible stroke and a fat invisible hit-area', () => {
     const host = mount(
-      <LineNode element={{ type: 'line', x1: 10, y1: 10, x2: 80, y2: 80, strokeWidth: 12, color: '#000' }} handlePointerDown={() => {}} />
+      <LineNode element={{ ...base, type: 'line', x1: 10, y1: 10, x2: 80, y2: 80, strokeWidth: 12, color: '#000' }} isActive={false} onResizeStart={noop} handlePointerDown={noop} />
     );
     const lines = host.querySelectorAll('line');
     // Visible line reflects the chosen thickness...
@@ -55,7 +59,7 @@ describe('SVG stroke attributes render as kebab-case', () => {
 // on mount and broke dragging for every element type. Mounting it (its effect
 // reads isDragging.current) and running a full drag exercises that path.
 describe('DraggableWrapper dragging', () => {
-  function renderInPage(element, onChange) {
+  function renderInPage(element: RectangleElement | EllipseElement | LineElement | WhiteoutElement, onChange: () => void) {
     const page = document.createElement('div');
     page.className = workspaceStyles['page-wrapper'];
     document.body.appendChild(page);
@@ -64,15 +68,16 @@ describe('DraggableWrapper dragging', () => {
         <DraggableWrapper
           element={element}
           isActive={true}
+          onBeginEdit={noop}
           onSelect={() => {}}
           onChange={onChange}
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={600}
         >
-          {element.type === 'whiteout' && <WhiteoutNode element={element} />}
-          {(element.type === 'ellipse' || element.type === 'rectangle') && <ShapeNode element={element} />}
-          {element.type === 'line' && <LineNode element={element} />}
+          {element.type === 'whiteout' && <WhiteoutNode element={element} isActive={false} onResizeStart={noop} />}
+          {(element.type === 'ellipse' || element.type === 'rectangle') && <ShapeNode element={element} isActive={false} onResizeStart={noop} />}
+          {element.type === 'line' && <LineNode element={element} isActive={false} onResizeStart={noop} handlePointerDown={noop} />}
         </DraggableWrapper>,
         page
       );
@@ -81,13 +86,13 @@ describe('DraggableWrapper dragging', () => {
   }
 
   it('mounts without throwing for a line element', () => {
-    expect(() => renderInPage({ type: 'line', x1: 10, y1: 10, x2: 40, y2: 40, strokeWidth: 3 }, () => {})).not.toThrow();
+    expect(() => renderInPage({ ...base, type: 'line', x1: 10, y1: 10, x2: 40, y2: 40, strokeWidth: 3 }, () => {})).not.toThrow();
   });
 
   it('commits a box-element move to onChange on mouseup', () => {
     const onChange = vi.fn();
     const page = renderInPage(
-      { type: 'rectangle', left: 20, top: 20, width: 10, height: 10, strokeWidth: 3 },
+      { ...base, type: 'rectangle', left: 20, top: 20, width: 10, height: 10, strokeWidth: 3 },
       onChange
     );
     const el = page.querySelector('[data-editor-element]');
@@ -106,7 +111,7 @@ describe('DraggableWrapper dragging', () => {
 
   it('whiteout mounts with 8 resize handles (4 edge + 4 corner)', () => {
     const page = renderInPage(
-      { type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
+      { ...base, type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
       () => {}
     );
     // 4 edge handles + 4 corner handles
@@ -119,7 +124,7 @@ describe('DraggableWrapper dragging', () => {
   it('whiteout height resize fires onChange with updated height via bottom handle', () => {
     const onChange = vi.fn();
     const page = renderInPage(
-      { type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
+      { ...base, type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
       onChange
     );
     const bottomHandle = page.querySelector('[data-editor-resizer="bottom"]');
@@ -140,7 +145,7 @@ describe('DraggableWrapper dragging', () => {
   it('rectangle corner (bottom-right) resize fires onChange with both width and height', () => {
     const onChange = vi.fn();
     const page = renderInPage(
-      { type: 'rectangle', left: 10, top: 10, width: 20, height: 15, strokeWidth: 2 },
+      { ...base, type: 'rectangle', left: 10, top: 10, width: 20, height: 15, strokeWidth: 2 },
       onChange
     );
     const cornerHandle = page.querySelector('[data-editor-resizer="bottom-right"]');
