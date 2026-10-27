@@ -185,6 +185,42 @@ describe('offline-first service worker', () => {
     expect(worker.self.skipWaiting).not.toHaveBeenCalled();
   });
 
+  describe('MEM-16: unchanged hashed files carry over from the previous cache', () => {
+    it('plans only the differing hashed URLs, and every unhashed URL, for fetch', () => {
+      const { planPrecache } = createWorker().context;
+      const previous = ['/', '/sign/', '/_astro/a.js', '/_astro/b.js', '/_astro/c.js', '/fonts/x.ttf'];
+      const next = ['/', '/sign/', '/_astro/a.js', '/_astro/b.js', '/_astro/d.js', '/fonts/x.ttf'];
+      const plan = planPrecache(next, new Set(previous));
+      expect(Array.from(plan.copy)).toEqual(['/_astro/a.js', '/_astro/b.js']);
+      expect(Array.from(plan.fetch)).toEqual(['/', '/sign/', '/_astro/d.js', '/fonts/x.ttf']);
+    });
+
+    it('copies a hashed file from an old own cache without a network request', async () => {
+      const worker = createWorker(manifestResponder(['/', '/_astro/a.js', '/_astro/b.js']), ['pdkef-old']);
+      worker.entriesByCache.get('pdkef-old').set('https://pdkef.test/_astro/a.js', new Response('old-a'));
+
+      await dispatchInstall(worker);
+
+      const fetched = worker.fetchImpl.mock.calls.map(([request]) => new URL(requestUrl(request)).pathname);
+      expect(fetched).not.toContain('/_astro/a.js');
+      expect(fetched).toEqual(expect.arrayContaining(['/', '/_astro/b.js']));
+      expect(await worker.entries.get('https://pdkef.test/_astro/a.js').text()).toBe('old-a');
+      expect(worker.entries.has('https://pdkef.test/_astro/b.js')).toBe(true);
+      expect(worker.entries.has('https://pdkef.test/')).toBe(true);
+    });
+
+    it('fetches a hashed file through the HTTP cache and everything else with cache reload', async () => {
+      const worker = createWorker(manifestResponder(['/', '/_astro/b.js', '/fonts/x.ttf']));
+
+      await dispatchInstall(worker);
+
+      const modes = new Map(worker.fetchImpl.mock.calls.map(([request]) => [new URL(requestUrl(request)).pathname, request.cache]));
+      expect(modes.get('/_astro/b.js')).toBe('default');
+      expect(modes.get('/')).toBe('reload');
+      expect(modes.get('/fonts/x.ttf')).toBe('reload');
+    });
+  });
+
   it('keeps installing when individual assets fail, so one bad response is not fatal', async () => {
     const worker = createWorker(manifestResponder(
       ['/', '/sign/', '/fonts/heebo.ttf'],
