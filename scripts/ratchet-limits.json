@@ -46,8 +46,8 @@
         "hooks": 43
       },
       "src/tools/scan/PdfScanTool.tsx": {
-        "effects": 12,
-        "hooks": 28
+        "effects": 6,
+        "hooks": 24
       },
       "src/tools/security/PdfSecurityTool.tsx": {
         "effects": 1,
@@ -94,7 +94,6 @@
       "src/shell/pageGrid/PageGrid.tsx": 882,
       "src/tools/compress/PdfCompressTool.tsx": 949,
       "src/tools/redact/PdfRedactTool.tsx": 1329,
-      "src/tools/scan/PdfScanTool.tsx": 932,
       "src/tools/sign/PdfSignTool.tsx": 1056,
       "src/tools/sign/components/SignToolbar.tsx": 833,
       "src/tools/sign/lib/fields/formCells.js": 1061
@@ -110,7 +109,7 @@
       "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 449,
       "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
       "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1202,
-      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 864,
+      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 646,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 936,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
