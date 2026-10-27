@@ -5,10 +5,11 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
+import type { HandoffTargetId } from '../../lib/toolIds.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
 /** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */
-export type HandoffTool = 'compress' | 'sign' | 'merge' | 'redact' | 'edit-pdf';
+export type HandoffTool = HandoffTargetId;
 /** Where a hand-off goes when it is not the registry's page for the tool (a locale edition's own page). */
 export type HandoffHrefs = Partial<Record<HandoffTool, string>>;
 
