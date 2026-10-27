@@ -1,11 +1,9 @@
 ---
 id: "ARCH-80"
 title: "Test files are type-checked against the code they cover"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 14
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Tests and CI. Criterion: Test architecture. Structure only: no behaviour c
 
 ## Acceptance
 
-- [ ] `@ts-nocheck` count below 20 and recorded.
+- [x] `@ts-nocheck` count below 20 and recorded.
+
+## Closed 2026-10-27
+
+`@ts-nocheck` in src/ is 63 -> 19, held by test:ts-nocheck-ratchet (scripts/ts-nocheck-limit.json) in check:push and CI. Every touched test keeps its assertion count; test doubles were typed against the real signatures.

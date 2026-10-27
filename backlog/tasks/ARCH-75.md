@@ -1,11 +1,9 @@
 ---
 id: "ARCH-75"
 title: "Abort detection goes through one isAbortError helper"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 13
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Safety nets. Criterion: Error handling and async. Structure only: no behav
 
 ## Acceptance
 
-- [ ] No string compare of AbortError and no object stand-in signal remains.
+- [x] No string compare of AbortError and no object stand-in signal remains.
+
+## Closed 2026-10-27
+
+isAbortError(err) sits beside throwIfAborted in src/lib/abort.js (red first). usePreparedOutput, usePdfShare, maintenanceTelemetry and PdfScanTool use it; Compress and Scan stand-ins are AbortSignal.abort(). No string compare or object stand-in remains in non-test source.

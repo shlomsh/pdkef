@@ -1,11 +1,9 @@
 ---
 id: "ARCH-70"
 title: "pdf.js and pdf-lib results are typed once in lib, and tools stop using any"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 12
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Safety nets. Criterion: Type safety. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] `any` count in `src/tools` falls below 10, recorded by a ratchet.
+- [x] `any` count in `src/tools` falls below 10, recorded by a ratchet.
+
+## Closed 2026-10-27
+
+src/lib/pdfTypes.ts names the pdf.js types; explicit `any` in non-test src/tools is 46 -> 3, held by test:any-ratchet, which counts every `any` type token (the wave review found the first counter missed generics, tuples and unions). Drift kept: renderBoxes.ts and src/lib/renderPage.js call page.render without `canvas`, which pdf.js 5's RenderParameters requires; the call is cast to PdfRenderParameters, unchanged.

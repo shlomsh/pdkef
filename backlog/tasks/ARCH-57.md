@@ -1,11 +1,9 @@
 ---
 id: "ARCH-57"
 title: "The widest components take grouped, typed props instead of 25 to 31 loose ones"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 8
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] None of the four components takes more than 12 top-level props.
+- [x] None of the four components takes more than 12 top-level props.
+
+## Closed 2026-10-27
+
+Top-level props: BasePdfTool 30 -> 11, PdfWorkspace 29 -> 12, RedactToolbar 31 -> 11, RedactBox 25 -> 9. Each groups its props into typed objects and destructures them into the old local names and defaults, so bodies and hook deps are unchanged. RedactBox's props carry no `any`. Setters reach PdfWorkspace as intent-named fields (signature.hold, signature.showDialog, announce). PdfWorkspace's props type lives in pdfWorkspaceProps.ts so the size records hold.

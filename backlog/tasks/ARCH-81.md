@@ -1,11 +1,9 @@
 ---
 id: "ARCH-81"
 title: "Every pure module has a test that references it"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 15
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Tests and CI. Criterion: Test architecture. Structure only: no behaviour c
 
 ## Acceptance
 
-- [ ] The six named modules have tests; the check runs in CI.
+- [x] The six named modules have tests; the check runs in CI.
+
+## Closed 2026-10-27
+
+Direct tests for textTransforms, minimumSize, sort, sanitizeOutputName, formatMessage and runCheck. test:untested-modules runs in check:push and CI with a shrinking allowlist of 33; type-only modules are skipped. Red: a planted untested module in src/lib failed the CLI.

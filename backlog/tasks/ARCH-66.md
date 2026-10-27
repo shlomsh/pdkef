@@ -1,11 +1,9 @@
 ---
 id: "ARCH-66"
 title: "Hooks and effects per component are a ratchet"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 11
 depends_on: ["ARCH-76"]
 ---
 
@@ -24,4 +22,8 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] Adding an effect to a recorded component fails CI; removing one lowers the record.
+- [x] Adding an effect to a recorded component fails CI; removing one lowers the record.
+
+## Closed 2026-10-27
+
+test:hook-ratchet (scripts/check-hook-ratchet.mjs) runs in check:push and CI; ratchet-limits.json records 16 .tsx/.jsx files over 10 hooks. Red: one planted useEffect in PageGrid.tsx failed (37 hooks, 10 effects -> 38, 11); removing it passed. Lower counts lower the record locally.
