@@ -35,7 +35,7 @@ Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.
 (the gesture controller, moved out of `src/editor/` under DEBT-04 part 2 since `CompareSlider`, shell,
 needed it too), and a short named list of `.test.js` files that decode images or drive pdf.js
 (compress/compressImage/thumbnails/toImage in both their `src/lib/` and `src/tools/<tool>/` locations,
-`src/tools/sign/hooks/useWorkspaceGestures.test.js`, `src/editor/adapters/pdf/redact.test.js`). Booting
+`src/tools/sign/hooks/useWorkspaceGestures.test.js`, `src/tools/redact/lib/redact.test.js`). Booting
 jsdom cost more than the tests it hosted, so a pure-logic test in `src/lib`, `src/tools/<tool>/` or
 `src/editor` pays nothing for a DOM it never touches; one that does need it goes in that list or
 starts with `// @vitest-environment jsdom`.
@@ -119,11 +119,11 @@ zero tests, and a git-grep fallback was rejected as unreliable), or no base - th
 the full suite" and keeps only the tests `vitest related` reaches; an empty diff runs no unit tests, and an
 unusable `--since` fails instead of widening. A **core-folder** change (`src/lib/`, `src/editor/`,
 `src/shell/`, `src/pages/`) does not force the whole suite for units; Nx's `CORE_PROJECTS` rule (below)
-still forces `everything` for e2e/font/export scope, which is unrelated. CI's `checks` job runs the whole
+still forces `everything` for e2e, font and export scope, which is unrelated. CI's `checks` job runs the whole
 unit suite, unnarrowed, on every push; `check:fast` and `check:push` select by impact on their own diff.
 
 **What runs where.** Local = the diff (guards, reachable units, `tsc`). CI push = the full unit suite,
-`typecheck` as its own job, and e2e/fonts/export narrowed by scope on four chromium shards (QUAL-23).
+`typecheck` as its own job, and e2e, fonts and export guards narrowed by scope on four chromium shards (QUAL-23).
 Nightly = every chromium e2e spec twice (`--repeat-each=2`) to surface flaky specs.
 
 Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by
@@ -157,7 +157,7 @@ which unit test files run; see the section above for that.
   changed files, then CI runs one narrowed `playwright test` per shard (and, historically, the now-
   retired `vitest run <unit_paths>` line - see above for what replaced it).
 - `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`, and since ARCH-34 the two folders carved out of `site`:
-  `data`, `site-lib`) widen e2e/font/export scope to everything unless
+  `data`, `site-lib`) widen e2e, font and export scope to everything unless
   import reachability (ARCH-32) can name the tools: Nx cannot (it connects `editor` to 18 of 19
   projects), so `narrowByReachability()` walks "who imports me" from every changed `src/` file
   (graph from `scripts/import-graph.mjs`, the scan `check-module-boundaries.mjs` shares) and every
@@ -210,7 +210,7 @@ needs, stopping at the first failure. It never re-derives the scope itself - it 
 merge-base of `origin/main` and `HEAD`) and one file list (the working tree against that base,
 uncommitted and untracked files included, so it works before a commit too). The one question it adds
 that the oracle doesn't answer is whether the diff reaches `dist/` at
-all - `fileCannotReachDist()`'s allowlist (docs/backlog, `.github/`, `*.test.*`, `src/test/`, `e2e/`
+all - `fileCannotReachDist()`'s allowlist (docs, backlog, `.github/`, `*.test.*`, `src/test/`, `e2e/`
 specs, and `scripts/` other than the handful `npm run build` itself invokes) gates the build and its
 dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
 every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach

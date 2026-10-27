@@ -311,7 +311,7 @@ draft persistence), removing today's duplication (§1e) and moving Redact onto t
 
 ### Acceptance
 - Redact drag/resize/create each `commit` **once per gesture** (verify with `console.count`; fails
-  today on all three). Redact e2e (`e2e/redact/`) green, including the page-edge-bound and
+  today on all three). Redact e2e (`src/tools/redact/e2e/`) green, including the page-edge-bound and
   8-handle cases.
 - **The duplicated resize math (§1b) exists in exactly one place.** Concrete, falsifiable check
   (baseline today = **2 files**): the anchor-cap identifiers that fingerprint this math must resolve to
@@ -320,7 +320,7 @@ draft persistence), removing today's duplication (§1e) and moving Redact onto t
   git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**'
   ```
   must list **exactly one** file after E4.4, and it must be the shared box `resizeBehavior`
-  (`src/editor/registry/` or `src/editor/geometry/bounds.ts`), **not** `PdfRedactTool.jsx` or
+  (`src/editor/registry/` or `src/editor/geometry/`), **not** `PdfRedactTool.jsx` or
   `DraggableWrapper.jsx`. Both `PdfRedactTool.handleBoxResizeStart` and the `DraggableWrapper` shape
   branch are deleted, not merely re-pointed. Wire this grep as a one-line CI guard (extend
   `scripts/verify-csp.js` or a sibling `scripts/` check) so the duplication cannot silently return —

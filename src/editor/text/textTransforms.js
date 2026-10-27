@@ -1,7 +1,7 @@
 /**
  * @file textTransforms.js
  * @description Pure text-normalization helpers shared by the exporter
- * (src/editor/registry/text.ts) and the font resolver (src/lib/fonts.js).
+ * (src/editor/registry/text.ts) and the font resolver (src/editor/text/fonts.js).
  *
  * Dependency-free, like hebrewComposition.js — fonts.js needs
  * stripInvisibleFormatting and normalizeTabsForBidi, and text.ts already
@@ -79,7 +79,7 @@ export function normalizeTabsForBidi(text) {
  * Shared by two callers that judge coverage against two different kinds of
  * font handle: `unrepresentableCharacters` in src/editor/registry/text.ts
  * (wraps a pdf-lib/fontkit font already loaded into memory) and `covers` in
- * src/lib/fonts.js (wraps a synchronous lookup into the generated
+ * src/editor/text/fonts.js (wraps a synchronous lookup into the generated
  * fontCoverageTable.js, with no font ever loaded). Both need the identical
  * chain - a fork here is exactly the kind of drift that let the editor and
  * the exporter disagree about Hebrew before.

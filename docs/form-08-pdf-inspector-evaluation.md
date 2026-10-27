@@ -52,7 +52,7 @@ a fork would be small, and also why it would be a fork.
 
 Source: https://raw.githubusercontent.com/firecrawl/pdf-inspector/main/src/types.rs, the
 `extractor` module index and `fn.detect_vector_grid_in_region_mem` on docs.rs, and
-`src/extractor/mod.rs`.
+pdf-inspector's `extractor/mod.rs`.
 
 - **`TextItem`** (verified): `x`, `y`, `width`, `height` in PDF points with a bottom-left origin,
   `text`, 1-indexed `page`, `rotation`, `font`, `font_size`, `font_weight`, bold and italic flags,
@@ -200,4 +200,4 @@ requested now.
   measured score.
 - The discrepancy between 1.22 and 1.23 as the version where Arabic reads correctly.
 - Fetch results were summaries from a small model, not raw page text, and GitHub code search was
-  login-gated (so `FormField` was traced through `src/extractor/mod.rs` instead).
+  login-gated (so `FormField` was traced through pdf-inspector's `extractor/mod.rs` instead).

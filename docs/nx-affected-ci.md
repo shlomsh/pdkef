@@ -59,15 +59,15 @@ no import edges Nx can infer on their own.
 
 **`test-support` (ARCH-34):** the helpers other projects' tests import moved from `src/test/` to
 `src/test/support/` (project `test-support`, no dependencies), so `lib`'s tests importing a helper no longer
-make `lib -> site-test -> editor -> lib`. Paths below that name `src/test/fixtures/` or
-`src/test/setInputFiles.js` now read `src/test/support/...`.
+make `lib -> site-test -> editor -> lib`. Paths below that name the test fixtures folder or
+`src/test/support/setInputFiles.js` now read `src/test/support/...`.
 
 **`site-test` (DEBT-04, second pass):** before this project existed, `src/test/` had no Nx project of
 its own, so `@nx/js`'s inference fell back to attributing it to `site` (root project, `sourceRoot:
 "src"`) - the same "unowned file" fallback `ownerOf()` uses, just at the Nx-graph layer instead of
-`affected-scope.mjs`'s own. Five files import from it in a way that mattered: `src/lib/signHelpers.test.js`
-and `src/editor/text/{bidiRuns,fonts}.test.js` import `src/test/fixtures/wysiwygStrings.js`;
-`src/shell/{FileDropzone,BasePdfTool}.test.tsx` import `src/test/setInputFiles.js`. That gave `lib` and
+`affected-scope.mjs`'s own. Five files import from it in a way that mattered: `src/editor/text/signHelpers.test.js`
+and `src/editor/text/{bidiRuns,fonts}.test.js` import `src/test/support/fixtures/wysiwygStrings.js`;
+`src/shell/{FileDropzone,BasePdfTool}.test.tsx` import `src/test/support/setInputFiles.js`. That gave `lib` and
 `editor` a real edge to `site` (on top of `shell`'s), which is exactly what DEBT-07 needs gone before
 `editor` can leave `CORE_PROJECTS`: `site` is itself core, so any project it can reach becomes
 unnarrowable. `site-test` (`src/test/project.json`, `cross-tool-tests` nested inside it the same way
@@ -76,7 +76,7 @@ unnarrowable. `site-test` (`src/test/project.json`, `cross-tool-tests` nested in
 `editorDependencyDirectionsExceptions`; a fifth, `signLanguagePage`, moved out again under DEBT-07 -
 see below) - a home Nx can name, so the edge each of those test files makes now lands on `site-test`,
 not `site`. Several `src/tools/<t>/*.test.*`
-files reach into `src/test/fixtures/`/`setInputFiles.js` too (`grep -rl "from '.*test/fixtures\|from
+files reach into the test fixtures folder and `setInputFiles.js` too (`grep -rl "from '.*test/fixtures\|from
 '.*test/setInputFiles" src` finds them); those tool -> `site-test` edges are fine and expected - a
 tool depending on test-support infrastructure is not the coupling DEBT-07 cares about, since each
 tool's own commits already run that tool's own tests regardless of what they import.
@@ -109,7 +109,7 @@ own project (above) does not, by itself, remove `site` (or any tool) from `edito
 set, unlike `site-test`'s split. The reason is structural, not a missed step: `site` has a real,
 unavoidable edge to `i18n` (astro pages and layouts import the message catalogues to render at all),
 and every tool has its own real, permitted edge straight to `i18n` (module-boundaries rule 1: "a tool
-may import site's i18n/data"). `src/i18n/toolMessages.ts` then did
+may import site's i18n/data"). the former `toolMessages.ts` then did
 `import type { SignMessages } from '../editor/registry/messages'` (ARCH-35 split that file up and
 `i18nImportsNothingAbove.test.js` now keeps `i18n` from importing the editor, shell or tools), so `i18n -> editor` was a real edge
 too - and unlike `site-test`'s five files, this one cannot be moved to a neutral test-support project,
@@ -209,13 +209,13 @@ Measured after the move (`nx show projects --affected --files=<file> --json`, co
 
 ```
 src/tools/compress/PdfCompressTool.tsx   -> ["tool-compress","site-e2e"]
-src/tools/merge/useMergeDraft.ts         -> ["tool-merge","site-e2e"]
+src/tools/merge/hooks/useMergeDraft.ts   -> ["tool-merge","site-e2e"]
 src/tools/redact/PdfRedactTool.tsx       -> ["tool-redact","cross-tool-tests","site-e2e"]
 src/tools/sign/PdfSignTool.tsx           -> ["tool-sign","cross-tool-tests","fonts","site-e2e"]
 e2e/sign/fixtures/latinNameCorpus.js     -> ["fonts","cross-tool-tests"]
 public/fonts/Kalam-Regular.ttf           -> ["font-assets","fonts","cross-tool-tests"]
 src/test/cross-tool/textCoverage.test.js -> ["cross-tool-tests"]
-src/test/setInputFiles.js                -> site, and so everything (every project imports it)
+src/test/support/setInputFiles.js                -> site, and so everything (every project imports it)
 ```
 
 The rule for the future follows from this: **a test that imports more than one tool, or a tool from
@@ -251,8 +251,8 @@ that recreates the ARCH-20 problem goes red instead of silently widening every n
 
 ## Where the `shell -> i18n` (formerly `lib -> i18n`) coupling still applies
 
-`arch-20-prep` found `src/lib/useWorkspaceGestures.ts` had a genuine runtime import from
-`src/i18n/toolMessages.ts` (since split by ARCH-35; `englishSignMessages`, `formatMessage`, `signElementTypeLabel`); ARCH-17/18
+`arch-20-prep` found `src/tools/sign/hooks/useWorkspaceGestures.ts` had a genuine runtime import from
+the former `toolMessages.ts` (since split by ARCH-35; `englishSignMessages`, `formatMessage`, `signElementTypeLabel`); ARCH-17/18
 later moved that file to `src/tools/sign/hooks/useWorkspaceGestures.ts` (Sign's own folder, not `lib`), and
 today it is `src/shell/` that carries the real edge instead (`RecentFiles.tsx`, `ToolShell.tsx`,
 `BasePdfTool.tsx`, `FileDropzone.tsx`, `DropzoneEmptyState.tsx` all import from `src/i18n/`). Every
@@ -267,7 +267,7 @@ own project could not, on its own, free `editor` from `CORE_PROJECTS` - see "Whe
 short" above and DEBT-07's "Investigated (2026-09-17)" note.
 
 `editor-ui` left CORE_PROJECTS in DEBT-06 (2026-09-14): every consumer of `src/editor-ui/*` is Sign or
-Redact (measured: `nx show projects --affected --files=src/editor-ui/ElementToolbar.tsx` answers
+Redact (measured: `nx show projects --affected --files=src/tools/sign/components/ElementToolbar.tsx` answers
 exactly `editor-ui, tool-sign, tool-redact, fonts, cross-tool-tests, site-e2e`), and the tool pages'
 Tailwind `@source` lists name no island files, so there is no CSS side channel to a third tool. An
 editor-ui-only change now narrows to Sign, Redact, `src/editor-ui/`'s own unit tests, and `src/test/`,
@@ -316,7 +316,7 @@ This worktree forked immediately after ARCH-16 through ARCH-19 finished (`a80920
 "ARCH-18: merge moves into src/tools/merge/" through `27c637f`, the last ~15 commits of the 200), so
 roughly 90% of this window predates the layout this configuration targets. A commit from before the
 move (e.g. `55f3a7c`, a Merge-only commit from before `a80920d`) still touched
-`src/components/MergeTool/...`, a path no current project owns - correctly classified `everything` by
+`components/MergeTool/...`, a path no current project owns - correctly classified `everything` by
 the "unowned file" rule, for the same reason a change to any file whose folder has since moved would be:
 the mechanism is not wrong, the historical path is. None of the 10 `narrow` commits in this window
 happen to touch a `src/tools/<tool>/` file directly, for the same reason - they are all pre-move commits
@@ -407,10 +407,10 @@ the day.
    ```
    src/editor-ui/ArmHint.tsx + src/tools/sign/components/SignToolbar.test.tsx (15396adf-shaped)
                                              -> fonts=false, export_guards=true
-   src/editor/text/combPlacement.ts         -> everything=true (editor is core), fonts=true (directory rule)
-   src/lib/drafts/draftStore.js             -> everything=true (lib is core), fonts=false
-   public/fonts/NewFont-Regular.ttf         -> fonts=true
-   e2e/sign/some-new-shaping-guard.spec.js  -> fonts=true
+   src/tools/sign/lib/combPlacement.ts         -> everything=true (editor is core), fonts=true (directory rule)
+   src/lib/drafts/draftStore.ts             -> everything=true (lib is core), fonts=false
+   public/fonts/Sriracha-Regular.ttf       -> fonts=true
+   e2e/sign/thai-font-parity.spec.js     -> fonts=true
    package-lock.json                        -> everything=true (unowned), fonts=true (unchanged, fail-open)
    ```
 
@@ -420,7 +420,7 @@ the day.
    to a new top-level `e2e/export/` directory and a new `export-guards` Nx/Playwright project
    (`e2e/export/project.json`). Unlike `fonts`, this project *keeps* `editor`, `lib`, `tool-sign` and
    `font-assets` as coarse, whole-project `implicitDependencies` - deliberately, because these two specs
-   really do exercise `src/editor/adapters/pdf/sign.js` and `src/tools/sign/lib/languageAcceptance.js`, and
+   really do exercise `src/tools/sign/lib/sign.js` and `src/tools/sign/lib/languageAcceptance.js`, and
    at only two specs (well under a minute combined) the coarse edge costs nothing like the 27-guard
    version did. `export_guards` in `affected-scope.mjs`'s output is decided the normal way - Nx's
    affected-set, `affectedSet.has('export-guards')` - the same as any `tool-*` project, not a glob.
@@ -464,7 +464,7 @@ files this repo runs, checking each one for `fs.readFileSync`/`readdirSync`/`spa
 reads (things `import` cannot see), Vite-specific import kinds (`?raw`/`?url`/CSS Modules/dynamic
 `import()` - only CSS Modules and dynamic `import()` are actually used here, and both were measured to
 work correctly with no rule needed), global inputs (`vitest.config.js`, `tsconfig*.json`, `package*
-.json` - all confirmed zero-selection blind spots; `src/test/setup.js` and the `astro:content` alias
+.json` - all confirmed zero-selection blind spots; `src/test/support/setup.js` and the `astro:content` alias
 target were the pleasant surprises, already handled correctly by Vitest itself), whole-repository guard
 tests (`pdfRender.test.js`, `noCamelCaseSvgAttrs.test.js`, the import-scan guard,
 `backlog-data.test.mjs`), and deletions/renames (`vitest related` on a missing path exits 0 with zero
@@ -484,7 +484,7 @@ CI treats as authoritative.
 **Measured, on this tree (uncommitted single-file edits, reverted after each measurement):**
 
 ```
-src/lib/drafts/draftStore.js            old: everything=true (193 files)   new: 6 seeds, vitest related -> 18 test files, ~9.5s
+src/lib/drafts/draftStore.ts            old: everything=true (193 files)   new: 6 seeds, vitest related -> 18 test files, ~9.5s
 src/editor/model/editorModel.ts         old: everything=true (193 files)   new: 4 seeds, vitest related -> 3 test files, ~1.9s
 src/shell/BasePdfTool.tsx               old: everything=true (193 files)   new: 5 seeds, vitest related -> 18 test files, ~9.5s
 src/tools/sign/PdfSignTool.tsx          old: 63 files (5 Nx projects)      new: 5 seeds, vitest related -> 7 test files, ~8.7s

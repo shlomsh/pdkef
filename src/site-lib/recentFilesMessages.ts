@@ -1,7 +1,7 @@
 import type { DocumentationLocaleId } from '../i18n/documentationLocales';
 
 /** RecentFiles.tsx's own strings. Rendered only by FileDropzone
- * (src/components/FileDropzone.tsx:132), so it is passed through from
+ * (src/site-lib/FileDropzone.tsx:132), so it is passed through from
  * there rather than resolved independently. `Intl.RelativeTimeFormat`'s
  * "N minutes ago"-style phrases already resolve against the *browser's* own
  * locale, independent of the page's content locale - deliberately left
