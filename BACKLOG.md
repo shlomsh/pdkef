@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 17 up next, 12 then, 26 waiting, 29 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 79 live: 12 up next, 12 then, 26 waiting, 29 parked.
 
 ## Redact: finish removal
 
@@ -72,11 +72,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| MEM-19 | P2 | [MEM-19](backlog/tasks/MEM-19.md) · The deploying commit lives outside the page HTML, so an update re-downloads only the pages that changed | In progress |
-| MEM-20 | P2 | [MEM-20](backlog/tasks/MEM-20.md) · Each page's CSP hash list is emitted in a stable order | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
-| QUAL-31 | P2 | [QUAL-31](backlog/tasks/QUAL-31.md) · check:push typechecks .astro scripts when the diff reaches an .astro file | In progress |
-| MEM-23 | P3 | [MEM-23](backlog/tasks/MEM-23.md) · Each precache request has a time limit | In progress |
 
 ### Then, in order
 
@@ -190,7 +186,6 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | QUAL-21 | P2 | [QUAL-21](backlog/tasks/QUAL-21.md) · Pages render at the size they are shown, and the practice form's logo is sharp | In progress |
-| SCAN-03 | P3 | [SCAN-03](backlog/tasks/SCAN-03.md) · The Scan guide photos load lazily | In progress |
 
 ### Then, in order
 
@@ -215,10 +210,10 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 62 done, 4 retired
+- Robustness and debt: 66 done, 4 retired
 - Unify the tools, narrow the graph: 56 done, 0 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 18 done, 1 retired
+- Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
