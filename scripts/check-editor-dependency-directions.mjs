@@ -269,7 +269,7 @@ function checkProject(projectRoot) {
         reason: 'editor components must use editor/workspace persistence instead of direct browser storage',
       });
     }
-    for (const specifier of importSpecifiers(source)) {
+    for (const specifier of importSpecifiers(source, from)) {
       const resolved = resolveRelativeImport(file, specifier);
       if ((specifier.startsWith('.') || specifier.startsWith('/')) && !resolved) {
         violations.push({ from, specifier, reason: 'relative static import does not resolve to a source file' });

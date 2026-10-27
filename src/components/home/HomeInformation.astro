@@ -1,0 +1,252 @@
+---
+import OfflineProof from '../OfflineProof.astro';
+import Footer from '../Footer.astro';
+import FounderStoryCard from './FounderStoryCard.astro';
+import DraftPersistenceCard from './DraftPersistenceCard.astro';
+import OfflineInstallCard from './OfflineInstallCard.astro';
+import FaqCard from './FaqCard.astro';
+import PrivacyOpenSourceCard from './PrivacyOpenSourceCard.astro';
+import ClosingCard from './ClosingCard.astro';
+
+interface Props {
+  home: any;
+  showTheO: boolean;
+  dir: 'ltr' | 'rtl';
+  locale: string;
+  messages: any;
+  variants: any[];
+  dropzoneMessages: any;
+  recentFilesMessages: any;
+  signToolDisplayName: string;
+  toolHrefs?: Record<string, string>;
+}
+const { home, showTheO, dir, locale, messages, variants, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
+const { faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
+---
+<div id="home-information">
+  {/* The O's window beat says this itself while the visitor is offline. */}
+  {!showTheO && <OfflineProof />}
+  <div class="card-stack">
+    {!showTheO && <FounderStoryCard founderStory={founderStory} dir={dir} />}
+    <DraftPersistenceCard draftPersistence={draftPersistence} />
+    <OfflineInstallCard offlineInstall={offlineInstall} messages={messages} />
+    <script>
+      // DEBT-61: the home page counts its own view, new or returning, like a tool page. After
+      // 'load' and through a lazy import, so the first screen carries none of it.
+      window.addEventListener('load', () => {
+        import('../../lib/productAnalytics.ts')
+          .then(({ reportHomePageView }) => reportHomePageView())
+          .catch(() => {
+            // expected: a chunk that did not load (offline, an old tab after a deploy) only skips one count
+          });
+      });
+    </script>
+    <FaqCard faqKicker={faqKicker} faq={faq} messages={messages} />
+    <PrivacyOpenSourceCard privacyOpenSource={privacyOpenSource} />
+    <ClosingCard closing={closing} dropzoneMessages={dropzoneMessages} recentFilesMessages={recentFilesMessages} signToolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
+    <Footer variants={variants} locale={locale} labels={messages} />
+  </div>
+</div>
+
+<style>
+  #home-information { position: relative; padding-top: 24px; }
+  .card-stack {
+    --stack-gap: 1rem;
+    --space-section-block: clamp(1.5rem, 3vh, 2rem);
+    --space-heading-content: 1rem;
+    --space-content-row: 1rem;
+    --space-layout-gap: 1.5rem;
+  }
+  .card-stack :global(.card-reveal:not(.try-workspace)) {
+    margin-block-start: 2rem;
+  }
+  .card-stack :global(.type-lead) { line-height: 1.6; }
+  .card-stack :global(.space-content-row) { margin-bottom: 0; }
+  .card-stack :global(.type-section) { text-wrap: balance; }
+  .card-stack :global(.faq-card) { padding-block: 0.5rem; }
+  .card-stack :global(.card-reveal > .w-full > .flex) { gap: 2rem; }
+  .card-stack :global(footer) { position: relative; z-index: 1; }
+  .card-stack :global(footer) { margin-top: 1.5rem; }
+  @media (min-width: 768px) {
+    .card-stack :global(.card-reveal:not(.try-workspace)) {
+      position: sticky;
+      top: var(--stack-gap);
+      min-height: calc(100svh - var(--stack-gap));
+      padding-block-end: var(--space-section-block);
+      animation-name: none;
+    }
+    /* A tall card must scroll normally at zoomed or short viewport sizes. */
+    .card-stack :global(.card-reveal[data-stack-overflow]) { position: relative; top: auto; }
+  }
+  @media (min-width: 1024px) {
+    .card-stack :global(.card-reveal:not(.try-workspace)) {
+      top: calc(var(--home-nav-height) + var(--stack-gap));
+      min-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--stack-gap) - var(--stack-gap));
+    }
+    /* Once the information cards enter the viewport, the credit line becomes
+       the lower edge of the same persistent page frame as the navigation.
+       Padding replaces its normal-flow height, so switching into the frame
+       does not change the document length or make the cards jump. */
+    :global(body[data-home-cards-visible]) .card-stack {
+      padding-bottom: var(--home-footer-height);
+    }
+    :global(body[data-home-cards-visible]) .card-stack :global(footer) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 60;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+    }
+  }
+  @media (max-width: 1023px) {
+    :global(body[data-home-demo-visible]) .card-stack :global(footer) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 70;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+    }
+    :global(body[data-home-cards-visible]) .card-stack {
+      padding-bottom: var(--home-footer-height);
+    }
+    :global(body[data-home-cards-visible]) .card-stack :global(footer) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 70;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+    }
+    :global(body[data-home-demo-visible]) .card-stack :global(footer p) {
+      font-size: 0.7rem;
+      line-height: 1.35;
+    }
+    :global(body[data-home-cards-visible]) .card-stack :global(footer p) {
+      font-size: 0.7rem;
+      line-height: 1.35;
+    }
+  }
+
+  /* --- Card parallax --------------------------------------------------
+     Depth on the story cards below the first screen: each card's
+     background sketch and its watermark icon drift vertically against the
+     card's own content as the card crosses the viewport, the icon further
+     (larger travel) than the sketch. Nothing in the card's text moves, so
+     this reads as layers behind the content rather than as the content
+     itself sliding.
+
+     Driven entirely by CSS scroll-driven animations, so there is no scroll
+     listener, no rAF loop and no new script - and therefore no new inline
+     script for the CSP hash list to cover. The timeline is published by the
+     card (view-timeline-name) and consumed by its own descendants; timeline
+     names resolve up the ancestor chain, so five cards can share one name
+     and each decor layer still finds its own card's timeline. The name has
+     to live on the card rather than on the decor itself: the cards are
+     `overflow-hidden`, which makes each one a scroll container, and a
+     `view()` timeline declared inside would measure against that container -
+     which never scrolls - instead of against the page.
+
+     Two guards, both load-bearing:
+
+     - @supports. Without scroll-driven animation support `animation-
+       duration: auto` is invalid, so the declaration is dropped, the
+       duration falls back to 0s, and `fill: both` would freeze every decor
+       layer at the *end* of its keyframes - a permanent 56px offset rather
+       than no effect. The feature query is what makes the unsupported path
+       "no animation" instead of "wrong position".
+     - prefers-reduced-motion. Scroll-linked movement is exactly the kind of
+       motion the preference exists to suppress, and the card-reveal fade in
+       FeatureCard.astro sits behind the same pair of guards.
+
+     `transform`, not the `translate` property, on purpose: Tailwind v4
+     compiles -translate-y-1/2 (which CardDecor's `cr`/`cl` icon positions
+     use for vertical centering) to `translate`, so animating that property
+     would silently clobber the centering on two of the five cards. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      :global(.card-reveal) {
+        view-timeline-name: --feature-card;
+      }
+
+      :global(.decor-parallax),
+      :global(.decor-parallax-icon) {
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --feature-card;
+      }
+
+      :global(.decor-parallax) {
+        animation-name: decor-drift;
+      }
+
+      :global(.decor-parallax-icon) {
+        animation-name: decor-drift-icon;
+      }
+
+      /* Sized down on a handset, where 300px is most of the card's width and
+         the watermark stops reading as a mark in a corner and starts reading
+         as a wash behind the text. It is behind the content and at 7%
+         opacity either way, so this is about weight, not legibility. */
+      @media (max-width: 640px) {
+        :global(.decor-parallax-icon) {
+          width: 210px;
+          height: 210px;
+        }
+      }
+
+      /* From negative to positive over the card's whole cover range: as the
+         card travels up the screen the layer lags behind it, which is what
+         "further away" looks like, and the icon lags further than the sketch
+         so the two read as separate depths.
+
+         160px and 240px of total travel, which is a lot for a background -
+         and it needs to be, because from 768px up the card itself pins
+         while this runs (see .card-stack below). A stationary card with a
+         moving background is where the whole effect actually reads; at the
+         amplitudes that felt right on a scrolling card it was nearly
+         invisible on a pinned one.
+
+         The sketch's amplitude stays under the 110px of vertical inflation
+         CardDecor gives that box, so the drift never exposes an uncovered
+         strip. The watermark icon needs no such margin: it already overhangs
+         the card on every side and is clipped by it. */
+      @keyframes decor-drift {
+        from {
+          transform: translateY(-80px);
+        }
+        to {
+          transform: translateY(80px);
+        }
+      }
+
+      @keyframes decor-drift-icon {
+        from {
+          transform: translateY(-120px);
+        }
+        to {
+          transform: translateY(120px);
+        }
+      }
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 70%, transparent);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-success) 0%, transparent);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 0%, transparent);
+    }
+  }
+</style>

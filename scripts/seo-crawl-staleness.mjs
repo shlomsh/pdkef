@@ -151,10 +151,11 @@ function objectRanges(relPath, keyName) {
 function inventory() {
   const rows = [];
 
-  // LOC-09 moved the home page's markup into HomePageLayout.astro and its copy
+  // LOC-09 moved the home page's markup into HomePageLayout.astro (ARCH-56 split it into
+  // the src/components/home/ sections) and its copy
   // into homeContent.js; the route file itself is a thin shell that rarely
   // changes, so dating '/' by it alone would report the page as never updated.
-  const homeSources = ['src/pages/index.astro', 'src/layouts/HomePageLayout.astro', 'src/data/homeContent.js'];
+  const homeSources = ['src/pages/index.astro', 'src/layouts/HomePageLayout.astro', 'src/components/home', 'src/data/homeContent.js'];
   rows.push({
     url: '/',
     kind: 'home',

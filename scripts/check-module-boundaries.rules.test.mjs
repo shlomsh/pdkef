@@ -462,3 +462,19 @@ describe('module boundaries: unknown src/ folders fail loudly (ARCH-34)', () => 
     expect(unclassifiedSrcEntries(real)).toEqual([]);
   });
 });
+
+describe('module boundaries: ruleViolation() - rule 11, the site does not import the editor core (ARCH-43)', () => {
+  it.each([
+    ['src/site-lib/precachePolicy.js', 'src/editor/text/fontManifest.js'],
+    ['src/pages/licenses.astro', 'src/editor/text/fontLicenses.js'],
+    ['src/layouts/BaseLayout.astro', 'src/editor/model/element.ts'],
+    ['src/i18n/translate.js', 'src/editor/registry/messages.ts'],
+    ['src/data/tools.js', 'src/editor/text/fonts.js'],
+  ])('%s may not import %s', (from, to) => {
+    expect(check(from, to)).toBe('the site may not import the editor core: shared data lives in src/lib/');
+  });
+
+  it('the site may still import lib', () => {
+    expect(check('src/pages/licenses.astro', 'src/lib/fonts/fontLicenses.ts')).toBeNull();
+  });
+});

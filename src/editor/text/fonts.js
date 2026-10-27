@@ -15,7 +15,7 @@
 
 import { COMB_CAP_HEIGHT_EM, DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../model/signGeometry.js';
 import { fontFileHasGlyph } from './fontCoverageLookup.js';
-import { DEFAULT_FONT_FAMILY, FONT_BY_FAMILY, FONT_MANIFEST, RETIRED_FONTS as RETIRED_FONT_MAP } from './fontManifest.js';
+import { DEFAULT_FONT_FAMILY, FONT_BY_FAMILY, FONT_MANIFEST, RETIRED_FONTS as RETIRED_FONT_MAP } from '../../lib/fonts/fontManifest.ts';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = FONT_MANIFEST.filter((font) => font.kind === 'handwriting').map((font) => font.family);

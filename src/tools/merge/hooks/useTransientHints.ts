@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
 import type { MergeAction } from '../state/mergeState.ts';
 
+/** How long the restored-draft sentence stays up. */
+const PICKED_UP_HINT_MS = 5000;
+
 /**
  * The two once-only lines that time themselves out. The visible flags live in
  * the reducer; this hook owns only the timers and the "already shown" latch.
@@ -18,7 +21,7 @@ export function useTransientHints(dispatch: Dispatch<MergeAction>) {
   /** Restarts the five-second window of the restored-draft sentence. */
   const startPickedUpTimer = useCallback(() => {
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
-    pickedUpTimerRef.current = setTimeout(() => dispatch({ type: 'PICKED_UP_EXPIRED' }), 5000);
+    pickedUpTimerRef.current = setTimeout(() => dispatch({ type: 'PICKED_UP_EXPIRED' }), PICKED_UP_HINT_MS);
   }, [dispatch]);
 
   /** Stops both timers and lets the shortcuts line show again. */

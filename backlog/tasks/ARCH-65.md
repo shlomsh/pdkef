@@ -1,11 +1,9 @@
 ---
 id: "ARCH-65"
 title: "Merge drag options and detection confidence weights are named constants"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 10
 depends_on: []
 ---
 
@@ -25,4 +23,4 @@ Area: Code. Criterion: Readability and naming. Structure only: no behaviour chan
 
 ## Acceptance
 
-- [ ] No bare numeric literal remains at those lines; detection KPIs unchanged.
+- [x] No bare numeric literal remains at those lines; detection KPIs unchanged.

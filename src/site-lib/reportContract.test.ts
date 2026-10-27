@@ -36,8 +36,8 @@ beforeEach(() => {
     onLine: true,
     sendBeacon: (_url: string, blob: Blob) => (beacons.push(blob), true),
   });
+  vi.stubGlobal('performance', { getEntriesByType: () => [{ serverTiming: [{ name: 'build', description: '08e10cf' }] }] });
   vi.stubGlobal('document', {
-    querySelector: () => ({ getAttribute: () => '08e10cf' }),
     documentElement: { className: '' },
   });
   setReportingEnabledForTests(true);

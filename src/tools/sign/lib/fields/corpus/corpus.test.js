@@ -7,6 +7,8 @@ import { buildDocument } from './documents.js';
 import { DOCUMENT_CASES, ELEMENT_CASES } from './corpus.js';
 import { detectFormFields } from '../detectFormFields.ts';
 import { detectWidgetRegions } from '../formWidgets.js';
+import { detectPageCellCandidates } from '../formCells.js';
+import { CELL_CONFIDENCE } from '../confidenceWeights.ts';
 
 /**
  * The corpus runner. `README.md` has the paradigm; `corpus.js` has the cases.
@@ -100,6 +102,19 @@ describe('every region is a sane rectangle, whatever found it', () => {
       expect(region.left + region.width, where).toBeGreaterThan(0);
       expect(region.top + region.height, where).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('the cell detector scores within its published weights', () => {
+  it.each(ELEMENT_CASES)('$group: $name', async (testCase) => {
+    const doc = await buildDocument(testCase.doc);
+    const runs = textRunsFor(doc, testCase.text);
+    doc.getPages().forEach((page, pageIndex) => {
+      for (const cell of detectPageCellCandidates(page, pageIndex, runs[pageIndex])) {
+        expect(cell.confidence).toBeGreaterThanOrEqual(CELL_CONFIDENCE.base);
+        expect(cell.confidence).toBeLessThanOrEqual(CELL_CONFIDENCE.cap);
+      }
+    });
   });
 });
 

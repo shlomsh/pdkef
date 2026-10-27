@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { runStageWith, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { runStageWith, touchesAstro, fileCannotReachDist, reachesDist, planSteps, stageSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
 import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
@@ -88,6 +88,9 @@ describe('fileCannotReachDist / reachesDist', () => {
     expect(fileCannotReachDist('scripts/generate-language-acceptance.mjs')).toBe(false);
     expect(fileCannotReachDist('scripts/generate-precache-manifest.mjs')).toBe(false);
     expect(fileCannotReachDist('scripts/buildId.mjs')).toBe(false);
+    expect(fileCannotReachDist('scripts/minifyServiceWorker.mjs')).toBe(false);
+    expect(fileCannotReachDist('scripts/precacheClosure.mjs')).toBe(false);
+    expect(reachesDist(['scripts/precacheClosure.mjs'])).toBe(true);
   });
 
   it.each(['vercel.json', 'package.json', 'astro.config.mjs', 'middleware.ts', 'src/lib/format.js', 'public/fonts/Kalam-Regular.ttf'])(
@@ -116,6 +119,14 @@ describe('planSteps', () => {
     expect(steps).not.toContain('build');
     for (const g of DIST_GUARD_STEPS) expect(steps).not.toContain(g);
     expect(steps).toEqual(expect.arrayContaining(ALWAYS_GUARD_STEPS));
+  });
+
+  it('a diff reaching an .astro file also plans astro check (QUAL-31); one without does not', () => {
+    const astro = ['src/layouts/BaseLayout.astro'];
+    const ts = ['src/lib/errorReport.ts'];
+    const plan = (files) => planSteps({ ...wide([], 'x'), docsOnly: false, reachesDist: reachesDist(files), touchesAstro: touchesAstro(files) });
+    expect(plan(astro)).toContain('astro-check');
+    expect(plan(ts)).not.toContain('astro-check');
   });
 
   it('the ratchet guards run on every diff (ARCH-76)', () => {
@@ -276,6 +287,15 @@ describe('check:e2e mode and stages', () => {
 
   it('the gate never includes Playwright', () => {
     expect(planSteps(wideScope).some((id) => id.startsWith('e2e:'))).toBe(false);
+  });
+
+  it('astro-check runs alone, in a stage before the build (both write .astro/) (QUAL-31)', () => {
+    const stages = stageSteps(planSteps({ ...wideScope, touchesAstro: true }));
+    const checkAt = stages.findIndex((stage) => stage.includes('astro-check'));
+    const buildAt = stages.findIndex((stage) => stage.includes('build'));
+    expect(stages[checkAt]).toEqual(['astro-check']);
+    expect(checkAt).toBeGreaterThan(stages.findIndex((stage) => stage.includes('typecheck')));
+    expect(checkAt).toBeLessThan(buildAt);
   });
 
   it('stages: independent steps together, dist guards after the build, each Playwright step alone', () => {

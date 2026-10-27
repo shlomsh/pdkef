@@ -31,6 +31,19 @@ describe('waitUntil', () => {
     expect(Date.now()).toBe(before);
   });
 
+  it('with dueFakeTimers, runs fake timers already due without moving the clock', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const before = Date.now();
+    let landed = false;
+    let early = false;
+    // Real work, then a 0 ms yield on the fake clock (as pdf-lib does), then the result.
+    void later(60).then(() => { setTimeout(() => { landed = true; }, 0); });
+    setTimeout(() => { early = true; }, 100);
+    await waitUntil(() => landed, { dueFakeTimers: true });
+    expect(Date.now()).toBe(before);
+    expect(early).toBe(false);
+  });
+
   it('fails with the last assertion error once the timeout passes', async () => {
     await expect(waitUntil(() => expect(1).toBe(2), { timeout: 100 })).rejects.toThrow(/expected 1 to be 2/);
   });

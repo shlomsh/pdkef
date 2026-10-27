@@ -145,7 +145,7 @@ describe('resolveBidiRuns', () => {
     // This is the correctness detail the task exists to pin: the editor
     // resolves bidi with the *element's* effective direction (one fixed
     // value for the whole textarea, via its `dir` attribute - see
-    // getEffectiveTextDirection in signHelpers.js), not with each line's own
+    // getEffectiveTextDirection in textDirection.js), not with each line's own
     // auto-detected direction. A line whose own first-strong character
     // disagrees with the element's overall direction must still follow the
     // element - and "5 שלום" is exactly such a line: its own first strong

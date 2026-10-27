@@ -609,7 +609,7 @@ describe('TextNode component', () => {
 
     it('mirrors cell position for RTL content, so the first character typed lands nearest the right edge', () => {
       // Hebrew has a strong RTL character, so direction auto-detects without
-      // needing textDirection set (see signHelpers.js).
+      // needing textDirection set (see textDirection.js).
       host = renderComb({ text: 'שלום' });
       const cells = [...host.querySelectorAll<HTMLElement>(`.${elementStyles['text-comb-cell']}`)];
       // Array order (and so which character is "first") is unchanged - only

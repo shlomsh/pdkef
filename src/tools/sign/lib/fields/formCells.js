@@ -1,6 +1,7 @@
 // @ts-check
 import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../../../editor/geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
+import { CELL_CONFIDENCE } from './confidenceWeights.ts';
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
 /**
@@ -735,19 +736,17 @@ function writableArea(cell, ownText) {
 }
 
 /**
- * Kept below the comb detector's 0.8 so a comb wins a shared rectangle:
- * rewarded for fully closed geometry and a label; a date or signature matched a
- * keyword, not just geometry.
+ * Confidence of a cell candidate: the weights in `CELL_CONFIDENCE`, summed in order and capped.
  *
  * @param {ResolvedCell} resolved
  * @param {import('./fieldTypes.ts').DetectorFieldKind} kind
  */
 function confidenceOf(resolved, kind) {
-  let confidence = 0.45;
-  if (resolved.closure >= 0.95) confidence += 0.1;
-  if (resolved.label) confidence += 0.1;
-  if (kind !== 'text') confidence += 0.05;
-  return Math.min(confidence, 0.7);
+  let confidence = CELL_CONFIDENCE.base;
+  if (resolved.closure >= CELL_CONFIDENCE.closedAt) confidence += CELL_CONFIDENCE.closed;
+  if (resolved.label) confidence += CELL_CONFIDENCE.labelled;
+  if (kind !== 'text') confidence += CELL_CONFIDENCE.keywordKind;
+  return Math.min(confidence, CELL_CONFIDENCE.cap);
 }
 
 /**

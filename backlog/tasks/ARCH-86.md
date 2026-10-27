@@ -1,11 +1,9 @@
 ---
 id: "ARCH-86"
 title: "The unit suite runs as its own CI job beside the guards"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 17
 depends_on: []
 ---
 
@@ -21,8 +19,10 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Outcome
 
-- `vitest run` moves to its own job; build-dependent jobs wait on `checks` for dependency PRs.
+- `vitest run` moves to its own `units` job. On a dependency PR, one `dependency-gate` job builds first and the jobs that build on their own wait for it (a bump that breaks the build failed seven jobs in run 40337702161). `needs` is static, so waiting on `checks` would have slowed every run.
 
 ## Acceptance
 
-- [ ] Guards and units report separately; total wall time does not rise.
+- [x] Guards and units report separately; total wall time does not rise.
+
+*Closed 2026-10-27:* run 40563223976 (a225e8fc) reports `checks` (36s) and `units` (281s) separately. Its 567s wall was set by `font-guards (1)` (533s), which ran because the push touched the font tables, as on 97f93bab (608s). `units` ended at +314s, level with the e2e shards (+299s), and the unit step itself (200s) sits inside the recent 128-207s range. The old combined `checks` job also ran the guards serially before the units, so the split takes about 30s off that path.

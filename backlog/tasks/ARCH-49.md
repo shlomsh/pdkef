@@ -1,11 +1,9 @@
 ---
 id: "ARCH-49"
 title: "The import graph sees every import form, or rejects the ones it cannot read"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 5
 depends_on: []
 ---
 
@@ -25,4 +23,4 @@ Area: Architecture. Criterion: Layering and dependency direction. Structure only
 
 ## Acceptance
 
-- [ ] A planted computed import and a `new URL(..., import.meta.url)` each either appear as edges or fail the check.
+- [x] A planted computed import and a `new URL(..., import.meta.url)` each either appear as edges or fail the check.

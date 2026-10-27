@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../tools/sign/lib/languageAcceptance.js';
-import { FONT_MANIFEST } from '../../editor/text/fontManifest.js';
+import { FONT_MANIFEST } from '../../lib/fonts/fontManifest.ts';
 import { LANGUAGE_COVERAGE } from '../../editor/text/fontCoverageReport.js';
 import { EXPORT_RENDER_CORPUS } from '../../../e2e/export/fixtures/exportRenderCorpus.js';
 import { covers } from '../../editor/text/fonts.js';

@@ -151,7 +151,7 @@
    as the English one; its letterforms carry enough ink on their own not to
    need it. Source: GveretLevinDemo-Regular.ttf, a Hebrew-range subset of the
    editor's own Hebrew handwriting fallback face (public/fonts/GveretLevin-
-   Regular.ttf, already credited via src/editor/text/fontManifest.js), built by
+   Regular.ttf, already credited via src/lib/fonts/fontManifest.ts), built by
    scripts/fonts/build-hebrew-demo-font-subset.py. See
    src/editor/text/displayOnlyFonts.js for the full accounting. */
 @font-face {

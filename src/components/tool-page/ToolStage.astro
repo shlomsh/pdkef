@@ -1,0 +1,345 @@
+---
+import ToolHero from '../ToolHero.astro';
+
+interface Props {
+  tool: any;
+  messages: any;
+  isEditor: unknown;
+  toolControlsEnglish: boolean;
+}
+const { tool, messages, isEditor, toolControlsEnglish } = Astro.props;
+---
+{/* The hero and the tool card flow at their own height. This wrapper used
+    to carry `min-h-[calc(100svh-3.5rem)]` and #app below used to centre
+    its content vertically under 1024px, holding the hero+card area to one
+    viewport tall: measured on a production build that put 310 to 460px of
+    blank space between the card and "How it works" at 1280x900 (more on a
+    taller screen), and on a phone it made a short pre-result card
+    (/compress-image/'s Target Size panel, before the full-height sheet) jump ~108px up the moment a
+    result made the page tall enough to stop being centred (see
+    backlog/tasks/SEO-25.md). Nothing else leaned on that height: ToolHero's
+    condensing keys off its own data attributes and OfflineProof renders
+    after this wrapper closes. e2e/tool-layout.spec.js guards both. */}
+<div class="tool-stage flex flex-col" data-layout="hero" data-tool-slug={tool.slug} data-editor={isEditor || undefined}>
+  <ToolHero icon={tool.icon} title={tool.h1} titleName={tool.h1Name} subhead={tool.subhead} subheadAccent={messages.heroAccent} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} condenseOnLoad />
+
+  {/* !max-w-[1280px] overrides global.css's bare `main { max-width: 1400px }`
+      (still 1400 for every other page type - content guides, licenses,
+      404 - which never asked to match home). Keeps this tool's drop
+      zone/card area the same width as the app bar and hero above it, now
+      that both moved to home's 1280px. */}
+  <main class="!flex !flex-col !max-w-[1280px] !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
+    <section id="app" class="!my-0 !flex !w-full !items-start !justify-center min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
+      {/* LOC-02: the Sign/Redact "editor stays English" pilot decision
+          (LOCALIZED_TOOL_ISLANDS in localizedTools.ts) still needs honest
+          disclosure, and data-tool-controls-english on this text is what
+          scripts/localizedSeoChecks.mjs keys off to exclude #app from the
+          page's Hebrew language-purity score - removing this marker
+          entirely mis-scores every Sign/Redact localized page as if its
+          English UI were an untranslated incumbent. Previously a large
+          visible paragraph above the dropzone; that took disproportionate
+          space for what it said, so it's sr-only now - still reaches a
+          screen reader, costs sighted visitors nothing. */}
+      {toolControlsEnglish && (
+        <p class="sr-only" data-tool-controls-english>{messages.toolControlsEnglishNotice}</p>
+      )}
+      <slot />
+    </section>
+  </main>
+
+  {/* The airplane-mode line sits below the card for every tool, so it moves
+      nothing the first screen has already laid out. The desktop empty-state
+      grid places it by its `data-airplane-note` marker; the editors also carry
+      `data-tool-restore-followup`, which hides it while a restore is pending.
+      It stays a bare <p>: e2e/tool-layout.spec.js's `body > div > div` locator
+      must keep resolving to the app bar only. */}
+  <p data-tool-restore-followup={isEditor ? '' : undefined} data-airplane-note class="type-body mx-auto w-full max-w-[1280px] px-4 pb-1 text-center text-[var(--color-muted)] min-[560px]:px-6">
+    {messages.airplaneModeNotice}
+  </p>
+  <a data-how-link href="#how-it-works" class="text-[var(--color-primary-text)]">
+    {messages.howItWorks}
+    <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" /></svg>
+  </a>
+</div>
+
+<style>
+  /* QUAL-13: the home hero's off-white-to-mint gradient on every tool page's
+     stage. Pixel stops, because on the document-tall editor stage (Sign,
+     Redact) the fade has to finish around where the tool card begins and
+     stay mint below it; 480px sits within a few pixels of the card's top
+     edge across the hero states measured. `background-color` is the
+     fallback for a browser that cannot parse `color-mix`. */
+  .tool-stage {
+    background-color: var(--color-primary-tint);
+    background-image: linear-gradient(180deg, var(--color-bg) 0, color-mix(in srgb, var(--color-bg) 60%, var(--color-primary-tint)) 260px, var(--color-primary-tint) 480px);
+  }
+
+  /* HERO-01: the one-screen page-grid first screen (data-layout='hero') is
+     as tall as the stage, so its stops follow the stage's own height: fade in
+     from the page colour, hold mint through the middle where the tool sits,
+     and fade back to the page colour at the bottom edge, leaving no seam
+     against the page below. Sign and Redact (`data-editor`) keep the pixel stops
+     above everywhere but their desktop empty state, which takes the same
+     height-relative gradient under the first-screen gate further down. */
+  .tool-stage[data-layout='hero']:not([data-editor]) {
+    --stage-mint: color-mix(in srgb, var(--color-primary-tint) 70%, var(--color-bg));
+    background-color: var(--color-bg);
+    background-image: linear-gradient(180deg, var(--color-bg) 0, var(--stage-mint) 40%, var(--stage-mint) 70%, var(--color-bg) 100%);
+  }
+
+  /* A tool normally flows at its own height: SEO-25 deliberately removed a
+     viewport-tall wrapper because it left up to 460px of blank space below
+     a short card, and the mobile layout must never vertically centre one.
+
+     Saved work is a different first-paint state. The inline head script
+     knows synchronously that a local entry may be restored and sets
+     `data-draft-hint` before the browser paints. Sign and Redact then load
+     the actual PDF and editor asynchronously. Without the reservation
+     below, that loaded editor grows after first paint and pushes every
+     server-rendered section below it down the page - a severe CLS event.
+     Keep the old viewport/flex geometry only during this hinted restore.
+     A stale hint clears itself once IndexedDB says there is no entry, and a
+     fresh visitor never receives the attribute, so neither path gains blank
+     space. */
+  /* The phone first screen reaches the bottom edge: the stage is at least the visible
+     screen under the 3.5rem app bar, so the next section's page colour never shows as
+     a band under a short tool. Content stays top-aligned; a taller stage (Sign,
+     Compress) is untouched. Phones only: e2e/tool-layout.spec.js keeps the editors
+     close to the section below at 1000px. */
+  @media (max-width: 767.98px) {
+    .tool-stage {
+      min-height: calc(100svh - 3.5rem);
+    }
+
+    /* main grows by default, which took the extra height and pushed the airplane
+       line to the screen's foot, a gap under the card; with nothing loaded the
+       line stays under the card and the mint fills the rest. */
+    .tool-stage:not([data-editor]):not(:has([data-tool-loaded], [data-tool-shell])) > main {
+      flex-grow: 0;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :global(html[data-draft-hint]) .tool-stage {
+      min-height: calc(100svh - 3.5rem);
+    }
+
+    :global(html[data-draft-hint]) .tool-stage main,
+    :global(html[data-draft-hint]) .tool-stage #app,
+    :global(html[data-draft-hint]) .tool-stage #app > astro-island {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+  }
+
+  /* HERO-01: the desktop first screen. While the island shows its empty
+     state, and no saved work is restoring (`data-draft-hint` keeps the
+     reserved flex geometry above; `data-merge-restore` keeps Merge's
+     restore in the stacked layout it lands in), the stage is one screen tall: the hero
+     on the start side, the tool on the other, the airplane line and the
+     How it works link as a footer row. Sign and Redact (HERO-05) carry
+     `data-layout='hero'` at every width because the static HTML is one
+     document, so every `[data-layout='hero']` rule is either gated to this
+     desktop empty state or excludes `[data-editor]`: below 1024px, loaded and
+     restoring, they look as they did before. The children are placed
+     on the grid rather than wrapped, so the app bar stays the only
+     `body > div > div` (e2e/tool-layout.spec.js). These rules are
+     unlayered, so they beat the utilities on the hero and the airplane
+     line (see <main> below for the exception). The link is hidden everywhere else. */
+  .tool-stage [data-how-link] {
+    display: none;
+  }
+
+  /* A file is over the window: the stage turns mint and takes a primary
+     border, at every width. The island only sets [data-dragging]. */
+  .tool-stage[data-layout='hero']:not([data-editor]):has([data-dragging]) {
+    --stage-mint: var(--color-primary-tint);
+    box-shadow: inset 0 0 0 3px var(--color-primary);
+  }
+
+  @media (min-width: 1024px) {
+    .tool-stage {
+      --first-screen: clamp(600px, calc(100svh - 3.5rem), 900px);
+    }
+
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      /* Row 1 is the first screen's own height (block padding 2.5rem, footer 2.5rem),
+         so the hero centres in it whatever <main> does. <main> spans rows 1-2: row 2
+         is 0 unless the tool column is taller than row 1, then it takes the excess,
+         so <main> starts at the top and the footer row follows it. */
+      grid-template-rows: calc(var(--first-screen) - 5rem) auto 2.5rem;
+      column-gap: 3.5rem;
+      min-height: var(--first-screen);
+      padding-block: 1.5rem 1rem;
+      padding-inline: max(2rem, calc((100% - 1280px) / 2 + 2rem));
+    }
+
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > :global(.tool-hero) {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: center;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > main {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      /* Top-aligned: <main> is a few px tall until the island's markup is parsed,
+         and a centred box moved (0.07 CLS on a slow machine) when the sheet arrived. */
+      align-self: start;
+      /* <main>'s utilities are `!important` and sit in a layer, and for
+         important declarations the layered ones win, so its 1.5rem side and
+         1.25rem bottom padding cannot be zeroed here. Negative margins take
+         them back, so the island's edge is the column's edge. global.css's
+         `main { width: 100% }` would pin the width to the column and leave the
+         box 48px short of its end edge, so the width is auto here. */
+      margin-inline: -1.5rem;
+      margin-bottom: -1.25rem;
+      /* Still top-aligned, but pushed down by the gap that centres a 36rem sheet in
+         row 1 (Dropzone.module.css: min-height min(36rem, first screen - 9rem); where
+         that is shorter, Merge's content is taller, so 36rem is the safe height and the
+         margin is 0 whenever row 1 is not taller than that). It reads only the viewport,
+         never the content, so nothing moves while <main> parses. */
+      margin-top: max(0px, calc((var(--first-screen) - 5rem - 36rem) / 2));
+      width: auto;
+    }
+
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-airplane-note] {
+      grid-column: 1;
+      grid-row: 3;
+      align-self: center;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      text-align: start;
+    }
+
+    /* The editors' desktop empty state takes the page-grid gradient: the old 480px
+       mint stop would show a seam against a stage one screen tall. */
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-editor]:not(:has([data-tool-loaded], [data-tool-shell])) {
+      --stage-mint: color-mix(in srgb, var(--color-primary-tint) 70%, var(--color-bg));
+      background-color: var(--color-bg);
+      background-image: linear-gradient(180deg, var(--color-bg) 0, var(--stage-mint) 40%, var(--stage-mint) 70%, var(--color-bg) 100%);
+    }
+
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-editor]:not(:has([data-tool-loaded], [data-tool-shell])):has([data-dragging]) {
+      --stage-mint: var(--color-primary-tint);
+      box-shadow: inset 0 0 0 3px var(--color-primary);
+    }
+
+    :global(html:not([data-draft-hint], [data-merge-restore], [data-handoff-pending])) .tool-stage[data-layout='hero']:not(:has([data-tool-loaded], [data-tool-shell])) > [data-how-link] {
+      display: inline-flex;
+      grid-column: 2;
+      grid-row: 3;
+      align-items: center;
+      gap: 0.4rem;
+      justify-self: end;
+    }
+  }
+
+  /* A restored editor has an inherently document-sized body: one A4 page
+     can be taller than the viewport, and a multi-page PDF taller still.
+     A fixed min-height can only move that later shift; it cannot eliminate
+     it. Do not paint the temporary empty card or the static content stream
+     below it while Sign/Redact reconstruct saved work. The nearby
+     airplane-mode note follows the same rule. They remain in layout (so
+     their final geometry is already resolved) but are invisible until the
+     real editor shell exists. Visibility, rather than display, preserves
+     each component's native layout and prevents a card flashing at one
+     coordinate then moving to another.
+
+     `data-editor-restore` is deliberately Sign/Redact-only. Merge shares
+     `data-draft-hint` but has a different loaded shell. A failed or stale
+     restore removes both markers in useDraftPersistence, revealing the
+     ordinary empty state. */
+  :global(html[data-editor-restore]) .tool-stage [data-tool-restore-followup],
+  :global(html[data-editor-restore]) .tool-stage main {
+    visibility: hidden;
+  }
+
+  :global(html[data-editor-restore]:has([data-tool-shell])) .tool-stage [data-tool-restore-followup],
+  :global(html[data-editor-restore]:has([data-tool-shell])) .tool-stage main {
+    visibility: visible;
+  }
+
+  /* Merge restores a saved *set* of source PDFs. Its file list and page
+     grid arrive after the lightweight persistence island, so reserving a
+     short dropzone alone still lets that temporary UI be replaced by a
+     document-sized workspace. Keep both the temporary card and the static
+     stream below it out of paint until the actual grid has mounted. Unlike
+     Sign/Redact this is not an editor shell and intentionally has its own
+     marker and readiness signal. A stale pointer releases immediately in
+     PdfMergeTool once the restore check returns with no files. */
+  :global(html[data-merge-restore]) .tool-stage main,
+  :global(html[data-merge-restore]) [data-airplane-note] {
+    visibility: hidden;
+  }
+
+  :global(html[data-merge-restore]:has([data-merge-workspace-ready])) .tool-stage main,
+  :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-airplane-note] {
+    visibility: visible;
+  }
+
+  /* A hand-off is on its way (HERO-02, src/lib/handoffPending.ts): the page
+     behaves like a Merge restore. The desktop grid is off and the hero is
+     condensed from first paint (ToolHero.astro), and the empty sheet, the
+     static stream and the airplane line stay out of paint until the tool
+     shows its file, so nothing is painted that the arriving file replaces.
+     useHandoffIntake removes the attribute once the tool has a file, or
+     at once when there was nothing to consume (a stale key).
+
+     Safety net with no JS: if the island never loads (an uncached chunk
+     offline, a script error) nothing removes the attribute, so the hidden
+     parts run an animation that flips them back to visible after 6s. The
+     tool's own 8s release cap only starts once a file was read. */
+  :global(html[data-handoff-pending]) .tool-stage main,
+  :global(html[data-handoff-pending]) [data-airplane-note] {
+    visibility: hidden;
+    animation-name: handoff-pending-reveal;
+    animation-duration: 0s;
+    animation-delay: 6s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
+  @keyframes handoff-pending-reveal {
+    to {
+      visibility: visible;
+    }
+  }
+
+  :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) .tool-stage main,
+  :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) [data-airplane-note] {
+    visibility: visible;
+  }
+
+  /* Merge has no ToolShell, so its compact hero cannot use ToolHero's
+     generic `[data-tool-shell]` loaded-state selector. Match the
+     synchronous restore marker and the restored workspace's stable marker
+     here, in the page layout that owns both, so 900px restores do not
+     expand the hero after the hint is cleared.
+
+     The whole selector is `:global()`: the hero is ToolHero.astro's
+     element and carries that component's scope attribute, so a scoped
+     `.tool-hero` written here compiles to a selector nothing matches
+     (QUAL-10 measured the hero dropping 32px at 900px for exactly that). */
+  @media (max-width: 1023px) {
+    :global(html[data-view-density='condensed'][data-merge-restore] .tool-hero[data-hero-condensable]),
+    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable]) {
+      padding-top: 1.5rem;
+      padding-bottom: 0.75rem;
+    }
+
+    :global(html[data-view-density='condensed'][data-merge-restore] .tool-hero[data-hero-condensable] [data-hero-sub]),
+    :global(html[data-view-density='condensed']:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable] [data-hero-sub]) {
+      display: none;
+    }
+  }
+
+</style>

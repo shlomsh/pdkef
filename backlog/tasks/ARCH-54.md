@@ -1,11 +1,9 @@
 ---
 id: "ARCH-54"
 title: "Scan moves its ref-held state into a typed state module"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 6
 depends_on: []
 ---
 
@@ -24,4 +22,4 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] The island has fewer than 8 refs; a unit test covers the state module.
+- [x] The island has fewer than 8 refs; a unit test covers the state module.

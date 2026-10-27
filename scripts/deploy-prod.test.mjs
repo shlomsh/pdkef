@@ -4,9 +4,10 @@ import { deployArgs, parseArgs, validateTree } from './deploy-prod.mjs';
 const SHA = 'f27c2b71' + 'a'.repeat(32);
 
 describe('deployArgs', () => {
-  it('is the forced production deploy with the commit as a build env', () => {
+  it('is the forced production deploy with the commit as a build env and a runtime env', () => {
     expect(deployArgs({ sha: SHA, extra: [] })).toEqual([
       'deploy', '--prod', '--force', '--build-env', `VERCEL_GIT_COMMIT_SHA=${SHA}`,
+      '--env', `VERCEL_GIT_COMMIT_SHA=${SHA}`,
     ]);
   });
   it('passes extra arguments through after its own', () => {

@@ -32,7 +32,7 @@ src/tools/<t>/   the island, its components, its lib modules, its unit tests, it
 src/lib/         the genuinely shared modules only (about eight today)
 src/site-lib/    site-only/build-only helpers with no tool, shell, editor or lib consumer
                  (DEBT-05): contentMarkup, markdownRender, gitLastModified, cspHash,
-                 localeOfflinePacks, acceptNegotiation (inlineStyles moved to src/components/, ARCH-34)              (classified `site`)
+                 acceptNegotiation (inlineStyles moved to src/components/, ARCH-34)              (classified `site`)
 site             src/pages, src/content, src/data, src/i18n, src/layouts, src/styles and the
                  .astro components, as today
 ```
@@ -131,13 +131,20 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
    consumes a given module.
 10. **`lib` is the bottom layer: it may not import `editor`, `editor-ui`, `shell`, `i18n` or `data`** (ARCH-34). Rule 2 already bars `lib` from a tool, `components` and `site` itself, so together the two leave `lib` importing only `lib`. A `src/lib/` module that imports one of those five fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
+11. **The site never imports the editor core** (ARCH-43): a page, layout, `.astro` component, `i18n`/`data`
+    module or `src/site-lib/` helper never imports `src/editor/`, so the headless core is not a public
+    API for build-time site code. Data the editor and the site both read lives in `src/lib/`: the font
+    manifest and license tables (`src/lib/fonts/fontManifest.ts`, `fontLicenses.ts`) moved there from
+    `src/editor/text/`, read by the editor, `precachePolicy.js` and `licenses.astro` alike. Zero
+    violations, no allowlist. (`fontLicenses.ts` has the site as its only consumer, so it carries a rule 9
+    allowlist entry: the editor-side tests that guard it are not consumers.)
 
 **Test support.** `src/test/` (cross-tool included) classifies as `test-support`, a module of its own
 that is not in the numbered list. The script enforces one edge for it, in `ruleViolation()`: a
 `test-support` file may not import a tool. It may import every core module and the site. This is
 what keeps a harness from reaching into one tool's internals; rule 6 covers the other test locations.
 
-`scripts/check-module-boundaries.mjs` enforces exactly these ten rules; its exported `RULES` list
+`scripts/check-module-boundaries.mjs` enforces exactly these eleven rules; its exported `RULES` list
 and this section are checked against each other by `scripts/check-module-boundaries.doc.test.mjs`
 (a rule renamed or added on one side fails the test); the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"

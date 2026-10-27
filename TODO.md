@@ -8,17 +8,12 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [MEM-16](backlog/tasks/MEM-16.md) P2 · A new build's cache carries every unchanged content-hashed file over from the previous cache
-- [MEM-15](backlog/tasks/MEM-15.md) P2 · The precache manifest is per page: a visit caches the shell plus that page's import closure
-- [MEM-17](backlog/tasks/MEM-17.md) P3 · Service worker registration waits for the island's hydration and an idle callback
-- [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
+- [MEM-21](backlog/tasks/MEM-21.md) P3 · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB (in progress)
 
 ### Unify the tools, narrow the graph
 
-- [ARCH-100](backlog/tasks/ARCH-100.md) P1 · Island tests wait for what they assert, not for a fixed sleep (in progress)
-- [ARCH-83](backlog/tasks/ARCH-83.md) P2 · Every CI run reports how far affected-scope narrowed it (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 
 ### Search and languages
