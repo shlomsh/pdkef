@@ -28,17 +28,17 @@ import PageWorkspace, { workspaceStyles } from '../../shell/pageWorkspace/PageWo
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
-import { useMediaQuery } from './useMediaQuery.ts';
+import { useMediaQuery } from './hooks/useMediaQuery.ts';
 import { englishShellMessages } from '../../shell/shellMessages';
-import CornerEditor from './CornerEditor.tsx';
-import ResultPage from './ResultPage.tsx';
+import CornerEditor from './components/CornerEditor.tsx';
+import ResultPage from './components/ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
-import { playFlatten, relativeBox, type FlattenFrom } from './flattenAnimation.ts';
+import { playFlatten, relativeBox, type FlattenFrom } from './lib/flattenAnimation.ts';
 import ScanVerb from './verb/ScanVerb.tsx';
-import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } from './quad.ts';
-import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
-import type { ScanFilter } from './filters.ts';
-import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
+import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } from './lib/quad.ts';
+import { SIZE_LIMITS, type SizeLimitId } from './lib/scanBudget.ts';
+import type { ScanFilter } from './lib/filters.ts';
+import type { BuiltPage, PageSize, Placement, ProcessedPage } from './lib/scanPipeline.ts';
 import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
 
@@ -79,10 +79,10 @@ const resultKey = (page: ScanPage) => `${page.id}|${quadKey(page.quad)}|${page.f
 /** The corners the warp gets: the photo's own, one place on per quarter turn (quad.ts). */
 const pageQuad = (page: ScanPage) => rotateQuad(page.quad, page.turns);
 
-type Pipeline = typeof import('./scanPipeline.ts');
+type Pipeline = typeof import('./lib/scanPipeline.ts');
 let pipelinePromise: Promise<Pipeline> | null = null;
 // The warp, filter and edge code load once, when the first photo arrives (docs/scan-to-pdf.md).
-const loadPipeline = () => (pipelinePromise ??= import('./scanPipeline.ts'));
+const loadPipeline = () => (pipelinePromise ??= import('./lib/scanPipeline.ts'));
 
 /** "Take a photo": the camera straight away on a phone, one page per shot. Coarse pointers only (CSS).
  * `primary` is the empty state's, the equal of Choose files: the same label-around-input as the shell's

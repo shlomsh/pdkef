@@ -94,7 +94,7 @@ export function findInlineEnglish(source) {
 /** Plain .ts files whose multi-word strings are not UI text, each with the reason. */
 const TS_NOT_UI = {
   'redact/useFind.ts': 'a canvas font shorthand used to measure glyphs',
-  'scan/edges/corpus.ts': 'names of edge-detection fixtures, shown only in test output',
+  'scan/lib/edges/corpus.ts': 'names of edge-detection fixtures, shown only in test output',
   'sign/useFormFieldRegions.ts': 'developer diagnostics sent to the error report, not shown to a person',
 };
 const COPY_MODULES = new Set(['redact/check/checkCopy.ts', 'redact/details/describeDetails.ts']);
