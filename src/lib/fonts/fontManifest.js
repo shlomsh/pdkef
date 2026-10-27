@@ -7,7 +7,7 @@
  * THIRD_PARTY_LICENSES.md font lists. The editor, the exporter, the license
  * page and the precache policy all import this module directly at build and
  * run time. Per-family license text (copyright, license URL, spec version)
- * lives in the sibling src/editor/text/fontLicenses.js instead of here, so a
+ * lives in the sibling src/lib/fonts/fontLicenses.js instead of here, so a
  * Sign session never downloads copyright prose it has no use for - a unit
  * test (fontLicenses.test.js) keeps the two modules' family keys identical.
  */

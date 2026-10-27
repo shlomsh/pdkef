@@ -10,7 +10,7 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * is a traditional Naskh face; Vazirmatn is an upright geometric/humanist sans,
  * the sharpest stylistic contrast available, screened here as a second option
  * rather than a replacement - see RETIRED_FONTS in
- * src/editor/text/fontManifest.js for what "replacement" looks like when a
+ * src/lib/fonts/fontManifest.js for what "replacement" looks like when a
  * font is actually dropped, which this is not.
  *
  * **This is the documented risk class.** Vazirmatn carries `calt` and `ss01`

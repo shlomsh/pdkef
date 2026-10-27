@@ -2,8 +2,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FACE_CSS, FONT_MANIFEST } from '../src/editor/text/fontManifest.js';
-import { licenseFor } from '../src/editor/text/fontLicenses.js';
+import { FACE_CSS, FONT_MANIFEST } from '../src/lib/fonts/fontManifest.js';
+import { licenseFor } from '../src/lib/fonts/fontLicenses.js';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptDir, '..');
@@ -13,7 +13,7 @@ const checkOnly = process.argv.includes('--check');
 
 export function editorCssSource() {
   const sections = [
-    `/* GENERATED FILE - do not hand-edit.\n+   Produced by scripts/generate-font-manifest.mjs from src/editor/text/fontManifest.js.\n+   Imported only by /sign/ so these rules do not enter unrelated pages. */`,
+    `/* GENERATED FILE - do not hand-edit.\n+   Produced by scripts/generate-font-manifest.mjs from src/lib/fonts/fontManifest.js.\n+   Imported only by /sign/ so these rules do not enter unrelated pages. */`,
   ];
   for (const kind of ['handwriting', 'text']) {
     sections.push(`\n/* --- ${kind === 'handwriting' ? 'Handwriting' : 'Text'} fonts --- */`);

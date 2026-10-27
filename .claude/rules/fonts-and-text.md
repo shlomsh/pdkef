@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/editor/text/**"
+  - "src/lib/fonts/**"
   - "src/editor/registry/text*"
   - "src/editor/adapters/pdf/**"
   - "src/editor/text/fontCoverageTable*"
@@ -168,9 +169,9 @@ Every expensive failure here was an omission.
 2. **Add the TTFs to `public/fonts/`** and run `npm run test:fonts`. If `glyf` is unaligned, repad to
    `padding = 4` in fontTools and verify outlines, metrics and cmap byte-identical per glyph (about half
    the Brahmic faces needed it).
-3. **Register** the family in `src/editor/text/fontManifest.js` (kind, styleTag, metrics, faces -
+3. **Register** the family in `src/lib/fonts/fontManifest.js` (kind, styleTag, metrics, faces -
    `HANDWRITING_FONTS`/`TEXT_FONTS` in `src/editor/text/fonts.js` derive from this, nothing to edit
-   there directly) and its license metadata in the sibling `src/editor/text/fontLicenses.js`, then run
+   there directly) and its license metadata in the sibling `src/lib/fonts/fontLicenses.js`, then run
    `npm run generate:font-manifest` to refresh `src/styles/editorFonts.css` and the
    `THIRD_PARTY_LICENSES.md` font lists. Add a label in `src/tools/sign/components/FontPickerMenu.tsx` if needed.
 4. **New script: add a `SCRIPT_FALLBACKS` row.**
@@ -185,7 +186,7 @@ Every expensive failure here was an omission.
    runner-pinned: run the CI workflow with the `update-export-render-baseline` input and commit the
    printed file after reviewing the diff, which should be purely additive. Missed once (FONT-05 added
    three CJK cases with no baseline and CI went red).
-8. **Attribution** via the `src/editor/text/fontLicenses.js` entry from step 3, checked against
+8. **Attribution** via the `src/lib/fonts/fontLicenses.js` entry from step 3, checked against
    `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro` by `fontAttribution.test.js`, and
    **user-facing copy** in `src/data/tools.js`: language list, per-language note, FAQ. Any known
    divergence is named to the user there.

@@ -148,7 +148,7 @@ export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/chan
 // not justify - so a shaping-code change still runs the guards too, on the
 // same "ambiguous scope never narrows" fail-open principle every other rule
 // here follows.
-const FONTS_DIRECTORY_GLOBS = ['public/fonts/', 'src/editor/text/', 'scripts/fonts/', 'e2e/sign/'];
+const FONTS_DIRECTORY_GLOBS = ['public/fonts/', 'src/editor/text/', 'src/lib/fonts/', 'scripts/fonts/', 'e2e/sign/'];
 
 export function matchesFontsGlob(file) {
   if (file === 'playwright.config.js') return true; // defines the fonts-shard split itself
