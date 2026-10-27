@@ -13,7 +13,9 @@
 //     previous build's cache and fetches only the rest, so a redeploy costs
 //     the diff, not the site.
 //   - HTML navigations are cache-first and refresh in the background, so a
-//     returning visitor can reopen the app when the server is unavailable.
+//     returning visitor can reopen the app when the server is unavailable. A
+//     refreshed page is stored only when it belongs to this build: its hash
+//     must match the page's entry in this build's manifest (MEM-22).
 //   - Other same-origin assets are cache-first after precache or first use.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
@@ -42,7 +44,9 @@ const CACHE_PREFIX = 'pdkef-';
 // read, from the cache keys alone, whether it is critical over the build the
 // tabs run. Keys from before this (`pdkef-<hash>`) read as 0.
 const CRITICAL_VERSION = 10;
-const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-__BUILD_ID__`;
+// MEM-22: the build id the generator stamps in, which the manifest carries too.
+const BUILD_ID = '__BUILD_ID__';
+const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-${BUILD_ID}`;
 
 const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
 
@@ -90,6 +94,8 @@ const CRITICAL_TAKEOVER_CAP_MS = 75_000;
 // deletes the old cache, so taking over with a gap would lose offline coverage
 // the old build had. See readyToTakeOver.
 const PRECACHE_COMPLETE_PATH = '/__pdkef/precache-complete/';
+// This build's own manifest, kept so a refreshed page can be checked against it.
+const MANIFEST_PATH = '/__pdkef/manifest/';
 // How long the silent takeover waits for the waiting worker's answer.
 const TAKEOVER_TIMEOUT_MS = 3000;
 // After one granted takeover, navigations are served normally for this long.
@@ -241,7 +247,11 @@ async function loadManifest() {
   if (!response.ok) {
     throw new Error(`Failed to load precache manifest: ${response.status}`);
   }
-  return validManifest(await response.json());
+  const manifest = validManifest(await response.json());
+  // MEM-22: a manifest served by another build would fill this build's cache
+  // with that build's files.
+  if (manifest.build !== BUILD_ID) throw new Error('Precache manifest belongs to another build.');
+  return manifest;
 }
 
 // MEM-15: the whole app is the shell plus every page's list, each URL once.
@@ -250,11 +260,11 @@ function appUrls({ shell, pages }) {
 }
 
 function validManifest(manifest) {
-  const { version, shell, pages } = manifest ?? {};
+  const { version, build, shell, pages, html } = manifest ?? {};
   if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
-  return { version, shell, pages };
+  return { version, build, shell, pages, html };
 }
 
 // Run task over items with at most `limit` in flight. A rejection propagates and
@@ -316,6 +326,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
 async function precacheAppShell({ skipCached = false } = {}) {
   const manifest = await loadManifest();
   const cache = await caches.open(CACHE_VERSION);
+  await cache.put(resolve(MANIFEST_PATH), new Response(JSON.stringify(manifest)));
   let previousCaches = [];
   try {
     previousCaches = await previousCacheHandles();
@@ -478,10 +489,28 @@ function navigationCacheKey(request) {
   return new URL(request.url).pathname;
 }
 
+// MEM-22: the first 16 hex characters of the body's SHA-256, as pageHash in
+// scripts/pageHash.mjs computes them for the manifest's `html` map.
+async function hashBody(response) {
+  const digest = await crypto.subtle.digest('SHA-256', await response.arrayBuffer());
+  return Array.from(new Uint8Array(digest).subarray(0, 8), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// True only when this build's stored manifest lists the page with these bytes.
+async function belongsToThisBuild(cache, cacheKey, response) {
+  try {
+    const stored = await cache.match(resolve(MANIFEST_PATH));
+    const expected = stored ? (await stored.json()).html?.[cacheKey] : undefined;
+    return !!expected && expected === await hashBody(response.clone());
+  } catch {
+    return false;
+  }
+}
+
 async function refreshNavigation(request, cache, cacheKey) {
   try {
     const response = await fetch(request);
-    if (response.ok) await cache.put(cacheKey, response.clone());
+    if (response.ok && await belongsToThisBuild(cache, cacheKey, response)) await cache.put(cacheKey, response.clone());
     return response;
   } catch {
     return null;
