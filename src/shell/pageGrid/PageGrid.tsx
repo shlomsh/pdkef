@@ -5,13 +5,14 @@ import { Download } from 'lucide-preact';
 import styles from './PageGrid.module.css';
 import FileName from '../FileName.tsx';
 import { movePlanEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../lib/pagePlan.ts';
-import { openThumbnailSource } from '../../lib/thumbnails.js';
 import { type PageGridMessages } from '../shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
 import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../PagePreviewDialog.tsx';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { CELL_RATIO, MIN_CELL, useStageFit } from './useStageFit.ts';
+import { usePageAspects } from './usePageAspects.ts';
+import { useThumbnailSources, type ThumbnailSource } from './useThumbnailSources.ts';
 import { FIT_PATIENCE_MS, fitSettled, rasterWidthForItem, type FitItem } from './stageFit.ts';
 
 export interface GridSource {
@@ -83,14 +84,6 @@ export interface PageGridProps {
   reorderable?: boolean;
   /** An action for one cell, or null for none (PDF to Image: save this page's image). */
   cellAction?: (entry: PlanEntry) => CellAction | null;
-}
-
-interface ThumbnailSource {
-  pageCount: number;
-  /** Every page's width / height, read without rendering. */
-  aspects?: () => Promise<number[]>;
-  render: (pageIndex: number, opts: { width?: number; type?: string; quality?: number; signal?: AbortSignal }) => Promise<string>;
-  destroy: () => Promise<void>;
 }
 
 /* MERGE-08's budget: 150 px PNG on desktop (15 to 25 KB a page), 96 px JPEG
@@ -227,11 +220,9 @@ export default function PageGrid({
     };
   }, []);
   const [, bump] = useState(0);
+  const { sources, sourceFor } = useThumbnailSources();
+  const { aspects, reading, forget } = usePageAspects(entries, sourceFor, () => bump((n) => n + 1));
   const thumbnails = useRef(new Map<string, string>());
-  const aspects = useRef(new Map<string, number>());
-  const probed = useRef(new Set<number>());
-  // Files whose page-size read is still running.
-  const probing = useRef(0);
   // The raster width each cached thumbnail was rendered at, so a page re-renders
   // at a larger step when its cell grows and never at a smaller one.
   const planRef = useRef(plan);
@@ -249,7 +240,7 @@ export default function PageGrid({
     plan.length,
     // Phone and tablet cells are fixed, so only desktop has a cell to measure.
     desktopCell != null || !isDesktopViewport(),
-    entries.some((e) => !e.error && !probed.current.has(e.id)) || probing.current > 0,
+    reading(),
   );
   const fitPendingRef = useRef(fitPending);
   fitPendingRef.current = fitPending;
@@ -266,7 +257,6 @@ export default function PageGrid({
   // A cached thumbnail counts only if it is at least as sharp as the current cell wants.
   const hasCurrent = useCallback((key: string) => thumbnails.current.has(key)
     && (rasterWidths.current.get(key) ?? 0) >= optionsFor(key).width, [optionsFor]);
-  const sources = useRef(new Map<number, { source: Promise<ThumbnailSource>; controller: AbortController }>());
   const queue = useRef<string[]>([]);
   const queued = useRef(new Set<string>());
   const rendering = useRef(false);
@@ -300,7 +290,7 @@ export default function PageGrid({
   const fileById = (id: number) => entriesRef.current.find((e) => e.id === id);
 
   const releaseFile = useCallback((fileId: number) => {
-    probed.current.delete(fileId);
+    forget(fileId);
     const held = sources.current.get(fileId);
     if (held) {
       held.controller.abort();
@@ -324,17 +314,6 @@ export default function PageGrid({
     for (const entry of planRef.current) if (thumbnails.current.has(entry.key)) count += 1;
     onRenderedCountChange(count);
   }, [onRenderedCountChange]);
-
-  // One pdf.js document per file, opened the first time a page or an aspect needs it.
-  const sourceFor = useCallback((entry: GridSource) => {
-    let held = sources.current.get(entry.id);
-    if (!held) {
-      const controller = new AbortController();
-      held = { source: openThumbnailSource(entry.file) as Promise<ThumbnailSource>, controller };
-      sources.current.set(entry.id, held);
-    }
-    return held;
-  }, []);
 
   const processQueue = useCallback(async () => {
     if (rendering.current) return;
@@ -379,33 +358,6 @@ export default function PageGrid({
     queue.current.push(key);
     void processQueue();
   }, [processQueue, hasCurrent]);
-
-  /* Page aspects come from the PDF's own page sizes, read for every file, rather
-     than from the first thumbnail: a thumbnail that arrives after the fit has
-     settled changes a span and refits every cell (DEBT-65, 0.05 of layout
-     shift on a throttled run). Photos and unreadable files simply have none. */
-  useEffect(() => {
-    const pending = entries.filter((e) => !e.error && e.pageCount != null && !probed.current.has(e.id));
-    for (const entry of pending) {
-      probed.current.add(entry.id);
-      probing.current += 1;
-      const held = sourceFor(entry);
-      void (async () => {
-        try {
-          const list = await (await held.source).aspects?.();
-          if (!list || held.controller.signal.aborted) return;
-          list.forEach((aspect, pageIndex) => {
-            if (Number.isFinite(aspect) && aspect > 0) aspects.current.set(`${entry.id}:${pageIndex}`, aspect);
-          });
-        } catch {
-          // expected: an unreadable file has no sizes; its thumbnail path reports the error
-        } finally {
-          probing.current -= 1;
-          bump((n) => n + 1);
-        }
-      })();
-    }
-  }, [entries, sourceFor]);
 
   // Release thumbnails and cancel pending renders for files that left the list.
   useEffect(() => {
