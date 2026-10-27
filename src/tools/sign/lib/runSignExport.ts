@@ -19,6 +19,7 @@ import { signedFileName } from './signedFileName.ts';
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
 // their edits. Document-load errors use the workspace's separate default copy.
+/** @testSeam */
 export function describeSignFailure(err: unknown, t: SignMessages): string {
   if (err instanceof Error && err.name === 'UnrepresentableTextError') {
     // Worded by src/tools/sign/components/textMessages.ts, the same UI message module the
@@ -37,6 +38,7 @@ export function describeSignFailure(err: unknown, t: SignMessages): string {
   return t.exportGenericFailure;
 }
 
+/** @testSeam */
 export interface RunSignExportDeps {
   /** The picked file; its name makes the signed copy's name. */
   file: File;

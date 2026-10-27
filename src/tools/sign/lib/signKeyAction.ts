@@ -1,5 +1,5 @@
 /** What a keydown on the window means for the Sign editor. */
-export type SignKeyAction =
+type SignKeyAction =
   | { kind: 'finish-editing' }
   | { kind: 'clear-selection' }
   | { kind: 'field-next' }
@@ -8,6 +8,7 @@ export type SignKeyAction =
   | { kind: 'delete-active' }
   | { kind: 'none' };
 
+/** @testSeam */
 export interface SignKeyContext {
   key: string;
   shiftKey: boolean;
