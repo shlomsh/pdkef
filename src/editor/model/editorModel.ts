@@ -54,7 +54,7 @@ export type SymbolMark = 'check' | 'x' | 'dot';
 /** Text flow direction; `null`/absent means "auto-detect from content" (sign.js). */
 export type TextDirection = 'ltr' | 'rtl';
 
-/** Where text sits inside a box that has room to place it (signHelpers' getTextAlign). */
+/** Where text sits inside a box that has room to place it (textLayout's getTextAlign). */
 export type TextAlign = 'left' | 'center' | 'right';
 
 /**
@@ -134,7 +134,7 @@ export interface TextElement extends ElementBase {
   minWidth?: number;
   /**
    * Where the text sits, when the person has chosen: absent follows the
-   * form's direction - see signHelpers' getTextAlign. A field-spanned box
+   * form's direction - see textLayout's getTextAlign. A field-spanned box
    * (`minWidth`) aligns within its cell; a free box's lines align within
    * its own widest line. A comb places one character per cell, so it has
    * nowhere for this to show.

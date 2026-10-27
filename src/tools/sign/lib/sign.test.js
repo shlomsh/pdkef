@@ -12,7 +12,8 @@ import {
 } from './sign.js';
 import { mockFontFetch } from '../../../editor/adapters/pdf/fontFetch.test-helper.js';
 import { hasFillableAcroForm } from '../../../editor/adapters/pdf/pdfObjects.js';
-import { hexToRgbFractions, getEffectiveTextDirection } from '../../../editor/text/signHelpers.js';
+import { getEffectiveTextDirection } from '../../../editor/text/textDirection.js';
+import { hexToRgbFractions } from '../../../editor/text/imageTint.js';
 import { percentToPoints } from '../../../editor/geometry/coords.js';
 import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.js';
 import { combCellCount, combCharacters } from '../../../editor/text/comb.js';

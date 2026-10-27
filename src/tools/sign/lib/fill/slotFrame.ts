@@ -9,7 +9,7 @@
  * than the field's own top edge, reads as wrong the moment a person compares
  * it against the page underneath. Its PADDING places the text line inside
  * that box, and that has to land exactly where `textElementLayout`
- * (signHelpers.js) puts the committed element's own line, because a slot's
+ * (textLayout.js) puts the committed element's own line, because a slot's
  * other promise (FieldSlot.tsx's own docstring) is that filling it in causes
  * no visible jump. `commit dd16d642` solved the second job by shrinking the
  * box to the padded line itself, which silently broke the first: a field

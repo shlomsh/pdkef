@@ -3,7 +3,7 @@ import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { TextDirection } from '../../../editor/model/editorModel.ts';
-import { dominantTextDirection } from '../../../editor/text/signHelpers.js';
+import { dominantTextDirection } from '../../../editor/text/textDirection.js';
 import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import { describeFormDetectionFailure } from '../lib/formDetectionDetail.ts';
 import { reportError } from '../../../lib/errorReport.ts';

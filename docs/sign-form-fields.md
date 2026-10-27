@@ -237,7 +237,7 @@ a font whose baseline sits well below its em-box centre pulls a placed box's top
 amount no fixed constant fits for every family, which is why the vertical slack is generous and ties break
 by closeness.
 
-**Text direction and insets** (`signHelpers.js`). A direction list limited to Latin and Hebrew/Arabic left
+**Text direction and insets** (`textDirection.js`, `textLayout.js`). A direction list limited to Latin and Hebrew/Arabic left
 Devanagari, Thai, Cyrillic, Greek and CJK unmatched: typing Hebrew then Devanagari left the new box
 right-anchored and right-aligned with the RTL toggle lit for no visible reason, so any letter now counts
 (UAX #9 first strong). Arabic Extended-A/B were missing from the RTL range, so U+08A0 read as LTR. Digits
