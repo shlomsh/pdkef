@@ -176,6 +176,10 @@ jobs:
     - name: Verify the unused-exports ratchet
       run: npm run test:unused-exports
 
+    # ARCH-81: every pure module in lib, editor and the tools has a test that references it; the allowlist only shrinks.
+    - name: Verify every pure module has a test
+      run: npm run test:untested-modules
+
     - name: Verify every island renders inside the error boundary
       run: npm run test:island-boundary
 

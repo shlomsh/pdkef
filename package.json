@@ -41,6 +41,7 @@
     "test:tool-shape": "node scripts/check-tool-shape.mjs",
     "test:js-typed": "node scripts/check-js-typed.mjs",
     "test:unused-exports": "node scripts/check-unused-exports.mjs",
+    "test:untested-modules": "node scripts/check-untested-modules.mjs",
     "test:island-boundary": "node scripts/check-island-boundary.mjs",
     "test:seo": "node scripts/verify-seo.js",
     "test:redirects": "node scripts/check-trailing-slash-redirects.js",
