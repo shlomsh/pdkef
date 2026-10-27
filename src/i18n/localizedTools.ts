@@ -24,6 +24,7 @@ import { getDocumentationVariants, isDocumentationPreview } from './documentatio
 // One-way: localizedHome.ts reads documentationLocales/documentationFreshness
 // and src/data/homeContent.js, never this module, so this import adds no cycle.
 import { getLocalizedHomeVariants } from './localizedHome';
+import { getEntryData } from './contentEntries';
 
 export type LocalizedToolStatus = 'draft' | 'published';
 
@@ -80,10 +81,7 @@ export function mergeLocalizedTool(englishTool: Record<string, any>, localizedDa
 // collections() for why this stays behind a literal, non-@vite-ignore'd
 // dynamic import instead of a top-level one.
 async function localizedToolEntries() {
-  const { getCollection } = (await import('astro:content')) as unknown as {
-    getCollection: (name: string) => Promise<Array<{ id: string; data: Record<string, any> }>>;
-  };
-  return getCollection('localizedTools');
+  return getEntryData('localizedTools');
 }
 
 function localeId(value: string): DocumentationLocaleId {

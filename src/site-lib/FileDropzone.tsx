@@ -11,6 +11,7 @@ import { withFillModeParam } from './withFillModeParam.ts';
 import { tools, pageForToolId } from '../data/tools.js';
 import { englishFileDropzoneMessages, type FileDropzoneMessages } from './fileDropzoneMessages';
 import { formatMessage } from '../lib/formatMessage';
+import { withIslandBoundary } from '../lib/IslandErrorBoundary.tsx';
 import type { RecentFilesMessages } from './recentFilesMessages';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
@@ -124,7 +125,7 @@ function wakeDock(tools: string[]) {
   return first;
 }
 
-export default function FileDropzone({
+function FileDropzone({
   toolTarget,
   final = false,
   messages = englishFileDropzoneMessages,
@@ -298,6 +299,7 @@ export default function FileDropzone({
         event.preventDefault();
         event.stopPropagation();
         for (const target of areas) delete target.dataset.dragOver;
+        // reason: readCopies settles every read and handOff catches its own failure
         if (event.dataTransfer) void handleFiles(event.dataTransfer.files);
       };
       area.addEventListener('dragover', over);
@@ -326,6 +328,7 @@ export default function FileDropzone({
       if (handing.current) return;
       const tool = link.dataset.tool ?? '';
       setOpening({ title: choice.files.length === 1 ? choice.files[0].name : formatMessage(messages.fileCount, { count: choice.files.length }), tool: linkLabel(link, tool) });
+      // reason: handOff catches its own failure and resolves false
       void handOff(choice.files, tool, link.getAttribute('href') ?? undefined).then(ok => { if (!ok) setOpening(null); });
     };
     const escape = (event: KeyboardEvent) => {
@@ -442,6 +445,7 @@ export default function FileDropzone({
       <input ref={input} type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png" hidden onChange={event => {
         const files = Array.from(event.currentTarget.files || []);
         event.currentTarget.value = '';
+        // reason: readCopies settles every read and handOff catches its own failure
         void handleFiles(files);
       }} />
       {/* Always present, so a screen reader hears them fill in; visually hidden. Failures interrupt, the rest waits its turn. */}
@@ -450,3 +454,5 @@ export default function FileDropzone({
     </div>
   );
 }
+
+export default withIslandBoundary(FileDropzone);

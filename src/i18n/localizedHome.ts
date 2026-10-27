@@ -17,6 +17,7 @@ import {
   type DocumentationFreshness,
   type DocumentationSourceHash,
 } from './documentationFreshness';
+import { getEntryData } from './contentEntries';
 
 export type LocalizedHomeStatus = 'draft' | 'published';
 
@@ -72,10 +73,7 @@ export function mergeLocalizedHome(englishHome: Record<string, any>, localizedDa
 // collections() for why this stays behind a literal, non-@vite-ignore'd
 // dynamic import instead of a top-level one.
 async function localizedHomeEntries() {
-  const { getCollection } = (await import('astro:content')) as unknown as {
-    getCollection: (name: string) => Promise<Array<{ id: string; data: Record<string, any> }>>;
-  };
-  return getCollection('localizedHome');
+  return getEntryData('localizedHome');
 }
 
 function localeId(value: string): DocumentationLocaleId {

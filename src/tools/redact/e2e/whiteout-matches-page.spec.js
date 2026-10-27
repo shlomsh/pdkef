@@ -113,6 +113,7 @@ async function selectRedactStyle(page, name) {
     await tool.click();
   }
   await expect(tool).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
 
 async function drawRedaction(page, styleName, startRatio, endRatio) {

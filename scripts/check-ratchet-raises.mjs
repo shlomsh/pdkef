@@ -4,7 +4,7 @@
 // merge base with origin/main. A base that has no such file passes.
 import { execFileSync } from 'node:child_process';
 import { resolveBase } from './change-scope.mjs';
-import { findRaises, readRatchetLimits } from './ratchet-limits.mjs';
+import { findRaises, parseRenames, readRatchetLimits } from './ratchet-limits.mjs';
 
 const args = process.argv.slice(2);
 const i = args.indexOf('--base');
@@ -25,7 +25,14 @@ try {
   process.exit(0);
 }
 
-const raises = findRaises(baseJson, readRatchetLimits());
+let renames = new Map();
+try {
+  renames = parseRenames(execFileSync('git', ['diff', '--name-status', '-M', base, 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+} catch {
+  // no rename information: compare keys as they are
+}
+
+const raises = findRaises(baseJson, readRatchetLimits(), renames);
 if (raises.length === 0) {
   console.log(`ratchet-raises: no limit rose since ${base.slice(0, 7)}.`);
   process.exit(0);

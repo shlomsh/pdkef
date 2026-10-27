@@ -258,8 +258,10 @@ export async function takeHandoff(tool: string, accept?: (record: HandoffRecord)
   if (!hasIndexedDB()) return null;
   const key = handoffKey(tool);
   try {
-    const record = parseHandoff(await withStore('readonly', (store) => reqToPromise(store.get(key))));
-    if (!record) return null;
+    const stored = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    if (!stored) return null;
+    // Stored but not an object: an invalid record, consumed below like any other.
+    const record = parseHandoff(stored) ?? {};
     const fresh = !(typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS);
     // A valid record the asker does not take stays for the page it is meant for (one key can open
     // two pages, e.g. Compress and Compress Image); it still ages out through the check above.
@@ -301,7 +303,7 @@ export function clearCurrentEntry(tool: string) {
   try {
     localStorage.removeItem(CURRENT_ENTRY_PREFIX + tool);
   } catch {
-    // expected: ditto
+    // expected: best-effort like every other localStorage write in this file
   }
 }
 
@@ -448,7 +450,7 @@ async function pruneOrphans(keptEntries: DraftEntry[]) {
       };
     });
   } catch (e) {
-    // expected: best-effort cleanup, already reported with console.error
+    // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
     console.error('draftStore.pruneOrphans failed:', e);
   }
 }
@@ -918,11 +920,13 @@ export async function loadDraft(tool: string): Promise<DraftRecord | null> {
   if (!id) return null;
   const key = recentFileKey(id);
   try {
-    const entry = parseStoredEntry(await withStore('readonly', (store) => reqToPromise(store.get(key))));
-    if (!entry) {
+    const stored = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    if (!stored) {
       clearCurrentEntry(tool);
       return null;
     }
+    // Stored but not an object: no usable `savedAt`, so it expires and is deleted below.
+    const entry = parseStoredEntry(stored) ?? ({} as StoredEntry);
     if (isDraftExpired(entry.savedAt)) {
       // Expiry drops every tool's work, not just this one's, so it bypasses
       // deleteDraft; the cross-tab signal still goes out so a peer tab that
@@ -1011,9 +1015,9 @@ const LEGACY_DRAFT_META_PREFIX = 'pdf-toolkit:workspace:draft-meta:';
 const LEGACY_TOOLS = ['sign', 'redact', 'merge'];
 
 function clearLegacyLocalStorage(tool: string) {
-  // expected: best-effort cleanup
+  // expected: a legacy key we cannot remove is harmless and ignored
   try { localStorage.removeItem(LEGACY_DRAFT_HINT_PREFIX + tool); } catch { /* best-effort */ }
-  // expected: best-effort cleanup
+  // expected: a legacy key we cannot remove is harmless and ignored
   try { localStorage.removeItem(LEGACY_DRAFT_META_PREFIX + tool); } catch { /* best-effort */ }
 }
 
@@ -1056,7 +1060,9 @@ function ensureMigrated(): Promise<void> {
 async function migrateLegacyDraft(tool: string): Promise<void> {
   let legacy: LegacyRecord | null;
   try {
-    legacy = parseLegacyRecord(await withStore('readonly', (store) => reqToPromise(store.get(tool))));
+    const stored = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
+    // Stored but not an object: no usable `savedAt`, so it is cleared and deleted as expired below.
+    legacy = parseLegacyRecord(stored) ?? (stored ? ({} as LegacyRecord) : null);
   } catch (e) {
     reportStoreError('drafts', e, 'read_legacy_draft');
     console.error('draftStore.migrateLegacyDraft failed to read:', e);
@@ -1068,7 +1074,7 @@ async function migrateLegacyDraft(tool: string): Promise<void> {
     try {
       await withStore('readwrite', (store) => { store.delete(tool); });
     } catch (e) {
-      // expected: best-effort cleanup, already reported with console.error
+      // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
       console.error('draftStore.migrateLegacyDraft failed to delete an expired record:', e);
     }
     return;
@@ -1085,7 +1091,7 @@ async function migrateLegacyDraft(tool: string): Promise<void> {
     try {
       await withStore('readwrite', (store) => { store.delete(tool); });
     } catch (e) {
-      // expected: best-effort cleanup, already reported with console.error
+      // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
       console.error('draftStore.migrateLegacyDraft failed to delete an unaddressable record:', e);
     }
     return;

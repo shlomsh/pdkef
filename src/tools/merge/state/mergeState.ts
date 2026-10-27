@@ -21,6 +21,7 @@
  *     linked highlight.
  */
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
+import { unlessUnchanged } from '../../../lib/unchangedState.ts';
 import type { MergeDraftSaveState } from '../components/useMergeDraft.ts';
 
 /** 'checking-draft' until the draft store has said whether a draft exists;
@@ -126,6 +127,10 @@ function clearedWorkspace(state: MergeState): MergeState {
 }
 
 export function mergeReducer(state: MergeState, action: MergeAction): MergeState {
+  return unlessUnchanged(state, nextMergeState(state, action));
+}
+
+function nextMergeState(state: MergeState, action: MergeAction): MergeState {
   switch (action.type) {
     case 'DRAFT_CHECK_SETTLED':
       return {

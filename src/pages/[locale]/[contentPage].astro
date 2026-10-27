@@ -38,7 +38,7 @@ const stale = context.preview && context.freshness === 'stale';
 // LOC-05: the same published-paths list ToolPageLayout already fetches for
 // ToolCrossLinks/RelatedGuides, so the primaryCta's English-fallback
 // disclosure asks the identical question rather than a second one.
-const editionPaths = await getPublishedEditionPaths(context.effectiveLocale as any);
+const editionPaths = await getPublishedEditionPaths(context.effectiveLocale);
 // A page's inline-style hashes must be registered here, before the layout writes the <head>.
 registerContentPageStyles(Astro.csp, entry);
 ---

@@ -16,20 +16,26 @@ import { getToImageMessages } from '../tools/to-image/messages';
 import { getImageToPdfMessages } from '../tools/image-to-pdf/messages';
 import { getSignMessages } from '../tools/sign/messages';
 
-type MessagesGetter = (locale: DocumentationLocaleId) => unknown;
-
-const getters: Record<string, MessagesGetter> = {
+const getters = {
   merge: getMergeMessages,
   compress: getCompressMessages,
   split: getSplitMessages,
   'pdf-to-image': getToImageMessages,
   'image-to-pdf': getImageToPdfMessages,
   sign: getSignMessages,
-};
+} as const;
+
+/** The slugs that have a message catalogue. */
+export type ToolMessageSlug = keyof typeof getters;
+
+/** The catalogue type a tool's island takes as its `messages` prop. */
+export type ToolMessagesFor<T extends ToolMessageSlug> = ReturnType<(typeof getters)[T]>;
 
 /** The tool's catalogue for a locale, or undefined when the tool has none for it (every get<Tool>Messages falls back to English, so a non-English locale that resolves to the English table has no catalogue of its own). */
+export function getToolMessages<T extends ToolMessageSlug>(toolSlug: T, locale: DocumentationLocaleId): ToolMessagesFor<T> | undefined;
+export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId): unknown | undefined;
 export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId): unknown | undefined {
-  const get = getters[toolSlug];
+  const get = (getters as Record<string, (locale: DocumentationLocaleId) => unknown>)[toolSlug];
   if (!get) return undefined;
   const messages = get(locale);
   return locale !== 'en' && messages === get('en') ? undefined : messages;

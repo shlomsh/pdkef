@@ -113,6 +113,7 @@ export async function runSavedFileCheck({
     const traces = { original: await readTraces(originalBytes), saved: await readTraces(savedBytes) };
     return { context, results: checkSavedFile({ ...context, terms }), unsolidPages, traces };
   } finally {
+    // reason: destroy is best effort cleanup after the check has finished
     void loadingTask.destroy();
   }
 }
