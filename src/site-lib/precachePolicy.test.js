@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRECACHED_FONTS, RUNTIME_ONLY_IMAGE_DIRS, shouldPrecache } from './precachePolicy.js';
+import { PRECACHED_FONTS, shouldPrecache } from './precachePolicy.js';
 
 /**
  * SIGN-07: installation precaches the whole app (every page and script,
@@ -59,7 +59,6 @@ describe('precache manifest delivery policy', () => {
   });
 
   it('keeps the offline sample PDF but leaves the Scan guide photos to the runtime cache', () => {
-    expect(RUNTIME_ONLY_IMAGE_DIRS).toEqual(['/images/scan-guide/']);
     expect(shouldPrecache('images/redaction-guide/sample.pdf', names)).toBe(true);
     expect(shouldPrecache('images/redaction-guide/sample-preview.jpg', names)).toBe(true);
     expect(shouldPrecache('images/scan-guide/step-1.jpg', names)).toBe(false);

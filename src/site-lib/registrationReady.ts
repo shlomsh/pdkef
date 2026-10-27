@@ -4,7 +4,7 @@
 // So: `load`, every island hydrated (Astro removes `ssr` on hydration, the
 // selector e2e/support/tool.js waits on), then one idle callback.
 
-export const ISLAND_SELECTOR = 'astro-island[client="load"][ssr]';
+const ISLAND_SELECTOR = 'astro-island[client="load"][ssr]';
 const IDLE_TIMEOUT_MS = 2000;
 
 interface ObserverLike {
