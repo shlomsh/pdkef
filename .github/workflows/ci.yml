@@ -147,6 +147,11 @@ jobs:
     - name: Verify size ratchet
       run: npm run test:size-ratchet
 
+    # ARCH-66: files with more than 10 hook calls are recorded with their hook and effect
+    # counts; a record where either rose, or a new file over the threshold, fails.
+    - name: Verify hook ratchet
+      run: npm run test:hook-ratchet
+
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 
