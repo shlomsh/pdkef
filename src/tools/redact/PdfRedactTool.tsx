@@ -998,25 +998,23 @@ export default withIslandBoundary(function PdfRedactTool() {
 
   return (
     <BasePdfTool
-      analyticsTool="redact"
-      ownsRating
-      emptyArt={<RedactVerb />}
       hasFiles={!!file}
       onFilesAdded={handleFilesAdded}
-      multiple={false}
-      accept=".pdf,application/pdf"
-      emptyStateMessage="Select or drop a PDF to redact"
-      file={file}
-      // Finding #5/#6: a real page-1 thumbnail (FilePreview.tsx, via `file`)
-      // instead of the generic glyph, and the identity row names what
-      // Download will actually produce once there is something to redact -
-      // rename-in-place is not required, so this stays derived rather than
-      // becoming its own editable field the way Merge's output name is.
-      fileLabel={elements.length > 0 && file ? redactedFileName(file.name) : file?.name}
-      fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
-      draftSaveState={draftSaveState}
-      ownsShell
-      checkingDraft={isRestoring}
+      intake={{ multiple: false, accept: '.pdf,application/pdf' }}
+      identity={{
+        file,
+        // Finding #5/#6: a real page-1 thumbnail (FilePreview.tsx, via `file`)
+        // instead of the generic glyph, and the identity row names what
+        // Download will actually produce once there is something to redact -
+        // rename-in-place is not required, so this stays derived rather than
+        // becoming its own editable field the way Merge's output name is.
+        label: elements.length > 0 && file ? redactedFileName(file.name) : file?.name,
+        meta: describeFile(file, numPages, isFullscreenActive ? currentPage : null),
+      }}
+      empty={{ art: <RedactVerb />, message: 'Select or drop a PDF to redact' }}
+      draft={{ saveState: draftSaveState, checking: isRestoring }}
+      analytics={{ tool: 'redact' }}
+      owns={{ shell: true, rating: true }}
     >
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}

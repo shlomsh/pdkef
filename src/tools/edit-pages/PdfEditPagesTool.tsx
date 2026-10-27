@@ -162,14 +162,11 @@ export default withIslandBoundary(function PdfEditPagesTool({ job = 'organize' }
   return (
     <BasePdfTool
       hasFiles={file !== null}
-      emptyArt={<Verb />}
-      analyticsTool="edit-pdf"
-      analyticsStatus={analyticsStatus}
       onFilesAdded={handleFilesAdded}
-      multiple={false}
-      file={file}
-      fileLabel={file?.name}
-      hideIdentity
+      intake={{ multiple: false }}
+      identity={{ file, label: file?.name, hidden: true }}
+      empty={{ art: <Verb /> }}
+      analytics={{ tool: 'edit-pdf', status: analyticsStatus }}
     >
       <SkippedFilesNote names={rejectedFiles} messages={t} dir="ltr" />
 
