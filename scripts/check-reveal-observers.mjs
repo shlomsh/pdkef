@@ -1,41 +1,31 @@
 #!/usr/bin/env node
-// Reveal-observer guard (ARCH-84): CLAUDE.md says "Never reveal with an IntersectionObserver what JS
-// first hid; derive reveal state from scroll position (animation-timeline: view())". This scans src/
-// for every `new IntersectionObserver(` and fails on one that is not in
-// scripts/reveal-observers-allowlist.json, where each entry says what the observer watches and why
-// it reveals nothing JS hid. Test, e2e and support files are not scanned.
+// Reveal-observer guard (ARCH-84): never reveal with an IntersectionObserver what JS first hid. Scans src/ file text for every new [window.|globalThis.]IntersectionObserver( (split across lines too); test/e2e files are skipped.
 import { readFileSync, globSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pairSites } from './allowlist-sites.mjs';
 
-const PATTERN = /new\s+IntersectionObserver\s*\(/;
+const PATTERN = /new\s+(?:(?:window|globalThis)\s*\.\s*)?IntersectionObserver\s*\(/;
 
 export const isScanned = (file) =>
-  !/\.(test|spec)\.[cm]?[jt]sx?$/.test(file) && !/(^|\/)(e2e|test)\//.test(file);
+  !/\.(test|spec)\.[cm]?[jt]sx?$/.test(file) && !/(^|\/)(e2e|test)\//.test(file) && !/test-helper\./.test(file);
 
-const isComment = (t) => /^\s*(\/\/|\*|\/\*)/.test(t);
-
+// Each allowlist entry covers exactly one site; an extra site or a stale entry both fail.
 export function findObservers({ file, text, allow }) {
-  const hits = [];
-  text.split('\n').forEach((t, i) => {
-    if (isComment(t) || !PATTERN.test(t)) return;
-    if (allow.some((a) => file.endsWith(a.file) && t.includes(a.includes))) return;
-    hits.push({ file, line: i + 1, text: t.trim() });
-  });
-  return hits;
+  return pairSites({ files: [{ file, text }], allow: allow.filter((a) => file.endsWith(a.file)), pattern: PATTERN });
 }
 
 function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const allow = JSON.parse(readFileSync(new URL('./reveal-observers-allowlist.json', import.meta.url), 'utf8'));
   const files = globSync('src/**/*.{js,jsx,ts,tsx,mjs,astro}', { cwd: root }).filter(isScanned).sort();
-  const hits = files.flatMap((file) => findObservers({ file, text: readFileSync(resolve(root, file), 'utf8'), allow }));
-  for (const h of hits) console.error(`${h.file}:${h.line}  unlisted IntersectionObserver\n    ${h.text}`);
+  const hits = pairSites({ files: files.map((file) => ({ file, text: readFileSync(resolve(root, file), 'utf8') })), allow, pattern: PATTERN });
+  for (const h of hits) console.error(h.kind === 'stale' ? `${h.file}  stale allowlist entry (no matching site): ${h.text}` : `${h.file}:${h.line}  unlisted IntersectionObserver\n    ${h.text}`);
   if (hits.length) {
-    console.error(`\ncheck:reveal-observers: ${hits.length} unlisted observer(s). Never reveal with an observer what JS first hid (CLAUDE.md); derive reveal from scroll position. If this one reveals nothing JS hid, allowlist it in scripts/reveal-observers-allowlist.json with a reason.`);
+    console.error(`\ncheck-reveal-observers: ${hits.length} problem(s). Each allowlist entry in scripts/reveal-observers-allowlist.json covers exactly one site: add an entry with a reason for a new site, remove an entry whose site is gone. Never reveal with an observer what JS first hid (CLAUDE.md).`);
     process.exit(1);
   }
-  console.log('check:reveal-observers: every IntersectionObserver is allowlisted.');
+  console.log('check-reveal-observers: every site is allowlisted, one entry each.');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
