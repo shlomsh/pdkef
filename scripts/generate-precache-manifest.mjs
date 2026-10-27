@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
 import { sortCspHashes } from './cspHashOrder.mjs';
+import { pageHash } from './pageHash.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
 import { pageClosure, shellClosure, toPublicUrl as relativeToUrl } from './precacheClosure.mjs';
@@ -46,7 +47,6 @@ for (const relative of [...view.files.keys()].filter((name) => name.endsWith('.h
   pages[relativeToUrl(relative)] = pageClosure(view, relative, { keep });
 }
 const shell = shellClosure(view, { keep });
-const manifest = JSON.stringify({ version: 2, shell, pages }, null, 2);
 
 // Hashed from every file already in dist/ (the manifest and sw.js are written
 // below, after this), not just the precache lists - see buildId.mjs for why a
@@ -58,8 +58,6 @@ const buildId = computeBuildId(
     content: fs.readFileSync(filePath),
   })),
 );
-
-fs.writeFileSync(path.join(distDir, manifestName), `${manifest}\n`);
 
 const workerPath = path.join(distDir, workerName);
 const worker = fs.readFileSync(workerPath, 'utf8');
@@ -85,5 +83,21 @@ if (!about.includes('__BUILD_ID__')) {
   throw new Error('dist/about/index.html is missing the __BUILD_ID__ placeholder.');
 }
 fs.writeFileSync(aboutPath, about.replaceAll('__BUILD_ID__', buildId));
+
+// Written last (MEM-22): `hashes` holds the final bytes' hash of every precached URL that is not a
+// content-hashed /_astro/ file (the pages, icons, fonts, wasm...), after the about rewrite above,
+// so the worker stores a file only when it is the one this build serves.
+const hashes = {};
+const unhashedUrls = new Set([...shell, ...Object.values(pages).flat()].filter((url) => !url.startsWith('/_astro/')));
+// Every file in dist/fonts/ is listed though not precached: a font pack fetches them at runtime and the worker checks them here.
+const fontsDir = path.join(distDir, 'fonts');
+if (fs.existsSync(fontsDir)) {
+  for (const f of fs.readdirSync(fontsDir)) unhashedUrls.add(`/fonts/${f}`);
+}
+for (const url of [...unhashedUrls].sort()) {
+  const relative = decodeURIComponent(url.endsWith('/') ? `${url}index.html` : url);
+  hashes[url] = pageHash(fs.readFileSync(path.join(distDir, relative)));
+}
+fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, shell, pages, hashes }, null, 2)}\n`);
 
 console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);

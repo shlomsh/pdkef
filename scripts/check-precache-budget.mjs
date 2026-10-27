@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import { pageHash } from './pageHash.mjs';
 
 /*
  * Budgets what the service worker downloads: the shell, and the closure of
@@ -154,6 +155,32 @@ export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFile
   ];
 }
 
+// Every file in dist/fonts/, as a URL: a font pack fetches them at runtime, so each needs a hash.
+export function distFontUrls(distDir) {
+  const fontsDir = path.join(distDir, 'fonts');
+  return fs.existsSync(fontsDir) ? fs.readdirSync(fontsDir).map((f) => `/fonts/${f}`) : [];
+}
+
+// MEM-22: the manifest names its build (the id in sw.js's CACHE_VERSION) and the hash of the final bytes of
+// every precached URL that is not a content-hashed /_astro/ file, plus every dist font (a font pack fetches those
+// at runtime). `readPage(url)` returns the bytes dist/ holds; `distFonts` lists the /fonts/<name> URLs there.
+export function manifestIdentityProblems(manifest, { readPage, workerSource, distFonts = [] }) {
+  const problems = [];
+  if (!manifest.build) problems.push('manifest: no "build" id');
+  else if (workerSource.split(manifest.build).length - 1 < 2) problems.push(`manifest: build ${manifest.build} must appear twice in the worker (BUILD_ID and CACHE_VERSION)`);
+  const hashes = manifest.hashes ?? {};
+  const expected = new Set([...manifest.shell, ...Object.values(manifest.pages).flat(), ...distFonts].filter((url) => !url.startsWith('/_astro/')));
+  for (const url of expected) if (!(url in hashes)) problems.push(`${url}: is served unhashed but has no hash`);
+  for (const url of Object.keys(hashes)) {
+    if (url.startsWith('/_astro/')) problems.push(`${url}: a content-hashed /_astro/ file needs no hash`);
+    else if (!expected.has(url)) problems.push(`${url}: has a hash but is not in the precache set`);
+  }
+  for (const [url, hash] of Object.entries(hashes)) {
+    if (expected.has(url) && pageHash(readPage(url)) !== hash) problems.push(`${url}: hash ${hash} does not match the file in dist/`);
+  }
+  return problems;
+}
+
 function brotli(buffer) {
   return zlib.brotliCompressSync(buffer, {
     params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
@@ -191,6 +218,11 @@ function main() {
   }
 
   const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles });
+  failures.push(...manifestIdentityProblems(manifest, {
+    readPage: (url) => fs.readFileSync(path.join(dist, decodeURIComponent(fileOf(url)))),
+    workerSource: fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'),
+    distFonts: distFontUrls(dist),
+  }));
   if (failures.length) {
     console.error(failures.join('\n'));
     console.error(`FAIL: ${failures.length} precache budget problem(s)`);

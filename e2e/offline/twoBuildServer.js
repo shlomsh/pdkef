@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, normalize, extname, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 
 /*
  * MEM-10: a static server over dist/ that can pretend a deploy happened. There
@@ -13,6 +14,9 @@ import { join, normalize, extname, resolve } from 'node:path';
  * Port 0 keeps it off every other spec's
  * origin, so its service worker registration is isolated too.
  */
+
+// The manifest's hash (scripts/pageHash.mjs, which e2e/ may not import): SHA-256, first 16 hex characters.
+const pageHash = (bytes) => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
 
 const DIST = resolve(process.cwd(), 'dist');
 
@@ -71,12 +75,26 @@ export async function startTwoBuildServer() {
     res.end(body);
   };
 
-  const sendHtml = async (res, file, status) => {
-    const html = (await readFile(file, 'utf8')).replace(
-      /<head[^>]*>/i,
-      (head) => `${head}<meta name="pdkef-e2e-build" content="${phase}">`,
-    );
-    send(res, status, html, TYPES['.html']);
+  const markedHtml = async (file) => (await readFile(file, 'utf8')).replace(
+    /<head[^>]*>/i,
+    (head) => `${head}<meta name="pdkef-e2e-build" content="${phase}">`,
+  );
+
+  const sendHtml = async (res, file, status) => send(res, status, await markedHtml(file), TYPES['.html']);
+
+  // The bytes this server sends for a precached URL in the current phase.
+  const servedBytes = async (url) => {
+    const file = join(DIST, decodeURIComponent(url.endsWith('/') ? `${url}index.html` : url));
+    return extname(file) === '.html' ? markedHtml(file) : readFile(file);
+  };
+
+  // A real deploy's manifest hashes the bytes that deploy serves; this server
+  // changes the HTML it serves per phase, so it hashes what it will send.
+  const sendManifest = async (res, target) => {
+    const manifest = JSON.parse(await readFile(target, 'utf8'));
+    const hashes = {};
+    for (const url of Object.keys(manifest.hashes ?? {})) hashes[url] = pageHash(await servedBytes(url));
+    send(res, 200, JSON.stringify({ ...manifest, hashes }), TYPES['.json']);
   };
 
   const server = createServer(async (req, res) => {
@@ -91,6 +109,7 @@ export async function startTwoBuildServer() {
         if (phase !== 'old') source = deployed(source, phase === 'critical');
         return send(res, 200, source, TYPES['.js'], { 'Service-Worker-Allowed': '/' });
       }
+      if (pathname === '/precache-manifest.json' && (await isFile(target))) return sendManifest(res, target);
       if (await isDirectory(target)) {
         if (!pathname.endsWith('/')) {
           return send(res, 308, '', TYPES['.txt'], { Location: `${pathname}/${url.search}` });

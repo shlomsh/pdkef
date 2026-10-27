@@ -13,7 +13,9 @@
 //     previous build's cache and fetches only the rest, so a redeploy costs
 //     the diff, not the site.
 //   - HTML navigations are cache-first and refresh in the background, so a
-//     returning visitor can reopen the app when the server is unavailable.
+//     returning visitor can reopen the app when the server is unavailable. A
+//     refreshed page is stored only when it belongs to this build: its hash
+//     must match the page's entry in this build's manifest (MEM-22).
 //   - Other same-origin assets are cache-first after precache or first use.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
@@ -42,6 +44,8 @@ const CACHE_PREFIX = 'pdkef-';
 // read, from the cache keys alone, whether it is critical over the build the
 // tabs run. Keys from before this (`pdkef-<hash>`) read as 0.
 const CRITICAL_VERSION = 10;
+// MEM-22: the build id the generator stamps in, which the manifest carries too.
+const BUILD_ID = '__BUILD_ID__';
 const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-__BUILD_ID__`;
 
 const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
@@ -90,6 +94,8 @@ const CRITICAL_TAKEOVER_CAP_MS = 75_000;
 // deletes the old cache, so taking over with a gap would lose offline coverage
 // the old build had. See readyToTakeOver.
 const PRECACHE_COMPLETE_PATH = '/__pdkef/precache-complete/';
+// This build's own manifest, kept so a refreshed page can be checked against it.
+const MANIFEST_PATH = '/__pdkef/manifest/';
 // How long the silent takeover waits for the waiting worker's answer.
 const TAKEOVER_TIMEOUT_MS = 3000;
 // After one granted takeover, navigations are served normally for this long.
@@ -241,7 +247,11 @@ async function loadManifest() {
   if (!response.ok) {
     throw new Error(`Failed to load precache manifest: ${response.status}`);
   }
-  return validManifest(await response.json());
+  const manifest = validManifest(await response.json());
+  // MEM-22: a manifest served by another build would fill this build's cache
+  // with that build's files.
+  if (manifest.build !== BUILD_ID) throw new Error('Precache manifest belongs to another build.');
+  return manifest;
 }
 
 // MEM-15: the whole app is the shell plus every page's list, each URL once.
@@ -250,11 +260,12 @@ function appUrls({ shell, pages }) {
 }
 
 function validManifest(manifest) {
-  const { version, shell, pages } = manifest ?? {};
+  const { version, build, shell, pages, hashes } = manifest ?? {};
   if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
-  return { version, shell, pages };
+  if (!hashes || typeof hashes !== 'object') throw new Error('Precache manifest has no hashes.');
+  return { version, build, shell, pages, hashes };
 }
 
 // Run task over items with at most `limit` in flight. A rejection propagates and
@@ -277,7 +288,7 @@ async function forEachLimited(items, limit, task) {
 // handler below, so a miss costs nothing but the offline guarantee for that one
 // asset. Only REQUIRED_URL ('/') is load-bearing enough to fail the install
 // over. Resolves to the URLs it did not cache.
-async function precacheUrls(cache, urls, previousCaches, { skipCached = false } = {}) {
+async function precacheUrls(cache, urls, previousCaches, { skipCached = false, hashes = {} } = {}) {
   const missed = [];
   // MEM-16: carry unchanged hashed files over from the previous build's cache
   // instead of downloading them again. Activate deletes those caches only
@@ -302,7 +313,17 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
       await withPrecacheTimeout(async (signal, touch) => {
         const response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
-        await cache.put(url, trackProgress(response, touch));
+        const expected = hashes[url];
+        if (!expected) {
+          await cache.put(url, trackProgress(response, touch));
+          return;
+        }
+        // MEM-22: an unhashed file is stored only with the bytes this build's
+        // manifest names, so a deploy landing mid-install cannot mix builds.
+        // Reading the body counts as progress for the stall timer.
+        const bytes = await trackProgress(response, touch).arrayBuffer();
+        if (await hashBytes(bytes) !== expected) throw new Error(`Precache ${url} is not this build's file.`);
+        await cache.put(url, new Response(bytes, { status: response.status, statusText: response.statusText, headers: response.headers }));
       });
     } catch (error) {
       if (url === REQUIRED_URL) throw error;
@@ -316,6 +337,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
 async function precacheAppShell({ skipCached = false } = {}) {
   const manifest = await loadManifest();
   const cache = await caches.open(CACHE_VERSION);
+  await cache.put(resolve(MANIFEST_PATH), new Response(JSON.stringify(manifest)));
   let previousCaches = [];
   try {
     previousCaches = await previousCacheHandles();
@@ -323,7 +345,7 @@ async function precacheAppShell({ skipCached = false } = {}) {
     // No readable previous cache.
   }
   const urls = appUrls(manifest);
-  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached });
+  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
@@ -407,6 +429,7 @@ async function provisionFontPack(cache, pack) {
     if (await cache.match(resolve(url))) return;
     const response = await fetchFresh(url);
     if (!response.ok) throw new Error(`Failed to provision ${pack.family}: ${response.status}`);
+    if (!await mayStore(cache, url, response)) throw new Error(`Failed to provision ${pack.family}: ${url} is not this build's file.`);
     await cache.put(resolve(url), response);
   });
   await writeFontPackMarker(cache, pack);
@@ -442,14 +465,18 @@ async function migrateFontPacks(previousCaches, currentCache) {
       let response = null;
       try {
         const fresh = await fetchFresh(url);
-        if (fresh.ok) response = fresh;
+        if (fresh.ok && await mayStore(currentCache, url, fresh)) response = fresh;
       } catch {
         // Fall through to the retained face below.
       }
       if (!response) {
         for (const oldCache of previousCaches) {
-          response = await oldCache.match(resolve(url));
-          if (response) break;
+          const kept = await oldCache.match(resolve(url));
+          // A face kept from another build keeps its URL, not its bytes.
+          if (kept && await mayStore(currentCache, url, kept)) {
+            response = kept;
+            break;
+          }
         }
       }
       if (!response) {
@@ -478,10 +505,55 @@ function navigationCacheKey(request) {
   return new URL(request.url).pathname;
 }
 
+// MEM-22: the first 16 hex characters of the body's SHA-256, as pageHash in
+// scripts/pageHash.mjs computes them for the manifest's `hashes` map.
+async function hashBytes(buffer) {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest).subarray(0, 8), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// This build's `hashes`, read from the manifest stored at install and parsed
+// once per worker lifetime. A missing or unreadable manifest is not remembered,
+// so the next write path looks again (null for now).
+let storedHashes = null;
+async function hashesOfThisBuild(cache) {
+  if (!storedHashes) {
+    const reading = (async () => {
+      const stored = await cache.match(resolve(MANIFEST_PATH));
+      const hashes = stored ? (await stored.json()).hashes : null;
+      if (!hashes || typeof hashes !== 'object') throw new Error('No stored manifest hashes.');
+      return hashes;
+    })();
+    storedHashes = reading;
+    reading.catch(() => { if (storedHashes === reading) storedHashes = null; });
+  }
+  try {
+    return await storedHashes;
+  } catch {
+    return null;
+  }
+}
+
+// The one answer to "may this response be stored under this key in this
+// build's cache": a key the manifest lists only with the bytes it names; any
+// other key only when it is not a navigation (/_astro/ files are content-hashed
+// and unlisted public files are not part of the precache set); with no readable
+// manifest, the same.
+async function mayStore(cache, key, response, { navigation = false } = {}) {
+  const hashes = await hashesOfThisBuild(cache);
+  const expected = hashes?.[key];
+  if (!expected) return !navigation;
+  try {
+    return expected === await hashBytes(await response.clone().arrayBuffer());
+  } catch {
+    return false;
+  }
+}
+
 async function refreshNavigation(request, cache, cacheKey) {
   try {
     const response = await fetch(request);
-    if (response.ok) await cache.put(cacheKey, response.clone());
+    if (response.ok && await mayStore(cache, cacheKey, response, { navigation: true })) await cache.put(cacheKey, response.clone());
     return response;
   } catch {
     return null;
@@ -911,8 +983,12 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
         if (response.ok) {
+          // The page gets the network response now; whether this build's cache
+          // may keep it is decided on the clone, in the background.
           const copy = response.clone();
-          cache.put(request.url, copy);
+          event.waitUntil(mayStore(cache, new URL(request.url).pathname, copy)
+            .then((ok) => (ok ? cache.put(request.url, copy) : undefined))
+            .catch(() => {}));
         }
         return response;
       });
