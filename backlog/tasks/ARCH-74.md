@@ -1,7 +1,7 @@
 ---
 id: "ARCH-74"
 title: "The swallowed-errors check covers api/ and middleware, and expected reasons carry words"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "next"

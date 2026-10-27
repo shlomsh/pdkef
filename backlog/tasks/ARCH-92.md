@@ -1,7 +1,7 @@
 ---
 id: "ARCH-92"
 title: "Patched dependencies are pinned to the version their patch names"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

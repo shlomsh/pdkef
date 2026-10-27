@@ -1,7 +1,7 @@
 ---
 id: "ARCH-60"
 title: "Sign and Redact read tap samples through one function"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "next"

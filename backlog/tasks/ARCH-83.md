@@ -1,7 +1,7 @@
 ---
 id: "ARCH-83"
 title: "Every CI run reports how far affected-scope narrowed it"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

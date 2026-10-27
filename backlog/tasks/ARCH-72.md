@@ -1,7 +1,7 @@
 ---
 id: "ARCH-72"
 title: "Uncaught-error reporting installs from the layout, and every island has an error boundary"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
