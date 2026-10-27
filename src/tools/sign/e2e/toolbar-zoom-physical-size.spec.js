@@ -147,6 +147,9 @@ async function expandToFullToolbar(page) {
   await expect(activeActions(page).getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
 }
 
+/** The `--vv-scale` custom property useVisualViewportScale publishes, as a number. */
+const vvScaleProperty = (page) => page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue('--vv-scale')));
+
 /** Row count: group the bar's buttons/dividers by their rounded `offsetTop`. */
 async function measure(page, scale, direction) {
   const barHandle = await activeActions(page).elementHandle();
@@ -217,14 +220,13 @@ async function sweepScales(page, context, direction) {
   const results = [];
   for (const scale of SCALES) {
     await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: scale });
-    // Our own useVisualViewportScale listener is what has to catch this -
-    // give the native visualViewport 'resize' event a moment to fire and the
-    // CSSOM write to land before reading it back.
-    await page.waitForTimeout(150);
+    // Our own useVisualViewportScale listener is what has to catch this: wait for
+    // the CSSOM write to land before reading it back.
+    await expect.poll(() => vvScaleProperty(page)).toBeCloseTo(scale, 1);
     results.push({ scale, ...(await measure(page, scale, direction)) });
   }
   await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
-  await page.waitForTimeout(150);
+  await expect.poll(() => vvScaleProperty(page)).toBeCloseTo(1, 1);
   return results;
 }
 
@@ -364,9 +366,9 @@ async function pinchZoomToward(page, context, point, scaleFactor) {
     relativeSpeed: 1000,
     gestureSourceType: 'touch',
   });
-  // Same reasoning as sweepScales' own wait: give useVisualViewportScale's
-  // listener a moment to catch the native visualViewport 'resize' event.
-  await page.waitForTimeout(300);
+  // Same reasoning as sweepScales' own wait: useVisualViewportScale's listener has
+  // caught the native visualViewport 'resize' event once --vv-scale mirrors it.
+  await expect.poll(async () => Math.abs((await vvScaleProperty(page)) - (await page.evaluate(() => window.visualViewport.scale)))).toBeLessThan(0.05);
 }
 
 /**

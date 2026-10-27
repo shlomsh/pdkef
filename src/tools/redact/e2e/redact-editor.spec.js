@@ -136,7 +136,6 @@ async function selectRedactStyle(page, name) {
     await tool.click();
   }
   await expect(tool).toHaveAttribute('aria-pressed', 'true');
-  await page.waitForTimeout(50);
 }
 
 async function drawRedaction(page, styleName, startRatio, endRatio) {
@@ -169,7 +168,7 @@ async function drawRedaction(page, styleName, startRatio, endRatio) {
   await expect(page.locator('.redact-drawing-preview')).toHaveCount(1);
   await page.mouse.move(box.x + box.width * endRatio.x, box.y + box.height * endRatio.y, { steps: 6 });
   await expect(page.locator('.redact-drawing-preview')).toBeVisible();
-  await page.waitForTimeout(50);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.mouse.up();
 
   await expect(page.locator('[class*="redact-box"]')).toHaveCount(beforeCount + 1);

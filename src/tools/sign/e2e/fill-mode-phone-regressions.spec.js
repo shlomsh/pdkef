@@ -124,6 +124,7 @@ test.describe('fill mode on a phone, WebKit (SNG-17 regressions, Shlomi 2026-09-
     await openFormattingRow(actions);
     // The bug: the row opened, then the deferred blur-to-body check ended the
     // edit session and the row folded shut a moment later.
+    // Time on purpose: the bug closed the row a moment later.
     await page.waitForTimeout(300);
     await expect(actions.getByRole('button', { name: 'Formatting options' })).toHaveAttribute('aria-expanded', 'true');
     await expectStillEditing(element, textarea, 'after Aa');
@@ -133,6 +134,7 @@ test.describe('fill mode on a phone, WebKit (SNG-17 regressions, Shlomi 2026-09-
     const { element, textarea, actions } = await editFilledField(page);
     await openFormattingRow(actions);
     await actions.getByRole('button', { name: /^Text direction/ }).tap();
+    // Time on purpose: the bug ended the edit session a moment later.
     await page.waitForTimeout(300);
     await expectStillEditing(element, textarea, 'after Text direction');
     await expect(actions.getByRole('button', { name: 'Formatting options' })).toHaveAttribute('aria-expanded', 'true');

@@ -136,6 +136,7 @@ async function pinchInPastRestingClamp(page, point) {
     return scaleOf(page);
   }, { message: 'the pinch zoomed in' }).toBeGreaterThan(ZOOMED_AT_LEAST);
   // Settled: the gesture's last scale-change frames have landed.
+  // Time on purpose: the gesture settles over a few frames, no single condition marks it.
   await page.waitForTimeout(300);
   return scaleOf(page);
 }
@@ -162,6 +163,7 @@ test('fill mode: moving to the next field keeps a pinch zoom (SNG-17, 9666ebc8)'
 
     // A moment after focus, so a snap back to 1 that lands a frame or two
     // later is still caught.
+    // Time on purpose: a snap back would land a frame or two later.
     await page.waitForTimeout(300);
     expect(await scaleOf(page), `hop ${hop}: still zoomed ${zoomed.toFixed(2)}x after moving to the next field`).toBeCloseTo(zoomed, 2);
     expect(await viewportMeta(page), `hop ${hop}: no maximum-scale while zoomed`).not.toMatch(CLAMP);
@@ -195,6 +197,7 @@ test('fill mode: maximum-scale=1 at rest, the pinch scale held while zoomed, rel
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: fingers });
   await expect.poll(() => viewportMeta(page), { message: 'two fingers down release the limits' }).toBe(ORIGINAL_META);
   // Held, not tapped: Chromium reads a quick two-finger tap as "zoom out".
+  // Time on purpose: two fingers held, not tapped.
   await page.waitForTimeout(700);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   // Lifting them puts limits back for whatever scale is left. Chromium keeps

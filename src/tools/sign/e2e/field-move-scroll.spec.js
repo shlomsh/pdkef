@@ -144,6 +144,7 @@ async function traceScroll(page, press, settleMs = 1200) {
   }, SAMPLE_MS);
 
   await press();
+  // Time on purpose: the sampling window of the scroll trace.
   await page.waitForTimeout(settleMs);
 
   return page.evaluate((band) => {
@@ -235,7 +236,7 @@ test.describe('a field move scrolls once', () => {
     // near the top of the page, so it starts well out of view above.
     await page.setViewportSize({ width: 390, height: 320 });
     await workspace.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-    await page.waitForTimeout(150);
+    await expect.poll(() => workspace.evaluate((el) => el.scrollTop)).toBeGreaterThan(150);
     const startTop = await workspace.evaluate((el) => el.scrollTop);
     expect(startTop, 'the workspace itself is the scroller here, with range to move').toBeGreaterThan(150);
 
@@ -252,6 +253,7 @@ test.describe('a field move scrolls once', () => {
       const seen = [];
       for (let i = 0; i < 3; i += 1) {
         seen.push(await workspace.evaluate((el) => Math.round(el.scrollTop)));
+        // Time on purpose: the interval between samples of the glide.
         await page.waitForTimeout(80);
       }
       return new Set(seen).size;
@@ -279,7 +281,7 @@ test.describe('a field move scrolls once', () => {
     // distance at which the reported "all the way up and then all the way
     // down" was visible at all.
     await page.evaluate(() => { window.scrollTo(0, 1400); });
-    await page.waitForTimeout(200);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     const trace = await traceScroll(page, () => page.evaluate(() => {
       document.querySelector(
@@ -313,6 +315,7 @@ test.describe('a field move scrolls once', () => {
     await openWithFixture(page);
     await tapFirstCellHint(page);
     await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
+    // Time on purpose: lets the page settle so the trace starts from rest.
     await page.waitForTimeout(600);
 
     const trace = await traceScroll(page, () => page.evaluate(() => {
@@ -336,7 +339,7 @@ test.describe('a field move scrolls once', () => {
     await tapFirstCellHint(page);
     await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
     await page.evaluate(() => { window.scrollTo(0, 1400); });
-    await page.waitForTimeout(200);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     await page.evaluate(() => {
       Object.defineProperty(window.visualViewport, 'scale', { configurable: true, get: () => 2 });

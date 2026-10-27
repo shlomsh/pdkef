@@ -58,6 +58,7 @@ for (const tool of tools) {
       await expect(download).toBeEnabled();
 
       // Let the debounced save land, then come back with nothing asked for.
+      // Time on purpose: the save indicator text is per language, so the debounce is waited out.
       await page.waitForTimeout(1500);
       await page.reload();
       await expect(page.locator('[class*="page-wrapper"]').first()).toBeVisible();
