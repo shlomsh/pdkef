@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const layout = readFileSync('src/layouts/ToolPageLayout.astro', 'utf8');
+const layout = readFileSync('src/components/tool-page/ToolStage.astro', 'utf8');
 const hero = readFileSync('src/components/ToolHero.astro', 'utf8');
 
 describe('loaded tool hero is one line for every tool', () => {

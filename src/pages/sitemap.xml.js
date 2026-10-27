@@ -108,7 +108,7 @@ export async function GET({ site }) {
       loc: `${base}/`,
       changefreq: 'monthly',
       priority: '1.0',
-      lastmod: lastmodFor(['src/pages/index.astro', 'src/layouts/HomePageLayout.astro', 'src/data/homeContent.js']),
+      lastmod: lastmodFor(['src/pages/index.astro', 'src/layouts/HomePageLayout.astro', 'src/components/home', 'src/data/homeContent.js']),
       alternates: homeAlternates(),
     },
     ...publishedHomeEditions.map((variant) => ({
@@ -119,6 +119,7 @@ export async function GET({ site }) {
         `src/content/localized-home/${variant.locale}.yaml`,
         'src/pages/[locale]/index.astro',
         'src/layouts/HomePageLayout.astro',
+        'src/components/home',
       ]),
       alternates: homeAlternates(),
     })),

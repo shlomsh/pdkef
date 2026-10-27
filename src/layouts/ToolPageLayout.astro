@@ -271,3 +271,38 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   {locale !== 'en' && <LocalePackRequest locale={locale as any} />}
   </div>
 </BaseLayout>
+
+<style>
+  /* The follow-up stream below the stage keeps the stage's restore and hand-off visibility
+     (ToolStage.astro says why for each marker). These rules stay here, beside the element:
+     a scoped selector only matches markup rendered by its own component. The reveal
+     keyframes are ToolStage's `handoff-pending-reveal`. */
+  :global(html[data-editor-restore]) [data-tool-followups] {
+    visibility: hidden;
+  }
+
+  :global(html[data-editor-restore]:has([data-tool-shell])) [data-tool-followups] {
+    visibility: visible;
+  }
+
+  :global(html[data-merge-restore]) [data-tool-followups] {
+    visibility: hidden;
+  }
+
+  :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-tool-followups] {
+    visibility: visible;
+  }
+
+  :global(html[data-handoff-pending]) [data-tool-followups] {
+    visibility: hidden;
+    animation-name: handoff-pending-reveal;
+    animation-duration: 0s;
+    animation-delay: 6s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
+  :global(html[data-handoff-pending]:has([data-tool-loaded], [data-tool-shell])) [data-tool-followups] {
+    visibility: visible;
+  }
+</style>
