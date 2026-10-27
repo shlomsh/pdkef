@@ -152,13 +152,20 @@ function fetchFresh(url, signal) {
   return fetch(new Request(resolve(url), { cache: 'no-cache', signal }));
 }
 
-// MEM-23: runs `start(signal)` and aborts it after PRECACHE_FETCH_TIMEOUT_MS.
-// The timer is cleared as soon as the request settles.
+// MEM-23: runs `start(signal)` and gives up after PRECACHE_FETCH_TIMEOUT_MS,
+// aborting the request and rejecting even if `start` never settles (a body
+// that stalls inside cache.put). The timer is cleared as soon as it settles.
 async function withPrecacheTimeout(start) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PRECACHE_FETCH_TIMEOUT_MS);
+  let timer;
+  const expired = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`Precache request timed out after ${PRECACHE_FETCH_TIMEOUT_MS} ms`));
+    }, PRECACHE_FETCH_TIMEOUT_MS);
+  });
   try {
-    return await start(controller.signal);
+    return await Promise.race([start(controller.signal), expired]);
   } finally {
     clearTimeout(timer);
   }
@@ -271,11 +278,11 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
           return;
         }
       }
-      const response = await withPrecacheTimeout((signal) => (
-        isHashedUrl(url) ? fetch(new Request(resolve(url), { signal })) : fetchFresh(url, signal)
-      ));
-      if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
-      await cache.put(url, response);
+      await withPrecacheTimeout(async (signal) => {
+        const response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
+        if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
+        await cache.put(url, response);
+      });
     } catch (error) {
       if (url === REQUIRED_URL) throw error;
       missed.push(url);
