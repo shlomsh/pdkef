@@ -14,11 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
-- [ARCH-96](backlog/tasks/ARCH-96.md) P2 · Sign's dialog state follows Escape, and every page tool lists files it skipped (in progress)
-- [ARCH-97](backlog/tasks/ARCH-97.md) P2 · Structural drift from the audit is cleaned up and guarded (in progress)
-- [ARCH-98](backlog/tasks/ARCH-98.md) P2 · Untriaged dependency advisories are triaged (in progress)
 - [ARCH-99](backlog/tasks/ARCH-99.md) P2 · E2e specs build PDFs and open tools only through e2e/support (in progress)
-- [ARCH-78](backlog/tasks/ARCH-78.md) P2 · Island tests mock only the storage and network edge, through one harness (in progress)
 - [ARCH-83](backlog/tasks/ARCH-83.md) P2 · Every CI run reports how far affected-scope narrowed it (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 
