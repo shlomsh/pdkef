@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* Direction A (2026-09-13): the document is the centre. Merge's card
    (`.tool-card`, unchanged) still fills the width before any file is
@@ -25,7 +26,7 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   });
 
   await page.goto('/merge');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const app = page.locator('#app');
   const card = page.locator('#app > astro-island > div');
@@ -84,7 +85,7 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
 
 test('MERGE-11: two taps from an empty page to a saved file, nothing else touched', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['alpha.pdf', 'beta.pdf'].map(async (name) => ({
     name,
@@ -118,7 +119,7 @@ test('MERGE-11: two taps from an empty page to a saved file, nothing else touche
    while the name's text grows, so this is a real-browser guard. */
 test('the heading name is WYSIWYG: no chrome at rest, and the heading rect never moves on entering edit', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['Invoice 2024.pdf', 'second.pdf'].map(async (name) => ({
     name,
@@ -169,7 +170,7 @@ test('the heading name is WYSIWYG: no chrome at rest, and the heading rect never
    the existing text untouched. */
 test('a click places the caret where clicked, never select-all, never the start', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   const files = await Promise.all(['Invoice 2024.pdf', 'second.pdf'].map(async (name) => ({
     name,
     mimeType: 'application/pdf',
@@ -199,7 +200,7 @@ test('rail acceptance at 1280x900: item order, no Options/Saves-as text, 16x16 h
     Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
   });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   const files = await Promise.all(['Invoice 2024.pdf', 'second.pdf'].map(async (name) => ({
     name,
     mimeType: 'application/pdf',
@@ -251,7 +252,7 @@ test('rail acceptance at 1280x900: item order, no Options/Saves-as text, 16x16 h
 test('desktop rail stays inside the viewport and only its file list scrolls', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   // Three pages each, so the card is taller than the window and the rail has
   // something to stick through; with one page each the card ended above 400px
@@ -310,7 +311,7 @@ test('desktop rail stays inside the viewport and only its file list scrolls', as
 test('tablet (820x1180): the completion row sits under the last page and scrolls into view', async ({ page }) => {
   await page.setViewportSize({ width: 820, height: 1180 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   // Two files, nine pages total - a grid tall enough to need scrolling at
   // this viewport, and two entries so the hand-off row renders too.
@@ -341,7 +342,7 @@ test('tablet (820x1180): the completion row sits under the last page and scrolls
    Latin prefix ahead of it, both in the heading and in the download name. */
 test('a Hebrew first file keeps the merged_ prefix untranslated, in the heading and the download name', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   const files = await Promise.all(['אישור שנתי.pdf', 'second.pdf'].map(async (name) => ({
     name,
     mimeType: 'application/pdf',

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makeCopiedPagesPdf } from '../../../../e2e/support/pdf.js';
 
 // Compress now only shrinks embedded images, so the fixture's pages carry
 // photos: they are copies of the committed mixed.pdf fixture's page.
@@ -24,15 +25,7 @@ const MIXED = fs.readFileSync(new URL('../__fixtures__/mixed.pdf', import.meta.u
 // project (the default here; playwright.config.js's "webkit" project is
 // scoped to specific specs and does not pick this one up).
 
-async function makeMultiPagePdfBuffer(pageCount = 4) {
-  const source = await PDFDocument.load(MIXED);
-  const doc = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) {
-    const [page] = await doc.copyPages(source, [0]);
-    doc.addPage(page);
-  }
-  return Buffer.from(await doc.save());
-}
+const makeMultiPagePdfBuffer = (pageCount = 4) => makeCopiedPagesPdf(MIXED, pageCount);
 
 test.describe('compress tool - before/after preview', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -46,7 +39,7 @@ test.describe('compress tool - before/after preview', () => {
     await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
     await page.goto('/compress/');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
 
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByText('Choose file', { exact: true }).click();
@@ -92,7 +85,7 @@ test.describe('compress tool - before/after preview', () => {
 
     test('the inline slider shows the whole page in the first screen, and Full screen opens a wider one that Escape closes', async ({ page }) => {
       await page.goto('/compress/');
-      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await waitForIsland(page);
 
       const fileChooserPromise = page.waitForEvent('filechooser');
       await page.getByText('Choose file', { exact: true }).click();

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { startTwoBuildServer } from './twoBuildServer.js';
 import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { waitForIsland } from '../support/tool.js';
 
 /*
  * MEM-10: tabs on an old build, a new build deployed. The next navigation in
@@ -68,7 +69,7 @@ async function addText(page, text, xRatio, yRatio) {
 
 async function openWithFile(page, path, buffer) {
   await page.goto(path);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'update-e2e.pdf', mimeType: 'application/pdf', buffer });
@@ -138,7 +139,7 @@ test('one navigation moves two idle tabs onto the new build, work intact, with n
   expect(cacheKeys[0]).toMatch(/e2e$/);
 
   // Tab A restores its document from the draft: both edits, the last included.
-  await tabA.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(tabA);
   await expect(tabA.locator('[class*="page-overlay"]')).toBeVisible({ timeout: 15_000 });
   await expect(tabA.locator('[data-editor-element]')).toHaveCount(2, { timeout: 15_000 });
   const values = await tabA.locator('[data-editor-text-input]').evaluateAll((els) => els.map((el) => el.value));

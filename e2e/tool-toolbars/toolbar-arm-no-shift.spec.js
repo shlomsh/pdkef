@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { openTool as openSharedTool } from '../support/tool.js';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /**
  * SIGN-30: arming a tool must never move the toolbar underneath it. The
@@ -26,13 +26,7 @@ const FIELDS_FIXTURE = fs.readFileSync(path.resolve(
   'income-tax-101-page1-geometry.pdf',
 ));
 
-async function plainPdf() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Toolbar arm-no-shift fixture', { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const plainPdf = () => makePdfBuffer(null, { title: false, lines: [{ text: 'Toolbar arm-no-shift fixture' }] });
 
 const openTool = (page, url, toolbarName, overlaySelector, buffer) => openSharedTool(page, url, {
   clearStorage: true,

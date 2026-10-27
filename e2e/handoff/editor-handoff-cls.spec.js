@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { waitForIsland } from '../support/tool.js';
 
 /* HERO-02 for the editors: a file handed to Sign or Redact (Merge's "Sign", the home launcher)
    sets html[data-handoff-pending] before first paint (src/lib/handoffPending.ts), so the page-grid
@@ -46,7 +47,7 @@ test.describe('editor hand-off arrival', () => {
     await page.setViewportSize({ width: 1440, height: 820 });
     await page.addInitScript(WATCH);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await page.locator('input[type="file"]').setInputFiles([
       { name: 'one.pdf', mimeType: 'application/pdf', buffer: PDF_1 },
       { name: 'two.pdf', mimeType: 'application/pdf', buffer: PDF_2 },

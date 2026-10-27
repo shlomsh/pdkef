@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../support/tool.js';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /* QUAL-27, Shlomi 2026-10-20: export is never filled in the toolbar. The
    toolbar is where you work; the completion row under the document is the
@@ -11,13 +12,7 @@ import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
    button's colours. Sign and Redact share EditorExportActions and its sheet,
    so both are held to it, on a phone and on desktop, and Sign in Hebrew too. */
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([400, 500]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Quiet export fixture', { x: 40, y: 440, size: 18, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { size: [400, 500], title: false, lines: [{ text: 'Quiet export fixture', x: 40, y: 440, gray: null }] });
 
 const tools = [
   { name: 'Sign', path: '/sign/?next=0', whiteout: 'Whiteout', share: 'Share', download: 'Download' },
@@ -40,7 +35,7 @@ for (const tool of tools) {
       });
       await page.setViewportSize(viewport);
       await page.goto(tool.path);
-      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await waitForIsland(page);
       const chooser = page.waitForEvent('filechooser');
       await page.locator('[data-tool-shell], main').getByText(/Choose file|בחירת קובץ/).first().click();
       await (await chooser).setFiles({ name: 'quiet-export.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

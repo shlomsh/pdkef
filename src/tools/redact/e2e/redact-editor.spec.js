@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { PDFDocument, StandardFonts, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
 import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // Reads a saved page's own content stream the same way deleteObjects.js does,
 // decoding the hex-string text operands @cantoo/pdf-lib writes (`<4B45...> Tj`)
@@ -43,21 +44,7 @@ function extractFlattenedJpegBytes(pdfPage) {
   throw new Error('Saved page has no DCTDecode image XObject');
 }
 
-async function makeMultiPagePdfBuffer(pageCount) {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  for (let i = 0; i < pageCount; i += 1) {
-    const page = doc.addPage([612, 792]);
-    page.drawText(`Redact tool e2e fixture, page ${i + 1}`, {
-      x: 72,
-      y: 720,
-      size: 18,
-      font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-  }
-  return Buffer.from(await doc.save());
-}
+const makeMultiPagePdfBuffer = (pageCount) => buildPdf(null, { pages: pageCount, title: false, lines: (i) => [{ text: `Redact tool e2e fixture, page ${i + 1}` }] });
 
 const makePdfBuffer = () => buildPdf(null, {
   title: false,
@@ -106,7 +93,7 @@ async function openRedactTool(page, buffer = null) {
   // input. The <input type=file> opens the OS picker even unhydrated, but its
   // Preact onChange only attaches after hydration — an early setFiles is silently
   // dropped and the workspace never renders (the intermittent 10s timeout).
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -425,15 +412,9 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     await assertNoCspViolations(page);
   });
 
-  async function makeTinyTextPdfBuffer() {
-    const doc = await PDFDocument.create();
-    const page = doc.addPage([300, 200]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    // A 4pt run renders only a few CSS px tall once pdf.js paints it to the
-    // page canvas at this fixture's scale - finding #1's exact complaint.
-    page.drawText('tiny', { x: 20, y: 150, size: 4, font, color: rgb(0.1, 0.1, 0.1) });
-    return Buffer.from(await doc.save());
-  }
+  // A 4pt run renders only a few CSS px tall once pdf.js paints it to the
+  // page canvas at this fixture's scale - finding #1's exact complaint.
+  const makeTinyTextPdfBuffer = () => buildPdf(null, { size: [300, 200], title: false, lines: [{ text: 'tiny', x: 20, y: 150, size: 4 }] });
 
   // Computed `inset` on `::before` (the technique `.resizer` and
   // `.element-button` use, the latter now covering every redaction type's
@@ -684,16 +665,14 @@ test.describe('find and redact (RED-02)', () => {
     await assertNoCspViolations(page);
   });
 
-  async function makeFindPdfBuffer() {
-    const doc = await PDFDocument.create();
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    for (let i = 0; i < 2; i += 1) {
-      const page = doc.addPage([612, 792]);
-      page.drawText('Jane Doe', { x: 100, y: 700, size: 12, font });
-      page.drawText(`Signed by Jane Doe on page ${i + 1}.`, { x: 100, y: 600, size: 12, font });
-    }
-    return Buffer.from(await doc.save());
-  }
+  const makeFindPdfBuffer = () => buildPdf(null, {
+    pages: 2,
+    title: false,
+    lines: (i) => [
+      { text: 'Jane Doe', x: 100, y: 700, size: 12, gray: null },
+      { text: `Signed by Jane Doe on page ${i + 1}.`, x: 100, y: 600, size: 12, gray: null },
+    ],
+  });
 
   test('highlights every match on the drawn words and redacts them all as one undo step', async ({ page }) => {
     await openRedactTool(page, await makeFindPdfBuffer());
@@ -778,17 +757,14 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     await assertNoCspViolations(page);
   });
 
-  async function makeDeleteFixturePdfBuffer() {
-    const doc = await PDFDocument.create();
-    const page = doc.addPage([300, 400]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    // Two separate drawText calls are two separate BT/ET runs, so the Delete
-    // tool offers them as two independent candidates - and far apart
-    // vertically so their canvas regions never overlap.
-    page.drawText('KEEP ME', { x: 40, y: 320, size: 20, font, color: rgb(0, 0, 0) });
-    page.drawText('SECRET 123', { x: 40, y: 80, size: 20, font, color: rgb(0, 0, 0) });
-    return Buffer.from(await doc.save());
-  }
+  // Two separate drawText calls are two separate BT/ET runs, so the Delete
+  // tool offers them as two independent candidates - and far apart
+  // vertically so their canvas regions never overlap.
+  const makeDeleteFixturePdfBuffer = () => buildPdf(null, {
+    size: [300, 400],
+    title: false,
+    lines: [{ text: 'KEEP ME', x: 40, y: 320, size: 20, gray: 0 }, { text: 'SECRET 123', x: 40, y: 80, size: 20, gray: 0 }],
+  });
 
   // The candidate div for a marked object is gone the instant it's clicked
   // (DeletableObjectOverlay only renders unmarked objects), so its rect has

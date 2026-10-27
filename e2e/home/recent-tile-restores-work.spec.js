@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { waitForIsland } from '../support/tool.js';
 
 /* Reopening your own document from the home page's recent-documents thumbnail
    must bring your work back with it.
@@ -52,7 +53,7 @@ test('reopening a document from the home page thumbnail brings its work back', a
   await page.goto('/redact/');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   (await fileChooserPromise).setFiles({
@@ -73,7 +74,7 @@ test('reopening a document from the home page thumbnail brings its work back', a
   await tile.click();
 
   await page.waitForURL('**/redact/**', { timeout: 15_000 });
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.locator('[class*="redact-box"]')).toHaveCount(2, { timeout: 15_000 });
 
   const types = await page.evaluate(async () => {

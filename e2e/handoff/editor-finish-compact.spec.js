@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../support/tool.js';
+import { makePdfBuffer } from '../support/pdf.js';
 
 /* Shlomi, 2026-10-21, against his design: the finish block under the document
    takes too much of a phone screen. Download and Share are a flat pair, not
@@ -9,12 +10,7 @@ import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
    so both are held to it, after a real export. Heights are layout, not text
    width, so they hold on any font. */
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([400, 500]);
-  page.drawText('KEEP ME', { x: 40, y: 400, size: 20, font: await doc.embedFont(StandardFonts.Helvetica) });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { size: [400, 500], title: false, lines: [{ text: 'KEEP ME', x: 40, y: 400, size: 20, gray: null }] });
 
 const PAIR_MAX = 52;
 const CHIP_MAX = 46;
@@ -28,7 +24,7 @@ for (const tool of [{ name: 'Sign', path: '/sign/?next=0', chip: 'Redact it' }, 
       Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
     });
     await page.goto(tool.path);
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     const chooser = page.waitForEvent('filechooser');
     await page.getByText('Choose file', { exact: true }).click();
     await (await chooser).setFiles({ name: 'finish.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

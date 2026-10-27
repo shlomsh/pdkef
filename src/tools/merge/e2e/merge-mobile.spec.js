@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* Direction A (2026-09-13): MERGE-06, re-measured at 375 x 812 (the size the
    critique used) against the rebuilt phone layout - a horizontally
@@ -21,18 +21,13 @@ async function useMobileViewport(page, testInfo) {
   }
 }
 
-async function makeMultiPagePdfBuffer(label, pageCount) {
-  const document = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
+const makeMultiPagePdfBuffer = (label, pageCount) => makePdfBuffer(label, { pages: pageCount });
 
 test.describe('Merge on a phone (MERGE-06)', () => {
   test('empty state: Choose files lands within the first screen', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     const chooseButton = page.getByText('Choose files', { exact: true });
     await expect(chooseButton).toBeVisible();
@@ -46,7 +41,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('loaded state: no horizontal overflow, the chip row is visible, Download fits the viewport', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
       name,
@@ -102,7 +97,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     }
 
     await work.goto('/merge/');
-    await work.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(work);
 
     const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
       name,
@@ -150,7 +145,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     }
 
     await work.goto('/merge/');
-    await work.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(work);
 
     const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
       name,
@@ -207,7 +202,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('the two-tap path holds at 375px', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     const files = await Promise.all(['a.pdf', 'b.pdf'].map(async (name) => ({
       name,
@@ -228,7 +223,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('file controls are directly visible and sorting still changes the merged output', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
       name,
@@ -263,7 +258,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     test(`visible mobile file controls fit in ${route} and leave the desktop controls in place`, async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto(route);
-      await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+      await waitForIsland(page);
       await page.locator('input[type="file"]').setInputFiles(await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
         name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name),
       }))));
@@ -317,7 +312,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('the sticky per-file caption never intercepts a tap on the row beneath it', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     // A run of 4 or more pages gets a full-width caption (PageGrid.tsx).
     const buffer = await makeMultiPagePdfBuffer('four-pages', 4);
@@ -356,7 +351,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('a long name with no break points wraps inside the card', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
 
     const names = ['Statement_20260730163241_123456789_AccountSummary.pdf', 'Statement_20260815091502_123456789_AccountSummary.pdf'];
     const files = await Promise.all(names.map(async (name) => ({
@@ -394,7 +389,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     test(`no bottom sheet at ${size.width}x${size.height}: quiet Download stays in reach, the completion row follows the pages`, async ({ page }) => {
       await page.setViewportSize(size);
       await page.goto('/merge/');
-      await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+      await waitForIsland(page);
       await page.locator('input[type="file"]').setInputFiles(await Promise.all([
         ['first.pdf', 30],
         ['second.pdf', 14],
@@ -448,7 +443,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('quiet Download opens the done strip on a phone, and the desktop rail never does', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
     const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
       name,
       mimeType: 'application/pdf',
@@ -487,7 +482,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('a chip remove button is a 44px target on a 36px pill and removes that file', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
     const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
       name,
       mimeType: 'application/pdf',

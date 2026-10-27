@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* MERGE-11 / Direction A hand-off row (2026-09-13): PdfShareButton only
    renders once `navigator.share`/`canShare` exist, so a real device without
@@ -27,7 +28,7 @@ async function loadReadyRowWithShare(page) {
   });
 
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['first.pdf', 'second.pdf'].map(async (name) => ({
     name,

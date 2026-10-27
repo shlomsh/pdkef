@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
-import { PDFDocument, PDFName, PDFString, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makeAnnotatedAttachmentPdf } from '../../../../e2e/support/pdf.js';
 
 // RED-60: "Remove it" in the saved-file check rewrites the saved copy, but the
 // next Download is made again from the original file and the work in the
@@ -13,18 +15,7 @@ import { PDFDocument, PDFName, PDFString, StandardFonts } from '@cantoo/pdf-lib'
 const NOTE = 'note-secret-777';
 const ATTACHMENT = 'original-unredacted.pdf';
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([300, 400]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('KEEP ME', { x: 40, y: 320, size: 20, font });
-  page.drawText('SECRET 123', { x: 40, y: 80, size: 20, font });
-  page.node.addAnnot(doc.context.register(doc.context.obj({
-    Type: 'Annot', Subtype: 'Text', Rect: [250, 360, 270, 380], Contents: PDFString.of(NOTE),
-  })));
-  await doc.attach(new TextEncoder().encode('%PDF-1.7 the unredacted original'), ATTACHMENT, { mimeType: 'application/pdf' });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makeAnnotatedAttachmentPdf({ note: NOTE, attachment: ATTACHMENT });
 
 async function savedPdf(download) {
   const savedPath = await download.path();
@@ -42,7 +33,7 @@ const hasAttachment = (doc) => {
 
 test('a place removed from the saved file stays removed on the next Download', async ({ page }) => {
   await page.goto('/redact');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'remove-sticks.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });
@@ -84,7 +75,7 @@ test('a place removed from the saved file stays removed on the next Download', a
   // RED-60: the removal is part of the saved work, so it survives a reload too.
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
   await page.reload();
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.getByText('1 deletion').first()).toBeVisible({ timeout: 10_000 });
   const [afterReload] = await Promise.all([page.waitForEvent('download'), download()]);
   const reloadedDoc = await savedPdf(afterReload);

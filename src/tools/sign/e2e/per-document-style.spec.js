@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { rgb } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /**
  * SIGN-33 and SIGN-35 (backlog/tasks/SIGN-33.md, SIGN-35.md), as product-path
@@ -48,16 +50,10 @@ function expectedMdy(date = new Date()) {
  * font-size in px is directly comparable across documents, which no two binary
  * fixtures in this repo happen to share. `title` both labels the page and
  * gives each generated document distinct bytes, so recents keeps them apart. */
-async function makeDocumentBuffer(title) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([595, 842]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText(title, { x: 72, y: 760, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  page.drawText(`A plain Latin document, unrelated to the practice form (${title}).`, {
-    x: 72, y: 736, size: 11, font, color: rgb(0.3, 0.3, 0.3),
-  });
-  return Buffer.from(await doc.save());
-}
+const makeDocumentBuffer = (title) => makePdfBuffer(null, { size: [595, 842], title: false, lines: [
+  { text: title, y: 760 },
+  { text: `A plain Latin document, unrelated to the practice form (${title}).`, y: 736, size: 11, gray: 0.3 },
+] });
 
 function toolbar(page) {
   return page.getByRole('toolbar', { name: 'PDF annotations' });
@@ -79,7 +75,7 @@ async function openFreshSignTool(page, buffer, fileName) {
     sessionStorage.setItem('sign33-cleared', '1');
   });
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -104,7 +100,7 @@ async function openRecent(page, fileName) {
   await expect(tile).toHaveCount(1);
   await tile.click();
   await page.waitForURL('**/sign/**', { timeout: 15_000 });
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.locator('[class*="page-overlay"]')).toBeVisible({ timeout: 10_000 });
 }
 
@@ -337,8 +333,8 @@ test('every setting a person chooses is remembered per document, and going back 
 
   // --- Step 3: a real reload, back to A, then back to B ---
   await page.reload();
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
+  await waitForIsland(page);
   await openRecent(page, 'sign-doc-a.pdf');
 
   // Whatever A had stays A's: a fresh element, placed off any existing box,
@@ -419,8 +415,8 @@ test('an app-wide default follows the latest choice, but a document that already
 
   // --- f: a real reload, back to A - its own choice is untouched by B's later one ---
   await page.reload();
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
+  await waitForIsland(page);
   await openRecent(page, 'style-doc-a.pdf');
   const textA2 = await addTextAt(page, 0.78, 0.58);
   await expect(textA2.input).toHaveCSS('color', 'rgb(0, 0, 0)');

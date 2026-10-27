@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* MERGE-13: a merge survives a crash. `useMergeDraft.ts` and
    `MergeDraftPersistence.tsx` were wired into PdfMergeTool.tsx by another
@@ -20,7 +21,7 @@ const makePdfBuffer = (label) => buildPdf(label, { pages: 2 });
 
 test('a file set and a page rotation survive closing and reopening the tab', async ({ page, context }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
     name,
@@ -52,7 +53,7 @@ test('a file set and a page rotation survive closing and reopening the tab', asy
   await page.close();
   const restored = await context.newPage();
   await restored.goto('/merge/');
-  await restored.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(restored);
 
   await expect(restored.locator('ul[class*="file-list"] > li[class*="file-row"]')).toHaveCount(2);
   const restoredGrid = restored.locator('ul[class*="grid"]');
@@ -70,7 +71,7 @@ test('a file set and a page rotation survive closing and reopening the tab', asy
 test('a long output name wraps at 375px instead of truncating', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['A rather long invoice file name for the wrap check.pdf', 'second.pdf'].map(async (name) => ({
     name,

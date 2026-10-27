@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/lib/languageAcceptance.js';
 import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { waitForIsland } from '../support/tool.js';
 
 const offlineLanguageLayouts = new Map([
   ['arabic', { xRatio: 0.75, yRatio: 0.25 }],
@@ -61,7 +62,7 @@ async function purgeAppCaches(page) {
 
 async function openSignToolWithFile(page, buffer, name = 'offline-e2e.pdf') {
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -154,7 +155,7 @@ async function textInputWithValue(page, value) {
 test.describe('offline workflows (SIGN-07)', () => {
   test('Merge completes fully offline once the page has been visited online', async ({ page, context }) => {
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await waitForServiceWorkerControl(page);
 
     // MERGE-12: there is no Merge button any more - the pre-merge runs on
@@ -169,7 +170,7 @@ test.describe('offline workflows (SIGN-07)', () => {
     await context.setOffline(true);
     try {
       await page.reload();
-      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await waitForIsland(page);
 
       const offlineFiles = await Promise.all(
         ['c.pdf', 'd.pdf'].map(async (name) => ({ name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name) })),
@@ -270,7 +271,7 @@ test.describe('offline workflows (SIGN-07)', () => {
     await purgeAppCaches(page);
 
     await page.reload();
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
     const restoredText = page.locator('[data-editor-element] textarea[data-editor-text-input]');
     await expect(restoredText).toHaveValue('Upgrade survival check');

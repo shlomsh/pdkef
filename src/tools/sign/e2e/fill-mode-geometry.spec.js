@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Fill mode's text geometry (SNG-15, SNG-17, SIGN-38): what a person sees while
@@ -55,7 +56,7 @@ const DATE_OF_BIRTH = 'slot:0:8.07:26.60'; // a plain cell at the page's left ed
 
 async function openInFillMode(page, file, name) {
   await page.goto('/sign/?next=1');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name, mimeType: 'application/pdf', buffer: fs.readFileSync(file) });
@@ -72,7 +73,7 @@ async function detectedRegions(browser) {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'practice-form.pdf', mimeType: 'application/pdf', buffer: fs.readFileSync(PRACTICE_FORM) });

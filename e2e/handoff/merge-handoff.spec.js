@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer } from '../support/pdf.js';
+import { waitForIsland } from '../support/tool.js';
 
 /* MERGE-14: the quiet hand-off row under Download. "Compress" saves the
    merged blob as a hand-off (draftStore.saveHandoff) and navigates to
@@ -18,7 +19,7 @@ import { makePdfBuffer } from '../support/pdf.js';
 
 test('Compress hands the merged file to Compress with the identity row naming it', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all(['first.pdf', 'second.pdf', 'third.pdf'].map(async (name) => ({
     name,
@@ -35,7 +36,7 @@ test('Compress hands the merged file to Compress with the identity row naming it
   await compressButton.click();
 
   await page.waitForURL(/\/compress\/?(?:\?.*)?$/);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
 
   // "first.pdf" first -> the hand-off's fileName "merged_first.pdf" (MERGE-03's
   // reversal back to the signed_/redacted_-style prefix), and Compress's

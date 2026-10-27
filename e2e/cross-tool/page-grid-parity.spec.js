@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { openTool } from '../support/tool.js';
+import { makeNumberedGridPdf } from '../support/pdf.js';
 
 /* GRID epic (docs/shared-page-grid.md): one page grid, identical in every
    tool. Merge, Edit Pages, Split and PDF to Image all render the shared PageGrid
@@ -20,17 +20,7 @@ const VIEWPORTS = [
 ];
 const THUMBS = 'ul[data-page-grid] > li[data-key] img';
 
-async function makePdf() {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.HelveticaBold);
-  for (let i = 1; i <= 10; i += 1) {
-    const [w, h] = i === 4 ? [792, 612] : [612, 792];
-    const page = doc.addPage([w, h]);
-    page.drawRectangle({ x: 0, y: 0, width: w, height: h, color: rgb(0.93, 0.95, 1) });
-    page.drawText(String(i), { x: w / 2 - 80, y: h / 2 - 100, size: 300, font, color: rgb(0.1, 0.2, 0.5) });
-  }
-  return Buffer.from(await doc.save());
-}
+const makePdf = makeNumberedGridPdf;
 
 async function openGridTool(page, route) {
   await openTool(page, route);

@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PDFDocument } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import { waitForIsland } from '../support/tool.js';
+import { makeHebrewTextPdf } from '../support/pdf.js';
 
 // A canvas inherits `direction` from CSS, and pdf.js paints each glyph with
 // `fillText` at the default `textAlign: start`, so on a dir="rtl" page every
@@ -24,16 +23,7 @@ test.use({ serviceWorkers: 'block' });
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW_PAGE = '/he/sign/?next=0';
 
-async function makeTextPdf() {
-  const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
-  const heebo = await pdf.embedFont(fs.readFileSync(path.join(__dirname, '../../public/fonts/Heebo-Bold.ttf')), { subset: true });
-  const page = pdf.addPage([400, 200]);
-  // Visual order is what the content stream places; Latin and Hebrew both shift under rtl.
-  page.drawText('0101/130', { x: 24, y: 150, size: 24, font: heebo });
-  page.drawText('דבוע סיטרכ', { x: 160, y: 100, size: 32, font: heebo });
-  return Buffer.from(await pdf.save());
-}
+const makeTextPdf = makeHebrewTextPdf;
 
 const NEAR_PX = 1;
 
@@ -51,7 +41,7 @@ function countPaints() {
 
 async function renderedInk(page, route, buffer) {
   await page.goto(route);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').first().setInputFiles({ name: 'text.pdf', mimeType: 'application/pdf', buffer });
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();

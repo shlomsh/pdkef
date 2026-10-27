@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect, devices } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Fill mode (`/sign/?next=1`) on a phone: zoom and the practice form. Three
@@ -69,7 +70,7 @@ const EDGE_SLACK_PX = 2;
 
 async function openPracticeForm(page, url) {
   await page.goto(url);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({
