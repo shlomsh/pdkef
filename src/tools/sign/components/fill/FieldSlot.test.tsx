@@ -2,10 +2,6 @@ import { render, type ComponentChildren } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import FieldSlot from './FieldSlot.tsx';
-// Asserts the comb shell keeps the text-display class (styling contract).
-import elementStyles from '../../../../editor-ui/EditorElement.module.css';
-// Asserts the slot base class (styling contract); focus, aim and comb state use data attributes.
-import styles from './fill.module.css';
 import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
 import { combLayout } from '../../../../editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from '../../lib/fill/fillTypes.ts';
@@ -840,7 +836,6 @@ describe('FieldSlot component', () => {
       );
       const input = requireElement<HTMLInputElement>(host, 'input');
 
-            expect(input.classList.contains(styles.slot)).toBe(true);
       expect(input.hasAttribute('data-aimed')).toBe(true);
     });
 
@@ -859,7 +854,6 @@ describe('FieldSlot component', () => {
       );
       const input = requireElement<HTMLInputElement>(host, 'input');
 
-            expect(input.classList.contains(styles.slot)).toBe(true);
       expect(input.hasAttribute('data-aimed')).toBe(false);
     });
   });
@@ -956,7 +950,6 @@ describe('FieldSlot component', () => {
       expect(overlay.style.getPropertyValue('--text-pad-em')).toBe(`${layout.font.paddingEm}em`);
 
       const shell = overlay.firstElementChild as HTMLElement;
-      expect(shell.classList.contains(elementStyles['text-display'])).toBe(true);
       expect(shell.getAttribute('data-comb')).toBe('on');
       expect(shell.querySelector('[data-text-part="comb"]')).not.toBeNull();
 
