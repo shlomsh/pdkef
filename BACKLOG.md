@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 92 live: 14 up next, 14 then, 26 waiting, 38 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 92 live: 15 up next, 14 then, 26 waiting, 37 parked.
 
 ## Redact: finish removal
 
@@ -119,6 +119,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 | ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · No tool island function is over 300 lines | In progress |
+| ARCH-130 | P3 | [ARCH-130](backlog/tasks/ARCH-130.md) · Exports only tests use, and exports nothing uses, are deleted | In progress |
 
 ### Then, in order
 
@@ -151,7 +152,6 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-126 | P3 | [ARCH-126](backlog/tasks/ARCH-126.md) · The zod pin held by @vercel/cli-config is gone and its exception removed |  |
 | ARCH-127 | P3 | [ARCH-127](backlog/tasks/ARCH-127.md) · The advisory exceptions list holds no entry that matches nothing |  |
 | ARCH-128 | P3 | [ARCH-128](backlog/tasks/ARCH-128.md) · The boundary rules are written once and checked against every copy |  |
-| ARCH-130 | P3 | [ARCH-130](backlog/tasks/ARCH-130.md) · Exports only tests use, and exports nothing uses, are deleted |  |
 
 ## Search and languages
 
