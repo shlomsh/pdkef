@@ -172,6 +172,7 @@ export const ALWAYS_GUARD_STEPS = [
   'test:patch-pins',
   'test:tool-shape',
   'test:js-typed',
+  'test:unused-exports',
   'test:gesture-golden-rule',
   'test:swallowed-errors',
   'test:navigating-away',
