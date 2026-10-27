@@ -301,7 +301,7 @@ export function clearCurrentEntry(tool: string) {
   try {
     localStorage.removeItem(CURRENT_ENTRY_PREFIX + tool);
   } catch {
-    // expected: ditto
+    // expected: best-effort like every other localStorage write in this file
   }
 }
 
@@ -448,7 +448,7 @@ async function pruneOrphans(keptEntries: DraftEntry[]) {
       };
     });
   } catch (e) {
-    // expected: best-effort cleanup, already reported with console.error
+    // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
     console.error('draftStore.pruneOrphans failed:', e);
   }
 }
@@ -1011,9 +1011,9 @@ const LEGACY_DRAFT_META_PREFIX = 'pdf-toolkit:workspace:draft-meta:';
 const LEGACY_TOOLS = ['sign', 'redact', 'merge'];
 
 function clearLegacyLocalStorage(tool: string) {
-  // expected: best-effort cleanup
+  // expected: a legacy key we cannot remove is harmless and ignored
   try { localStorage.removeItem(LEGACY_DRAFT_HINT_PREFIX + tool); } catch { /* best-effort */ }
-  // expected: best-effort cleanup
+  // expected: a legacy key we cannot remove is harmless and ignored
   try { localStorage.removeItem(LEGACY_DRAFT_META_PREFIX + tool); } catch { /* best-effort */ }
 }
 
@@ -1068,7 +1068,7 @@ async function migrateLegacyDraft(tool: string): Promise<void> {
     try {
       await withStore('readwrite', (store) => { store.delete(tool); });
     } catch (e) {
-      // expected: best-effort cleanup, already reported with console.error
+      // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
       console.error('draftStore.migrateLegacyDraft failed to delete an expired record:', e);
     }
     return;
@@ -1085,7 +1085,7 @@ async function migrateLegacyDraft(tool: string): Promise<void> {
     try {
       await withStore('readwrite', (store) => { store.delete(tool); });
     } catch (e) {
-      // expected: best-effort cleanup, already reported with console.error
+      // expected: a legacy key we cannot remove is harmless and ignored, already reported with console.error
       console.error('draftStore.migrateLegacyDraft failed to delete an unaddressable record:', e);
     }
     return;

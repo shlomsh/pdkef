@@ -16,13 +16,23 @@ import ts from 'typescript';
 // A named handler (identifier or member expression, not an inline function) is
 // fine only if its name starts with `report` and ends with `Error`, or the line
 // above carries `// expected:`.
+// A reason must be real: the text after `// expected:` on that line needs at
+// least 4 words of 2 or more letters (so `ditto` or `x` fail).
+// The walk covers src/, api/ and middleware.ts.
 // Any finding fails, printed as path:line. `--list` prints them and exits 0.
 
 const __filename = fileURLToPath(import.meta.url);
 const root = path.join(path.dirname(__filename), '..');
-const srcDir = path.join(root, 'src');
 
-const EXPECTED = /\/\/\s*expected:/;
+const EXPECTED_G = /\/\/\s*expected:([^\n]*)/g;
+const MIN_REASON_WORDS = 4;
+/** True when `text` holds a `// expected:` comment whose reason has enough real words. */
+function hasReason(text) {
+  for (const m of text.matchAll(EXPECTED_G)) {
+    if ((m[1].match(/\p{L}{2,}/gu) ?? []).length >= MIN_REASON_WORDS) return true;
+  }
+  return false;
+}
 const isFn = (n) => ts.isFunctionLike(n);
 const isReporter = (name) => name === 'reportError' || /^report.*Error$/.test(name);
 const isInlineFn = (n) => ts.isArrowFunction(n) || ts.isFunctionExpression(n);
@@ -55,13 +65,13 @@ export function findSwallowed(text, fileName = 'x.ts') {
   const lines = text.split('\n');
   const found = [];
   const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line;
-  const annotatedAbove = (line) => line > 0 && EXPECTED.test(lines[line - 1]);
+  const annotatedAbove = (line) => line > 0 && hasReason(lines[line - 1]);
   const flag = (line) => found.push(line + 1);
   const check = (node, keywordPos, body) => {
     const { throws, reports } = inspectBody(body);
     if (throws || reports) return;
     const line = lineOf(keywordPos);
-    if (EXPECTED.test(text.slice(node.getStart(sf), node.end))) return;
+    if (hasReason(text.slice(node.getStart(sf), node.end))) return;
     if (annotatedAbove(line)) return;
     flag(line);
   };
@@ -92,13 +102,13 @@ export function findSwallowed(text, fileName = 'x.ts') {
 }
 
 const SKIP_FILE = /\.(test|spec)\.[^/]*$/;
-function collect(dir, out = []) {
+function collect(root, dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name);
     const rel = path.relative(root, full).split(path.sep).join('/');
     if (e.isDirectory()) {
       if (e.name === 'e2e' || rel === 'src/test') continue;
-      collect(full, out);
+      collect(root, full, out);
     } else if (/\.(ts|tsx|js|mjs)$/.test(e.name) && !SKIP_FILE.test(e.name)) {
       out.push({ full, rel });
     }
@@ -106,9 +116,16 @@ function collect(dir, out = []) {
   return out;
 }
 
-function scan() {
+export function scan(base = root) {
   const result = {};
-  for (const { full, rel } of collect(srcDir)) {
+  const files = [];
+  for (const d of ['src', 'api']) {
+    const dir = path.join(base, d);
+    if (fs.existsSync(dir)) collect(base, dir, files);
+  }
+  const mw = path.join(base, 'middleware.ts');
+  if (fs.existsSync(mw)) files.push({ full: mw, rel: 'middleware.ts' });
+  for (const { full, rel } of files) {
     const lines = findSwallowed(fs.readFileSync(full, 'utf8'), full);
     if (lines.length) result[rel] = lines;
   }
