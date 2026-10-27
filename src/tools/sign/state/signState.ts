@@ -11,12 +11,12 @@
  *     reducer (SignToolProvider) keeps them.
  *   - the hand-off in flight (`handoffBusy`, `useNavigatingAway`), which
  *     tracks navigation, not the document.
- *   - the loaded file, its bytes, the pdf.js document and page sizes, which
- *     are set by the file session's `initialize` callback.
  *   - refs: file bytes, the prepared export, the export run's ticket, the
  *     document revision.
  *   - view state: dialogs, fullscreen, the armed signature, aim and focus.
  */
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
 import type { SignedExport } from '../lib/exportHandoff.ts';
 import { unlessUnchanged } from '../../../lib/unchangedState.ts';
@@ -37,6 +37,14 @@ export interface SignLifecycleState {
   signedExport: SignedExport | null;
   /** The hand-off to another tool failed to save its baton. */
   handoffFailed: boolean;
+  /** The loaded file; the document-load fields below are set by the file session. */
+  file: File | null;
+  /** State as well as a ref: form-grid detection is an effect and needs a changing identity. */
+  sourceBytes: ArrayBuffer | null;
+  pdfDocument: PDFDocumentProxy | null;
+  numPages: number;
+  /** Rotated/cropped visible page frames in physical PDF points. */
+  pageSizes: PageGeometry[];
 }
 
 export type SignLifecycleAction =
@@ -46,6 +54,11 @@ export type SignLifecycleAction =
   | { type: 'NEEDS_UNLOCK_FOUND'; kind: NeedsUnlockKind }
   /** A new file was chosen: protection and any export error reset. */
   | { type: 'DOCUMENT_OPENED' }
+  /** The file and its bytes landed; the old pdf.js document and page frames go. */
+  | { type: 'DOCUMENT_FILE_SET'; file: File; bytes: ArrayBuffer }
+  /** pdf.js opened the document. */
+  | { type: 'PDF_DOCUMENT_READY'; pdfDocument: PDFDocumentProxy; numPages: number }
+  | { type: 'PAGE_SIZES_MEASURED'; pageSizes: PageGeometry[] }
   | { type: 'ANNOUNCED'; message: string }
   /** An edit or a new file retires the signed export and the hand-off failure. */
   | { type: 'EXPORT_RETIRED' }
@@ -74,6 +87,11 @@ export function initialSignLifecycleState(): SignLifecycleState {
     needsUnlock: null,
     signedExport: null,
     handoffFailed: false,
+    file: null,
+    sourceBytes: null,
+    pdfDocument: null,
+    numPages: 0,
+    pageSizes: [],
   };
 }
 
@@ -89,6 +107,12 @@ function nextSignLifecycleState(state: SignLifecycleState, action: SignLifecycle
       return { ...state, needsUnlock: action.kind };
     case 'DOCUMENT_OPENED':
       return { ...state, needsUnlock: null, errorDetail: null, progress: 0 };
+    case 'DOCUMENT_FILE_SET':
+      return { ...state, file: action.file, sourceBytes: action.bytes, pdfDocument: null, numPages: 0, pageSizes: [] };
+    case 'PDF_DOCUMENT_READY':
+      return { ...state, pdfDocument: action.pdfDocument, numPages: action.numPages };
+    case 'PAGE_SIZES_MEASURED':
+      return { ...state, pageSizes: action.pageSizes };
     case 'ANNOUNCED':
       return { ...state, announcement: action.message };
     case 'EXPORT_RETIRED':
