@@ -599,7 +599,7 @@ export default function PdfWorkspace({
       aria-busy={status === 'signing'}
       data-workspace
       data-processing={status === 'signing' || undefined}
-      data-pseudo-fullscreen={isPseudoFullscreen || undefined}
+      data-fullscreen={isPseudoFullscreen ? 'pseudo' : undefined}
     >
       {(status === 'editing' || status === 'signing') && (
         <>
