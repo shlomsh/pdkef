@@ -1,10 +1,9 @@
 ---
 id: "MEM-23"
 title: "Each precache request has a time limit"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "later"
 depends_on: []
 ---
 
@@ -25,5 +24,12 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] Unit test: a fetch that never settles is aborted after the limit, the URL is reported missed, and
+- [x] Unit test: a fetch that never settles is aborted after the limit, the URL is reported missed, and
       the remaining URLs still precache.
+
+## Done
+
+*2026-10-27.* Each precache URL runs under a stall limit, `PRECACHE_STALL_MS` (30 s) in `public/sw.js`:
+the timer restarts on every chunk of the body, so a slow but steady download completes and a request
+that receives nothing for 30 s is aborted and counted missed. The limit covers storing the body, not just
+the headers. Unit tests: a never-settling fetch, a never-finishing store, and a slow steady body.

@@ -16,6 +16,7 @@ import { useWindowFileDrop, leftWindow } from './useWindowFileDrop.ts';
 import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
+import { useAdoptPrePickedFiles } from './prePickedFiles.ts';
 import RatingPrompt, { useDownloaded } from './RatingPrompt.tsx';
 import { englishShellMessages, type ShellMessages } from './shellMessages';
 import { formatMessage } from '../lib/formatMessage';
@@ -278,6 +279,10 @@ function BasePdfTool({
     }
     setPendingFiles(acceptable);
   }, [costsSomething, handOn, accept]);
+
+  // A file chosen in the server-rendered input before this island could listen is taken now, as
+  // a pick (see prePickedFiles.ts). Every tool and the empty state's input come through here.
+  useAdoptPrePickedFiles(fileInputRef, (files) => receiveFiles(files, 'pick'), !checkingDraft);
 
   const onInputChange = (event: Event) => {
     // Copy the FileList out before clearing the input. `value = ''` resets the

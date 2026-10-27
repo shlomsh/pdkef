@@ -94,7 +94,7 @@
       "src/shell/pageGrid/PageGrid.tsx": 882,
       "src/tools/compress/PdfCompressTool.tsx": 949,
       "src/tools/redact/PdfRedactTool.tsx": 1329,
-      "src/tools/scan/PdfScanTool.tsx": 967,
+      "src/tools/scan/PdfScanTool.tsx": 966,
       "src/tools/sign/PdfSignTool.tsx": 1068,
       "src/tools/sign/components/SignToolbar.tsx": 833,
       "src/tools/sign/lib/fields/formCells.js": 1061
@@ -102,7 +102,7 @@
     "fileThreshold": 800,
     "functionLines": {
       "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 326,
-      "src/shell/BasePdfTool.tsx#BasePdfTool": 417,
+      "src/shell/BasePdfTool.tsx#BasePdfTool": 421,
       "src/shell/pageGrid/PageGrid.tsx#PageGrid": 693,
       "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
       "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 846,
@@ -110,7 +110,7 @@
       "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 449,
       "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
       "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1202,
-      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 869,
+      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 864,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 946,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,

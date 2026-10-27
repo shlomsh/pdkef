@@ -1,7 +1,7 @@
 ---
 id: "MEM-21"
 title: "A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"
@@ -34,7 +34,16 @@ depends_on: ["MEM-19", "MEM-20"]
 
 ## Acceptance
 
-- [ ] Unit tests: unchanged builds cost only `sw.js` and the manifest; one renamed chunk costs that chunk
+- [x] Unit tests: unchanged builds cost only `sw.js` and the manifest; one renamed chunk costs that chunk
       plus the pages that reference it; a page changed only in bytes, not in references, costs that page.
 - [ ] The nightly run reports the cost and the top contributors in its summary.
 - [ ] The target and the measurement behind it are written in the Done section.
+
+## Progress
+
+*2026-10-27.* `scripts/updateCost.mjs` (pure, `UPDATE_COST_TARGET = 500_000`, tests beside it), the CLI
+`npm run measure:update-cost -- <before dist> <after dist>`, and a nightly `update-cost` job in `ci.yml`
+that builds the last two production deploys GitHub records for Vercel (main's first parent is not a
+deploy). On the 2026-10-27 S8 pair (a8763091 to 7ffc926f with MEM-19 and MEM-20 applied) the CLI reports
+503,058 bytes, above target, led by /sign/, /he/sign/ and the new PdfSignTool chunk, 12 pages changed
+alongside 5 new hashed chunks. Closes once the first nightly run has written its summary.

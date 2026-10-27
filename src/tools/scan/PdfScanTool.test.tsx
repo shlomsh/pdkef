@@ -149,12 +149,12 @@ describe('PdfScanTool', () => {
     expect(checked('Page size')).toBe('A4');
   });
 
-  it('offers Sign, Merge, Compress once the PDF is ready', async () => {
+  it('offers Sign, Redact, Compress once the PDF is ready', async () => {
     mount();
     await pick([jpeg('a.jpg')]);
     await settle(1000);
     expect(container.querySelector('[data-scan-ready]')).not.toBeNull();
-    const names = ['Sign', 'Merge', 'Compress'];
+    const names = ['Sign', 'Redact', 'Compress'];
     const order = Array.from(container.querySelectorAll('button'))
       .map((b) => b.textContent.trim()).filter((t) => names.includes(t));
     expect(order.slice(0, 3)).toEqual(names);
@@ -389,7 +389,25 @@ describe('PdfScanTool', () => {
     await act(async () => { byText('Full screen')[0].click(); });
     await useCorners();
     expect(editor().hasAttribute('data-full')).toBe(false);
-    expect(byText('Full screen')).toHaveLength(0);
+    // The page as it downloads is checked at full size too, before Download.
+    expect(byText('Full screen')).toHaveLength(1);
+  });
+
+  it('shows the result page full screen for a last look, and leaves it for the corners', async () => {
+    mount();
+    await pick([jpeg('a.jpg')]);
+    await settle();
+    await useCorners();
+    const editor = () => container.querySelector('[data-page-heading]').closest('section');
+    await act(async () => { byText('Full screen')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(true);
+    expect(editor().querySelector('[data-paper]')).not.toBeNull();
+    await act(async () => { byText('Exit full screen')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(false);
+    await act(async () => { byText('Full screen')[0].click(); });
+    await act(async () => { byText('Adjust corners')[0].click(); });
+    expect(editor().hasAttribute('data-full')).toBe(false);
+    expect(byText('Use these corners').length + byText('Done').length).toBeGreaterThan(0);
   });
 
   // The flatten starts from the photo where the card shows it: measured full screen, the page flew

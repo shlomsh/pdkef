@@ -80,7 +80,7 @@ export interface ScanMessages extends DownloadMessages {
   sharingCanceled: string;
   shareError: string;
   handoffSign: string;
-  handoffMerge: string;
+  handoffRedact: string;
   handoffCompress: string;
   handoffFailed: string;
   announceAddedOne: string;
@@ -170,7 +170,7 @@ export const englishScanMessages: ScanMessages = {
   sharingCanceled: 'Sharing canceled. Your PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
   handoffSign: 'Sign',
-  handoffMerge: 'Merge',
+  handoffRedact: 'Redact',
   handoffCompress: 'Compress',
   handoffFailed: 'Could not hand the file over. Download it instead.',
   announceAddedOne: 'Added 1 page.',

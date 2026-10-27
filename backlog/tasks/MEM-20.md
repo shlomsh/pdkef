@@ -1,11 +1,9 @@
 ---
 id: "MEM-20"
 title: "Each page's CSP hash list is emitted in a stable order"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
-order: 12
 depends_on: []
 ---
 
@@ -31,6 +29,17 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] A test builds the same hash set in two different input orders and gets the same CSP meta.
-- [ ] Rebuilding a8763091 and 7ffc926f leaves the 42 CSP-only page differences at zero.
-- [ ] `npm run test:csp` stays green.
+- [x] A test builds the same hash set in two different input orders and gets the same CSP meta.
+- [x] Rebuilding a8763091 and 7ffc926f leaves the 42 CSP-only page differences at zero.
+- [x] `npm run test:csp` stays green.
+
+## Done
+
+*2026-10-27.* `scripts/cspHashOrder.mjs` sorts the hash sources of every directive in each page's CSP
+meta (other tokens keep their order, ahead of the hashes). `generate-precache-manifest.mjs` runs it on
+every page before the build id is hashed. Where Astro's order comes from was not traced; the post-build
+step makes it irrelevant.
+
+- Rebuilds of a8763091 and 7ffc926f: 54 pages differ raw, 54 with the commit stamp removed, 12 with the
+  stamp removed and hashes sorted. The 42 CSP-only differences are gone.
+- `npm run test:csp` green; `verify-csp.js` compares hashes as a set.

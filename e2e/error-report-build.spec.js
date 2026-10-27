@@ -1,33 +1,27 @@
 import { test, expect } from '@playwright/test';
 
-// DEBT-35: a crash report names the commit its page was built from, so
+// DEBT-35 / MEM-19: a crash report names the commit its page was built from, so
 // `errors:resolve --build <sha>` rebuilds one commit instead of searching forty.
-// The commit is stamped into the built HTML as <meta name="pdkef-build"> after the
-// build id is hashed (scripts/generate-precache-manifest.mjs) and read back by the
-// reporter when it sends. jsdom cannot prove the chain: the stamping happens on
-// the built output and the beacon only leaves a production bundle, so this runs
-// against the preview server like the CSP smoke does.
-//
-// A build made without VERCEL_GIT_COMMIT_SHA has no tag and must send no `build`
-// at all; one made with it must send exactly the tag's seven characters. When this
-// run itself has the variable (CI sets it for every job, and so should anyone running
-// the spec on a stamped build) the tag is REQUIRED, so a stamped build that quietly
-// lost its tag fails instead of taking the "no commit" branch:
-//   VERCEL_GIT_COMMIT_SHA=$(printf 'a%.0s' {1..40}) npm run build
-//   VERCEL_GIT_COMMIT_SHA=$(printf 'a%.0s' {1..40}) npx playwright test e2e/error-report-build.spec.js
+// The commit travels in a `Server-Timing: build;desc="<sha7>"` response header set by
+// middleware.ts and is read back off the navigation entry by the reporter when it sends;
+// no page's HTML carries it. `astro preview` runs no middleware, so the spec adds the
+// header to the /merge/ document itself and proves the rest of the chain (header to
+// performance entry to beacon). The middleware half is a unit test (src/site-lib/middleware.test.ts).
+// jsdom cannot prove it: the beacon only leaves a production bundle, so this runs against
+// the preview server like the CSP smoke does.
 
-const BUILD_SHAPE = /^[0-9a-f]{7}$/;
-const SHA = process.env.VERCEL_GIT_COMMIT_SHA ?? '';
-const EXPECTED = /^[0-9a-f]{7,40}$/.test(SHA) ? SHA.slice(0, 7) : null;
+const COMMIT = 'abc1234';
 
-test('a reported error carries the commit the page was built from, and only that', async ({ page }) => {
+test('a reported error carries the commit from the Server-Timing header, and the HTML carries none', async ({ page }) => {
   await page.route('**/api/report', (route) => route.fulfill({ status: 204 }));
+  await page.route('**/merge/', async (route) => {
+    if (route.request().resourceType() !== 'document') return route.continue();
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), 'server-timing': `build;desc="${COMMIT}"` } });
+  });
   await page.goto('/merge/');
 
-  const tags = page.locator('meta[name="pdkef-build"]');
-  const stamped = (await tags.count()) === 1 ? await tags.getAttribute('content') : null;
-  if (stamped !== null) expect(stamped).toMatch(BUILD_SHAPE);
-  if (EXPECTED !== null) expect(stamped).toBe(EXPECTED);
+  await expect(page.locator('meta[name="pdkef-build"]')).toHaveCount(0);
 
   // /api/report also carries usage events (DEBT-44: `tool_page_viewed` goes out on load), so
   // wait for the error report itself, not the first request to the endpoint. Taking the first
@@ -56,6 +50,5 @@ test('a reported error carries the commit the page was built from, and only that
   await page.evaluate(() => clearInterval(window.__probe));
 
   expect(report).toMatchObject({ area: 'uncaught', tool: '/merge/' });
-  if (stamped === null) expect(report).not.toHaveProperty('build');
-  else expect(report.build).toBe(stamped);
+  expect(report.build).toBe(COMMIT);
 });

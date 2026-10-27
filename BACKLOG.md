@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 76 live: 14 up next, 13 then, 26 waiting, 23 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 99 live: 12 up next, 22 then, 26 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -70,11 +70,9 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
-| MEM-19 | P2 | [MEM-19](backlog/tasks/MEM-19.md) · The deploying commit lives outside the page HTML, so an update re-downloads only the pages that changed |  |
-| MEM-20 | P2 | [MEM-20](backlog/tasks/MEM-20.md) · Each page's CSP hash list is emitted in a stable order |  |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
+| MEM-21 | P3 | [MEM-21](backlog/tasks/MEM-21.md) · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB | In progress |
 
 ### Then, in order
 
@@ -82,9 +80,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
-| QUAL-31 | P2 | [QUAL-31](backlog/tasks/QUAL-31.md) · check:push typechecks .astro scripts when the diff reaches an .astro file |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
-| MEM-21 | P3 | [MEM-21](backlog/tasks/MEM-21.md) · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB |  |
 
 ### Waiting
 
@@ -109,7 +105,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MEM-22 | P3 | [MEM-22](backlog/tasks/MEM-22.md) · A build's cache holds only that build's files |  |
-| MEM-23 | P3 | [MEM-23](backlog/tasks/MEM-23.md) · Each precache request has a time limit |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
 ## Unify the tools, narrow the graph
@@ -123,6 +118,22 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-89 | P3 | [ARCH-89](backlog/tasks/ARCH-89.md) · Repeated CSS blocks and static inline styles move to shared rules | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ARCH-101 | P2 | [ARCH-101](backlog/tasks/ARCH-101.md) · src/lib groups its modules by domain, and a check holds the shape |  |
+| ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · No tool island function is over 300 lines |  |
+| ARCH-105 | P2 | [ARCH-105](backlog/tasks/ARCH-105.md) · The size ratchet also records functions over 150 lines and nesting depth |  |
+| ARCH-106 | P2 | [ARCH-106](backlog/tasks/ARCH-106.md) · The Scan island is shorter than before ARCH-54 grew it |  |
+| ARCH-108 | P2 | [ARCH-108](backlog/tasks/ARCH-108.md) · Sign keeps its document-load fields in signState |  |
+| ARCH-109 | P2 | [ARCH-109](backlog/tasks/ARCH-109.md) · Redact moves its effect clusters into hooks over the reducer state |  |
+| ARCH-114 | P2 | [ARCH-114](backlog/tasks/ARCH-114.md) · The unused-exports baseline of own-file-only and test-only exports shrinks |  |
+| ARCH-118 | P2 | [ARCH-118](backlog/tasks/ARCH-118.md) · More JavaScript folders are type-checked through checkjs-folders.json |  |
+| ARCH-121 | P2 | [ARCH-121](backlog/tasks/ARCH-121.md) · Fixed sleeps in e2e specs are replaced by web-first assertions |  |
+| ARCH-123 | P2 | [ARCH-123](backlog/tasks/ARCH-123.md) · The narrowed share of main runs is reported and acted on |  |
+| ARCH-129 | P2 | [ARCH-129](backlog/tasks/ARCH-129.md) · docs/module-boundaries.md describes the current layout |  |
+
 ### Parked
 
 | ID | P | Task | Note |
@@ -130,6 +141,24 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-41 | P3 | [ARCH-41](backlog/tasks/ARCH-41.md) · Compress, Image to PDF and Unlock/Protect finish with the shared Download control |  |
 | ARCH-44 | P3 | [ARCH-44](backlog/tasks/ARCH-44.md) · Imports across layers use one path alias per layer |  |
 | ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names |  |
+| ARCH-102 | P3 | [ARCH-102](backlog/tasks/ARCH-102.md) · src/tools/sign/lib is split into sub-areas with a file-count ratchet |  |
+| ARCH-104 | P3 | [ARCH-104](backlog/tasks/ARCH-104.md) · ToolHero.astro is split into per-section components |  |
+| ARCH-107 | P3 | [ARCH-107](backlog/tasks/ARCH-107.md) · draftStore.ts and formCells.js are split by responsibility |  |
+| ARCH-110 | P3 | [ARCH-110](backlog/tasks/ARCH-110.md) · Scan folds its co-changing fields into the scan reducer |  |
+| ARCH-111 | P3 | [ARCH-111](backlog/tasks/ARCH-111.md) · Split, Edit Pages and PDF to Image share one bulk-row component and message set |  |
+| ARCH-112 | P3 | [ARCH-112](backlog/tasks/ARCH-112.md) · A JS/TS clone-percentage ratchet runs in CI |  |
+| ARCH-113 | P3 | [ARCH-113](backlog/tasks/ARCH-113.md) · The headless core marks gestureMachine.ts as parked, with its owner ticket |  |
+| ARCH-115 | P3 | [ARCH-115](backlog/tasks/ARCH-115.md) · Test-only modules sit on test-support paths |  |
+| ARCH-116 | P3 | [ARCH-116](backlog/tasks/ARCH-116.md) · Each tool has one id, with folder and label as the only other fields |  |
+| ARCH-117 | P3 | [ARCH-117](backlog/tasks/ARCH-117.md) · Shell CSS comments name current files and tool counts |  |
+| ARCH-119 | P3 | [ARCH-119](backlog/tasks/ARCH-119.md) · Draft records enter the code through one parse function per type |  |
+| ARCH-120 | P3 | [ARCH-120](backlog/tasks/ARCH-120.md) · The floating-promise check uses the TypeScript checker |  |
+| ARCH-122 | P3 | [ARCH-122](backlog/tasks/ARCH-122.md) · PdfRedactTool.test.tsx is split by behaviour area |  |
+| ARCH-124 | P3 | [ARCH-124](backlog/tasks/ARCH-124.md) · check-ratchet-raises is tested for a direct push to main |  |
+| ARCH-125 | P3 | [ARCH-125](backlog/tasks/ARCH-125.md) · The color-literal check also covers TSX style props |  |
+| ARCH-126 | P3 | [ARCH-126](backlog/tasks/ARCH-126.md) · The zod pin held by @vercel/cli-config is gone and its exception removed |  |
+| ARCH-127 | P3 | [ARCH-127](backlog/tasks/ARCH-127.md) · The advisory exceptions list holds no entry that matches nothing |  |
+| ARCH-128 | P3 | [ARCH-128](backlog/tasks/ARCH-128.md) · The boundary rules are written once and checked against every copy |  |
 
 ## Search and languages
 
@@ -197,7 +226,6 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ENC-12 | P3 | [ENC-12](backlog/tasks/ENC-12.md) · One hand-off row, not four copies |  |
-| SCAN-03 | P3 | [SCAN-03](backlog/tasks/SCAN-03.md) · The Scan guide photos load lazily |  |
 
 # Closed work
 
@@ -207,10 +235,10 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 62 done, 4 retired
+- Robustness and debt: 68 done, 4 retired
 - Unify the tools, narrow the graph: 64 done, 0 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 18 done, 1 retired
+- Polish: 19 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
