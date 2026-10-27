@@ -183,6 +183,9 @@ jobs:
     - name: Verify the unused-exports ratchet
       run: npm run test:unused-exports
 
+    - name: Verify every island renders inside the error boundary
+      run: npm run test:island-boundary
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
