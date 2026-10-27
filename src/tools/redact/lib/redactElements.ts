@@ -25,15 +25,7 @@ export type RedactStrokeElement = (BlurStrokeElement | (WhiteoutStrokeElement & 
 
 export type RedactElement = RedactBoxElement | RedactStrokeElement | DeleteElement;
 
-export function isStrokeElement(el: RedactElement): el is RedactStrokeElement {
-  return el.type === 'blurStroke' || el.type === 'whiteoutStroke';
-}
-
 export function isDeleteElement(el: RedactElement): el is DeleteElement {
   return el.type === 'delete';
-}
-
-export function isBoxElement(el: RedactElement): el is RedactBoxElement {
-  return el.type === 'whiteout' || el.type === 'blackout' || el.type === 'blur';
 }
 
