@@ -1,0 +1,30 @@
+---
+import FeatureCard from '../FeatureCard.astro';
+import CardDecor from '../CardDecor.astro';
+import { HelpCircle } from 'lucide-preact';
+
+interface Props {
+  faqKicker: string;
+  faq: { question: string; answer: string }[];
+  messages: any;
+}
+const { faqKicker, faq, messages } = Astro.props;
+---
+<FeatureCard class="relative isolate overflow-hidden">
+  <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
+  <div class="space-heading-content text-center">
+    {/* home.faqKicker, not messages.faqTag: the shell catalogue's tag is
+        what every tool and guide page says ("Got questions?"), and the home
+        page has always said something else. See homeContent.js. */}
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{faqKicker}</span>
+    <h2 class="type-section m-0 text-[var(--color-text)]">{messages.faqHeading}</h2>
+  </div>
+  <div class="space-layout-gap grid grid-cols-2 gap-x-12 max-[768px]:grid-cols-1">
+    {faq.map(({ question, answer }: { question: string; answer: string }) => (
+      <div class="faq-card">
+        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">{question}</h3>
+        <p class="type-body m-0 text-[var(--color-muted)]">{answer}</p>
+      </div>
+    ))}
+  </div>
+</FeatureCard>

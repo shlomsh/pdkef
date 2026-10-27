@@ -2,8 +2,7 @@
 // Each guard gets a page built to violate it, so a regression that stops the
 // guard firing fails here before it would ever need a full build to notice.
 // Guards 1 and 2 (reciprocal hreflang, lang/dir) were already generic in
-// verify-seo.js and are exercised by every preview build; guard 5's manifest
-// half lives in serviceWorker.test.js against shouldPrecache.
+// verify-seo.js and are exercised by every preview build.
 import { JSDOM } from 'jsdom';
 import vercelConfig from '../vercel.json';
 import { describe, expect, it } from 'vitest';
@@ -25,7 +24,7 @@ const SITE = 'https://pdkef.com';
 const HEBREW = 'מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו מספרי עמודים והורידו. הקובץ נשאר אצלכם במכשיר.';
 const ENGLISH = 'Combine multiple PDFs into a single document, reorder pages by drag-and-drop, and optionally add page numbers before you export.';
 
-function page({ path, lang = 'he', noindex = false, body = '', tool = true, pack = null, appText = '', toolControlsEnglish = false }) {
+function page({ path, lang = 'he', noindex = false, body = '', tool = true, appText = '', toolControlsEnglish = false }) {
   const html = `<!doctype html><html lang="${lang}" dir="rtl"><head>
     <link rel="canonical" href="${SITE}${path}">
     ${noindex ? '<meta name="robots" content="noindex, follow">' : ''}
@@ -35,7 +34,6 @@ function page({ path, lang = 'he', noindex = false, body = '', tool = true, pack
     ${tool ? `<section id="app">${appText}</section>` : ''}
     ${toolControlsEnglish ? '<p data-tool-controls-english>Editor controls are in English.</p>' : ''}
     <h1>${body}</h1>
-    ${pack ? `<div hidden data-locale-pack="${pack.prefix}" data-locale-pack-urls="${pack.urls.join(',')}"></div>` : ''}
   </body></html>`;
   return new JSDOM(html).window.document;
 }
@@ -165,40 +163,6 @@ describe('sitemap membership follows publication (guard 4)', () => {
   it('reads <loc> entries out of a sitemap document', () => {
     expect(sitemapLocations('<urlset><url><loc>https://pdkef.com/merge/</loc></url><url><loc> https://pdkef.com/he/merge/ </loc></url></urlset>'))
       .toEqual(new Set(['https://pdkef.com/merge/', 'https://pdkef.com/he/merge/']));
-  });
-});
-
-describe('offline locale pack names only this edition\'s published pages (guard 5)', () => {
-  const published = { '/he/compress/': false, '/he/how-to-sign-a-pdf-on-android/': false };
-
-  it('passes a pack of built, published pages under the same prefix', () => {
-    const document = page({ path: '/he/merge/', body: HEBREW, pack: { prefix: 'he', urls: ['/he/merge/', '/he/compress/'] } });
-    expect(check(document, '/he/merge/', { sitemap: ['/he/merge/'], built: published })).toEqual([]);
-  });
-
-  it('SABOTAGE: fails a pack that names a page outside the edition', () => {
-    const document = page({ path: '/he/merge/', body: HEBREW, pack: { prefix: 'he', urls: ['/he/merge/', '/merge/'] } });
-    expect(check(document, '/he/merge/', { sitemap: ['/he/merge/'], built: published }))
-      .toEqual([expect.stringContaining('outside this edition: /merge/')]);
-  });
-
-  it('SABOTAGE: fails a pack that names a draft or an unbuilt page', () => {
-    const document = page({
-      path: '/he/merge/',
-      body: HEBREW,
-      pack: { prefix: 'he', urls: ['/he/merge/', '/he/split/', '/he/sign/'] },
-    });
-    const problems = check(document, '/he/merge/', { sitemap: ['/he/merge/'], built: { ...published, '/he/split/': true } });
-    expect(problems).toEqual([
-      expect.stringContaining('names a draft (noindex) page: /he/split/'),
-      expect.stringContaining('names a page that is not built: /he/sign/'),
-    ]);
-  });
-
-  it('SABOTAGE: fails a pack whose prefix is not the page\'s own locale', () => {
-    const document = page({ path: '/he/merge/', body: HEBREW, pack: { prefix: 'ar', urls: ['/ar/merge/'] } });
-    const problems = check(document, '/he/merge/', { sitemap: ['/he/merge/'] });
-    expect(problems[0]).toContain('does not match the page\'s locale "he"');
   });
 });
 

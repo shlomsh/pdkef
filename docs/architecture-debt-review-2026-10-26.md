@@ -30,7 +30,7 @@ wide on e2e. The edges that close the loop:
 - the former `toolMessages.ts` (2466 lines, 53 commits in the window) imports types from shell (`:21`)
   and editor (`:22`, `:1527`), and is imported by pages (`HomePageLayout.astro:35`,
   `localizedToolPage.ts:26`). See ARCH-35.
-- `src/editor/text/signHelpers.js:1-2` imports `constants/signGeometry.js` and `editor/text/fonts.js`: lib
+- `src/editor/text/textLayout.js:1-2` imports `constants/signGeometry.js` and `editor/text/fonts.js`: lib
   reaching up into editor and site. Its consumers are Sign, editor and editor-ui only.
 - `src/shell/pageWorkspace/PhoneFinish.tsx:2` imports `editor-ui/ExportHandoffs.tsx`.
 - The `site` project (`src/project.json`, root `src`) swallows `src/data`, `src/site-lib` and

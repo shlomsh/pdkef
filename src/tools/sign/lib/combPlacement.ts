@@ -264,7 +264,7 @@ function cellTextTop(strip: { top: number; height: number }, em: number, fontFam
  * cell only if more is typed than fits. The size is `fieldFontSize`'s, so a short row never gets a
  * carried size that renders into the row below.
  *
- * `left` is always the physical left edge: a span has no growing edge to anchor (see signHelpers'
+ * `left` is always the physical left edge: a span has no growing edge to anchor (see textLayout'
  * `textAnchorsRightEdge`). `top` is `cellTextTop`'s, so the answer sits toward the cell's line; only the
  * box's bottom padding crosses the cell's bottom, so no extra inset is applied.
  *
@@ -355,7 +355,7 @@ export function placeCombOnRegion(
  * The geometry a text box takes to sit on a detected field, whichever kind: the one place a tap
  * (useWorkspaceGestures) and Next/Previous (useFieldNavigation) both get it from, so the two cannot
  * drift apart. Neither kind needs a `direction`: a comb's span and a cell's `minWidth` are both
- * left-anchored (see signHelpers' `textAnchorsRightEdge`).
+ * left-anchored (see textLayout' `textAnchorsRightEdge`).
  *
  * `carriedFontSize` null means the document has none yet; the caller passes it only when it will adopt
  * the result as the carried size (see `fieldFontSize`).

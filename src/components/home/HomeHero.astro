@@ -1,0 +1,621 @@
+---
+import AppBar from '../AppBar.astro';
+import TrustChips from '../TrustChips.astro';
+import HeroDemo from '../HeroDemo/HeroDemo.astro';
+import FileDropzone from '../../site-lib/FileDropzone.tsx';
+
+interface Props {
+  h1Prefix: string;
+  h1Accent: string;
+  subhead: string;
+  dir: 'ltr' | 'rtl';
+  locale: string;
+  messages: any;
+  homeTools: any[];
+  dropzoneMessages: any;
+  recentFilesMessages: any;
+  signToolDisplayName: string;
+  toolHrefs?: Record<string, string>;
+}
+const { h1Prefix, h1Accent, subhead, dir, locale, messages, homeTools, dropzoneMessages, recentFilesMessages, signToolDisplayName, toolHrefs } = Astro.props;
+---
+<div class="home-tour" id="home-tour" data-demo-track="desktop">
+  <section class="home-hero" aria-labelledby="home-heading" data-demo-pin="desktop">
+    <div class="home-header">
+      <AppBar isHome locale={locale} labels={messages}>
+        <TrustChips labels={messages} offlineHref="#offline-app" />
+      </AppBar>
+      <header class="hero-header">
+        <h1 id="home-heading">{h1Prefix}<span>{h1Accent}</span></h1>
+        <p>{subhead}</p>
+      </header>
+    </div>
+    {/* Source order is the mobile reading order: header, launcher, dock,
+        then the demo. Desktop places the same four into a two-column grid
+        with the demo beside the launcher, which is a purely visual
+        arrangement - so a screen reader still meets the tools before a
+        screen-tall decorative story, at both breakpoints. */}
+    <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
+      {/* client:load, not client:only: a client:only island emits no HTML
+          at build time, so the dropzone tile and the recent-documents
+          card only existed once the Preact bundle had loaded and visibly
+          arrived after the page had painted. Server-rendering the shell
+          is only safe while FileDropzone's first client render matches it
+          exactly - see the note on the `recents` state there, which is
+          what keeps browser storage out of the render body. Reverting
+          either half alone brings back the duplicate tiles of 203b204. */}
+      <FileDropzone client:load toolTarget="sign" messages={dropzoneMessages} recentFilesMessages={recentFilesMessages} toolDisplayName={signToolDisplayName} toolHrefs={toolHrefs} />
+    </div>
+    <nav class="home-dock" aria-label={messages.toolDockAriaLabel}>
+        {homeTools.map((tool) => (
+          <a href={tool.href} data-accent={tool.accent} data-tool={tool.slug} class="app-card">
+            <div class="app-tile">
+              <tool.icon strokeWidth={1.5} />
+            </div>
+            <div class="app-label">{tool.gridTitle}</div>
+            <span class="app-tooltip">{tool.gridDescription}</span>
+          </a>
+        ))}
+    </nav>
+    <div class="demo-track" data-demo-track="mobile">
+      <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
+        <HeroDemo dir={dir} locale={locale} />
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  /* This bounded surface is deliberately a normal-flow section. Keeping the
+     gradient with the hero means the title, workspace, and tool launcher can
+     leave together without independently painted fixed layers creating a seam. */
+  .home-hero,
+  .home-tour {
+    /* Homepage expression of Mint and Paper: the hero's field is the fuller
+       mint (--home-workspace), deeper teal ink for text, and the same citron
+       highlighter the rest of the tour uses. Global tool-page tokens remain
+       unchanged. The hero gradient below starts from --color-bg, the header's
+       own off-white, so the header and hero meet without a visible edge, and
+       deepens into the mint toward the dock. */
+    --color-text: #0b4c4c;
+    --color-muted: #276460;
+    --home-workspace: #c3f0e6;
+    --home-citron: var(--color-citron);
+    --home-citron-ink: var(--color-citron-ink);
+  }
+  .home-hero {
+    color: var(--color-text);
+    /* The hero is the first 100svh of a much taller .home-tour on both
+       breakpoints (sticky-pinned on desktop, static-then-1216svh-tall on
+       mobile - see the mobile override below). Sizing the gradient to one
+       screen and repeating nothing keeps it from stretching across the
+       whole tour; the flat color underneath is what the rest of the tour
+       already shows, so the seam at 100svh is invisible. */
+    background-image: linear-gradient(180deg, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 60%, var(--home-workspace)) 45%, var(--home-workspace) 100%);
+    background-size: 100% 100svh;
+    background-repeat: no-repeat;
+    background-color: var(--home-workspace);
+  }
+  /* The hero pins for the whole bounded tour and releases when both stories
+     are complete. It is the single element that holds still on desktop;
+     mobile pins only the demo instead (see the mobile override below), so
+     this same grid is reused there with a different `position`. */
+  .home-hero {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: 100svh;
+    width: 100%;
+    display: grid;
+    /* A full-bleed grid, so the header and dock can span edge to edge while
+       the launcher and demo sit inside the same 1280px content block the
+       page had when they lived in a constrained wrapper: two 588px columns
+       either side of a 40px gap column is 1216px, plus a 32px minimum gutter
+       each side. The gap is a real column rather than `column-gap`, which
+       would also space the gutters and pull the content narrower. Expressing
+       it here rather than in a wrapper is what lets the demo be a sibling
+       *after* the dock in source order while still rendering beside the
+       launcher. The demo column has a 480px floor because the stage needs a
+       150px note column, a 28px gap and a phone of at least 300px (up to
+       360px on tall windows); without it grid growth gave the launcher
+       column its full 588px and the demo 332px at 1024px, and the phone
+       overflowed the page (SITE-43). */
+    grid-template-columns:
+      [full-start] minmax(32px, 1fr)
+      [content-start] minmax(312px, 588px)
+      40px
+      minmax(480px, 588px) [content-end]
+      minmax(32px, 1fr) [full-end];
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header header   header header header"
+      ".      launcher .      demo   ."
+      "dock   dock     dock   dock   dock";
+  }
+  .home-header { grid-area: header; }
+  /* Fills its row rather than centring (MOBI-35): recents arrive after mount,
+     so FileDropzone/RecentFiles reserve two rows inside this fixed box, top
+     first, with the picker under them; nothing moves when the real tiles land. */
+  .workspace-launcher { grid-area: launcher; align-self: stretch; }
+  .demo-track { grid-area: demo; align-self: center; }
+  .home-dock { grid-area: dock; }
+  /* The demo pin's own frame just fills whichever cell holds it; the pin
+     behavior itself lives on .home-hero (desktop) or .home-frame (mobile,
+     see below) via [data-demo-pin]. */
+  .demo-track,
+  .home-frame {
+    height: 100%;
+    min-height: 0;
+  }
+  /* The trust chips and the on-device badge take their one look from
+     AppBar.astro; nothing here restyles them any more (that is what let the
+     home and tool headers drift apart). */
+  @media (min-width: 1024px) {
+    .home-header { padding-top: var(--home-nav-height); }
+    .home-header :global([data-home-bar]) {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 60;
+    }
+    /* Match the demo's 1280px frame and its 32px inner gutter exactly. */
+    .home-header :global([data-home-bar] > div) { padding-inline: 32px; }
+  }
+  /* Doubled class, deliberately. global.css carries a bare, unlayered
+     `header:not(.tool-hero):not(.not-found-header)` at specificity 0-2-1, and
+     `header.hero-header` plus Astro's own scope attribute is also 0-2-1 - an
+     exact tie, decided by whichever stylesheet the build happens to emit
+     second. It currently resolves the right way, so this is not a live bug,
+     but it is the same trap QUAL-02 was filed for: the win is accidental.
+     Repeating the class takes this to 0-3-1 so it wins on specificity instead
+     of on emission order. Not `!important` - Astro's scoped output shares the
+     bare rule's implicit layer, so specificity is what settles it. */
+  header.hero-header.hero-header { max-width: none; padding: 20px 24px 16px; margin: 0; text-align: center; }
+  .hero-header h1 { color: var(--color-text); font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
+  /* Same stroke the demo caption draws behind "sign" (HeroDemo.module.css's
+     .caption-marker), so the headline says the privacy line in the product's
+     own hand. `isolation: isolate` gives the span its own stacking context so
+     `z-index: -1` on the ::before sits behind the letters but above the hero
+     background instead of behind the whole header. white-space: nowrap is
+     kept: "on your device" is three short words, and even at the mobile
+     1.6rem size (see the max-width: 1023px override below) that phrase is
+     well under a 320px line - nowrap can only push it onto its own line as a
+     whole, never force horizontal overflow. */
+  .hero-header h1 span { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
+  .hero-header h1 span::before {
+    content: '';
+    position: absolute;
+    inset: 58% -0.08em 0.04em;
+    background: var(--color-citron);
+    border-radius: 0.3em 0.14em 0.26em 0.12em;
+    rotate: -0.6deg;
+    z-index: -1;
+  }
+  .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
+  /* One canonical DOM tree: .home-hero (header, scene, dock) sits inside
+     .home-tour at all widths. The hero pins in place (position: sticky) for
+     the bounded tour and releases when both stories are complete; only the
+     mobile override below changes which element pins. */
+  .home-tour {
+    position: relative;
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    background: var(--home-workspace);
+  }
+  /* 1116svh. The original extra room buys the dwell on the finished first
+     story; the added 176svh pauses the second story on its initial inbox,
+     request tap, cleaned reply, and sent confirmation without slowing the
+     redactions. Scroll can scrub through this same timeline, while the demo
+     now plays through it independently when in view.
+     If this number changes, re-derive SIGN_END / CROSSFADE_START /
+     CROSSFADE_END against it - they are fractions of this span, so a shorter
+     tour speeds both stories up silently. */
+  .home-tour { height: calc(100svh + 1116svh); }
+  .workspace-launcher { justify-self: start; width: 100%; max-width: 440px; padding-block: 24px; box-sizing: border-box; }
+  /* A reserved recents row never gets shorter than a readable tile: the
+     preview's 40px floor plus its padding, name and two sub lines (MOBI-36). */
+  .workspace-launcher { --recent-row-floor: 144px; }
+  /* The first thumbnail's top (10px + the tile's 6px padding) lines up with the
+     demo phone's, which sits on HeroDemo's 16px stage padding (MOBI-37).
+     Desktop only: the tablet cell isn't beside the demo. */
+  @media (min-width: 1024px) and (min-height: 561px) {
+    .workspace-launcher { padding-top: 10px; }
+  }
+  [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
+  /* The dock is the first screen's bottom edge in the same ink as the
+     On-device chip at its top: deep teal, white labels, light tiles. (It used
+     to carry a hardcoded Sea Glass literal, a palette-invariant violation; CLAUDE.md says
+     colours come from :root tokens, never literals.) */
+  .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: var(--color-primary); border-top: 1px solid var(--color-primary-active); }
+  /* The in-flow dock scrolls sideways only at widths where it genuinely does
+     not fit, and that condition is what brings the tool tooltips back.
+
+     CSS turns an unspecified `overflow-y` into `auto` when `overflow-x` is
+     scrollable. That exposed a vertical scrollbar on the dock even
+     though its only intended overflow is the horizontal tool list. Keep the
+     block axis explicitly clipped while preserving the familiar sideways
+     scroll pattern on narrow screens.
+
+     The dock is eleven cards, ten gaps and padding. From 1024px the cards are
+     80px with 48px of padding, so the full 20px gap needs 1128px and the gap
+     narrows fluidly below that (9.6px at 1024px, 8px at 1008px) instead of
+     the dock overflowing the page (SITE-43). Under 1024px the cards are 72px
+     with 12px gaps and 32px of padding, which is 944px of dock, so it still
+     fits from 960px, the first round step. Below that the scroll comes back and the
+     tooltips clip again, which is the right trade: those widths are phones
+     and small tablets, where there is no hover to show a tooltip with and a
+     sideways-scrolling dock is the familiar pattern. */
+  @media (min-width: 960px) {
+    .home-dock { overflow: visible; gap: clamp(8px, calc((100% - 880px) / 10), 20px); }
+  }
+
+  @media (max-width: 959.98px) {
+    /* min-height, and specifically min-content, because `overflow-y: hidden`
+       makes the dock a scroll container, and a scroll container's automatic
+       minimum size is zero. The dock sits in an `auto` grid row inside a hero
+       of fixed `100svh + 1216svh`, so with a zero floor that row shrank to
+       whatever the launcher left over and the dock silently clipped its own
+       tiles and labels: 31px of a 100px row on a 844x390 landscape iPhone.
+       min-content restores the content height as the row's floor, so a first
+       screen that genuinely does not fit grows past 100svh and scrolls - which
+       is what e2e/home/scrollable-hero.spec.js already asserts is intended -
+       rather than cutting the dock in half. */
+    .home-dock { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; min-height: min-content; }
+    /* A hidden tooltip still counts toward scrollable overflow, so the last
+       card's 200px tooltip left 46px of empty dock past the end of the row. */
+    .app-tooltip { display: none; }
+  }
+  /* Where the dock scrolls, its edges say so: a strip of the dock's own teal
+     fades the cut card at each end, and the strip dissolves as that end of
+     the row arrives, so nothing is dimmed once there is nothing more to see.
+     The strips are sticky flex items with a negative margin, so they take no
+     space in the row, and the dock's own inline scroll drives their opacity:
+     no observer, no JS. Gated on scroll-driven animations because a strip
+     that never dissolves would dim the last tool at the end of the row. */
+  @supports (animation-timeline: scroll()) {
+    @media (max-width: 959.98px) {
+      .home-dock { scroll-timeline: --home-dock inline; }
+      .home-dock::before,
+      .home-dock::after {
+        content: '';
+        position: sticky;
+        flex: 0 0 40px;
+        align-self: stretch;
+        /* The dock has 10px of block padding and align-self: stretch sizes a
+           strip to the content box only, so without this a lit tool's ring
+           pokes out above and below the fade at either end (SITE-42). */
+        margin-block: -10px;
+        z-index: 1;
+        pointer-events: none;
+        /* The resting state is "no strip", and the animation is the only
+           thing that ever shows one. A scroll timeline whose scroller does
+           not overflow is inactive, and an inactive timeline leaves the
+           element's own opacity standing - so a dock wide enough to hold all
+           eleven tools (any width from ~944px up to this block's 960px ceiling)
+           used to dim its first and last card with nothing to scroll to in
+           either direction. Declaring 0 here also means any future failure
+           to resolve the timeline degrades to no strips rather than to two
+           permanent ones. */
+        opacity: 0;
+        /* Longhands only, never the `animation` shorthand. Lightning CSS
+           merges a shorthand with the `animation-timeline` longhand beside
+           it and emits `animation: none`, which drops both the timeline and
+           the fill mode: the strips then never animate and sit at their
+           default opacity 1 forever, dimming the first card at scroll 0 and
+           the last one at the end. It only happens in a minified build, so
+           `astro dev` shows the effect working the whole time. Verify this
+           block against `dist/`, not the dev server. */
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --home-dock;
+      }
+      /* Sticky insets measure from the dock's content edge, 16px in from the
+         screen, so the strips reach out by the dock's own inline padding to
+         sit flush with the visible edge. */
+      .home-dock::before {
+        inset-inline-start: -16px;
+        margin-inline-end: calc(-40px - 12px);
+        background: linear-gradient(to right, var(--color-primary), transparent);
+        animation-name: home-dock-edge-in;
+        animation-range: 0 40px;
+      }
+      .home-dock::after {
+        inset-inline-end: -16px;
+        margin-inline-start: calc(-40px - 12px);
+        background: linear-gradient(to left, var(--color-primary), transparent);
+        animation-name: home-dock-edge-out;
+        animation-range: calc(100% - 40px) 100%;
+      }
+      :global(html[dir='rtl']) .home-dock::before { background: linear-gradient(to left, var(--color-primary), transparent); }
+      :global(html[dir='rtl']) .home-dock::after { background: linear-gradient(to right, var(--color-primary), transparent); }
+    }
+  }
+  @keyframes home-dock-edge-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes home-dock-edge-out { from { opacity: 1; } to { opacity: 0; } }
+  .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
+  .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
+  .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-surface); }
+  @media (max-width: 1023px) {
+    /* Mobile pins only the demo (.home-frame below), once the first screen
+       has scrolled past - not the whole hero, which is why .home-hero drops
+       out of sticky here and instead lays its four sections out as one tall
+       column: a real 100svh first screen (header/launcher/dock), followed
+       by the 1216svh row that .home-frame travels through. */
+    .home-hero {
+      position: static;
+      /* min-height, not height, and min-content for the header and dock rows.
+         The first screen must be *at least* 100svh and the demo track exactly
+         1216svh, but the three rows above it also have a floor of their own:
+         the recents grid is six documents in three columns, which is taller
+         than the launcher's share of a short screen (579px of content in a
+         208px row on a 844x390 landscape iPhone). With a fixed height those
+         rows could only be squeezed, so the overflow painted straight through
+         the dock and into the demo below - the rotated-phone screenshot.
+         Keeping the height indefinite lets the first screen grow instead,
+         which is what this layout already intended ("deliberately allowed to
+         grow for short screens and text zoom", e2e/home/scrollable-hero.spec.js).
+
+         min-content on the header and dock rows is what keeps that growth
+         honest in both directions: neither may be squeezed (the dock is a
+         scroll container at these widths, so its automatic minimum size is
+         zero and it was being cut from 111px to 34px), and neither may absorb
+         the spare height that belongs to the launcher, so on a screen where
+         everything fits the launcher row is still the one that stretches and
+         the layout is unchanged to the pixel. */
+      height: auto;
+      min-height: calc(100svh + 1216svh);
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: min-content 1fr min-content 1216svh;
+      grid-template-areas: "header" "launcher" "dock" "demo";
+    }
+    .home-header :global([data-home-bar] > div) { min-height: 56px; padding-block: 6px; gap: 6px; }
+    /* Match the live demo heading's top rhythm, so the homepage promise and
+       both demo titles begin at the same distance below the app bar. */
+    header.hero-header.hero-header {
+      padding: calc(var(--space-4) + var(--space-3)) 16px var(--space-3);
+    }
+    .hero-header h1 { font-size: 1.6rem; }
+    .hero-header p { font-size: 0.85rem; }
+    .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: stretch; justify-content: center; }
+    .home-tour { height: auto; }
+    /* Both stretch here, undoing the desktop centring: the launcher has to
+       fill the 1fr row that makes up the rest of the first screen, and the
+       demo track has to fill the tall row its pinned frame travels through. */
+    .workspace-launcher { max-width: none; align-self: stretch; }
+    .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
+    .app-card { flex-basis: 72px; }
+    .app-tile { width: 52px; height: 52px; }
+  }
+  @media (max-width: 767px) {
+    /* iOS draws no scrollbar, so the only sign that the dock holds more than
+       the first screen is a card cut by the edge. At 72px the fifth card ends
+       flush with a 440px viewport and the row reads as a closed set of five;
+       sizing cards to four and a half per row leaves half a card showing at
+       every phone width. The cap keeps the tiles from floating in oversized
+       cards once a wider screen has room to spare. */
+    .app-card { flex-basis: min(calc((100% - 48px) / 4.5), 96px); }
+  }
+  /* The mobile pin and its page frame, at the same 1023px boundary the mobile
+     *layout* above already uses - and the same one homeWorkspace.ts's `mobile`
+     media query and ScrollDriver's pin lookup assume.
+
+     These rules used to stop at 767px while the layout they belong to ran to
+     1023px, so every width in between (a phone in landscape - 844x390 on an
+     iPhone 15 - and every tablet in portrait) got the mobile grid with no pin
+     under it: .home-hero drops out of `sticky` at 1023px and .home-frame only
+     entered it at 767px, so nothing matched ScrollDriver's "which
+     [data-demo-pin] computes to sticky" lookup and the demo never pinned.
+     Worse, an unpinned .home-frame keeps `height: 100%` of the 1216svh demo
+     row: HeroDemo's .root is a size container, so `.phone`'s
+     `calc(100cqh - 32px)` resolved against 4,742px and drew a phone taller
+     than four screens across the hero. That is the rotate-to-landscape bug. */
+  @media (max-width: 1023px) {
+    .demo-track {
+      align-self: stretch;
+      /* Keeps the pinned demo off the screen edges; the desktop layout gets
+         the same inset from its grid's gutter columns instead. */
+      padding-inline: 16px;
+    }
+    /* While either demo is playing, restore the same quiet page frame used
+       around the desktop cards. The frame reserves both bars plus a real gap,
+       so the demo title and phone never sit underneath fixed chrome. */
+    /* Reserve the bar from first paint so scrolling never changes its
+       positioning or removes space from the landing layout. */
+    .home-header { padding-top: var(--home-nav-height); }
+    .home-header :global([data-home-bar]) {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 70;
+    }
+    /* Keep the geometry identical as the demo approaches and pins. Adding
+       toolbar clearance only when visible makes its title jump down. */
+    .home-frame {
+      --demo-frame-gap: var(--space-3);
+      position: sticky;
+      top: 0;
+      box-sizing: border-box;
+      height: 100svh;
+      padding-block: calc(var(--home-nav-height) + var(--demo-frame-gap)) calc(var(--home-footer-height) + var(--demo-frame-gap));
+    }
+  }
+  @media (max-width: 767px) {
+    .home-workspace { padding: 16px 16px 24px; display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  }
+  @media (max-width: 720px) {
+    .home-header :global([data-home-bar] > div) {
+      height: 56px;
+      min-height: 56px;
+      flex-wrap: nowrap;
+      gap: 0.35rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-card *, .app-card { transition: none !important; }
+  }
+
+  .app-tile {
+    border-radius: 18px;
+    /* Light on the mint dock: plain tiles read as paper cutouts, not more mint. */
+    background: linear-gradient(150deg, var(--color-surface), var(--color-primary-soft));
+    color: var(--color-text);
+    box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: translate 0.4s var(--ease-spring), rotate 0.4s var(--ease-spring), scale 0.4s var(--ease-spring),
+      box-shadow 0.4s var(--ease-out), background-color 0.2s var(--ease-out);
+  }
+
+  /* Accented tiles carry their own gradient; hover overrides both, which is why
+     these rules come first and the state rules after. */
+  /* The flagship on a deep teal dock: ink, with a thin white ring so it
+     reads as the one lifted tile rather than a hole in the bar. */
+  .app-card[data-accent='primary'] .app-tile {
+    background: var(--color-text);
+    color: var(--color-surface);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 8px 18px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
+  }
+
+  .app-card[data-accent='soft'] .app-tile {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--color-surface) 34%, var(--home-citron)), var(--home-citron));
+    color: var(--home-citron-ink);
+  }
+
+  /* :global because the icon is a component's output, not this template's own
+     markup, so Astro's scope attribute never reaches it. */
+  .app-tile :global(svg) {
+    display: block;
+    width: 55%;
+    height: 55%;
+    transition: rotate 0.4s var(--ease-spring), scale 0.4s var(--ease-spring);
+  }
+
+  .app-card:hover .app-tile,
+  .app-card:focus-visible .app-tile {
+    translate: 0 -3px;
+    rotate: 1deg;
+    scale: 1.04;
+    /* Hovered tiles go to ink, not primary: primary is the dock itself now. */
+    background: var(--color-text);
+    color: var(--color-surface);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 12px 20px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
+  }
+
+  .app-card:hover .app-tile :global(svg),
+  .app-card:focus-visible .app-tile :global(svg) {
+    rotate: -1deg;
+    scale: 1.08;
+  }
+
+  .app-card:active .app-tile {
+    translate: 0 0;
+    scale: 0.95;
+    box-shadow: 0 4px 10px -4px var(--color-primary-ring);
+    transition: translate 0.1s ease, scale 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .app-card { transition: opacity 0.3s var(--ease-out); }
+  .home-hero[data-picking] .app-card:not([data-fits]) { opacity: 0.35; }
+  .home-hero[data-picking] .app-card[data-fits] .app-tile {
+    box-shadow: 0 0 0 3px var(--home-citron), 0 12px 20px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
+  }
+
+  .app-tooltip {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    left: 50%;
+    --tip-x: -50%;
+    transform: translateX(var(--tip-x)) translateY(4px) scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+    background: var(--color-surface);
+    color: var(--color-text);
+    padding: 0.75rem 1rem;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    width: max-content;
+    max-width: 200px;
+    text-align: center;
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1.4;
+    box-shadow: var(--shadow-md);
+  }
+
+  .app-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--color-surface) transparent transparent transparent;
+  }
+
+  .app-card:hover .app-tooltip,
+  .app-card:focus-visible .app-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(var(--tip-x)) translateY(0) scale(1);
+    transition: opacity 0.5s ease-out 0.4s, visibility 0.5s ease-out 0.4s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+  }
+
+  /* The end tools' tooltips line up with their card's outer edge so they never
+     hang past the page; the arrow stays over the card's centre (80px card, 12px arrow). */
+  .app-card:first-child .app-tooltip { left: auto; inset-inline-start: 0; --tip-x: 0px; }
+  .app-card:last-child .app-tooltip { left: auto; inset-inline-end: 0; --tip-x: 0px; }
+  .app-card:first-child .app-tooltip::after { left: auto; inset-inline-start: 34px; transform: none; }
+  .app-card:last-child .app-tooltip::after { left: auto; inset-inline-end: 34px; transform: none; }
+
+  /* Landscape phone. Rotating an iPhone leaves ~390px of height and ~850px of
+     width, and the first screen's three rows were sized for the other
+     orientation: a 1.6rem headline, a launcher floored at 13rem and a dock of
+     52px tiles come to roughly 580px before a single recent document is
+     shown. The grid above now grows rather than overlapping, so none of this
+     is a correctness fix - it is what keeps that growth to a short scroll
+     instead of a second screen. Height-keyed, not orientation-keyed: a short
+     window has the same problem for the same reason.
+
+     Last in the sheet deliberately. Every declaration here re-states one that
+     an earlier block (or an unconditional rule further down, as .app-tile's
+     own base rule is) sets at the same specificity, and a media query adds
+     none, so source order is what decides it. */
+  @media (max-height: 560px) {
+    header.hero-header.hero-header { padding: 8px 16px 6px; }
+    .hero-header h1 { font-size: 1.2rem; }
+    .hero-header p { font-size: 0.78rem; }
+    /* The 13rem floor exists to stop first paint from moving the dock while
+       the launcher settles; here the launcher's own content is taller than
+       the floor anyway, so the floor only costs height. */
+    .home-workspace { min-height: 0; padding: 10px 16px; }
+    .home-dock { gap: 14px; padding: 6px 16px; }
+    /* The tile shrinks, the card does not: .app-card stays well over the 44px
+       touch target with its label. */
+    .app-tile { width: 40px; height: 40px; border-radius: 14px; }
+    .app-label { font-size: 0.72rem; }
+  }
+
+  /* Short desktop window (QUAL-16). Below 1024px a first screen that does not
+     fit grows and the page scrolls; the desktop hero cannot do that - it is
+     the pinned element, and SIGN_END / CROSSFADE_START / CROSSFADE_END in
+     ScrollDriver.tsx are fractions of its exact 100svh, so growing it would
+     silently re-pace both stories. The launcher's own cell absorbs it instead:
+     stretch rather than centre (a centred box overflows both ends, which is
+     how six recents used to paint up behind the headline as well as down
+     through the dock), and scroll inside the cell. Only the launcher moves -
+     the header, the dock and the demo beside it keep their positions, and the
+     hero is still exactly 100svh.
+
+     `min-width: 1024px` is load-bearing: below it the compaction above plus a
+     growing hero already fit this, and a nested scroller there would trap the
+     launcher in a short box instead of letting the page grow. */
+  @media (min-width: 1024px) and (max-height: 560px) {
+    .workspace-launcher {
+      align-self: stretch;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior-block: contain;
+    }
+  }
+</style>

@@ -47,7 +47,7 @@ const bidi = bidiFactory();
  * `paragraphDirection` is REQUIRED and is never auto-detected here - on
  * purpose. The editor renders each text element in a `<textarea
  * dir={textDirection}>` (see TextNode.tsx), where `textDirection` comes from
- * `getEffectiveTextDirection(element)` in signHelpers.js: one fixed base
+ * `getEffectiveTextDirection(element)` in textDirection.js: one fixed base
  * direction for the *whole element*, derived from its first strong
  * character (or the element's own `textDirection`), never re-detected per
  * line. That is an explicit UAX#9 paragraph embedding level (HTML's `dir`

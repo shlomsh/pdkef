@@ -1,4 +1,4 @@
-// LOC-02 guards 3, 4 and the pack half of 5, as pure functions so
+// LOC-02 guards 3 and 4, as pure functions so
 // verify-seo.js can run them over dist/ and scripts/localizedSeoChecks.test.mjs
 // can run them over sabotage fixtures without a build. Guards 1 and 2
 // (reciprocal hreflang with x-default, lang/dir from the registry) were
@@ -125,25 +125,6 @@ export function localizedPageProblems({ relPath, document, sitemapLocs, builtCan
     const listed = sitemapLocs.has(canonical);
     if (isNoindex && listed) problems.push(`draft (noindex) localized tool page is listed in sitemap.xml: ${canonical}`);
     if (!isNoindex && !listed) problems.push(`published localized tool page is missing from sitemap.xml: ${canonical}`);
-  }
-
-  // Guard 5 (page half): the offline pack names only this edition's
-  // published pages, and every one of them is built.
-  const packBlock = document.querySelector('[data-locale-pack]');
-  if (packBlock) {
-    const prefix = packBlock.getAttribute('data-locale-pack');
-    const urls = (packBlock.getAttribute('data-locale-pack-urls') ?? '').split(',').filter(Boolean);
-    if (prefix !== locale.prefix) problems.push(`locale pack prefix "${prefix}" does not match the page's locale "${locale.prefix}"`);
-    if (urls.length === 0) problems.push('locale pack block present but empty');
-    for (const url of urls) {
-      if (!url.startsWith(`/${locale.prefix}/`)) {
-        problems.push(`locale pack names a page outside this edition: ${url}`);
-        continue;
-      }
-      const target = builtCanonicals.get(`${siteBase}${url}`);
-      if (!target) problems.push(`locale pack names a page that is not built: ${url}`);
-      else if (target.isNoindex) problems.push(`locale pack names a draft (noindex) page: ${url}`);
-    }
   }
 
   return problems;

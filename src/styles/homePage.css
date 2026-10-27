@@ -10,6 +10,7 @@
 @source "../components/DocumentationLanguageSelector.astro";
 @source "../components/FeatureCard.astro";
 @source "../components/HeroDemo";
+@source "../components/home";
 @source "../components/OfflineProof.astro";
 @source "../components/SeoSchema.astro";
 @source "../data/tools.js";

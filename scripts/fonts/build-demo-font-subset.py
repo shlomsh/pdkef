@@ -54,7 +54,7 @@ dropping their GSUB features (see LAYOUT_FEATURES below) trims size.
 Unlike the CJK build script, this subset is never touched by fontkit: it is
 declared only in `HeroDemo.module.css` under the CSS class name `'Caveat
 Demo'`, which is not in the Sign editor's font catalogue
-(`src/editor/text/fontManifest.js`) and is never passed to `signPdf`. So there
+(`src/lib/fonts/fontManifest.ts`) and is never passed to `signPdf`. So there
 is no editor-vs-export shaping-parity concern here (contrast
 `build-cjk-subset.py`'s GPOS-dropping rationale) - GPOS (kern/mark/mkmk) is
 kept, since only a browser ever rasterises this file.

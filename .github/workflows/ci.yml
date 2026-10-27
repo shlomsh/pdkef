@@ -74,7 +74,7 @@ env:
   VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
 
 jobs:
-  # Everything that needs no build: source guards, the unit suite, typecheck.
+  # Everything that needs no build: source guards (the unit suite is `units`, ARCH-86).
   checks:
     runs-on: ubuntu-latest
     needs: scope
@@ -99,13 +99,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
-    # `pdftotext` half. Without it that half self-skips with a warning, which
-    # would leave the one assertion that actually proves /ActualText works
-    # running only on a developer's machine.
-    - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
-      run: sudo apt-get update && sudo apt-get install -y poppler-utils
-
     # backlog/tasks/*.md is the canonical board; BACKLOG.md and TODO.md are
     # generated from it. Fails on malformed task metadata, a dependency that
     # does not resolve, or a stale generated view (ARCH-12). Source guards
@@ -126,11 +119,6 @@ jobs:
     # intensifiers SEO-36 removed (scripts/check-never-say.mjs holds the list).
     - name: Validate never-say copy
       run: npm run check:never-say
-
-    # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
-    # every unit file on every push.
-    - name: Run tests
-      run: npx vitest run
 
     # Also covers the box-resize single-owner rule (exactly one file under
     # src/ may mention maxWidthFromRightGrowth/maxHeightFromBottomGrowth),
@@ -229,6 +217,68 @@ jobs:
     - name: Verify dependency governance wiring
       run: npm run test:dependency-governance
 
+  # ARCH-86: the unit suite beside the guards in `checks`, so neither delays the other's verdict.
+  units:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        # Full history: src/site-lib/gitLastModified.test.js dates a real
+        # guide from git and refuses a shallow boundary commit, so on the
+        # default depth-1 checkout it would see null and fail. Same reason
+        # and cost as `build` below (30 MB against 24 MB, 2026-09-14).
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
+    # `pdftotext` half. Without it that half self-skips with a warning, which
+    # would leave the one assertion that actually proves /ActualText works
+    # running only on a developer's machine.
+    - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
+      run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+    # QUAL-24 (2026-10-18) moved unit narrowing to local checks only; CI runs
+    # every unit file on every push.
+    - name: Run tests
+      run: npx vitest run
+
+  # ARCH-86: a dependency bump that breaks the build fails once here instead of in every job that
+  # builds; skipped on every other run, so it costs no wall time there.
+  dependency-gate:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'dependabot/')
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
   # The build and every guard that reads dist/. The product e2e suite is the
   # `e2e` job below, which builds again rather than waiting for this job; the
   # font guards have their own job further down.
@@ -302,6 +352,11 @@ jobs:
     - name: Check Sign-only modules stay out of every page's first paint
       run: npm run test:lazy-modules
 
+    # What the service worker downloads: the shell and each page's closure,
+    # budgeted, and no page carrying another tool's island chunk.
+    - name: Check precache closures stay within budget
+      run: npm run test:precache-budget
+
   # The product e2e suite, split into shards (QUAL-05: two; QUAL-23,
   # 2026-10-18: four). Files shard whole and in path order, so two shards put
   # every e2e/** spec in shard 1 (355s of test time on run 39124382451) and
@@ -316,8 +371,8 @@ jobs:
   # `build` still vouch for what these specs load.
   e2e:
     runs-on: ubuntu-latest
-    needs: [scope, playwright-version]
-    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, playwright-version, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -409,8 +464,8 @@ jobs:
     # every webkit test failed at launch. Back to ubuntu-latest once a
     # Playwright release runs WebKit on 26.04.
     runs-on: ubuntu-24.04
-    needs: [scope, playwright-version]
-    if: always() && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, playwright-version, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.playwright-version.result == 'success' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     # QUAL-29 (2026-10-26): Playwright's own image, with chromium, webkit and every system library they
     # need already in it. `install-deps` used to fetch about 119 MB of WebKit libraries from the Azure
     # Ubuntu mirror on every run, usually in 30s but in 35-55 min on 6 runs that day (48 kB/s, run
@@ -658,6 +713,52 @@ jobs:
       if: steps.classify.outputs.docs_only == 'true'
       run: npm run check:guidance
 
+  # MEM-21: what a returning client's service worker update downloads, between
+  # the last two production deploys, against a target of about 500 KB brotli.
+  # The deploys come from the GitHub deployments Vercel records: main's first
+  # parent is not a deploy (a branch merged with main lands as a merge whose
+  # first parent is the branch), and a docs-only push deploys nothing. One build
+  # per commit, so it runs only on the nightly, and skips with it when nothing
+  # has landed (`nightly_unchanged`).
+  update-cost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: scope
+    if: always() && github.event_name == 'schedule' && needs.scope.outputs.nightly_unchanged != 'true'
+    permissions:
+      contents: read
+      deployments: read
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        check-latest: true
+        cache: 'npm'
+
+    - name: Find the last two production deploys
+      id: deploys
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        node scripts/lastDeploys.mjs "${{ github.repository }}" >> "$GITHUB_OUTPUT"
+
+    - name: Build both deploys
+      run: |
+        for side in before after; do
+          sha=$([ "$side" = before ] && echo "${{ steps.deploys.outputs.before }}" || echo "${{ steps.deploys.outputs.after }}")
+          git worktree add "$RUNNER_TEMP/$side" "$sha"
+          (cd "$RUNNER_TEMP/$side" && npm ci && npm run build && mv dist "$RUNNER_TEMP/dist-$side")
+        done
+
+    - name: Measure the update cost
+      run: npm run measure:update-cost -- "$RUNNER_TEMP/dist-before" "$RUNNER_TEMP/dist-after"
+
   # The 25 font screening guards (the `fonts` Playwright project): shaping
   # guards per script, font parity, Hebrew composition. This job now starts on
   # every non-docs run (same fail-open `if:` as `checks`/`build`/`e2e`) and
@@ -690,8 +791,8 @@ jobs:
   # `export-guards` job below, alongside the guard that owns the baseline.
   font-guards:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -771,8 +872,8 @@ jobs:
   # specs do not need sharding.
   export-guards:
     runs-on: ubuntu-latest
-    needs: scope
-    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    needs: [scope, dependency-gate]
+    if: always() && needs.dependency-gate.result != 'failure' && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5

@@ -1,11 +1,9 @@
 ---
 id: "ARCH-47"
 title: "signHelpers.js splits into text direction, text layout and image tint modules"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 3
 depends_on: []
 ---
 
@@ -24,4 +22,4 @@ Area: Architecture. Criterion: Cohesion and organization. Structure only: no beh
 
 ## Acceptance
 
-- [ ] No import of `signHelpers` remains; unit tests move with their functions.
+- [x] No import of `signHelpers` remains; unit tests move with their functions.

@@ -20,8 +20,9 @@
 // never a second narrowing decision.
 //
 // Local runs never widen (QUAL-24): units are `vitest related` over the diff,
-// typecheck is tsc (after `astro sync` when types are missing), and an empty
-// diff runs the guards only. CI carries the full suite and `astro check`.
+// typecheck is tsc (after `astro sync` when types are missing) plus `astro
+// check` when the diff reaches an .astro file (QUAL-31), and an empty diff
+// runs the guards only. CI carries the full suite.
 //
 // Usage: npm run check:push          guards + unit + typecheck + build + dist
 //                                     guards, concurrently where independent;
@@ -90,6 +91,9 @@ const BUILD_INVOKED_SCRIPTS = new Set([
   'scripts/generate-language-acceptance.mjs',
   'scripts/generate-precache-manifest.mjs',
   'scripts/buildId.mjs',
+  'scripts/cspHashOrder.mjs',
+  'scripts/minifyServiceWorker.mjs',
+  'scripts/precacheClosure.mjs',
 ]);
 
 export function fileCannotReachDist(file) {
@@ -184,8 +188,14 @@ export const ALWAYS_GUARD_STEPS = [
   'test:dependency-governance',
 ];
 
+// QUAL-31: tsc does not read the scripts inside .astro files; CI's typecheck
+// (`astro check`) does. A diff reaching an .astro file plans that step too.
+export function touchesAstro(files) {
+  return files.some((file) => file.endsWith('.astro'));
+}
+
 // The dist guards ci.yml's `build` job runs after `astro build`, in order.
-export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test:css', 'test:weight', 'test:lazy-modules'];
+export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test:css', 'test:weight', 'test:lazy-modules', 'test:precache-budget'];
 
 // ---------------------------------------------------------------------------
 // The pure step-plan builder: given the one computed scope, decide the
@@ -203,7 +213,7 @@ export const DOCS_ONLY_STEPS = ['check:backlog', 'check:guidance'];
 // else. CI runs the full Playwright suite either way; locally it is opt-in so
 // a pre-push gate stays short enough for any agent. `perf` is opt-in too: it
 // runs alone on one worker and asserts wall-clock budgets.
-export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build }, { mode = 'gate', perf = false } = {}) {
+export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build, touchesAstro: astro }, { mode = 'gate', perf = false } = {}) {
   if (docsOnly) return mode === 'gate' ? [...DOCS_ONLY_STEPS] : [];
   const e2eProductSelected = Boolean(everything) || Boolean(e2e_paths && e2e_paths.trim());
   const e2eSelected = e2eProductSelected || Boolean(fonts) || Boolean(export_guards);
@@ -219,6 +229,7 @@ export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guard
   }
 
   const steps = [...ALWAYS_GUARD_STEPS, 'unit', 'typecheck'];
+  if (astro) steps.push('astro-check');
   if (build) steps.push('build', ...DIST_GUARD_STEPS);
   return steps;
 }
@@ -226,11 +237,16 @@ export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guard
 // Which stages run together. Everything in a stage is independent of the rest
 // of it: guards, unit, typecheck and build all read the tree and write nothing
 // the others read; the dist guards need the build; Playwright steps share one
-// preview port and one dist/, so they run one after another.
+// preview port and one dist/, so they run one after another. `astro check` and
+// `astro build` both sync and write .astro/, so when planned, astro-check runs
+// alone after that stage and the build moves to its own stage after it.
 export function stageSteps(steps) {
   const dist = new Set(DIST_GUARD_STEPS);
+  const solo = steps.includes('astro-check');
   const stages = [
-    steps.filter((id) => !dist.has(id) && !id.startsWith('e2e:')),
+    steps.filter((id) => !dist.has(id) && !id.startsWith('e2e:') && id !== 'astro-check' && !(solo && id === 'build')),
+    steps.filter((id) => id === 'astro-check'),
+    steps.filter((id) => solo && id === 'build'),
     steps.filter((id) => dist.has(id)),
     ...steps.filter((id) => id.startsWith('e2e:')).map((id) => [id]),
   ];
@@ -261,6 +277,7 @@ function runNpm(script) {
 
 const STEP_RUNNERS = {
   'check-class-resolution': () => spawnSync('node', ['scripts/check-class-resolution.js'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
+  'astro-check': () => runNpm('typecheck'),
   build: () => runNpm('build'),
   'test:csp': () => runNpm('test:csp'),
   'test:seo': () => runNpm('test:seo'),
@@ -268,6 +285,7 @@ const STEP_RUNNERS = {
   'test:css': () => runNpm('test:css'),
   'test:weight': () => runNpm('test:weight'),
   'test:lazy-modules': () => runNpm('test:lazy-modules'),
+  'test:precache-budget': () => runNpm('test:precache-budget'),
 };
 for (const script of ALWAYS_GUARD_STEPS) {
   if (!(script in STEP_RUNNERS)) STEP_RUNNERS[script] = () => runNpm(script);
@@ -337,7 +355,7 @@ function computeScope() {
   const docsOnly = classify(files).docs_only;
   const nxScope = resolveScope({ explicitBase: base ?? undefined });
   const unitScope = resolveUnitScope({ explicitBase: base ?? undefined, mode: 'local' });
-  const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: reachesDist(files) }, files);
+  const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: reachesDist(files), touchesAstro: touchesAstro(files) }, files);
   const typecheck = typecheckSteps({ astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
   return { base, dirty, scope, unitScope, typecheck };
 }
@@ -403,9 +421,10 @@ async function main() {
   const startAll = Date.now();
   const { base, dirty, scope, unitScope, typecheck } = ctx;
   printScope({ base, dirty, scope, unitScope });
-  console.error(`  typecheck:      ${typecheck.join(' + ')} (CI runs astro check)`);
 
   const steps = planSteps(scope, { mode, perf });
+  const note = steps.includes('astro-check') ? ' + astro check' : ' (CI runs astro check)';
+  console.error(`  typecheck:      ${typecheck.join(' + ')}${note}`);
   if (steps.length === 0) {
     console.error(mode === 'e2e' ? 'check:e2e: this diff selects no Playwright project; nothing to run.' : 'check:push: nothing to run.');
     process.exit(0);

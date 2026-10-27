@@ -1,11 +1,9 @@
 ---
 id: "ARCH-63"
 title: "Each tool has one id used by code, with folder and label fields in TOOL_PAGES"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
-order: 9
 depends_on: []
 ---
 
@@ -24,4 +22,4 @@ Area: Code. Criterion: Readability and naming. Structure only: no behaviour chan
 
 ## Acceptance
 
-- [ ] A unit test asserts every tool folder and slug is reachable from its `TOOL_PAGES` row.
+- [x] A unit test asserts every tool folder and slug is reachable from its `TOOL_PAGES` row.

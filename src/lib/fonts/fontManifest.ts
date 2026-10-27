@@ -7,17 +7,19 @@
  * THIRD_PARTY_LICENSES.md font lists. The editor, the exporter, the license
  * page and the precache policy all import this module directly at build and
  * run time. Per-family license text (copyright, license URL, spec version)
- * lives in the sibling src/editor/text/fontLicenses.js instead of here, so a
+ * lives in the sibling src/lib/fonts/fontLicenses.ts instead of here, so a
  * Sign session never downloads copyright prose it has no use for - a unit
  * test (fontLicenses.test.js) keeps the two modules' family keys identical.
  */
 
-const normal = (regular, bold) => ({
+type FaceFiles = { normal: string; bold?: string; italic?: string; boldItalic?: string };
+
+const normal = (regular: string, bold?: string): FaceFiles => ({
   normal: regular,
   ...(bold ? { bold } : {}),
 });
 
-const full = (regular, bold, italic, boldItalic) => ({ normal: regular, bold, italic, boldItalic });
+const full = (regular: string, bold: string, italic: string, boldItalic: string): FaceFiles => ({ normal: regular, bold, italic, boldItalic });
 
 export const FONT_MANIFEST = Object.freeze([
   {
@@ -256,7 +258,7 @@ export const FONT_BY_FAMILY = Object.freeze(Object.fromEntries(FONT_MANIFEST.map
  * src/site-lib/ (docs/module-boundaries.md rule 1), so this lives here,
  * next to the manifest both call sites already import.
  */
-export function isPrecachedFontFile(file) {
+export function isPrecachedFontFile(file: string) {
   return file === FONT_BY_FAMILY[DEFAULT_FONT_FAMILY].faces.normal;
 }
 

@@ -1,0 +1,31 @@
+---
+import FeatureCard from '../FeatureCard.astro';
+import CardDecor from '../CardDecor.astro';
+import { ShieldCheck, Lock, Code2 } from 'lucide-preact';
+import { renderInline } from '../../site-lib/contentMarkup';
+
+interface Props {
+  privacyOpenSource: any;
+}
+const { privacyOpenSource } = Astro.props;
+---
+<FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+  <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} parallax />
+  <div class="w-full">
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{privacyOpenSource.kicker}</span>
+    <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{privacyOpenSource.heading}</h2>
+    <div class="space-layout-gap grid grid-cols-2 max-[768px]:grid-cols-1">
+      <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
+        <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]"><Lock size={22} strokeWidth={2} /></div>
+        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">{privacyOpenSource.privacyHeading}</h3>
+        <p class="type-lead m-0 text-[var(--color-text)]">{privacyOpenSource.privacyBody}</p>
+      </div>
+      <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
+        <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]"><Code2 size={22} strokeWidth={2} /></div>
+        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">{privacyOpenSource.openSourceHeading}</h3>
+        <p class="type-lead m-0 text-[var(--color-text)]" set:html={renderInline(privacyOpenSource.openSourceBody, 'body')} />
+        <span class="mt-[1.1rem] inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-success-soft)] px-3 py-[0.3rem] text-[0.78rem] font-bold text-[var(--color-success)]">{privacyOpenSource.openSourcePill}</span>
+      </div>
+    </div>
+  </div>
+</FeatureCard>

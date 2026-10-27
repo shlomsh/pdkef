@@ -24,7 +24,11 @@
 // matches text/markdown too.
 import { next } from '@vercel/functions';
 import { negotiateRepresentation, markdownRoute } from './src/site-lib/acceptNegotiation.js';
+import { buildServerTiming, commitFromEnv } from './src/site-lib/buildCommit.js';
 import vercelConfig from './vercel.json';
+
+// No @types/node in this repo; the function runtime provides process.env.
+declare const process: { env: Record<string, string | undefined> };
 
 export const config = {
   // Paths with a file extension (sitemap.xml, sw.js, robots.txt, the .md
@@ -42,6 +46,16 @@ const HAS_EXTENSION = /\.[a-zA-Z0-9]+$/;
 // scripts/check-trailing-slash-redirects.js), which is what lets
 // markdownRoute() tell "/compress" (redirect to canonical) from
 // "/some-path-that-does-not-exist" (404) without probing.
+
+// Headers for a response that passes through to the HTML page: Vary, plus the deploying commit as
+// Server-Timing (MEM-19) so the page can name its build without any per-deploy byte in the HTML.
+function passthroughHeaders(): Headers {
+  const headers = new Headers({ Vary: VARY_VALUE });
+  const timing = buildServerTiming(commitFromEnv(process.env));
+  if (timing) headers.set('Server-Timing', timing);
+  return headers;
+}
+
 const REDIRECT_SOURCES = new Set(vercelConfig.redirects.map((r) => r.source));
 
 export default async function middleware(request: Request) {
@@ -70,7 +84,7 @@ export default async function middleware(request: Request) {
   }
 
   if (representation === 'html') {
-    return next({ headers: new Headers({ Vary: VARY_VALUE }) });
+    return next({ headers: passthroughHeaders() });
   }
 
   // Markdown preferred from here on. Only serve it at the canonical
@@ -81,7 +95,7 @@ export default async function middleware(request: Request) {
   // redirect is not a page (see markdownRoute) and gets the Markdown 404.
   const route = markdownRoute(pathname, REDIRECT_SOURCES);
   if (route.kind === 'passthrough') {
-    return next({ headers: new Headers({ Vary: VARY_VALUE }) });
+    return next({ headers: passthroughHeaders() });
   }
 
   if (route.kind === 'markdown') {

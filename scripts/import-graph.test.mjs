@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildEdges, buildReachGraph, buildToolRouteMap, reverseEdgeMap } from './import-graph.mjs';
+import { importGlobPatterns, buildEdges, buildReachGraph, buildToolRouteMap, edgesOfFiles, importSpecifiers, reverseEdgeMap } from './import-graph.mjs';
 
 /* scripts/import-graph.mjs is the scan check-module-boundaries.mjs (its own tests are the oracle for
    the main edge scan) and affected-scope.mjs (ARCH-32) share. This pins what only the second one
@@ -67,5 +67,85 @@ describe('reverseEdgeMap', () => {
     const reverse = reverseEdgeMap([{ from: 'a', to: 'c' }, { from: 'b', to: 'c' }, { from: 'a', to: 'b' }]);
     expect([...reverse.get('c')]).toEqual(['a', 'b']);
     expect([...reverse.get('b')]).toEqual(['a']);
+  });
+});
+
+/* ARCH-49: the scanner records an edge for every import form it can read and throws for the ones it
+   cannot, so a side door never escapes the boundary rules or affected-scope silently. */
+describe('importSpecifiers side doors', () => {
+  it('reads new URL(<relative literal>, import.meta.url) as a specifier', () => {
+    expect(importSpecifiers("const u = new URL('../x/worker.js', import.meta.url);")).toContain('../x/worker.js');
+    expect(importSpecifiers('const u = new URL("./w.ts", import.meta.url)')).toContain('./w.ts');
+  });
+  it('ignores a new URL that is not relative to import.meta.url', () => {
+    expect(importSpecifiers("new URL('https://example.com/a', location.href)")).toEqual([]);
+  });
+  it('throws naming file and line on a template-literal import', () => {
+    const source = 'const a = 1;\nconst m = await import(`./locales/${lang}.js`);\n';
+    expect(() => importSpecifiers(source, 'src/x.ts')).toThrow('import-graph cannot read a computed import at src/x.ts:2; use a literal specifier');
+  });
+  it('throws on a non-literal import argument', () => {
+    expect(() => importSpecifiers('import(name)', 'src/y.ts')).toThrow(/computed import at src\/y\.ts:1/);
+  });
+  it('a computed import in a test file is skipped, not thrown', () => {
+    const source = "const m = await import(`${x}`);\nconst a = await import('./a.js');\n";
+    expect(importSpecifiers(source, 'src/x/foo.test.js')).toEqual(['./a.js']);
+    expect(() => importSpecifiers(source, 'src/x/foo.js')).toThrow('computed import at src/x/foo.js:1');
+  });
+  it('keeps plain string and no-substitution template imports working', () => {
+    expect(importSpecifiers("import('./a.js')")).toEqual(['./a.js']);
+    expect(importSpecifiers('import(`./a.js`)')).toEqual(['./a.js']);
+  });
+});
+
+describe('edgesOfFiles side doors', () => {
+  let tree;
+  beforeAll(() => {
+    tree = fs.mkdtempSync(path.join(os.tmpdir(), 'import-graph-doors-'));
+    const files = {
+      'src/lib/w.ts': 'export {};\n',
+      'src/lib/data/one.js': 'export {};\n',
+      'src/lib/data/two.js': 'export {};\n',
+      'src/lib/data/skip.txt': 'x\n',
+      'src/lib/url.ts': "export const u = new URL('./w.ts', import.meta.url);\n",
+      'src/lib/glob.ts': "export const m = import.meta.glob('./data/*.js');\n",
+      'src/lib/bad.ts': 'export const m = import(`./data/${n}.js`);\n',
+    };
+    for (const [f, src] of Object.entries(files)) {
+      fs.mkdirSync(path.dirname(path.join(tree, f)), { recursive: true });
+      fs.writeFileSync(path.join(tree, f), src);
+    }
+  });
+  afterAll(() => fs.rmSync(tree, { recursive: true, force: true }));
+  const at = (f) => path.join(tree, f);
+
+  it('records an edge for new URL(..., import.meta.url)', () => {
+    expect(edgesOfFiles([at('src/lib/url.ts')], tree)).toEqual([{ from: 'src/lib/url.ts', to: 'src/lib/w.ts' }]);
+  });
+  it('records an edge to every file an import.meta.glob pattern matches', () => {
+    const edges = edgesOfFiles([at('src/lib/glob.ts')], tree);
+    expect(edges.map((e) => e.to).sort()).toEqual(['src/lib/data/one.js', 'src/lib/data/two.js']);
+  });
+  it('fails loudly on a computed import', () => {
+    expect(() => edgesOfFiles([at('src/lib/bad.ts')], tree)).toThrow(/computed import at src\/lib\/bad\.ts:1/);
+  });
+});
+
+describe('comment blanking is string-aware', () => {
+  it('keeps /** and /* inside a glob string', () => {
+    expect(importGlobPatterns("const a = import.meta.glob('./icons/**/*.svg');", 'src/x.js')).toEqual(['./icons/**/*.svg']);
+  });
+  it('does not start a comment inside a string literal', () => {
+    expect(importSpecifiers("const s = '/* not a comment'; import('./a.js'); const t = '*/';")).toEqual(['./a.js']);
+  });
+  it('still ignores import(x) inside real comments', () => {
+    expect(importSpecifiers('/* import(x) */\n// import(y)\nconst a = 1;', 'src/x.js')).toEqual([]);
+  });
+  it('reads a string import() that carries an options argument', () => {
+    expect(importSpecifiers("const m = await import('./data.json', { with: { type: 'json' } });", 'src/x.js')).toContain('./data.json');
+    expect(importSpecifiers('const m = await import("./data.json", { with: { type: "json" } });', 'src/x.js')).toContain('./data.json');
+  });
+  it('returns a plain import() exactly once', () => {
+    expect(importSpecifiers("const m = await import('./a.js');", 'src/x.js')).toEqual(['./a.js']);
   });
 });

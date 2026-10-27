@@ -196,8 +196,8 @@ export const WIDEN_RULES = [
   },
   {
     id: 'home-page-shell-text-read',
-    reason: 'global.css and the home layout are read as text for a contrast/markup check',
-    match: (f) => f === 'src/styles/global.css' || f === 'src/layouts/HomePageLayout.astro',
+    reason: 'global.css and the home hero (ARCH-56 moved it out of the layout) are read as text for a contrast/markup check',
+    match: (f) => f === 'src/styles/global.css' || f === 'src/components/home/HomeHero.astro',
     tests: ['src/styles/colorContrast.test.js', 'src/pages/__tests__/index.test.js'],
   },
   {

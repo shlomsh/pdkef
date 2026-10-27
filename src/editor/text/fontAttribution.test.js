@@ -20,8 +20,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
-import { FONT_MANIFEST } from './fontManifest.js';
-import { licenseFor } from './fontLicenses.js';
+import { FONT_MANIFEST } from '../../lib/fonts/fontManifest.ts';
+import { licenseFor } from '../../lib/fonts/fontLicenses.ts';
 import { DISPLAY_ONLY_FONTS } from './displayOnlyFonts.js';
 
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
@@ -43,7 +43,7 @@ describe('font attribution surfaces', () => {
   // Non-vacuity: every assertion below is a set difference, so a parse that
   // silently returned nothing would make all of them pass.
   it('parses both surfaces, so the coverage assertions are not comparing empty lists', () => {
-    expect(astro).toContain("import { FONT_MANIFEST } from '../editor/text/fontManifest.js'");
+    expect(astro).toContain("import { FONT_MANIFEST } from '../lib/fonts/fontManifest.ts'");
     expect(astro).toContain('FONT_MANIFEST.map');
     expect(FONT_MANIFEST).toHaveLength(CATALOGUE.length);
     expect(markdownHandwriting).not.toBeNull();

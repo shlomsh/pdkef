@@ -18,12 +18,6 @@ export const LOCALIZED_PATH_PREFIXES = Object.freeze([
   'id',
 ]);
 
-/** True for a dist-relative path or a site path that sits under a locale prefix. */
-export function isLocalizedPath(pathOrRelative) {
-  const [first, second] = pathOrRelative.replace(/^\//, '').split('/');
-  return Boolean(second) && LOCALIZED_PATH_PREFIXES.includes(first);
-}
-
 // LOC-06: the pilot country per locale, for the per-locale country breakdown
 // in scripts/seo-refresh.mjs (a site-wide country average hides a locale
 // whose whole audience is one country). documentationLocales.ts carries no
