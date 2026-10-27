@@ -47,7 +47,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-surface);
-  background: rgba(35, 64, 74, 0.68);
+  background: var(--color-compare-scrim);
   padding: 0.2rem 0.55rem;
   border-radius: var(--radius-pill);
 }
@@ -68,7 +68,7 @@
   width: 2px;
   transform: translateX(-50%);
   background: var(--color-surface);
-  box-shadow: 0 0 0 1px rgba(35, 64, 74, 0.25);
+  box-shadow: 0 0 0 1px var(--color-compare-ring);
   display: flex;
   align-items: center;
   justify-content: center;

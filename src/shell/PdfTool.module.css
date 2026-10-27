@@ -394,7 +394,7 @@
 
 .progress-ring-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.3);
+  stroke: var(--color-white-30);
   stroke-width: 4;
 }
 

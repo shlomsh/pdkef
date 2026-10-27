@@ -47,7 +47,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg), 0 8px 24px rgb(0 70 70 / 12%);
+  box-shadow: var(--shadow-lg), var(--shadow-pop-teal);
 }
 
 .sort-option {

@@ -46,7 +46,7 @@
   line-height: 1.4;
   text-align: left;
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-pop);
   z-index: 10;
 }
 
