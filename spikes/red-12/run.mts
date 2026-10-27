@@ -1,4 +1,6 @@
 // @ts-nocheck - a Node spike harness, run with `node`; not part of the app.
+// Historical: the invisible text layer this measured was dropped (f520b47b), so textLayer's planner and
+// invisibleText no longer exist and the layer steps below cannot run; the imports are commented out.
 // RED-12 spike: a covered page saved as its picture plus an invisible text
 // layer without the boxed words, read back by the three extractors people
 // actually use: pdf.js (Firefox, our own Find), PDFium (Chrome's viewer) and
@@ -14,11 +16,13 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { buildPageText } from '../../src/tools/redact/lib/find/pageText.ts';
 import { matchBoxes } from '../../src/tools/redact/lib/find/matchBoxes.ts';
-import { readPageGlyphs } from '../../src/editor/adapters/pdf/pageGlyphs.ts';
-import { planTextLayer, groupRuns, textLayerReadsBack } from '../../src/editor/adapters/pdf/textLayer.ts';
+import { readPageGlyphs } from '../../src/tools/redact/lib/pageGlyphs.ts';
+// Gone with the layer (f520b47b); src/tools/redact/lib/textLayer.ts now holds only textInReadingOrder and wordsUnderBoxes.
+// import { planTextLayer, groupRuns, textLayerReadsBack } from '../../src/editor/adapters/pdf/textLayer.ts';
 import { applyAffineTransform, composeAffineTransforms } from '../../src/editor/geometry/coords.ts';
 import { pageGeometryFromPdfJsPage } from '../../src/editor/geometry/coords.ts';
-import { createInvisibleFont, drawInvisibleText } from '../../src/editor/adapters/pdf/invisibleText.js';
+// Gone with the layer (f520b47b), nothing replaced it.
+// import { createInvisibleFont, drawInvisibleText } from '../../src/editor/adapters/pdf/invisibleText.js';
 
 const ROOT = process.cwd();
 const CORPUS = path.join(ROOT, 'spikes/red-01/corpus');
