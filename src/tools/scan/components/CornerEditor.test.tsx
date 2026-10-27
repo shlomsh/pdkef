@@ -82,7 +82,7 @@ describe('CornerEditor', () => {
 
   it('refuses a sliver: a convex quad too thin to be a page is never committed', () => {
     const onCommit = vi.fn();
-    const sliver = [{ x: 0.1, y: 0.5 }, { x: 0.9, y: 0.5 }, { x: 0.9, y: 0.505 }, { x: 0.1, y: 0.505 }];
+    const sliver: Quad = [{ x: 0.1, y: 0.5 }, { x: 0.9, y: 0.5 }, { x: 0.9, y: 0.505 }, { x: 0.1, y: 0.505 }];
     mount(onCommit, sliver);
     act(() => { handle(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true })); });
     expect(onCommit).not.toHaveBeenCalled();
