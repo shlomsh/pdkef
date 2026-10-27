@@ -1,7 +1,7 @@
 ---
 id: "ARCH-80"
 title: "Test files are type-checked against the code they cover"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
