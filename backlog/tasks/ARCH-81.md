@@ -1,7 +1,7 @@
 ---
 id: "ARCH-81"
 title: "Every pure module has a test that references it"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

@@ -1,7 +1,7 @@
 ---
 id: "ARCH-75"
 title: "Abort detection goes through one isAbortError helper"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

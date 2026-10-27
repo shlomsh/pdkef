@@ -1,7 +1,7 @@
 ---
 id: "ARCH-48"
 title: "The components layer holds only .astro files, and its special rule goes"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

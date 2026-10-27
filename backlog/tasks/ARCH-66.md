@@ -1,7 +1,7 @@
 ---
 id: "ARCH-66"
 title: "Hooks and effects per component are a ratchet"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"

@@ -1,7 +1,7 @@
 ---
 id: "ARCH-89"
 title: "Repeated CSS blocks and static inline styles move to shared rules"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
