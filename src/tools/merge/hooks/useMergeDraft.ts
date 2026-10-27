@@ -103,15 +103,26 @@ function isValidPlanEntry(entry: unknown, filesLength: number): entry is PlanEnt
 // A record that fails this is treated as if there were no draft at all - see
 // the restore effect below, which deletes it rather than hand the caller
 // something it cannot safely rehydrate from.
-function parseRestorableRecord(record: any): MergeDraftRestore | null {
+interface StoredMergeFile { fileBytes?: BlobPart; fileName: string; fileType?: string }
+interface StoredMergeRecord {
+  schemaVersion?: unknown;
+  files?: unknown;
+  plan?: unknown;
+  options?: { addPageNumbers?: unknown };
+  outputName?: unknown;
+}
+
+function parseRestorableRecord(stored: unknown): MergeDraftRestore | null {
+  const record = stored as StoredMergeRecord | null | undefined;
   if (!record || !Array.isArray(record.files) || record.files.length === 0) return null;
   if (record.schemaVersion !== MERGE_DRAFT_SCHEMA_VERSION) return null;
-  if (!record.files.every((file: any) => file && file.fileBytes)) return null;
-  if (!Array.isArray(record.plan) || !record.plan.every((entry: unknown) => isValidPlanEntry(entry, record.files.length))) return null;
-  const files = record.files.map((file: any) => new File([file.fileBytes], file.fileName, { type: file.fileType || 'application/pdf' }));
+  const storedFiles = record.files as StoredMergeFile[];
+  if (!storedFiles.every((file) => file && file.fileBytes)) return null;
+  if (!Array.isArray(record.plan) || !record.plan.every((entry: unknown) => isValidPlanEntry(entry, storedFiles.length))) return null;
+  const files = storedFiles.map((file) => new File([file.fileBytes as BlobPart], file.fileName, { type: file.fileType || 'application/pdf' }));
   const options = { addPageNumbers: record.options?.addPageNumbers === true };
   const outputName = typeof record.outputName === 'string' ? record.outputName : null;
-  return { files, plan: record.plan, options, outputName };
+  return { files, plan: record.plan as PlanEntry[], options, outputName };
 }
 
 // One signature string per distinct snapshot of entries/plan/options/title.

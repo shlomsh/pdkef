@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
+import type { PdfDocument as PDFDocumentProxy, PdfPage as PDFPageProxy } from '../../../lib/pdfTypes.ts';
 import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { TextDirection } from '../../../editor/model/editorModel.ts';

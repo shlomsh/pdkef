@@ -72,7 +72,7 @@ export async function runSavedFileCheck({
   /** Find's text measurement, so match positions agree with Find's. */
   measure?: MeasureText;
 }): Promise<CheckOutcome> {
-  const pdfjs: any = await getPdfjs();
+  const pdfjs = await getPdfjs();
 
   const original: SearchablePage[] = [];
   const coveredPages = [];

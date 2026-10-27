@@ -152,6 +152,10 @@ jobs:
     - name: Verify hook ratchet
       run: npm run test:hook-ratchet
 
+    # ARCH-70: explicit any in src/tools is counted (comments and strings excluded) and only shrinks.
+    - name: Verify any ratchet
+      run: npm run test:any-ratchet
+
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 

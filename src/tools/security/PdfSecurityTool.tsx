@@ -146,7 +146,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
         ? t.readyUnlocked
         : t.readyProtected
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       // Same rule on the way out: a failure for a file nobody is looking at
       // any more must not put the loaded one into an error state.
@@ -162,7 +162,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
         passwordRef.current?.focus();
         passwordRef.current?.select();
       } else {
-        setAnnouncement(sourceMode === 'unlock' ? (err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED) : err.message || t.errorFallback);
+        setAnnouncement(sourceMode === 'unlock' ? (err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED) : (err as Error).message || t.errorFallback);
       }
     }
   };
@@ -186,7 +186,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
     let protection: Awaited<ReturnType<typeof probeEncryption>>;
     try {
       protection = await probeEncryption(await selectedFile.arrayBuffer());
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       if (!run.isCurrent()) return;
       reportError('pdf_tool_run', err, 'check_encryption');

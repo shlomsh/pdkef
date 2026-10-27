@@ -1,4 +1,4 @@
-import { cloneElement } from 'preact';
+import { cloneElement, type VNode } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { useModalDialog } from '../../../shell/useModalDialog.ts';
 import sheetStyles from './FontSheet.module.css';
@@ -49,7 +49,7 @@ export default function FontSheet({
   onPreviewEnd,
   t,
 }: {
-  trigger: any;
+  trigger: VNode<{ onClick?: (event: MouseEvent) => void }>;
   value?: string;
   text?: string;
   drawnText?: string;

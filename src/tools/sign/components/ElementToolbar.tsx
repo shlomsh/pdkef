@@ -11,6 +11,7 @@ import { resolveTypography } from '../../../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../../../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/text/dateFormat.ts';
+import type { EditorElement } from '../../../editor/model/editorModel.ts';
 import { englishSignMessages } from '../messages';
 import type { SignMessages } from '../../../editor/registry/messages';
 import { formatMessage } from '../../../lib/formatMessage';
@@ -29,8 +30,8 @@ export default function ElementToolbar({
   onChange: (changes: any) => void;
   onPreviewFont?: (fontFamily: string) => void;
   onPreviewFontEnd?: () => void;
-  onClone: (...args: any[]) => void;
-  onDelete: (...args: any[]) => void;
+  onClone: (clone: EditorElement) => void;
+  onDelete: () => void;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop. */
   messages?: Partial<SignMessages>;

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { startGesture } from '../../../lib/gestures/controller.ts';
+import { startGesture, type GestureEvent } from '../../../lib/gestures/controller.ts';
 import { clampPoint, isPagelike, type Quad } from '../lib/quad.ts';
 import { LOUPE_SIZE, loupeView, placeLoupe } from '../lib/loupe.ts';
 import styles from './CornerEditor.module.css';
@@ -35,8 +35,8 @@ const outlinePoints = (q: Quad) => q.map((p) => `${p.x},${p.y}`).join(' ');
 // The whole photo plus the quad, filled evenodd: dims everything outside the quad.
 const dimPath = (q: Quad) => `M0 0H1V1H0Z M${q.map((p) => `${p.x} ${p.y}`).join(' L')} Z`;
 
-function clientPoint(event: any): { x: number; y: number } {
-  const t = event.touches?.[0] ?? event.changedTouches?.[0] ?? event;
+function clientPoint(event: GestureEvent): { x: number; y: number } {
+  const t = ('touches' in event ? (event.touches?.[0] ?? event.changedTouches?.[0]) : undefined) ?? (event as MouseEvent);
   return { x: t.clientX, y: t.clientY };
 }
 
@@ -90,7 +90,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     if (loupeRef.current) loupeRef.current.hidden = true;
   };
 
-  const handleStart = (index: number) => (event: any) => {
+  const handleStart = (index: number) => (event: GestureEvent) => {
     const frame = frameRef.current;
     if (!frame) return;
     if (event.cancelable) event.preventDefault();
@@ -105,8 +105,8 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     let lastValid = start;
 
     cancelRef.current = startGesture<{ quad: Quad; client: { x: number; y: number } }>({
-      computePatch: (moveEvent: any) => {
-        if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
+      computePatch: (moveEvent) => {
+        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
         const c = clientPoint(moveEvent);
         const point = clampPoint({
           x: rect.width ? (c.x - rect.left) / rect.width : start[index].x,
@@ -135,7 +135,7 @@ export default function CornerEditor({ src, aspect, quad, onCommit, labels }: Co
     });
   };
 
-  const handleKeyDown = (index: number) => (event: any) => {
+  const handleKeyDown = (index: number) => (event: KeyboardEvent) => {
     const dir = ARROWS[event.key];
     if (!dir) return;
     event.preventDefault();
