@@ -16,6 +16,7 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
+import { useAdoptPrePickedFiles } from '../../shell/prePickedFiles.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -89,6 +90,8 @@ const loadPipeline = () => (pipelinePromise ??= import('./lib/scanPipeline.ts'))
  * picker, so iOS opens the camera natively. The pages column's is a quiet tile, the phone bar's a bar button. */
 function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'] }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // The empty state's camera button is server-rendered, so a photo can be taken before this loads.
+  useAdoptPrePickedFiles(inputRef, onFiles);
   const onChange = (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
     if (input.files?.length) onFiles(Array.from(input.files));
@@ -100,7 +103,7 @@ function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-
         {/* No icon: it pairs with Choose files, which has none, as two equal buttons. */}
         <label class={dropzoneStyles['file-picker-button']}>
           {t.takePhoto}
-          <input type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
+          <input ref={inputRef} type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
         </label>
       </span>
     );
