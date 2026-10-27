@@ -178,6 +178,7 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, hin
           <div
             ref={refs.setFloating}
             className={styles.hint}
+            data-arm-hint
             style={{ ...floatingStyles, zIndex: 9999 }}
             {...getFloatingProps()}
           >

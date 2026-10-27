@@ -12,8 +12,8 @@ import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../messages';
 // Asserts toolbar state and layout classes (locked, hint, help-reserve-nav, label and dropdown structure) and the base button class.
+// Kept for the scoped class structure test (.button, .label, .toolbar, .dropdown) and the base button class check.
 import styles from '../../../editor-ui/SignToolbar.module.css';
-import toolShellStyles from '../../../shell/ToolShell.module.css';
 
 declare const __dirname: string;
 
@@ -361,7 +361,7 @@ describe('SignToolbar Component', () => {
         ellipse.click();
       });
 
-      const bubble = query(document, `.${styles.hint}`);
+      const bubble = query(document, '[data-arm-hint]');
       expect(bubble).not.toBeNull();
       expect(bubble.textContent).toContain('Double-click to keep Shapes on');
     });
@@ -597,7 +597,7 @@ describe('SignToolbar Component', () => {
         item.click();
       });
 
-      const bubble = document.querySelector(`.${styles.hint}`);
+      const bubble = document.querySelector('[data-arm-hint]');
       expect(bubble).not.toBeNull();
       expect(bubble.textContent).toContain('Double-click to keep Sign on');
     });
@@ -843,7 +843,7 @@ describe('SignToolbar Component', () => {
     // only where the gesture exists, which CSS handles (see .status-hint).
     it('names the double-click shortcut in the line itself, not only in a title', () => {
       armAndRead('text');
-      const hint = () => container.querySelector(`.${styles['status-hint-shown']}`).textContent.trim();
+      const hint = () => container.querySelector('[data-status-hint][data-shown]').textContent.trim();
       expect(hint()).toBe('or double-click Text');
 
       // Not the switch's inverse, and says so: Escape drops the tool, the
@@ -858,7 +858,7 @@ describe('SignToolbar Component', () => {
     // that had just clicked it. Both strings stay in the layout at all times.
     it('keeps both hints in the layout so toggling cannot move the switch', () => {
       armAndRead('text');
-      const spare = () => container.querySelector(`.${styles['status-hint-spare']}`);
+      const spare = () => container.querySelector('[data-status-hint]:not([data-shown])');
       expect(spare().textContent.trim()).toBe('or press Esc to stop entirely');
 
       armAndRead('text', true);
@@ -1286,7 +1286,7 @@ describe('SignToolbar Component', () => {
 
     const toolbar = query<HTMLElement>(container, '[role="toolbar"]');
     expect(toolbar).not.toBeNull();
-    expect(required(toolbar.parentElement, 'toolbar parent').classList.contains(toolShellStyles.controls)).toBe(true);
+    expect(required(toolbar.parentElement, 'toolbar parent').hasAttribute('data-shell-controls')).toBe(true);
 
     // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to
