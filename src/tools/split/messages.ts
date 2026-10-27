@@ -1,5 +1,6 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
 import type { PageGridMessages, DownloadMessages } from '../../shell/shellMessages';
+import type { PageToolMessages } from '../../shell/pageWorkspace/pageGridMessages.ts';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /**
@@ -10,7 +11,7 @@ import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
  * The output file names (`extracted_<name>.pdf`, `<name>-page-N.pdf`) are real
  * file names and are never translated.
  */
-export interface SplitMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
+export interface SplitMessages extends PageGridMessages, PageToolMessages, DownloadMessages, HistoryButtonsMessages {
   lang: string;
   dir: 'ltr' | 'rtl';
   skippedOne: string;
@@ -55,28 +56,12 @@ export interface SplitMessages extends PageGridMessages, DownloadMessages, Histo
   invalidPart: string;
   noValidPages: string;
   /* The shared page grid's own strings (Split reads the same Download and Undo/Redo elements). */
-  includeAll: string;
-  skipAll: string;
   /* Not the bare Tailwind utility name: src/i18n is a Tailwind @source, and that ships a dead rule on every page. */
   invertPages: string;
-  documentHeading: string;
-  downloadShort: string;
   readyAnnouncement: string;
-  sharedSuccessfully: string;
-  sharingCanceled: string;
-  shareError: string;
-  undoneAnnouncement: string;
-  redoneAnnouncement: string;
-  allIncluded: string;
-  inverted: string;
-  loaded: string;
-  loadFailed: string;
-  announceNeedsPassword: string;
   announceRestricted: string;
-  closeStrip: string;
   handoffCompress: string;
   handoffSign: string;
-  shareLabel: string;
 }
 
 export const englishSplitMessages: SplitMessages = {
