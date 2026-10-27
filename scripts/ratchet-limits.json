@@ -43,7 +43,7 @@
       "src/tools/redact/hooks/useRedactExport.ts#useRedactExport": 218,
       "src/tools/redact/state/redactState.ts#redactReducer": 244,
       "src/tools/scan/components/CornerEditor.tsx#CornerEditor": 156,
-      "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
+      "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 290,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 287,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
@@ -93,8 +93,8 @@
         "hooks": 32
       },
       "src/tools/security/PdfSecurityTool.tsx": {
-        "effects": 1,
-        "hooks": 13
+        "effects": 0,
+        "hooks": 12
       },
       "src/tools/sign/PdfSignTool.tsx": {
         "effects": 0,
