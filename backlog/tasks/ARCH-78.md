@@ -26,3 +26,7 @@ Area: Tests and CI. Criterion: Test architecture. Structure only: no behaviour c
 ## Acceptance
 
 - [ ] Module mocks in island tests fall from 51 to under 15; the suites pass.
+
+## Progress (2026-10-27)
+
+src/test/harness/toolHarness.ts (fake IndexedDB, recorded beacons, created blobs, real draftStore reads) is the one harness; every island test now mocks only edges jsdom cannot run (pdf.js worker and rendering, canvas pixels and codecs). Module mocks across the audit's seven islands fell from 51 to 21: Redact 2, Merge 2, Split 3, Security 2, Edit Pages 2, PDF to Image 3, Compress 7. A reviewer's weakened assertions were restored, with call-through spies where only call identity proves the fact. Open: under 15 needs Compress's main test to drop its hand-built engine results (three canvas-bound engines, analyzePdf, pdfLib) for generated fixtures and codec stubs, or the pdf.js edge mocks to move into one shared setup.
