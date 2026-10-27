@@ -15,25 +15,6 @@ function makePdfFile(name) {
   return new File([healthy()], name, { type: 'application/pdf' });
 }
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
-
-// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
-vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => {
-    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
-    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-      destroy: vi.fn(async () => {}),
-    };
-  }),
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-}));
-
 describe('PdfEditPagesTool undo/redo', () => {
   let container;
   let harness;
