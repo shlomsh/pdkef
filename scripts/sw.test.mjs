@@ -148,10 +148,11 @@ async function dispatchMessage(worker, data) {
   return reply;
 }
 
-function manifestResponder(urls, perUrl = () => new Response('asset')) {
+// A v2 manifest: `urls` is the shell, `pages` the per-page packs.
+function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}) {
   return vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ urls }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, shell: urls, pages }));
     return perUrl(new URL(url).pathname);
   });
 }
@@ -176,6 +177,7 @@ describe('offline-first service worker', () => {
 
     expect(Array.from(worker.entries.keys()).sort()).toEqual([
       'https://pdkef.test/',
+      'https://pdkef.test/__pdkef/manifest/',
       'https://pdkef.test/__pdkef/precache-complete/',
       'https://pdkef.test/_astro/app.js',
       'https://pdkef.test/sign/',
@@ -231,6 +233,7 @@ describe('offline-first service worker', () => {
 
     expect(Array.from(worker.entries.keys()).sort()).toEqual([
       'https://pdkef.test/',
+      'https://pdkef.test/__pdkef/manifest/',
       'https://pdkef.test/sign/',
     ]);
     expect(worker.self.registration.unregister).not.toHaveBeenCalled();
@@ -302,51 +305,107 @@ describe('offline-first service worker', () => {
     expect(worker.entries.has('https://pdkef.test/__pdkef/offline-font-pack/Noto%20Sans%20Bengali')).toBe(false);
   });
 
-  // LOC-02: locale packs. HTML only, one edition per request, and never
-  // anything outside that edition's prefix.
-  it('provisions every published page of an edition and reports it ready', async () => {
-    const worker = createWorker(vi.fn(async (request) => new Response(`page:${new URL(request.url).pathname}`)));
-    const pack = { prefix: 'he', urls: ['/he/merge/', '/he/compress/', '/he/how-to-sign-a-pdf-on-android/'] };
+  describe('MEM-15: page packs', () => {
+    const SHELL = ['/', '/_astro/shell.A1.js'];
+    const MERGE = ['/merge/', '/_astro/Merge.B1.js', '/pdfjs-dist-wasm/openjpeg.wasm'];
+    const SIGN = ['/sign/', '/_astro/Sign.C1.js'];
+    const MARKER = 'https://pdkef.test/__pdkef/offline-page-pack/%2Fmerge%2F';
+    const pagesOf = () => ({ '/merge/': MERGE, '/sign/': SIGN });
+    const abs = (paths) => paths.map((path) => `https://pdkef.test${path}`);
+    const withoutInternal = (worker) => [...worker.entries.keys()].filter((key) => !key.includes('/__pdkef/')).sort();
 
-    expect(await dispatchMessage(worker, { type: 'pdkef:locale-pack-status', packs: [pack] }))
-      .toEqual({ ok: true, ready: { he: false } });
-    expect(await dispatchMessage(worker, { type: 'pdkef:locale-pack-provision', packs: [pack] }))
-      .toEqual({ ok: true, ready: { he: true } });
-    expect([...worker.entries.keys()]).toEqual(expect.arrayContaining([
-      'https://pdkef.test/he/merge/',
-      'https://pdkef.test/he/compress/',
-      'https://pdkef.test/he/how-to-sign-a-pdf-on-android/',
-      'https://pdkef.test/__pdkef/offline-locale-pack/he',
-    ]));
-
-    // A provisioned page then serves offline on its first navigation, the
-    // whole point of warming it: same cache key the navigation handler reads.
-    worker.fetchImpl.mockRejectedValue(new Error('offline'));
-    const { response } = await dispatchFetch(worker, { method: 'GET', mode: 'navigate', url: 'https://pdkef.test/he/compress/' });
-    expect(await response.text()).toBe('page:/he/compress/');
-  });
-
-  it('refuses a pack that names a page outside its own edition, and caches nothing from it', async () => {
-    const worker = createWorker(vi.fn(async () => new Response('page')));
-    const result = await dispatchMessage(worker, {
-      type: 'pdkef:locale-pack-provision',
-      packs: [{ prefix: 'he', urls: ['/he/merge/', '/merge/'] }],
+    it('a first install caches the shell only, not any page list', async () => {
+      const worker = createWorker(manifestResponder(SHELL, undefined, pagesOf()), []);
+      await dispatchInstall(worker);
+      expect(withoutInternal(worker)).toEqual(abs(SHELL).sort());
+      expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(true);
     });
-    expect(result.ok).toBe(false);
-    expect(worker.fetchImpl).not.toHaveBeenCalled();
-    expect(worker.entries.size).toBe(0);
-  });
 
-  it('does not report an edition ready when one of its pages cannot be fetched', async () => {
-    const worker = createWorker(vi.fn(async (request) => (
-      request.url.endsWith('/he/compress/') ? new Response('gone', { status: 404 }) : new Response('page')
-    )));
-    const result = await dispatchMessage(worker, {
-      type: 'pdkef:locale-pack-provision',
-      packs: [{ prefix: 'he', urls: ['/he/merge/', '/he/compress/'] }],
+    it('provisioning a page caches exactly its list and writes the marker', async () => {
+      const worker = createWorker(manifestResponder(SHELL, undefined, pagesOf()), []);
+      await dispatchInstall(worker);
+
+      expect(await dispatchMessage(worker, { type: 'pdkef:page-pack-status', page: '/merge/' }))
+        .toEqual({ ok: true, ready: { '/merge/': false } });
+      expect(await dispatchMessage(worker, { type: 'pdkef:page-pack-provision', page: '/merge/' }))
+        .toEqual({ ok: true, ready: { '/merge/': true } });
+
+      expect(withoutInternal(worker)).toEqual(abs([...SHELL, ...MERGE]).sort());
+      expect(worker.entries.has(MARKER)).toBe(true);
+      expect(await dispatchMessage(worker, { type: 'pdkef:page-pack-status', page: '/merge/' }))
+        .toEqual({ ok: true, ready: { '/merge/': true } });
     });
-    expect(result.ok).toBe(false);
-    expect(worker.entries.has('https://pdkef.test/__pdkef/offline-locale-pack/he')).toBe(false);
+
+    it('refuses a page the stored manifest does not list, and fetches nothing for it', async () => {
+      const worker = createWorker(manifestResponder(SHELL, undefined, pagesOf()), []);
+      await dispatchInstall(worker);
+      worker.fetchImpl.mockClear();
+
+      for (const page of ['/nope/', '/__pdkef/precache-complete/', undefined, 'constructor']) {
+        const reply = await dispatchMessage(worker, { type: 'pdkef:page-pack-provision', page });
+        expect(reply.ok).toBe(false);
+      }
+      expect(worker.fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it('does not mark a page ready when one of its files cannot be fetched', async () => {
+      const worker = createWorker(manifestResponder(SHELL, (pathname) => (
+        pathname === '/_astro/Merge.B1.js' ? new Response('no', { status: 503 }) : new Response('asset')
+      ), pagesOf()), []);
+      await dispatchInstall(worker);
+
+      expect(await dispatchMessage(worker, { type: 'pdkef:page-pack-provision', page: '/merge/' }))
+        .toEqual({ ok: true, ready: { '/merge/': false } });
+      expect(worker.entries.has(MARKER)).toBe(false);
+    });
+
+    it('reads the manifest this build installed from, even when the network now serves another', async () => {
+      const worker = createWorker(manifestResponder(SHELL, undefined, pagesOf()), []);
+      await dispatchInstall(worker);
+      worker.fetchImpl.mockImplementation(manifestResponder(SHELL, undefined, {
+        '/merge/': ['/merge/', '/_astro/Merge.NEWER.js'],
+      }));
+
+      await dispatchMessage(worker, { type: 'pdkef:page-pack-provision', page: '/merge/' });
+
+      expect(worker.entries.has('https://pdkef.test/_astro/Merge.B1.js')).toBe(true);
+      expect(worker.entries.has('https://pdkef.test/_astro/Merge.NEWER.js')).toBe(false);
+    });
+
+    it('a second build re-provisions a page whose marker was in the old cache and copies its hashed files', async () => {
+      const second = ['/merge/', '/_astro/Merge.B1.js', '/_astro/Merge.B2.js'];
+      const worker = createWorker(manifestResponder(SHELL, undefined, { '/merge/': second, '/sign/': SIGN }), ['pdkef-old']);
+      const old = worker.entriesByCache.get('pdkef-old');
+      old.set(MARKER, new Response('/merge/'));
+      old.set('https://pdkef.test/merge/', new Response('old page'));
+      old.set('https://pdkef.test/_astro/Merge.B1.js', new Response('old b1'));
+
+      await dispatchInstall(worker);
+
+      expect(withoutInternal(worker)).toEqual(abs([...SHELL, ...second]).sort());
+      expect(worker.entries.has(MARKER)).toBe(true);
+      expect(await worker.entries.get('https://pdkef.test/_astro/Merge.B1.js').text()).toBe('old b1');
+      expect(await worker.entries.get('https://pdkef.test/merge/').text()).toBe('asset');
+      const fetched = worker.fetchImpl.mock.calls.map(([request]) => new URL(requestUrl(request)).pathname);
+      expect(fetched).not.toContain('/_astro/Merge.B1.js');
+      expect(fetched).toContain('/_astro/Merge.B2.js');
+      expect(fetched).not.toContain('/_astro/Sign.C1.js');
+    });
+
+    it('drops the marker of a page the new build no longer lists', async () => {
+      const worker = createWorker(manifestResponder(SHELL, undefined, { '/sign/': SIGN }), ['pdkef-old']);
+      worker.entriesByCache.get('pdkef-old').set(MARKER, new Response('/merge/'));
+
+      await dispatchInstall(worker);
+
+      expect(worker.entries.has(MARKER)).toBe(false);
+      expect(withoutInternal(worker)).toEqual(abs(SHELL).sort());
+    });
+
+    it('treats a manifest without version 2 as having no URLs', async () => {
+      const worker = createWorker(vi.fn(async () => new Response(JSON.stringify({ urls: ['/', '/sign/'] }))), []);
+      await expect(dispatchInstall(worker)).rejects.toThrow(/no URLs/);
+    });
   });
 
   it('revalidates provisioned font packs into an upgraded cache before deleting the old cache', async () => {
@@ -588,7 +647,7 @@ function buildIncompleteWorker(source, windows, failing = []) {
   const fetched = [];
   const fetchImpl = vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ urls: ['/', '/sign/', '/_astro/app.js'] }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, shell: ['/', '/sign/', '/_astro/app.js'], pages: {} }));
     const pathname = new URL(url).pathname;
     fetched.push(pathname);
     return failing.includes(pathname) ? new Response('no', { status: 503 }) : new Response('asset');
@@ -1035,7 +1094,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const a = criticalWindow('a');
     const worker = build({ windows: [a], marker: false });
     worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
-      ? new Response(JSON.stringify({ urls: ['/', '/sign/'] }))
+      ? new Response(JSON.stringify({ version: 2, shell: ['/', '/sign/'], pages: {} }))
       : new Response('no', { status: 503 })));
     await runCheck(worker);
     expect(a.postMessage).not.toHaveBeenCalled();
@@ -1045,7 +1104,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
   it('finishes a missing precache online and then forces', async () => {
     const worker = build({ marker: false });
     worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
-      ? new Response(JSON.stringify({ urls: ['/', '/sign/'] }))
+      ? new Response(JSON.stringify({ version: 2, shell: ['/', '/sign/'], pages: {} }))
       : new Response('asset')));
     await runCheck(worker);
     expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
