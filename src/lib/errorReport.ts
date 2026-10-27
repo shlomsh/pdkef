@@ -25,6 +25,7 @@ import {
 export * from './errorReportSchema.ts';
 import { recentActions } from './actionTrail.ts';
 
+/** @testSeam */
 export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set<string>(IGNORED_NAMES);
 
 /**
@@ -39,6 +40,7 @@ function isPdfLibEncryptedError(error: Error): boolean {
  * The report for this error, or null when it should not travel: an ignored
  * name, or no frame inside our own built output (an extension's error, or a
  * dev build). Pure: the page facts come in as `context`.
+ * @testSeam
  */
 export function toErrorReport(
   area: ErrorArea,
@@ -91,6 +93,7 @@ export function dropCause(error: unknown): DropCause | undefined {
  * The drop record for an error `toErrorReport` returned null for (DEBT-44), so a counted failure
  * always leaves a trace. Mirrors `toErrorReport`'s order to name the reason. Pure; null when the
  * schema refuses it, so the browser never sends what the endpoint would refuse.
+ * @testSeam
  */
 export function toDropRecord(area: ErrorArea, error: unknown, step: string, build?: string): DropRecord | null {
   let reason: DropRecord['reason'] = 'invalid';
@@ -120,6 +123,7 @@ export function toDropRecord(area: ErrorArea, error: unknown, step: string, buil
 /**
  * The page facts, read at report time. Never throws; any fact it cannot read
  * falls back to the plainest value (`/`, false, false, no actions).
+ * @testSeam
  */
 export function readPageContext(): PageContext {
   // One fact per guard: a browser missing one API keeps the other three.
@@ -230,7 +234,9 @@ export function sendBeacon(payload: object): boolean {
   }
 }
 
+/** @testSeam */
 export const MAX_REPORTS_PER_PAGE = 10;
+/** @testSeam */
 export const MAX_DROPS_PER_PAGE = 10;
 
 // Module state, so a page load is the unit of "once" and of the cap.

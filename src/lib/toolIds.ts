@@ -14,6 +14,7 @@
 
 export type FileKind = 'pdf' | 'image';
 
+/** @testSeam */
 export interface ToolPage {
   /** The page's URL segment. */
   readonly slug: string;

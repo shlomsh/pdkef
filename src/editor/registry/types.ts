@@ -40,7 +40,7 @@ export interface SerializeContext {
   redaction?: boolean;
 }
 
-export interface RedactionInstruction {
+interface RedactionInstruction {
   kind: 'blur' | 'solid';
   element: {
     left: number; top: number; width: number; height: number; color?: string;
@@ -51,9 +51,9 @@ export interface RedactionInstruction {
   };
 }
 
-export type SerializeResult = void | RedactionInstruction | Promise<void | RedactionInstruction>;
+type SerializeResult = void | RedactionInstruction | Promise<void | RedactionInstruction>;
 
-export interface CreateContext {
+interface CreateContext {
   id: string;
   pageIndex: number;
   point: { left: number; top: number };
@@ -70,7 +70,7 @@ export interface CreateContext {
   textHeight?: number;
 }
 
-export type CreationMode = 'point' | 'drag' | 'external';
+type CreationMode = 'point' | 'drag' | 'external';
 
 export type ResizeHandle = 'top' | 'right' | 'bottom' | 'left' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'line-start' | 'line-end';
 

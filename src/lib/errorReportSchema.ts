@@ -51,7 +51,10 @@
 
 export const ERROR_REPORT_PATH = '/api/report';
 
-/** Coarse feature areas. A frame names the line; this only groups them. */
+/**
+ * Coarse feature areas. A frame names the line; this only groups them.
+ * @testSeam
+ */
 export const ERROR_AREAS = [
   'pdf_render', // pdf.js page or thumbnail render threw on a document that loaded
   'pdf_tool_run', // a tool's own load, build or export step threw
@@ -67,7 +70,9 @@ export const ERROR_AREAS = [
 
 export type ErrorArea = (typeof ERROR_AREAS)[number];
 
+/** @testSeam */
 export const PAGE_AGES = ['under_10s', 'under_1m', 'under_10m', 'over_10m'] as const;
+/** @testSeam */
 export type PageAge = (typeof PAGE_AGES)[number];
 
 export const MAX_FRAMES = 8;
@@ -187,14 +192,20 @@ export function pageAge(ms: number): PageAge {
  *   that did not load or a file that could not be read, and nothing in the record told them apart;
  * - `area`, `step`, `build`: as in a report.
  * A deduplicated or capped report is not a drop: its cause already travelled.
+ * @testSeam
  */
 export const DROP_REASONS = ['non_error', 'no_frame', 'ignored', 'encrypted', 'invalid'] as const;
+/** @testSeam */
 export type DropReason = (typeof DROP_REASONS)[number];
 
-/** What an `Error`'s message says happened: a script chunk or a request that did not load, a file the browser could not read, memory, or none of these. */
+/**
+ * What an `Error`'s message says happened: a script chunk or a request that did not load, a file the browser could not read, memory, or none of these.
+ * @testSeam
+ */
 export const DROP_CAUSES = ['module_load', 'network', 'file_read', 'memory', 'other'] as const;
 export type DropCause = (typeof DROP_CAUSES)[number];
 
+/** @testSeam */
 export const DROP_TYPES = [
   'Error', 'TypeError', 'RangeError', 'ReferenceError', 'SyntaxError', 'URIError', 'EvalError',
   'AggregateError', 'DOMException', 'custom',

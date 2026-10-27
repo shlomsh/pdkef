@@ -12,6 +12,7 @@ import { isDateFormatId } from '../text/dateFormat.ts';
 // stamped there); re-exported so the editor-side callers and tests keep one
 // name for it. `migrateDraftRecord` below is where a bump gets its step.
 import { DRAFT_SCHEMA_VERSION } from '../../lib/drafts/draftPolicy.js';
+/** @testSeam */
 export { DRAFT_SCHEMA_VERSION };
 
 const ELEMENT_TYPES: readonly ElementType[] = [
@@ -45,6 +46,7 @@ export interface DeleteElement extends HistoryElement {
   [field: string]: unknown;
 }
 
+/** @testSeam */
 export type DraftElement = EditorElement | DeleteElement;
 
 function isDeleteElement(value: unknown): value is DeleteElement {
@@ -78,7 +80,7 @@ function legacyStrengthToNumber<T>(value: T): T {
   return { ...value, strength: resolveBlurStrength(value.strength) };
 }
 
-export function migrateBlurStrengths(record: Record<string, unknown>): Record<string, unknown> {
+function migrateBlurStrengths(record: Record<string, unknown>): Record<string, unknown> {
   const elements = Array.isArray(record.elements) ? record.elements.map(legacyStrengthToNumber) : record.elements;
   let extra = record.extra;
   if (isRecord(extra) && Array.isArray(extra.actionHistory)) {
@@ -214,7 +216,7 @@ function migrateLegacyCarried(extra: Record<string, unknown>, carried: Partial<D
   return migrated;
 }
 
-export interface ValidatedElements<TElement extends HistoryElement = DraftElement> {
+interface ValidatedElements<TElement extends HistoryElement = DraftElement> {
   valid: TElement[];
   droppedCount: number;
 }
@@ -224,6 +226,7 @@ export interface ValidatedElements<TElement extends HistoryElement = DraftElemen
  * throwing - a corrupt or foreign record should lose the offending elements,
  * not take down the whole restore. Logs a summary (never PDF content) when
  * anything was dropped.
+ * @testSeam
  */
 export function validateDraftElements<TElement extends HistoryElement = DraftElement>(
   elements: unknown[],
@@ -276,6 +279,7 @@ export function validateDraftElements<TElement extends HistoryElement = DraftEle
  * into the walk state so older entries are checked against elements as they
  * existed at that point in time - a kept newer delete brings its elements
  * back for an older update on them to be checked against.
+ * @testSeam
  */
 export function dropUnsafeUpdates<TElement extends HistoryElement>(
   elements: readonly TElement[],
@@ -309,7 +313,7 @@ export function dropUnsafeUpdates<TElement extends HistoryElement>(
   return kept;
 }
 
-export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftElement> {
+interface ValidatedDraftRecord<TElement extends HistoryElement = DraftElement> {
   fileName: string;
   fileType?: string;
   fileBytes: ArrayBuffer;
@@ -325,7 +329,7 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
 }
 
 /** RED-59: a detail edit is a delete or an alter with a string value. */
-export type DetailEdit = { action: 'delete' } | { action: 'alter'; value: string };
+type DetailEdit = { action: 'delete' } | { action: 'alter'; value: string };
 export type DetailEdits = Record<string, DetailEdit>;
 
 /** Each key is checked on its own; anything unusable is dropped, a non-record is `{}`. */

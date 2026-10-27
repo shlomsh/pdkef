@@ -25,12 +25,15 @@ function readHomeRecents(): RecentFileItem[] {
   return readRecentFiles().map((entry: any) => ({ ...entry, cacheId: entry.id })).slice(0, 6);
 }
 
-/** The closing launcher cannot light a toolbar it has scrolled away from, so it sends the pick up to the first screen's island. */
+/**
+ * The closing launcher cannot light a toolbar it has scrolled away from, so it sends the pick up to the first screen's island.
+ * @testSeam
+ */
 export const LAUNCHER_PICK_EVENT = 'pdkef:launcher-pick';
 
 const TYPE_BY_EXTENSION: Record<string, string> = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
 /** Edit PDF Pages filters strictly by type, so a file the browser left untyped gets one from its extension. */
-export const fileTypeOf = (file: File) =>
+const fileTypeOf = (file: File) =>
   file.type || TYPE_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? ''] || 'application/pdf';
 
 /* The bytes are read when the file is picked, not when a tool is tapped: an iOS file from the Files
@@ -45,12 +48,15 @@ async function readCopies(files: File[]): Promise<{ copies: File[]; unreadable: 
   };
 }
 
-/** Each name in its own bidi isolate (U+2068 ... U+2069), so a Hebrew name beside a Latin one keeps its place in the list. */
+/**
+ * Each name in its own bidi isolate (U+2068 ... U+2069), so a Hebrew name beside a Latin one keeps its place in the list.
+ * @testSeam
+ */
 export const isolateNames = (files: readonly { name: string }[]) =>
   files.map(file => `\u2068${file.name}\u2069`).join(', ');
 
 /** What the two screen-reader regions say: failures at once, everything else politely, the prompt last. Pure. */
-export function liveMessages(
+function liveMessages(
   state: { note: string; failed: boolean; waiting: boolean },
   messages: FileDropzoneMessages,
 ) {
@@ -65,6 +71,7 @@ type Opening = { title: string; tool: string };
 
 /** What the tile says. Pure, so the states are testable without a DOM. A note (a failure or a
     "Left out" list) takes the second line in every state; the title stays. */
+/** @testSeam */
 export function tileCopy(
   state: { choice: Choice | null; opening: Opening | null; busy: boolean; note?: string; final?: boolean },
   messages: FileDropzoneMessages,

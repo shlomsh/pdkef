@@ -9,6 +9,7 @@
 // the schema equivalent of the /about, /contact and /privacy trust-anchor
 // pages, and it must only ever say what those pages say.
 
+/** @testSeam */
 export const SITE_URL = 'https://pdkef.com/';
 export const GITHUB_REPO_URL = 'https://github.com/shlomsh/pdkef';
 
@@ -16,6 +17,7 @@ export const GITHUB_REPO_URL = 'https://github.com/shlomsh/pdkef';
 // (src/data/staticPages.js). There is no support inbox or phone line, so
 // the ContactPoint carries a url and no email/telephone - schema.org
 // requires neither, and inventing one would be worse than omitting it.
+/** @testSeam */
 export const SUPPORT_CONTACT_URL = `${GITHUB_REPO_URL}/issues/new`;
 
 export const organization = {

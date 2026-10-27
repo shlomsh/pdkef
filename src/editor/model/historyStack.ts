@@ -38,7 +38,7 @@ export interface HistoryStack<TElement extends HistoryElement> {
   future: ActionHistoryEntry<TElement>[];
 }
 
-export interface HistoryStep<TElement extends HistoryElement> extends HistoryStack<TElement> {
+interface HistoryStep<TElement extends HistoryElement> extends HistoryStack<TElement> {
   entry: ActionHistoryEntry<TElement>;
 }
 

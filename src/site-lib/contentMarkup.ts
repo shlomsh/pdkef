@@ -21,7 +21,10 @@
 // anything, so a link written without the slash costs a redirect hop on every
 // crawl. It was previously prose in a doc; here it is enforced.
 
-/** Every `<a>` in body copy. */
+/**
+ * Every `<a>` in body copy.
+ * @testSeam
+ */
 export const INLINE_LINK_CLASS =
   'text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]';
 
@@ -37,6 +40,7 @@ export const INLINE_LINK_CLASS =
  * a string moving from hardcoded markup into a content object cannot silently
  * restyle itself on the way - `renderInline` emits a bare `<strong>` for it,
  * not `class=""`, so the rendered bytes are unchanged.
+ * @testSeam
  */
 export const STRONG_CLASS = {
   body: 'font-semibold',
@@ -44,7 +48,7 @@ export const STRONG_CLASS = {
   inherit: '',
 } as const;
 
-export type InlineTone = keyof typeof STRONG_CLASS;
+type InlineTone = keyof typeof STRONG_CLASS;
 
 /**
  * The block classes of a content card, shared by the guides (ContentPage) and

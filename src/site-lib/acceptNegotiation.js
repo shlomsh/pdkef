@@ -8,6 +8,7 @@
  * The client's preference for `targetType` (e.g. "text/html"), honoring
  * RFC 9110 q-values with exact-type > type/* > * / * precedence at equal q.
  * Returns 0 if the header rules the type out entirely.
+ * @testSeam
  */
 export function acceptQuality(acceptHeader, targetType) {
   const [targetMain] = targetType.split('/');

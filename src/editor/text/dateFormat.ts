@@ -15,9 +15,13 @@
 // 'dmyDigits' / 'mdyDigits' are DDMMYYYY / MMDDYYYY with no separators, for boxed date fields that print
 // their own dividers (e.g. an 8-cell DD|MM|YYYY comb on Israeli tax forms):
 // written with slashes, those would spend two cells on '/' and cut the year.
+/** @testSeam */
 export type DateFormatId = 'locale' | 'iso' | 'dmy' | 'dmyDigits' | 'mdy' | 'mdyDigits';
 
-/** Cycle order for ElementToolbar.tsx's single format-cycling control. */
+/**
+ * Cycle order for ElementToolbar.tsx's single format-cycling control.
+ * @testSeam
+ */
 export const DATE_FORMAT_IDS: readonly DateFormatId[] = ['locale', 'iso', 'dmy', 'dmyDigits', 'mdy', 'mdyDigits'];
 
 export function isDateFormatId(value: unknown): value is DateFormatId {
@@ -42,7 +46,10 @@ function fromIsoDateString(isoDate: string): Date {
   return new Date(year, (month || 1) - 1, day || 1);
 }
 
-/** Best-effort browser locale; `formatDate`'s 'locale' option only. */
+/**
+ * Best-effort browser locale; `formatDate`'s 'locale' option only.
+ * @testSeam
+ */
 export function detectLocale(): string {
   try {
     if (typeof navigator !== 'undefined' && navigator.language) return navigator.language;
