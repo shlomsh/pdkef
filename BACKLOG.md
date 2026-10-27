@@ -199,7 +199,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Robustness and debt: 57 done, 4 retired
 - Unify the tools, narrow the graph: 8 done, 0 retired
 - Search and languages: 7 done, 0 retired
-- Polish: 16 done, 1 retired
+- Polish: 17 done, 1 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
