@@ -1,7 +1,7 @@
 // ARCH-42: the Nx project graph must stay acyclic, or every affected run widens to everything.
 // Pure pieces only, driven with fixture graphs; the real tree is asserted by the CLI.
 import { describe, expect, it } from 'vitest';
-import { projectOf, projectEdges, findProjectCycles } from './check-module-boundaries.mjs';
+import { projectOf, projectEdges, withImplicitEdges, findProjectCycles } from './check-module-boundaries.mjs';
 
 const owners = new Map([
   ['src/a', 'proj-a'], ['src/b', 'proj-b'], ['src/c', 'proj-c'], ['src', 'root'],
@@ -25,6 +25,18 @@ describe('projectEdges()', () => {
       { from: 'src/a/1.ts', to: 'docs/z.ts' },
     ], owners);
     expect([...edges.entries()]).toEqual([['proj-a', new Set(['proj-b'])]]);
+  });
+});
+
+describe('withImplicitEdges()', () => {
+  it('closes a cycle through an implicitDependencies entry, and ignores unknown names', () => {
+    const g = projectEdges([{ from: 'src/a/1.ts', to: 'src/b/2.ts' }], owners);
+    expect(findProjectCycles(g)).toEqual([]);
+    withImplicitEdges(g, new Map([['proj-b', ['proj-a', 'nope']]]), ['proj-a', 'proj-b']);
+    const cycles = findProjectCycles(g);
+    expect(cycles).toHaveLength(1);
+    expect([...cycles[0]].sort()).toEqual(['proj-a', 'proj-b']);
+    expect(g.get('proj-b')).toEqual(new Set(['proj-a']));
   });
 });
 
