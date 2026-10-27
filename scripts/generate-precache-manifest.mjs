@@ -25,11 +25,11 @@ if (!fs.existsSync(distDir)) {
 
 const allFiles = walk(distDir).sort();
 
-// v2 (MEM-15): the shell, and the closure of each page, so the worker caches what a
-// visited page needs instead of the whole build.
+// v2 (MEM-15): the shell, and the closure of each page, so the worker installs the union
+// of the closures instead of every file in the build.
 const relativeOf = (filePath) => path.relative(distDir, filePath).split(path.sep).join('/');
 const view = {
-  files: new Map(allFiles.filter((filePath) => /\.(?:html|js|css)$/.test(filePath)).map((filePath) => [relativeOf(filePath), fs.readFileSync(filePath, 'utf8')])),
+  files: new Map(allFiles.filter((filePath) => /\.(?:html|m?js|css)$/.test(filePath)).map((filePath) => [relativeOf(filePath), fs.readFileSync(filePath, 'utf8')])),
   paths: allFiles.map(relativeOf),
 };
 const keep = (relative) => shouldPrecache(relative, { manifestName, workerName });
