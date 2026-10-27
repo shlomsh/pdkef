@@ -23,7 +23,7 @@ export interface ToolPage {
   readonly id: string;
   /** The `src/tools/<folder>/` that holds the island (Edit Pages is `edit-pages`, Unlock is `security`, Scan is `scan`). */
   readonly folder: string;
-  /** The page's English display name; a unit test keeps it equal to the registry's `gridTitle` in `src/data/tools.js`. */
+  /** The page's English display name: the source of the registry's `gridTitle` in `src/data/tools.js`, which reads it through `labelOf`. */
   readonly label: string;
   /** Set when the page shares its parent's island (a landing-page variant). */
   readonly variantOf?: string;
@@ -78,6 +78,13 @@ export const TOOL_IDS: readonly ToolId[] = [...new Set<ToolId>([...TOOL_PAGES.ma
 
 const pages: readonly ToolPage[] = TOOL_PAGES;
 const pageBySlug = (slug: string) => pages.find((p) => p.slug === slug);
+
+/** The English display name of a listed page; throws for a slug with no row. */
+export function labelOf(slug: string): string {
+  const page = pageBySlug(slug);
+  if (!page) throw new Error(`labelOf: no TOOL_PAGES row for slug "${slug}"`);
+  return page.label;
+}
 
 /** The key a hand-off to `slug` (or to a tool id) is parked under in the draft store. */
 export function handoffKeyOf(slugOrId: string): string {
