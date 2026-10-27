@@ -121,6 +121,8 @@
    column). --- */
 .page {
   position: relative;
+  /* AppBar.astro's h-14 (3.5rem) plus its border: a cell scrolled to its start clears the sticky bar (DEBT-67). */
+  scroll-margin-top: calc(3.5rem + 1px);
   /* Bottom-aligned so a landscape cell's number lines up with its portrait
      neighbours' (the sketch's landscape row); the reserved tag strip below
      keeps its own top-aligned position regardless. */
@@ -132,6 +134,10 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+.page :is(button, a) {
+  scroll-margin-top: calc(3.5rem + 1px);
 }
 
 /* The grab hand only where a tile can be dragged. */
