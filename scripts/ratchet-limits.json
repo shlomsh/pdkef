@@ -26,8 +26,8 @@
         "hooks": 37
       },
       "src/tools/compress/PdfCompressTool.tsx": {
-        "effects": 4,
-        "hooks": 18
+        "effects": 0,
+        "hooks": 15
       },
       "src/tools/edit-pages/PdfEditPagesTool.tsx": {
         "effects": 0,
