@@ -1128,9 +1128,9 @@ describe('PdfRedactTool UI flow', () => {
       // Drag across the row of nine.
       await dragBox(drawArea, [10, 40], [490, 140]);
       expect(candidates()).toHaveLength(0); // deleting spent the arming
-      const chip = required(container.querySelector('[data-testid="undo-chip-btn"]')?.parentElement, 'undo chip');
+      const chip = required(container.querySelector('[role="status"] button')?.parentElement, 'undo chip');
       expect(chip.textContent).toContain('Deleted 9 pieces of text');
-      const chipUndo = () => required(container.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo');
+      const chipUndo = () => required(container.querySelector<HTMLButtonElement>('[role="status"] button'), 'chip Undo');
 
       // The chip restores all nine together.
       await act(async () => { chipUndo().click(); });
@@ -2375,7 +2375,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(announcementRegion().textContent).toContain('Removed the blackout box');
 
       const chip = statusSlot();
-      expect(chip.querySelector('[data-testid="undo-chip"]')).not.toBeNull();
+      expect(chip.querySelector('[role="status"] > span')).not.toBeNull();
       expect(chip.textContent).toContain('Removed the blackout box');
       // The chip did not replace the stack: every tool's hidden reservation is
       // still there under it, holding the row's height, and the shell is told
@@ -2384,7 +2384,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(help.hasAttribute('data-status-active')).toBe(true);
       expect(help.querySelectorAll(`.${toolbarStyles['help-spare']}`).length).toBeGreaterThanOrEqual(4);
 
-      const undoButton = required(chip.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
+      const undoButton = required(chip.querySelector<HTMLButtonElement>('[role="status"] button'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
@@ -2414,7 +2414,7 @@ describe('PdfRedactTool UI flow', () => {
       const chip = statusSlot();
       expect(chip.textContent).toContain('Cleared 2 boxes on page 1');
 
-      const undoButton = required(chip.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
+      const undoButton = required(chip.querySelector<HTMLButtonElement>('[role="status"] button'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
@@ -2446,7 +2446,7 @@ describe('PdfRedactTool UI flow', () => {
       };
 
       await selectAndDeleteFirstBox();
-      expect(container.querySelectorAll('[data-testid="undo-chip"]')).toHaveLength(1);
+      expect(container.querySelectorAll('[role="status"] > span')).toHaveLength(1);
       expect(boxes()).toHaveLength(1);
 
       // Select and delete the one remaining box before the first chip's
@@ -2455,7 +2455,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Still exactly one chip in the one status slot - the second delete's
       // chip replaced the first's, it did not join it.
-      expect(container.querySelectorAll('[data-testid="undo-chip"]')).toHaveLength(1);
+      expect(container.querySelectorAll('[role="status"] > span')).toHaveLength(1);
       expect(boxes()).toHaveLength(0);
     });
   });
@@ -3204,7 +3204,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts()).toHaveLength(0);
 
       // Click the still-live chip: it reverts the delete-box-A entry, restoring A.
-      const undoButton = required(container.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
+      const undoButton = required(container.querySelector<HTMLButtonElement>('[role="status"] button'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });
@@ -3250,7 +3250,7 @@ describe('PdfRedactTool UI flow', () => {
       const afterB = boxLefts().map((n) => Math.round(n));
       expect(afterB).toHaveLength(1); // B really is on the stack above the chip's entry
 
-      const undoButton = required(container.querySelector<HTMLButtonElement>('[data-testid="undo-chip-btn"]'), 'chip Undo button');
+      const undoButton = required(container.querySelector<HTMLButtonElement>('[role="status"] button'), 'chip Undo button');
       await act(async () => {
         undoButton.click();
       });

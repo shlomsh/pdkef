@@ -492,7 +492,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
 
     expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
     expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
-    expect(wrapper.querySelector('[data-testid="quick-field-nav"]')).toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
   it('keeps the resize handles and the floating toolbar on a fine pointer', () => {
@@ -535,7 +535,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
     expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
     expect(wrapper.querySelector('button[aria-label="Next field"]')).toBeNull();
-    expect(wrapper.querySelector('[data-testid="quick-field-nav"]')).toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
     expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 

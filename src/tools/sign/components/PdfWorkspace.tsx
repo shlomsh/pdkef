@@ -576,7 +576,7 @@ export default function PdfWorkspace({
   return (
     <div
       className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
-      ref={workspaceRef} data-testid="workspace"
+      ref={workspaceRef}
       aria-busy={status === 'signing'}
     >
       {(status === 'editing' || status === 'signing') && (
@@ -629,7 +629,7 @@ export default function PdfWorkspace({
 
           {/* PDF Pages rendering container */}
           <div
-            className={workspaceStyles['pages-container']} data-testid="pages-container"
+            className={workspaceStyles['pages-container']}
             onClick={(e) => {
               // Fill mode: a click on a fill input is that input's own focus.
               if (fillKeyOf(e.target as Element | null) !== null) return;
@@ -669,7 +669,7 @@ export default function PdfWorkspace({
                     />
 
                     <div
-                      data-testid="page-overlay" className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' && fillTool !== 'none' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
+                      className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' && fillTool !== 'none' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
                       // Capture sees a tap on an existing checkbox mark before
                       // its wrapper consumes the bubble event, so the same
                       // detected square remains a real toggle target. Fill mode

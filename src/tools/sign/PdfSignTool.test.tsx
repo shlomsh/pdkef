@@ -7,7 +7,7 @@ import PdfSignTool from './PdfSignTool.tsx';
 import * as signModule from './lib/sign.js';
 import { resetMaintenanceEventsForTests } from '../../lib/maintenanceTelemetry.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-// Asserts the pseudo-fullscreen state class.
+// Asserts the pseudo-fullscreen state class; the page overlay has no role or attribute, so it is found by class.
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -191,7 +191,7 @@ describe('PdfSignTool UI flow', () => {
         fullscreenButton.click();
       });
 
-      const workspace = query(container, '[data-testid="workspace"]');
+      const workspace = query(container, '[aria-busy]');
       expect(workspace.className).toContain(workspaceStyles['pseudo-fullscreen']);
     } finally {
       window.history.pushState({}, '', originalUrl);
@@ -275,7 +275,7 @@ describe('PdfSignTool UI flow', () => {
       });
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
       const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
-      const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+      const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
       wrapper.getBoundingClientRect = () => pageRect;
       overlay.getBoundingClientRect = () => pageRect;
       await act(async () => {
@@ -338,7 +338,7 @@ describe('PdfSignTool UI flow', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
     overlay.getBoundingClientRect = () => pageRect;
     await act(async () => {
@@ -388,7 +388,7 @@ describe('PdfSignTool UI flow', () => {
     });
     // Moved or deleted on disk after picking: Chromium rejects the re-read.
     picked.arrayBuffer = () => Promise.reject(new DOMException('gone', 'NotFoundError'));
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
     overlay.getBoundingClientRect = () => pageRect;
     await act(async () => { findButton(container, 'Text').click(); });
@@ -429,7 +429,7 @@ describe('PdfSignTool UI flow', () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
 
-      const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+      const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
       overlay.getBoundingClientRect = () => pageRect;
       await act(async () => {
@@ -609,7 +609,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place text element
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -668,7 +668,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place symbol element
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
     });
@@ -705,7 +705,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place text element
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -748,7 +748,7 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       findButton(container, 'Text').click();
     });
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -805,7 +805,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place text element
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -951,7 +951,7 @@ describe('PdfSignTool UI flow', () => {
       textBtn.click();
     });
 
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -1000,7 +1000,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0,
       top: 0,
@@ -1110,7 +1110,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     };
@@ -1167,7 +1167,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     };
@@ -1307,7 +1307,7 @@ describe('PdfSignTool UI flow', () => {
     const dropdownItem = query<HTMLButtonElement>(document.body, '[data-editor-signature-item]');
     await act(async () => { dropdownItem.click(); });
 
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
@@ -1360,7 +1360,7 @@ describe('PdfSignTool UI flow', () => {
     const whiteoutBtn = findButton(container, 'Whiteout');
     await act(async () => { whiteoutBtn.click(); });
 
-    const overlay = query<HTMLElement>(container, '[data-testid="page-overlay"]');
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });
