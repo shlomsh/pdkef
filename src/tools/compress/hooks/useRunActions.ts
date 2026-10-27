@@ -8,7 +8,7 @@ import type { Level } from '../components/LevelPicker.tsx';
 import type { useCompressMachine } from '../state/useCompressMachine.ts';
 import type { CompressMessages } from '../messages';
 import type { useComparePreviews } from './useComparePreviews.ts';
-import type { CompressMeta } from './useCompressCallbacks.ts';
+import type { CompressMeta } from '../lib/compressCallbacks.ts';
 
 interface RunActionsInput {
   t: CompressMessages;
