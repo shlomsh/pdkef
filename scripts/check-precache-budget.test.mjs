@@ -1,5 +1,6 @@
+import { pageHash } from './pageHash.mjs';
 import { describe, expect, it } from 'vitest';
-import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls } from './check-precache-budget.mjs';
+import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -133,5 +134,32 @@ describe('checkPrecache coverage', () => {
     const r = checkPrecache({ shell: [], pages: { '/alpha/': ['/a.js'] }, islands: { '/alpha/': ['/PdfAlpha.1.js'] }, sizes, budgets, astroFiles: ['_astro/orphan.AAAA.js'] });
     expect(r.some((m) => m.includes('_astro/orphan.AAAA.js'))).toBe(true);
     expect(r.some((m) => m.includes('/PdfAlpha.1.js'))).toBe(true);
+  });
+});
+
+describe('manifestIdentityProblems (MEM-22)', () => {
+  const bytes = { '/a/': '<html>a</html>', '/b/': '<html>b</html>' };
+  const readPage = (url) => bytes[url];
+  const workerSource = 'const c=`pdkef-c3-0123456789ab`;';
+  const clean = { build: '0123456789ab', pages: { '/a/': [], '/b/': [] }, html: { '/a/': pageHash(bytes['/a/']), '/b/': pageHash(bytes['/b/']) } };
+  it('passes a manifest whose build is in the worker and whose hashes match the pages', () => {
+    expect(manifestIdentityProblems(clean, { readPage, workerSource })).toEqual([]);
+  });
+  it('names a missing build', () => {
+    const { build, ...rest } = clean;
+    expect(manifestIdentityProblems(rest, { readPage, workerSource })[0]).toContain('build');
+  });
+  it('names a build the worker does not carry', () => {
+    expect(manifestIdentityProblems({ ...clean, build: 'ffffffffffff' }, { readPage, workerSource })[0]).toContain('ffffffffffff');
+  });
+  it('names html keys that differ from pages keys', () => {
+    const f = manifestIdentityProblems({ ...clean, html: { '/a/': clean.html['/a/'], '/c/': 'x' } }, { readPage, workerSource });
+    expect(f.join('\n')).toContain('/b/');
+    expect(f.join('\n')).toContain('/c/');
+  });
+  it('names a page whose bytes no longer hash to the recorded value', () => {
+    const f = manifestIdentityProblems(clean, { readPage: (u) => (u === '/b/' ? '<html>changed</html>' : bytes[u]), workerSource });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain('/b/');
   });
 });
