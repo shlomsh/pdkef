@@ -1,11 +1,10 @@
-// @ts-nocheck - matches the other .tsx island tests
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it } from 'vitest';
 import CompressVerb from './CompressVerb.tsx';
 import styles from './CompressVerb.module.css';
 
-function mount(subject) {
+function mount(subject: 'page' | 'photo') {
   const host = document.createElement('div');
   document.body.appendChild(host);
   act(() => render(<CompressVerb subject={subject} />, host));
@@ -31,7 +30,7 @@ describe('CompressVerb', () => {
 
   it('hides the whole stage from assistive tech', () => {
     const host = mount('page');
-    expect(host.firstElementChild.getAttribute('aria-hidden')).toBe('true');
+    expect(host.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('never carries a style attribute (CSP)', () => {
