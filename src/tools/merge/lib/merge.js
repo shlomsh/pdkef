@@ -1,5 +1,5 @@
 import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../../lib/pageOps.js';
-import { mergedFileName, mergedTitle } from './mergePlan.ts';
+import { mergedFileName } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
 import { getPdfLib } from '../../../lib/pdfLib.js';
 import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
@@ -7,7 +7,7 @@ import { throwIfAborted } from '../../../lib/abort.js';
 import { addImagePage, hasImageSignature } from '../../../lib/imagePage.js';
 import { deriveFileKind, mimeTypeOf } from '../../../lib/fileKind.js';
 
-export { mergedFileName, mergedTitle };
+export { mergedFileName };
 
 // MERGE-15: the title for a source file's outline entry - its own file name
 // with a trailing ".pdf" (or photo extension) dropped, since the extension is implied by "this is

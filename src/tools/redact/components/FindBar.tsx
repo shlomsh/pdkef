@@ -12,7 +12,7 @@ import { formatMessage } from '../../../lib/formatMessage.ts';
  * assumption would go unchecked. */
 export type FindRedactStyle = 'blackout' | 'blur';
 
-export const PRESET_LABELS: Record<PresetKey, string> = {
+const PRESET_LABELS: Record<PresetKey, string> = {
   email: 'Email addresses',
   phone: 'Phone numbers',
   idNumber: 'ID and card numbers',

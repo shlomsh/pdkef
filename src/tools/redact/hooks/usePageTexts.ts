@@ -10,7 +10,7 @@ import type { SearchablePage } from '../lib/find/findMatches.ts';
 import type { TextItemLike } from '../lib/find/types.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 
-export type PageTextsState =
+type PageTextsState =
   | { status: 'idle' | 'reading'; pages: SearchablePage[] }
   | { status: 'ready'; pages: SearchablePage[] }
   | { status: 'failed'; pages: SearchablePage[] };
