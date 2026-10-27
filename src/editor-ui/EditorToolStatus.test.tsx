@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorToolStatus, { type ToolCopy } from './EditorToolStatus.tsx';
-// Asserts the row state classes (help-shown, help-spare, help-idle, help-reserve-nav, help-fields-problem): the stack's shown/reserved mechanism is the behaviour.
+// Asserts the row state classes (help-shown, help-spare, help-idle, help-reserve-nav, help-fields-problem) and finds the rows and label spans by class: the stack's shown/reserved mechanism is the behaviour.
 import styles from './SignToolbar.module.css';
 
 /* The per-tool behaviour of the status line (which sentence, what the switch
@@ -41,10 +41,10 @@ describe('EditorToolStatus', () => {
         container,
       );
     });
-    return container.querySelector<HTMLElement>('[data-testid="tool-status"]')!;
+    return container.firstElementChild as HTMLElement;
   };
 
-  const rows = () => container.querySelectorAll('[data-testid="tool-status-row"], [data-testid="tool-status-fields"]');
+  const rows = () => container.querySelectorAll(`.${styles['help-row']}`);
   const shown = () => container.querySelector<HTMLElement>(`.${styles['help-shown']}`)!;
 
   // The shell hides the filename behind this attribute on a phone, so it has
@@ -94,22 +94,22 @@ describe('EditorToolStatus', () => {
   // row carries both too and measures whichever one CSS shows on this device.
   it('renders the mouse and the touch sentence side by side, for CSS to pick one', () => {
     mount({ copy: TOOLS[0] });
-    expect(shown().querySelector('[data-testid="action-long"]')?.textContent).toBe(TOOLS[0].action);
-    expect(shown().querySelector('[data-testid="action-touch"]')?.textContent).toBe(TOOLS[0].actionTouch);
+    expect(shown().querySelector(`.${styles['action-long']}`)?.textContent).toBe(TOOLS[0].action);
+    expect(shown().querySelector(`.${styles['action-touch']}`)?.textContent).toBe(TOOLS[0].actionTouch);
   });
 
   it('renders the long and the short keep-on label in the switch', () => {
     mount({ copy: TOOLS[0], keepOnLabel: 'Keep {button} on', keepOnShort: 'Keep on' });
     const toggle = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
-    expect(toggle.querySelector('[data-testid="keep-long"]')!.textContent).toBe('Keep Blackout on');
-    expect(toggle.querySelector('[data-testid="keep-short"]')!.textContent).toBe('Keep on');
+    expect(toggle.querySelector(`.${styles['keep-long']}`)!.textContent).toBe('Keep Blackout on');
+    expect(toggle.querySelector(`.${styles['keep-short']}`)!.textContent).toBe('Keep on');
   });
 
   // FORM-11: the detector's own line. The slot's contract, not the wording -
   // which sentence belongs to which state is SignToolbar.test.tsx's, where the
   // copy lives.
   describe('fieldSummary', () => {
-    const summary = () => container.querySelector<HTMLElement>('[data-testid="tool-status-fields"]');
+    const summary = () => container.querySelector<HTMLElement>(`.${styles['help-fields']}`);
     const isShown = (row: HTMLElement) => row.classList.contains(styles['help-shown']);
 
     it('renders nothing for a toolbar with no detector at all - Redact is unaffected', () => {
@@ -180,12 +180,12 @@ describe('EditorToolStatus', () => {
 
     it('renders nothing when the caller passes none - Redact is unaffected', () => {
       const host = mount();
-      expect(host.querySelector('[data-testid="field-nav"]')).toBeNull();
+      expect(host.querySelector('[dir]')).toBeNull();
     });
 
     it('is present and active when the caller passes one, unlike the armed-row stack', () => {
       const host = mount({ fieldNav });
-      expect(host.querySelector('[data-testid="field-nav"]')).not.toBeNull();
+      expect(host.querySelector('[dir]')).not.toBeNull();
       expect(host.hasAttribute('data-status-active')).toBe(true);
       // Not one of the stack's own rows.
       expect(rows()).toHaveLength(1 + TOOLS.length);
@@ -199,7 +199,7 @@ describe('EditorToolStatus', () => {
     it('reserves the arrows\' footprint while they are absent, and only then', () => {
       const idle = mount({ reserveFieldNav: true });
       expect(idle.className).toContain(styles['help-reserve-nav']);
-      expect(idle.querySelector('[data-testid="field-nav"]')).toBeNull();
+      expect(idle.querySelector('[dir]')).toBeNull();
 
       const armed = mount({ fieldNav, reserveFieldNav: true });
       expect(armed.className).not.toContain(styles['help-reserve-nav']);
@@ -209,7 +209,7 @@ describe('EditorToolStatus', () => {
 
     it("disables each button by its own hasNext/hasPrevious, independently of the other", () => {
       const host = mount({ fieldNav });
-      const [previous, next] = host.querySelectorAll<HTMLButtonElement>('[data-testid="field-nav-button"]');
+      const [previous, next] = host.querySelectorAll<HTMLButtonElement>('button[aria-label]');
       expect(previous.disabled).toBe(true);
       expect(next.disabled).toBe(false);
     });
@@ -218,7 +218,7 @@ describe('EditorToolStatus', () => {
       const onNext = vi.fn();
       const onPrevious = vi.fn();
       const host = mount({ fieldNav: { ...fieldNav, hasPrevious: true, onNext, onPrevious } });
-      const [previous, next] = host.querySelectorAll<HTMLButtonElement>('[data-testid="field-nav-button"]');
+      const [previous, next] = host.querySelectorAll<HTMLButtonElement>('button[aria-label]');
       expect(previous.getAttribute('aria-label')).toBe('Previous field');
       expect(next.getAttribute('aria-label')).toBe('Next field');
       next.click();
@@ -228,8 +228,8 @@ describe('EditorToolStatus', () => {
     });
 
     it('coexists with an armed tool and with the override, never replacing either', () => {
-      expect(mount({ fieldNav, copy: TOOLS[0] }).querySelector('[data-testid="field-nav"]')).not.toBeNull();
-      expect(mount({ fieldNav, override: <span>Removed 1 box</span> }).querySelector('[data-testid="field-nav"]')).not.toBeNull();
+      expect(mount({ fieldNav, copy: TOOLS[0] }).querySelector('[dir]')).not.toBeNull();
+      expect(mount({ fieldNav, override: <span>Removed 1 box</span> }).querySelector('[dir]')).not.toBeNull();
     });
 
     // The arrows belong to the document, the rest of the row to the reader.
@@ -239,13 +239,13 @@ describe('EditorToolStatus', () => {
     it('takes its dir from the document, overriding the locale dir on the row', () => {
       const host = mount({ fieldNav: { ...fieldNav, direction: 'rtl' as const }, dir: 'ltr' });
       expect(host.getAttribute('dir')).toBe('ltr');
-      expect(host.querySelector('[data-testid="field-nav"]')!.getAttribute('dir')).toBe('rtl');
+      expect(host.querySelector('[dir]')!.getAttribute('dir')).toBe('rtl');
     });
 
     it('leaves an LTR document reading left to right inside a Hebrew UI', () => {
       const host = mount({ fieldNav, dir: 'rtl' });
       expect(host.getAttribute('dir')).toBe('rtl');
-      expect(host.querySelector('[data-testid="field-nav"]')!.getAttribute('dir')).toBe('ltr');
+      expect(host.querySelector('[dir]')!.getAttribute('dir')).toBe('ltr');
     });
 
     // Order is previous-then-next in the DOM either way: `dir` on the flex
@@ -253,7 +253,7 @@ describe('EditorToolStatus', () => {
     // and reading order stay the component's, not the stylesheet's.
     it('keeps Previous first in the DOM whichever way the document reads', () => {
       const host = mount({ fieldNav: { ...fieldNav, hasPrevious: true, direction: 'rtl' as const } });
-      const [first, second] = host.querySelectorAll<HTMLButtonElement>('[data-testid="field-nav-button"]');
+      const [first, second] = host.querySelectorAll<HTMLButtonElement>('button[aria-label]');
       expect(first.getAttribute('aria-label')).toBe('Previous field');
       expect(second.getAttribute('aria-label')).toBe('Next field');
     });

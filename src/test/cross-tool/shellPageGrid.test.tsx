@@ -4,6 +4,8 @@ import { createRef } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
+// Asserts the .action class on the save link: a cell action is styled as one of the card's actions.
+import styles from '../../shell/pageGrid/PageGrid.module.css';
 import PageGrid, { cellEdge } from '../../shell/pageGrid/PageGrid.tsx';
 import { planForFile } from '../../lib/pagePlan.ts';
 import { englishMergeMessages } from '../../tools/merge/messages';
@@ -133,7 +135,7 @@ describe('PageGrid', () => {
 
   const cards = () => Array.from(container.querySelectorAll('[data-key]'));
   const captions = () => Array.from(container.querySelectorAll('[data-caption-for]'));
-  const cellTagName = (card) => card.querySelector('[data-testid="cell-tag"] [dir="auto"]');
+  const cellTagName = (card) => card.querySelector('[dir="auto"]');
 
   it('renders one card per plan entry in order, in one continuous grid with no row-break items', () => {
     mount();
@@ -185,7 +187,7 @@ describe('PageGrid', () => {
     const plan = [planForFile(1, 2)[0], planForFile(2, 2)[0], planForFile(1, 2)[1], planForFile(2, 2)[1]];
     mount({ plan, grouped: false });
     expect(captions()).toHaveLength(0);
-    expect(container.querySelectorAll('[data-testid="cell-tag"] [dir="auto"]')).toHaveLength(0);
+    expect(container.querySelectorAll('[dir="auto"]')).toHaveLength(0);
     const grid = container.querySelector('[data-page-grid]');
     expect(grid.hasAttribute('data-grouped')).toBe(false);
   });
@@ -198,7 +200,7 @@ describe('PageGrid', () => {
     mount({ entries, plan: planForFile(1, 6), props: { labelSources: false } });
     expect(container.querySelector('[data-caption-for]')).toBeNull();
     expect(container.querySelector('[data-band]')).toBeNull();
-    expect(container.querySelector('[data-testid="cell-tag"] [dir="auto"], [data-testid="cell-tag-square"]')).toBeNull();
+    expect(container.querySelector('[dir="auto"], [aria-hidden="true"][style]')).toBeNull();
     expect(container.querySelector('[data-page-grid]').hasAttribute('data-grouped')).toBe(false);
     expect(cards()).toHaveLength(6);
   });
@@ -292,29 +294,29 @@ describe('PageGrid', () => {
   it('rotate, hide/show and open each carry a short tooltip word', () => {
     const { rerender } = mount();
     const first = cards()[0];
-    const [rotateButton, skipButton, openButton] = first.querySelectorAll('[data-testid="page-action"]');
-    expect(rotateButton.querySelector('[data-testid="page-action-tip"]').textContent).toBe('Rotate');
-    expect(skipButton.querySelector('[data-testid="page-action-tip"]').textContent).toBe('Hide');
+    const [rotateButton, skipButton, openButton] = first.querySelectorAll('button[aria-label], a[aria-label]');
+    expect(rotateButton.querySelector(':scope > span:last-child').textContent).toBe('Rotate');
+    expect(skipButton.querySelector(':scope > span:last-child').textContent).toBe('Hide');
     expect(skipButton.getAttribute('aria-label')).toBe('Hide page 1 from the merged PDF');
-    expect(openButton.querySelector('[data-testid="page-action-tip"]').textContent).toBe('Open');
+    expect(openButton.querySelector(':scope > span:last-child').textContent).toBe('Open');
 
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[0] = { ...plan[0], skipped: true };
     rerender({ plan });
-    const [, skipButtonAfter] = cards()[0].querySelectorAll('[data-testid="page-action"]');
-    expect(skipButtonAfter.querySelector('[data-testid="page-action-tip"]').textContent).toBe('Show');
+    const [, skipButtonAfter] = cards()[0].querySelectorAll('button[aria-label], a[aria-label]');
+    expect(skipButtonAfter.querySelector(':scope > span:last-child').textContent).toBe('Show');
     expect(skipButtonAfter.getAttribute('aria-label')).toBe('Show page 1 in the merged PDF');
   });
 
   it('rotate and skip commit a new plan once per tap and announce it (MERGE-09)', async () => {
     const { onPlanChange, announce } = mount();
     const first = cards()[0];
-    await act(async () => first.querySelectorAll('[data-testid="page-action"]')[0].click());
+    await act(async () => first.querySelectorAll('button[aria-label], a[aria-label]')[0].click());
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
     expect(announce).toHaveBeenCalledWith('Page 1 rotated to 90 degrees.');
 
-    await act(async () => first.querySelectorAll('[data-testid="page-action"]')[1].click());
+    await act(async () => first.querySelectorAll('button[aria-label], a[aria-label]')[1].click());
     expect(onPlanChange).toHaveBeenCalledTimes(2);
     expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', skipped: true });
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 1 skipped'));
@@ -329,14 +331,14 @@ describe('PageGrid', () => {
     expect(card.textContent).toContain('skipped');
     // The state line exists for every page, so toggling skipped never changes
     // one card's flex height and shifts its thumbnail above its neighbours.
-    expect(cards().every((item) => item.querySelector('[data-testid="skipped-word"]'))).toBe(true);
-    expect(cards()[0].querySelector('[data-testid="skipped-word"]').hasAttribute('data-visible')).toBe(false);
-    expect(card.querySelector('[data-testid="skipped-word"]').hasAttribute('data-visible')).toBe(true);
+    expect(cards().every((item) => item.querySelector('[data-page-number] + span'))).toBe(true);
+    expect(cards()[0].querySelector('[data-page-number] + span').hasAttribute('data-visible')).toBe(false);
+    expect(card.querySelector('[data-page-number] + span').hasAttribute('data-visible')).toBe(true);
     // Numbers are output positions: the skipped page shows the number it
     // would take, and the page after it takes that number for real.
     expect(cards().map((c) => c.querySelector('[data-page-number]').textContent)).toEqual(['1', '2', '3', '3']);
     expect(cards()[3].getAttribute('aria-label')).toBe('Page 3 of 3, from b.pdf');
-    await act(async () => card.querySelectorAll('[data-testid="page-action"]')[1].click());
+    await act(async () => card.querySelectorAll('button[aria-label], a[aria-label]')[1].click());
     expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
   });
 
@@ -365,7 +367,7 @@ describe('PageGrid', () => {
   it('the card\'s shortcuts apply to the card only: Enter on Rotate rotates once and a key on a cluster control is not the card\'s', async () => {
     const { onPlanChange } = mount();
     const card = cards()[0];
-    const rotate = card.querySelectorAll('[data-testid="page-action"]')[0];
+    const rotate = card.querySelectorAll('button[aria-label], a[aria-label]')[0];
     rotate.focus();
     const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
     await act(async () => rotate.dispatchEvent(enter));
@@ -564,7 +566,7 @@ describe('PageGrid', () => {
 
     // Rotate: bubbles up through the li, whose own click handler must not
     // treat a click that started on a button as a tap on the page.
-    await act(async () => first.querySelectorAll('[data-testid="page-action"]')[0].click());
+    await act(async () => first.querySelectorAll('button[aria-label], a[aria-label]')[0].click());
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(first.hasAttribute('data-selected')).toBe(true);
   });
@@ -591,8 +593,8 @@ describe('PageGrid', () => {
       expect(link.getAttribute('href')).toBe('blob:one');
       expect(link.getAttribute('download')).toBe('a-1.png');
       expect(link.getAttribute('aria-label')).toBe('Save page 1 as an image');
-      expect(link.getAttribute('data-testid')).toBe('page-action');
-      expect(link.querySelector('[data-testid="page-action-tip"]').textContent).toBe('Save');
+      expect(link.classList.contains(styles.action)).toBe(true);
+      expect(link.querySelector(':scope > span:last-child').textContent).toBe('Save');
       expect(link.previousElementSibling.tagName).toBe('BUTTON');
       expect(saveLinks(second)).toHaveLength(0);
       expect(second.querySelectorAll('button')).toHaveLength(3);
@@ -601,7 +603,7 @@ describe('PageGrid', () => {
     it('renders exactly three controls without the prop', () => {
       mount();
       expect(container.querySelectorAll('a[download]')).toHaveLength(0);
-      expect(cards()[0].querySelectorAll('[data-testid="page-actions"] > *')).toHaveLength(3);
+      expect(cards()[0].querySelectorAll('button[aria-label], a[aria-label]')).toHaveLength(3);
     });
 
     it('Enter on the focused link is the link\'s own: no preview, not prevented', async () => {

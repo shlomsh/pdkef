@@ -53,7 +53,7 @@ describe('NeedsUnlock', () => {
         container,
       );
     });
-    const chip = container.querySelector('[data-testid="needs-unlock-file"]')!;
+    const chip = container.querySelector('h2')!.nextElementSibling!;
     expect(chip.querySelector(`[title="${name}"]`)).not.toBeNull();
     expect(chip.textContent!.endsWith('-2026.pdf')).toBe(true);
   });
@@ -61,7 +61,7 @@ describe('NeedsUnlock', () => {
   it('names the file it is about, under a heading, with a decorative lock', () => {
     mount();
     expect(container.querySelector('h2')!.textContent).toBe('This PDF has a password');
-    expect(container.querySelector('[data-testid="needs-unlock-file"]')!.textContent).toContain('Quarterly report.pdf');
+    expect(container.querySelector('h2')!.nextElementSibling!.textContent).toContain('Quarterly report.pdf');
     expect(container.querySelector('[data-needs-unlock] > [aria-hidden="true"]')!.getAttribute('aria-hidden')).toBe('true');
   });
 
