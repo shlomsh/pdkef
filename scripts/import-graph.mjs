@@ -180,7 +180,7 @@ export function buildToolRouteMap(pagesDir = path.join(REPO_ROOT, 'src', 'pages'
 // exceptions to "no server"); they are scanned too, so a src/ module they import reaches a file
 // that is no tool and the walk widens instead of calling the change tool-local. `e2e/` is scanned
 // for the other direction: the guard specs and harnesses there import src/ modules that no
-// shipped code imports (the shaping harness imports liveFontCoverage), and the walk needs to see
+// shipped code imports (the export harness imports editor modules directly), and the walk needs to see
 // that edge to know where such a module ends.
 export function buildReachGraph(root = REPO_ROOT) {
   const srcDir = path.join(root, 'src');
