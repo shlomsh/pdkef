@@ -8,6 +8,7 @@
     "fileLines": {
       "src/data/tools.js": 1030,
       "src/editor/adapters/pdf/pdfObjects.js": 1335,
+      "src/layouts/HomePageLayout.astro": 1394,
       "src/lib/drafts/draftStore.js": 1156,
       "src/shell/pageGrid/PageGrid.tsx": 890,
       "src/tools/compress/PdfCompressTool.tsx": 974,

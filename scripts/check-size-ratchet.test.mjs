@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareSize, isSizeScoped, measureSource, snapshot } from './check-size-ratchet.mjs';
+import { compareSize, isSizeScoped, measureSource, nextRecords, snapshot } from './check-size-ratchet.mjs';
 
 const lines = (n) => Array.from({ length: n }, (_, i) => `  const v${i} = ${i};`).join('\n');
 
@@ -50,6 +50,7 @@ describe('isSizeScoped', () => {
     ['scripts/x.mjs', true],
     ['api/report.ts', true],
     ['middleware.ts', true],
+    ['src/layouts/HomePageLayout.astro', true],
     ['src/a/b.test.js', false],
     ['src/a/b.spec.ts', false],
     ['src/tools/x/e2e/y.js', false],
@@ -88,6 +89,30 @@ describe('compareSize', () => {
       { key: 'b.js', kind: 'file', from: 850, to: null },
       { key: 'gone.js', kind: 'file', from: 820, to: null },
     ]);
+  });
+});
+
+describe('nextRecords', () => {
+  const th = { fileThreshold: 800, functionThreshold: 300 };
+  const rec = (fileLines = {}, functionLines = {}) => ({ fileLines, functionLines });
+
+  it('returns null when one file shrank but another grew (nothing may be written)', () => {
+    const recorded = rec({ 'a.js': 900, 'b.js': 850 });
+    const current = rec({ 'a.js': 880, 'b.js': 860 });
+    expect(nextRecords(recorded, current, th)).toBeNull();
+  });
+
+  it('lowers only the shrunk entry and leaves the others exactly as recorded', () => {
+    const recorded = rec({ 'a.js': 900, 'b.js': 850, 'c.js': 820 }, { 'a.js#f': 310 });
+    const current = rec({ 'a.js': 880, 'b.js': 850, 'c.js': 830 }, { 'a.js#f': 310 });
+    expect(nextRecords(recorded, current, th)).toBeNull();
+    const ok = rec({ 'a.js': 880, 'b.js': 850 }, { 'a.js#f': 310 });
+    expect(nextRecords(recorded, ok, th)).toEqual({ fileLines: { 'a.js': 880, 'b.js': 850 }, functionLines: { 'a.js#f': 310 } });
+  });
+
+  it('returns null when nothing was lowered', () => {
+    const r = rec({ 'a.js': 900 });
+    expect(nextRecords(r, r, th)).toBeNull();
   });
 });
 
