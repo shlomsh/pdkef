@@ -3,7 +3,9 @@ import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import FieldSlot from './FieldSlot.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
+// Asserts the shell keeps the text-display class; the fixture parent carries the page-wrapper class production looks up.
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
+// Asserts the focused, aimed and slot state classes.
 import styles from './fill.module.css';
 import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
 import { combLayout } from '../../../../editor/text/comb.js';
@@ -909,7 +911,7 @@ describe('FieldSlot component', () => {
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
 
-      const cells = host.querySelectorAll(`.${elementStyles['text-comb-cell']}`);
+      const cells = host.querySelectorAll('[data-text-part="comb-cell"]');
       expect(cells.length).toBe(3);
       expect(Array.from(cells).map((cell) => cell.textContent)).toEqual(['1', '2', '3']);
       // The transparent text colour is the static .slot-comb class now, not
@@ -1016,7 +1018,7 @@ describe('FieldSlot component', () => {
         input.dispatchEvent(new Event('select', { bubbles: true }));
       });
 
-      const caret = requireElement<HTMLSpanElement>(host, `.${elementStyles['text-comb-caret']}`);
+      const caret = requireElement<HTMLSpanElement>(host, '[data-text-part="comb-caret"]');
       // Boundary between cell 0 and cell 1 of 3, same math as the guide lines.
       expect(caret.style.left).toBe(`${(1.5 / 3) * 100}%`); // the centre of cell 1
       // The native caret is hidden by the static .slot-comb rule (caret-color:
@@ -1044,12 +1046,12 @@ describe('FieldSlot component', () => {
         input.focus();
         input.selectionStart = 1;
       });
-      expect(host.querySelector(`.${elementStyles['text-comb-caret']}`)).not.toBeNull();
+      expect(host.querySelector('[data-text-part="comb-caret"]')).not.toBeNull();
 
       act(() => {
         input.blur();
       });
-      expect(host.querySelector(`.${elementStyles['text-comb-caret']}`)).toBeNull();
+      expect(host.querySelector('[data-text-part="comb-caret"]')).toBeNull();
     });
 
     it('renders no comb cells for a non-comb slot', () => {
@@ -1066,8 +1068,8 @@ describe('FieldSlot component', () => {
         />
       );
 
-      expect(host.querySelectorAll(`.${elementStyles['text-comb-cell']}`).length).toBe(0);
-      expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
+      expect(host.querySelectorAll('[data-text-part="comb-cell"]').length).toBe(0);
+      expect(host.querySelector('[data-editor-text-comb]')).toBeNull();
       expect(requireElement<HTMLInputElement>(host, 'input').classList.contains(styles['slot-comb'])).toBe(false);
     });
   });

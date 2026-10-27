@@ -1,48 +1,49 @@
-# Module boundaries: target layout, dependency rules, and the ratchet that gets there
+# Module boundaries: the layers and the import rules between them
 
-Filed under ARCH-15, out of the 2026-09-13 CI review. This is the design record ARCH-16 through
-ARCH-20 and QUAL-05 execute against. It does not move a single file; it says where every file in
-`src/components/` ends up, which `src/lib/` modules travel with which tool, what already breaks the
-rules today (so the checker can be green from day one), and what still needs a human decision this
-ticket does not make.
+`src/` is cut into layers. This doc names each layer and states the rules for what may import what.
+`npm run test:module-boundaries` (`scripts/check-module-boundaries.mjs`) enforces every rule below.
+The script classifies each file by an ordered list of path prefixes, so a layer is a folder, and
+the folder is the only definition of a boundary.
 
 Related but narrower: [docs/archive/editor-module-boundaries-plan.md](./archive/editor-module-boundaries-plan.md)
-(ARCH-01 through ARCH-11) drew the boundaries *inside* `src/editor/` (model/geometry/text/registry/
-workspace/pdf-adapter) and is enforced by `scripts/check-editor-dependency-directions.mjs`. This
-record is one level up: the folders `src/` itself is cut into, and the tool-to-tool, tool-to-shell
-and editor-to-tool edges that the inner plan does not cover. The two checkers stay separate; nothing
-here replaces `test:editor-dependency-directions`.
+drew the boundaries *inside* `src/editor/` (model, geometry, text, registry, workspace, adapters)
+and is enforced by `scripts/check-editor-dependency-directions.mjs`. This doc is one level up: the
+folders `src/` itself is cut into, and the edges between tools, shell, editor and the site. The two
+checkers stay separate; nothing here replaces `test:editor-dependency-directions`.
 
-## Target layout
+## Layout
 
 ```
-src/shell/       BasePdfTool, ToolShell, FileDropzone, DownloadButton, PdfShareButton, Popover,
-                 ErrorMessage, ProgressRing, DropzoneEmptyState, RecentFiles, FilePreview,
-                 ConfirmDialog, homeWorkspace, sampleDocument         (imports no tool)
-src/editor/      the headless core, leaks fixed (ARCH-19)
-src/editor-ui/   ElementResizers, ColorPicker*,
-                 ArmHint, EditorToolStatus, EditorExportActions, EditorPageHeader, FullscreenButton,
-                 ViewControl, UndoHistoryModal, PdfPageCanvas,
-                 SignatureDialog                                       (shared by Sign and Redact)
-                 whiteout/ (the whiteout colour group, page sampler and eyedropper, shared by Sign and Redact)
-src/tools/<t>/   the island, its components, its lib modules, its unit tests, its e2e specs;
-                 one folder per tool: merge, sign, redact, compress, split, edit-pages, to-image,
-                 image-to-pdf, security (redact owns DeletableObjectOverlay/DeleteMark - see ARCH-17
-                 below, not shared with Sign)
-src/lib/         the genuinely shared modules only (about eight today)
-src/site-lib/    site-only/build-only helpers with no tool, shell, editor or lib consumer
-                 (DEBT-05): contentMarkup, markdownRender, gitLastModified, cspHash,
-                 acceptNegotiation (inlineStyles moved to src/components/, ARCH-34)              (classified `site`)
-site             src/pages, src/content, src/data, src/i18n, src/layouts, src/styles and the
-                 .astro components, as today
+src/lib/         the bottom layer: shared logic with no UI layer above it (PDF helpers, drafts,
+                 history, fonts data, telemetry, file intake); imports only lib
+src/editor/      the headless editor core shared by Sign and Redact: model, geometry, gestures,
+                 text, registry, workspace, PDF adapters; imports no editor-ui or shell
+src/editor-ui/   Preact pieces that render the editor: ElementResizers, ColorPicker, toolbar menus,
+                 page canvas, page header, undo buttons, view control, whiteout/ colour group,
+                 hooks/ (shared by Sign and Redact)
+src/shell/       the shared tool chrome: BasePdfTool, ToolShell, dialogs, download and share
+                 buttons, progress, error message, pageGrid/, pageWorkspace/, verb/; imports no tool
+src/tools/<t>/   one folder per tool, holding its island (Pdf*Tool.tsx), messages.ts, components,
+                 lib modules, unit tests and e2e specs: compress, edit-pages, image-to-pdf, merge,
+                 redact, scan, security, sign, split, to-image
+src/site-lib/    helpers and components the site and the build use: FileDropzone, RecentFiles,
+                 homeWorkspace, sampleDocument, contentMarkup, markdownRender, cspHash,
+                 toolMessageRegistry, precachePolicy (classified as the site)
+src/components/  the .astro site components, HeroDemo/, home/, tool-page/ and their css
+                 (classified as the site)
+src/data/        site data: the tool registry (tools.js), home and static page content
+                 (classified as site data)
+src/i18n/        site messages and locale helpers (classified as site i18n)
+src/pages/       the routes (classified as the site)
+src/layouts/     the page layouts (classified as the site)
+src/content/     the content collection (classified as the site)
+src/styles/      global.css and the per-page-family entry sheets (classified as the site)
+src/test/        cross-tool tests, harness and shared test support (classified as test-support)
 ```
 
-This is ARCH-15's own text, unchanged; everything below is the working-out. Two rows are stale. The
-`src/shell/` row still lists `FileDropzone`, `RecentFiles`, `homeWorkspace` and `sampleDocument`: only
-the home page uses them, so ARCH-26 (2026-09-25) moved them to `src/site-lib/` once rule 9 counted the
-site as one consumer. The `editor-ui` row still lists `SignatureDialog` as "shared by Sign and
-Redact." It never was, on this checkout - Redact has no signature dialog - and ARCH-25 (2026-09-24)
-moved it into `src/tools/sign/` once rule 9 made that measurable instead of assumed. See the `editor-ui` and Evidence sections below.
+`src/assets/`, `src/content.config.ts` and `src/project.json` sit outside the module graph.
+Any other new top-level folder under `src/` fails the check until it gets a row in the script's
+classification table.
 
 ## Dependency rules
 
@@ -142,7 +143,7 @@ what keeps a harness from reaching into one tool's internals; rule 6 covers the 
 `scripts/check-module-boundaries.mjs` enforces exactly these eleven rules; its exported `RULES` list
 and this section are checked against each other by `scripts/check-module-boundaries.doc.test.mjs`
 (a rule renamed or added on one side fails the test); the classification table in the
-script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
+script is data (an ordered list of path prefixes), so adding or moving a layer is "add or edit one row,"
 never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteViolations()`,
 `specRouteViolation()`) rather than an edge in the same import graph, since it scans spec text for
 route mentions instead of import specifiers; rule 8 is likewise separate (`scriptsImportViolations()`,
@@ -156,8 +157,7 @@ question - how many consumers reach a module - than an edge-by-edge legality che
 boundary kept in sync by hand. The checker runs in about 2s at the top of `check:fast`.
 
 **DEBT-04:** `src/editor/registry/types.ts` used to import the `SignMessages` type from
-the former `toolMessages.ts` (since split into each tool's own `messages.ts`, e.g. `src/tools/sign/messages.ts`) - an `editor -> site-i18n` edge none of the seven rules above actually
-covers, so `check-module-boundaries.mjs` never flagged it even though it made the headless core
+the former `toolMessages.ts` (since split into each tool's own `messages.ts`, e.g. `src/tools/sign/messages.ts`) - an `editor -> site-i18n` edge that no rule above covered at the time, so `check-module-boundaries.mjs` never flagged it even though it made the headless core
 depend on the site's message shape. The interface now lives in `src/editor/registry/messages.ts`;
 `i18n` imports and re-exports it, so the editor imports nothing from `i18n`.
 

@@ -3,8 +3,8 @@
 // callers provide page metadata/rects, keeping the one transform usable by pdf.js,
 // pdf-lib, component previews and gesture tests without coupling those layers.
 
-export type Point = { x: number; y: number };
-export type Rect = { x: number; y: number; width: number; height: number };
+type Point = { x: number; y: number };
+type Rect = { x: number; y: number; width: number; height: number };
 export type AffineTransform = readonly [number, number, number, number, number, number];
 
 export interface PageGeometry {
@@ -27,7 +27,7 @@ export interface PageGeometry {
   pdfToEditor: AffineTransform;
 }
 
-export interface PageGeometryInput {
+interface PageGeometryInput {
   cropBox: Rect;
   rotation?: number;
   userUnit?: number;
@@ -73,7 +73,7 @@ export function invertAffineTransform(transform: AffineTransform): AffineTransfo
   ];
 }
 
-export function normalizePageRotation(rotation = 0): 0 | 90 | 180 | 270 {
+function normalizePageRotation(rotation = 0): 0 | 90 | 180 | 270 {
   const normalized = ((rotation % 360) + 360) % 360;
   if (normalized !== 0 && normalized !== 90 && normalized !== 180 && normalized !== 270) {
     throw new Error(`Page rotation must be a multiple of 90 degrees; received ${rotation}`);
@@ -207,7 +207,10 @@ export function pagePercentToPdfPoint(point: Point, geometry: PageGeometry): Poi
   }, geometry.viewportToPdf);
 }
 
-/** Raw PDF user-space point -> stored top-left-origin percentages. */
+/**
+ * Raw PDF user-space point -> stored top-left-origin percentages.
+ * @testSeam
+ */
 export function pdfPointToPagePercent(point: Point, geometry: PageGeometry): Point {
   const viewportPoint = applyAffineTransform(point, geometry.pdfToViewport);
   return {
@@ -291,6 +294,7 @@ export function pxToPercent(px: number, parentPx: number): number {
 // A pixel *delta* (drag/resize distance) expressed as a percentage of the
 // parent's size. Same formula as pxToPercent — kept as a separate name because
 // call sites reason about "how far did I drag" rather than "where am I".
+/** @testSeam */
 export function pxDeltaToPercent(dx: number, parentPx: number): number {
   return (dx / parentPx) * 100;
 }
@@ -306,12 +310,14 @@ export function percentToPoints(pct: number, pageDimPoints: number): number {
 }
 
 // Inverse of percentToPoints.
+/** @testSeam */
 export function pointsToPercent(points: number, pageDimPoints: number): number {
   return (points / pageDimPoints) * 100;
 }
 
 // PDF points -> on-screen pixels, given the page's current render scale factor
 // (screen px per PDF point, e.g. pageWrapperWidthPx / pageWidthPoints).
+/** @testSeam */
 export function pointsToPx(points: number, scaleFactor: number): number {
   return points * scaleFactor;
 }

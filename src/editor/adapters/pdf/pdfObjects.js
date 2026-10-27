@@ -79,6 +79,7 @@ export function hasFillableAcroForm(pdfDoc) {
  * @param {import('@cantoo/pdf-lib').PDFObject | undefined} widget
  * @param {string} key
  * @returns {import('@cantoo/pdf-lib').PDFObject | undefined}
+ * @testSeam
  */
 export function inheritedEntry(context, widget, key) {
   let field = widget;

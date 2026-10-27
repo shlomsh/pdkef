@@ -140,6 +140,7 @@ export default function DropzoneEmptyState({
       {art ?? (
         <svg
           class={styles['dropzone-icon']}
+          data-testid="dropzone-icon"
           width="48"
           height="48"
           viewBox="0 0 48 48"

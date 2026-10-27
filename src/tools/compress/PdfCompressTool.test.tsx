@@ -10,7 +10,6 @@ import * as compressLib from './lib/compress.js';
 import * as compressImageLib from './lib/compressImage.js';
 import * as imagesLib from './lib/compressImages.js';
 import styles from './PdfCompressTool.module.css';
-import sliderStyles from './components/CompareSlider.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -556,7 +555,7 @@ describe('PdfCompressTool UI flow', () => {
       await loadPdf('labels.pdf', 100000);
       const panel = container.querySelector(`.${styles['compare-panel']}`);
       expect(panel.querySelector('[role="slider"]')).not.toBeNull();
-      expect(panel.querySelector(`.${sliderStyles['compare-tag']}`)).toBeNull();
+      expect(panel.querySelector('img ~ span')).toBeNull();
       expect(labels().textContent).toContain('Compressed · 15 Bytes');
       expect(labels().textContent).toContain('Original · 97.66 KB');
     });
@@ -568,9 +567,9 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => {
         findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await waitUntil(() => expect(container.querySelector(`.${styles['compare-fullscreen']}`)?.querySelectorAll(`.${sliderStyles['compare-tag']}`)).toHaveLength(2));
-      const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
-      expect(dialog.querySelectorAll(`.${sliderStyles['compare-tag']}`)).toHaveLength(2);
+      await waitUntil(() => expect(container.querySelector('dialog[aria-label]')?.querySelectorAll('img ~ span')).toHaveLength(2));
+      const dialog = container.querySelector('dialog[aria-label]');
+      expect(dialog.querySelectorAll('img ~ span')).toHaveLength(2);
     });
 
     it('while a run is in flight the original page shows with its label and size, and the compressed side says Compressing', async () => {
@@ -869,7 +868,7 @@ describe('PdfCompressTool UI flow', () => {
 
     await loadPdf('fullscreen.pdf', 200000);
     expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
-    expect(container.querySelector(`.${styles['compare-fullscreen']}`)).toBeNull();
+    expect(container.querySelector('dialog[aria-label]')).toBeNull();
 
     const fullScreen = findButton('Full screen');
     expect(fullScreen).toBeTruthy();
@@ -877,9 +876,9 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       fullScreen.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    await waitUntil(() => expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).not.toBeNull());
+    await waitUntil(() => expect(container.querySelector('dialog [role="slider"]')).not.toBeNull());
 
-    const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
+    const dialog = container.querySelector('dialog[aria-label]');
     expect(dialog).not.toBeNull();
     expect(showModal).toHaveBeenCalledTimes(1);
     expect(dialog.querySelector('[role="slider"]')).not.toBeNull();
@@ -892,14 +891,14 @@ describe('PdfCompressTool UI flow', () => {
       closeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(close).toHaveBeenCalled();
-    expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).toBeNull();
+    expect(container.querySelector('dialog [role="slider"]')).toBeNull();
 
     // Re-opening reuses the cached full screen renders.
     await act(async () => {
       findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(4);
-    expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).not.toBeNull();
+    expect(container.querySelector('dialog [role="slider"]')).not.toBeNull();
   });
 
   it('offers no Full screen button for a passthrough result', async () => {

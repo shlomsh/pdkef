@@ -78,7 +78,10 @@ export function withDayExpiry(totalKey: string, total: number, commands: Command
   return total === 1 ? [['EXPIRE', totalKey, TTL_SECONDS], ...commands] : commands;
 }
 
-/** The count field and the sample field are one string: the fingerprint, `stack[0]` last of the report's own parts. */
+/**
+ * The count field and the sample field are one string: the fingerprint, `stack[0]` last of the report's own parts.
+ * @testSeam
+ */
 export function fingerprintField(report: ErrorReport, engine: string): string {
   return `${report.area}|${report.name}|${report.stack[0]}|${report.step}|${engine}`;
 }
@@ -129,7 +132,7 @@ export function dropCommands(record: DropRecord, engine: string, day: string): C
   ];
 }
 
-export type RejectReason = 'oversize' | 'bad_json' | 'bad_report' | 'bad_drop' | 'bad_event' | 'bad_other';
+type RejectReason = 'oversize' | 'bad_json' | 'bad_report' | 'bad_drop' | 'bad_event' | 'bad_other';
 
 /**
  * Why a body that no parser accepted was refused. Pass the declared content-length and, unless that

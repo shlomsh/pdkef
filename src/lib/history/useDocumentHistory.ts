@@ -11,7 +11,7 @@ import { useHistoryShortcuts } from './useHistoryShortcuts.js';
 // with their announcements and trail entries, and the Cmd/Ctrl+Z binding. The
 // rest of the document is the tool's own.
 
-export interface DocumentHistoryOptions {
+interface DocumentHistoryOptions {
   tool: AnalyticsTool;
   announce: (message: string) => void;
   messages: { undone: string; redone: string };

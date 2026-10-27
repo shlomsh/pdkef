@@ -119,7 +119,7 @@ export default function RecentFiles({
  * fallback below 60 seconds is a literal string this module owns, so it is
  * the one piece `messages` overrides.
  */
-export function formatSavedAt(savedAt: number | undefined, messages: RecentFilesMessages = englishRecentFilesMessages) {
+function formatSavedAt(savedAt: number | undefined, messages: RecentFilesMessages = englishRecentFilesMessages) {
   if (typeof savedAt !== 'number' || !Number.isFinite(savedAt)) return '';
   const seconds = Math.round((savedAt - Date.now()) / 1000);
   const magnitude = Math.abs(seconds);
@@ -154,6 +154,7 @@ const EXPIRY_WARNING_DAYS = 3;
  * the 28-day limit) or by rank (the oldest of a full 6-entry list, the next
  * one a newly opened file would evict). Age wins when both apply. Returns ''
  * when neither applies, so the caller keeps the ordinary savedAtLabel.
+ * @testSeam
  */
 export function retentionNotice(
   file: RecentFileItem,

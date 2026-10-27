@@ -60,7 +60,7 @@ export const beginText = (state) => ({ ...state, tm: IDENTITY, tlm: IDENTITY });
  * @param {number} ty
  * @returns {TextState}
  */
-export const moveToLine = (state, tx, ty) => {
+const moveToLine = (state, tx, ty) => {
   const tlm = multiplyMatrix([1, 0, 0, 1, tx, ty], state.tlm);
   return { ...state, tlm, tm: tlm };
 };

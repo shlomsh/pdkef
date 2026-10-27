@@ -11,12 +11,12 @@ export interface HistoryElement {
  * paint-order array. Lower indexes paint first; restoring at this index
  * therefore restores the original stacking order as well as the element.
  */
-export interface HistoryElementSnapshot<TElement extends HistoryElement = HistoryElement> {
+interface HistoryElementSnapshot<TElement extends HistoryElement = HistoryElement> {
   element: TElement;
   index: number;
 }
 
-export type SnapshotOperation = 'add' | 'delete';
+type SnapshotOperation = 'add' | 'delete';
 export type HistoryOperation = SnapshotOperation | 'update' | 'remove-place';
 
 /**
@@ -55,7 +55,7 @@ interface HistoryEntryBase {
  * state. Snapshots need not all share `entry.pageIndex` - an entry may add or
  * remove elements across multiple pages in one step.
  */
-export interface SnapshotHistoryEntry<TElement extends HistoryElement = HistoryElement> extends HistoryEntryBase {
+interface SnapshotHistoryEntry<TElement extends HistoryElement = HistoryElement> extends HistoryEntryBase {
   operation: SnapshotOperation;
   elements: HistoryElementSnapshot<TElement>[];
 }
@@ -108,7 +108,7 @@ export function removedPlaces<TElement extends HistoryElement>(
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
-export type NewActionHistoryEntry<TElement extends HistoryElement> = DistributiveOmit<
+type NewActionHistoryEntry<TElement extends HistoryElement> = DistributiveOmit<
   ActionHistoryEntry<TElement>,
   'id' | 'timestamp'
 >;
@@ -152,7 +152,7 @@ export function createActionEntry<TElement extends HistoryElement>(
 }
 
 /** Same-element changes of one kind this close together are one step. */
-export const COALESCE_WINDOW_MS = 500;
+const COALESCE_WINDOW_MS = 500;
 
 /**
  * Whether `incoming` folds into `top` rather than becoming its own step: both

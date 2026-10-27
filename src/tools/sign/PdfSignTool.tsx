@@ -1,5 +1,4 @@
 import { useState, useReducer, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   EditorElement,
   SignatureElement,
@@ -22,7 +21,6 @@ import SignatureDialog from './components/SignatureDialog.tsx';
 import { uniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
-import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/signGeometry.js';
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
 import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../editor-ui/hooks/workspaceFullscreen.ts';
@@ -72,6 +70,7 @@ import type { PendingSignaturePlacement } from './hooks/useWorkspaceGestures.ts'
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
+import { isEncryptedPdfError } from '../../lib/encryptedPdfError.ts';
 import { initialSignLifecycleState, signLifecycleReducer } from './state/signState.ts';
 import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './lib/exportHandoff.ts';
 import { signedFileName } from './lib/signedFileName.ts';
@@ -122,14 +121,6 @@ export default withIslandBoundary(function PdfSignTool({ shellMessages, messages
 
 function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
-  const [file, setFile] = useState<File | null>(null);
-  const [numPages, setNumPages] = useState(0);
-  // The loaded PDF's bytes as state as well as a ref: the ref is what the
-  // draft autosave reads imperatively, but form-grid detection is an effect
-  // and needs a value that actually changes identity when a new file lands.
-  const [sourceBytes, setSourceBytes] = useState<ArrayBuffer | null>(null);
-  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
   const {
     state: {
       selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory,
@@ -142,7 +133,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // recoverable without unmounting the editor; a failed document load still
   // uses status='error' with the workspace's load copy.
   const [lifecycle, lifecycleDispatch] = useReducer(signLifecycleReducer, undefined, initialSignLifecycleState);
-  const { status, errorDetail, announcement, needsUnlock, signedExport, handoffFailed } = lifecycle;
+  const {
+    status, errorDetail, announcement, needsUnlock, signedExport, handoffFailed,
+    file, numPages, sourceBytes, pdfDocument, pageSizes,
+  } = lifecycle;
   const setAnnouncement = useCallback((message: string) => lifecycleDispatch({ type: 'ANNOUNCED', message }), []);
   useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -503,10 +497,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     onNeedsUnlock: (kind) => lifecycleDispatch({ type: 'NEEDS_UNLOCK_FOUND', kind }),
     initialize: ({ file: selected, bytes, preset }) => {
       lifecycleDispatch({ type: 'DOCUMENT_OPENED' });
-      setFile(selected);
-      setPdfDocument(null);
-      setNumPages(0);
-      setPageSizes([]);
+      lifecycleDispatch({ type: 'DOCUMENT_FILE_SET', file: selected, bytes });
       dispatch({
         type: 'LOAD_DOCUMENT',
         payload: {
@@ -523,11 +514,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
       dispatch({ type: 'SET_TOOL', payload: null });
-      setSourceBytes(bytes);
     },
     onDocument: async (doc, isCurrent) => {
-      setPdfDocument(doc);
-      setNumPages(doc.numPages);
+      lifecycleDispatch({ type: 'PDF_DOCUMENT_READY', pdfDocument: doc, numPages: doc.numPages });
       const sizes = [];
       for (let i = 1; i <= doc.numPages; i++) {
         const page = await doc.getPage(i);
@@ -535,7 +524,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         sizes.push(pageGeometryFromPdfJsPage(page));
       }
       if (!isCurrent()) return;
-      setPageSizes(sizes);
+      lifecycleDispatch({ type: 'PAGE_SIZES_MEASURED', pageSizes: sizes });
     },
     draft: {
       elements,
@@ -817,9 +806,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       console.error(err);
       // ENC-07: the load gate should have caught a protected file, so this is reported above (a gate
       // miss), but the person gets the way on rather than a retry that can never work.
-      const name = Reflect.get(Object(err), 'name');
-      const message = String(Reflect.get(Object(err), 'message') ?? '');
-      if (name === 'EncryptedPDFError' || message.includes('is encrypted')) {
+      if (isEncryptedPdfError(err)) {
         lifecycleDispatch({ type: 'EXPORT_NEEDS_UNLOCK', announcement: t.protectedOwnerOnlyTitle });
         return;
       }

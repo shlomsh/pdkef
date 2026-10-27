@@ -18,7 +18,7 @@ export type FontkitFont = {
 };
 
 /** The private shape of pdf-lib's custom-font embedder, as far as the editor reads it. */
-export type PdfFontEmbedder = {
+type PdfFontEmbedder = {
   font?: FontkitFont;
   subset?: { includeGlyph: (glyph: unknown) => number };
   glyphs?: unknown[];

@@ -1,13 +1,25 @@
 // @ts-check
 import { MAX_CANVAS_AREA } from './rasterPage.js';
 
-/** The scale every page used before it followed the display; also the floor, so a page is never softer than it was. */
+/**
+ * The scale every page used before it followed the display; also the floor, so a page is never softer than it was.
+ * @testSeam
+ */
 export const PAGE_RENDER_MIN_SCALE = 1.5;
-/** Largest on-screen page canvas in pixels (~24 MB). Every page of a document holds one at once, so this sits well under the 16.7M iOS ceiling. */
+/**
+ * Largest on-screen page canvas in pixels (~24 MB). Every page of a document holds one at once, so this sits well under the 16.7M iOS ceiling.
+ * @testSeam
+ */
 export const MAX_PAGE_RENDER_AREA = 6_000_000;
-/** Past 3x the extra pixels are invisible and only cost memory. */
+/**
+ * Past 3x the extra pixels are invisible and only cost memory.
+ * @testSeam
+ */
 export const MAX_PAGE_RENDER_DPR = 3;
-/** Displayed widths are rounded up to this many CSS px, so dragging a window edge repaints a handful of times, not every pixel. */
+/**
+ * Displayed widths are rounded up to this many CSS px, so dragging a window edge repaints a handful of times, not every pixel.
+ * @testSeam
+ */
 export const WIDTH_BUCKET_PX = 64;
 
 /** A displayed CSS width rounded up to its bucket; 0 when it cannot be measured.

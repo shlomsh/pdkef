@@ -8,7 +8,61 @@
     "maxSinglePageUtilities": 148
   },
   "e2eSleeps": {
-    "waitForTimeout": 44
+    "waitForTimeout": 42
+  },
+  "functionSize": {
+    "functions": {
+      "scripts/seo-refresh.mjs#main": 151,
+      "scripts/serve-backlog-board.mjs#client": 260,
+      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 266,
+      "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement": 264,
+      "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement.handlePointerDown": 225,
+      "src/editor-ui/hooks/useElementResize.js#useElementResize": 263,
+      "src/editor-ui/hooks/useElementResize.js#useElementResize.handleResizeStart": 232,
+      "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 326,
+      "src/shell/BasePdfTool.tsx#BasePdfTool": 411,
+      "src/shell/DownloadElement.tsx#DownloadElement": 194,
+      "src/shell/DropzoneEmptyState.tsx#DropzoneEmptyState": 167,
+      "src/shell/OutputName.tsx#OutputName": 154,
+      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 693,
+      "src/shell/pageGrid/PageGrid.tsx#PageGrid.(anonymous)~25": 246,
+      "src/shell/pageWorkspace/useDownloadFlow.ts#useDownloadFlow": 211,
+      "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
+      "src/site-lib/appUpdate.ts#startAppUpdates": 248,
+      "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 287,
+      "src/tools/compress/hooks/useComparePreviews.ts#useComparePreviews": 177,
+      "src/tools/edit-pages/PdfEditPagesTool.tsx#PdfEditPagesTool": 263,
+      "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 346,
+      "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 449,
+      "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
+      "src/tools/merge/lib/merge.js#mergePdfs": 188,
+      "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 902,
+      "src/tools/redact/components/FindBar.tsx#FindBar": 177,
+      "src/tools/redact/components/RedactBox.tsx#RedactBox": 256,
+      "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 253,
+      "src/tools/redact/components/details/DetailsSheet.tsx#DetailsSheet": 152,
+      "src/tools/redact/hooks/useRedactExport.ts#useRedactExport": 218,
+      "src/tools/redact/state/redactState.ts#redactReducer": 244,
+      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 646,
+      "src/tools/scan/PdfScanTool.tsx#PdfScanTool.(anonymous)~17": 165,
+      "src/tools/scan/components/CornerEditor.tsx#CornerEditor": 156,
+      "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
+      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 934,
+      "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
+      "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
+      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 649,
+      "src/tools/sign/components/SignToolContext.tsx#reducer": 200,
+      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 756,
+      "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
+      "src/tools/sign/components/fill/FieldSlot.tsx#FieldSlot": 255,
+      "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
+      "src/tools/sign/hooks/fill/useFillTap.ts#useFillTap": 240,
+      "src/tools/sign/hooks/useWorkspaceGestures.ts#useWorkspaceGestures": 426,
+      "src/tools/sign/hooks/useWorkspaceGestures.ts#useWorkspaceGestures.handlePageClick": 227,
+      "src/tools/split/PdfSplitTool.tsx#PdfSplitTool": 317,
+      "src/tools/to-image/PdfToImageTool.tsx#PdfToImageTool": 282
+    },
+    "threshold": 150
   },
   "hooks": {
     "fileThreshold": 10,
@@ -26,8 +80,8 @@
         "hooks": 37
       },
       "src/tools/compress/PdfCompressTool.tsx": {
-        "effects": 4,
-        "hooks": 18
+        "effects": 0,
+        "hooks": 15
       },
       "src/tools/edit-pages/PdfEditPagesTool.tsx": {
         "effects": 0,
@@ -42,12 +96,12 @@
         "hooks": 32
       },
       "src/tools/redact/PdfRedactTool.tsx": {
-        "effects": 12,
-        "hooks": 43
+        "effects": 4,
+        "hooks": 26
       },
       "src/tools/scan/PdfScanTool.tsx": {
-        "effects": 12,
-        "hooks": 28
+        "effects": 6,
+        "hooks": 24
       },
       "src/tools/security/PdfSecurityTool.tsx": {
         "effects": 1,
@@ -55,7 +109,7 @@
       },
       "src/tools/sign/PdfSignTool.tsx": {
         "effects": 9,
-        "hooks": 34
+        "hooks": 33
       },
       "src/tools/sign/components/PdfWorkspace.tsx": {
         "effects": 1,
@@ -87,46 +141,37 @@
   "jsFilesTools": {
     "src/tools": 56
   },
+  "nesting": {
+    "cap": 4,
+    "functions": {
+      "scripts/check-css-duplication.js#forEachLeafRule": 5,
+      "scripts/check-unused-exports.mjs#scanFile": 6,
+      "scripts/generate-compress-fixtures.mjs#scan": 5,
+      "scripts/seo-crawl-staleness.mjs#main": 5,
+      "scripts/spike/form-06/measureOcr.mjs#flattenWords": 5,
+      "scripts/spike/form-32/renderAndOcr.mjs#collect": 5,
+      "src/editor/adapters/pdf/contentStream.js#decodeLiteralString": 5,
+      "src/tools/compress/lib/compressImages.js#compressPdfImagesToTarget": 5,
+      "src/tools/redact/lib/deleteObjects.js#stillDrawnImages": 5,
+      "src/tools/scan/lib/edges/outline.ts#outlineFromMap": 7,
+      "src/tools/sign/lib/fields/rasterInk.js#connectedComponents": 5
+    }
+  },
   "size": {
     "fileLines": {
       "src/data/tools.js": 1017,
       "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 882,
-      "src/tools/compress/PdfCompressTool.tsx": 949,
-      "src/tools/redact/PdfRedactTool.tsx": 1329,
-      "src/tools/scan/PdfScanTool.tsx": 932,
-      "src/tools/sign/PdfSignTool.tsx": 1068,
+      "src/tools/redact/PdfRedactTool.tsx": 1022,
+      "src/tools/sign/PdfSignTool.tsx": 1055,
       "src/tools/sign/components/SignToolbar.tsx": 833,
       "src/tools/sign/lib/fields/formCells.js": 1061
     },
-    "fileThreshold": 800,
-    "functionLines": {
-      "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 326,
-      "src/shell/BasePdfTool.tsx#BasePdfTool": 411,
-      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 693,
-      "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
-      "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 846,
-      "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 346,
-      "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 449,
-      "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
-      "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1202,
-      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 864,
-      "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 319,
-      "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 946,
-      "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
-      "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
-      "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 649,
-      "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 756,
-      "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
-      "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
-      "src/tools/sign/hooks/useWorkspaceGestures.ts#useWorkspaceGestures": 426,
-      "src/tools/split/PdfSplitTool.tsx#PdfSplitTool": 317
-    },
-    "functionThreshold": 300
+    "fileThreshold": 800
   },
   "unusedExports": {
     "neverUsed": 7,
-    "ownFileOnly": 250,
-    "testOnly": 346
+    "ownFileOnly": 155,
+    "testOnly": 212
   }
 }

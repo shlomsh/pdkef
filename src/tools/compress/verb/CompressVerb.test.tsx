@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it } from 'vitest';
 import CompressVerb from './CompressVerb.tsx';
+// The verb is aria-hidden decoration with no text or roles; its class structure is what the test asserts.
 import styles from './CompressVerb.module.css';
 
 function mount(subject: 'page' | 'photo') {

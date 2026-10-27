@@ -38,7 +38,7 @@ export const englishRecentFilesMessages: RecentFilesMessages = {
 };
 
 // LOC-09: reviewed with hebrewFileDropzoneMessages above (LOC-18, 2026-10-22).
-export const hebrewRecentFilesMessages: RecentFilesMessages = {
+const hebrewRecentFilesMessages: RecentFilesMessages = {
   heading: 'קבצים אחרונים',
   openSampleAriaLabel: 'פתיחת קובץ הדוגמה, {name}',
   openRecentAriaLabel: 'פתיחת קובץ אחרון, {name}',

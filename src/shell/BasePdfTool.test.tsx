@@ -3,6 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.tsx';
+// Assert state classes on purpose (Dropzone's is-dragover, ToolShell's icon-loaded); the tool card, drop overlay, identity, meta and note have no role, label or text, so they are found by class.
 import styles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
@@ -154,7 +155,7 @@ describe('BasePdfTool', () => {
     expect(container.querySelector('[data-empty-state]')).toBeNull();
     expect(container.querySelector('input[type="file"]')).toBeNull();
 
-    const placeholder = container.querySelector(`.${styles['dropzone']}`);
+    const placeholder = container.querySelector('[aria-busy]');
     expect(placeholder).not.toBeNull();
     expect(placeholder.getAttribute('aria-busy')).toBe('true');
   });
@@ -179,7 +180,7 @@ describe('BasePdfTool', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), fileLabel: 'contract.pdf' });
     expect(container.textContent).not.toContain('Drop PDF');
     expect(container.textContent).not.toContain('Private. Files never leave your device.');
-    expect(container.querySelector(`.${styles['dropzone']}`)).toBeNull();
+    expect(container.querySelector('[data-empty-state], [aria-busy]')).toBeNull();
 
     const identity = container.querySelector(`.${toolShellStyles.identity}`);
     expect(identity).not.toBeNull();
@@ -314,7 +315,7 @@ describe('BasePdfTool', () => {
   it('handles drag and drop on the empty-state dropzone', () => {
     const onFilesAddedSpy = vi.fn();
     mount({ hasFiles: false, onFilesAdded: onFilesAddedSpy });
-    const dropzone = container.querySelector(`.${styles['dropzone']}`);
+    const dropzone = container.querySelector('[data-empty-state]');
 
     act(() => {
       dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
@@ -417,7 +418,7 @@ describe('BasePdfTool', () => {
     const input = container.querySelector('input[type="file"]');
     const openedPicker = vi.spyOn(input, 'click');
 
-    const replace = container.querySelector(`.${toolShellStyles.action}`);
+    const replace = container.querySelector('[data-tool-shell] button');
     act(() => replace.click());
 
     // The point of the ordering: the question arrives before the trip through
@@ -451,7 +452,7 @@ describe('BasePdfTool', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'contract.pdf' });
     const openedPicker = vi.spyOn(container.querySelector('input[type="file"]'), 'click');
 
-    act(() => container.querySelector(`.${toolShellStyles.action}`).click());
+    act(() => container.querySelector('[data-tool-shell] button').click());
 
     expect(dialogNamed(container, 'confirm-replace-title').open).toBe(true);
     expect(openedPicker).not.toHaveBeenCalled();
@@ -518,7 +519,7 @@ describe('BasePdfTool', () => {
     expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
 
-    const clear = Array.from(container.querySelectorAll(`.${toolShellStyles.action}`))
+    const clear = Array.from(container.querySelectorAll('[data-tool-shell] button'))
       .find((button) => button.textContent.includes('Clear all'));
     act(() => clear.click());
 
@@ -551,7 +552,7 @@ describe('BasePdfTool', () => {
     const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' });
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'photo.jpg', file });
 
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container.querySelector('[data-tool-shell] span[aria-hidden="true"]');
     expect(icon).not.toBeNull();
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
     const img = icon.querySelector('img');
@@ -582,7 +583,7 @@ describe('BasePdfTool', () => {
     const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' });
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: true, fileLabel: '3 PDFs', file });
 
-    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    const icon = container.querySelector('[data-tool-shell] span[aria-hidden="true"]');
     expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
     expect(icon.querySelector('img')).toBeNull();
   });
@@ -731,7 +732,7 @@ describe('BasePdfTool', () => {
       mount({ hasFiles: false, onFilesAdded: vi.fn(), emptyArt: <i data-testid="verb" /> });
       const zone = container.querySelector('[data-empty-state]');
       expect(zone.querySelector('[data-testid="verb"]')).not.toBeNull();
-      expect(zone.querySelector(`.${styles['dropzone-icon']}`)).toBeNull();
+      expect(zone.querySelector('[data-testid="dropzone-icon"]')).toBeNull();
     });
   });
 
@@ -762,7 +763,7 @@ describe('BasePdfTool', () => {
       markArrival.mockImplementation((s) => order.push(`mark:${s}`));
       mount({ hasFiles: false, onFilesAdded: () => order.push('added'), analyticsTool: 'sign' });
       act(() => {
-        container.querySelector(`.${styles.dropzone}`).dispatchEvent(fileDragEvent('drop'));
+        container.querySelector('[data-empty-state]').dispatchEvent(fileDragEvent('drop'));
       });
       expect(order).toEqual(['mark:drop', 'added']);
     });

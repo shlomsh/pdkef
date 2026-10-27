@@ -9,7 +9,10 @@
 import { deriveFileKind } from '../lib/fileKind.js';
 import { FILE_CAPABILITIES, handoffKeyOf, type FileKind, type TOOL_PAGES } from '../lib/toolIds.ts';
 
-/** The pages the home dropzone can route a file to: the registry rows that declare `accepts`. */
+/**
+ * The pages the home dropzone can route a file to: the registry rows that declare `accepts`.
+ * @testSeam
+ */
 export type ToolSlug = Extract<(typeof TOOL_PAGES)[number], { accepts: object }>['slug'];
 
 type Kind = FileKind;

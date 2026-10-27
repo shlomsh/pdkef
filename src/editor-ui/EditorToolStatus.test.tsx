@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorToolStatus, { type ToolCopy } from './EditorToolStatus.tsx';
+// Asserts the row state classes (help-shown, help-spare, help-idle, help-reserve-nav, help-fields-problem) and finds the rows and label spans by class: the stack's shown/reserved mechanism is the behaviour.
 import styles from './SignToolbar.module.css';
 
 /* The per-tool behaviour of the status line (which sentence, what the switch
@@ -40,7 +41,7 @@ describe('EditorToolStatus', () => {
         container,
       );
     });
-    return container.querySelector<HTMLElement>(`.${styles.help}`)!;
+    return container.firstElementChild as HTMLElement;
   };
 
   const rows = () => container.querySelectorAll(`.${styles['help-row']}`);

@@ -1,10 +1,9 @@
 ---
 id: "ARCH-114"
 title: "The unused-exports baseline of own-file-only and test-only exports shrinks"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -23,4 +22,8 @@ Area: Code. Criterion: Dead code and unused surface. Structure only: no behaviou
 
 ## Acceptance
 
-- [ ] The recorded counts are lower than 250 and 346, and the check passes.
+- [x] The recorded counts are lower than 250 and 346, and the check passes.
+
+## Closed 2026-10-27
+
+ownFileOnly 250 -> 155, testOnly 346 -> 212 across src/lib, src/editor, src/site-lib and src/data: `export` dropped where only the file uses it, `@testSeam` where a test exercises a unit the file also uses. The 26 test-only or unused exports went to ARCH-130 rather than being deleted here.

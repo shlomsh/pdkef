@@ -4,7 +4,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import FillLayer from './FillLayer.tsx';
 import FocusProxy from './FocusProxy.tsx';
 import { FillContext, FILL_OFF, useTextFill } from './FillContext.tsx';
+// Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
+// Asserts the aimed and proxy state classes.
 import styles from './fill.module.css';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR, textFillKey } from '../../lib/fill/fillTypes.ts';
 import type { FillItem, FillSlot, EnterKeyHint } from '../../lib/fill/fillTypes.ts';

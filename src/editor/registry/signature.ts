@@ -5,6 +5,7 @@ import { percentToPoints } from '../geometry/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 import type { SignatureElement } from '../model/editorModel.ts';
 
+/** @testSeam */
 export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
   // Signatures are freeform ink, not a small checkbox-sized mark, so they
   // share their ceiling with shapes/whiteouts (MAX_SHAPE_SIZE_PCT) rather

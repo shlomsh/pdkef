@@ -5,17 +5,23 @@ import { RATING_TOOLS, STARS } from '../lib/ratingSchema.js';
 import { readEnv } from './errorReportStore.js';
 import { ratingCountsFromResults, ratingReadCommands } from './ratingStore.js';
 
-/** A tool shows no rating, and its page carries no markup, below this many real votes. */
+/**
+ * A tool shows no rating, and its page carries no markup, below this many real votes.
+ * @testSeam
+ */
 export const RATING_MIN_VOTES = 50;
 const TIMEOUT_MS = 5000;
 
-export interface RatingSummary {
+interface RatingSummary {
   average: number;
   count: number;
 }
 type StarCounts = Record<1 | 2 | 3 | 4 | 5, number>;
 
-/** Average to one decimal and the vote count, or null under `min` votes. */
+/**
+ * Average to one decimal and the vote count, or null under `min` votes.
+ * @testSeam
+ */
 export function summarize(counts: StarCounts, min: number = RATING_MIN_VOTES): RatingSummary | null {
   let count = 0;
   let sum = 0;
@@ -35,14 +41,17 @@ export function summarize(counts: StarCounts, min: number = RATING_MIN_VOTES): R
 // No @types/node in this repo; the build provides process.env.
 declare const process: { env: Record<string, string | undefined> };
 
-export const RATING_TOOLS_BY_PAGE: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+const RATING_TOOLS_BY_PAGE: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   RATING_TOOLS.map((t) => [t, [t]]),
 );
 (RATING_TOOLS_BY_PAGE as Record<string, readonly string[]>).unlock = ['unlock', 'protect'];
 
 const emptyCounts = (): StarCounts => ({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
 
-/** Summaries keyed by page slug, only for pages at or above the minimum. {} on any failure. */
+/**
+ * Summaries keyed by page slug, only for pages at or above the minimum. {} on any failure.
+ * @testSeam
+ */
 export async function loadRatings(
   env: Readonly<Record<string, string | undefined>> = process.env,
   fetchImpl: typeof fetch = fetch,

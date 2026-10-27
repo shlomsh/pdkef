@@ -154,6 +154,7 @@ export const HEBREW_CAPABLE_FONTS = FONT_MANIFEST
  * stacked-diacritic case). This is a heavier, more traditional Naskh than
  * Almarai's geometric-sans face, so every existing Arabic/Dari/Farsi user's
  * output changes visibly - a real cost, paid once, for Pashto to work at all.
+ * @testSeam
  */
 export const RETIRED_FONTS = RETIRED_FONT_MAP;
 
@@ -235,6 +236,7 @@ export function requestedFontFile(family, weight = 'normal', style = 'normal') {
  * @param {string} weight - 'normal' | 'bold'
  * @param {string} style - 'normal' | 'italic'
  * @returns {boolean}
+ * @testSeam
  */
 export function hasRealFace(family, weight, style) {
   return requestedFontFile(family, weight, style) !== null;

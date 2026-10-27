@@ -1,6 +1,6 @@
 /** The slice of `PDFPageProxy` this module actually needs, so a caller can
  * pass the real pdf.js page with no cast. */
-export interface TextStreamPage {
+interface TextStreamPage {
   streamTextContent(): {
     getReader(): { read(): Promise<{ done: boolean; value?: { items: object[] } }> };
   };

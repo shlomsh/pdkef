@@ -5,6 +5,7 @@ import type { ComponentProps } from 'preact';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 
 type DownloadElementProps = ComponentProps<typeof DownloadElement>;
+// Asserts the check-mark-animated / check-mark-static classes: which one the mark wears is the behaviour.
 import styles from '../../shell/DownloadElement.module.css';
 import { englishMergeMessages } from '../../tools/merge/messages';
 
@@ -31,7 +32,7 @@ describe('DownloadElement', () => {
     return { rerender };
   }
 
-  const box = () => container!.querySelector(`.${styles.box}`);
+  const box = () => container!.querySelector('[data-state]');
 
   it('one-file: a sentence, plain surface (not a button), and a real "Choose files" button', () => {
     const onChooseFiles = vi.fn();

@@ -11,6 +11,7 @@ type HandoffRecord = Partial<HandoffFile> & { files?: Partial<HandoffFile>[]; fr
 /**
  * Every file a hand-off record carries, in order: one for a single record, all of
  * `files` for a multi record (SITE-42), `[]` for anything invalid.
+ * @testSeam
  */
 export function filesFromHandoff(record: HandoffRecord | null | undefined): File[] {
   if (!record) return [];

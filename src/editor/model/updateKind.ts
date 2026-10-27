@@ -9,6 +9,7 @@ import {
 /** What a person did to an element, as far as its history label is concerned. */
 export type ElementUpdateKind = 'move' | 'resize' | 'text' | 'style';
 
+/** @testSeam */
 export const UPDATE_ENTRY_TYPES: Record<ElementUpdateKind, string> = {
   move: 'MOVE_ELEMENT',
   resize: 'RESIZE_ELEMENT',

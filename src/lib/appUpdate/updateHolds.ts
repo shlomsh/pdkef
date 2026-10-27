@@ -34,7 +34,7 @@ type Listener = (held: boolean) => void;
 type Flush = () => unknown;
 
 /** 'export': work in flight a forced update still waits for. 'open': a file merely open. */
-export type HoldKind = 'export' | 'open';
+type HoldKind = 'export' | 'open';
 
 let holds = 0;
 let exportHolds = 0;

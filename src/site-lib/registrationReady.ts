@@ -12,7 +12,7 @@ interface ObserverLike {
   disconnect(): void;
 }
 
-export interface ReadyDeps {
+interface ReadyDeps {
   loaded: Promise<void>;
   document: { querySelector(selector: string): unknown };
   /** Missing in Safari: a zero-delay timer stands in. */

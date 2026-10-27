@@ -11,7 +11,6 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { formatFileSize } from '../../lib/format.js';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import styles from './PdfImageToPdfTool.module.css';
 import outputNameStyles from '../../shell/OutputName.module.css';
 import sortMenuStyles from '../../shell/SortMenu.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -164,8 +163,8 @@ describe('PdfImageToPdfTool UI flow', () => {
   }
 
   const wait = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
-  const tileNames = () => Array.from(container.querySelectorAll(`.${styles.page}`)).map((el) => el.getAttribute('aria-label').split(',')[0]);
-  const removeButtons = () => container.querySelectorAll(`.${styles.remove}`);
+  const tileNames = () => Array.from(container.querySelectorAll('[data-page]')).map((el) => el.getAttribute('aria-label').split(',')[0]);
+  const removeButtons = () => container.querySelectorAll('ul[aria-describedby="reorder-hint"] li > button[aria-label]');
   const downloadLink = () => container.querySelector(`.${pdfToolStyles['download-button']}`);
   const press = (el, key) => act(async () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
@@ -185,10 +184,10 @@ describe('PdfImageToPdfTool UI flow', () => {
     const identity = container.querySelector(`.${toolShellStyles.name}`);
     expect(identity.textContent).toContain('2 images');
     expect(tileNames()).toEqual(['one.png', 'two.png']);
-    expect(Array.from(container.querySelectorAll(`.${styles.badge}`)).map((b) => b.textContent)).toEqual(['1', '2']);
+    expect(Array.from(container.querySelectorAll('[data-page] > span[aria-hidden="true"]')).map((b) => b.textContent)).toEqual(['1', '2']);
     expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
     expect(container.textContent).not.toContain('Convert');
-    expect(container.querySelector(`.${styles['add-button']}`).textContent).toContain('Add images');
+    expect(container.querySelector('ul[aria-describedby="reorder-hint"] > li > button:not([aria-label])').textContent).toContain('Add images');
   });
 
   it('revokes every thumbnail URL on unmount, including ones added after the first render', async () => {
@@ -348,7 +347,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png', 'two.png', 'three.png']);
     await wait(0);
-    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    const tiles = () => container.querySelectorAll('[data-page]');
     await press(tiles()[0], 'ArrowRight');
     expect(tileNames()).toEqual(['two.png', 'one.png', 'three.png']);
     expect(container.querySelector('[role="status"][aria-live="polite"]').textContent).toBe('one.png moved to position 2 of 3.');
@@ -368,7 +367,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png', 'two.png']);
     await wait(0);
-    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    const tiles = () => container.querySelectorAll('[data-page]');
     await press(tiles()[0], 'ArrowRight');
     await wait(600);
     expect(builtPdfs()).toHaveLength(2);
@@ -389,7 +388,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(tileNames()).toEqual(['a.png', 'b.png', 'c.png']);
     expect(trigger().getAttribute('aria-label')).toBe('Order images: Name A–Z');
 
-    await press(container.querySelector(`.${styles.page}`), 'ArrowRight');
+    await press(container.querySelector('[data-page]'), 'ArrowRight');
     expect(trigger().getAttribute('aria-label')).toBe('Order images: Your order');
   });
 
@@ -398,7 +397,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     expect(createSpy).not.toHaveBeenCalled();
     await loadFiles(['a.png', 'b.png']);
-    const grid = container.querySelector(`ul.${styles.grid}`);
+    const grid = container.querySelector('ul[aria-describedby="reorder-hint"]');
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy).toHaveBeenCalledWith(grid, expect.objectContaining({ delay: 150, delayOnTouchOnly: true }));
     expect(createSpy.mock.calls[0][1].handle).toBeUndefined();
@@ -503,7 +502,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const byText = (t) => Array.from(document.querySelectorAll('button')).filter((b) => b.textContent.trim() === t);
     await act(async () => { (byText('Clear all')[0] ?? byText('Clear')[0]).click(); });
     await act(async () => { byText('Clear all').at(-1).click(); });
-    expect(container.querySelector(`.${styles.grid}`)).toBeNull();
+    expect(container.querySelector('ul[aria-describedby="reorder-hint"]')).toBeNull();
     await loadFiles(['b.png']);
     await wait(0);
     await tapDownload();
@@ -592,7 +591,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['a.png', 'b.png', 'c.png']);
     await wait(0);
-    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    const tiles = () => container.querySelectorAll('[data-page]');
     await act(async () => { removeButtons()[1].click(); });
     expect(document.activeElement).toBe(tiles()[1]);
     expect(tiles()[1].getAttribute('aria-label')).toContain('c.png');
@@ -604,7 +603,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png', 'two.png']);
     await wait(0);
-    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    const tiles = () => container.querySelectorAll('[data-page]');
     const fire = (el, init) => { const e = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }); el.dispatchEvent(e); return e; };
     let e;
     await act(async () => { e = fire(tiles()[0], { key: 'ArrowRight', shiftKey: true }); });
@@ -620,7 +619,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png', 'two.png', 'three.png']);
     await wait(0);
-    const tiles = () => container.querySelectorAll(`.${styles.page}`);
+    const tiles = () => container.querySelectorAll('[data-page]');
     tiles()[0].focus();
     await press(tiles()[0], 'ArrowRight');
     expect(document.activeElement).toBe(tiles()[1]);

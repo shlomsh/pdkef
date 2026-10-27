@@ -78,7 +78,7 @@ export const CONTENT_ICONS = {
   WifiOff,
 };
 
-export type ContentIconName = keyof typeof CONTENT_ICONS;
+type ContentIconName = keyof typeof CONTENT_ICONS;
 
 /** Tuple form, because `z.enum()` wants at least one literal member. */
 export const CONTENT_ICON_NAMES = Object.keys(CONTENT_ICONS) as [
