@@ -14,9 +14,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
-- [ARCH-45](backlog/tasks/ARCH-45.md) P2 · Every tool folder follows one template, checked in CI (in progress)
 - [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
-- [ARCH-68](backlog/tasks/ARCH-68.md) P2 · JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers (in progress)
 - [ARCH-78](backlog/tasks/ARCH-78.md) P2 · Island tests mock only the storage and network edge, through one harness (in progress)
 - [ARCH-79](backlog/tasks/ARCH-79.md) P2 · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet (in progress)
 - [ARCH-83](backlog/tasks/ARCH-83.md) P2 · Every CI run reports how far affected-scope narrowed it (in progress)

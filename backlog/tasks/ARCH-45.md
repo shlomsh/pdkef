@@ -1,11 +1,9 @@
 ---
 id: "ARCH-45"
 title: "Every tool folder follows one template, checked in CI"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 1
 depends_on: []
 ---
 
@@ -26,5 +24,9 @@ Area: Architecture. Criterion: Cohesion and organization. Structure only: no beh
 
 ## Acceptance
 
-- [ ] The shape check passes for all ten tools and fails on a planted stray file.
-- [ ] `check:push` green after the moves.
+- [x] The shape check passes for all ten tools and fails on a planted stray file.
+- [x] `check:push` green after the moves.
+
+## Done (2026-10-27)
+
+Every tool folder follows one template (root: the Pdf*Tool island, its CSS and tests, messages.ts, project.json; folders: components/, hooks/, lib/, state/, e2e/, verb/, __fixtures__/), written in .claude/rules/tools-and-shell.md. scripts/check-tool-shape.mjs (planted stray file and folder failed first) runs in CI and check:push and passes for all ten tools. 392 files moved with git mv: Redact 138, Sign 162 (fields/ to lib/fields/, fill/ split by kind), Scan, Compress, Merge and the small tools; the whole unit suite, check:push and e2e pass after the moves.
