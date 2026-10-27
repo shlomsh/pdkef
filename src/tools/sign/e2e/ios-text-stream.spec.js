@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Field detection must not depend on async iteration of a ReadableStream.
@@ -28,7 +29,7 @@ test('field detection finds fields when ReadableStream has no async iteration (i
   });
   await page.goto('/sign/?next=1');
   expect(await page.evaluate(() => typeof ReadableStream.prototype[Symbol.asyncIterator])).toBe('undefined');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /**
  * Fill mode (`/sign/?next=1`) on a phone: guards for the regressions Shlomi
@@ -37,7 +38,7 @@ test.skip(({ browserName }) => browserName !== 'webkit', 'the bugs guarded here 
 
 async function openFillMode(page) {
   await page.goto('/sign/?next=1');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({

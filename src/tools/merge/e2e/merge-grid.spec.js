@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* Direction A (2026-09-13, renamed from merge-strip.spec.js): the document's
    page grid. It wraps (no horizontal strip) and is a `<ul class*="grid">`
@@ -28,7 +29,7 @@ function cards(page) {
 
 test('desktop page drag keeps the grabbing cursor for the whole gesture', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const buffer = await makePdfBuffer('cursor-check', 2, 300);
   await page.locator('input[type="file"]').setInputFiles({
@@ -60,7 +61,7 @@ test('desktop page drag keeps the grabbing cursor for the whole gesture', async 
 
 test('the assembled grid: every page, rotate, skip and keyboard reorder land in the export (MERGE-08/09)', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   // file0: 1 page, width 100. file1: 2 pages, width 200. file2: 3 pages,
   // width 300. file3: 4 pages, width 400. 10 pages total.
@@ -141,7 +142,7 @@ test('the assembled grid: every page, rotate, skip and keyboard reorder land in 
 
 test('dropping a file onto the grid inserts its pages there and flags the rearrangement (MERGE-10)', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   const files = await Promise.all([
     ['first.pdf', 2, 100],
@@ -216,12 +217,9 @@ test('dropping a file onto the grid inserts its pages there and flags the rearra
 // with a shrunk flex-basis would look identical in computed style alone.
 test('a rotated landscape source thumbnail fills its portrait cell, not clamped by max-width (MERGE thumbnail geometry)', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
-  const document_ = await PDFDocument.create();
-  document_.addPage([792, 612]); // landscape source page
-  document_.setTitle('landscape-source');
-  const buffer = Buffer.from(await document_.save());
+  const buffer = await buildPdf('landscape-source', { size: [792, 612] }); // landscape source page
   await page.locator('input[type="file"]').setInputFiles({
     name: 'landscape-source.pdf',
     mimeType: 'application/pdf',
@@ -250,7 +248,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 1280, height: 800 
   test(`a very wide photo page stays inside its cell and the grid at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    await waitForIsland(page);
     await page.locator('input[type="file"]').setInputFiles([
       'public/images/redaction-guide/sample.pdf',
       'public/images/redaction-guide/blackout-before.jpg',
@@ -282,15 +280,12 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 1280, height: 800 
 test('desktop cells grow to fill the stage and the last page ends above the first-screen floor (MERGE-24)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
-  const document_ = await PDFDocument.create();
-  for (let i = 0; i < 5; i += 1) document_.addPage([612, 792]);
-  document_.setTitle('five-pages');
   await page.locator('input[type="file"]').setInputFiles({
     name: 'five-pages.pdf',
     mimeType: 'application/pdf',
-    buffer: Buffer.from(await document_.save()),
+    buffer: await buildPdf('five-pages', { pages: 5 }),
   });
   await expect(cards(page)).toHaveCount(5, { timeout: 15_000 });
 

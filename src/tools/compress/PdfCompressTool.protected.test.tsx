@@ -5,12 +5,12 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfCompressTool from './PdfCompressTool.tsx';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import * as compressLib from './lib/compress.js';
 import * as imagesLib from './lib/compressImages.js';
 import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
 // (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
@@ -21,8 +21,6 @@ import { installToolHarness, type ToolHarness } from '../../test/harness/toolHar
 const fixtureFile = (name: string) =>
   new File([readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`))], `${name}.pdf`, { type: 'application/pdf' });
 
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
-vi.mock('../../lib/thumbnails.js', () => ({ renderComparePreview: vi.fn() }));
 
 // jsdom has no createImageBitmap, and the image path falls back to an <img> that never loads here; a
 // stand-in decoder that reports a 16x12 photo is the one browser API the image run needs (the file is
@@ -39,7 +37,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     input = undefined;
     const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
     const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
-    probeEncryption.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
+    harness.pdfjs.probe.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
   });
 
   // Call-through spies on the four PDF compress engines: only a call count proves "never ran".
@@ -80,11 +78,10 @@ describe('PdfCompressTool with a protected PDF', () => {
   const pick = async (file, settle = true) => {
     input ??= container.querySelector('input[type="file"]');
     await act(async () => { setInputFiles(input, [file]); });
-    const end = Date.now() + 4000;
     const done = () =>
       container.querySelector('[data-needs-unlock]') !== null
       || ['done', 'error'].includes(container.querySelector('[data-compress-status]')?.getAttribute('data-compress-status'));
-    while (settle && !done() && Date.now() < end) await nap(20);
+    if (settle) await waitUntil(done, { timeout: 4000 }).catch(() => {});
     await nap(settle ? 20 : 200);
   };
   const buttons = () => Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
@@ -137,8 +134,8 @@ describe('PdfCompressTool with a protected PDF', () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Unlock it').click();
-      await new Promise((resolve) => setTimeout(resolve, 100));
     });
+    await waitUntil(() => expect(location.href).toBe('/unlock/'));
 
     const parked = await harness.takeHandoff('unlock');
     expect(parked).toEqual(expect.objectContaining({ from: 'compress', fileName: 'needs-password.pdf' }));
@@ -157,7 +154,7 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('does not run until the password check has answered, then runs once', async () => {
     let release;
-    probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
     const [, , compressImagesSpy] = spyEngines();
     mount();
     await pick(fixtureFile('plain'), false);
@@ -167,8 +164,8 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(runs()).toBe('0');
     expect(statusNow()).not.toMatch(/^(processing|done)$/);
     await act(async () => { release('open'); });
-    for (let i = 0; i < 100 && statusNow() !== 'done'; i++) await nap(20);
-    expect(statusNow()).toBe('done');
+    await waitUntil(() => expect(statusNow()).toBe('done'));
+    // The count is exact: a short settle so a second build would show.
     await nap(100);
     expect(compressImagesSpy).toHaveBeenCalledTimes(1);
     expect(runs()).toBe('1');
@@ -178,7 +175,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     mount();
     await pick(new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' }));
 
-    expect(probeEncryption).not.toHaveBeenCalled();
+    expect(harness.pdfjs.probe).not.toHaveBeenCalled();
     expect(container.querySelector('[data-needs-unlock]')).toBeNull();
     expect(statusNow()).toBe('done');
     expect(runs()).toBe('1');
@@ -186,7 +183,7 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('drops a probe result that lands after a newer pick', async () => {
     let release;
-    probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
     mount();
     await pick(fixtureFile('needs-password'));
     // A newer pick (a plain file, real probe) lands while the first probe is still out.
@@ -201,7 +198,7 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('drops a probe result that lands after a newer image pick', async () => {
     let release;
-    probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    harness.pdfjs.probe.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
     const [, , compressImagesSpy] = spyEngines();
     mount();
     await pick(fixtureFile('needs-password'));
@@ -218,7 +215,7 @@ describe('PdfCompressTool with a protected PDF', () => {
 
   it('falls back to the normal state when the probe throws', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    probeEncryption.mockRejectedValueOnce(new Error('pdfjs failed'));
+    harness.pdfjs.probe.mockRejectedValueOnce(new Error('pdfjs failed'));
     mount();
     await pick(fixtureFile('plain'));
 

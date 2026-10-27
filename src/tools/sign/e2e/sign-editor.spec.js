@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { rgb } from '@cantoo/pdf-lib';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 const makePdfBuffer = () => buildPdf(null, {
   title: false,
@@ -43,7 +44,7 @@ async function openSignTool(page) {
   // input. The <input type=file> opens the OS picker even unhydrated, but its
   // Preact onChange only attaches after hydration — an early setFiles is silently
   // dropped and the workspace never renders (the intermittent 10s timeout).
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;

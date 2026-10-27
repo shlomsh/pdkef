@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { waitForIsland } from './support/tool.js';
 
 // HERO guard (docs/tool-hero-show-the-verb.md, "Guards"): on the ten tools (the eight page-grid tools,
 // and Sign and Redact since HERO-05) the whole
@@ -303,7 +304,7 @@ test.describe('Merge restore', () => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1440, height: 820 });
     await page.goto('/merge/');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     await page.locator('input[type="file"]').setInputFiles(['num-1.pdf', 'num-2.pdf'].map((name) => ({
       name, mimeType: 'application/pdf', buffer: readFileSync(new URL(`../src/lib/__fixtures__/${name}`, import.meta.url)),
     })));

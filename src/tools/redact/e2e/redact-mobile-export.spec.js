@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // EditorExportActions.tsx (shared by Sign and Redact) drops the sticky toolbar's
 // Download below 920px once Share exists (`.desktop-download`), unless the tool
@@ -22,7 +23,7 @@ async function openRedactTool(page) {
   });
 
   await page.goto('/redact');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -192,7 +193,7 @@ test.describe('redact export actions on a phone', () => {
       Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
     });
     await page.goto('/redact');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     const fileChooserPromise = page.waitForEvent('filechooser');
     await page.getByText('Choose file', { exact: true }).click();
     const fileChooser = await fileChooserPromise;

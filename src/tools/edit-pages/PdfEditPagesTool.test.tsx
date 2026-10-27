@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
@@ -15,26 +16,10 @@ import { healthy, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
-// (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over the harness.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
-
-// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
-vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => {
-    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
-    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-      destroy: vi.fn(async () => {}),
-    };
-  }),
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-}));
+// The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs.
+// Everything else (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over it.
 
 // A real three-page PDF whose pages are told apart by width (200, 300, 400).
 function makePdfFile(name, bytes = healthy()) {
@@ -84,6 +69,20 @@ describe('PdfEditPagesTool UI flow', () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     harness.restore();
+  });
+
+  it('lists the files it skipped, as Split does', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const note = () => container.querySelector(`.${pdfToolStyles['hint-message']}`)?.textContent;
+    act(() => { render(<PdfEditPagesTool />, container); });
+    const input = () => container.querySelector('input[type="file"]');
+    await act(async () => { setInputFiles(input(), [new File(['x'], '2025-notes.txt', { type: 'text/plain' })]); });
+    expect(note()).toBe('Skipped “2025-notes.txt” - not a PDF.');
+    await act(async () => {
+      setInputFiles(input(), [new File(['x'], 'a.txt', { type: 'text/plain' }), new File(['y'], 'b.txt', { type: 'text/plain' })]);
+    });
+    expect(note()).toBe('Skipped 2 files - not PDFs.');
   });
 
   async function load(name = 'document.pdf', bytes = healthy()) {
@@ -289,7 +288,8 @@ describe('PdfEditPagesTool UI flow', () => {
     await prepareNow();
     const compress = Array.from(container.querySelectorAll(`.${workspaceStyles['handoff-row']} button`)).find((b) => b.textContent === 'Compress');
     vi.stubGlobal('location', { href: '/organize-pdf/' });
-    await act(async () => { compress.click(); await new Promise((resolve) => setTimeout(resolve, 50)); });
+    await act(async () => { compress.click(); });
+    await waitUntil(() => expect(window.location.href).toBe('/compress/'));
     const handoff = await harness.takeHandoff('compress');
     expect(handoff).toMatchObject({ fileName: 'document_modified.pdf', fileType: 'application/pdf' });
     expect(await pagesOf(new Blob([handoff.fileBytes]))).toMatchObject({ count: 3, widths: ORIGINAL_WIDTHS });
