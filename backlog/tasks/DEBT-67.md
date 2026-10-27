@@ -1,10 +1,9 @@
 ---
 id: "DEBT-67"
 title: "Merge's \"a clicked cell lets go of its action buttons\" e2e times out on main"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -49,10 +48,20 @@ late layout change) leaves the pointer off cell 2 and the button hidden.
   16/48 with 8 parallel pages at 6x throttle (10 of them click timeouts).
 - Product gap found on the way: nothing in a page grid sets `scroll-margin-top`, so anything scrolling a
   cell to its start (Tab onto a cell partly under the bar does) leaves the cell's top and its action
-  buttons under the app bar.
+  buttons under the app bar. The fix clears the app bar only: below 1024px Merge's sticky chip row
+  sits under it at a height that wraps, and a cell scrolled to its start can still land under that row.
 
 ## Acceptance
 
 - [x] The cause is named from a trace or a measurement, not assumed.
-- [ ] `npx playwright test src/tools/merge/e2e/merge-direction-a.spec.js --repeat-each=30` passes on
+- [x] `npx playwright test src/tools/merge/e2e/merge-direction-a.spec.js --repeat-each=30` passes on
       chromium and webkit locally, with no new `waitForTimeout`.
+
+## Done (2026-10-28)
+
+- Both tests that touch the grid right after `one-file` now wait for `ul[data-page-grid][data-fit-settled]`.
+- PageGrid cells and the buttons and links in them carry `scroll-margin-top` for the app bar. A new
+  e2e test scrolls a cell and its Rotate button to their start and checks that both clear the bar; it
+  was seen failing before each rule.
+- `--repeat-each=30` on the whole spec file: 210/210 on chromium and 210/210 on webkit, run before
+  and after the review fixes.
