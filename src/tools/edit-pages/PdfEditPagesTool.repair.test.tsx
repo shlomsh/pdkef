@@ -4,7 +4,6 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import * as editPagesLib from './lib/editPages.js';
-import { openThumbnailSource } from '../../lib/thumbnails.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { buildPdf, healthy, noPagesKey, ORIGINAL_WIDTHS } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
@@ -14,26 +13,6 @@ import { until } from '../../test/support/until.js';
 // DEBT-54: a file whose page list was lost is repaired once on open; the
 // grid (pdf.js) and the export must both read the repaired bytes while the
 // person's file keeps its identity.
-
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
-
-// EDGE: pdf.js cannot render in jsdom. The grid reads pages through this source, so the test reads which
-// file it was handed there; no real rendering here.
-vi.mock('../../lib/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-  openThumbnailSource: vi.fn(async (file) => {
-    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
-    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,t${pageIndex}`),
-      destroy: vi.fn(async () => {}),
-    };
-  }),
-}));
 
 // The grid draws a page only once its cell is near the viewport; tests say which.
 let observers = [];
@@ -82,7 +61,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     observers = [];
     originalIO = globalThis.IntersectionObserver;
     globalThis.IntersectionObserver = FakeIntersectionObserver;
-    vi.mocked(openThumbnailSource).mockClear();
+    harness.pdfjs.thumbnails.openThumbnailSource.mockClear();
   });
 
   afterEach(() => {
@@ -117,7 +96,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
   it('hands the repaired bytes, under the original name, to the grid and the export', async () => {
     await open();
 
-    const gridFile = vi.mocked(openThumbnailSource).mock.calls[0][0];
+    const gridFile = harness.pdfjs.thumbnails.openThumbnailSource.mock.calls[0][0];
     expect(gridFile).not.toBe(original);
     expect(gridFile.name).toBe('document.pdf');
     expect(gridFile.type).toBe('application/pdf');
@@ -138,7 +117,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     original = new File([healthy()], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     const editPagesSpy = vi.spyOn(editPagesLib, 'editPages');
     await open();
-    expect(vi.mocked(openThumbnailSource).mock.calls[0][0]).toBe(original);
+    expect(harness.pdfjs.thumbnails.openThumbnailSource.mock.calls[0][0]).toBe(original);
 
     await build();
     expect(editPagesSpy).toHaveBeenCalledTimes(1);
@@ -189,7 +168,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     await build();
     expect(harness.createdBlobs()).toHaveLength(1);
     expect(await widthsOf(harness.createdBlobs()[0])).toEqual([250, 350]);
-    expect(vi.mocked(openThumbnailSource).mock.calls.every(([f]) => f === second)).toBe(true);
+    expect(harness.pdfjs.thumbnails.openThumbnailSource.mock.calls.every(([f]) => f === second)).toBe(true);
   });
 
   it('shows the load error and opens no grid when the loader rejects', async () => {
@@ -197,7 +176,7 @@ describe('PdfEditPagesTool working file after a repair', () => {
     // Not a PDF at all: the loader cannot read it.
     original = new File(['this is not a PDF'], 'document.pdf', { type: 'application/pdf', lastModified: 1234 });
     await open();
-    expect(openThumbnailSource).not.toHaveBeenCalled();
+    expect(harness.pdfjs.thumbnails.openThumbnailSource).not.toHaveBeenCalled();
     expect(container.querySelector('ul[data-page-grid]')).toBeNull();
     expect(container.textContent).toContain('the file may be damaged');
   });

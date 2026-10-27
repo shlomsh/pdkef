@@ -17,25 +17,8 @@ import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it. Everything else
-// (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over the harness.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
-
-// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
-vi.mock('../../lib/thumbnails.js', () => ({
-  openThumbnailSource: vi.fn(async (file) => {
-    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
-    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,fake-${pageIndex}`),
-      destroy: vi.fn(async () => {}),
-    };
-  }),
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-}));
+// The pdf.js edge (the encryption probe, the thumbnail source) is the harness's: harness.pdfjs.
+// Everything else (errorReport, draftStore, loadPdfWithPages, editPages) runs for real over it.
 
 // A real three-page PDF whose pages are told apart by width (200, 300, 400).
 function makePdfFile(name, bytes = healthy()) {

@@ -9,25 +9,6 @@ import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
 
-// EDGE: pdf.js cannot run its worker in jsdom, so the encryption probe cannot ask it.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
-
-// EDGE: pdf.js cannot render in jsdom. The shared grid reads pages through this source; no real rendering here.
-vi.mock('../../lib/thumbnails.js', () => ({
-  renderThumbnail: vi.fn(() => Promise.resolve(null)),
-  renderPdfThumbnails: vi.fn(async () => 0),
-  openThumbnailSource: vi.fn(async (file) => {
-    const { PDFDocument } = await (await import('../../lib/pdfLib.js')).getPdfLib();
-    const pageCount = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }).then((doc) => doc.getPageCount(), () => 0);
-    return {
-      file,
-      pageCount,
-      render: vi.fn(async (pageIndex) => `data:image/png;base64,t${pageIndex}`),
-      destroy: vi.fn(async () => {}),
-    };
-  }),
-}));
-
 // A real three-page PDF, or a two-page one.
 const pdf = (name, bytes = healthy()) => new File([bytes], name, { type: 'application/pdf' });
 const twoPages = () => buildPdf({
