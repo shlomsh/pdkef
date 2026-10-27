@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 // src/lib/sendHandoff.ts now; nothing else may call the store's saveHandoff, and no tool keeps a
 // HANDOFF_HREFS table of its own (the pages come from src/lib/toolIds.ts).
 const ROOT = resolve(__dirname, '../../..');
-const ALLOWED_CALLERS = new Set(['src/lib/sendHandoff.ts', 'src/lib/drafts/draftStore.js']);
+const ALLOWED_CALLERS = new Set(['src/lib/sendHandoff.ts', 'src/lib/drafts/draftStore.ts']);
 
 const sources = execFileSync('git', ['ls-files', 'src', 'api'], { cwd: ROOT, encoding: 'utf8' })
   .split('\n')

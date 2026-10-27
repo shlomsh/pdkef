@@ -4,14 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEditorFileSession, type EditorFileSessionOptions } from './useEditorFileSession.ts';
 import { loadPdf as loadEditorPdf, type PdfLoadOptions } from '../../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '../../editor/workspace/useEditorDraftPersistence.ts';
-import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
+import { cacheRecentFile } from '../../lib/drafts/draftStore.ts';
 import { uniqueId } from '../../editor/model/ids.ts';
 
 vi.mock('../../editor/workspace/loadPdf.ts', () => ({ loadPdf: vi.fn() }));
 vi.mock('../../editor/workspace/useEditorDraftPersistence.ts', () => ({
   useEditorDraftPersistence: vi.fn(() => ({ clearDraft: vi.fn(), isRestoring: false, draftSaveState: 'idle' })),
 }));
-vi.mock('../../lib/drafts/draftStore.js', () => ({ cacheRecentFile: vi.fn() }));
+vi.mock('../../lib/drafts/draftStore.ts', () => ({ cacheRecentFile: vi.fn() }));
 
 const mockedLoad = vi.mocked(loadEditorPdf);
 const mockedDraft = vi.mocked(useEditorDraftPersistence);

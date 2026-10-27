@@ -3,7 +3,7 @@ import styles from './RecentFiles.module.css';
 import { englishRecentFilesMessages, type RecentFilesMessages } from './recentFilesMessages';
 import { formatMessage } from '../lib/formatMessage';
 import { getDraftExpiry } from '../lib/drafts/draftPolicy.js';
-import { MAX_RECENT_FILES } from '../lib/drafts/draftStore.js';
+import { MAX_RECENT_FILES } from '../lib/drafts/draftStore.ts';
 
 /** Recent source documents, or the bundled practice form when the cache is empty. */
 export interface RecentFileItem {
@@ -71,7 +71,7 @@ export default function RecentFiles({
             ) : (
               // MEM-03: every recent entry, Merge's file set included, opens
               // through the same button now - the tool it belongs to already
-              // has its own work on it (draftStore.js's one memory space), so
+              // has its own work on it (draftStore.ts's one memory space), so
               // there is no per-tool draft it could collide with. See
               // openRecent in FileDropzone.tsx for how a Merge row and an
               // ordinary source file each resume from here.

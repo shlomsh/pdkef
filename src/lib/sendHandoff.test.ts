@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const store = vi.hoisted(() => ({ saveHandoff: vi.fn() }));
-vi.mock('./drafts/draftStore.js', () => store);
+vi.mock('./drafts/draftStore.ts', () => store);
 
 import { sendHandoff } from './sendHandoff.ts';
 

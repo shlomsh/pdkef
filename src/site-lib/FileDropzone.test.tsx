@@ -6,10 +6,10 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone, { tileCopy, isolateNames, LAUNCHER_PICK_EVENT } from './FileDropzone.tsx';
 import { englishFileDropzoneMessages as en } from './fileDropzoneMessages';
 import { consumeRecentOpen } from '../lib/fileArrival.ts';
-import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
+import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.ts';
 import { setInputFiles } from '../test/support/setInputFiles.js';
 
-vi.mock('../lib/drafts/draftStore.js', () => ({
+vi.mock('../lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   saveHandoff: vi.fn(() => Promise.resolve(true)),
   setCurrentEntry: vi.fn(),

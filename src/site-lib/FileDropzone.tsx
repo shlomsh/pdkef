@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
 import { sendHandoff } from '../lib/sendHandoff.ts';
-import { setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
+import { setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.ts';
 import { noteRecentOpen } from '../lib/fileArrival.ts';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
@@ -15,7 +15,7 @@ import type { RecentFilesMessages } from './recentFilesMessages';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
    Merge file set alike - is an ordinary row now that work lives on the entry
-   rather than in a separate per-tool draft slot (draftStore.js's one memory
+   rather than in a separate per-tool draft slot (draftStore.ts's one memory
    space). There is no longer a Merge-only row to read separately and dedupe
    against this list. readRecentFiles() already caps at six itself; the slice
    here is the same belt-and-suspenders this always had, not new capping
