@@ -289,6 +289,15 @@ describe('check:e2e mode and stages', () => {
     expect(planSteps(wideScope).some((id) => id.startsWith('e2e:'))).toBe(false);
   });
 
+  it('astro-check runs alone, in a stage before the build (both write .astro/) (QUAL-31)', () => {
+    const stages = stageSteps(planSteps({ ...wideScope, touchesAstro: true }));
+    const checkAt = stages.findIndex((stage) => stage.includes('astro-check'));
+    const buildAt = stages.findIndex((stage) => stage.includes('build'));
+    expect(stages[checkAt]).toEqual(['astro-check']);
+    expect(checkAt).toBeGreaterThan(stages.findIndex((stage) => stage.includes('typecheck')));
+    expect(checkAt).toBeLessThan(buildAt);
+  });
+
   it('stages: independent steps together, dist guards after the build, each Playwright step alone', () => {
     const stages = stageSteps(planSteps(wideScope));
     expect(stages).toEqual([[...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build'], DIST_GUARD_STEPS]);

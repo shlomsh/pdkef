@@ -20,8 +20,9 @@
 // never a second narrowing decision.
 //
 // Local runs never widen (QUAL-24): units are `vitest related` over the diff,
-// typecheck is tsc (after `astro sync` when types are missing), and an empty
-// diff runs the guards only. CI carries the full suite and `astro check`.
+// typecheck is tsc (after `astro sync` when types are missing) plus `astro
+// check` when the diff reaches an .astro file (QUAL-31), and an empty diff
+// runs the guards only. CI carries the full suite.
 //
 // Usage: npm run check:push          guards + unit + typecheck + build + dist
 //                                     guards, concurrently where independent;
@@ -236,11 +237,16 @@ export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guard
 // Which stages run together. Everything in a stage is independent of the rest
 // of it: guards, unit, typecheck and build all read the tree and write nothing
 // the others read; the dist guards need the build; Playwright steps share one
-// preview port and one dist/, so they run one after another.
+// preview port and one dist/, so they run one after another. `astro check` and
+// `astro build` both sync and write .astro/, so when planned, astro-check runs
+// alone after that stage and the build moves to its own stage after it.
 export function stageSteps(steps) {
   const dist = new Set(DIST_GUARD_STEPS);
+  const solo = steps.includes('astro-check');
   const stages = [
-    steps.filter((id) => !dist.has(id) && !id.startsWith('e2e:')),
+    steps.filter((id) => !dist.has(id) && !id.startsWith('e2e:') && id !== 'astro-check' && !(solo && id === 'build')),
+    steps.filter((id) => id === 'astro-check'),
+    steps.filter((id) => solo && id === 'build'),
     steps.filter((id) => dist.has(id)),
     ...steps.filter((id) => id.startsWith('e2e:')).map((id) => [id]),
   ];
@@ -415,9 +421,10 @@ async function main() {
   const startAll = Date.now();
   const { base, dirty, scope, unitScope, typecheck } = ctx;
   printScope({ base, dirty, scope, unitScope });
-  console.error(`  typecheck:      ${typecheck.join(' + ')} (CI runs astro check)`);
 
   const steps = planSteps(scope, { mode, perf });
+  const note = steps.includes('astro-check') ? ' + astro check' : ' (CI runs astro check)';
+  console.error(`  typecheck:      ${typecheck.join(' + ')}${note}`);
   if (steps.length === 0) {
     console.error(mode === 'e2e' ? 'check:e2e: this diff selects no Playwright project; nothing to run.' : 'check:push: nothing to run.');
     process.exit(0);
