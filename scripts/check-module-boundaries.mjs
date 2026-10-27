@@ -23,23 +23,20 @@
 // same number must contain; the numbering follows the doc):
 //   1. A tool (`tool:<name>`) may import `shell`, `editor-ui`, `editor`, `lib`,
 //      and site's `i18n`/`data`. It may never import another tool, the site
-//      surface (`pages`/`layouts`/`content`/`styles`/`.astro` components), or
-//      the flat `components` module (HeroDemo/, `compareFigure.css`).
+//      surface (`pages`/`layouts`/`content`/`styles`/`src/components/`).
 //   2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and
-//      may never import the `components` module. They may import site's
+//      may never import `src/components/` (it is `site`). They may import site's
 //      `i18n`/`data` (`site-i18n`/`site-data`), but never `site` itself
 //      (pages/layouts/content/styles).
 //   3. `editor` may never import `editor-ui` or `shell` (it is headless).
 //   4. `site` (pages, layouts, content, data, i18n, styles, and the .astro
-//      files still under `src/components/`) may reach a tool only through
+//      everything under `src/components/`) may reach a tool only through
 //      that tool's island entry point, a `Pdf*Tool.tsx` directly under
 //      `src/tools/<name>/`, or its text, `src/tools/<name>/messages.ts`
 //      (ARCH-35).
-//   5. `components` (today's flat `src/components/`: since ARCH-18 landed,
-//      only `.astro` site components - which classify as `site`, not
-//      `components` - and `HeroDemo/` remain) must never import a tool.
-//      There is no longer a transitional allowance the other way: rule 1
-//      already covers a tool importing `components`, which is not permitted.
+//   5. Retired (ARCH-48): everything under `src/components/` now classifies as
+//      `site`, so rules 1, 2 and 4 already cover it. The number stays so that
+//      rules 6-11 keep theirs.
 //   6. A test file (anything matching TEST_FILE, below) under `shell`,
 //      `editor-ui`, `editor` or `lib`, or under one tool's own
 //      `src/tools/<name>/` folder, may not import another tool's files: a
@@ -122,7 +119,7 @@ export const RULES = [
   { id: 2, name: 'may never import a tool' },
   { id: 3, name: 'headless' },
   { id: 4, name: 'island entry point' },
-  { id: 5, name: 'MUST NOT import a tool' },
+  { id: 5, name: 'retired (ARCH-48)' },
   { id: 6, name: 'launder a cross-tool import' },
   { id: 7, name: "only reference that tool's own routes" },
   { id: 8, name: 'import from `scripts/`' },
@@ -161,6 +158,9 @@ const MODULE_PREFIXES = [
   ['src/layouts/', () => 'site'],
   ['src/content/', () => 'site'],
   ['src/styles/', () => 'site'],
+  // ARCH-48: the .astro components, inlineStyles.ts, HeroDemo/ and the .css files
+  // all sit in the site layer (they import site-lib/ and lib, never a tool's internals).
+  ['src/components/', () => 'site'],
   // Cross-cutting test infrastructure (setup.js, astroContentStub.js,
   // mockFileShare.js, setInputFiles.js, fixtures/): may import any core module
   // to build its harness, but never a tool - a helper reaching into one
@@ -181,9 +181,6 @@ export function classify(relPath) {
   for (const [prefix, moduleOf] of MODULE_PREFIXES) {
     if (relPath.startsWith(prefix)) return moduleOf();
   }
-  if (relPath.startsWith('src/components/')) {
-    return relPath.endsWith('.astro') ? 'site' : 'components';
-  }
   return null; // src/assets, src/content.config.ts, ...: outside the module graph
 }
 
@@ -191,7 +188,7 @@ export function classify(relPath) {
 // rule. These are the only ones allowed to: not part of the module graph on purpose. Anything else
 // (a new top-level folder under src) fails loudly until it gets a MODULE_PREFIXES row or is listed here.
 const OUTSIDE_THE_GRAPH = new Set(['assets', 'content.config.ts', 'project.json']);
-const CLASSIFIED_TOP_LEVEL = new Set(['components', 'tools', ...MODULE_PREFIXES.map(([p]) => p.split('/')[1])]);
+const CLASSIFIED_TOP_LEVEL = new Set(['tools', ...MODULE_PREFIXES.map(([p]) => p.split('/')[1])]);
 
 export function unclassifiedSrcEntries(entries) {
   return entries.filter((e) => !CLASSIFIED_TOP_LEVEL.has(e) && !OUTSIDE_THE_GRAPH.has(e)).sort();
@@ -211,19 +208,16 @@ function isToolEntryPoint(relPath) {
 export function ruleViolation(fromModule, toModule, toRelPath) {
   if (!fromModule || !toModule || fromModule === toModule) return null;
 
-  // Rule 1: a tool may not import another tool, the site surface, or `components`.
+  // Rule 1: a tool may not import another tool or the site surface.
   if (isTool(fromModule) && isTool(toModule)) {
     return 'a tool may not import another tool';
   }
-  if (isTool(fromModule) && (toModule === 'site' || toModule === 'components')) {
-    return 'a tool may import site-i18n and site-data but not site (pages/layouts/content/styles) or the flat components module';
+  if (isTool(fromModule) && toModule === 'site') {
+    return 'a tool may import site-i18n and site-data but not site (pages/layouts/content/styles/components)';
   }
-  // Rule 2: shell/editor-ui/editor/lib may not import a tool or `components`.
+  // Rule 2: shell/editor-ui/editor/lib may not import a tool or the site.
   if (CORE_MODULES.has(fromModule) && isTool(toModule)) {
     return `${fromModule} may not import a tool`;
-  }
-  if (CORE_MODULES.has(fromModule) && toModule === 'components') {
-    return `${fromModule} may not import the components module`;
   }
   if (CORE_MODULES.has(fromModule) && toModule === 'site') {
     return `${fromModule} may import site-i18n and site-data but not site (pages/layouts/content/styles)`;
@@ -241,10 +235,7 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   if (isSite(fromModule) && isTool(toModule) && !isToolEntryPoint(toRelPath)) {
     return 'site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts';
   }
-  // Rule 5: `components` (HeroDemo/, compareFigure.css) may not import a tool.
-  if (fromModule === 'components' && isTool(toModule)) {
-    return 'the components module may not import a tool';
-  }
+  // Rule 5: retired (ARCH-48); src/components/ is `site`, covered by rules 1, 2 and 4.
   // Rule 11 (ARCH-43): the site never imports the editor core. Data both need lives in src/lib/.
   if (isSite(fromModule) && toModule === 'editor') {
     return 'the site may not import the editor core: shared data lives in src/lib/';
@@ -620,8 +611,7 @@ const SITE_CONSUMER = 'site';
 // that branch and is recorded (by `tool:<name>`, or by the fixed
 // `SITE_CONSUMER` identity - every site file credits the same one, since the
 // site is one consumer, exactly like a tool is, no matter how many of its own
-// files reach back here (ARCH-26)); anything else (`components`,
-// `test-support`, an unclassified path) is a dead end - recorded as nothing,
+// files reach back here (ARCH-26)); anything else (`test-support`, an unclassified path) is a dead end - recorded as nothing,
 // walked no further. Exported and given a plain `Map` so a test can hand it a
 // small literal graph, the same style rule 7's specRouteViolation() uses a
 // literal route map.
@@ -654,7 +644,7 @@ export function commonLayerConsumers(target, reverseEdges) {
     if (CORE_MODULES.has(nodeModule) || isSite(nodeModule)) {
       for (const next of reverseEdges.get(node) || []) stack.push(next);
     }
-    // `components`, `test-support`, or unclassified (null): dead end.
+    // `test-support`, or unclassified (null): dead end.
   }
   return consumers;
 }
