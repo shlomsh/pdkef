@@ -1,5 +1,9 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { pageHash } from './pageHash.mjs';
 import { describe, expect, it } from 'vitest';
-import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls } from './check-precache-budget.mjs';
+import { KNOWN_ORPHANS, closureBytes, findBudgetFailures, findForeignIslands, checkPrecache, findMissingFiles, findMissingIslands, findOrphanedAssets, findUnhandledAssets, installUrls, manifestIdentityProblems, distFontUrls } from './check-precache-budget.mjs';
 
 const sizes = { '/a.js': 600, '/b.js': 500, '/PdfAlpha.1.js': 300, '/PdfBeta.2.js': 400, '/shell.js': 100 };
 const budgets = { shell: 1000, tool: 1000, home: 1000, other: 1000, install: 5000 };
@@ -133,5 +137,76 @@ describe('checkPrecache coverage', () => {
     const r = checkPrecache({ shell: [], pages: { '/alpha/': ['/a.js'] }, islands: { '/alpha/': ['/PdfAlpha.1.js'] }, sizes, budgets, astroFiles: ['_astro/orphan.AAAA.js'] });
     expect(r.some((m) => m.includes('_astro/orphan.AAAA.js'))).toBe(true);
     expect(r.some((m) => m.includes('/PdfAlpha.1.js'))).toBe(true);
+  });
+});
+
+describe('manifestIdentityProblems (MEM-22)', () => {
+  const bytes = { '/a/': '<html>a</html>', '/b/': '<html>b</html>', '/icons/i.png': 'png' };
+  const readPage = (url) => bytes[url];
+  const workerSource = 'const b=`0123456789ab`;const c=`pdkef-c3-0123456789ab`;';
+  const clean = {
+    build: '0123456789ab',
+    shell: ['/icons/i.png', '/_astro/x.js'],
+    pages: { '/a/': ['/a/', '/_astro/y.js'], '/b/': ['/b/', '/icons/i.png'] },
+    hashes: { '/a/': pageHash(bytes['/a/']), '/b/': pageHash(bytes['/b/']), '/icons/i.png': pageHash(bytes['/icons/i.png']) },
+  };
+  it('passes a manifest whose build is in the worker and whose hashes match', () => {
+    expect(manifestIdentityProblems(clean, { readPage, workerSource })).toEqual([]);
+  });
+  it('wants the build id twice in the worker, as BUILD_ID and as CACHE_VERSION', () => {
+    const f = manifestIdentityProblems(clean, { readPage, workerSource: 'const BUILD_ID=`0123456789ab`;' });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain('twice');
+  });
+  it('names a missing build', () => {
+    const { build, ...rest } = clean;
+    expect(manifestIdentityProblems(rest, { readPage, workerSource })[0]).toContain('build');
+  });
+  it('names a build the worker does not carry', () => {
+    expect(manifestIdentityProblems({ ...clean, build: 'ffffffffffff' }, { readPage, workerSource })[0]).toContain('ffffffffffff');
+  });
+  it('names a page missing from hashes', () => {
+    const { '/b/': _b, ...hashes } = clean.hashes;
+    expect(manifestIdentityProblems({ ...clean, hashes }, { readPage, workerSource }).join('\n')).toContain('/b/');
+  });
+  it('names a non-page unhashed URL missing from hashes', () => {
+    const { '/icons/i.png': _i, ...hashes } = clean.hashes;
+    expect(manifestIdentityProblems({ ...clean, hashes }, { readPage, workerSource }).join('\n')).toContain('/icons/i.png');
+  });
+  it('names a /_astro/ URL listed in hashes', () => {
+    const f = manifestIdentityProblems({ ...clean, hashes: { ...clean.hashes, '/_astro/x.js': 'abc' } }, { readPage, workerSource });
+    expect(f.join('\n')).toContain('/_astro/x.js');
+  });
+  it('names a URL in hashes that is not in the precache set', () => {
+    const f = manifestIdentityProblems({ ...clean, hashes: { ...clean.hashes, '/c/': 'x' } }, { readPage, workerSource });
+    expect(f.join('\n')).toContain('/c/');
+  });
+  it('names a dist font that is not precached and has no hash', () => {
+    const distFonts = ['/fonts/Pack.ttf'];
+    const f = manifestIdentityProblems(clean, { readPage, workerSource, distFonts });
+    expect(f.join('\n')).toContain('/fonts/Pack.ttf');
+  });
+  it('passes a dist font listed with matching bytes', () => {
+    const distFonts = ['/fonts/Pack.ttf'];
+    const read = (u) => (u === '/fonts/Pack.ttf' ? 'ttf' : bytes[u]);
+    const m = { ...clean, hashes: { ...clean.hashes, '/fonts/Pack.ttf': pageHash('ttf') } };
+    expect(manifestIdentityProblems(m, { readPage: read, workerSource, distFonts })).toEqual([]);
+  });
+  it('names a file whose bytes no longer hash to the recorded value', () => {
+    const f = manifestIdentityProblems(clean, { readPage: (u) => (u === '/icons/i.png' ? 'changed' : bytes[u]), workerSource });
+    expect(f).toHaveLength(1);
+    expect(f[0]).toContain('/icons/i.png');
+  });
+});
+
+describe('distFontUrls (MEM-22)', () => {
+  it('lists every file in dist/fonts, whatever its name', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fonts-'));
+    fs.mkdirSync(path.join(dir, 'fonts'));
+    for (const f of ['Heebo-Regular.ttf', 'Foo.subset.ttf', 'Bar_Baz.woff2']) fs.writeFileSync(path.join(dir, 'fonts', f), 'x');
+    expect(distFontUrls(dir).sort()).toEqual(['/fonts/Bar_Baz.woff2', '/fonts/Foo.subset.ttf', '/fonts/Heebo-Regular.ttf']);
+  });
+  it('lists nothing when dist/ has no fonts folder', () => {
+    expect(distFontUrls(fs.mkdtempSync(path.join(os.tmpdir(), 'nofonts-')))).toEqual([]);
   });
 });

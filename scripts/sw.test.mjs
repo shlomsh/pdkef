@@ -3,6 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
+import { pageHash } from './pageHash.mjs';
 
 const workerSource = fs.readFileSync(path.join(process.cwd(), 'public/sw.js'), 'utf8');
 // The CRITICAL_VERSION this repo ships (MEM-13). Tests derive "plain" and "critical" builds from
@@ -102,6 +103,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     Request,
     Response,
     URL,
+    crypto: globalThis.crypto,
     AbortController,
     TransformStream,
     ReadableStream,
@@ -151,11 +153,12 @@ async function dispatchMessage(worker, data) {
   return reply;
 }
 
-// A v2 manifest: `urls` is the shell, `pages` the per-page lists.
-function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}) {
+// A v2 manifest of this build: `urls` is the shell, `pages` the per-page lists, `hashes` the
+// hashes of every unhashed-URL file (MEM-22). `build` stays the placeholder id the worker carries in tests.
+function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}, hashes = {}) {
   return vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, shell: urls, pages }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: urls, pages, hashes }));
     return perUrl(new URL(url).pathname);
   });
 }
@@ -180,6 +183,7 @@ describe('offline-first service worker', () => {
 
     expect(Array.from(worker.entries.keys()).sort()).toEqual([
       'https://pdkef.test/',
+      'https://pdkef.test/__pdkef/manifest/',
       'https://pdkef.test/__pdkef/precache-complete/',
       'https://pdkef.test/_astro/app.js',
       'https://pdkef.test/sign/',
@@ -235,6 +239,7 @@ describe('offline-first service worker', () => {
 
     expect(Array.from(worker.entries.keys()).sort()).toEqual([
       'https://pdkef.test/',
+      'https://pdkef.test/__pdkef/manifest/',
       'https://pdkef.test/sign/',
     ]);
     expect(worker.self.registration.unregister).not.toHaveBeenCalled();
@@ -498,8 +503,9 @@ describe('offline-first service worker', () => {
   });
 
   it('serves a cached pathname for a query-route navigation while refreshing in the background', async () => {
-    const fetchImpl = vi.fn(async () => new Response('fresh sign page'));
+    const fetchImpl = manifestResponder(['/'], () => new Response('fresh sign page'), {}, { '/sign/': pageHash('fresh sign page') });
     const worker = createWorker(fetchImpl);
+    await dispatchInstall(worker);
     worker.entries.set('https://pdkef.test/sign/', new Response('cached sign page'));
     const request = { method: 'GET', mode: 'navigate', url: 'https://pdkef.test/sign/?action=open' };
 
@@ -697,7 +703,7 @@ function buildIncompleteWorker(source, windows, failing = []) {
   const fetched = [];
   const fetchImpl = vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, shell: ['/', '/sign/', '/_astro/app.js'], pages: {} }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/', '/_astro/app.js'], pages: {}, hashes: {} }));
     const pathname = new URL(url).pathname;
     fetched.push(pathname);
     return failing.includes(pathname) ? new Response('no', { status: 503 }) : new Response('asset');
@@ -1144,7 +1150,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     const a = criticalWindow('a');
     const worker = build({ windows: [a], marker: false });
     worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
-      ? new Response(JSON.stringify({ version: 2, shell: ['/', '/sign/'], pages: {} }))
+      ? new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: {} }))
       : new Response('no', { status: 503 })));
     await runCheck(worker);
     expect(a.postMessage).not.toHaveBeenCalled();
@@ -1154,7 +1160,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
   it('finishes a missing precache online and then forces', async () => {
     const worker = build({ marker: false });
     worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
-      ? new Response(JSON.stringify({ version: 2, shell: ['/', '/sign/'], pages: {} }))
+      ? new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: {} }))
       : new Response('asset')));
     await runCheck(worker);
     expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
@@ -1233,5 +1239,248 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     await runCheck(worker);
     expect(a.postMessage).not.toHaveBeenCalled();
     expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+});
+
+// MEM-22: a build's cache holds only that build's files.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('one build per cache (%s)', (_label, source) => {
+  const OTHER = { version: 2, build: 'another-build', shell: ['/', '/sign/'], pages: {} };
+  const NO_BUILD = { version: 2, shell: ['/', '/sign/'], pages: {} };
+  const NO_HASHES = { version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {} };
+  const BAD_HASHES = { version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: 'nope' };
+  const MANIFEST_URL = '/precache-manifest.json';
+  const respondWith = (manifest, fetched = []) => vi.fn(async (request) => {
+    const pathname = new URL(requestUrl(request)).pathname;
+    if (pathname === MANIFEST_URL) return new Response(JSON.stringify(manifest));
+    fetched.push(pathname);
+    return new Response('asset');
+  });
+
+  it.each([['another build', OTHER], ['no build id', NO_BUILD], ['no hashes', NO_HASHES], ['hashes that are not an object', BAD_HASHES]])('install rejects a manifest with %s and caches none of its URLs', async (_name, manifest) => {
+    const fetched = [];
+    const worker = createWorker(respondWith(manifest, fetched), [], createFakeIndexedDB(), source);
+    await expect(dispatchInstall(worker)).rejects.toThrow();
+    expect(fetched).toEqual([]);
+    expect([...worker.entries.keys()]).toEqual([]);
+  });
+
+  it('a waiting worker completing its precache against another build marks nothing and caches nothing', async () => {
+    const fetched = [];
+    const worker = createWorker(respondWith(OTHER, fetched), ['pdkef-previous'], createFakeIndexedDB(), source);
+    worker.self.clients.matchAll = vi.fn(async () => []);
+    expect(await dispatchMessage(worker, { type: 'pdkef:skip-waiting' })).toMatchObject({ ok: false, ready: false });
+    expect(fetched).toEqual([]);
+    expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(false);
+    expect([...worker.entries.keys()]).toEqual([]);
+  });
+
+  describe('install checks unhashed files against the manifest', () => {
+    const PNG = () => new Response('icon bytes', { status: 200, headers: { 'Content-Type': 'image/png', 'X-Keep': 'yes' } });
+    const serve = (map) => (pathname) => (pathname in map ? map[pathname]() : new Response('asset'));
+    const urls = ['/', '/sign/', '/icons/icon-512.png', '/_astro/app.js'];
+
+    it('does not store a page whose bytes differ from its hash, and does not mark the build complete', async () => {
+      const hashes = { '/': pageHash('home'), '/sign/': pageHash('sign of this build') };
+      const worker = createWorker(manifestResponder(urls, serve({ '/': () => new Response('home'), '/sign/': () => new Response('sign of a newer build') }), {}, hashes), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      expect(worker.entries.has('https://pdkef.test/sign/')).toBe(false);
+      expect(worker.entries.has('https://pdkef.test/')).toBe(true);
+      expect(worker.entries.has('https://pdkef.test/_astro/app.js')).toBe(true);
+      expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(false);
+    });
+
+    it('rejects the install when / does not match its hash', async () => {
+      const worker = createWorker(manifestResponder(urls, serve({ '/': () => new Response('newer home') }), {}, { '/': pageHash('home') }), [], createFakeIndexedDB(), source);
+      await expect(dispatchInstall(worker)).rejects.toThrow();
+      expect(worker.entries.has('https://pdkef.test/')).toBe(false);
+    });
+
+    it('does not store a non-page unhashed file with a mismatching hash', async () => {
+      const worker = createWorker(manifestResponder(urls, serve({ '/icons/icon-512.png': PNG }), {}, { '/icons/icon-512.png': pageHash('other bytes') }), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+      expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(false);
+    });
+
+    it('stores a matching unhashed file with its status and headers', async () => {
+      const worker = createWorker(manifestResponder(urls, serve({ '/icons/icon-512.png': PNG }), {}, { '/icons/icon-512.png': pageHash('icon bytes') }), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      const stored = worker.entries.get('https://pdkef.test/icons/icon-512.png');
+      expect(await stored.text()).toBe('icon bytes');
+      expect(stored.headers.get('X-Keep')).toBe('yes');
+      expect(stored.headers.get('Content-Type')).toBe('image/png');
+    });
+  });
+
+  describe('every other write path checks the same hashes', () => {
+    const asset = (path) => ({ method: 'GET', mode: 'no-cors', url: `https://pdkef.test${path}` });
+    const COMPLETE = 'https://pdkef.test/__pdkef/precache-complete/';
+    // Install with the icon missing (its bytes were another build's), then let the page request it.
+    const installed = async (listed, bytes) => {
+      const serve = (pathname) => (pathname.startsWith('/icons/') || pathname.startsWith('/fonts/') ? new Response(bytes) : new Response('asset'));
+      const worker = createWorker(manifestResponder(['/', '/icons/icon-512.png'], serve, {}, listed), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      return worker;
+    };
+
+    it('serves a listed asset with other bytes but does not store it, and the build stays incomplete', async () => {
+      const worker = await installed({ '/icons/icon-512.png': pageHash('this build') }, 'newer build');
+      const { response, background } = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      expect(await response.text()).toBe('newer build');
+      await Promise.all(background);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+      worker.self.clients.matchAll = vi.fn(async () => []);
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+      expect(worker.entries.has(COMPLETE)).toBe(false);
+    });
+
+    it('stores a listed asset whose bytes match', async () => {
+      const worker = await installed({ '/icons/other.png': pageHash('x') }, 'this build');
+      const { background } = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/icons/icon-512.png').text()).toBe('this build');
+    });
+
+    it('stores a matching listed asset the install missed', async () => {
+      const worker = await installed({ '/icons/icon-512.png': pageHash('this build') }, 'this build');
+      worker.entries.delete('https://pdkef.test/icons/icon-512.png');
+      const { background } = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/icons/icon-512.png').text()).toBe('this build');
+    });
+
+    it('stores an asset the manifest does not list', async () => {
+      const worker = await installed({ '/icons/icon-512.png': pageHash('this build') }, 'this build');
+      const { background } = await dispatchFetch(worker, asset('/_astro/late.js'));
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/_astro/late.js').text()).toBe('asset');
+    });
+
+    describe('font packs', () => {
+      const FONT = '/fonts/Heebo-Regular.ttf';
+      const KEY = 'https://pdkef.test/fonts/Heebo-Regular.ttf';
+      const pack = { family: 'Heebo', urls: [FONT] };
+      const MARKER = 'https://pdkef.test/__pdkef/offline-font-pack/Heebo';
+      const withManifest = async (fontBytesOnNetwork, hash) => {
+        const fetchImpl = manifestResponder(['/'], (pathname) => (pathname === FONT ? new Response(fontBytesOnNetwork) : new Response('asset')), {}, { [FONT]: pageHash(hash) });
+        const worker = createWorker(fetchImpl, ['pdkef-previous'], createFakeIndexedDB(), source);
+        await dispatchInstall(worker);
+        return worker;
+      };
+
+      it('does not carry over a listed font whose old bytes do not match, nor mark the pack', async () => {
+        const worker = await withManifest('this build font', 'this build font');
+        worker.entries.delete(KEY);
+        const old = worker.entriesByCache.get('pdkef-previous');
+        old.set(MARKER, new Response(JSON.stringify(pack)));
+        old.set(KEY, new Response('older font'));
+        worker.context.fetch = vi.fn(async () => { throw new Error('offline'); });
+        await dispatchActivate(worker);
+        expect(worker.entries.has(KEY)).toBe(false);
+        expect(worker.entries.has(MARKER)).toBe(false);
+      });
+
+      it('stores the fetched font instead when it matches', async () => {
+        const worker = await withManifest('this build font', 'this build font');
+        worker.entries.delete(KEY);
+        const old = worker.entriesByCache.get('pdkef-previous');
+        old.set(MARKER, new Response(JSON.stringify(pack)));
+        old.set(KEY, new Response('older font'));
+        await dispatchActivate(worker);
+        expect(await worker.entries.get(KEY).text()).toBe('this build font');
+        expect(worker.entries.has(MARKER)).toBe(true);
+      });
+
+      it('does not store a provisioned font whose bytes do not match, and the pack is not complete', async () => {
+        const worker = await withManifest('newer font', 'this build font');
+        worker.entries.delete(KEY);
+        const result = await dispatchMessage(worker, { type: 'pdkef:font-pack-provision', packs: [pack] });
+        expect(result.ok).toBe(false);
+        expect(worker.entries.has(KEY)).toBe(false);
+        expect(worker.entries.has(MARKER)).toBe(false);
+      });
+    });
+  });
+
+  describe('an unreadable stored manifest', () => {
+    const MANIFEST_KEY = 'https://pdkef.test/__pdkef/manifest/';
+    const asset = (path) => ({ method: 'GET', mode: 'no-cors', url: `https://pdkef.test${path}` });
+    const navigate = (path) => ({ method: 'GET', mode: 'navigate', url: `https://pdkef.test${path}` });
+    const install = async (hashes) => {
+      const serve = (pathname) => (pathname.startsWith('/icons/') ? new Response('newer build') : new Response('page'));
+      const worker = createWorker(manifestResponder(['/', '/icons/icon-512.png'], serve, {}, hashes), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      return worker;
+    };
+    // Makes reading the stored manifest reject until the returned function is called.
+    const breakManifestRead = (worker) => {
+      const real = worker.cache.match.getMockImplementation();
+      worker.cache.match.mockImplementation(async (request) => {
+        if (requestUrl(request) === MANIFEST_KEY) throw new Error('unreadable');
+        return real(request);
+      });
+      return () => worker.cache.match.mockImplementation(real);
+    };
+
+    it.each([
+      ['the read rejects', (worker) => { breakManifestRead(worker); }],
+      ['the stored body is not JSON', (worker) => { worker.entries.set(MANIFEST_KEY, new Response('not json')); }],
+    ])('when %s, a non-navigation write is stored and a navigation is not', async (_name, damage) => {
+      const worker = await install({ '/': pageHash('page') });
+      damage(worker);
+      const { background } = await dispatchFetch(worker, asset('/_astro/late.js'));
+      await Promise.all(background);
+      expect(worker.entries.has('https://pdkef.test/_astro/late.js')).toBe(true);
+      const { response, background: more } = await dispatchFetch(worker, navigate('/merge/'));
+      expect(await response.text()).toBe('page');
+      await Promise.all(more);
+      expect(worker.entries.has('https://pdkef.test/merge/')).toBe(false);
+    });
+
+    it('reads the manifest again on a later write after a failed read', async () => {
+      const worker = await install({ '/icons/icon-512.png': pageHash('this build') });
+      const restore = breakManifestRead(worker);
+      const first = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(first.background);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(true);
+      worker.entries.delete('https://pdkef.test/icons/icon-512.png');
+      restore();
+      const second = await dispatchFetch(worker, asset('/icons/icon-512.png'));
+      await Promise.all(second.background);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+    });
+  });
+
+  describe('navigation refresh', () => {
+    const navigate = (path) => ({ method: 'GET', mode: 'navigate', url: `https://pdkef.test${path}` });
+    const install = async (hashes, serve) => {
+      const worker = createWorker(manifestResponder(['/'], serve, {}, hashes), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      return worker;
+    };
+
+    it('keeps the cached bytes when the server page is not this build\'s', async () => {
+      const worker = await install({ '/sign/': pageHash('build page') }, () => new Response('newer build page'));
+      worker.entries.set('https://pdkef.test/sign/', new Response('build page'));
+      const { response, background } = await dispatchFetch(worker, navigate('/sign/'));
+      expect(await response.text()).toBe('build page');
+      await Promise.all(background);
+      expect(await worker.entries.get('https://pdkef.test/sign/').text()).toBe('build page');
+    });
+
+    it('stores an uncached page whose bytes match its manifest entry', async () => {
+      const worker = await install({ '/merge/': pageHash('merge page') }, () => new Response('merge page'));
+      const { response } = await dispatchFetch(worker, navigate('/merge/'));
+      expect(await response.text()).toBe('merge page');
+      expect(await worker.entries.get('https://pdkef.test/merge/').text()).toBe('merge page');
+    });
+
+    it('returns but does not store a page the manifest has no entry for', async () => {
+      const worker = await install({}, () => new Response('unlisted page'));
+      const { response } = await dispatchFetch(worker, navigate('/unlisted/'));
+      expect(await response.text()).toBe('unlisted page');
+      expect(worker.entries.has('https://pdkef.test/unlisted/')).toBe(false);
+    });
   });
 });
