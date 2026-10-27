@@ -1,9 +1,11 @@
+// @ts-check
 import { PDFName, PDFArray, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
 
 /** A page's content stream is damaged and will not decode (the person's file). */
 export class ContentStreamDecodeError extends Error {
+  /** @param {unknown} cause */
   constructor(cause) {
-    super(`Content stream will not decode: ${cause?.message ?? cause}`);
+    super(`Content stream will not decode: ${/** @type {{ message?: unknown } | null | undefined} */ (cause)?.message ?? cause}`);
     this.name = 'ContentStreamDecodeError';
     this.cause = cause;
   }
@@ -15,11 +17,15 @@ export class ContentStreamDecodeError extends Error {
  * A page may carry an array of streams that are logically joined; offsets we
  * report are into this joined buffer, and `applyDeletions` writes back a single
  * merged stream so the two stay consistent.
+
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @returns {Uint8Array}
  */
 export function getPageContentBytes(page) {
   const context = page.doc.context;
   const contents = context.lookup(page.node.get(PDFName.of('Contents')));
 
+  /** @type {Array<import('@cantoo/pdf-lib').PDFStream>} */
   const streams = [];
   if (contents instanceof PDFStream) {
     streams.push(contents);
@@ -32,7 +38,7 @@ export function getPageContentBytes(page) {
 
   const parts = streams.map((stream) => {
     try {
-      return decodePDFRawStream(stream).decode();
+      return decodePDFRawStream(/** @type {import('@cantoo/pdf-lib').PDFRawStream} */ (stream)).decode();
     } catch (err) {
       throw new ContentStreamDecodeError(err);
     }

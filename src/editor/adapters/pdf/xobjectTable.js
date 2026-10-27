@@ -1,14 +1,28 @@
+// @ts-check
 import { PDFName, PDFRef, PDFStream } from '@cantoo/pdf-lib';
-import { lookupDict } from './dictReads.js';
+import { lookupDict, nameOf } from './dictReads.js';
 
+/**
+ * @typedef {object} XObjectEntry
+ * @property {boolean} isImage
+ * @property {{ ref: import('@cantoo/pdf-lib').PDFRef, stream: import('@cantoo/pdf-lib').PDFStream } | undefined} form an indirect Form XObject
+ * @property {string | undefined} imageRef the indirect reference as "12 0 R"
+ */
+
+/**
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict | undefined} resources
+ * @returns {Map<string, XObjectEntry>} keyed `/Name`
+ */
 export function buildXObjectTable(context, resources) {
+  /** @type {Map<string, XObjectEntry>} */
   const table = new Map();
   const xobjects = lookupDict(context, resources?.get(PDFName.of('XObject')));
   if (!xobjects) return table;
   for (const [key, value] of xobjects.entries()) {
     const stream = context.lookup(value);
     if (!(stream instanceof PDFStream)) continue;
-    const subtype = context.lookup(stream.dict.get(PDFName.of('Subtype')))?.asString?.();
+    const subtype = nameOf(context.lookup(stream.dict.get(PDFName.of('Subtype'))));
     table.set(key.asString(), {
       isImage: subtype === '/Image',
       // A Form XObject is walked in place (RED-29). Only an indirect one can

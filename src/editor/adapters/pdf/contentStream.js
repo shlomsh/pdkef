@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Minimal PDF content-stream tokenizer.
  *
@@ -10,17 +11,41 @@
  * caller's job.
  */
 
+/**
+ * @typedef {{ start: number, end: number }} TokenSpan byte span in the decoded stream
+ * @typedef {(
+ *   { type: 'name', value: string }
+ *   | { type: 'string', value: Uint8Array }
+ *   | { type: 'hexstring', value: Uint8Array }
+ *   | { type: 'number', value: number }
+ *   | { type: 'operator', value: string }
+ *   | { type: 'inlineimage', value: string }
+ *   | { type: 'dict', value: Token[] }
+ *   | { type: 'array', value: Token[] }
+ * ) & TokenSpan} Token
+ * @typedef {[number, number, number, number, number, number]} Matrix `[a, b, c, d, e, f]`
+ * @typedef {{ x: number, y: number, width: number, height: number }} Box
+ */
+
 const WHITESPACE = new Set([0x00, 0x09, 0x0a, 0x0c, 0x0d, 0x20]);
 const DELIMITERS = new Set([
   0x28, 0x29, 0x3c, 0x3e, 0x5b, 0x5d, 0x7b, 0x7d, 0x2f, 0x25,
 ]);
 
+/** @param {number} byte */
 const isWhitespace = (byte) => WHITESPACE.has(byte);
+/** @param {number} byte */
 const isDelimiter = (byte) => DELIMITERS.has(byte);
+/** @param {number} byte */
 const isRegular = (byte) => !isWhitespace(byte) && !isDelimiter(byte);
 
 /**
  * Decodes a PDF name token (`/Foo#20Bar`), resolving `#xx` escapes.
+ *
+ * @param {Uint8Array} bytes
+ * @param {number} start
+ * @param {number} end
+ * @returns {string}
  */
 function decodeName(bytes, start, end) {
   let out = '';
@@ -45,8 +70,14 @@ function decodeName(bytes, start, end) {
  * characters themselves would double the apparent length of every run and put
  * the wrong glyph codes through the width lookup. Whitespace inside is legal
  * and ignored, and an odd final digit is padded with `0` per the spec.
+ *
+ * @param {Uint8Array} bytes
+ * @param {number} start
+ * @param {number} end
+ * @returns {Uint8Array}
  */
 function decodeHexString(bytes, start, end) {
+  /** @type {number[]} */
   const digits = [];
   for (let i = start; i < end; i += 1) {
     const byte = bytes[i];
@@ -87,6 +118,7 @@ function decodeHexString(bytes, start, end) {
  * @returns {{value: Uint8Array, end: number}} end is just past the closer
  */
 function decodeLiteralString(bytes, start) {
+  /** @type {number[]} */
   const out = [];
   let depth = 0;
   let i = start;
@@ -111,7 +143,7 @@ function decodeLiteralString(bytes, start) {
           i += 2;
           continue;
         default:
-          if (next >= 0x30 && next <= 0x37) {
+          if (next !== undefined && next >= 0x30 && next <= 0x37) {
             // Up to three octal digits.
             let value = 0;
             let digits = 0;
@@ -161,6 +193,10 @@ function decodeLiteralString(bytes, start) {
  * Skips an inline image (`BI ... ID <raw bytes> EI`). The payload between `ID`
  * and `EI` is arbitrary binary and must never be lexed as operators, so this
  * scans for a whitespace-delimited `EI` instead.
+ *
+ * @param {Uint8Array} bytes
+ * @param {number} start
+ * @returns {number} index just past the `EI`
  */
 function skipInlineImage(bytes, start) {
   let i = start;
@@ -191,13 +227,15 @@ function skipInlineImage(bytes, start) {
  * need to read inside them.
  *
  * @param {Uint8Array} bytes decoded content stream
- * @returns {Array<{type: string, value: *, start: number, end: number}>}
+ * @returns {Token[]}
  */
 export function tokenize(bytes) {
+  /** @type {Token[]} */
   const tokens = [];
   const stack = [tokens];
   let i = 0;
 
+  /** @param {Token} token */
   const push = (token) => stack[stack.length - 1].push(token);
 
   while (i < bytes.length) {
@@ -232,6 +270,7 @@ export function tokenize(bytes) {
 
     // `<<` opens a dictionary, a lone `<` opens a hex string.
     if (byte === 0x3c && bytes[i + 1] === 0x3c) {
+      /** @type {Token & { type: 'dict' }} */
       const dict = { type: 'dict', value: [], start, end: -1 };
       push(dict);
       stack.push(dict.value);
@@ -261,6 +300,7 @@ export function tokenize(bytes) {
     }
 
     if (byte === 0x5b) {
+      /** @type {Token & { type: 'array' }} */
       const arr = { type: 'array', value: [], start, end: -1 };
       push(arr);
       stack.push(arr.value);
@@ -306,7 +346,11 @@ export function tokenize(bytes) {
   return tokens;
 }
 
-/** Multiplies two PDF matrices given as `[a, b, c, d, e, f]`. */
+/** Multiplies two PDF matrices given as `[a, b, c, d, e, f]`.
+ * @param {readonly number[]} m1
+ * @param {readonly number[]} m2
+ * @returns {Matrix}
+ */
 export function multiplyMatrix(m1, m2) {
   return [
     m1[0] * m2[0] + m1[1] * m2[2],
@@ -318,12 +362,20 @@ export function multiplyMatrix(m1, m2) {
   ];
 }
 
-/** Applies a PDF matrix to a point, returning `[x, y]`. */
+/** Applies a PDF matrix to a point, returning `[x, y]`.
+ * @param {readonly number[]} m
+ * @param {number} x
+ * @param {number} y
+ * @returns {[number, number]}
+ */
 export function applyMatrix(m, x, y) {
   return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 }
 
-/** Axis-aligned bounding box of the unit square transformed by `m`. */
+/** Axis-aligned bounding box of the unit square transformed by `m`.
+ * @param {readonly number[]} m
+ * @returns {Box}
+ */
 export function transformedUnitBox(m) {
   const corners = [
     applyMatrix(m, 0, 0),
