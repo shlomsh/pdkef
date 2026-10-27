@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { mockNativeFileShare } from '../test/support/mockFileShare.js';
 import { usePdfShare } from './usePdfShare.js';
 
 function Harness({ apiRef }) {

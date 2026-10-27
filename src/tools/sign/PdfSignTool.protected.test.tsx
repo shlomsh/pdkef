@@ -5,9 +5,10 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import * as pdfjsDist from 'pdfjs-dist';
 import PdfSignTool from './PdfSignTool.tsx';
-import { hebrewSignMessages, type SignMessages } from '../../i18n/toolMessages';
+import { hebrewSignMessages } from './messages';
+import type { SignMessages } from '../../editor/registry/messages';
 import { saveHandoff } from '../../lib/drafts/draftStore.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 
 declare const __dirname: string;

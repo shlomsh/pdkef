@@ -3,13 +3,13 @@ import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react
 import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { getEffectiveTextDirection, textElementLayout } from '../../../lib/signHelpers.js';
-import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+import { getEffectiveTextDirection, textElementLayout } from '../../../editor/text/signHelpers.js';
+import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
 import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
-import useCoarsePointer from '../useCoarsePointer.ts';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
@@ -25,7 +25,8 @@ import type { EditorElement, EditorElementPatch } from '../../../editor/model/ed
 import type { NodeResizeStart } from './nodeProps.ts';
 // Type-only import kept separate from the value import below for the same
 // non-cycle reasoning as nodeProps.ts's own.
-import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+import { englishSignMessages } from '../messages';
+import type { SignMessages } from '../../../editor/registry/messages';
 
 // How far a coarse-pointer `.element-button`'s 44px hit area overhangs the
 // button itself: `::before { inset: -8px }` in EditorControls.module.css. Kept

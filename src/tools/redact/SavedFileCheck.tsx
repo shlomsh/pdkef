@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 import type { ChangePiece } from './details/describeDetails.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import styles from './SavedFileCheck.module.css';
+import { englishRedactMessages as t } from './messages.ts';
 import {
   canCover,
   canRemove,
@@ -105,7 +106,7 @@ export default function SavedFileCheck({
   const unsolid = unsolidNote(outcome.unsolidPages);
 
   return (
-    <section className={styles.check} aria-label="Check of the saved file" data-saved-file-check>
+    <section className={styles.check} aria-label={t.checkLabel} data-saved-file-check>
       {unsolid && <p className={styles.danger} role="alert">{unsolid}</p>}
       {note && <p className={styles.note} role="status" data-check-removed>{note}</p>}
       {detailsSurvived.length > 0 ? (
@@ -115,7 +116,7 @@ export default function SavedFileCheck({
       ) : (
         detailsChanged.length > 0 && (
           <p className={styles.details} data-details-changed>
-            {withPieces(DETAILS_CHANGED, detailsChanged, ({ name, verb }) => <><bdi>{name}</bdi> {verb}</>)}
+            {withPieces(DETAILS_CHANGED, detailsChanged, ({ name, verb }) => <><bdi>{name}</bdi> {t.details.verbs[verb]}</>)}
             <button type="button" className={styles.review} onClick={onReviewDetails}>{DETAILS_REVIEW}</button>
           </p>
         )

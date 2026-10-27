@@ -3,17 +3,11 @@
 // The worker is a same-origin asset Vite bundles and content-hashes (see
 // loadPdfjs.js), never fetched from a CDN - required for both offline support and
 // the no-third-party-network privacy guarantee.
-import { getPdfRenderContext } from './pdfRender.js';
+import { renderPageToCanvas } from './renderPage.js';
+import { throwIfAborted } from './abort.js';
 import { PDFJS_WASM_URL } from './pdfjsWasm.js';
-import { loadPdfjs } from './loadPdfjs.js';
+import { getPdfjs } from './loadPdfjs.js';
 import { deriveFileKind } from './fileKind.js';
-
-let pdfjsLib;
-
-export async function getPdfjs() {
-  pdfjsLib ??= await loadPdfjs(() => import('pdfjs-dist'));
-  return pdfjsLib;
-}
 
 /* Thumbnail throughput (P1, UX review): one pdf.js worker for every document
  * this module ever opens, not one per document. Profiled against the Merge
@@ -89,48 +83,11 @@ const TARGET_WIDTH = 150;
 async function renderPageToDataUrl(page, opts = {}) {
   const { width = TARGET_WIDTH, type = 'image/png', quality, signal } = opts;
 
-  if (signal?.aborted) {
-    throw new DOMException('Thumbnail render aborted', 'AbortError');
-  }
+  throwIfAborted(signal);
 
   const nativeViewport = page.getViewport({ scale: 1 });
-  const scale = width / nativeViewport.width;
-  const viewport = page.getViewport({ scale });
-
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const context = getPdfRenderContext(canvas);
-
-  context.fillStyle = '#ffffff';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  const renderTask = page.render({ canvasContext: context, viewport });
-
-  // A signal that fires mid-render cancels the in-flight pdf.js RenderTask
-  // (rather than just discarding our own promise) so pdf.js actually stops
-  // painting and releases the canvas; the listener is removed in `finally`
-  // whichever way the render settles, so it never fires again for a task
-  // that already finished on its own.
-  const onAbort = () => renderTask.cancel();
-  if (signal) signal.addEventListener('abort', onAbort);
-  try {
-    await renderTask.promise;
-  } catch (err) {
-    if (signal?.aborted) {
-      throw new DOMException('Thumbnail render aborted', 'AbortError');
-    }
-    throw err;
-  } finally {
-    if (signal) signal.removeEventListener('abort', onAbort);
-  }
-
-  // The signal can also fire in the gap between the render settling and this
-  // line running; a caller that aborted expects no result at all, not a
-  // dataUrl for a page it already gave up on.
-  if (signal?.aborted) {
-    throw new DOMException('Thumbnail render aborted', 'AbortError');
-  }
+  // White prefill, the canvas cap and the mid-render cancel are renderPageToCanvas's (an abort throws from there).
+  const canvas = await renderPageToCanvas(page, { scale: width / nativeViewport.width, signal });
 
   return { dataUrl: canvas.toDataURL(type, quality), width: canvas.width, height: canvas.height };
 }
@@ -161,13 +118,9 @@ async function decodePhoto(file, width) {
   }
 }
 
-function abortError() {
-  return new DOMException('Thumbnail render aborted', 'AbortError');
-}
-
 function renderBitmapToDataUrl(bitmap, opts = {}) {
   const { width = TARGET_WIDTH, type = 'image/png', quality, signal } = opts;
-  if (signal?.aborted) throw abortError();
+  throwIfAborted(signal);
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -181,7 +134,7 @@ function renderBitmapToDataUrl(bitmap, opts = {}) {
 
 // Decodes, draws and closes the bitmap in one go, so nothing is held between calls.
 async function renderPhoto(file, opts = {}) {
-  if (opts.signal?.aborted) throw abortError();
+  throwIfAborted(opts.signal);
   const bitmap = await decodePhoto(file, opts.width ?? TARGET_WIDTH);
   try {
     return renderBitmapToDataUrl(bitmap, opts);
@@ -366,15 +319,11 @@ export async function renderPdfThumbnails(file, onPageRender, opts = {}) {
   const { width, type, quality, signal, pageIndices } = opts;
   const source = await openThumbnailSource(file);
   try {
-    if (signal?.aborted) {
-      throw new DOMException('Thumbnail render aborted', 'AbortError');
-    }
+    throwIfAborted(signal);
 
     const indices = pageIndices ?? Array.from({ length: source.pageCount }, (_, i) => i);
     for (const pageIndex of indices) {
-      if (signal?.aborted) {
-        throw new DOMException('Thumbnail render aborted', 'AbortError');
-      }
+      throwIfAborted(signal);
       const dataUrl = await source.render(pageIndex, { width, type, quality, signal });
       onPageRender(pageIndex + 1, dataUrl);
 

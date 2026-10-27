@@ -12,11 +12,11 @@
 // rgba()/hex values are fine for a runtime-driven island but would be a
 // literal-color regression here.
 import { renderInline } from '../site-lib/contentMarkup';
-import { compareFigureStyle } from '../site-lib/inlineStyles';
+import { compareFigureStyle } from './inlineStyles';
 // The figure's CSS is a string, not a stylesheet in the module graph (see
 // compareFigure.css): emitted below as <style is:inline>, so only a page that
 // renders the figure carries it. Its CSP hash is registered by the route that
-// renders the page, not here (site-lib/inlineStyles.ts says why).
+// renders the page, not here (components/inlineStyles.ts says why).
 
 interface Props {
   beforeSrc: string;

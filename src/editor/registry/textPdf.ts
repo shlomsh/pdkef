@@ -9,11 +9,11 @@ import {
 import type { Color, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 import type { TextElement } from '../model/editorModel.ts';
 import type { SerializeContext } from './types.ts';
-import { DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
+import { DEFAULT_LINE_HEIGHT_EM } from '../model/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../text/comb.js';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting } from '../text/textTransforms.js';
-import { fieldTextInset, getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../../lib/signHelpers.js';
+import { fieldTextInset, getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../text/signHelpers.js';
 import { resolveTypography } from '../text/fonts.js';
 import { fontkitFont, type BidiDirection } from '../text/textMetrics.ts';
 import { layoutRun, shapedWidth } from '../text/shapeRun.ts';

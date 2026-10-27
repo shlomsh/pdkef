@@ -12,7 +12,7 @@ import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import type { GestureControllerOptions } from '../../lib/gestures/controller.ts';
 import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
@@ -185,6 +185,11 @@ describe('PdfRedactTool UI flow', () => {
 
   beforeEach(() => {
     resetActionTrailForTests();
+    // jsdom's default answers every media query "yes". The editor tests mean a desktop with a
+    // mouse, so the one query that says "finger" (useCoarsePointer) answers no.
+    window.matchMedia = ((q: string) => ({
+      matches: !q.includes('coarse'), media: q, addEventListener: () => {}, removeEventListener: () => {},
+    })) as any;
   });
 
   afterEach(() => {

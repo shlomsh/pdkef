@@ -7,10 +7,10 @@ import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces
  * refuses to read twice once it has moved on disk.
  */
 export async function readDetails(bytes: ArrayBuffer): Promise<DocumentTraces> {
-  const [{ PDFDocument, ParseSpeeds }, { readDocumentTraces }] = await Promise.all([
-    import('@cantoo/pdf-lib'),
+  const [{ openPdfDoc }, { readDocumentTraces }] = await Promise.all([
+    import('../../../lib/openPdfDoc'),
     import('../../../editor/adapters/pdf/documentTraces.js'),
   ]);
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false, parseSpeed: ParseSpeeds.Fastest });
+  const { doc } = await openPdfDoc(bytes, { updateMetadata: false, fast: true });
   return readDocumentTraces(doc);
 }

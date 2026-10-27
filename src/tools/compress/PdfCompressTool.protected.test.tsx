@@ -10,8 +10,8 @@ import * as imagesLib from './compressImages.js';
 import * as imageLib from './compressImage.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.js';
-import { hebrewCompressMessages } from '../../i18n/toolMessages';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { hebrewCompressMessages } from './messages';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // ENC-08: a PDF that needs a password is a precondition, not a failure. Compress shows one quiet state
 // (src/shell/NeedsUnlock.tsx) in place of the level picker and the result. The real classifier runs
@@ -40,7 +40,7 @@ vi.mock('./compressImages.js', () => ({
   compressPdfImages: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-images'], { type: 'application/pdf' }), reason: 'smaller' })),
   compressPdfImagesToTarget: vi.fn(),
 }));
-vi.mock('../../lib/thumbnails.js', () => ({ renderComparePreview: vi.fn(), getPdfjs: vi.fn() }));
+vi.mock('../../lib/thumbnails.js', () => ({ renderComparePreview: vi.fn() }));
 
 describe('PdfCompressTool with a protected PDF', () => {
   let container;

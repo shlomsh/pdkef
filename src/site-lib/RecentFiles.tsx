@@ -1,6 +1,7 @@
 import { pageForToolId } from '../data/tools.js';
 import styles from './RecentFiles.module.css';
-import { englishRecentFilesMessages, formatMessage, type RecentFilesMessages } from '../i18n/toolMessages';
+import { englishRecentFilesMessages, type RecentFilesMessages } from './recentFilesMessages';
+import { formatMessage } from '../lib/formatMessage';
 import { getDraftExpiry } from '../lib/drafts/draftPolicy.js';
 import { MAX_RECENT_FILES } from '../lib/drafts/draftStore.js';
 

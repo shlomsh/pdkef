@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveEntry, planForFile, rotateEntry, updateEntry } from '../../lib/pagePlan.ts';
+import { movePlanEntry, planForFile, rotateEntry, updateEntry } from '../../lib/pagePlan.ts';
 import { editOptionsFromPlan } from './editPlan.ts';
 
 describe('editOptionsFromPlan', () => {
@@ -13,7 +13,7 @@ describe('editOptionsFromPlan', () => {
 
   it('gives the 1-based order, the skipped pages and the rotations by original page number', () => {
     let plan = planForFile(0, 4);
-    plan = moveEntry(plan, 0, 3); // 2, 3, 4, 1
+    plan = movePlanEntry(plan, 0, 3); // 2, 3, 4, 1
     plan = updateEntry(plan, '0:2', { skipped: true });
     plan = rotateEntry(plan, '0:1', 90);
     plan = rotateEntry(plan, '0:3', -90);

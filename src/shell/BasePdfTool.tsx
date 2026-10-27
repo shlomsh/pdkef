@@ -16,7 +16,8 @@ import { acceptsFile } from './acceptsFile.ts';
 import { isFileDrag, nextDragDepth } from './fileDragDepth.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
 import RatingPrompt, { useDownloaded } from './RatingPrompt.tsx';
-import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
+import { englishShellMessages, type ShellMessages } from './shellMessages';
+import { formatMessage } from '../lib/formatMessage';
 
 /* Splits a formatted sentence on the \u0000key\u0000 markers left in place of
    the file names and renders those names as marked spans, so a localized

@@ -9,7 +9,7 @@ import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
   TEXT_BOX_LINE_HEIGHT_EM,
-} from '../../../constants/signGeometry.js';
+} from '../../../editor/model/signGeometry.js';
 
 const PAGE_HEIGHT_POINTS = 792;
 const pageHeightPointsOf = () => PAGE_HEIGHT_POINTS;

@@ -6,13 +6,16 @@ import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { editPages } from './editPages.js';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
 import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 
 // DEBT-54: a file whose page list was lost is repaired once on open; the
 // grid (pdf.js) and the export must both read the repaired bytes while the
 // person's file keeps its identity.
 
 vi.mock('../../lib/loadPdfPages.ts', () => ({ loadPdfWithPages: vi.fn() }));
+
+// The stub files here are not PDFs: the encryption gate must not run real pdf.js on them.
+vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(async () => 'open') }));
 
 vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve(null)),

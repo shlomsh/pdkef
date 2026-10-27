@@ -75,6 +75,14 @@ buttons and stopped at the first failure, so the worst button's number never pri
 - A spec whose number came only from macOS gets a Linux run before it reaches `main`: push its branch
   and `gh workflow run ci.yml --ref <branch>` (`ci.yml` runs automatically only on `main` and PRs).
 
+## `src/test/support/`
+
+The helpers other projects' tests import (`setup.js`, `astroContentStub.js`, `mockFileShare.js`,
+`setInputFiles.js`, `pdfPageTreeFixtures.ts`, `until.js`, `fixtures/`) live in `src/test/support/`, the
+Nx project `test-support`, which imports no src project. A helper that needs `lib`, `editor` or any
+other project does not belong there. The repo-wide guards stay directly under `src/test/` (`site-test`).
+That split keeps `lib -> site-test -> editor -> lib` from closing a loop.
+
 ## `src/test/cross-tool/`
 
 A test file may not launder a cross-tool import that a real edge in the same location would be
@@ -148,7 +156,8 @@ which unit test files run; see the section above for that.
 - The Nx project graph is the oracle: `affected-scope.mjs` asks `nx show projects --affected` for the
   changed files, then CI runs one narrowed `playwright test` per shard (and, historically, the now-
   retired `vitest run <unit_paths>` line - see above for what replaced it).
-- `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`) widen e2e/font/export scope to everything unless
+- `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`, and since ARCH-34 the two folders carved out of `site`:
+  `data`, `site-lib`) widen e2e/font/export scope to everything unless
   import reachability (ARCH-32) can name the tools: Nx cannot (it connects `editor` to 18 of 19
   projects), so `narrowByReachability()` walks "who imports me" from every changed `src/` file
   (graph from `scripts/import-graph.mjs`, the scan `check-module-boundaries.mjs` shares) and every
@@ -157,7 +166,19 @@ which unit test files run; see the section above for that.
   and the export guards; the summary line names the file that reaches each tool. It fails open to
   everything, with the reason, for CSS, content or any file the scan never saw, a module nothing
   live imports (`middleware.ts`, `api/`, `content.config.ts`, a file only a build script or a path
-  string loads) and a diff with no `src/` file. Unit tests and `src/test/` support never count as
+  string loads) and a diff with no `src/` file. ARCH-34: a CSS file with an importer is walked through
+  that importer; `src/content/**` goes wide with its own reason (the layouts every page renders read
+  the collections); `ANALYTICS.md` is docs-only; `public/.well-known/**` runs no spec (owned by
+  `publicOwnerOf()` rather than an Nx `project.json`, which `public/` would publish); `public/images/**`
+  stays unowned and widens (tool specs open `redaction-guide/sample.pdf`, `FileDropzone` fetches it,
+  tool pages render `scan-guide/*`), as do `public/sw.js` and the other loose public files.
+- The site-wide specs are split by directory into Nx projects tagged `site-e2e` (`e2e/<dir>/project.json`,
+  root specs stay in `site-e2e`). A directory lists in `implicitDependencies` the `tool-<t>` projects whose
+  pages its specs visit; a narrowed core verdict runs a directory only when it owns a changed or
+  reached spec or declares a reached tool, and falls back to every site-wide path whenever it cannot
+  tell (no tool reached, a changed file outside `src/`). `scripts/e2e-projects.test.mjs` fails when a
+  spec visits a tool route its directory does not declare, so a new spec directory needs a
+  `project.json` carrying the tag. Unit tests and `src/test/` support never count as
   reaching a tool. `scripts/import-graph.mjs` is an oracle file: a change to it runs everything.
 - An affected `tool-<name>` project narrows e2e paths to that tool's own `src/tools/<name>/e2e/`.
 - The 25 font screening guards (`fonts` Playwright project, `e2e/sign/`) run per-push only when a

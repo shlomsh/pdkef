@@ -18,7 +18,7 @@ import {
   pagesRefMissing,
   pagesWrongType,
   twoRoots,
-} from '../test/pdfPageTreeFixtures';
+} from '../test/support/pdfPageTreeFixtures';
 
 const widths = async (bytes: ArrayBuffer | Uint8Array) =>
   (await lib.PDFDocument.load(bytes, { ignoreEncryption: true })).getPages().map((p) => p.getSize().width);

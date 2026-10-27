@@ -1,10 +1,9 @@
 ---
 id: "QUAL-29"
 title: "The e2e jobs run in Playwright's container image, so a slow Ubuntu mirror can't hold CI for 50 minutes"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -51,8 +50,9 @@ browser cache and install steps are gone. `font-guards` stays on the runner: its
 measured against the runner's own fonts (`.claude/rules/tests.md`). The chromium project already
 excludes the font, export and perf guards, so no pixel-baselined spec moves into the container.
 
-- [ ] A full CI run (workflow_dispatch on the branch, per the tests rule) shows all four `e2e` shards
-      green in the container; the text-measuring product specs (merge layout/grid/mobile/restore,
-      tool-layout, tool-hero-first-screen, home and demo fits) are among them
-- [ ] The first run on main after landing shows no `install-deps` step in either e2e job
+- [x] All four `e2e` shards green in the container on the full chromium suite, text-measuring specs
+      included: run 40397523576 on main (3b06c240; Shlomi chose main over a branch run). 142 + 135 +
+      149 + 122 passed and 2 + 7 skipped, exactly the counts of run 40390836756 before the move
+- [x] No `install-deps` step in either e2e job on that run. The whole run took 4 min 46 s; each e2e
+      job 3-4.5 min, image pull included
 

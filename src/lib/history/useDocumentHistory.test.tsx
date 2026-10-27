@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { moveEntry, planForFile, type PlanEntry } from '../pagePlan.ts';
+import { movePlanEntry, planForFile, type PlanEntry } from '../pagePlan.ts';
 import { useDocumentHistory } from './useDocumentHistory.ts';
 
 const { recordAction, reportEdit } = vi.hoisted(() => ({ recordAction: vi.fn(), reportEdit: vi.fn() }));
@@ -38,7 +38,7 @@ afterEach(() => {
 describe('useDocumentHistory', () => {
   it('commits a plan change as one step, keeps the rest of the document, and reports the edit', () => {
     const { api } = mount(vi.fn());
-    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 2)); });
+    act(() => { api().onPlanChange((plan) => movePlanEntry(plan, 0, 2)); });
     expect(api().present.plan.map((e) => e.pageIndex)).toEqual([1, 2, 0]);
     expect(api().present.label).toBe('kept');
     expect(api().canUndo).toBe(true);
@@ -47,8 +47,8 @@ describe('useDocumentHistory', () => {
 
   it('folds a merged plan change into the step before it', () => {
     const { api } = mount(vi.fn());
-    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 1)); });
-    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 2), { merge: true }); });
+    act(() => { api().onPlanChange((plan) => movePlanEntry(plan, 0, 1)); });
+    act(() => { api().onPlanChange((plan) => movePlanEntry(plan, 0, 2), { merge: true }); });
     act(() => { api().handleUndo(); });
     expect(api().present.plan.map((e) => e.pageIndex)).toEqual([0, 1, 2]);
     expect(api().canUndo).toBe(false);
@@ -63,7 +63,7 @@ describe('useDocumentHistory', () => {
   it('undoes and redoes with an announcement and a trail entry each', () => {
     const announce = vi.fn();
     const { api } = mount(announce);
-    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 2)); });
+    act(() => { api().onPlanChange((plan) => movePlanEntry(plan, 0, 2)); });
     act(() => { api().handleUndo(); });
     expect(api().present.plan.map((e) => e.pageIndex)).toEqual([0, 1, 2]);
     expect(announce).toHaveBeenLastCalledWith('Undone');
@@ -85,7 +85,7 @@ describe('useDocumentHistory', () => {
   it('binds Cmd+Z to undo', () => {
     const announce = vi.fn();
     const { api } = mount(announce);
-    act(() => { api().onPlanChange((plan) => moveEntry(plan, 0, 2)); });
+    act(() => { api().onPlanChange((plan) => movePlanEntry(plan, 0, 2)); });
     act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true })); });
     expect(api().canUndo).toBe(false);
     expect(announce).toHaveBeenCalledWith('Undone');

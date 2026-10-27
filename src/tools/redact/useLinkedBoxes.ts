@@ -3,16 +3,18 @@ import { withoutFindSet } from './findSet.ts';
 import { linkedChanges, linkMembers, type LinkedElement, type LinkKind } from './links.ts';
 import type { RedactCommands } from './useRedactCommands.ts';
 import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
+import { englishRedactMessages as t } from './messages.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
 
 /** removeLinked's history type and description for each kind, by member count. */
 const REMOVE_LINKED_LABEL: Record<LinkKind, (count: number) => { type: string; description: string }> = {
   repeatGroup: (count) => ({
     type: 'REMOVE_REPEAT_GROUP',
-    description: `Removed the box from ${count} page${count === 1 ? '' : 's'}`,
+    description: count === 1 ? t.removedFromOnePage : formatMessage(t.removedFromPages, { count }),
   }),
   findSet: (count) => ({
     type: 'REMOVE_FIND_SET',
-    description: `Removed ${count} boxes from this search`,
+    description: formatMessage(t.removedFromSearch, { count }),
   }),
 };
 
@@ -97,8 +99,8 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     select(duplicateId);
     const type = additions.length === 1 ? 'DUPLICATE_ELEMENT' : 'DUPLICATE_REPEAT_GROUP';
     const description = additions.length === 1
-      ? `Duplicated ${additions[0].type} box`
-      : `Duplicated the box on ${additions.length} pages`;
+      ? formatMessage(t.linked.duplicated, { type: additions[0].type })
+      : formatMessage(t.linked.duplicatedRepeat, { count: additions.length });
     commands.add(additions, { type, description });
   };
 
@@ -109,7 +111,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
   // touch the one box, never propagate.
   const unlinkFromGroup = (id: string) => {
     const changes = { repeatGroupId: uniqueId() } as Partial<T>;
-    commands.update(id, [{ id, changes }], { describe: () => 'Unlinked the box on this page' });
+    commands.update(id, [{ id, changes }], { describe: () => t.linked.unlinked });
   };
 
   // RED-65: "Remove from the other pages" - removes every other box of `id`'s
@@ -117,7 +119,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
   const keepOnlyThis = (id: string) => {
     const others = groupMembers(elements, id).filter((member) => member.id !== id);
     if (others.length === 0) return;
-    const description = `Removed the box from ${others.length} other page${others.length === 1 ? '' : 's'}`;
+    const description = others.length === 1 ? t.linked.removedOtherOne : formatMessage(t.linked.removedOtherMany, { count: others.length });
     commands.remove(new Set(others.map((member) => member.id)), { type: 'KEEP_ON_THIS_PAGE_ONLY', description, pageIndex: others[0].pageIndex });
   };
 
@@ -139,7 +141,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     const clears = (el: T) => el.pageIndex === pageIndex && !(keepRepeated && isRepeated(elements, el));
     const removed = elements.filter(clears);
     if (removed.length === 0) return;
-    const description = `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`;
+    const description = formatMessage(removed.length === 1 ? t.linked.clearedOne : t.linked.clearedMany, { count: removed.length, page: pageIndex + 1 });
     commands.remove(new Set(removed.map((el) => el.id)), { type: 'CLEAR_PAGE', description, pageIndex });
   };
 
@@ -151,9 +153,9 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     const ownBoxes = onPage.some(el => !isRepeated(elements, el));
     return [
       ...(ownBoxes
-        ? [{ label: 'Keep the repeated boxes', onSelect: () => clearPage(pageIndex, { keepRepeated: true }), attrs: { 'data-editor-clear-keep-repeated': true } }]
+        ? [{ label: t.keepRepeated, onSelect: () => clearPage(pageIndex, { keepRepeated: true }), attrs: { 'data-editor-clear-keep-repeated': true } }]
         : []),
-      { label: 'Clear everything on this page', onSelect: () => clearPage(pageIndex), attrs: { 'data-editor-clear-everything': true } },
+      { label: t.clearEverything, onSelect: () => clearPage(pageIndex), attrs: { 'data-editor-clear-everything': true } },
     ];
   };
 
@@ -171,7 +173,7 @@ export default function useLinkedBoxes<T extends LinkedElement>(
     // reasoning as duplicateElement above).
     const additions = repeatCopies(source, elements, numPages, uniqueId).map(withoutFindSet).map(withDerived);
     if (additions.length === 0) return;
-    const description = `Added the box to ${additions.length} more page${additions.length === 1 ? '' : 's'}`;
+    const description = additions.length === 1 ? t.linked.addedMoreOne : formatMessage(t.linked.addedMoreMany, { count: additions.length });
     commands.add(additions, { type: 'REPEAT_ON_EVERY_PAGE', description, undoChip: true });
   };
 

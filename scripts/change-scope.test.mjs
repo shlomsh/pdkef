@@ -21,6 +21,7 @@ describe('docs-only changes', () => {
     'TODO.md',
     'README.md',
     'CLAUDE.md',
+    'ANALYTICS.md', // ARCH-34: a hand-written doc, read by no test or build step
     'LICENSE',
     '.claude/rules/editor.md',
     '.impeccable/state.json',

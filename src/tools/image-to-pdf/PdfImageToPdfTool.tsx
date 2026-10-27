@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import Sortable from 'sortablejs';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { ScanLine } from 'lucide-preact';
-import { defaultOutputName, moveEntry, reorderEntries, sortEntries } from '../../lib/pageOrder.js';
-import { useImagesPdfBuild, type ImageEntry } from './useImagesPdfBuild.ts';
+import { defaultOutputName, moveEntry, orderKey, reorderEntries, sortEntries } from '../../lib/pageOrder.js';
+import { imagesToPdf } from '../../lib/imagesToPdf.js';
+import { reportError } from '../../lib/errorReport.ts';
+import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
+import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { PHOTO_ACCEPT, PHOTO_ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShell, { FileActions, useToolShell } from '../../shell/ToolShell.tsx';
@@ -15,22 +18,24 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
-import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
-import {
-  englishImageToPdfMessages,
-  formatMessage,
-  type ImageToPdfMessages,
-  type ShellMessages,
-} from '../../i18n/toolMessages';
+import { sendHandoff } from '../../lib/sendHandoff.ts';
+import { englishImageToPdfMessages, type ImageToPdfMessages } from './messages';
+import { type ShellMessages } from '../../shell/shellMessages';
+import { formatMessage } from '../../lib/formatMessage';
+
+export interface ImageEntry {
+  id: number;
+  file: File;
+  thumbnail: string;
+}
 
 let nextId = 0;
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 
 const sortOptions = (t: ImageToPdfMessages) => [
   { value: 'custom', label: t.sortCustom },
@@ -79,58 +84,77 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
   const [entries, setEntries] = useState<ImageEntry[]>([]);
   const [sortMode, setSortMode] = useState('custom');
   const [customName, setCustomName] = useState<string | null>(null);
-  // Analytics follow the person's Download tap only (Merge's rule, ANALYTICS.md):
-  // background builds report nothing.
-  const [tap, setTap] = useState<'idle' | 'converting' | 'done'>('idle');
-  const tapped = tap === 'converting';
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
-  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
-  const listRef = useRef<HTMLUListElement | null>(null);
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  const focusIdRef = useRef<number | null>(null);
-  const entriesRef = useRef(entries);
-  entriesRef.current = entries;
-  const lastSizeRef = useRef<string | undefined>(undefined);
-  const pendingTapRef = useRef(false);
-  const exportedRef = useRef(false);
-
-  const build = useImagesPdfBuild(entries, tapped, quietPolicy);
-  const { fresh, blob, url: downloadUrl } = build;
-  useHoldUpdate(build.building);
-  useHoldUpdate(entries.length > 0, 'open');
-  const status = build.failed && tapped ? 'error' : tap;
-
-  const outputName = customName ?? defaultOutputName(entries);
-  const fileName = `${outputName}.pdf`;
-
-  useEffect(() => {
-    if (fresh && blob) prepare(blob, fileName);
-    // While a change waits for quiet the last PDF stays prepared, so the sheet keeps its shape;
-    // Share is inert then (see handleShare).
-    else if (entries.length === 0) clearPrepared();
-  }, [fresh, blob, fileName, entries.length, prepare, clearPrepared]);
-  if (fresh && blob) lastSizeRef.current = formatFileSize(blob.size);
-  if (entries.length === 0) lastSizeRef.current = undefined;
-
-  // Revoke every live thumbnail object URL on unmount.
-  useRevokeOnUnmount(entries.map((e) => e.thumbnail));
-
-  // A keyboard move re-parents the tile, which can drop focus: put it back.
-  // A layout effect, so the focus is back before the next auto-repeated key lands.
-  // Also where focus goes after a tile is removed.
-  useLayoutEffect(() => {
-    const id = focusIdRef.current;
-    if (id === null) return;
-    focusIdRef.current = null;
-    const list = listRef.current;
-    list?.querySelector<HTMLElement>(`[data-id="${id}"] [data-page]`)?.focus();
-  }, [entries]);
-
   // Repeats of the same sentence must still be announced: alternate a trailing no-break space.
   const announce = useCallback((text: string) => {
     setAnnouncement((previous) => (previous === text ? `${text}\u00A0` : text));
   }, []);
+
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+  const lastSizeRef = useRef<string | undefined>(undefined);
+  const shareSeenRef = useRef(false);
+  const startedRef = useRef(false);
+  const exportPendingRef = useRef(false);
+
+  // The PDF for the current page order, built in the background once the person has gone quiet.
+  const key = orderKey(entries);
+  const prepared = usePreparedOutput({
+    key: key === '' ? null : key,
+    quietPolicy,
+    build: async (signal, onProgress) => {
+      const files = entriesRef.current.map((entry) => entry.file);
+      return { blob: await imagesToPdf(files, onProgress, signal), pageCount: files.length };
+    },
+    onBuildError: (err) => reportError('pdf_tool_run', err, 'build_pdf_from_images'),
+  });
+  const fresh = prepared.status === 'ready';
+  const failed = prepared.status === 'error';
+  const downloadUrl = prepared.url;
+  useHoldUpdate(prepared.status === 'pending');
+  useHoldUpdate(entries.length > 0, 'open');
+  // The first build after the first pick starts at once; later changes wait for quiet.
+  useEffect(() => {
+    if (key === '') startedRef.current = false;
+    else if (!startedRef.current) {
+      startedRef.current = true;
+      prepared.prepareNow();
+    }
+  }, [key]);
+
+  const outputName = customName ?? defaultOutputName(entries);
+  const fileName = `${outputName}.pdf`;
+
+  const downloadFlow = useDownloadFlow({
+    prepared,
+    fileName,
+    blocked: failed ? 'error' : null,
+    // A Download tap on a ready link announces the ready message each time; the live region says it once.
+    announce: (text: string) => {
+      if (text === t.announceReady) setAnnouncement((previous) => (previous.trim() === text ? previous : text));
+      else announce(text);
+    },
+    messages: { ready: t.announceReady, shared: t.announceShared, canceled: t.announceShareCanceled, shareError: t.announceShareError },
+    // A tap that beat the build is delivered by the flow; the tap on a ready link records its own download.
+    onDelivered: () => {
+      if (!exportPendingRef.current) return;
+      exportPendingRef.current = false;
+      recordAction('download');
+    },
+  });
+  const { shareReady, handleShare: shareOutput, onDownloadTap, onRowPreparingTap, reset: resetDownloadFlow } = downloadFlow;
+  // Analytics follow the person's Download tap only (Merge's rule, ANALYTICS.md): background builds report nothing.
+  const tapped = downloadFlow.tap === 'processing';
+  const status = failed && tapped ? 'error' : tapped ? 'converting' : downloadFlow.tap;
+  if (fresh && prepared.blob) lastSizeRef.current = formatFileSize(prepared.blob.size);
+  if (entries.length === 0) lastSizeRef.current = undefined;
+  if (shareReady) shareSeenRef.current = true;
+  if (entries.length === 0) shareSeenRef.current = false;
+
+  // Revoke every live thumbnail object URL on unmount.
+  useRevokeOnUnmount(entries.map((e) => e.thumbnail));
 
   const reordered = useCallback((next: ImageEntry[]) => {
     setEntries(next);
@@ -138,36 +162,22 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
     recordAction('reorder');
   }, []);
 
-  // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop we
-  // read its final order back into state, which is the source of truth again.
-  useEffect(() => {
-    if (!listRef.current) return undefined;
-    const sortable = Sortable.create(listRef.current, {
-      animation: 220,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      draggable: '[data-id]',
-      filter: 'button',
-      preventOnFilter: false,
-      delay: 150,
-      delayOnTouchOnly: true,
-      ghostClass: styles['is-ghost'],
-      chosenClass: styles['is-chosen'],
-      forceFallback: false,
-      onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        const { oldIndex, newIndex } = evt;
-        setEntries((current) => reorderEntries(current, oldIndex, newIndex));
-        setSortMode('custom');
-        recordAction('reorder');
-      },
-    });
-    return () => sortable.destroy();
-  }, [entries.length > 0]);
+  const { listRef, focusIdRef } = usePhotoTileList({
+    active: entries.length > 0,
+    items: entries,
+    ghostClass: styles['is-ghost'],
+    chosenClass: styles['is-chosen'],
+    onReorder: (oldIndex, newIndex) => {
+      setEntries((current) => reorderEntries(current, oldIndex, newIndex));
+      setSortMode('custom');
+      recordAction('reorder');
+    },
+  });
 
   const addFiles = useCallback((fileList: FileList | File[]) => {
     const incoming = Array.from(fileList);
-    const imageFiles = incoming.filter((f) => ACCEPTED_TYPES.includes(f.type));
-    const rejected = incoming.filter((f) => !ACCEPTED_TYPES.includes(f.type));
+    const imageFiles = incoming.filter((f) => PHOTO_ACCEPTED_TYPES.includes(f.type));
+    const rejected = incoming.filter((f) => !PHOTO_ACCEPTED_TYPES.includes(f.type));
 
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
     if (imageFiles.length === 0) return;
@@ -185,10 +195,9 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
   useHandoffFilesIntake('image-to-pdf', (files) => addFiles(files));
 
   const resetTap = useCallback(() => {
-    setTap('idle');
-    pendingTapRef.current = false;
-    exportedRef.current = false;
-  }, []);
+    resetDownloadFlow();
+    exportPendingRef.current = false;
+  }, [resetDownloadFlow]);
 
   const removeEntry = useCallback((id: number) => {
     const current = entriesRef.current;
@@ -247,35 +256,18 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
   // A tap on Download before the build is done: show the preparing look and deliver when it lands.
   const onDownloadClick = (event: MouseEvent) => {
     if (fresh && downloadUrl) {
-      if (!exportedRef.current) recordAction('export');
-      exportedRef.current = false;
-      recordAction('download');
-      setTap('converting');
+      // The browser delivers the link itself; the flow records the download.
+      recordAction('export');
+      onDownloadTap();
       return;
     }
     event.preventDefault();
     if (tapped) return;
     recordAction('export');
-    exportedRef.current = true;
-    pendingTapRef.current = true;
-    setTap('converting');
+    exportPendingRef.current = true;
     announce(t.announcePreparing);
-    build.buildNow();
+    onRowPreparingTap();
   };
-
-  // A tap on a ready link: the browser delivers it, so the tap is done at once.
-  useEffect(() => {
-    if (tap === 'converting' && fresh && !pendingTapRef.current) setTap('done');
-  }, [tap, fresh]);
-
-  // The tap's delivery: the build is fresh and its link is on screen, so the download goes out.
-  useEffect(() => {
-    if (!fresh || !pendingTapRef.current || !downloadUrl) return;
-    pendingTapRef.current = false;
-    setTap('done');
-    announce(t.announceReady);
-    sheetRef.current?.querySelector<HTMLAnchorElement>('a[download]')?.click();
-  }, [fresh, downloadUrl]);
 
   const handleShare = async () => {
     // Stale: a change is waiting for quiet, and the prepared PDF is the previous one.
@@ -283,11 +275,7 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
       announce(t.announceUpdating);
       return;
     }
-    const result = await sharePrepared();
-    if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') announce(t.announceShared);
-    else if (result.status === 'canceled') announce(t.announceShareCanceled);
-    else if (result.status === 'error') announce(t.announceShareError);
+    await shareOutput();
   };
 
   // The photographed pages, in page order, parked for Scan to PDF (one multi-file hand-off).
@@ -296,12 +284,10 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
     setScanBusy(true);
     setScanFailed(false);
     try {
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const files = await Promise.all(
         entriesRef.current.map(async ({ file }) => ({ fileName: file.name, fileType: file.type, fileBytes: await file.arrayBuffer() })),
       );
-      if (!(await saveHandoff('scan-to-pdf', { files }))) throw new Error('handoff');
-      navigate('/scan-to-pdf/');
+      await sendHandoff('scan-to-pdf', { files }, { navigate });
     } catch {
       // expected: saveHandoff reports its own failure; this shows the status line
       setScanFailed(true);
@@ -311,20 +297,20 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
 
   const hasFiles = entries.length > 0;
   const fileSummary = imageCount(t, entries.length);
-  const tappedBusy = tapped && !fresh && !build.failed;
+  const tappedBusy = tapped && !fresh && !failed;
 
   const sheet = (
     <div
       ref={sheetRef}
       class={styles.sheet}
-      onPointerEnter={build.buildNow}
-      onFocusIn={build.buildNow}
-      onPointerDown={build.buildNow}
+      onPointerEnter={prepared.prepareNow}
+      onFocusIn={prepared.prepareNow}
+      onPointerDown={prepared.prepareNow}
     >
-      {build.failed ? (
+      {failed ? (
         <>
           <ErrorMessage>{t.buildFailed}</ErrorMessage>
-          <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={build.retry}>
+          <button type="button" class={pdfToolStyles['tool-primary-action']} onClick={prepared.prepareNow}>
             {t.tryAgain}
           </button>
         </>
@@ -339,9 +325,9 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
             label={t.downloadLabel}
             detail={lastSizeRef.current}
             onClick={onDownloadClick}
-            busy={tappedBusy ? <ProgressRing progress={build.progress} label={t.preparing} /> : undefined}
+            busy={tappedBusy ? <ProgressRing progress={prepared.progress} label={t.preparing} /> : undefined}
           />
-          <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} />
+          <PdfShareButton visible={shareReady || (shareSeenRef.current && prepared.status === 'pending')} onShare={handleShare} label={t.shareLabel} />
         </>
       )}
       <button type="button" class={styles['scan-button']} disabled={scanBusy} onClick={openAsScan}>
@@ -359,7 +345,7 @@ export default function PdfImageToPdfTool({ quietPolicy, messages: messagesProp,
       analyticsTool="image-to-pdf"
       analyticsStatus={status}
       onFilesAdded={addFiles}
-      accept="image/jpeg,image/png"
+      accept={PHOTO_ACCEPT}
       emptyStateMessage={t.dropHere}
       fileLabel={fileSummary}
       fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}

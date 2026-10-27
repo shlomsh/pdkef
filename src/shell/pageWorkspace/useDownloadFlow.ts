@@ -3,17 +3,20 @@ import type { OutputPart, PreparedOutput } from '../../lib/usePreparedOutput.ts'
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
+import { sendHandoff } from '../../lib/sendHandoff.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import type { DownloadElementState } from '../DownloadElement.tsx';
 
-export type HandoffTool = 'compress' | 'sign' | 'merge';
-/** Where each hand-off goes; Merge is optional, only Scan offers it. */
-export type HandoffHrefs = Record<'compress' | 'sign', string> & Partial<Record<'merge', string>>;
+/** The tool ids a finished output can be handed to (the ids draftStore keys a hand-off by). */
+export type HandoffTool = 'compress' | 'sign' | 'merge' | 'redact' | 'edit-pdf';
+/** Where a hand-off goes when it is not the registry's page for the tool (a locale edition's own page). */
+export type HandoffHrefs = Partial<Record<HandoffTool, string>>;
 
 export interface DownloadFlowInput {
   prepared: Pick<PreparedOutput, 'status' | 'blob' | 'url' | 'parts' | 'generation' | 'prepareNow'>;
   fileName: string;
-  hrefs: HandoffHrefs;
+  /** Overrides the registry page of a hand-off target (src/lib/toolIds.ts), e.g. the locale's own edition. */
+  hrefs?: HandoffHrefs;
   /** Why Download cannot run at all: too few files, or a file/build error. */
   blocked: 'one-file' | 'error' | null;
   /** The plan leaves no page to export (every page skipped). */
@@ -67,7 +70,7 @@ const opensStrip = () => window.matchMedia('(max-width: 1023px)').matches;
  * background), the phone's done strip, hand-offs to Compress/Sign, Share. */
 export function useDownloadFlow(input: DownloadFlowInput) {
   const { prepared, fileName, hrefs, blocked, nothing, announce, messages, onDelivered } = input;
-  const navigate = input.navigate ?? ((href: string) => { window.location.href = href; });
+  const { navigate } = input;
   /* MERGE-12 analytics: the person's intent is the Download tap; the
      speculative background build is not counted. See ANALYTICS.md. */
   const [tap, setTap] = useState<'idle' | 'processing' | 'done'>('idle');
@@ -144,32 +147,25 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   // previously pointed at, and its work, is untouched. Nothing here needs to
   // discard anything, so there is nothing left to confirm.
   const performHandoff = useCallback(async (tool: HandoffTool) => {
-    const href = hrefs[tool];
-    if (!prepared.blob || !href) return;
+    if (!prepared.blob) return;
     const run = ++handoffRunRef.current;
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
-      // The store is only needed once a result is being handed off, so it
-      // stays out of the eager graph like the grid and the draft hook.
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, {
-        fileName,
-        fileType: 'application/pdf',
-        fileBytes: await prepared.blob.arrayBuffer(),
-      });
-      if (run !== handoffRunRef.current) {
-        setHandoffBusy(false);
-        return;
-      }
-      if (!saved) throw new Error('handoff');
-      navigate(href);
+      const sent = await sendHandoff(
+        tool,
+        { fileName, fileType: 'application/pdf', fileBytes: await prepared.blob.arrayBuffer() },
+        { href: hrefs?.[tool], navigate, proceed: () => run === handoffRunRef.current },
+      );
+      if (!sent && run === handoffRunRef.current) setHandoffBusy(false);
     } catch {
       // expected: saveHandoff reports its own failure, this shows the handoffFailed state
-      setHandoffFailed(true);
-      setHandoffBusy(false);
+      if (run === handoffRunRef.current) {
+        setHandoffFailed(true);
+        setHandoffBusy(false);
+      }
     }
-  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign, hrefs.merge]);
+  }, [prepared.blob, fileName, hrefs, navigate]);
 
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
@@ -254,6 +250,7 @@ export function useDownloadFlow(input: DownloadFlowInput) {
   const reset = useCallback(() => {
     clearPrepared();
     handoffRunRef.current += 1;
+    setHandoffBusy(false);
     setTap('idle');
     setPendingDownload(false);
     quietPendingRef.current = false;
