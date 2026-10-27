@@ -1,13 +1,14 @@
 import type { ComponentChildren } from 'preact';
 import DoneStrip from '../../../shell/DoneStrip.tsx';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
+import type { RedactHandoffTarget } from '../../../lib/toolIds.ts';
 import type { FinishFacts } from '../lib/finishState.ts';
 
 export interface RedactDoneStripProps {
   facts: FinishFacts;
   handoffBusy: boolean;
   handoffFailed: boolean;
-  onHandoff(tool: 'compress' | 'sign'): void;
+  onHandoff(tool: RedactHandoffTarget): void;
   onClose(): void;
   /** The rating row slot, rendered under the hand-offs. */
   children?: ComponentChildren;

@@ -4,6 +4,7 @@ import type { PageGeometry } from '../geometry/coords.ts';
 // DEBT-04: SignMessages is defined in this same folder now (messages.ts), so
 // this is an editor-internal import, not a dependency on the site's i18n.
 import type { SignMessages } from './messages';
+import type { EditorToolId } from '../../lib/toolIds.ts';
 
 /** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
 export type ElementForType<K extends ElementType> = Extract<EditorElement, { type: K }>;
@@ -17,7 +18,7 @@ export interface NodeRenderContext<T extends EditorElement = EditorElement> {
    * its on-screen blur from its own height in points like the export does.
    * Optional; without it a blur draws its plain fraction. */
   pageHeightPoints?: number;
-  renderTarget?: 'sign' | 'redact';
+  renderTarget?: EditorToolId;
   /** LOC-16 stage 2-5: threaded to TextNode (placeholders) and, via every
    * Sign node, to ElementResizers (resize-handle titles). Optional and
    * English-default; Redact never supplies it. */

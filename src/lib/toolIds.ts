@@ -100,6 +100,12 @@ export const FILE_CAPABILITIES = pages.flatMap((p) => (p.accepts ? [{ slug: p.sl
 
 export type HandoffTargetId = Extract<(typeof TOOL_PAGES)[number], { handoffTarget: true }>['id'];
 
+/** The tools Redact's done state hands a finished file to (a subset of the registry's hand-off targets). */
+export type RedactHandoffTarget = Extract<HandoffTargetId, 'compress' | 'sign'>;
+
+/** The two tools that run on the shared editor core. */
+export type EditorToolId = Extract<HandoffTargetId, 'sign' | 'redact'>;
+
 export type UnlockReturnId = Extract<(typeof TOOL_PAGES)[number], { unlockReturn: true }>['id'];
 
 /** The tool ids whose protected files detour through Unlock. */

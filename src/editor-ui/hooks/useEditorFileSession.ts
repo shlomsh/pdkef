@@ -11,6 +11,7 @@ import type { HistoryElement } from '../../editor/model/actionHistory.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.ts';
 import { isPdfFile } from '../../lib/fileKind.js';
 import { recordAction } from '../../lib/actionTrail.ts';
+import type { EditorToolId } from '../../lib/toolIds.ts';
 import { useDocumentRetirement } from './useDocumentRetirement.ts';
 
 /**
@@ -41,7 +42,7 @@ type DraftOptions<TElement extends HistoryElement> = Pick<
 >;
 
 export interface EditorFileSessionOptions<TElement extends HistoryElement> {
-  tool: 'sign' | 'redact';
+  tool: EditorToolId;
   /** The open file, if any: a pick over an open file records `replace_file`. */
   file: File | null;
   /** The document the tool renders from, kept alive until its replacement has painted (RED-56). */
