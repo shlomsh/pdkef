@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import FormFieldHints from './FormFieldHints.tsx';
 import { boxKey } from '../lib/fill/fillDom.ts';
+// Asserts the hint modifier classes (comb, checkbox, cell, aimed), which are the styling contract.
 import styles from './FormFieldHints.module.css';
 
 /**
@@ -36,7 +37,7 @@ describe('FormFieldHints', () => {
         host!,
       );
     });
-    const hint = host!.querySelector(`.${styles['field-hint']}`);
+    const hint = host!.querySelector('[aria-hidden="true"] > span');
     expect(hint?.className).toContain(styles['field-hint-comb']);
   });
 
@@ -49,7 +50,7 @@ describe('FormFieldHints', () => {
         host!,
       );
     });
-    const hint = host!.querySelector(`.${styles['field-hint']}`);
+    const hint = host!.querySelector('[aria-hidden="true"] > span');
     expect(hint?.className).not.toContain(styles['field-hint-comb']);
   });
 
@@ -65,7 +66,7 @@ describe('FormFieldHints', () => {
         host!,
       );
     });
-    const hints = host!.querySelectorAll(`.${styles['field-hint']}`);
+    const hints = host!.querySelectorAll('[aria-hidden="true"] > span');
     expect(hints[0]?.className).toContain(styles['field-hint-checkbox']);
     expect(hints[1]?.className).toContain(styles['field-hint-cell']);
   });
@@ -88,7 +89,7 @@ describe('FormFieldHints', () => {
           host!,
         );
       });
-      const hint = host!.querySelector(`.${styles['field-hint']}`);
+      const hint = host!.querySelector('[aria-hidden="true"] > span');
       expect(hint?.className).toContain(styles['field-hint-aimed']);
       expect(hint?.hasAttribute('data-aimed')).toBe(true);
     });
@@ -102,7 +103,7 @@ describe('FormFieldHints', () => {
           host!,
         );
       });
-      const hint = host!.querySelector(`.${styles['field-hint']}`);
+      const hint = host!.querySelector('[aria-hidden="true"] > span');
       expect(hint?.className).not.toContain(styles['field-hint-aimed']);
       expect(hint?.getAttribute('data-aimed')).toBeNull();
     });
@@ -113,7 +114,7 @@ describe('FormFieldHints', () => {
       act(() => {
         render(<FormFieldHints regions={[box()]} kind="checkbox" pageIndex={0} />, host!);
       });
-      const hint = host!.querySelector(`.${styles['field-hint']}`);
+      const hint = host!.querySelector('[aria-hidden="true"] > span');
       expect(hint?.className).not.toContain(styles['field-hint-aimed']);
       expect(hint?.getAttribute('data-aimed')).toBeNull();
     });
