@@ -4,6 +4,7 @@ import { computeBuildId } from './buildId.mjs';
 import { commitFromEnv, hasPlaceholder, stampBuildCommit } from './buildCommit.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
+import { pageClosure, shellClosure, toPublicUrl as relativeToUrl } from './precacheClosure.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 const manifestName = 'precache-manifest.json';
@@ -37,7 +38,21 @@ const files = allFiles.filter((filePath) => {
 });
 
 const urls = files.map(toPublicUrl);
-const manifest = JSON.stringify({ urls }, null, 2);
+
+// v2 (MEM-15): the closure of each page, so the worker can cache what a visited
+// page needs instead of the whole build. `urls` stays for the current worker.
+const relativeOf = (filePath) => path.relative(distDir, filePath).split(path.sep).join('/');
+const view = {
+  files: new Map(allFiles.filter((filePath) => /\.(?:html|js|css)$/.test(filePath)).map((filePath) => [relativeOf(filePath), fs.readFileSync(filePath, 'utf8')])),
+  paths: allFiles.map(relativeOf),
+};
+const keep = (relative) => shouldPrecache(relative, { manifestName, workerName });
+const pages = {};
+for (const relative of [...view.files.keys()].filter((name) => name.endsWith('.html')).sort()) {
+  pages[relativeToUrl(relative)] = pageClosure(view, relative, { keep });
+}
+const shell = shellClosure(view, { keep });
+const manifest = JSON.stringify({ version: 2, shell, pages, urls }, null, 2);
 
 // Hashed from every file already in dist/ (the manifest and sw.js are written
 // below, after this), not just the precache list - see buildId.mjs for why a
