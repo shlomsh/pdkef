@@ -1,10 +1,9 @@
 ---
 id: "ARCH-105"
 title: "The size ratchet also records functions over 150 lines and nesting depth"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -24,5 +23,9 @@ Area: Code. Criterion: Size and complexity. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] Growing a recorded function or adding one past 150 lines fails CI.
-- [ ] Exceeding the nesting cap fails CI unless the site is recorded.
+- [x] Growing a recorded function or adding one past 150 lines fails CI.
+- [x] Exceeding the nesting cap fails CI unless the site is recorded.
+
+## Closed 2026-10-27
+
+`check-size-ratchet.mjs` records every function over 150 lines under a top-level `functionSize` section and every function nested past 4 control blocks (ESLint max-depth counting) under `nesting`; the 300-line tier folded into it. Tests were added first and seen failing. A review found anonymous callbacks were keyed by position, so inserting one renamed the rest; functions sharing a name are now paired by size within their file and parent, test-first. Baseline: 49 functions over 150, 11 nested past 4.

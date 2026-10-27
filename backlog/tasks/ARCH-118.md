@@ -1,10 +1,9 @@
 ---
 id: "ARCH-118"
 title: "More JavaScript folders are type-checked through checkjs-folders.json"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -23,5 +22,9 @@ Area: Safety nets. Criterion: Type safety. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] `src/lib/drafts` is type-checked in `check:fast`.
-- [ ] Each added folder passes `tsc` with no new `@ts-nocheck`.
+- [x] `src/lib/drafts` is type-checked in `check:fast`.
+- [x] Each added folder passes `tsc` with no new `@ts-nocheck`.
+
+## Closed 2026-10-27
+
+`src/lib/drafts` is in `checkjs-folders.json`; each .js file starts with `// @ts-check` and passes the `tsc` that `check:fast` runs, with JSDoc only. Red run: 3 missing headers, then 21 tsc errors. `clearDraft` resolves a boolean but keeps its documented `Promise<void>` through a cast, noted in the hook's doc block.

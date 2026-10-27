@@ -1,10 +1,9 @@
 ---
 id: "ARCH-121"
 title: "Fixed sleeps in e2e specs are replaced by web-first assertions"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -23,4 +22,8 @@ Area: Tests and CI. Criterion: Test architecture. Structure only: no behaviour c
 
 ## Acceptance
 
-- [ ] The `waitForTimeout` count is lower than 43 and the record matches.
+- [x] The `waitForTimeout` count is lower than 43 and the record matches.
+
+## Closed 2026-10-27
+
+The record is 44 -> 42. Two sleeps became conditions (the hero's verb animations finishing; Sign's scroll offset at rest for 30 frames), each run 3 times on chromium. The other 41 were already marked as deliberate observation windows by ARCH-79 (negative checks, CLS sampling, gesture timing) and stay.

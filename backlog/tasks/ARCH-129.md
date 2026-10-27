@@ -1,10 +1,9 @@
 ---
 id: "ARCH-129"
 title: "docs/module-boundaries.md describes the current layout"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
 depends_on: []
 ---
 
@@ -24,4 +23,8 @@ Area: Supporting. Criterion: Docs and guidance accuracy. Structure only: no beha
 
 ## Acceptance
 
-- [ ] Every path in the layout block exists, and the title matches what the doc holds.
+- [x] Every path in the layout block exists, and the title matches what the doc holds.
+
+## Closed 2026-10-27
+
+The doc's title and intro describe the layers and the import rules `test:module-boundaries` enforces, and its Layout block lists the current folders; every path in it was checked with `ls`. Rule texts were checked against `check-module-boundaries.mjs`; two stale counts were corrected.

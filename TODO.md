@@ -17,14 +17,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [ARCH-82](backlog/tasks/ARCH-82.md) P3 · Behaviour tests find elements by role and label, not CSS Module class names (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 - [ARCH-103](backlog/tasks/ARCH-103.md) P2 · No tool island function is over 300 lines (in progress)
-- [ARCH-105](backlog/tasks/ARCH-105.md) P2 · The size ratchet also records functions over 150 lines and nesting depth (in progress)
-- [ARCH-106](backlog/tasks/ARCH-106.md) P2 · The Scan island is shorter than before ARCH-54 grew it (in progress)
-- [ARCH-108](backlog/tasks/ARCH-108.md) P2 · Sign keeps its document-load fields in signState (in progress)
-- [ARCH-109](backlog/tasks/ARCH-109.md) P2 · Redact moves its effect clusters into hooks over the reducer state (in progress)
-- [ARCH-114](backlog/tasks/ARCH-114.md) P2 · The unused-exports baseline of own-file-only and test-only exports shrinks (in progress)
-- [ARCH-118](backlog/tasks/ARCH-118.md) P2 · More JavaScript folders are type-checked through checkjs-folders.json (in progress)
-- [ARCH-121](backlog/tasks/ARCH-121.md) P2 · Fixed sleeps in e2e specs are replaced by web-first assertions (in progress)
-- [ARCH-129](backlog/tasks/ARCH-129.md) P2 · docs/module-boundaries.md describes the current layout (in progress)
 
 ### Search and languages
 
