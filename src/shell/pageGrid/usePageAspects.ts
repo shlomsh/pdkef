@@ -31,7 +31,7 @@ export function usePageAspects(
       probed.current.add(entry.id);
       probing.current += 1;
       const held = sourceFor(entry);
-      void (async () => {
+      void (async () => { // reason: the body catches every failure itself
         try {
           const list = await (await held.source).aspects?.();
           if (!list || held.controller.signal.aborted) return;
