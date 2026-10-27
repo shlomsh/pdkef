@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf, runsProductE2e, formatOutputs } from './affected-scope.mjs';
+import { readFileSync } from 'node:fs';
 import { buildReachGraph } from './import-graph.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
@@ -994,5 +995,42 @@ describe('narrowByReachability on the real repo graph (ARCH-32 review fix)', () 
 
   it('a redact-only editor adapter still narrows to redact', () => {
     expect(realReach('src/tools/redact/lib/deleteObjects.js').tools).toEqual(['redact']);
+  });
+});
+
+describe('runsProductE2e (QUAL-32)', () => {
+  const base = { affected: [], fonts: false, export_guards: false, reason: '' };
+  it('is true for a full run', () => {
+    expect(runsProductE2e({ ...base, everything: true, e2e_paths: '' })).toBe(true);
+  });
+  it('is true for a narrowed scope with paths', () => {
+    expect(runsProductE2e({ ...base, everything: false, e2e_paths: 'src/tools/merge/e2e' })).toBe(true);
+  });
+  it('is false for a narrowed scope with no paths', () => {
+    expect(runsProductE2e({ ...base, everything: false, e2e_paths: '' })).toBe(false);
+  });
+  it('is printed as product_e2e', () => {
+    const out = (scope) => formatOutputs({ ...base, ...scope });
+    expect(out({ everything: true, e2e_paths: '' })).toContain('product_e2e=true');
+    expect(out({ everything: false, e2e_paths: 'e2e/home' })).toContain('product_e2e=true');
+    expect(out({ everything: false, e2e_paths: '' })).toContain('product_e2e=false');
+  });
+});
+
+describe('ci.yml gates product e2e on product_e2e (QUAL-32)', () => {
+  const yml = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const jobText = (name) => {
+    const m = yml.match(new RegExp(`^  ${name}:\\n[\\s\\S]*?(?=^  [a-z][a-z0-9-]*:\\n)`, 'm'));
+    return m ? m[0] : '';
+  };
+  const steps = (job) => job.split(/^    - /m).slice(1);
+  const GATE = "steps.affected.outputs.product_e2e != 'false'";
+
+  it.each(['e2e', 'e2e-webkit'])('%s: Build and every product Playwright step carry the gate', (name) => {
+    const job = jobText(name);
+    expect(job).not.toBe('');
+    const gated = steps(job).filter((s) => /^name: Build\n/.test(s) || /playwright test --project=(chromium|webkit|perf)/.test(s));
+    expect(gated.length).toBeGreaterThanOrEqual(name === 'e2e' ? 2 : 3);
+    for (const s of gated) expect(s, s.split('\n')[0]).toContain(`if: ${GATE}`);
   });
 });

@@ -542,12 +542,27 @@ export function resolveScope({ explicitBase, explicitHead }) {
   });
 }
 
+// QUAL-32: an empty e2e_paths is ambiguous (full suite vs nothing affected),
+// and an empty Playwright filter runs everything. This is the one place that
+// decides whether product e2e runs at all; CI gates its steps on the
+// `product_e2e` output and runE2eProduct/runE2ePerf use it for the same early return.
+export function runsProductE2e(scope) {
+  return Boolean(scope.everything || scope.e2e_paths);
+}
+
+export function formatOutputs(scope) {
+  return [
+    `affected=${JSON.stringify(scope.affected)}`,
+    `everything=${scope.everything}`,
+    `e2e_paths=${scope.e2e_paths}`,
+    `product_e2e=${runsProductE2e(scope)}`,
+    `fonts=${scope.fonts}`,
+    `export_guards=${scope.export_guards}`,
+  ].join('\n');
+}
+
 function printOutputs(scope) {
-  console.log(`affected=${JSON.stringify(scope.affected)}`);
-  console.log(`everything=${scope.everything}`);
-  console.log(`e2e_paths=${scope.e2e_paths}`);
-  console.log(`fonts=${scope.fonts}`);
-  console.log(`export_guards=${scope.export_guards}`);
+  console.log(formatOutputs(scope));
 }
 
 function summaryMarkdown(scope) {
@@ -557,6 +572,7 @@ function summaryMarkdown(scope) {
     `- **everything**: ${scope.everything} (${scope.reason})`,
     `- **affected projects**: ${scope.affected.length ? scope.affected.join(', ') : '(none)'}`,
     `- **e2e_paths**: ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
+    `- **product_e2e**: ${runsProductE2e(scope) ? 'runs' : 'skipped, no tool or site e2e is affected'}`,
     `- **fonts**: ${scope.fonts}`,
     `- **export_guards**: ${scope.export_guards}`,
     '',
@@ -595,7 +611,7 @@ export function runUnit({ explicitBase, explicitHead } = {}) {
 
 // `projects` lets check:e2e run chromium only locally; CI and test:e2e keep both.
 export function runE2eProduct(scope, projects = ['chromium', 'webkit']) {
-  if (!scope.everything && !scope.e2e_paths) {
+  if (!runsProductE2e(scope)) {
     console.error('affected-scope: no tool/site-e2e project affected; skipping product e2e.');
     return 0;
   }
@@ -605,7 +621,7 @@ export function runE2eProduct(scope, projects = ['chromium', 'webkit']) {
 }
 
 export function runE2ePerf(scope) {
-  if (!scope.everything && !scope.e2e_paths) {
+  if (!runsProductE2e(scope)) {
     console.error('affected-scope: no tool/site-e2e project affected; skipping perf e2e.');
     return 0;
   }

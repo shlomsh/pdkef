@@ -419,10 +419,11 @@ jobs:
 
     # Right after npm ci (needs node_modules for `nx`), so every shard agrees
     # on the same affected paths - see the workflow header comment and
-    # docs/nx-affected-ci.md. Empty e2e_paths means either everything=true
-    # (run the full suite) or nothing e2e-relevant is affected; either way,
-    # `--pass-with-no-tests` below makes a narrowed, zero-match project exit
-    # 0 instead of Playwright's default failure for that case.
+    # docs/nx-affected-ci.md. An empty e2e_paths is ambiguous (everything=true
+    # or nothing e2e-relevant is affected) and an empty filter runs every
+    # spec, so the Build and Playwright steps below are gated on the
+    # `product_e2e` output (QUAL-32); a missing output still runs them.
+    # `--pass-with-no-tests` makes a narrowed, zero-match project exit 0.
     - name: Resolve affected scope
       id: affected
       env:
@@ -432,16 +433,18 @@ jobs:
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
     - name: Build
+      if: steps.affected.outputs.product_e2e != 'false'
       run: npm run build
 
     # One command per project (QUAL-09): webkit now lives in its own job
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
-    # $E2E_PATHS is empty (no filter, the full suite) when affected-scope.mjs
-    # saw everything=true.
+    # $E2E_PATHS is empty (no filter, the full suite) only when affected-scope.mjs
+    # saw everything=true; the step is skipped when product_e2e=false.
     # On the nightly cron every chromium spec runs twice (the chromium
     # project has no retries), so a flaky spec turns the nightly red instead
     # of a push (QUAL-24).
     - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/4)
+      if: steps.affected.outputs.product_e2e != 'false'
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
         REPEAT: ${{ github.event_name == 'schedule' && '--repeat-each=2' || '' }}
@@ -514,10 +517,11 @@ jobs:
 
     # Right after npm ci (needs node_modules for `nx`), so this job and the
     # chromium shards agree on the same affected paths - see the workflow
-    # header comment and docs/nx-affected-ci.md. Empty e2e_paths means either
-    # everything=true (run the full suite) or nothing e2e-relevant is
-    # affected; either way, `--pass-with-no-tests` below makes a narrowed,
-    # zero-match project exit 0 instead of Playwright's default failure.
+    # header comment and docs/nx-affected-ci.md. An empty e2e_paths is
+    # ambiguous (everything=true or nothing e2e-relevant is affected) and an
+    # empty filter runs every spec, so the Build and Playwright steps below
+    # are gated on the `product_e2e` output (QUAL-32); a missing output still
+    # runs them. `--pass-with-no-tests` makes a narrowed, zero-match project exit 0.
     - name: Resolve affected scope
       id: affected
       env:
@@ -527,9 +531,11 @@ jobs:
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
     - name: Build
+      if: steps.affected.outputs.product_e2e != 'false'
       run: npm run build
 
     - name: Run Playwright e2e tests (product webkit)
+      if: steps.affected.outputs.product_e2e != 'false'
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
         PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-json/webkit.json
@@ -540,6 +546,7 @@ jobs:
     # Moved here from `e2e` shard 1 by QUAL-09: this job has the spare time
     # once the chromium shards stop installing webkit.
     - name: Run Playwright e2e tests (performance budgets, one worker)
+      if: steps.affected.outputs.product_e2e != 'false'
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
         PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-json/perf.json
