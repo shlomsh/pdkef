@@ -1,6 +1,6 @@
 import type { ResizeHandle } from '../editor/registry/types.ts';
 
-// Split out of src/components/SignTool/nodeProps.ts (ARCH-18): ElementResizers
+// Split out of src/tools/sign/components/nodeProps.ts (ARCH-18): ElementResizers
 // is editor-ui, shared by Sign and Redact, so it cannot import a tool's
 // contract file. This is the one type it actually needs; nodeProps.ts
 // re-exports it so Sign's own node components keep importing it from there.

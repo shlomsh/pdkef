@@ -42,7 +42,7 @@ const ELEMENT_RENDERERS = createElementRenderers({});
 // All three types are styled to match the Sign tool's whiteout element as closely as
 // possible: the same floating toolbar on selection (RedactBoxToolbar - colour controls for
 // whiteout only, then duplicate and delete for every type), positioned with the same
-// Floating UI middleware as SignTool/DraggableWrapper.tsx so it flips below the box
+// Floating UI middleware as src/tools/sign/components/DraggableWrapper.tsx so it flips below the box
 // instead of clipping off-screen near the top of a page; the same 8-handle resize UI as
 // ElementResizers renders for shapes (`.sign-element--shape .sign-element-resizer` in
 // global.css); and a border that stays transparent at rest so the box reads as a true

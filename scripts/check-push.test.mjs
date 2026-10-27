@@ -19,8 +19,8 @@ import { classify } from './change-scope.mjs';
        fields plus docsOnly and reachesDist), which steps run and in what
        order, stopping early for a docs-only diff.
 
-   The scope objects below are built the same way scripts/affected-scope.
-   test.mjs pins deriveScope() itself: synthetic `files`/`affected`/`roots`
+   The scope objects below are built the same way affected-scope.test.mjs
+   in this folder pins deriveScope() itself: synthetic `files`/`affected`/`roots`
    inputs, no real git or nx call - see that file for the ROOTS fixture this
    one borrows a subset of. */
 

@@ -144,7 +144,7 @@ export default defineConfig({
         // crawl of the .astro entry points can see.
         'signature_pad',
         'lucide-preact',
-        // Same shape as fontkit above: only src/lib/bidiRuns.js imports it,
+        // Same shape as fontkit above: only src/editor/text/bidiRuns.js imports it,
         // which is only reachable through src/editor/registry/text.ts's
         // serialize(), itself only reachable from inside the Sign/Redact
         // islands - invisible to the startup crawl of the .astro entry points.

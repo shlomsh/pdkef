@@ -24,7 +24,7 @@ the CI mechanism.
 `scripts/affected-scope.mjs` widens to `everything` for any of `{site, shell, editor, editor-ui,
 lib}` before consulting a single inferred dependent; tool folders, `site-e2e` and `fonts` are all
 resolved by directory ownership plus the hand-written `implicitDependencies` lists; `src/test/` is
-always appended. *Measured*: `nx show projects --affected --files=src/editor-ui/ElementToolbar.tsx`
+always appended. *Measured*: `nx show projects --affected --files=src/tools/sign/components/ElementToolbar.tsx`
 answers `editor-ui, tool-sign, tool-redact, fonts, cross-tool-tests, site-e2e` (correct: nothing else
 imports `editor-ui`) and rule 3 discards it. No changed file produces a different CI verdict with
 inference on or off, because the checker forbids the edges inference would add. *Measured* cost:
@@ -33,8 +33,8 @@ five jobs. Either the graph decides (DEBT-06, DEBT-07) or Nx leaves.
 
 ### 2. Two tool-owned Playwright specs visit another tool's page
 
-`src/tools/sign/e2e/toolbar-touch-targets.spec.js` drives `/redact` as well as `/sign`;
-`src/tools/merge/e2e/merge-handoff.spec.js` ends on `/compress/` and asserts Compress's identity row.
+`e2e/tool-toolbars/toolbar-touch-targets.spec.js` drives `/redact` as well as `/sign`;
+`e2e/handoff/merge-handoff.spec.js` ends on `/compress/` and asserts Compress's identity row.
 A Redact-only or Compress-only commit narrows past them. Fail-narrow, live today (DEBT-01).
 
 ### 3. The cross-tool test placement rule is unenforced and unloaded
@@ -49,10 +49,10 @@ projects during ARCH-20 (DEBT-02, DEBT-11).
 
 *Measured* consumer graph over non-test `src/`:
 
-- `src/editor/workspace/draftStore.js` is consumed by `shell` (`FileDropzone`), `lib`
+- `src/lib/drafts/draftStore.ts` is consumed by `shell` (`FileDropzone`), `lib`
   (`useHandoffIntake`), Merge (two dynamic imports), Sign and Redact; `useDraftPersistence.js` by
   Merge. The `shell -> editor` edge exists only for this and `CompareSlider -> gestures/controller`.
-- `src/editor/adapters/pdf/renderContext.js` is consumed by compress, split, to-image, lib and
+- `src/lib/pdfRender.js` is consumed by compress, split, to-image, lib and
   editor-ui: shared pdf.js bootstrap filed under the editor.
 - `src/lib/` (28 non-test modules): 11 genuinely multi-consumer; 6 consumed only by Sign+Redact
   (`useCurrentPage`, `useDraggableElement`, `useElementResize`, `useUndoShortcut`, `toolArming`,
@@ -100,7 +100,7 @@ own 40 commits: 0 narrow. QUAL-08 measures the real week; expect it to land near
 ### 8. `changedFiles()` drops the old path of a renamed file
 
 `scripts/change-scope.mjs` uses `git diff --name-only`; with git's default rename detection,
-*measured* `git diff --name-only 370ace3~1 370ace3 | grep -c src/components/SignTool` is 0 against
+*measured* `git diff --name-only 370ace3~1 370ace3 | grep -c SignTool` is 0 against
 37 with `--no-renames`. A pure move between two tools affects only the destination (DEBT-03).
 
 ### 9. Guidance and checker gaps
@@ -108,7 +108,7 @@ own 40 commits: 0 narrow. QUAL-08 measures the real week; expect it to land near
 - `.claude/rules/fonts-and-text.md` still says `scripts/change-scope.mjs`'s `FONT_GUARD_INPUTS` is
   the one list and that nothing under `src/tools/sign/` is an input; ARCH-20 deleted the list and
   `e2e/sign/project.json` makes `fonts` depend on `tool-sign` (six of the 27 guard specs drive
-  `/sign`). `backlog/tasks/ARCH-21.md` cites `src/lib/useWorkspaceGestures.ts`, which lives in
+  `/sign`). `backlog/tasks/ARCH-21.md` cites `src/tools/sign/hooks/useWorkspaceGestures.ts`, which lives in
   `src/tools/sign/`.
 - `ruleViolation('editor', 'site', ...)` returns `null`: no rule forbids a core folder importing
   `src/pages/`, `src/layouts/` or `src/styles/`. Latent, no such edge exists.

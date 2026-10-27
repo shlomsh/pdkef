@@ -27,14 +27,14 @@ headline claims against the checkout; line numbers below are from `275e2983`. Nx
 change to any of them reaches 23 of 24 projects. About 200 of the 582 commits in the window went
 wide on e2e. The edges that close the loop:
 
-- `src/i18n/toolMessages.ts` (2466 lines, 53 commits in the window) imports types from shell (`:21`)
+- the former `toolMessages.ts` (2466 lines, 53 commits in the window) imports types from shell (`:21`)
   and editor (`:22`, `:1527`), and is imported by pages (`HomePageLayout.astro:35`,
   `localizedToolPage.ts:26`). See ARCH-35.
-- `src/lib/signHelpers.js:1-2` imports `constants/signGeometry.js` and `editor/text/fonts.js`: lib
+- `src/editor/text/signHelpers.js:1-2` imports `constants/signGeometry.js` and `editor/text/fonts.js`: lib
   reaching up into editor and site. Its consumers are Sign, editor and editor-ui only.
 - `src/shell/pageWorkspace/PhoneFinish.tsx:2` imports `editor-ui/ExportHandoffs.tsx`.
 - The `site` project (`src/project.json`, root `src`) swallows `src/data`, `src/site-lib` and
-  `src/constants`; `signGeometry.js` and `data/tools.js` give editor, lib and i18n back-edges into it.
+  the constants folder; `signGeometry.js` and `data/tools.js` give editor, lib and i18n back-edges into it.
   A test-only import (`languageCoverage.test.js` -> `data/tools.js`) is the only `editor -> site` edge.
 - `site-test` mixes test-support helpers (13 importing projects) with the repo-wide guards.
 

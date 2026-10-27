@@ -1,7 +1,7 @@
 import type { DocumentationLocaleId } from '../i18n/documentationLocales';
 
 /**
- * LOC-09: the home page's launcher tile (src/components/FileDropzone.tsx) had
+ * LOC-09: the home page's launcher tile (src/site-lib/FileDropzone.tsx) had
  * no i18n hooks at all - every string was a hardcoded literal, and it took no
  * `messages` prop. Additive and backward compatible: the component defaults
  * to `englishFileDropzoneMessages` when no prop is passed, so every existing

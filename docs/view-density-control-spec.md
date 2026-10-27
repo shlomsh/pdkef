@@ -35,7 +35,7 @@ to 249px (71%). Three parts, all already merged into the working tree:
    attribute on the `ToolShell` component, which renders only when a file is
    loaded - in *every* tool.
 
-Plus a CLS mitigation: `src/lib/draftStore.js` mirrors "a draft exists" into
+Plus a CLS mitigation: `src/lib/drafts/draftStore.ts` mirrors "a draft exists" into
 localStorage, and a blocking `is:inline` script in
 `src/layouts/ToolPageLayout.astro` reads it before first paint so a returning
 visitor with a saved draft does not watch the hero collapse after the page has
@@ -175,16 +175,16 @@ attributes. Write `stroke-width`, not `strokeWidth`.
 
 | File | Change |
 |---|---|
-| `src/components/ViewControl.jsx` | **new** - renders segmented control + `FullscreenButton` |
-| `src/components/ViewControl.module.css` | **new** - segmented styles + the 920px show/hide |
-| `src/lib/useViewDensity.js` | **new** - the hook: read/write localStorage, sync `data-view-density` |
-| `src/components/SignTool/SignToolbar.jsx` | swap `FullscreenButton` -> `ViewControl` |
-| `src/components/RedactToolbar.jsx` | swap `FullscreenButton` -> `ViewControl` |
+| `src/editor-ui/ViewControl.tsx` | **new** - renders segmented control + `FullscreenButton` |
+| `src/editor-ui/ViewControl.module.css` | **new** - segmented styles + the 920px show/hide |
+| `src/editor-ui/useViewDensity.js` | **new** - the hook: read/write localStorage, sync `data-view-density` |
+| `src/tools/sign/components/SignToolbar.tsx` | swap `FullscreenButton` -> `ViewControl` |
+| `src/tools/redact/components/RedactToolbar.tsx` | swap `FullscreenButton` -> `ViewControl` |
 | `src/components/ToolHero.astro` | gate collapse on density + the condensable flag |
 | `src/layouts/ToolPageLayout.astro` | extend the inline script; pass the flag to `ToolHero` |
 | `src/data/tools.js` | add `condenseOnLoad` per tool |
 | `astro.config.mjs` | **recompute the CSP hash** (see 4.5) |
-| `src/components/FullscreenButton.jsx` | unchanged |
+| `src/editor-ui/FullscreenButton.tsx` | unchanged |
 
 ### 4.2 Toolbar width invariants - read before touching `SignToolbar.module.css`
 
@@ -209,7 +209,7 @@ CLAUDE.md, and each rule fixed a shipped bug. The relevant ones:
 
 ### 4.3 Why rendering both variants is safe
 
-`e2e/sign/toolbar-touch-targets.spec.js` runs only at 700px and 390px, and it
+`e2e/tool-toolbars/toolbar-touch-targets.spec.js` runs only at 700px and 390px, and it
 filters to `button.offsetParent !== null` - so the CSS-hidden segmented control
 is skipped and the assertions still see a uniform row. The
 `--controls-per-row` selectors (`:has(> :nth-child(9))`) count *all* children
@@ -338,7 +338,7 @@ If it is not, the working tree has drifted - find out why before writing code.
    currently reports `78303 bytes (limit: 80000)`, so there is only ~1.7KB of
    headroom for the new module. If you exceed it, trim rather than raise the
    limit.
-3. `npm run test:e2e` green - in particular `e2e/sign/toolbar-touch-targets.spec.js`,
+3. `npm run test:e2e` green - in particular `e2e/tool-toolbars/toolbar-touch-targets.spec.js`,
    which must still see a uniform icon-only row at 700px and 390px.
 4. `npm run build && npm run preview`, then in a real browser confirm **zero CSP
    violations** in the console on `/sign/`, `/redact/` and `/merge/`. The dev

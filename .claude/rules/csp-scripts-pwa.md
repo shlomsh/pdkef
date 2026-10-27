@@ -47,7 +47,7 @@ The CSP is intentionally split across two layers:
 
 ## CSP is invisible in dev (design-standard hazard)
 
-- **CSP is invisible in dev.** Astro's `security.csp` (auto-hashing of inline scripts/styles) does
+- **CSP is invisible in dev.** Astro's `security.csp` (auto-hashing of inline scripts and styles) does
   **not** run in `astro dev`, only in `build`/`preview`/production. Any change to styles, scripts,
   `astro.config.mjs`, or `vercel.json` **must** be verified with `npm run build && npm run preview`. A
   silently-blocked hydration bootstrap looks fine (static HTML renders) but the island never hydrates.

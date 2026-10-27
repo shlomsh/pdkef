@@ -28,9 +28,9 @@ The output is built quietly in the background (`usePreparedOutput`), keyed on ev
 
 | Module | Owner | What it is |
 | --- | --- | --- |
-| `src/lib/imagesToPdf.js` | Image to PDF, Scan | moved from `src/tools/image-to-pdf/imageToPdf.js`; gains `options.pageSize` |
+| `src/lib/imagesToPdf.js` | Image to PDF, Scan | moved from `src/lib/imagesToPdf.js`; gains `options.pageSize` |
 | `src/lib/imagePage.js` | Image to PDF, Merge, Scan | gains `placeImage()` and `addImagePage(..., { pageSize })` |
-| `src/lib/pageOrder.js` | Image to PDF, Scan | moved from `src/tools/image-to-pdf/pageOrder.js`, unchanged |
+| `src/lib/pageOrder.js` | Image to PDF, Scan | moved from `src/lib/pageOrder.js`, unchanged |
 | `src/lib/targetSizeSearch.js` | Compress, Scan | moved from `src/tools/compress/`, plus the quality constants |
 | `src/lib/canvasBlob.js` | Compress, Scan | `canvasToBlob`, moved out of `compress.js` |
 | `src/shell/pageWorkspace/useDownloadFlow.ts`, `FinishRow.tsx` | all page tools | `HandoffTool` gains `'merge'` |

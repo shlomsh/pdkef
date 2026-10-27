@@ -9,7 +9,7 @@ import { compressImageToTarget } from './compressImage.js';
 // primary decode path throws and it falls back to the <img> element path on
 // its own - exactly the fallback the ticket asks for, exercised for free by
 // running these tests under jsdom. That fallback path is what gets stubbed
-// below (Image#src/onload, URL.createObjectURL).
+// below (the Image src and onload, URL.createObjectURL).
 const ORIGINAL_WIDTH = 1000;
 const ORIGINAL_HEIGHT = 1000;
 

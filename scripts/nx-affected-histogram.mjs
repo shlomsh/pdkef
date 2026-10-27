@@ -9,7 +9,7 @@
 // what it actually resolves.
 //
 // Buckets:
-//   docs_only  every changed file is a backlog/docs/root-markdown file (or
+//   docs_only  every changed file is a backlog, docs or root markdown file (or
 //              the merge/rename touched nothing at all - the diff is empty)
 //   narrow     affected-scope.mjs resolved without everything=true; reports
 //              the affected tool/site-e2e/fonts project list
@@ -22,7 +22,7 @@
 // right at the tail of the ARCH-16..19 folder-moving sequence (see git log -
 // ARCH-16 lands ~40 commits back, ARCH-17/18 in the last dozen). Most of a
 // 200-commit window predates that layout, so a commit's own historical files
-// (e.g. src/components/MergeTool/...) are not owned by any project this
+// (e.g. components/MergeTool/...) are not owned by any project this
 // repo's project.json files declare today, and it is correctly classified
 // `everything` (the "unowned files" rule) - not because narrowing does not
 // work, but because the layout it targets did not exist yet when that commit

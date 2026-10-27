@@ -8,7 +8,7 @@ import { PRECACHED_FONTS, shouldPrecache } from './precachePolicy.js';
  * (precachePolicy.js) for the full reasoning and the pre-2026-08-27
  * precedent this restores.
  *
- * ARCH-22: moved here verbatim from scripts/precacheFilter.test.mjs, since
+ * ARCH-22: moved here verbatim from scripts/sw.test.mjs, since
  * this is the policy's own unit test and the policy is product behaviour
  * living under src/site-lib/, not build tooling. The service worker's own
  * vm-harness tests (which exercise public/sw.js directly rather than this

@@ -87,8 +87,8 @@ Everything needed is exported from the `@cantoo/pdf-lib` package root - `setText
 `showText`, `pushOperators` - so there is no fork and no new dependency. fontkit is already a
 dependency and already runs on this path.
 
-**This design is validated, not proposed.** It was run against the real `src/lib/comb.js`,
-`src/lib/fonts.js`, `src/editor/text/signHelpers.js` and `src/editor/model/signGeometry.js`, through a port of
+**This design is validated, not proposed.** It was run against the real `src/editor/text/comb.js`,
+`src/editor/text/fonts.js`, `src/editor/text/signHelpers.js` and `src/editor/model/signGeometry.js`, through a port of
 `text.ts`'s `serialize`, covering multi-line RTL pointed Hebrew, Latin, both comb paths, and the
 Latin-only-font substitution path (Pacifico asked to render Hebrew, which `resolveFontFamily` sends to
 Gveret Levin). All produced correct PDFs. What is left is implementation, not investigation.
@@ -234,12 +234,12 @@ path. "Fix some clusters and miss others" describes the status quo, not the prop
 
 ## The font catalogue is ours to curate
 
-`HEBREW_CAPABLE_FONTS` in `src/lib/fonts.js` is a closed, deliberate list, **six since 2026-08-23**:
+`HEBREW_CAPABLE_FONTS` in `src/editor/text/fonts.js` is a closed, deliberate list, **six since 2026-08-23**:
 Arimo, Tinos, Cousine, Assistant, Heebo, Gveret Levin. Playpen Sans Hebrew was the seventh and was
 dropped, which is the rule below being used rather than merely stated. We decide what is on it. **We do not owe
 correct output for every font that exists, only for the ones we ship** - so when a font cannot be made
 to agree with the editor, the answer is to drop it or mark it Latin-only, not to build a special path
-around it. `src/lib/fontCoverage.test.js` already sets this precedent by judging Hebrew capability
+around it. `src/editor/text/fontCoverage.test.js` already sets this precedent by judging Hebrew capability
 against the real asset bytes.
 
 As measured, no font needs dropping: per-glyph positioning fixes all seven, Playpen included.
@@ -424,7 +424,7 @@ facts instead of re-deriving them.
 The single easiest way to build this wrong, so it is recorded before anyone builds it.
 
 The editor renders text in a `<textarea>` carrying **`dir={textDirection}`**
-(`src/components/SignTool/nodes/TextNode.tsx`), and that value comes from
+(`src/tools/sign/components/nodes/TextNode.tsx`), and that value comes from
 `getEffectiveTextDirection(element)` in `src/editor/text/signHelpers.js`:
 
 ```js
@@ -629,7 +629,7 @@ after the document is signed.
 
 ### What already exists, and exactly where it stops
 
-`resolveFontFamily` in `src/lib/fonts.js` is layer 3, deferred to element granularity. It handles
+`resolveFontFamily` in `src/editor/text/fonts.js` is layer 3, deferred to element granularity. It handles
 Hebrew-typed-into-a-Latin-only-face by swapping the whole element's family, and its comment says plainly
 why it does not go finer:
 
@@ -649,7 +649,7 @@ on one Arimo instance, `.notdef` reported `U+645` for an emoji, for a tab and fo
 an Arabic word had been laid out first. The `.notdef` **count** is reliable; the identity is not.
 
 Detect coverage per character with `font.hasGlyphForCodePoint(cp)` instead, which is also the precedent
-`src/lib/fontCoverage.test.js` already sets.
+`src/editor/text/fontCoverage.test.js` already sets.
 
 **Trap 2: the naive check refuses on characters the user cannot see.** `hasGlyphForCodePoint` is honest
 about *every* code point, including the invisible ones, and the bundled fonts do not cover them:
@@ -717,7 +717,7 @@ proportionate: the set of scripts is open, and page weight is budgeted.
 
 **Detect instead.** If any character in an element has no glyph in the resolved font, say so before the
 user downloads. That converts silent content loss into a visible, honest limitation, which is what this
-product's voice calls for anyway, and it is the same move `src/lib/fontCoverage.test.js` already makes by
+product's voice calls for anyway, and it is the same move `src/editor/text/fontCoverage.test.js` already makes by
 judging Hebrew capability against real asset bytes rather than a claim.
 
 This is what makes "done" provable for the whole epic. With it, **every text the editor can display
@@ -800,7 +800,7 @@ What dropping it involved, because **deleting the name is the part that would ha
 persist for 14 days and keep arriving with the family the user picked, so a retired name outlives its
 files. Unmapped, it reproduces the very divergence this document is about - the editor falls back per
 character to a system font while the export, unable to fetch the missing TTF, falls back to Arimo.
-`RETIRED_FONTS` in `src/lib/fonts.js` maps it to Gveret Levin, the other bundled handwriting face with
+`RETIRED_FONTS` in `src/editor/text/fonts.js` maps it to Gveret Levin, the other bundled handwriting face with
 Hebrew coverage, and `resolveFontFamily` applies that before anything else, so both sides land on the
 same face. Removed alongside: the `@font-face` rule, the TTF, the licence entries on `/licenses/` and in
 `THIRD_PARTY_LICENSES.md`, and the parity guard's per-font exemption - **the guard now has no

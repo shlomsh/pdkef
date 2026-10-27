@@ -61,7 +61,7 @@ import { isLocalizedPath } from '../i18n/localePrefixes.js';
  *
  * Localized HTML (`/he/...`, any prefix in src/i18n/localePrefixes.js) is
  * the second exclusion (LOC-02): a locale must cost only its own visitors
- * bytes, and nine tools times N languages of page shells would otherwise
+ * bytes, and every tool times N languages of page shells would otherwise
  * land in every visitor's cache. A localized page instead asks sw.js to
  * precache its edition's published pages as a pack (the same mechanism as
  * font packs, `pdkef:locale-pack-provision`), so a Hebrew visitor has the

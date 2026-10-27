@@ -58,7 +58,7 @@ accepted.
 
 ## How a box is placed on each kind of field
 
-A placed box is an ordinary text element. Placement (`src/editor/text/combPlacement.ts`) decides only its
+A placed box is an ordinary text element. Placement (`src/tools/sign/lib/combPlacement.ts`) decides only its
 span, size and position; the `left` edge is always the field's own left edge, whichever way the text
 reads, because a span fixed by the paper has no growing edge to anchor.
 
