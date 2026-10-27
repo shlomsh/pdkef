@@ -1,10 +1,9 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach, beforeEach, type Mock } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeAll, beforeEach, type Mock } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
-import { redactPdf } from './lib/redact.js';
 import * as pdfjsDist from 'pdfjs-dist';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -13,12 +12,9 @@ import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import type { GestureControllerOptions } from '../../lib/gestures/controller.ts';
-import usePageTexts, { type PageTextsState } from './hooks/usePageTexts.ts';
-import { buildPageText } from './lib/find/pageText.ts';
-import { createPageGeometry } from '../../editor/geometry/coords.ts';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
-import { loadDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { recentActions } from '../../lib/actionTrail.ts';
+import { saveDraft } from '../../lib/drafts/draftStore.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
 import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
@@ -54,35 +50,6 @@ async function settleUntil(description: string, ready: () => boolean, budgetMs =
   if (!ready()) throw new Error(`Timed out waiting for ${description}`);
 }
 
-// RED-40: restored-draft tests hand loadDraft a record; every other test gets the real one.
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.ts')>();
-  return { ...actual, loadDraft: vi.fn(actual.loadDraft), saveHandoff: vi.fn(actual.saveHandoff) };
-});
-
-const { lifecycleSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn() }));
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/productAnalytics.ts')>();
-  return { ...actual, reportToolLifecycleEvent: lifecycleSpy };
-});
-
-const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Mock[] }));
-
-// Exercise the real controller while wrapping each commit callback. This proves
-// the Redact integration, rather than only controller.ts in isolation, commits
-// one final state patch regardless of how many pointer moves a gesture has.
-vi.mock('../../lib/gestures/controller.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/gestures/controller.ts')>();
-  return {
-    ...actual,
-    startGesture: <Patch,>(options: GestureControllerOptions<Patch>) => {
-      const commit = vi.fn(options.commit);
-      gestureCommitSpies.push(commit);
-      return actual.startGesture({ ...options, commit });
-    },
-  };
-});
-
 // RED-30: drag the blur slider to `value` and release: input events paint live,
 // the one change event commits.
 async function dragBlurSlider(value: number, steps: number[] = []): Promise<void> {
@@ -96,62 +63,135 @@ async function dragBlurSlider(value: number, steps: number[] = []): Promise<void
   await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 
-function makePdfFile(name: string): File {
-  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
-}
-
-// Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
-vi.mock('pdfjs-dist', () => {
-  return {
-    GlobalWorkerOptions: {
-      workerSrc: ''
+// EDGE 1 of 2: pdf.js cannot run its worker or paint in jsdom, so it is faked here and nowhere else.
+// Everything above it (redactPdf and its flatten/assemble, the page-text and saved-file-check hooks,
+// useDocumentDetails, removePlaces, draftStore, analytics, error reports, the gesture controller) runs
+// for real. The fake pages carry what a test puts in `pageItems` as their text, and read a document's
+// info (Title, Author, ...) back from the very bytes they were handed, as pdf.js would.
+const pdfjsEdge = vi.hoisted(() => {
+  /** Text items per page (0-based), as pdf.js's text stream would hand them out. */
+  const pageItems = new Map<number, object[]>();
+  const fakePage = (pageIndex: number) => ({
+    view: [0, 0, 612, 792],
+    rotate: 0,
+    getViewport: ({ scale = 1 }: { scale?: number } = {}) => ({ width: 612, height: 792, scale, viewBox: [0, 0, 612, 792] }),
+    render: () => ({ promise: Promise.resolve(), cancel: () => {} }),
+    streamTextContent: () => {
+      let sent = false;
+      return { getReader: () => ({ read: async () => (sent ? { done: true } : (sent = true, { done: false, value: { items: pageItems.get(pageIndex) ?? [] } })) }) };
     },
-    getDocument: vi.fn(() => ({
-      promise: Promise.resolve({
-        numPages: 2,
-        getPermissions: vi.fn(async () => null),
-        getPage: vi.fn(() => Promise.resolve({
-          getViewport: () => ({ width: 612, height: 792 }),
-          render: () => ({ promise: Promise.resolve() })
-        }))
-      })
-    }))
-  };
+    getOperatorList: async () => ({ fnArray: [], argsArray: [] }),
+    getAnnotations: async () => [],
+    commonObjs: { get: () => { throw new Error('no font'); } },
+    cleanup: () => {},
+  });
+  const fakeDocument = (numPages: number, data?: BufferSource) => ({
+    numPages,
+    getPermissions: vi.fn(async () => null),
+    getPage: vi.fn((pageNumber: number) => Promise.resolve(fakePage(pageNumber - 1))),
+    getOutline: async () => null,
+    getAttachments: async () => null,
+    getMetadata: async () => {
+      if (!data) return { info: {}, metadata: null };
+      const { PDFDocument } = await import('@cantoo/pdf-lib');
+      const doc = await PDFDocument.load(data, { updateMetadata: false });
+      return { info: { Title: doc.getTitle(), Author: doc.getAuthor(), Subject: doc.getSubject(), Keywords: doc.getKeywords() }, metadata: null };
+    },
+    destroy: async () => {},
+  });
+  const load = (args?: { data?: BufferSource }) => ({ promise: Promise.resolve(fakeDocument(2, args?.data)), destroy: async () => {} });
+  return { pageItems, fakeDocument, load };
 });
-
-vi.mock('./lib/redact.js', () => ({
-  redactPdf: vi.fn(async () => ({
-    blob: new Blob(['redacted'], { type: 'application/pdf' }),
-  }))
+vi.mock('pdfjs-dist', () => ({
+  GlobalWorkerOptions: { workerSrc: '' },
+  OPS: {},
+  AnnotationMode: { DISABLE: 0 },
+  getDocument: vi.fn(pdfjsEdge.load),
 }));
 
-const mockedRedactPdf = vi.mocked(redactPdf);
+/** The next pdf.js document read (the tool's own load of the picked file) reports `numPages` pages. */
+function mockPageCount(numPages: number) {
+  vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(((args?: { data?: BufferSource }) => ({
+    promise: Promise.resolve(pdfjsEdge.fakeDocument(numPages, args?.data)),
+    destroy: async () => {},
+  })) as never);
+}
 
-// RED-11: jsdom has no real pdf.js text extraction, so Find's own page-text
-// read (usePageTexts.ts) is mocked to hand back synthetic pages built with
-// the same buildPageText/createPageGeometry helpers findMatches.test.ts uses.
-// Defaults to 'idle' (Find never opened) so every test outside the RED-11
-// describe block below is unaffected - only that block overrides it.
-vi.mock('./hooks/usePageTexts.ts', () => ({ default: vi.fn(() => ({ status: 'idle', pages: [] })) }));
-const mockedUsePageTexts = vi.mocked(usePageTexts);
+/**
+ * Holds the next pdf.js document read open until `release()`. Called just before a Download click, the
+ * next read is the export's own, so the export stays in flight while the test acts on the editor.
+ */
+function holdNextDocumentRead() {
+  let release: (() => void) | null = null;
+  let finished!: () => void;
+  const finishedRead = new Promise<void>((resolve) => { finished = resolve; });
+  vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(((args?: { data?: BufferSource }) => ({
+    promise: new Promise((resolve) => { release = () => resolve(pdfjsEdge.fakeDocument(2, args?.data)); }),
+    destroy: async () => { finished(); },
+  })) as never);
+  return {
+    reached: () => release !== null,
+    release: () => release!(),
+    /** Releases the read and lets the export run to its end, whatever the tool then does with the result. */
+    async runToEnd() {
+      release!();
+      await act(async () => { await finishedRead; await new Promise((resolve) => setTimeout(resolve, 100)); });
+    },
+  };
+}
 
-const checkOverride = vi.hoisted(() => ({ current: null as null | ((args: never) => unknown) }));
-// RED-25: the saved-file check runs the real hook unless a test overrides it.
-vi.mock('./hooks/useSavedFileCheck.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./hooks/useSavedFileCheck.ts')>();
-  return { ...actual, default: (...args: Parameters<typeof actual.default>) => ((checkOverride.current ?? actual.default) as (...a: typeof args) => ReturnType<typeof actual.default>)(...args) };
-});
-// RED-59: jsdom cannot read a file's details, so the hook is steered per test (null = a file with none).
-const detailsOverride = vi.hoisted(() => ({ current: null as null | Record<string, unknown> }));
-vi.mock('./hooks/details/useDocumentDetails.ts', () => ({ useDocumentDetails: () => detailsOverride.current }));
-const authorTraces = {
-  title: 'Quarterly', author: 'Ada Lovelace', subject: null, keywords: null, creator: null, producer: null, creationDate: null, modDate: null,
-  otherInfoKeys: [], pieceInfo: false, xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
-  thumbnails: [], pageDetails: [],
-};
-const mockedRemovePlaces = vi.hoisted(() => vi.fn());
-vi.mock('./lib/check/removePlaces.ts', () => ({ removePlaces: mockedRemovePlaces }));
+// EDGE: jsdom has no canvas. The export paints a flattened page and encodes it with toDataURL; this
+// records what was painted and answers with a real (1x1) JPEG, so redactPdf and assemble run unchanged.
+const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
+/** `encoded`: pages encoded to a JPEG. `fills`: every fillRect as `colour x,y,w,h`, in paint order. */
+const canvasEdge = { encoded: 0, fills: [] as string[] };
+function installCanvasEdge(): () => void {
+  const { getContext, toDataURL } = HTMLCanvasElement.prototype;
+  HTMLCanvasElement.prototype.getContext = function getContextStub() {
+    const ctx: Record<string, unknown> = {
+      fillStyle: '#000000',
+      fillRect(x: number, y: number, w: number, h: number) { canvasEdge.fills.push(`${ctx.fillStyle} ${x},${y},${w},${h}`); },
+      drawImage() {}, beginPath() {}, moveTo() {}, lineTo() {}, arc() {}, fill() {}, stroke() {},
+      measureText: (text: string) => ({ width: text.length * 6 }),
+      getImageData: (_x: number, _y: number, w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h }),
+    };
+    return ctx as unknown as CanvasRenderingContext2D;
+  } as unknown as typeof getContext;
+  HTMLCanvasElement.prototype.toDataURL = function toDataURLStub() {
+    canvasEdge.encoded += 1;
+    return `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
+  };
+  return () => { HTMLCanvasElement.prototype.getContext = getContext; HTMLCanvasElement.prototype.toDataURL = toDataURL; };
+}
 
+// A real, openable PDF of `pages` pages (612x792), built once. `makePdfFile` hands out a File of it.
+const pdfBytesCache = new Map<string, Uint8Array>();
+async function buildPdf(pages: number, info: { title?: string; author?: string } = {}): Promise<Uint8Array> {
+  const key = `${pages}:${info.title ?? ''}:${info.author ?? ''}`;
+  const cached = pdfBytesCache.get(key);
+  if (cached) return cached;
+  const doc = await PDFDocument.create({ updateMetadata: false });
+  for (let i = 0; i < pages; i += 1) doc.addPage([612, 792]);
+  if (info.title) doc.setTitle(info.title);
+  if (info.author) doc.setAuthor(info.author);
+  const bytes = await doc.save();
+  pdfBytesCache.set(key, bytes);
+  return bytes;
+}
+beforeAll(async () => { await buildPdf(2); await buildPdf(3); });
+
+function makePdfFile(name: string, bytes?: Uint8Array): File {
+  return new File([(bytes ?? pdfBytesCache.get('2::')!) as BlobPart], name, { type: 'application/pdf' });
+}
+
+/** An earlier visit's saved work, written through the real saveDraft into the harness's IndexedDB. */
+async function seedDraft(work: { elements: unknown[]; extra: Record<string, unknown> }): Promise<void> {
+  const fileBytes = (await buildPdf(2)).slice().buffer;
+  expect(await saveDraft('redact', { fileName: 'restored.pdf', fileType: 'application/pdf', fileBytes, ...work })).toBe(true);
+}
+
+// EDGE 2 of 2: jsdom cannot read a canvas's pixels, so the ring sampler is steered per test
+// (below). Also the one pixel read the eyedropper and the saved-file check share.
 // RED-51: jsdom cannot read a page, so the ring sampler is steered per test.
 // The default is null (what jsdom gives today); the recorder is a plain
 // function so vi.restoreAllMocks() in this file's afterEach cannot wipe it.
@@ -183,8 +223,18 @@ async function setSelectedBoxColor(color: string) {
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
 
+  let harness: ToolHarness;
+  let restoreCanvas: () => void;
+  // What the tool has told the usage endpoint so far, as [event, tool] in the order sent.
+  const lifecycle = async () => { await harness.flush(); return harness.usageEvents().map((e) => [e.name, e.properties.tool]); };
+  const failedOperations = async () => { await harness.flush(); return harness.usageEvents('tool_operation_failed'); };
+
   beforeEach(() => {
-    resetActionTrailForTests();
+    harness = installToolHarness();
+    restoreCanvas = installCanvasEdge();
+    canvasEdge.encoded = 0;
+    canvasEdge.fills = [];
+    pdfjsEdge.pageItems.clear();
     // jsdom's default answers every media query "yes". The editor tests mean a desktop with a
     // mouse, so the one query that says "finger" (useCoarsePointer) answers no.
     window.matchMedia = ((q: string) => ({
@@ -197,9 +247,9 @@ describe('PdfRedactTool UI flow', () => {
       act(() => render(null, container));
       container.remove();
     }
-    gestureCommitSpies.length = 0;
-    lifecycleSpy.mockClear();
     vi.restoreAllMocks();
+    restoreCanvas();
+    harness.restore();
     // A remembered blur strength or brush colour (rememberAppStyle) is on-device
     // state, so a test that sets one must not hand it to whichever test runs next.
     localStorage.clear();
@@ -324,18 +374,6 @@ describe('PdfRedactTool UI flow', () => {
     async function pressAuto(): Promise<void> {
       const auto = query<HTMLButtonElement>(container, '[data-editor-actions] [data-whiteout-color-auto]');
       await act(async () => { auto.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    }
-    function mockPageCount(numPages: number) {
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-        promise: Promise.resolve({
-          numPages,
-          getPermissions: vi.fn(async () => null),
-          getPage: vi.fn(() => Promise.resolve({
-            getViewport: () => ({ width: 612, height: 792 }),
-            render: () => ({ promise: Promise.resolve() }),
-          })),
-        }),
-      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
     }
 
     it('a drawn whiteout is auto and takes the colour sampled from its own page', async () => {
@@ -473,13 +511,10 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('a restored whiteout without a colour mode (an old draft) keeps its colour when moved, and is never sampled', async () => {
-      vi.mocked(loadDraft).mockResolvedValueOnce({
-        fileName: 'restored.pdf',
-        fileType: 'application/pdf',
-        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+      await seedDraft({
         elements: [{ id: 'old-1', pageIndex: 0, type: 'whiteout', left: 10, top: 20, width: 30, height: 30, color: '#abcdef' }],
         extra: { actionHistory: [] },
-      } as never);
+      });
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfRedactTool />, container); });
@@ -563,13 +598,7 @@ describe('PdfRedactTool UI flow', () => {
   describe('RED-40: whiteout colour and blur strength are per-document style', () => {
     // A restored document keeps what its owner chose; a fresh one starts from the app-wide style.
     async function mountRestored(carried: Record<string, unknown>): Promise<HTMLElement> {
-      vi.mocked(loadDraft).mockResolvedValueOnce({
-        fileName: 'restored.pdf',
-        fileType: 'application/pdf',
-        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
-        elements: [],
-        extra: { actionHistory: [], carried },
-      } as never);
+      await seedDraft({ elements: [], extra: { actionHistory: [], carried } });
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfRedactTool />, container); });
@@ -647,9 +676,10 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelector('.download-button')).toBeNull();
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
       // DEBT-28: a file in, then one started and one ready, nothing failed.
-      expect(lifecycleSpy.mock.calls).toEqual([
+      expect(await lifecycle()).toEqual([
         ['tool_page_viewed', 'redact'],
         ['tool_file_accepted', 'redact'],
+        ['tool_first_edit', 'redact'],
         ['tool_operation_started', 'redact'],
         ['tool_result_ready', 'redact'],
       ]);
@@ -681,17 +711,22 @@ describe('PdfRedactTool UI flow', () => {
 
   it('a piece of the export that will not load (a tab left open across a deploy) asks for a reload, not a retry', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockedRedactPdf.mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js'));
     try {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
+      // The export's own pdf.js read is where the stale chunk fails to load.
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce((() => ({
+        promise: Promise.reject(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js')),
+        destroy: async () => {},
+      })) as never);
       const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
         .find((button) => button.textContent.includes('Download')), 'Download button');
       await act(async () => { downloadButton.click(); });
       await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
       expect(container.textContent).toContain('PDkef was updated while this page was open. Reload the page to continue. Your edits are kept.');
       expect(container.textContent).not.toContain('Try again');
-      expect(lifecycleSpy.mock.calls).toContainEqual(['tool_operation_failed', 'redact']);
+      expect(await lifecycle()).toContainEqual(['tool_operation_failed', 'redact']);
+      expect(harness.reports()).toMatchObject([{ area: 'redact', step: 'export' }]);
     } finally {
       errorSpy.mockRestore();
     }
@@ -714,9 +749,10 @@ describe('PdfRedactTool UI flow', () => {
       expect(downloadButton().disabled).toBe(false);
       // DEBT-31: the trigger is on the trail even though the export threw.
       expect(recentActions()).toContain('export');
-      expect(lifecycleSpy.mock.calls).toEqual([
+      expect(await lifecycle()).toEqual([
         ['tool_page_viewed', 'redact'],
         ['tool_file_accepted', 'redact'],
+        ['tool_first_edit', 'redact'],
         ['tool_operation_started', 'redact'],
         ['tool_operation_failed', 'redact'],
       ]);
@@ -736,67 +772,48 @@ describe('PdfRedactTool UI flow', () => {
   it('RED-60: Remove it is a history step every export replays; Undo takes it back out', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    const downloads: Blob[] = [];
+    window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
     window.URL.revokeObjectURL = vi.fn();
-    const place = { kind: 'title', text: 'Secret title' };
-    const term = { label: 'Secret', source: 'typed', finder: () => [] };
-    const finding = { kind: 'in-place', place: 'title', text: 'Secret title', placeIndex: 0 };
-    const noTraces = {
-      title: null, author: null, subject: null, keywords: null, creator: null, producer: null, creationDate: null, modDate: null,
-      otherInfoKeys: [], pieceInfo: false, xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
-      thumbnails: [], pageDetails: [],
-    };
-    const savedArgs: Array<Blob | null> = [];
-    checkOverride.current = (args: { saved: Blob | null }) => {
-      savedArgs.push(args.saved);
-      const state = args.saved
-        ? { status: 'done', typed: [], outcome: { results: [{ term, findings: [finding] }], unsolidPages: [], traces: { original: noTraces, saved: noTraces }, context: { saved: { places: [place], picturePages: [], attachmentCount: 0 }, original: [] } } }
-        : { status: 'idle' };
-      return { state, search: vi.fn() };
-    };
-    const replayed = (callIndex: number) => {
-      const options = mockedRedactPdf.mock.calls[callIndex][3] as { finish: (doc: unknown) => void };
-      mockedRemovePlaces.mockClear();
-      options.finish('doc');
-      return mockedRemovePlaces.mock.calls.map((call) => call[1]);
-    };
+    // What the saved file says about itself: the check reads this title back and offers to remove it.
+    const titleOf = async (blob: Blob) => (await PDFDocument.load(await blob.arrayBuffer(), { updateMetadata: false })).getTitle();
     try {
-      const drawArea = await loadFileAndGetDrawArea();
+      const drawArea = await loadFileAndGetDrawArea(makePdfFile('titled.pdf', await buildPdf(2, { title: 'Secret title' })));
       await drawBox(drawArea, 50, 200, 200, 500);
       const buttons = () => Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`));
       const download = () => required(buttons().find((button) => button.textContent.includes('Download')), 'Download button');
-      const callsBefore = mockedRedactPdf.mock.calls.length;
       await act(async () => { download().click(); });
       await settleUntil('the export', () => container.querySelector('[data-saved-file-check]') !== null);
-      expect(replayed(callsBefore)).toEqual([[]]);
-      const exported = savedArgs[savedArgs.length - 1];
-      const downloadsBefore = (window.URL.createObjectURL as Mock).mock.calls.length;
+      expect(downloads).toHaveLength(1);
+      expect(await titleOf(downloads[0])).toBe('Secret title');
 
+      // Ask the check about the word, as a person would; it finds it in the saved file's title.
+      const search = query<HTMLInputElement>(container, '[data-saved-file-check] input[type="search"]');
+      await act(async () => { search.value = 'Secret'; search.dispatchEvent(new Event('input', { bubbles: true })); });
+      await act(async () => { query<HTMLFormElement>(container, '[data-saved-file-check] form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
       const remove = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-saved-file-check] button'))
         .find((button) => button.textContent === 'Remove it'), 'Remove it button');
       await act(async () => { remove.click(); });
       await settleUntil('the saved file again', () => container.querySelector('[data-check-removed]') !== null);
-      expect(savedArgs[savedArgs.length - 1]).not.toBe(exported);
 
-      expect(mockedRedactPdf.mock.calls.length).toBe(callsBefore + 2);
-      expect(replayed(callsBefore + 1)).toEqual([[place]]);
-      expect((window.URL.createObjectURL as Mock).mock.calls.length).toBe(downloadsBefore + 1);
+      // The export replayed the removal: saved again and downloaded, without the title.
+      expect(downloads).toHaveLength(2);
+      expect(await titleOf(downloads[1])).toBeUndefined();
       expect(container.querySelector('[data-check-removed]')?.textContent).toBe('Removed the title. Saved again and downloaded.');
 
       const undo = required(buttons().find((button) => button.title === 'Undo'), 'Undo button');
       await act(async () => { undo.click(); });
       await act(async () => { download().click(); });
-      await settleUntil('the export without the removal', () => mockedRedactPdf.mock.calls.length === callsBefore + 3);
-      expect(replayed(callsBefore + 2)).toEqual([[]]);
+      await settleUntil('the export without the removal', () => downloads.length === 3);
+      expect(await titleOf(downloads[2])).toBe('Secret title');
     } finally {
-      checkOverride.current = null;
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
     }
   });
 
   describe('RED-59: the file\'s details', () => {
-    afterEach(() => { detailsOverride.current = null; });
+    const authored = async () => makePdfFile('authored.pdf', await buildPdf(2, { author: 'Ada Lovelace' }));
 
     it('shows no footer for a file without details', async () => {
       await loadFileAndGetDrawArea();
@@ -804,26 +821,28 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('shows the footer once the details are read', async () => {
-      detailsOverride.current = authorTraces;
-      await loadFileAndGetDrawArea();
+      await loadFileAndGetDrawArea(await authored());
+      await settleUntil('the details footer', () => container.querySelector('[data-details-footer]') !== null);
       expect(query(container, '[data-details-footer]').textContent).toContain('Ada Lovelace');
     });
 
     it('the export receives the details edited in the sheet, and none when untouched', async () => {
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
-      window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      const downloads: Blob[] = [];
+      window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
       window.URL.revokeObjectURL = vi.fn();
+      const authorOf = async (blob: Blob) => (await PDFDocument.load(await blob.arrayBuffer(), { updateMetadata: false })).getAuthor();
       try {
-        detailsOverride.current = authorTraces;
-        const drawArea = await loadFileAndGetDrawArea();
+        const drawArea = await loadFileAndGetDrawArea(await authored());
+        await settleUntil('the details footer', () => container.querySelector('[data-details-footer]') !== null);
         await drawBox(drawArea, 50, 200, 200, 500);
         const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
           .find((button) => button.textContent.includes('Download')), 'Download button');
-        const callsBefore = mockedRedactPdf.mock.calls.length;
         await act(async () => { download().click(); });
-        await settleUntil('the untouched export', () => mockedRedactPdf.mock.calls.length > callsBefore);
-        expect((mockedRedactPdf.mock.calls[callsBefore][3] as { details?: unknown }).details).toEqual({});
+        await settleUntil('the untouched export', () => downloads.length === 1);
+        // Untouched: the saved file says what the original did.
+        expect(await authorOf(downloads[0])).toBe('Ada Lovelace');
 
         const review = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-details-footer] button'))
           .find((button) => button.textContent === 'Review'), 'Review button');
@@ -835,10 +854,9 @@ describe('PdfRedactTool UI flow', () => {
         const done = required(Array.from(document.body.querySelectorAll<HTMLButtonElement>('dialog button')).find((b) => b.textContent === 'Done'), 'Done');
         await act(async () => { done.click(); });
 
-        const callsMid = mockedRedactPdf.mock.calls.length;
         await act(async () => { download().click(); });
-        await settleUntil('the export with the edit', () => mockedRedactPdf.mock.calls.length > callsMid);
-        expect((mockedRedactPdf.mock.calls[callsMid][3] as { details?: unknown }).details).toEqual({ author: { action: 'delete' } });
+        await settleUntil('the export with the edit', () => downloads.length === 2);
+        expect(await authorOf(downloads[1])).toBeUndefined();
       } finally {
         window.URL.createObjectURL = originalCreateObjectURL;
         window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -866,18 +884,20 @@ describe('PdfRedactTool UI flow', () => {
       const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
         .find((button) => button.textContent.includes('Download')), 'Download button');
       const revokedBefore = (window.URL.revokeObjectURL as Mock).mock.calls.length;
-      const callsBefore = mockedRedactPdf.mock.calls.length;
+      canvasEdge.fills = [];
       await act(async () => { download().click(); });
       await settleUntil('the export while peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedBefore);
-      const whilePeeking = JSON.parse(JSON.stringify(mockedRedactPdf.mock.calls[callsBefore][1]));
+      // What the export painted onto the page picture, box by box: the peek is not in it.
+      const whilePeeking = [...canvasEdge.fills];
+      expect(whilePeeking.some((fill) => fill.startsWith('#000000 '))).toBe(true);
 
       await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true })); });
       expect(box.hasAttribute('data-peeking')).toBe(false);
       const revokedMid = (window.URL.revokeObjectURL as Mock).mock.calls.length;
+      canvasEdge.fills = [];
       await act(async () => { download().click(); });
       await settleUntil('the export after peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedMid);
-      expect(JSON.parse(JSON.stringify(mockedRedactPdf.mock.calls[callsBefore + 1][1]))).toEqual(whilePeeking);
-      expect(JSON.stringify(whilePeeking)).not.toContain('peek');
+      expect(canvasEdge.fills).toEqual(whilePeeking);
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -932,10 +952,6 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('keeps the same PDF page mounted while redacting', async () => {
-    let finishRedaction!: (value: { blob: Blob }) => void;
-    mockedRedactPdf.mockImplementationOnce(() => new Promise((resolve) => {
-      finishRedaction = resolve;
-    }));
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -948,20 +964,19 @@ describe('PdfRedactTool UI flow', () => {
       const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
         .find((button) => button.textContent.includes('Download')), 'Download button');
 
+      // The export's own pdf.js read is held open, so the export is in flight.
+      const exportRead = holdNextDocumentRead();
       await act(async () => {
         downloadButton.click();
       });
-      // finishRedaction is assigned by the redactPdf mock's own body, so this
-      // waits for the export to have got that far and nothing shorter.
-      await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
+      await settleUntil('the export to reach its pdf.js read', exportRead.reached);
 
       expect(container.querySelector('.redact-draw-area')).toBe(pageBefore);
       expect(container.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
       expect(container.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
 
-      await act(async () => {
-        finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
-      });
+      await act(async () => { exportRead.release(); });
+      await settleUntil('the export to finish', () => !container.querySelector(`.${workspaceStyles.workspace}`)!.classList.contains(workspaceStyles['is-processing']));
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -971,16 +986,10 @@ describe('PdfRedactTool UI flow', () => {
   it('exports the bytes it already holds when the picked file can no longer be read (DEBT-51)', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    const downloads: Blob[] = [];
+    window.URL.createObjectURL = vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:redacted-pdf'; });
     window.URL.revokeObjectURL = vi.fn();
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    // The real adapter reads a File with arrayBuffer(); this stand-in does the same.
-    const sources: unknown[] = [];
-    mockedRedactPdf.mockImplementation(async (source: unknown) => {
-      sources.push(source);
-      if (!(source instanceof ArrayBuffer)) await (source as File).arrayBuffer();
-      return { blob: new Blob(['redacted'], { type: 'application/pdf' }) };
-    });
 
     try {
       const picked = makePdfFile('gone.pdf');
@@ -991,17 +1000,18 @@ describe('PdfRedactTool UI flow', () => {
       const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
         .find((button) => button.textContent.includes('Download')), 'Download button');
 
+      // A re-read of the File would fail the export; both exports deliver a real two-page PDF instead.
       await act(async () => { download().click(); });
-      await settleUntil('the first export to deliver', () => sources.length === 1 && lifecycleSpy.mock.calls.some(([e]) => e === 'tool_result_ready'));
+      await settleUntil('the first export to deliver', () => downloads.length === 1);
       await act(async () => { download().click(); });
-      await settleUntil('the second export to start', () => sources.length === 2);
+      await settleUntil('the second export to deliver', () => downloads.length === 2);
 
-      expect(sources[0]).toBeInstanceOf(ArrayBuffer);
-      expect(sources[1]).toBe(sources[0]);
-      expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'redact');
+      for (const blob of downloads) {
+        expect((await PDFDocument.load(await blob.arrayBuffer())).getPageCount()).toBe(2);
+      }
+      expect(await failedOperations()).toEqual([]);
+      expect(harness.usageEvents('tool_result_ready')).toHaveLength(2);
     } finally {
-      mockedRedactPdf.mockReset();
-      mockedRedactPdf.mockImplementation(async () => ({ blob: new Blob(['redacted'], { type: 'application/pdf' }) }));
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
     }
@@ -1017,8 +1027,6 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
-      mockedRedactPdf.mockResolvedValueOnce({ blob: new Blob([fixtureBytes], { type: 'application/pdf' }) });
-
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
       );
@@ -1218,11 +1226,6 @@ describe('PdfRedactTool UI flow', () => {
       window.URL.revokeObjectURL = vi.fn();
 
       try {
-        // redactPdf is one mock shared (and never reset) across every test in
-        // this file, so earlier tests' calls are still in its history here -
-        // compare against a snapshot taken just before this test's own action.
-        const redactPdfCallsBefore = mockedRedactPdf.mock.calls.length;
-
         const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
           .find((button) => button.textContent.includes('Download')), 'Download button');
         await act(async () => {
@@ -1234,10 +1237,9 @@ describe('PdfRedactTool UI flow', () => {
         // now waits on a module load.
         await settleUntil('the deleted-objects export', () => capturedBlob !== undefined);
 
-        // This path never touches the mocked redactPdf: a delete-only session
-        // has no box element, so applyPageEdits returns deleteObjectsFromPdf's
-        // real output directly rather than flattening anything.
-        expect(mockedRedactPdf.mock.calls.length).toBe(redactPdfCallsBefore);
+        // This path never flattens a page: a delete-only session has no box element, so
+        // applyPageEdits returns deleteObjectsFromPdf's output directly. No page picture was encoded.
+        expect(canvasEdge.encoded).toBe(0);
         expect(capturedBlob).toBeDefined();
         const exportedBlob = required(capturedBlob, 'exported PDF blob');
 
@@ -1327,11 +1329,9 @@ describe('PdfRedactTool UI flow', () => {
     });
   }
 
-  function expectLatestGestureToCommitOnce() {
-    const commit = required(gestureCommitSpies.at(-1), 'latest gesture commit');
-    expect(commit).toBeDefined();
-    expect(commit).toHaveBeenCalledTimes(1);
-  }
+  // A gesture commits its state once, on release, and each commit leaves one entry on the action trail
+  // (never one per pointer move), so the trail counts the commits.
+  const trailCount = (action: string) => recentActions().filter((a) => a === action).length;
 
   it('commits Redact creation once after multiple pointer moves (E4.4)', async () => {
     const drawArea = await loadFileAndGetDrawArea();
@@ -1349,7 +1349,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     });
 
-    expectLatestGestureToCommitOnce();
+    expect(trailCount('place_mark')).toBe(1);
     expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
   });
 
@@ -1381,7 +1381,7 @@ describe('PdfRedactTool UI flow', () => {
       const points: [number, number][] = Array.from({ length: 40 }, (_, i) => [100 + i * 0.1, 200]);
       await paint(drawArea, points);
 
-      expectLatestGestureToCommitOnce();
+      expect(trailCount('place_mark')).toBe(1);
       const strokes = container.querySelectorAll(`.${REDACT_BOX}`);
       expect(strokes).toHaveLength(1);
       // Still armed for the next stroke, with the brush layer on the page.
@@ -1456,7 +1456,7 @@ describe('PdfRedactTool UI flow', () => {
 
     expect(parseFloat(box.style.left)).toBeCloseTo(expectedLeft);
     expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop);
-    expectLatestGestureToCommitOnce();
+    expect(trailCount('move_mark')).toBe(1);
   });
 
   // Blackout/blur now share whiteout's floating toolbar
@@ -1485,7 +1485,7 @@ describe('PdfRedactTool UI flow', () => {
 
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
-    const gestureCountBefore = gestureCommitSpies.length;
+    const trailBefore = recentActions();
 
     await act(async () => {
       deleteBtn.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
@@ -1497,7 +1497,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    expect(gestureCommitSpies.length).toBe(gestureCountBefore);
+    expect(recentActions()).toEqual(trailBefore);
     expect(parseFloat(box.style.left)).toBeCloseTo(startLeftPercent);
     expect(parseFloat(box.style.top)).toBeCloseTo(startTopPercent);
   });
@@ -1539,7 +1539,7 @@ describe('PdfRedactTool UI flow', () => {
 
     expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
     expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
-    expectLatestGestureToCommitOnce();
+    expect(trailCount('resize_mark')).toBe(1);
   });
 
   it('DEBT-31: a resize release records resize_mark once, after the box was placed', async () => {
@@ -2505,18 +2505,6 @@ describe('PdfRedactTool UI flow', () => {
   // wiring of them through updateElement/duplicateElement/unlinkFromGroup/
   // removeGroup, mirroring the clear-page block above.
   describe('repeat a box on every page, linked copies (RED-03)', () => {
-    function mockPageCount(numPages: number) {
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
-        promise: Promise.resolve({
-          numPages,
-          getPermissions: vi.fn(async () => null),
-          getPage: vi.fn(() => Promise.resolve({
-            getViewport: () => ({ width: 612, height: 792 }),
-            render: () => ({ promise: Promise.resolve() }),
-          })),
-        }),
-      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
-    }
 
     // loadFileAndGetDrawArea only stubs getBoundingClientRect on the FIRST
     // page's draw area - fine for every other describe block in this file,
@@ -2875,23 +2863,12 @@ describe('PdfRedactTool UI flow', () => {
   // strength - the find-set equivalent of the repeat-group describe block
   // above, and modelled on its helpers.
   describe('found boxes stay a set (RED-11)', () => {
+    // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts builds its fixture with), so
+    // "Redact all" always adds exactly 2 boxes. They arrive as the page's own text stream, read for real.
     beforeEach(() => {
-      mockedUsePageTexts.mockReturnValue(readyPageTexts());
-    });
-
-    // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts
-    // builds its fixture with), so "Redact all" always adds exactly 2 boxes.
-    function readyPageTexts(): PageTextsState {
-      const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 }, rotation: 0, userUnit: 1 });
       const item = (str: string, x: number, y: number) => ({ str, transform: [12, 0, 0, 12, x, y], width: str.length * 6, height: 12 });
-      return {
-        status: 'ready',
-        pages: [
-          { text: buildPageText(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]), geometry },
-          { text: buildPageText(1, []), geometry },
-        ],
-      };
-    }
+      pdfjsEdge.pageItems.set(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]);
+    });
 
     async function openFindAndSearch(term: string): Promise<void> {
       const toggle = query<HTMLButtonElement>(container, '[data-redact-find-toggle]');
@@ -2900,6 +2877,11 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         input.value = term;
         input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      // The pages' text is read for real, page by page; "Cover all" is live once every page is read.
+      await settleUntil('Find to read the pages', () => {
+        const all = document.querySelector<HTMLButtonElement>('[data-redact-find-all]');
+        return all !== null && !all.disabled && !all.hasAttribute('aria-pressed');
       });
     }
 
@@ -2935,21 +2917,21 @@ describe('PdfRedactTool UI flow', () => {
     const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
 
     it('checks only deleted words automatically, never a Find search (RED-66)', async () => {
-      const seen: string[][] = [];
-      checkOverride.current = (args: { deletedWords: Array<{ label: string }> }) => {
-        seen.push(args.deletedWords.map((t) => t.label));
-        return { state: { status: 'idle' }, search: vi.fn() };
-      };
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
       try {
         await loadFileAndGetDrawArea();
         await openFindAndSearch('jane doe');
         await clickRedactAll();
-        expect(seen.length).toBeGreaterThan(0);
-        expect(seen.at(-1)).not.toContain('jane doe');
+        const download = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download')), 'Download button');
+        await act(async () => { download.click(); });
+        // The saved file is checked on its own once it exists; no row is made for the search that found the boxes.
+        await settleUntil('the saved-file check', () => container.querySelector('[data-saved-file-check]') !== null);
+        expect(container.querySelector('[data-check-term]')).toBeNull();
+        expect(container.querySelector('[data-saved-file-check]')?.textContent).not.toContain('jane doe');
       } finally {
-        // Unmount first: swapping the hook under a mounted island shifts its hook slots.
-        act(() => render(null, container));
-        checkOverride.current = null;
+        window.URL.createObjectURL = originalCreateObjectURL;
       }
     });
 
@@ -3482,10 +3464,6 @@ describe('PdfRedactTool UI flow', () => {
   // that reason.
   describe('an edit that lands mid-export (DEBT-18)', () => {
     it('drops an export whose boxes a keyboard redo has already changed', async () => {
-      let finishRedaction!: (value: { blob: Blob }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
-        finishRedaction = resolve;
-      }));
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -3507,10 +3485,11 @@ describe('PdfRedactTool UI flow', () => {
 
         const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
           .find((button) => button.textContent.includes('Download')), 'Download button');
+        const exportRead = holdNextDocumentRead();
         await act(async () => {
           downloadButton.click();
         });
-        await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
+        await settleUntil('the export to reach its pdf.js read', exportRead.reached);
 
         const workspace = query(container, `.${workspaceStyles.workspace}`);
         expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
@@ -3522,10 +3501,7 @@ describe('PdfRedactTool UI flow', () => {
         expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
 
         createObjectURL.mockClear();
-        await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        });
+        await exportRead.runToEnd();
 
         // Two boxes are on the page; the blob that just resolved has one.
         // Nothing may offer it: no download, and no saved state kept for the
@@ -3550,10 +3526,6 @@ describe('PdfRedactTool UI flow', () => {
     // tell the person: a file still being read is loading, it has no edits
     // that could have changed mid-prepare.
     it('leaves a replacement file loading instead of reporting the export as invalidated', async () => {
-      let finishRedaction!: (value: { blob: Blob }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
-        finishRedaction = resolve;
-      }));
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -3566,10 +3538,11 @@ describe('PdfRedactTool UI flow', () => {
 
         const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
           .find((button) => button.textContent.includes('Download')), 'Download button');
+        const exportRead = holdNextDocumentRead();
         await act(async () => {
           downloadButton.click();
         });
-        await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
+        await settleUntil('the export to reach its pdf.js read', exportRead.reached);
         expect(query(container, `.${workspaceStyles.workspace}`)
           .classList.contains(workspaceStyles['is-processing'])).toBe(true);
 
@@ -3609,14 +3582,7 @@ describe('PdfRedactTool UI flow', () => {
 
         // The replacement finishes loading and gets a clean editor of its own.
         await act(async () => {
-          resolveReplacementDocument({
-            numPages: 2,
-            getPermissions: vi.fn(async () => null),
-            getPage: vi.fn(() => Promise.resolve({
-              getViewport: () => ({ width: 612, height: 792 }),
-              render: () => ({ promise: Promise.resolve() }),
-            })),
-          });
+          resolveReplacementDocument(pdfjsEdge.fakeDocument(2));
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
         expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
@@ -3625,10 +3591,7 @@ describe('PdfRedactTool UI flow', () => {
         // And the export started from the file that is no longer open commits
         // nothing when it finally resolves.
         createObjectURL.mockClear();
-        await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        });
+        await exportRead.runToEnd();
         expect(createObjectURL).not.toHaveBeenCalled();
       } finally {
         window.URL.createObjectURL = originalCreateObjectURL;
@@ -3642,10 +3605,6 @@ describe('PdfRedactTool UI flow', () => {
     // tool the person has navigated away from. Sign's unmount does the same
     // with activeExportRequestRef.
     it('does not download an export that finishes after the editor unmounts', async () => {
-      let finishRedaction!: (value: { blob: Blob }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
-        finishRedaction = resolve;
-      }));
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -3658,18 +3617,16 @@ describe('PdfRedactTool UI flow', () => {
 
         const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
           .find((button) => button.textContent.includes('Download')), 'Download button');
+        const exportRead = holdNextDocumentRead();
         await act(async () => {
           downloadButton.click();
         });
-        await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
+        await settleUntil('the export to reach its pdf.js read', exportRead.reached);
 
         act(() => render(null, container));
         createObjectURL.mockClear();
 
-        await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        });
+        await exportRead.runToEnd();
 
         expect(createObjectURL).not.toHaveBeenCalled();
       } finally {
@@ -3725,7 +3682,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(shown.querySelector('p')?.textContent).toBe(body);
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
       expect(container.textContent).not.toContain("This PDF didn't open");
-      expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'redact');
+      expect(await failedOperations()).toEqual([]);
       expect(load).not.toHaveBeenCalled();
       // The shell's Replace is the other way on.
       expect(container.textContent).toContain('Replace');
@@ -3733,16 +3690,18 @@ describe('PdfRedactTool UI flow', () => {
 
     it('Unlock it parks the file for Unlock, then navigates there', async () => {
       mockProtection('owner-restricted');
-      vi.mocked(saveHandoff).mockResolvedValueOnce(true);
-      await pick(fixture('owner-only.pdf'));
+      const protectedFile = fixture('owner-only.pdf');
+      await pick(protectedFile);
       const location = { href: '/redact/' };
       vi.stubGlobal('location', location);
       try {
         await act(async () => { unlockButton().click(); });
         await settleUntil('the hand-off to Unlock', () => location.href === '/unlock/');
-        expect(saveHandoff).toHaveBeenCalledWith('unlock', expect.objectContaining({
-          fileName: 'owner-only.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer), from: 'redact',
-        }));
+        // Parked for Unlock only, with the file's own bytes and the way back.
+        expect(await harness.takeHandoff('redact')).toBeNull();
+        const parked = required(await harness.takeHandoff('unlock'), 'the parked hand-off');
+        expect(parked).toMatchObject({ fileName: 'owner-only.pdf', fileType: 'application/pdf', from: 'redact' });
+        expect(new Uint8Array(parked.fileBytes!)).toEqual(new Uint8Array(await protectedFile.arrayBuffer()));
       } finally {
         vi.unstubAllGlobals();
       }
@@ -3750,13 +3709,25 @@ describe('PdfRedactTool UI flow', () => {
 
     it('a failed save says so quietly and leaves the button usable', async () => {
       mockProtection('needs-password');
-      vi.mocked(saveHandoff).mockResolvedValueOnce(false);
       vi.spyOn(console, 'error').mockImplementation(() => {});
       await pick(fixture('needs-password.pdf'));
-      await act(async () => { unlockButton().click(); });
-      await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
+      // The device refuses the write (storage full): the real saveHandoff fails.
+      const realIndexedDB = globalThis.indexedDB;
+      globalThis.indexedDB = { open: () => {
+        const request: { error?: DOMException; onerror?: () => void } = {};
+        queueMicrotask(() => { request.error = new DOMException('full', 'QuotaExceededError'); request.onerror?.(); });
+        return request;
+      } } as unknown as IDBFactory;
+      try {
+        await act(async () => { unlockButton().click(); });
+        await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
+      } finally {
+        globalThis.indexedDB = realIndexedDB;
+      }
       expect(unlockButton().disabled).toBe(false);
-      expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'redact');
+      expect(await harness.takeHandoff('unlock')).toBeNull();
+      expect(await failedOperations()).toEqual([]);
+      expect(harness.reports()).toMatchObject([{ area: 'handoff', step: 'save_handoff' }]);
     });
 
     it('choosing another file clears the state', async () => {
