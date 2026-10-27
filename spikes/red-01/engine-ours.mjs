@@ -12,7 +12,7 @@ import { execFileSync } from 'child_process';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, PDFName, PDFNumber } from '@cantoo/pdf-lib';
 import { extractPageObjects } from '../../src/editor/adapters/pdf/pdfObjects.js';
-import { deleteObjectsFromPdf } from '../../src/editor/adapters/pdf/deleteObjects.js';
+import { deleteObjectsFromPdf } from '../../src/tools/redact/lib/deleteObjects.js';
 import { createPageGeometry, visiblePageBox, pagePercentToPdfPoint } from '../../src/editor/geometry/coords.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,7 +25,7 @@ const CHECKER = path.join(__dirname, 'check-extractable.mjs');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // pdf-lib exposes CropBox/MediaBox/Rotate on the page but not /UserUnit;
-// read it the same way src/editor/adapters/pdf/sign.js's pageUserUnit does.
+// read it the same way src/tools/sign/lib/sign.js's pageUserUnit does.
 function pageUserUnit(page) {
   try {
     const value = page.node.getInheritableAttribute(PDFName.of('UserUnit'));
