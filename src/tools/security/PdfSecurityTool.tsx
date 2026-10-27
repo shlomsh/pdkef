@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
-import { Download, Eraser, FileEdit, FileSignature, Merge, Shrink } from 'lucide-preact';
+import { useRef, useState } from 'preact/hooks';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './lib/security.js';
 import { isPdfFile } from '../../lib/fileKind.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
@@ -10,46 +9,20 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
 import PagePreview from './components/PagePreview.tsx';
+import SecurityActions, { returnToolOf } from './components/SecurityActions.tsx';
 import { planPreview } from './lib/previewPlan.js';
 import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import DownloadButton from '../../shell/DownloadButton.tsx';
 import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
-import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../lib/toolIds.ts';
 import { outputFileName } from './lib/outputName.ts';
 import { englishSecurityMessages, type SecurityMessages } from './messages.ts';
 import { formatMessage } from '../../lib/formatMessage.ts';
-
-// The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
-// state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).
-// Which tools those are, and their pages, come from the registry (src/lib/toolIds.ts); the name and icon are this tool's wording.
-const RETURN_ICON: Record<UnlockReturnId, typeof Eraser> = {
-  redact: Eraser,
-  sign: FileSignature,
-  compress: Shrink,
-  'edit-pdf': FileEdit,
-  merge: Merge,
-};
-const RETURN_NAME_KEY: Record<UnlockReturnId, keyof SecurityMessages> = {
-  redact: 'returnRedact',
-  sign: 'returnSign',
-  compress: 'returnCompress',
-  'edit-pdf': 'returnEditPdf',
-  merge: 'returnMerge',
-};
-const RETURN_TO = Object.fromEntries(
-  UNLOCK_RETURN_IDS.map((id) => [id, { Icon: RETURN_ICON[id], href: handoffHrefOf(id) as string }]),
-) as Record<UnlockReturnId, { Icon: typeof Eraser; href: string }>;
-type ReturnTool = UnlockReturnId;
-const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
-
 
 export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; }, messages }: {
   intent?: string;
@@ -316,50 +289,21 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
             <PagePreview plan={readError ? UNREADABLE_PLAN : CHECKING_PLAN} source={null} pending={!readError} label={t.firstPageLabel} />
           )}
 
-          <div class={styles.actions}>
-          {mode && status === 'done' && downloadUrl && (
-            returnTool && mode === 'unlock' && outputBlob ? (
-              <>
-                <ContinueButton tool={returnTool} name={t[RETURN_NAME_KEY[returnTool]]} label={t.continueIn} disabled={handoffBusy} onClick={() => { void requestHandoff(returnTool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }} />
-                <div class={styles['handoff-row']}>
-                  <a class={styles['handoff-button']} href={downloadUrl} download={outputFileName(file.name, mode)} onClick={onDownloadTap}>
-                    <Download size={16} aria-hidden="true" />
-                    {t.downloadUnlockedPdf}
-                  </a>
-                  <PdfShareButton visible={shareReady} onShare={handleShare} label={t.share} className={styles['handoff-button']} />
-                </div>
-              </>
-            ) : (
-              <>
-                <DownloadButton
-                  href={downloadUrl}
-                  download={outputFileName(file.name, mode)}
-                  label={mode === 'unlock' ? t.downloadLabelUnlocked : t.downloadLabelProtected}
-                  onClick={onDownloadTap}
-                />
-                <PdfShareButton visible={shareReady} onShare={handleShare} label={t.share} />
-                {mode === 'unlock' && outputBlob && (
-                  <div class={styles['handoff-row']}>
-                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => { void requestHandoff('redact'); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}>
-                      <Eraser size={16} aria-hidden="true" />
-                      {t.redactIt}
-                    </button>
-                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => { void requestHandoff('sign'); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}>
-                      <FileSignature size={16} aria-hidden="true" />
-                      {t.signIt}
-                    </button>
-                  </div>
-                )}
-              </>
-            )
-          )}
-
-          {status === 'done' && handoffFailed && (
-            <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-              {t.handoffFailed}
-            </p>
-          )}
-          </div>
+          <SecurityActions
+            t={t}
+            mode={mode}
+            status={status}
+            downloadUrl={downloadUrl}
+            outputBlob={outputBlob}
+            fileName={file && mode ? outputFileName(file.name, mode) : ''}
+            returnTool={returnTool}
+            shareReady={shareReady}
+            handoffBusy={handoffBusy}
+            handoffFailed={handoffFailed}
+            requestHandoff={requestHandoff}
+            onDownloadTap={onDownloadTap}
+            onShare={handleShare}
+          />
         </div>
       )}
 
@@ -370,18 +314,3 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
     </BasePdfTool>
   );
 });
-
-/** The done state's primary control when another tool sent the file here: the way back to that tool. */
-function ContinueButton({ tool, name, label, disabled, onClick }: { tool: ReturnTool; name: string; label: string; disabled: boolean; onClick: () => void }) {
-  const { Icon } = RETURN_TO[tool];
-  const ref = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    ref.current?.focus({ preventScroll: true });
-  }, []);
-  return (
-    <button ref={ref} type="button" class={`${pdfToolStyles['download-button']} ${styles['continue-button']}`} disabled={disabled} onClick={onClick}>
-      <Icon size={20} aria-hidden="true" />
-      <span class={pdfToolStyles['download-button-label']}>{formatMessage(label, { name })}</span>
-    </button>
-  );
-}
