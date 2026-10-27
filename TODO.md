@@ -14,7 +14,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
-- [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
 - [ARCH-61](backlog/tasks/ARCH-61.md) P2 · Unused exports and locals are a CI ratchet (in progress)
 - [ARCH-78](backlog/tasks/ARCH-78.md) P2 · Island tests mock only the storage and network edge, through one harness (in progress)
 - [ARCH-79](backlog/tasks/ARCH-79.md) P2 · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet (in progress)

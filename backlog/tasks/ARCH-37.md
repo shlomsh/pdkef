@@ -1,11 +1,9 @@
 ---
 id: "ARCH-37"
 title: "Opening a file is one hook per kind of tool"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 6
 depends_on: []
 ---
 
@@ -62,7 +60,7 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
 - One `UndoRedoButtons`, one `toggleWorkspaceFullscreen` / `useFullscreenChange`, one `useCoarsePointer` (`(pointer: coarse)`, read on the first render) in `editor-ui`.
 - Still open for this outcome: the manifest's `file_handlers` routes only to `/sign/`, so the installed app's "Open with" never reaches `/redact/`; see the manifest finding in the commit report.
 
-## Status 2026-10-27
+## Outcome (2026-10-27)
 
 The hooks landed (parts A and B) and Redact handles `launchQueue`. Shlomi chose the chooser (option B):
 
@@ -77,3 +75,5 @@ The hooks landed (parts A and B) and Redact handles `launchQueue`. Shlomi chose 
   verified: a real "Open with" from Finder or Explorer on an installed app (the manifest change reaches an
   installed app on its next manifest update).
 - Sign keeps its own `launchQueue` consumer, for installs whose manifest still says `/sign/`.
+- Landed on main as 84a9595a on 2026-10-27, CI green on that commit. Open with, from a real file manager on an
+  installed app, is the one path not exercised yet; it picks up the new manifest on the app's next update.
