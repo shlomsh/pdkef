@@ -1,7 +1,7 @@
 ---
 id: "ARCH-130"
 title: "Exports only tests use, and exports nothing uses, are deleted"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "later"
