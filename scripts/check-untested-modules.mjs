@@ -28,9 +28,18 @@ const walk = (root, dir, opts) => {
   return fs.existsSync(abs) ? collectSourceFiles(abs, [], opts) : [];
 };
 
+// A module whose every export is a type or interface has no runtime code for a test to exercise.
+export function isTypeOnly(source) {
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  const exports = code.match(/^\s*export\s+\S+/gm) ?? [];
+  return exports.length > 0 && exports.every((e) => /export\s+(type|interface)\b/.test(e));
+}
+
 // Every candidate on disk with whether a test references it; reads the tree under `root`.
 function referencedCandidates(root) {
-  const candidates = walk(root, 'src', {}).map((f) => relOf(f, root)).filter(isCandidate);
+  const candidates = walk(root, 'src', {})
+    .map((f) => relOf(f, root))
+    .filter((rel) => isCandidate(rel) && !isTypeOnly(fs.readFileSync(path.join(root, rel), 'utf8')));
   const imported = new Set();
   for (const test of [...walk(root, 'src', { testFiles: true }), ...walk(root, 'scripts', { testFiles: true })]) {
     for (const specifier of importSpecifiers(fs.readFileSync(test, 'utf8'), test)) {
@@ -56,7 +65,7 @@ export function findUntestedModuleProblems(root, allowlist) {
   }
   const existing = new Set(found.map((f) => f.rel));
   for (const rel of allowlist) {
-    if (!existing.has(rel)) problems.push({ file: rel, reason: 'allowlisted but no longer exists: remove it from the allowlist' });
+    if (!existing.has(rel)) problems.push({ file: rel, reason: 'allowlisted but no longer a candidate (gone, moved or type-only): remove it from the allowlist' });
   }
   return problems.sort((a, b) => a.file.localeCompare(b.file));
 }

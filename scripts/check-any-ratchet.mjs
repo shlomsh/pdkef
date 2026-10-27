@@ -16,9 +16,11 @@ import { readRatchetLimits, writeRatchetLimits } from './ratchet-limits.mjs';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LAYER = 'src/tools';
 
-const ANY = /:\s*any\b|\bas any\b|\bany\[\]|<any>/g;
+// Every `any` type token, wherever it sits (annotation, cast, array, generic, tuple, union); not a
+// property, an object key or a call that happens to be named any.
+const ANY = /(?<![.\w$])any(?![\w$]|\s*[:(])/g;
 
-// Pure: explicit `any` annotations, casts, arrays and generics in one source string.
+// Pure: explicit `any` types in one source string.
 export function countAny(source) {
   return [...blankNonCode(source).matchAll(ANY)].length;
 }
