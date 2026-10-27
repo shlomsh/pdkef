@@ -10,6 +10,7 @@ import { compressImageToTarget } from './compressImage.js';
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import CompressVerb from './verb/CompressVerb.tsx';
 import styles from './PdfCompressTool.module.css';
@@ -25,7 +26,6 @@ import { useDownloadFlow, type DownloadFlowInput } from '../../shell/pageWorkspa
 import { useLastResult } from './useLastResult.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { isolateLtr, isolateName } from '../../lib/format.js';
-import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, type CompressMessages } from './messages';
 import { type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
@@ -33,7 +33,7 @@ import { throwIfAborted } from '../../lib/abort.js';
 import { openPdfDoc } from '../../lib/openPdfDoc.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { reportEdit } from '../../lib/productAnalytics.ts';
+import { reportEdit, type AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { compressedFileName as deriveDownloadName } from './outputName.ts';
 import { isCurrentAnalysis, isCurrentRun } from './state/compressMachine.ts';
 import { useCompressMachine } from './state/useCompressMachine.ts';
@@ -101,7 +101,7 @@ export function formatShare(share: number, lessThanOnePercent = englishCompressM
   return share < 0.01 ? lessThanOnePercent : `${Math.round(share * 100)}%`;
 }
 
-export default function PdfCompressTool({
+export default withIslandBoundary(function PdfCompressTool({
   messages: messagesProp,
   shellMessages,
   analyticsTool = 'compress',
@@ -953,4 +953,4 @@ export default function PdfCompressTool({
       </p>
     </BasePdfTool>
   );
-}
+});

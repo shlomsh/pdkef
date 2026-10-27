@@ -7,6 +7,7 @@ import type {
 } from '../../editor/model/editorModel.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import SignVerb from './verb/SignVerb.tsx';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages } from './messages';
@@ -111,13 +112,13 @@ const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
    are not covered yet and stay English - see that catalogue's header
    comment. `messages` is optional and English-default, same as
    `shellMessages`, so every existing English caller is unaffected. */
-export default function PdfSignTool({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> } = {}) {
+export default withIslandBoundary(function PdfSignTool({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> } = {}) {
   return (
     <SignToolProvider>
       <PdfSignToolInner shellMessages={shellMessages} messages={messages} />
     </SignToolProvider>
   );
-}
+});
 
 function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
@@ -357,7 +358,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setAnnouncement(formatMessage(t.redidActionTemplate, { description: nextAction.description }));
   };
   useHistoryShortcuts(undoLast, redoLast);
-
 
   // Load saved signatures from workspace preferences on mount.
   useEffect(() => {

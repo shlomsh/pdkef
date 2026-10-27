@@ -13,6 +13,7 @@ import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize } from '../../lib/format.js';
 import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
@@ -114,14 +115,13 @@ function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-
     </span>
   );
 }
-
 export interface PdfScanToolProps {
   quietPolicy?: QuietPolicy;
   /** Tests only: jsdom cannot navigate. */
   navigate?: (href: string) => void;
 }
 
-export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps = {}) {
+export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps = {}) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   /** A new photo starts with the look last chosen. */
@@ -1072,4 +1072,4 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
       <p class="sr-only" role="status" aria-live="polite">{announcement}</p>
     </BasePdfTool>
   );
-}
+});
