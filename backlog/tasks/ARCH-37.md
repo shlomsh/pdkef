@@ -36,7 +36,7 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
 ## Acceptance
 
 - [x] Each island's open path is a hook call; the copies are gone.
-- [ ] Opening a PDF from the operating system ("Open with" on the installed app) works in Redact.
+- [x] Opening a PDF from the operating system ("Open with" on the installed app) works in Redact.
 - [x] Existing unit and e2e tests for the five tools pass; the new hooks have unit tests, including
       an encrypted file and a stale pick replaced by a newer one.
 
@@ -64,4 +64,16 @@ says it mirrors Sign, and Sign hand-rolls export request ids (`:283-292`) where 
 
 ## Status 2026-10-27
 
-The hooks landed (parts A and B) and Redact handles `launchQueue`. Still open: the installed app's manifest sends every "Open with" PDF to `/sign/`, and a second `file_handlers` entry cannot carry its own name (Chrome lists the app name only), so Redact is reachable that way only through a chooser page. Waiting on Shlomi's call: a chooser, or Sign only.
+The hooks landed (parts A and B) and Redact handles `launchQueue`. Shlomi chose the chooser (option B):
+
+- `file_handlers` now points at `/open/` (`src/pages/open.astro`, noindex, not in the sitemap or the Markdown twins).
+  Its island, `src/site-lib/OpenWithChooser.tsx`, takes the launched PDF from `launchQueue`
+  (`openWithLaunch.ts`), shows "Sign it" and "Redact it", and parks the bytes through `sendHandoff`, so the tool
+  opens it exactly as it opens a home-page file. Visiting `/open/` with no file shows plain links to both tools.
+- Redirect pair for `/open` in `vercel.json`; `/open/` is exempt from the SoftwareApplication and Markdown-twin
+  checks like `/licenses/`.
+- Verified on a production build with a simulated `launchQueue` (Chromium defines `window.launchQueue` itself, so
+  a test must `defineProperty` it): the chooser shows the file name, and Sign and Redact both open the PDF. Not
+  verified: a real "Open with" from Finder or Explorer on an installed app (the manifest change reaches an
+  installed app on its next manifest update).
+- Sign keeps its own `launchQueue` consumer, for installs whose manifest still says `/sign/`.
