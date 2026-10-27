@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { readRatchetLimits } from './ratchet-limits.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,8 +126,9 @@ const distDir = path.join(__dirname, '..', 'dist');
 // is why `stripComments()` exists below - without it the whole properties
 // layer parses as one dead leaf rule.
 //
-// Limit: the smallest two-decimal value above the measured 0.6412x.
-const MAX_FAMILY_DUPLICATION = 0.65;
+// Limit (scripts/ratchet-limits.json, css.maxFamilyDuplication; ARCH-76 refuses a raise): the smallest two-decimal value above the measured 0.6412x.
+const cssLimits = readRatchetLimits().css;
+const MAX_FAMILY_DUPLICATION = cssLimits.maxFamilyDuplication;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
@@ -156,14 +158,14 @@ const MAX_FAMILY_DUPLICATION = 0.65;
 // markup, so a page still carries what its siblings render. Driving that to
 // zero would mean a stylesheet per page, which trades the last few KB for 22
 // compilations and no shared browser cache. 10,000 leaves ~24% headroom.
-const MAX_PAGE_DEAD_BYTES = 10_000;
+const MAX_PAGE_DEAD_BYTES = cssLimits.maxPageDeadBytes;
 // Unchanged by ARCH-13 (144 before and after - usage did not move), but its
 // blast radius did: a single-page utility now ships to its family, not to all
 // 22 pages, so one on /licenses/ costs one page and one in the tool family
 // costs nine. Still worth watching, and still the number that moves when
 // someone reaches for a one-off utility, but read the failure message with
 // that in mind.
-const MAX_SINGLE_PAGE_UTILITIES = 148;
+const MAX_SINGLE_PAGE_UTILITIES = cssLimits.maxSinglePageUtilities;
 
 if (!fs.existsSync(distDir)) {
   console.error(`dist directory not found: ${distDir}. Run npm run build first.`);
