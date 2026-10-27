@@ -1,0 +1,30 @@
+---
+id: "ARCH-45"
+title: "Every tool folder follows one template, checked in CI"
+status: "open"
+priority: "P2"
+epic: "unify-and-narrow"
+horizon: "next"
+order: 1
+depends_on: []
+---
+
+# ARCH-45 · Every tool folder follows one template, checked in CI
+
+*Filed 2026-10-27* from the architecture and code-cleanliness audit (https://claude.ai/artifact/P5jLxma4CJSeFDkrP49UwV).
+Area: Architecture. Criterion: Cohesion and organization. Structure only: no behaviour change.
+
+## Why
+
+- Ten tool folders follow five shapes. `src/tools/redact/` holds 60 non-test files in its root plus six ad-hoc subfolders; Sign, Merge and Compress use `components/`; PDF to Image and Image to PDF have no `e2e/`.
+- A reader cannot predict where a file lives, and each tool needs its own mental map.
+
+## Outcome
+
+- One template: island at the root, `messages.ts`, and optional `components/`, `lib/`, `hooks/`, `e2e/`. Redact moves first.
+- A shape check fails on a file outside the template.
+
+## Acceptance
+
+- [ ] The shape check passes for all ten tools and fails on a planted stray file.
+- [ ] `check:push` green after the moves.
