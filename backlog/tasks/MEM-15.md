@@ -4,8 +4,6 @@ title: "The precache is built from per-page import closures: the install caches 
 status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
-order: 2
 depends_on: []
 ---
 

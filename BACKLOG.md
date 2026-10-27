@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 94 live: 21 up next, 11 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 17 up next, 11 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -70,10 +70,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| MEM-16 | P2 | [MEM-16](backlog/tasks/MEM-16.md) · A new build's cache carries every unchanged content-hashed file over from the previous cache | In progress |
-| MEM-18 | P2 | [MEM-18](backlog/tasks/MEM-18.md) · CI budgets each page's precache closure and keeps tool-specific assets out of other tools' closures | In progress |
-| MEM-15 | P2 | [MEM-15](backlog/tasks/MEM-15.md) · The precache is built from per-page import closures: the install caches their union, not every file in dist/ | In progress |
-| MEM-17 | P3 | [MEM-17](backlog/tasks/MEM-17.md) · Service worker registration waits for the island's hydration and an idle callback | In progress |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
@@ -225,7 +221,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 3 done, 1 retired
 - Tool pages: show the verb: 8 done, 0 retired
 - Form detector accuracy: 19 done, 1 retired
-- Robustness and debt: 58 done, 4 retired
+- Robustness and debt: 62 done, 4 retired
 - Unify the tools, narrow the graph: 42 done, 0 retired
 - Search and languages: 7 done, 0 retired
 - Polish: 18 done, 1 retired

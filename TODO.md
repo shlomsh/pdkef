@@ -8,10 +8,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [MEM-16](backlog/tasks/MEM-16.md) P2 · A new build's cache carries every unchanged content-hashed file over from the previous cache (in progress)
-- [MEM-18](backlog/tasks/MEM-18.md) P2 · CI budgets each page's precache closure and keeps tool-specific assets out of other tools' closures (in progress)
-- [MEM-15](backlog/tasks/MEM-15.md) P2 · The precache is built from per-page import closures: the install caches their union, not every file in dist/ (in progress)
-- [MEM-17](backlog/tasks/MEM-17.md) P3 · Service worker registration waits for the island's hydration and an idle callback (in progress)
 - [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
 - [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly (in progress)
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
