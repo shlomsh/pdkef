@@ -1,7 +1,7 @@
 ---
 id: "ARCH-51"
 title: "Merge keeps its lifecycle in one reducer and its decisions in mergePlan"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

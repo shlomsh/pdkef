@@ -1,7 +1,7 @@
 ---
 id: "ARCH-52"
 title: "Sign keeps its document and finish lifecycle in one typed reducer"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

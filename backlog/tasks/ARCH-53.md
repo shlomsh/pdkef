@@ -1,7 +1,7 @@
 ---
 id: "ARCH-53"
 title: "Compress runs its build and gate lifecycle through one explicit state machine"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

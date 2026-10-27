@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 106 live: 11 up next, 33 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 106 live: 18 up next, 26 then, 26 waiting, 36 parked.
 
 ## Redact: finish removal
 
@@ -114,7 +114,14 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-51 | P2 | [ARCH-51](backlog/tasks/ARCH-51.md) · Merge keeps its lifecycle in one reducer and its decisions in mergePlan | In progress |
+| ARCH-52 | P2 | [ARCH-52](backlog/tasks/ARCH-52.md) · Sign keeps its document and finish lifecycle in one typed reducer | In progress |
+| ARCH-53 | P2 | [ARCH-53](backlog/tasks/ARCH-53.md) · Compress runs its build and gate lifecycle through one explicit state machine | In progress |
 | ARCH-37 | P2 | [ARCH-37](backlog/tasks/ARCH-37.md) · Opening a file is one hook per kind of tool | In progress |
+| ARCH-55 | P2 | [ARCH-55](backlog/tasks/ARCH-55.md) · pdfObjects.js splits into a parser, one text-state interpreter and extractors | In progress |
+| ARCH-67 | P2 | [ARCH-67](backlog/tasks/ARCH-67.md) · The draft store is TypeScript with one record type parsed where it is read | In progress |
+| ARCH-79 | P2 | [ARCH-79](backlog/tasks/ARCH-79.md) · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet | In progress |
+| ARCH-88 | P2 | [ARCH-88](backlog/tasks/ARCH-88.md) · Shadows and scrims are tokens, and color literals outside :root fail a check | In progress |
 
 ### Then, in order
 
@@ -122,24 +129,17 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | --- | --- | --- | --- |
 | ARCH-45 | P2 | [ARCH-45](backlog/tasks/ARCH-45.md) · Every tool folder follows one template, checked in CI |  |
 | ARCH-46 | P2 | [ARCH-46](backlog/tasks/ARCH-46.md) · Single-tool modules leave the editor core, and rule 9 covers src/editor |  |
-| ARCH-51 | P2 | [ARCH-51](backlog/tasks/ARCH-51.md) · Merge keeps its lifecycle in one reducer and its decisions in mergePlan |  |
-| ARCH-52 | P2 | [ARCH-52](backlog/tasks/ARCH-52.md) · Sign keeps its document and finish lifecycle in one typed reducer |  |
-| ARCH-53 | P2 | [ARCH-53](backlog/tasks/ARCH-53.md) · Compress runs its build and gate lifecycle through one explicit state machine |  |
-| ARCH-55 | P2 | [ARCH-55](backlog/tasks/ARCH-55.md) · pdfObjects.js splits into a parser, one text-state interpreter and extractors |  |
 | ARCH-60 | P3 | [ARCH-60](backlog/tasks/ARCH-60.md) · Sign and Redact read tap samples through one function |  |
 | ARCH-61 | P2 | [ARCH-61](backlog/tasks/ARCH-61.md) · Unused exports and locals are a CI ratchet |  |
-| ARCH-67 | P2 | [ARCH-67](backlog/tasks/ARCH-67.md) · The draft store is TypeScript with one record type parsed where it is read |  |
 | ARCH-68 | P2 | [ARCH-68](backlog/tasks/ARCH-68.md) · JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers |  |
 | ARCH-71 | P3 | [ARCH-71](backlog/tasks/ARCH-71.md) · Message registries and content helpers are typed, removing any and double casts |  |
 | ARCH-72 | P2 | [ARCH-72](backlog/tasks/ARCH-72.md) · Uncaught-error reporting installs from the layout, and every island has an error boundary |  |
 | ARCH-73 | P2 | [ARCH-73](backlog/tasks/ARCH-73.md) · Floating promises are checked in CI |  |
 | ARCH-74 | P3 | [ARCH-74](backlog/tasks/ARCH-74.md) · The swallowed-errors check covers api/ and middleware, and expected reasons carry words |  |
 | ARCH-78 | P2 | [ARCH-78](backlog/tasks/ARCH-78.md) · Island tests mock only the storage and network edge, through one harness |  |
-| ARCH-79 | P2 | [ARCH-79](backlog/tasks/ARCH-79.md) · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet |  |
 | ARCH-83 | P2 | [ARCH-83](backlog/tasks/ARCH-83.md) · Every CI run reports how far affected-scope narrowed it |  |
 | ARCH-84 | P2 | [ARCH-84](backlog/tasks/ARCH-84.md) · The prose-only invariants each get a small guard |  |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly |  |
-| ARCH-88 | P2 | [ARCH-88](backlog/tasks/ARCH-88.md) · Shadows and scrims are tokens, and color literals outside :root fail a check |  |
 | ARCH-92 | P2 | [ARCH-92](backlog/tasks/ARCH-92.md) · Patched dependencies are pinned to the version their patch names |  |
 | ARCH-94 | P2 | [ARCH-94](backlog/tasks/ARCH-94.md) · Guidance and source comments cite only paths that exist |  |
 
