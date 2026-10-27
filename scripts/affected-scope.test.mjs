@@ -1052,14 +1052,22 @@ describe('build pipeline files are wide (QUAL-32 follow-up)', () => {
       'scripts/deep/a.mjs': "import b from '../../src/lib/b.js';",
       'src/lib/b.js': 'export default 1;',
       'scripts/other.mjs': 'export {}',
+      'scripts/verify.mjs': "import c from './c.mjs';",
+      'scripts/c.mjs': 'export default 1;',
     };
-    const pkg = JSON.stringify({ scripts: { build: 'astro build && node scripts/x.mjs --check', test: 'node scripts/other.mjs' } });
+    const pkg = JSON.stringify({ scripts: { build: 'node scripts/verify.mjs --check && astro build && node scripts/x.mjs', test: 'node scripts/other.mjs' } });
     const set = buildPipelineFiles(pkg, (rel) => files[rel] ?? null);
     expect([...set].sort()).toEqual(['scripts/deep/a.mjs', 'scripts/x.mjs', 'src/lib/b.js']);
   });
 
   it('real set includes the build entries and their imports', () => {
     for (const f of ['scripts/generate-precache-manifest.mjs', 'scripts/repoOnlyFiles.mjs', 'scripts/pageHash.mjs']) expect(real.has(f)).toBe(true);
+  });
+
+  // A `--check` step only verifies a committed file; it does not shape dist/, so the
+  // files it reaches (Sign's language acceptance, the font manifest) keep their own scope.
+  it('leaves out --check steps and what only they reach', () => {
+    for (const f of ['scripts/generate-language-acceptance.mjs', 'src/tools/sign/lib/languageAcceptance.js', 'scripts/generate-font-manifest.mjs']) expect(real.has(f)).toBe(false);
   });
 });
 
