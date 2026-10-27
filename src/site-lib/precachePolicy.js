@@ -15,15 +15,11 @@ import { isLocalizedPath } from '../i18n/localePrefixes.js';
  * Which built assets the service worker downloads before anyone asks for
  * them. Everything omitted here still enters the runtime cache on first use.
  *
- * MEM-15: the worker does not download the build. It installs a shell (`/`
- * and what every page shares) plus the closure of each page that was opened
- * online: a tool works offline once its page was opened online. The build
- * lists the closures (scripts/precacheClosure.mjs, one per HTML page) in the
- * manifest, and this filter decides which files may appear in any of them.
- * The page asks for its own closure after the worker is active (a service
- * worker never sees the navigation that first registers it, so that visit's
- * own scripts are fetched again, explicitly), and a later build's install
- * re-fetches the closure of every page that had one.
+ * MEM-15/MEM-18: the install caches the whole app, as the union of the build's
+ * closures: a shell (`/` and what every page shares) plus the closure of each
+ * HTML page (scripts/precacheClosure.mjs, listed in the manifest). Files no
+ * page reaches are not installed. This filter decides which files may appear
+ * in any of those lists, so a tool works offline after one visit.
  *
  * Fonts are mostly excluded. Declared with `@font-face`
  * (src/styles/editorFonts.css), a browser fetches a TTF only when a rule

@@ -26,8 +26,13 @@ import { fileURLToPath } from 'node:url';
 export const BUDGETS = {
   shell: 460_000,
   tool: 1_950_000,
-  other: 115_000,
+  home: 180_000, // measured 151,553 for / (148,841 /he/), +19%: the home pages carry the Redact sample PDF on purpose
+  other: 115_000, // measured 35,329 for the heaviest article (/open/); kept at the earlier 100 KB-plus-headroom figure
+  install: 3_700_000, // measured 3,203,299 (183 urls), +15%
 };
+
+// A localized home is `/` or `/<xx>/`.
+const HOME_PAGE = /^\/(?:[a-z]{2}\/)?$/;
 
 /*
  * Source-level cross-tool imports are already refused by test:module-boundaries
@@ -44,6 +49,11 @@ export function closureBytes(files, sizes) {
   let total = 0;
   for (const f of new Set(files)) total += sizes[f] ?? 0;
   return total;
+}
+
+// What the worker installs: the shell plus every page closure, each URL once.
+export function installUrls({ shell, pages }) {
+  return [...new Set([...shell, ...Object.values(pages).flat()])];
 }
 
 export function findMissingFiles({ shell, pages, sizes }) {
@@ -72,11 +82,15 @@ export function findBudgetFailures({ shell, pages, toolPages, sizes, budgets }) 
   }
   for (const [page, files] of Object.entries(pages)) {
     const bytes = closureBytes(files, sizes);
-    const budget = toolPages.has(page) ? budgets.tool : budgets.other;
+    const budget = toolPages.has(page) ? budgets.tool : HOME_PAGE.test(page) ? budgets.home : budgets.other;
     if (bytes > budget) {
       const heaviest = [...new Set(files)].sort((a, b) => (sizes[b] ?? 0) - (sizes[a] ?? 0))[0];
       failures.push(`${page}: closure is ${bytes} brotli bytes, budget ${budget} (heaviest asset ${heaviest}, ${sizes[heaviest] ?? 0} bytes)`);
     }
+  }
+  const installBytes = closureBytes(installUrls({ shell, pages }), sizes);
+  if (installBytes > budgets.install) {
+    failures.push(`install: ${installBytes} brotli bytes for the whole app, budget ${budgets.install}`);
   }
   return failures;
 }
@@ -140,6 +154,8 @@ function main() {
     const rows = Object.entries(manifest.pages).map(([p, f]) => [closureBytes(f, sizes), f.length, p]).sort((a, b) => b[0] - a[0]);
     console.log(`shell: ${manifest.shell.length} urls, ${closureBytes(manifest.shell, sizes)} brotli`);
     for (const [b, n, p] of rows) console.log(`${p}\t${n} urls\t${b}`);
+    const all = installUrls(manifest);
+    console.log(`install: ${all.length} urls, ${closureBytes(all, sizes)} brotli`);
   }
 
   const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles });
