@@ -31,6 +31,7 @@
     "test:editor-dependency-directions": "node scripts/check-editor-dependency-directions.mjs",
     "test:module-boundaries": "node scripts/check-module-boundaries.mjs",
     "test:ratchet-raises": "node scripts/check-ratchet-raises.mjs",
+    "test:size-ratchet": "node scripts/check-size-ratchet.mjs",
     "test:seo": "node scripts/verify-seo.js",
     "test:redirects": "node scripts/check-trailing-slash-redirects.js",
     "test:css": "node scripts/check-class-resolution.js && node scripts/check-editor-global-css.js && node scripts/check-dead-utilities.js && node scripts/check-css-duplication.js && node scripts/check-built-html-comments.js && node scripts/check-animation-shorthand.js",

@@ -119,7 +119,7 @@ describe('planSteps', () => {
   });
 
   it('the ratchet guards run on every diff (ARCH-76)', () => {
-    expect(ALWAYS_GUARD_STEPS).toContain('test:ratchet-raises');
+    expect(ALWAYS_GUARD_STEPS).toEqual(expect.arrayContaining(['test:ratchet-raises', 'test:size-ratchet']));
   });
 
   it('a scripts-only diff (tooling, no build script touched): unit + typecheck, no build, no e2e', () => {
