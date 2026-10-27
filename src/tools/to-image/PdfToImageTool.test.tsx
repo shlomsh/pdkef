@@ -3,7 +3,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfToImageTool from './PdfToImageTool.tsx';
-import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
@@ -118,7 +117,7 @@ describe('PdfToImageTool', () => {
     await harness.flush();
   }
 
-  const rail = () => container.querySelector(`.${workspaceStyles.rail}`);
+  const rail = () => container.querySelector('[data-rail]');
   const cells = () => Array.from(container.querySelectorAll('ul[data-page-grid] > li[data-key]'));
   const button = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
   const heading = () => container.querySelector('#page-grid-heading');
