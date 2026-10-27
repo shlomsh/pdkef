@@ -6,18 +6,20 @@ vi.mock('../lib/errorReport.ts', () => ({ reportError: vi.fn() }));
 // jsdom has no 2D context; the component only needs a truthy one.
 vi.mock('../lib/pdfRender.js', () => ({ getPdfRenderContext: () => ({ drawImage: vi.fn() }) }));
 
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { fakePdfDocument } from '../test/support/fakePdfJs.ts';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { pageRenderScale, bucketWidth } from '../editor/adapters/pdf/pageRenderScale.js';
 
-const flush = () => new Promise((r) => setTimeout(r, 0));
+const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 const UNIT = { width: 595, height: 842 };
 
 describe('PdfPageCanvas renders at the size the page is shown', () => {
   let host: HTMLElement | null = null;
-  let shownWidth;
-  let observers;
-  let scales;
-  let doc;
+  let shownWidth: number;
+  let observers: { cb: () => void }[];
+  let scales: number[];
+  let doc: PDFDocumentProxy;
 
   beforeEach(() => {
     shownWidth = 790;
@@ -25,21 +27,22 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
     scales = [];
     vi.stubGlobal('devicePixelRatio', 2);
     vi.stubGlobal('ResizeObserver', class {
-      constructor(cb) { this.cb = cb; observers.push(this); }
+      cb: () => void;
+      constructor(cb: () => void) { this.cb = cb; observers.push(this); }
       observe() {}
       disconnect() {}
     });
     vi.spyOn(HTMLCanvasElement.prototype, 'clientWidth', 'get').mockImplementation(() => shownWidth);
     const page = {
       rotate: 0,
-      getViewport: ({ scale }) => {
+      getViewport: ({ scale }: { scale: number }) => {
         scales.push(scale);
         return { width: UNIT.width * scale, height: UNIT.height * scale };
       },
       render: vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
       cleanup: vi.fn(),
     };
-    doc = { getPage: () => Promise.resolve(page), loadingTask: { destroyed: false } };
+    doc = fakePdfDocument({ getPage: () => Promise.resolve(page), loadingTask: { destroyed: false } });
     host = document.createElement('div');
     document.body.appendChild(host);
   });
@@ -50,14 +53,14 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
     vi.unstubAllGlobals();
   });
 
-  const expected = (css) => pageRenderScale({
+  const expected = (css: number) => pageRenderScale({
     unitWidth: UNIT.width, unitHeight: UNIT.height, cssWidth: bucketWidth(css), dpr: 2,
   });
 
   it('paints the first time at the displayed device-pixel width, once', async () => {
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     await act(flush);
-    const canvas = host!.querySelector('canvas');
+    const canvas = host!.querySelector<HTMLCanvasElement>('canvas')!;
     expect(canvas.width).toBe(Math.floor(UNIT.width * expected(790)));
     expect(canvas.width).toBeGreaterThan(UNIT.width * 1.5);
     // one paint: the scale-1 size probe plus one render viewport, no repaint at mount
@@ -77,13 +80,13 @@ describe('PdfPageCanvas renders at the size the page is shown', () => {
     shownWidth = 1200;
     act(() => observers.forEach((o) => o.cb()));
     await act(flush);
-    expect(host!.querySelector('canvas').width).toBe(Math.floor(UNIT.width * expected(1200)));
+    expect(host!.querySelector<HTMLCanvasElement>('canvas')!.width).toBe(Math.floor(UNIT.width * expected(1200)));
   });
 
   it('keeps the old fixed scale when the width cannot be measured', async () => {
     shownWidth = 0;
     act(() => render(<PdfPageCanvas pdfDocument={doc} pageNum={1} />, host!));
     await act(flush);
-    expect(host!.querySelector('canvas').width).toBe(Math.floor(UNIT.width * 1.5));
+    expect(host!.querySelector<HTMLCanvasElement>('canvas')!.width).toBe(Math.floor(UNIT.width * 1.5));
   });
 });
