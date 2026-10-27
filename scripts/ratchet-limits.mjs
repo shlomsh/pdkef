@@ -31,11 +31,35 @@ export function writeRatchetLimits(limits, root = defaultRoot) {
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+function renameKey(key, renames) {
+  const hash = key.indexOf('#');
+  const file = hash < 0 ? key : key.slice(0, hash);
+  return renames.has(file) ? renames.get(file) + key.slice(file.length) : key;
+}
+
+function applyRenames(value, renames) {
+  if (!isObject(value)) return value;
+  return Object.fromEntries(Object.entries(value).map(([k, v]) => [renameKey(k, renames), applyRenames(v, renames)]));
+}
+
+// Pure. Parses `git diff --name-status -M` into a Map of old path -> new path.
+export function parseRenames(nameStatusText) {
+  const renames = new Map();
+  for (const line of nameStatusText.split('\n')) {
+    const [status, from, to] = line.split('\t');
+    if (/^R\d*$/.test(status ?? '') && from && to) renames.set(from, to);
+  }
+  return renames;
+}
+
 // Pure. A numeric leaf that rose fails; a key new inside a top-level section that
 // already existed at base fails (adding to an allowlist is a raise); a whole new
 // top-level section passes (that is how a ratchet is introduced); lowering or
 // removing passes.
-export function findRaises(baseJson, headJson) {
+// `renames` (old path -> new path) rewrites base keys first, so a renamed recorded
+// file or `path#Function` key compares against its old value instead of looking new.
+export function findRaises(baseJson, headJson, renames = new Map()) {
+  baseJson = renames.size ? applyRenames(baseJson, renames) : baseJson;
   const raises = [];
   const walk = (before, after, trail) => {
     for (const key of Object.keys(after)) {
