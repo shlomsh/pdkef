@@ -5,7 +5,7 @@
 import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import { appStylePatchFor, carriedPatchFor } from './carriedPatch.ts';
-import { detectTextDirection } from '../../../editor/text/signHelpers.js';
+import { detectTextDirection } from '../../../editor/text/textDirection.js';
 import { rememberAppStyle } from '../../../editor/workspace/preferenceStore.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 
