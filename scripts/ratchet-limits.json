@@ -15,7 +15,7 @@
     "files": {
       "src/shell/BasePdfTool.tsx": {
         "effects": 6,
-        "hooks": 21
+        "hooks": 22
       },
       "src/shell/OutputName.tsx": {
         "effects": 1,
@@ -47,7 +47,7 @@
       },
       "src/tools/scan/PdfScanTool.tsx": {
         "effects": 12,
-        "hooks": 28
+        "hooks": 29
       },
       "src/tools/security/PdfSecurityTool.tsx": {
         "effects": 1,
