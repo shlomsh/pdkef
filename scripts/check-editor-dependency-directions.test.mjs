@@ -57,7 +57,7 @@ describe('editor dependency-direction guard: staleExceptions()', () => {
 
   it('leaves a still-matched exception out of the stale list, alongside a stale one', () => {
     const liveException = { from: 'src/editor/registry/renderers.ts', package: 'preact', reason: 'live' };
-    const deadException = { from: 'src/editor/text/textCoverage.js', target: 'src/editor/registry/text.ts', reason: 'retired bridge' };
+    const deadException = { from: 'src/tools/sign/lib/textCoverage.js', target: 'src/editor/registry/text.ts', reason: 'retired bridge' };
     const edges = [
       { from: 'src/editor/registry/renderers.ts', target: null, specifier: 'preact' },
     ];

@@ -19,7 +19,7 @@ import {
   type PDFDocument,
   type PDFObject,
 } from '@cantoo/pdf-lib';
-import { unreachableRefs } from '../../../editor/adapters/pdf/reachability.js';
+import { unreachableRefs } from '../lib/reachability.js';
 import { isNonBlank } from './placeText.ts';
 import { contentStreamTexts } from './unusedText.ts';
 

@@ -10,7 +10,7 @@
  * so Find never offers nothing. Pure; no DOM, no pdf.js import.
  */
 
-import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { PageText, PlacedItem } from './types.ts';
 
 /** Glyphs are kept for as long as Find or the check holds a page. Past this

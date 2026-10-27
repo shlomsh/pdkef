@@ -30,7 +30,7 @@ describe('frameLabel', () => {
 
 describe('real chunk names from dist/_astro (a module with no source file under src/ is a library)', () => {
   const sources = sourceMap([
-    'src/tools/merge/PdfMergeTool.tsx', 'src/editor/adapters/pdf/sign.js', 'src/layouts/BaseLayout.astro',
+    'src/tools/merge/PdfMergeTool.tsx', 'src/tools/sign/lib/sign.js', 'src/layouts/BaseLayout.astro',
     'src/tools/merge/FileList.module.css', 'src/pages/sign.astro', 'scripts/foo.mjs',
   ].join('\n'));
   it.each([
@@ -124,9 +124,9 @@ describe('staleVerdict', () => {
   it('does not call a docs or page edit a change to the chunk of the same name', () => {
     // sign.js is the editor adapter chunk `sign`; src/pages/sign.astro is the marketing page.
     const seen = [];
-    const run = (a) => { seen.push(a); return fake({ ...base, 'ls-files': 'src/editor/adapters/pdf/sign.js\nsrc/pages/sign.astro\nscripts/fixtures/x/sign.js\n' })(a); };
+    const run = (a) => { seen.push(a); return fake({ ...base, 'ls-files': 'src/tools/sign/lib/sign.js\nsrc/pages/sign.astro\nscripts/fixtures/x/sign.js\n' })(a); };
     staleVerdict({ module: 'sign', build: BUILD, run });
-    expect(seen.find((a) => a[0] === 'log')).toEqual(['log', '-1', '--format=%H', 'origin/main', '--', 'src/editor/adapters/pdf/sign.js']);
+    expect(seen.find((a) => a[0] === 'log')).toEqual(['log', '-1', '--format=%H', 'origin/main', '--', 'src/tools/sign/lib/sign.js']);
   });
 
   it('finds the .astro file behind an astro script chunk', () => {

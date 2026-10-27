@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import type { DocumentTraces } from '../lib/documentTraces.js';
 import { reportError } from '../../../lib/errorReport.ts';
 import { readDetails } from './readDetails.ts';
 

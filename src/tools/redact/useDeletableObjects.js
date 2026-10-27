@@ -31,7 +31,7 @@ export default function useDeletableObjects(file, fileBytes) {
       return undefined;
     }
 
-    import('../../editor/adapters/pdf/deleteObjects.js')
+    import('./lib/deleteObjects.js')
       .then(({ listDeletableObjects }) => listDeletableObjects(fileBytes))
       .then((found) => {
         if (!cancelled) setObjects(found);

@@ -12,7 +12,7 @@
  * glyphs' own cores. Pure; no DOM, no pdf.js import.
  */
 
-import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import { isOverprint, type PageGlyphMap } from './itemGlyphs.ts';
 
 export interface PointBox {

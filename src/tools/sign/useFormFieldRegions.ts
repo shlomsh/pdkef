@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
-import type { CombRegion, FieldRegion } from '../../editor/text/combPlacement.ts';
+import type { CombRegion, FieldRegion } from './lib/combPlacement.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import type { TextDirection } from '../../editor/model/editorModel.ts';
 import { dominantTextDirection } from '../../editor/text/signHelpers.js';

@@ -156,7 +156,7 @@ export default function useDeletePreviews(
       }
 
       if (sourceDocRef.current.bytes !== fileBytes) {
-        const load = import('../../editor/adapters/pdf/deleteObjects.js').then(
+        const load = import('./lib/deleteObjects.js').then(
           async ({ buildDeletePreviewPage }) => {
             const { PDFDocument } = await import('@cantoo/pdf-lib');
             const doc = await PDFDocument.load(new Uint8Array(fileBytes));

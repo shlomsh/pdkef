@@ -22,7 +22,7 @@ import {
 } from '@cantoo/pdf-lib';
 import { attachmentName, fieldValueTexts, isNonBlank, sameText } from './placeText.ts';
 import { unusedPartsText } from './unusedParts.ts';
-import { dropUnreachable } from '../../../editor/adapters/pdf/reachability.js';
+import { dropUnreachable } from '../lib/reachability.js';
 import type { PlaceKind, SavedPlace } from './types.ts';
 
 export interface LocatedPlace {

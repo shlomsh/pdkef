@@ -4,9 +4,9 @@
  * can keep, alter or delete, plus the two summary lines and the read-back
  * check. The UI wraps a row's `text` in `<bdi>` and a `iso` date in `<time>`.
  */
-import { attachmentDetailId, expandDetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
-import type { DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
-import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import { attachmentDetailId, expandDetailEdits } from '../lib/detailEdits.js';
+import type { DetailEdits } from '../lib/detailEdits.js';
+import type { DocumentTraces } from '../lib/documentTraces.js';
 import { formatMessage } from '../../../lib/formatMessage.ts';
 import { englishRedactMessages } from '../messages.ts';
 import type { RedactMessages } from '../messages.ts';

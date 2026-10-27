@@ -12,8 +12,8 @@ import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import { WYSIWYG_STRING_CASES } from '../support/fixtures/wysiwygStrings.js';
 import { resolveFontSubstitution } from '../../editor/text/fonts.js';
-import { getTextFontSupport } from '../../editor/text/textFontSupport.js';
-import { findUnrepresentableCharacters } from '../../editor/text/textCoverage.js';
+import { getTextFontSupport } from '../../tools/sign/lib/textFontSupport.js';
+import { findUnrepresentableCharacters } from '../../tools/sign/lib/textCoverage.js';
 import {
   describeFontSubstitution,
   describeTextFontSupport,

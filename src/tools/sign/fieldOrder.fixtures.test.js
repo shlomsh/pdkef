@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { detectPageRegions } from './fields/formGrid.js';
-import { orderTypableFields } from '../../editor/text/fieldOrder.ts';
+import { orderTypableFields } from './lib/fieldOrder.ts';
 
 /**
  * MOBI-06's acceptance on the committed form 101 fixture: every comb run on

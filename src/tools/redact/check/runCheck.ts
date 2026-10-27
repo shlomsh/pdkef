@@ -8,10 +8,10 @@
  */
 import { openPdfDoc } from '../../../lib/openPdfDoc';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { readDocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
-import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import { readDocumentTraces } from '../lib/documentTraces.js';
+import type { DocumentTraces } from '../lib/documentTraces.js';
 import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
-import { readGlyphs } from '../../../editor/adapters/pdf/readGlyphs.js';
+import { readGlyphs } from '../lib/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { readTextItems } from '../../../lib/pdfTextItems.ts';

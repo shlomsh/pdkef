@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { greedyMatch, labelAssociationCorrect, labelable } from './match.js';
-import { labelFieldCandidates } from '../../../../../editor/adapters/pdf/fieldLabels.js';
+import { labelFieldCandidates } from '../../../lib/fieldLabels.js';
 import { detectFormFields, pageGeometry, toPageTextRuns } from '../../detectFormFields.ts';
 import { toCandidates } from './candidates.js';
 
