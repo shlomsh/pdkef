@@ -1,7 +1,7 @@
 ---
 id: "ARCH-61"
 title: "Unused exports and locals are a CI ratchet"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

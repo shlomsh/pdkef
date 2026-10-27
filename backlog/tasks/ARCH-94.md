@@ -1,11 +1,9 @@
 ---
 id: "ARCH-94"
 title: "Guidance and source comments cite only paths that exist"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 22
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Supporting. Criterion: Docs and guidance accuracy. Structure only: no beha
 
 ## Acceptance
 
-- [ ] A planted dead path in a rule file and in a comment each fail the check.
+- [x] A planted dead path in a rule file and in a comment each fail the check.
+
+## Done (2026-10-27)
+
+scripts/check-cited-paths.mjs runs inside check:guidance: a repo path cited in CLAUDE.md, .claude/ or docs/ (not docs/archive/), or in a source comment, must exist (planted dead paths in a rule file and a comment failed). About 129 dead paths in 57 files now point where the file lives, or the sentence drops a file that is gone. The named SignTool/... comments cite src/tools/sign/components/.
