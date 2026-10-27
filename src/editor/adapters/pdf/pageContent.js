@@ -5,7 +5,7 @@ import { PDFName, PDFArray, PDFStream, decodePDFRawStream } from '@cantoo/pdf-li
 export class ContentStreamDecodeError extends Error {
   /** @param {unknown} cause */
   constructor(cause) {
-    super(`Content stream will not decode: ${cause instanceof Error ? cause.message : cause}`);
+    super(`Content stream will not decode: ${/** @type {{ message?: unknown } | null | undefined} */ (cause)?.message ?? cause}`);
     this.name = 'ContentStreamDecodeError';
     this.cause = cause;
   }
