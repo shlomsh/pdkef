@@ -123,7 +123,7 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ARCH-101 | P2 | [ARCH-101](backlog/tasks/ARCH-101.md) · src/lib groups its modules by domain, and a check holds the shape |  |
-| ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · The Redact, Sign, Scan and Compress islands are no longer 850 to 1,200 line functions |  |
+| ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · No tool island function is over 300 lines |  |
 | ARCH-105 | P2 | [ARCH-105](backlog/tasks/ARCH-105.md) · The size ratchet also records functions over 150 lines and nesting depth |  |
 | ARCH-106 | P2 | [ARCH-106](backlog/tasks/ARCH-106.md) · The Scan island is shorter than before ARCH-54 grew it |  |
 | ARCH-108 | P2 | [ARCH-108](backlog/tasks/ARCH-108.md) · Sign keeps its document-load fields in signState |  |
