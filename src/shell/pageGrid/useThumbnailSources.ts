@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'preact/hooks';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
 
-export interface ThumbnailSource {
+interface ThumbnailSource {
   pageCount: number;
   /** Every page's width / height, read without rendering. */
   aspects?: () => Promise<number[]>;
