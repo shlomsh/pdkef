@@ -36,7 +36,7 @@ baseline = centre + em * (figureCentreEm(family) + TEXT_BOX_PADDING_EM)
 top = baseline - em * baselineDropEm(family)
 ```
 
-- `src/editor/text/fontManifest.js`: added a per-family `figureCentre` (the midpoint of the digits'
+- `src/editor/text/fontManifest.ts`: added a per-family `figureCentre` (the midpoint of the digits'
   ink box, em, positive up from the baseline, read from the real TTF outlines) next to `ascent`/
   `descent`, for every bundled family.
 - `src/editor/text/fonts.js`: `figureCentreEm(family)`, falling back to `COMB_CAP_HEIGHT_EM / 2` for a
@@ -65,4 +65,4 @@ Changing the font of an already-placed field element afterwards does not re-plac
 
 ## Closed 2026-10-01
 
-Shipped in 0245d8b (`figureCentreEm` in `fonts.js` and `fontManifest.js`); main CI is green.
+Shipped in 0245d8b (`figureCentreEm` in `fonts.js` and `fontManifest.ts`); main CI is green.
