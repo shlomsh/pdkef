@@ -4,8 +4,6 @@ import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
-import { reportEdit } from '../../lib/productAnalytics.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize, isolateLtr } from '../../lib/format.js';
 import { englishToImageMessages, type ToImageMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
