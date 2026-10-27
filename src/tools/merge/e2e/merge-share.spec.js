@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /* MERGE-11 / Direction A hand-off row (2026-09-13): PdfShareButton only
    renders once `navigator.share`/`canShare` exist, so a real device without
@@ -19,13 +19,6 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 // viewport runs this (chromium's project default is a 1600px desktop size) -
 // the one-line, labels-fit requirement is specifically about the phone row.
 test.use({ viewport: { width: 320, height: 720 } });
-
-async function makePdfBuffer(label) {
-  const document = await PDFDocument.create();
-  document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
 
 async function loadReadyRowWithShare(page) {
   await page.addInitScript(() => {

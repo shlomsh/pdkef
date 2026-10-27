@@ -1,10 +1,9 @@
 ---
 id: "SITE-44"
 title: "App bar: the tool crumb gives way instead of shrinking to a letter"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 depends_on: []
 ---
 

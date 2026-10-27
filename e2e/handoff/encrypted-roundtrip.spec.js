@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
+import { openTool } from '../support/tool.js';
 
 /* ENC-05: a protected PDF is a precondition, not a failure. Redact shows one quiet state, "Unlock it"
    parks the file as a hand-off and opens /unlock/ with it loaded, and Unlock leads with "Continue in
@@ -19,10 +20,6 @@ function watchReports(page) {
   return sent;
 }
 
-async function openTool(page, path) {
-  await page.goto(path);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-}
 
 async function chooseInRedact(page, name, buffer) {
   const chooser = page.waitForEvent('filechooser');

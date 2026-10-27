@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* MEM-02: the tool-side half of the one-memory-space rewrite (MEM-01). Two
    things this guard proves that no unit test can (jsdom has no real
@@ -20,13 +20,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
    reasoning merge-restore.spec.js documents for its own reload. */
 test.use({ serviceWorkers: 'block' });
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText(label, { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label }] });
 
 async function openSignTool(page, buffer, fileName) {
   await page.addInitScript(() => { localStorage.clear(); });

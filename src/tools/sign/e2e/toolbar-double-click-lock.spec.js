@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /**
  * SIGN-30: double-clicking any Sign toolbar tool must lock it armed across
@@ -9,13 +9,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
  * clicks of a double-click would break.
  */
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Sign tool e2e fixture', { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Sign tool e2e fixture' }] });
 
 async function openSignTool(page) {
   await page.goto('/sign/?next=0');

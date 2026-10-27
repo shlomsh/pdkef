@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { useModalDialog } from './useModalDialog.ts';
 import dialogStyles from './Dialog.module.css';
 import styles from './PagePreviewDialog.module.css';
 import { renderPdfThumbnails } from '../lib/thumbnails.js';
@@ -69,17 +70,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, toggle, mes
   // fixed height (PagePreviewDialog.module.css `.preview-stage`), so nothing moves.
   const [stale, setStale] = useState(false);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (target && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.open = true;
-    } else if (!target && dialog.open) {
-      if (typeof dialog.close === 'function') dialog.close();
-      else dialog.open = false;
-    }
-  }, [!!target]);
+  useModalDialog(dialogRef, !!target, onClose, { escape: false });
 
   useEffect(() => {
     if (!target) {

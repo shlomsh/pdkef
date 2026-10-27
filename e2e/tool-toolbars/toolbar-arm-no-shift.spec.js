@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { openTool as openSharedTool } from '../support/tool.js';
 
 /**
  * SIGN-30: arming a tool must never move the toolbar underneath it. The
@@ -33,17 +34,12 @@ async function plainPdf() {
   return Buffer.from(await doc.save());
 }
 
-async function openTool(page, url, toolbarName, overlaySelector, buffer) {
-  await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
-  await page.goto(url);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Choose file', { exact: true }).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles({ name: 'arm-no-shift.pdf', mimeType: 'application/pdf', buffer });
-  await page.locator(overlaySelector).first().waitFor();
-  return page.getByRole('toolbar', { name: toolbarName });
-}
+const openTool = (page, url, toolbarName, overlaySelector, buffer) => openSharedTool(page, url, {
+  clearStorage: true,
+  file: { name: 'arm-no-shift.pdf', buffer },
+  overlaySelector,
+  toolbarName,
+});
 
 const toolbarTop = async (toolbar) => (await toolbar.boundingBox()).y;
 

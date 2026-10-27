@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 
 /*
  * The home page's dropzone hands a dropped PDF to the Sign tool across a
@@ -27,18 +27,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
  * replaced is still there afterward, not lost the way the original bug lost it.
  */
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  page.drawText(label, {
-    x: 72,
-    y: 700,
-    size: 18,
-    font: await doc.embedFont(StandardFonts.Helvetica),
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label, y: 700 }] });
 
 /* Two structural locators, because the home page's dropzone was rebuilt and
  * they are no longer the same element.

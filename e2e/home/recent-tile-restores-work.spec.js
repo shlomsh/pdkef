@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 
 /* Reopening your own document from the home page's recent-documents thumbnail
    must bring your work back with it.
@@ -26,14 +26,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 test.use({ serviceWorkers: 'block' });
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText(label, { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  page.drawText('Hide this: 1234-5678', { x: 72, y: 690, size: 12, font, color: rgb(0.25, 0.25, 0.25) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label }, { text: 'Hide this: 1234-5678', y: 690, size: 12, gray: 0.25 }] });
 
 async function drawRedaction(page, styleName, startRatio, endRatio) {
   const tool = page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name: styleName, exact: true });

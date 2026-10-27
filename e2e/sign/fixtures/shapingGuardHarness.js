@@ -24,8 +24,8 @@
  * browser's* native `fillText()` of the identical string in the identical
  * font - one rasterizer, no cross-engine noise, the same discipline
  * `docs/hebrew-text-shaping-export.md` uses to reject cross-rasterizer
- * comparisons. fontkit runs entirely in the page (matching how
- * `src/editor/text/liveFontCoverage.js` already runs it client-side), bundled fresh
+ * comparisons. fontkit runs entirely in the page (as it does in the
+ * editor via `src/editor/text/textMetrics.ts`), bundled fresh
  * via esbuild in a Playwright `beforeAll` rather than checked in as a
  * generated artifact - no network dependency, no stale-bundle risk. The
  * bundle includes `regenerator-runtime/runtime.js`, which Devanagari's

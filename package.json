@@ -30,6 +30,8 @@
     "test:detection-purity": "node scripts/check-detection-purity.mjs",
     "test:editor-dependency-directions": "node scripts/check-editor-dependency-directions.mjs",
     "test:module-boundaries": "node scripts/check-module-boundaries.mjs",
+    "test:ratchet-raises": "node scripts/check-ratchet-raises.mjs",
+    "test:size-ratchet": "node scripts/check-size-ratchet.mjs",
     "test:seo": "node scripts/verify-seo.js",
     "test:redirects": "node scripts/check-trailing-slash-redirects.js",
     "test:css": "node scripts/check-class-resolution.js && node scripts/check-editor-global-css.js && node scripts/check-dead-utilities.js && node scripts/check-css-duplication.js && node scripts/check-built-html-comments.js && node scripts/check-animation-shorthand.js",
@@ -95,7 +97,7 @@
   "overrides": {
     "browserslist": "4.28.7",
     "devalue": "5.9.4",
-    "fast-uri": "3.1.8",
+    "fast-uri": "3.1.9",
     "follow-redirects": "1.16.1",
     "svgo": "4.1.0",
     "smol-toml": "1.9.0",
@@ -103,7 +105,7 @@
     "nx": {
       "axios": "1.20.0",
       "brace-expansion": "5.0.12",
-      "undici": "7.30.0"
+      "undici": "7.30.1"
     }
   },
   "engines": {
