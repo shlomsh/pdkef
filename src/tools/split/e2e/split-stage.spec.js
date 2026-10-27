@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* Split, the stage (docs/split-stage-spec.md, 2026-09-14; on the shared page
    grid since GRID-05). The one thing jsdom cannot prove: the control that
@@ -8,11 +8,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    it scrolled away. From 1024px it sits in the sticky rail; below, in the
    sticky phone bar beside the quiet Download. */
 
-async function makePdfBuffer(pageCount) {
-  const document = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) document.addPage([612, 792]);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (pageCount) => buildPdf(null, { title: false, pages: pageCount });
 
 async function openSplit(page, name, pageCount) {
   await page.goto('/split/');
