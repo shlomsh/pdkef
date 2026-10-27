@@ -204,17 +204,14 @@ export default withIslandBoundary(function PdfSplitTool({
 
   return (
     <BasePdfTool
-      emptyArt={<SplitVerb />}
       hasFiles={file !== null}
-      analyticsTool="split"
-      // A protected file is the person's file, not a failed operation: it stays out of the failure count.
-      analyticsStatus={analyticsStatus}
       onFilesAdded={handleFilesAdded}
-      multiple={false}
-      file={file}
-      fileLabel={file?.name}
+      intake={{ multiple: false }}
+      identity={{ file, label: file?.name, hidden: true }}
+      empty={{ art: <SplitVerb /> }}
+      // A protected file is the person's file, not a failed operation: it stays out of the failure count.
+      analytics={{ tool: 'split', status: analyticsStatus }}
       shellMessages={shellMessages}
-      hideIdentity
     >
       <SkippedFilesNote names={rejectedFiles} messages={t} dir={t.dir} />
 

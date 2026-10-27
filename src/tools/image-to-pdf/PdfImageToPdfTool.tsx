@@ -341,20 +341,18 @@ export default withIslandBoundary(function PdfImageToPdfTool({ quietPolicy, mess
 
   return (
     <BasePdfTool
-      emptyArt={<ImageToPdfVerb />}
       hasFiles={hasFiles}
-      analyticsTool="image-to-pdf"
-      analyticsStatus={status}
       onFilesAdded={addFiles}
-      accept={PHOTO_ACCEPT}
-      emptyStateMessage={t.dropHere}
-      fileLabel={fileSummary}
-      fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}
-      onClearAll={reset}
-      clearSummary={fileSummary}
-      hideIdentity
+      intake={{ accept: PHOTO_ACCEPT, needsPdfjs: false }}
+      identity={{
+        label: fileSummary,
+        meta: formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0)),
+        hidden: true,
+      }}
+      empty={{ art: <ImageToPdfVerb />, message: t.dropHere }}
+      clearAll={{ onClear: reset, summary: fileSummary }}
+      analytics={{ tool: 'image-to-pdf', status }}
       shellMessages={shellMessages}
-      needsPdfjs={false}
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">

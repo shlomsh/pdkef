@@ -184,17 +184,14 @@ export default withIslandBoundary(function PdfToImageTool({ messages: messagesPr
 
   return (
     <BasePdfTool
-      emptyArt={<PdfToImageVerb />}
       hasFiles={file !== null}
-      analyticsTool="pdf-to-image"
-      // A password-locked file is the person's file, not a failed operation: it stays out of the failure count.
-      analyticsStatus={analyticsStatus}
       onFilesAdded={handleFilesAdded}
-      multiple={false}
-      file={file}
-      fileLabel={file?.name}
+      intake={{ multiple: false }}
+      identity={{ file, label: file?.name, hidden: true }}
+      empty={{ art: <PdfToImageVerb /> }}
+      // A password-locked file is the person's file, not a failed operation: it stays out of the failure count.
+      analytics={{ tool: 'pdf-to-image', status: analyticsStatus }}
       shellMessages={shellMessages}
-      hideIdentity
     >
       <SkippedFilesNote names={rejectedFiles} messages={t} dir={t.dir} />
 

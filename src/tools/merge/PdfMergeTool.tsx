@@ -323,26 +323,29 @@ export default withIslandBoundary(function PdfMergeTool({
 
   return (
     <BasePdfTool
-      accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png"
       hasFiles={hasFiles}
-      analyticsTool="merge"
-      analyticsStatus={analyticsStatus}
-      ownsRating
       onFilesAdded={addFiles}
-      onClearAll={reset}
-      clearSummary={entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length })}
+      intake={{ accept: 'application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png' }}
+      identity={{ hidden: true }}
+      empty={{
+        cloudDriveHint: true,
+        heading: t.emptyHeading,
+        message: t.dropHere,
+        body: t.emptyBody,
+        art: <MergeVerb />,
+      }}
+      draft={{ checking: !hasFiles && state.status === 'checking-draft' }}
+      clearAll={{
+        onClear: reset,
+        summary: entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length }),
+      }}
+      analytics={{ tool: 'merge', status: analyticsStatus }}
+      owns={{ rating: true }}
       // Direction A wave 2 (Shlomi): with the add bar gone, dropping
       // anywhere on the page is the only invitation left, so the
       // drag-over overlay says so - a Merge-only override of the shared
       // shell copy, not a change to what Split/ImageToPdf/ToImage show.
       shellMessages={{ ...shellMessages, dropToAddMore: t.dropAnywhereNote }}
-      showCloudDriveHint
-      emptyHeading={t.emptyHeading}
-      emptyStateMessage={t.dropHere}
-      emptyBody={t.emptyBody}
-      emptyArt={<MergeVerb />}
-      checkingDraft={!hasFiles && state.status === 'checking-draft'}
-      hideIdentity
     >
       {DraftPersistence && (
         <DraftPersistence

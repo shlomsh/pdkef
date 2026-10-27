@@ -35,67 +35,79 @@ function renderTemplate(text: string, values: Record<string, string>, className:
 // aren't modeled yet, so they stay `any` rather than inventing types nothing
 // else uses.
 interface BasePdfToolProps {
-  /** False for a tool that never loads pdf.js (Image to PDF, Scan): the old-browser notice is about pdf.js only. */
-  needsPdfjs?: boolean;
   hasFiles: boolean;
   onFilesAdded: (files: File[]) => void;
   children?: ComponentChildren;
-  multiple?: boolean;
-  accept?: string;
-  emptyStateMessage?: string;
-  fileLabel?: string;
-  fileMeta?: string;
-  /** Optional tool content after the file meta, and a note under it (the shell strip's slots). */
-  fileMetaExtra?: ComponentChildren;
-  fileNote?: ComponentChildren;
-  /** The loaded file itself, for a single-file tool that already holds it in
-   * its own state (see PdfCompressTool.tsx for the shape - `fileLabel`/
-   * `fileMeta` derived alongside it). Passed straight through to the shell
-   * context so ToolShell can show a real thumbnail (FilePreview.tsx) instead
-   * of the generic glyph. Optional: a tool that doesn't pass it, or a
-   * `multiple` tool (dropped below regardless - Merge has its own
-   * thumbnails), gets today's icon unchanged. */
-  file?: File | null;
-  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict' | 'unpersisted';
-  onClearAll?: () => void;
-  clearSummary?: string;
-  ownsShell?: boolean;
-  checkingDraft?: boolean;
+  intake?: {
+    /** False for a tool that never loads pdf.js (Image to PDF, Scan): the old-browser notice is about pdf.js only. */
+    needsPdfjs?: boolean;
+    multiple?: boolean;
+    accept?: string;
+    /** A file dropped anywhere on the window is taken (default on), and the card
+     * carries `data-dragging` while one is over it. With a single file open, a
+     * drop still goes through the replace confirmation. */
+    dropAnywhere?: boolean;
+  };
+  identity?: {
+    /** The loaded file itself, for a single-file tool that already holds it in
+     * its own state (see PdfCompressTool.tsx for the shape - `label`/
+     * `meta` derived alongside it). Passed straight through to the shell
+     * context so ToolShell can show a real thumbnail (FilePreview.tsx) instead
+     * of the generic glyph. Optional: a tool that doesn't pass it, or a
+     * `multiple` tool (dropped below regardless - Merge has its own
+     * thumbnails), gets today's icon unchanged. */
+    file?: File | null;
+    label?: string;
+    meta?: string;
+    /** Optional tool content after the file meta, and a note under it (the shell strip's slots). */
+    metaExtra?: ComponentChildren;
+    note?: ComponentChildren;
+    /** Direction A (Merge): a tool whose loaded state replaces the identity
+     * row and file actions with its own add bar (AddBar.tsx) sets this so
+     * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
+     * of it. Every other tool leaves this false and is unaffected. */
+    hidden?: boolean;
+  };
+  empty?: {
+    message?: string;
+    /** The tool's verb, drawn in the empty-state sheet in place of the file-plus icon. */
+    art?: ComponentChild;
+    /** The sheet's heading and the line under it (default: the shell's drop
+     * message and privacy line). */
+    heading?: string;
+    body?: string;
+    /** An extra action under the pick button in the empty-state sheet. */
+    action?: ComponentChild;
+    /** MOBI-09: opt-in per tool page (currently the Sign tool only - see its
+     * ticket for why the Files-app notice is scoped there rather than shown
+     * shell-wide). Forwarded to DropzoneEmptyState, which still gates the
+     * actual notice on a mount-effect iOS check; this only says the tool is
+     * allowed to show it. */
+    iosFilesHint?: boolean;
+    cloudDriveHint?: boolean;
+  };
+  draft?: {
+    saveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict' | 'unpersisted';
+    checking?: boolean;
+  };
+  /** List tools only. Its presence is what puts a Clear all beside Add files. */
+  clearAll?: { onClear: () => void; summary?: string };
   /** Optional anonymous lifecycle reporting for this tool. */
-  analyticsTool?: AnalyticsTool;
-  analyticsStatus?: string;
-  /** The tool this page is, for its page view (DEBT-58), when `analyticsTool` is only known later
-   * (Unlock/Protect learn theirs from the file). Defaults to `analyticsTool`. */
-  pageTool?: AnalyticsTool;
-  /** RED-66: the tool mounts its own RatingPrompt beside its done state, so the shell mounts none. */
-  ownsRating?: boolean;
+  analytics?: {
+    tool?: AnalyticsTool;
+    status?: string;
+    /** The tool this page is, for its page view (DEBT-58), when `tool` is only known later
+     * (Unlock/Protect learn theirs from the file). Defaults to `tool`. */
+    pageTool?: AnalyticsTool;
+  };
+  owns?: {
+    shell?: boolean;
+    /** RED-66: the tool mounts its own RatingPrompt beside its done state, so the shell mounts none. */
+    rating?: boolean;
+  };
   /** The shell's own strings (dropzone, file actions, confirmations) for a
    * localized page; every key not given keeps its English default. */
   shellMessages?: Partial<ShellMessages>;
-  /** MOBI-09: opt-in per tool page (currently the Sign tool only - see its
-   * ticket for why the Files-app notice is scoped there rather than shown
-   * shell-wide). Forwarded to DropzoneEmptyState, which still gates the
-   * actual notice on a mount-effect iOS check; this only says the tool is
-   * allowed to show it. */
-  showIosFilesHint?: boolean;
-  showCloudDriveHint?: boolean;
-  /** The tool's verb, drawn in the empty-state sheet in place of the file-plus icon. */
-  emptyArt?: ComponentChild;
-  /** The sheet's heading and the line under it (default: the shell's drop
-   * message and privacy line). */
-  emptyHeading?: string;
-  emptyBody?: string;
-  /** An extra action under the pick button in the empty-state sheet. */
-  emptyAction?: ComponentChild;
-  /** Direction A (Merge): a tool whose loaded state replaces the identity
-   * row and file actions with its own add bar (AddBar.tsx) sets this so
-   * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
-   * of it. Every other tool leaves this false and is unaffected. */
-  hideIdentity?: boolean;
-  /** A file dropped anywhere on the window is taken (default on), and the card
-   * carries `data-dragging` while one is over it. With a single file open, a
-   * drop still goes through the replace confirmation. */
-  dropAnywhere?: boolean;
 }
 
 /**
@@ -115,47 +127,50 @@ function BasePdfTool({
   hasFiles,
   onFilesAdded,
   children,
-  multiple = true,
-  accept = 'application/pdf',
-  emptyStateMessage,
-  fileLabel,
-  fileMeta,
-  fileMetaExtra,
-  fileNote,
-  file = null,
-  draftSaveState = 'idle',
-  /* List tools only. Its presence is what puts a Clear all beside Add files:
-     for a list those are two genuinely different intents, not the drift this
-     shell exists to remove. */
-  onClearAll,
-  clearSummary,
-  /* Sign and Redact mount <ToolShell> themselves, inside the element that goes
-     full screen - a toolbar rendered out here would disappear the moment full
-     screen started. They still take every other decision from this component
-     through the context below. */
-  ownsShell = false,
+  intake,
+  identity,
+  empty,
+  draft,
+  clearAll,
+  analytics,
+  owns,
+  shellMessages,
+}: BasePdfToolProps) {
+  const { multiple = true, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
+  const {
+    file = null,
+    label: fileLabel,
+    meta: fileMeta,
+    metaExtra: fileMetaExtra,
+    note: fileNote,
+    hidden: hideIdentity = false,
+  } = identity ?? {};
+  const {
+    message: emptyStateMessage,
+    art: emptyArt,
+    heading: emptyHeading,
+    body: emptyBody,
+    action: emptyAction,
+    iosFilesHint: showIosFilesHint = false,
+    cloudDriveHint: showCloudDriveHint = false,
+  } = empty ?? {};
   /* True while a tool with draft persistence is still checking IndexedDB for a
      saved draft on mount (see useDraftPersistence.js's `isRestoring`). Renders
      a brief neutral placeholder instead of the "drop a file here" empty state,
      so a returning visitor with a draft never sees an invitation to add a file
      for the split second before their file loads over it. Tools without draft
      persistence never set this, so their empty state is unaffected. */
-  checkingDraft = false,
-  analyticsTool,
-  analyticsStatus,
-  pageTool,
-  ownsRating = false,
-  shellMessages,
-  showIosFilesHint = false,
-  showCloudDriveHint = false,
-  emptyArt,
-  emptyHeading,
-  emptyBody,
-  emptyAction,
-  hideIdentity = false,
-  dropAnywhere = true,
-  needsPdfjs = true,
-}: BasePdfToolProps) {
+  const { saveState: draftSaveState = 'idle', checking: checkingDraft = false } = draft ?? {};
+  /* List tools only. Its presence is what puts a Clear all beside Add files:
+     for a list those are two genuinely different intents, not the drift this
+     shell exists to remove. */
+  const { onClear: onClearAll, summary: clearSummary } = clearAll ?? {};
+  const { tool: analyticsTool, status: analyticsStatus, pageTool } = analytics ?? {};
+  /* Sign and Redact mount <ToolShell> themselves, inside the element that goes
+     full screen - a toolbar rendered out here would disappear the moment full
+     screen started. They still take every other decision from this component
+     through the context below. */
+  const { shell: ownsShell = false, rating: ownsRating = false } = owns ?? {};
   const downloaded = useDownloaded();
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
