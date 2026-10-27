@@ -428,6 +428,7 @@ async function provisionFontPack(cache, pack) {
     if (await cache.match(resolve(url))) return;
     const response = await fetchFresh(url);
     if (!response.ok) throw new Error(`Failed to provision ${pack.family}: ${response.status}`);
+    if (!await mayStore(cache, url, response)) throw new Error(`Failed to provision ${pack.family}: ${url} is not this build's file.`);
     await cache.put(resolve(url), response);
   });
   await writeFontPackMarker(cache, pack);
@@ -463,14 +464,18 @@ async function migrateFontPacks(previousCaches, currentCache) {
       let response = null;
       try {
         const fresh = await fetchFresh(url);
-        if (fresh.ok) response = fresh;
+        if (fresh.ok && await mayStore(currentCache, url, fresh)) response = fresh;
       } catch {
         // Fall through to the retained face below.
       }
       if (!response) {
         for (const oldCache of previousCaches) {
-          response = await oldCache.match(resolve(url));
-          if (response) break;
+          const kept = await oldCache.match(resolve(url));
+          // A face kept from another build keeps its URL, not its bytes.
+          if (kept && await mayStore(currentCache, url, kept)) {
+            response = kept;
+            break;
+          }
         }
       }
       if (!response) {
@@ -506,12 +511,39 @@ async function hashBytes(buffer) {
   return Array.from(new Uint8Array(digest).subarray(0, 8), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-// True only when this build's stored manifest lists the page with these bytes.
-async function belongsToThisBuild(cache, cacheKey, response) {
+// This build's `hashes`, read from the manifest stored at install and parsed
+// once per worker lifetime. A missing or unreadable manifest is not remembered,
+// so the next write path looks again (null for now).
+let storedHashes = null;
+async function hashesOfThisBuild(cache) {
+  if (!storedHashes) {
+    const reading = (async () => {
+      const stored = await cache.match(resolve(MANIFEST_PATH));
+      const hashes = stored ? (await stored.json()).hashes : null;
+      if (!hashes || typeof hashes !== 'object') throw new Error('No stored manifest hashes.');
+      return hashes;
+    })();
+    storedHashes = reading;
+    reading.catch(() => { if (storedHashes === reading) storedHashes = null; });
+  }
   try {
-    const stored = await cache.match(resolve(MANIFEST_PATH));
-    const expected = stored ? (await stored.json()).hashes?.[cacheKey] : undefined;
-    return !!expected && expected === await hashBytes(await response.clone().arrayBuffer());
+    return await storedHashes;
+  } catch {
+    return null;
+  }
+}
+
+// The one answer to "may this response be stored under this key in this
+// build's cache": a key the manifest lists only with the bytes it names; any
+// other key only when it is not a navigation (/_astro/ files are content-hashed
+// and unlisted public files are not part of the precache set); with no readable
+// manifest, the same.
+async function mayStore(cache, key, response, { navigation = false } = {}) {
+  const hashes = await hashesOfThisBuild(cache);
+  const expected = hashes?.[key];
+  if (!expected) return !navigation;
+  try {
+    return expected === await hashBytes(await response.clone().arrayBuffer());
   } catch {
     return false;
   }
@@ -520,7 +552,7 @@ async function belongsToThisBuild(cache, cacheKey, response) {
 async function refreshNavigation(request, cache, cacheKey) {
   try {
     const response = await fetch(request);
-    if (response.ok && await belongsToThisBuild(cache, cacheKey, response)) await cache.put(cacheKey, response.clone());
+    if (response.ok && await mayStore(cache, cacheKey, response, { navigation: true })) await cache.put(cacheKey, response.clone());
     return response;
   } catch {
     return null;
@@ -950,8 +982,12 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
         if (response.ok) {
+          // The page gets the network response now; whether this build's cache
+          // may keep it is decided on the clone, in the background.
           const copy = response.clone();
-          cache.put(request.url, copy);
+          event.waitUntil(mayStore(cache, new URL(request.url).pathname, copy)
+            .then((ok) => (ok ? cache.put(request.url, copy) : undefined))
+            .catch(() => {}));
         }
         return response;
       });
