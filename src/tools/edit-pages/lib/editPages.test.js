@@ -3,11 +3,11 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { editPages } from './editPages.js';
-import { ORIGINAL_WIDTHS, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
+import { ORIGINAL_WIDTHS, noPagesKey } from '../../../test/support/pdfPageTreeFixtures.ts';
 
 describe('editPages library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
@@ -109,7 +109,7 @@ describe('editPages on a protected file', () => {
   // Copying an owner-only file's still-encrypted page streams writes blank pages.
   it('refuses an owner-only file instead of writing blank pages', async () => {
     const buffer = fs.readFileSync(
-      path.resolve(__dirname, '../../lib/__fixtures__/encrypted/owner-only.pdf'),
+      path.resolve(__dirname, '../../../lib/__fixtures__/encrypted/owner-only.pdf'),
     );
     const file = new File([buffer], 'owner-only.pdf', { type: 'application/pdf' });
     await expect(editPages(file, {})).rejects.toThrow(/protected/i);

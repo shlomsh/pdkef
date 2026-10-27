@@ -37,7 +37,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
 }));
 
-vi.mock('./editPages.js', () => ({
+vi.mock('./lib/editPages.js', () => ({
   editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
 }));
 

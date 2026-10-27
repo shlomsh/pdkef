@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Download, Eraser, FileEdit, FileSignature, Merge, Shrink } from 'lucide-preact';
-import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
+import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './lib/security.js';
 import { isPdfFile } from '../../lib/fileKind.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
@@ -9,8 +9,8 @@ import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
-import PagePreview from './PagePreview.tsx';
-import { planPreview } from './previewPlan.js';
+import PagePreview from './components/PagePreview.tsx';
+import { planPreview } from './lib/previewPlan.js';
 import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -23,7 +23,7 @@ import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../lib/toolIds.ts';
-import { outputFileName } from './outputName.ts';
+import { outputFileName } from './lib/outputName.ts';
 import { englishSecurityMessages, type SecurityMessages } from './messages.ts';
 import { formatMessage } from '../../lib/formatMessage.ts';
 

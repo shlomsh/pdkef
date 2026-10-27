@@ -5,7 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from './editPages.js';
+import { editPages } from './lib/editPages.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -32,7 +32,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve(null)),
   renderPdfThumbnails: vi.fn(async () => 0),
 }));
-vi.mock('./editPages.js', () => ({
+vi.mock('./lib/editPages.js', () => ({
   editPages: vi.fn(() => Promise.resolve(new Blob(['x'], { type: 'application/pdf' }))),
 }));
 

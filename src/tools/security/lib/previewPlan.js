@@ -3,11 +3,11 @@
 // the file as picked, or the unlocked output. A protected output cannot be drawn without
 // its password, so a finished Protect keeps showing the input page.
 
-import { englishSecurityMessages } from './messages.ts';
+import { englishSecurityMessages } from '../messages.ts';
 
 /**
  * @param {{ mode: 'unlock' | 'protect' | null, status: string, noPassword: boolean }} state
- * @param {Pick<import('./messages.ts').SecurityMessages, 'tagProtected' | 'tagNotProtected' | 'tagUnlocked' | 'tagRestricted' | 'tagLocked'>} [tags] the tag wording
+ * @param {Pick<import('../messages.ts').SecurityMessages, 'tagProtected' | 'tagNotProtected' | 'tagUnlocked' | 'tagRestricted' | 'tagLocked'>} [tags] the tag wording
  * @returns {{ tag: string, source: 'none' | 'input' | 'output', locked: boolean, protectedDone: boolean } | null}
  */
 export function planPreview({ mode, status, noPassword }, tags = englishSecurityMessages) {

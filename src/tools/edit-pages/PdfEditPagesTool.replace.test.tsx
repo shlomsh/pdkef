@@ -24,7 +24,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   })),
 }));
 
-vi.mock('./editPages.js', () => ({ editPages: vi.fn() }));
+vi.mock('./lib/editPages.js', () => ({ editPages: vi.fn() }));
 
 const pdf = (name) => new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 50)); });
