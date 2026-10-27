@@ -7,22 +7,16 @@ import * as pipeline from './lib/scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { rotateQuad, turnedQuad } from './lib/quad.ts';
 import { playFlatten } from './lib/flattenAnimation.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  reportToolLifecycleEvent: vi.fn(),
-}));
-
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => ({
-  ...(await importOriginal()),
-  takeHandoff: vi.fn(() => Promise.resolve(null)),
-}));
-
+// EDGE: the flatten animation paints the photo into a 2d canvas context, which jsdom does not have.
+// Analytics and draftStore run for real over the harness.
 vi.mock('./lib/flattenAnimation.ts', async (importOriginal) => ({
   ...(await importOriginal()),
   playFlatten: vi.fn(() => () => {}),
 }));
 
+// EDGE: the pipeline decodes photos and draws and encodes canvases (createImageBitmap, 2d context, toBlob), none of which jsdom has.
 vi.mock('./lib/scanPipeline.ts', () => ({
   guessPage: vi.fn(),
   inspectPhoto: vi.fn(),
@@ -39,15 +33,11 @@ const heic = (name) => new File(['x'], name, { type: 'image/heic' });
 
 describe('PdfScanTool', () => {
   let container;
-  let originalCreate;
-  let originalRevoke;
+  let harness: ToolHarness;
 
   beforeEach(() => {
+    harness = installToolHarness();
     vi.useFakeTimers();
-    originalCreate = window.URL.createObjectURL;
-    originalRevoke = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:test');
-    window.URL.revokeObjectURL = vi.fn();
     vi.mocked(pipeline.guessPage).mockReset().mockImplementation(() => Promise.resolve(GUESS));
     vi.mocked(pipeline.inspectPhoto).mockReset().mockImplementation(() => Promise.resolve(seen(GUESS)));
     vi.mocked(pipeline.processPage).mockReset().mockImplementation(() => Promise.resolve({
@@ -66,9 +56,8 @@ describe('PdfScanTool', () => {
       container.remove();
       container = null;
     }
-    window.URL.createObjectURL = originalCreate;
-    window.URL.revokeObjectURL = originalRevoke;
     vi.useRealTimers();
+    harness.restore();
   });
 
   function mount() {
