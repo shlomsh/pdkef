@@ -44,6 +44,23 @@ const esc = (target: EventTarget = window) => {
 };
 
 describe('useModalDialog', () => {
+  it('re-runs showModal after a native close when syncOn changes', () => {
+    const first = () => {};
+    const { container, rerender } = render(<Harness open onClose={first} options={{ escape: false, syncOn: first }} />);
+    dialogOf(container).close();
+    expect(proto.showModal).toHaveBeenCalledTimes(1);
+    const second = () => {};
+    rerender(<Harness open onClose={second} options={{ escape: false, syncOn: second }} />);
+    expect(proto.showModal).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not re-open after a native close without syncOn', () => {
+    const { container, rerender } = render(<Harness open onClose={() => {}} options={{ escape: false }} />);
+    dialogOf(container).close();
+    rerender(<Harness open onClose={() => {}} options={{ escape: false }} />);
+    expect(proto.showModal).toHaveBeenCalledTimes(1);
+  });
+
   it('calls showModal when open turns true', () => {
     const { container, rerender } = render(<Harness open={false} onClose={() => {}} />);
     expect(proto.showModal).not.toHaveBeenCalled();

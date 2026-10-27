@@ -13,6 +13,8 @@ export interface ModalDialogOptions {
   fallback?: boolean;
   /** Default true: close the dialog when `open` turns false. false: the caller closes it. */
   closeWhenHidden?: boolean;
+  /** Also re-run the open/close sync when this value changes. SignatureDialog passes its onClose, keeping the effect's old [isOpen, onClose] deps. */
+  syncOn?: unknown;
 }
 
 /**
@@ -24,7 +26,7 @@ export function useModalDialog(
   ref: RefObject<HTMLDialogElement>,
   open: boolean,
   onClose: () => void,
-  { escape = 'capture', fallback = true, closeWhenHidden = true }: ModalDialogOptions = {},
+  { escape = 'capture', fallback = true, closeWhenHidden = true, syncOn }: ModalDialogOptions = {},
 ): void {
   useEffect(() => {
     const dialog = ref.current;
@@ -36,7 +38,7 @@ export function useModalDialog(
       if (!fallback || typeof dialog.close === 'function') dialog.close();
       else dialog.open = false;
     }
-  }, [open]);
+  }, [open, syncOn]);
 
   useEffect(() => {
     if (!open || !escape) return undefined;
