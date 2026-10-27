@@ -66,14 +66,14 @@
   }
 }
 
-@keyframes photoIn {
+@keyframes image-to-pdf-photo-in {
   0%,
   60% {
     inset: 0;
   }
 }
 
-@keyframes linesIn {
+@keyframes image-to-pdf-lines-in {
   0%,
   70% {
     opacity: 0;
@@ -88,10 +88,10 @@
   }
 
   .p.p::before {
-    animation: photoIn 1.3s var(--ease-emphasized) var(--d) both;
+    animation: image-to-pdf-photo-in 1.3s var(--ease-emphasized) var(--d) both;
   }
 
   .p::after {
-    animation: linesIn 1.3s ease var(--d) both;
+    animation: image-to-pdf-lines-in 1.3s ease var(--d) both;
   }
 }

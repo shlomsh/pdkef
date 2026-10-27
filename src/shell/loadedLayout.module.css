@@ -1,0 +1,28 @@
+/* The loaded-state grid shared by Compress and Image to PDF: strip, controls,
+   result, sheet on the phone; the result beside a 360px rail from 1024px. */
+.loaded-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'strip'
+    'controls'
+    'result'
+    'sheet';
+  row-gap: 16px;
+  align-items: start;
+  text-align: start;
+}
+
+@media (min-width: 1024px) {
+  .loaded-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      'result strip'
+      'result controls'
+      'result sheet'
+      'result .';
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+  }
+}

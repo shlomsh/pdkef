@@ -76,7 +76,7 @@
    PageWorkspace.module.css's `.quiet-button` uses. This was the one-file state's
    own 44px outlier. */
 .choose-button {
-  position: relative;
+  composes: hit-target from './hitTarget.module.css';
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -92,16 +92,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-}
-
-.choose-button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 44px;
-  transform: translateY(-50%);
 }
 
 .choose-button:hover {
@@ -184,10 +174,10 @@
 .check-mark-animated {
   stroke-dasharray: 16;
   stroke-dashoffset: 16;
-  animation: check-draw 0.4s 0.18s var(--ease-out) forwards;
+  animation: download-check-draw 0.4s 0.18s var(--ease-out) forwards;
 }
 
-@keyframes check-draw {
+@keyframes download-check-draw {
   to {
     stroke-dashoffset: 0;
   }

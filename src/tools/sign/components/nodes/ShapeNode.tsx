@@ -2,12 +2,13 @@ import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import { DEFAULT_STROKE_WIDTH } from '../../../../editor/model/signGeometry.js';
 import type { EllipseElement, RectangleElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';
+import styles from './ShapeNode.module.css';
 
 export default function ShapeNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<RectangleElement | EllipseElement>) {
   const actualType = element.type;
   return (
     <>
-      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" class={styles.svg}>
         {actualType === 'ellipse' && (
           <ellipse
             cx="50" cy="50"

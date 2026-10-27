@@ -1,0 +1,15 @@
+/* The 44px hit area behind a smaller visible button: composed by each quiet
+   button so the ::before lives in one place. */
+.hit-target {
+  position: relative;
+}
+
+.hit-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 44px;
+  transform: translateY(-50%);
+}
