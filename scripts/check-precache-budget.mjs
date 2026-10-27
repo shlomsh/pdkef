@@ -155,17 +155,21 @@ export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFile
   ];
 }
 
-// MEM-22: the manifest names its build (the id in sw.js's CACHE_VERSION) and the hash of every page's final bytes.
-// `readPage(url)` returns the bytes dist/ holds for a page URL.
+// MEM-22: the manifest names its build (the id in sw.js's CACHE_VERSION) and the hash of the final bytes of
+// every precached URL that is not a content-hashed /_astro/ file. `readPage(url)` returns the bytes dist/ holds.
 export function manifestIdentityProblems(manifest, { readPage, workerSource }) {
   const problems = [];
   if (!manifest.build) problems.push('manifest: no "build" id');
   else if (!workerSource.includes(manifest.build)) problems.push(`manifest: build ${manifest.build} is not in the worker's CACHE_VERSION`);
-  const html = manifest.html ?? {};
-  for (const url of Object.keys(manifest.pages)) if (!(url in html)) problems.push(`${url}: in pages but has no html hash`);
-  for (const url of Object.keys(html)) if (!(url in manifest.pages)) problems.push(`${url}: has an html hash but is not in pages`);
-  for (const [url, hash] of Object.entries(html)) {
-    if (url in manifest.pages && pageHash(readPage(url)) !== hash) problems.push(`${url}: html hash ${hash} does not match the page in dist/`);
+  const hashes = manifest.hashes ?? {};
+  const expected = new Set([...manifest.shell, ...Object.values(manifest.pages).flat()].filter((url) => !url.startsWith('/_astro/')));
+  for (const url of expected) if (!(url in hashes)) problems.push(`${url}: is precached and not content-hashed but has no hash`);
+  for (const url of Object.keys(hashes)) {
+    if (url.startsWith('/_astro/')) problems.push(`${url}: a content-hashed /_astro/ file needs no hash`);
+    else if (!expected.has(url)) problems.push(`${url}: has a hash but is not in the precache set`);
+  }
+  for (const [url, hash] of Object.entries(hashes)) {
+    if (expected.has(url) && pageHash(readPage(url)) !== hash) problems.push(`${url}: hash ${hash} does not match the file in dist/`);
   }
   return problems;
 }
@@ -208,7 +212,7 @@ function main() {
 
   const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles });
   failures.push(...manifestIdentityProblems(manifest, {
-    readPage: (url) => fs.readFileSync(path.join(dist, fileOf(url))),
+    readPage: (url) => fs.readFileSync(path.join(dist, decodeURIComponent(fileOf(url)))),
     workerSource: fs.readFileSync(path.join(dist, 'sw.js'), 'utf8'),
   }));
   if (failures.length) {

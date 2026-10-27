@@ -84,12 +84,15 @@ if (!about.includes('__BUILD_ID__')) {
 }
 fs.writeFileSync(aboutPath, about.replaceAll('__BUILD_ID__', buildId));
 
-// Written last (MEM-22): `html` hashes each page's final bytes, after the about rewrite above,
-// so the worker can store a refreshed page only when it is the page this build serves.
-const html = {};
-for (const url of Object.keys(pages)) {
-  html[url] = pageHash(fs.readFileSync(path.join(distDir, url.endsWith('/') ? `${url}index.html` : url)));
+// Written last (MEM-22): `hashes` holds the final bytes' hash of every precached URL that is not a
+// content-hashed /_astro/ file (the pages, icons, fonts, wasm...), after the about rewrite above,
+// so the worker stores a file only when it is the one this build serves.
+const hashes = {};
+const unhashedUrls = new Set([...shell, ...Object.values(pages).flat()].filter((url) => !url.startsWith('/_astro/')));
+for (const url of [...unhashedUrls].sort()) {
+  const relative = decodeURIComponent(url.endsWith('/') ? `${url}index.html` : url);
+  hashes[url] = pageHash(fs.readFileSync(path.join(distDir, relative)));
 }
-fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, shell, pages, html }, null, 2)}\n`);
+fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, shell, pages, hashes }, null, 2)}\n`);
 
 console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);

@@ -153,12 +153,12 @@ async function dispatchMessage(worker, data) {
   return reply;
 }
 
-// A v2 manifest of this build: `urls` is the shell, `pages` the per-page lists, `html` the
-// page hashes (MEM-22). `build` stays the placeholder id the worker carries in tests.
-function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}, html = {}) {
+// A v2 manifest of this build: `urls` is the shell, `pages` the per-page lists, `hashes` the
+// hashes of every unhashed-URL file (MEM-22). `build` stays the placeholder id the worker carries in tests.
+function manifestResponder(urls, perUrl = () => new Response('asset'), pages = {}, hashes = {}) {
   return vi.fn(async (request) => {
     const url = requestUrl(request);
-    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: urls, pages, html }));
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ version: 2, build: '__BUILD_ID__', shell: urls, pages, hashes }));
     return perUrl(new URL(url).pathname);
   });
 }
@@ -1272,10 +1272,48 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect([...worker.entries.keys()]).toEqual([]);
   });
 
+  describe('install checks unhashed files against the manifest', () => {
+    const PNG = () => new Response('icon bytes', { status: 200, headers: { 'Content-Type': 'image/png', 'X-Keep': 'yes' } });
+    const serve = (map) => (pathname) => (pathname in map ? map[pathname]() : new Response('asset'));
+    const urls = ['/', '/sign/', '/icons/icon-512.png', '/_astro/app.js'];
+
+    it('does not store a page whose bytes differ from its hash, and does not mark the build complete', async () => {
+      const hashes = { '/': pageHash('home'), '/sign/': pageHash('sign of this build') };
+      const worker = createWorker(manifestResponder(urls, serve({ '/': () => new Response('home'), '/sign/': () => new Response('sign of a newer build') }), {}, hashes), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      expect(worker.entries.has('https://pdkef.test/sign/')).toBe(false);
+      expect(worker.entries.has('https://pdkef.test/')).toBe(true);
+      expect(worker.entries.has('https://pdkef.test/_astro/app.js')).toBe(true);
+      expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(false);
+    });
+
+    it('rejects the install when / does not match its hash', async () => {
+      const worker = createWorker(manifestResponder(urls, serve({ '/': () => new Response('newer home') }), {}, { '/': pageHash('home') }), [], createFakeIndexedDB(), source);
+      await expect(dispatchInstall(worker)).rejects.toThrow();
+      expect(worker.entries.has('https://pdkef.test/')).toBe(false);
+    });
+
+    it('does not store a non-page unhashed file with a mismatching hash', async () => {
+      const worker = createWorker(manifestResponder(urls, serve({ '/icons/icon-512.png': PNG }), {}, { '/icons/icon-512.png': pageHash('other bytes') }), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      expect(worker.entries.has('https://pdkef.test/icons/icon-512.png')).toBe(false);
+      expect(worker.entries.has('https://pdkef.test/__pdkef/precache-complete/')).toBe(false);
+    });
+
+    it('stores a matching unhashed file with its status and headers', async () => {
+      const worker = createWorker(manifestResponder(urls, serve({ '/icons/icon-512.png': PNG }), {}, { '/icons/icon-512.png': pageHash('icon bytes') }), [], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      const stored = worker.entries.get('https://pdkef.test/icons/icon-512.png');
+      expect(await stored.text()).toBe('icon bytes');
+      expect(stored.headers.get('X-Keep')).toBe('yes');
+      expect(stored.headers.get('Content-Type')).toBe('image/png');
+    });
+  });
+
   describe('navigation refresh', () => {
     const navigate = (path) => ({ method: 'GET', mode: 'navigate', url: `https://pdkef.test${path}` });
-    const install = async (html, serve) => {
-      const worker = createWorker(manifestResponder(['/'], serve, {}, html), [], createFakeIndexedDB(), source);
+    const install = async (hashes, serve) => {
+      const worker = createWorker(manifestResponder(['/'], serve, {}, hashes), [], createFakeIndexedDB(), source);
       await dispatchInstall(worker);
       return worker;
     };
