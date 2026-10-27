@@ -34,6 +34,7 @@
     "test:size-ratchet": "node scripts/check-size-ratchet.mjs",
     "test:hook-ratchet": "node scripts/check-hook-ratchet.mjs",
     "test:any-ratchet": "node scripts/check-any-ratchet.mjs",
+    "test:ts-nocheck-ratchet": "node scripts/check-ts-nocheck-ratchet.mjs",
     "test:e2e-sleeps": "node scripts/check-e2e-sleeps.mjs",
     "test:floating-promises": "node scripts/check-floating-promises.mjs",
     "test:reveal-observers": "node scripts/check-reveal-observers.mjs",

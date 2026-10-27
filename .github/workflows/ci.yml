@@ -156,6 +156,10 @@ jobs:
     - name: Verify any ratchet
       run: npm run test:any-ratchet
 
+    # ARCH-80: test files carrying @ts-nocheck only get fewer (scripts/ts-nocheck-limit.json).
+    - name: Verify the ts-nocheck ratchet
+      run: npm run test:ts-nocheck-ratchet
+
     - name: Verify e2e sleep ratchet
       run: npm run test:e2e-sleeps
 
