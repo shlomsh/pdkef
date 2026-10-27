@@ -1,9 +1,10 @@
+import type { RedactBoxElement } from '../lib/redactElements.ts';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RedactBox from './RedactBox.tsx';
 
-const EL = { id: 'a', type: 'blackout', left: 10, top: 10, width: 30, height: 10, page: 0 };
+const EL: RedactBoxElement = { id: 'a', type: 'blackout', left: 10, top: 10, width: 30, height: 10, pageIndex: 0 };
 
 function mockPointer(coarse: boolean) {
   window.matchMedia = ((q: string) => ({

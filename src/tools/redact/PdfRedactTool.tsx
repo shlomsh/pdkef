@@ -1154,7 +1154,7 @@ export default withIslandBoundary(function PdfRedactTool() {
                   {/* Render existing redaction boxes (delete marks render separately below - they
                       have no color/drag/resize, so RedactBox and the registry it draws through
                       don't apply to them) */}
-                  {elements.filter(el => el.pageIndex === i && el.type !== 'delete').map(el => {
+                  {elements.filter((el): el is Exclude<RedactElement, { type: 'delete' }> => el.pageIndex === i && el.type !== 'delete').map(el => {
                     // RED-03: the repeat button only offers pages that don't
                     // already carry a copy - a dummy id generator here is
                     // enough to answer "would this add anything", without
