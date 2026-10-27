@@ -5,6 +5,7 @@ import {
 } from '../../../../editor/model/signGeometry.js';
 import type { LineElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeProps, NodeResizeStart } from '../nodeProps.ts';
+import styles from './LineNode.module.css';
 
 export default function LineNode({ element, isActive, onResizeStart, handlePointerDown, messages }: ElementNodeProps<LineElement> & {
   handlePointerDown: (event: MouseEvent | TouchEvent) => void;
@@ -12,7 +13,7 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
 }) {
   return (
     <>
-      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }}>
+      <svg width="100%" height="100%" class={styles.svg}>
         <line
           x1={`${element.x1}%`}
           y1={`${element.y1}%`}
@@ -31,7 +32,7 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
           stroke="transparent"
           stroke-width={LINE_HIT_TARGET_STOKE_WIDTH}
           stroke-linecap="round"
-          style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+          class={styles['hit-line']}
           onMouseDown={handlePointerDown}
           onTouchStart={handlePointerDown}
         />

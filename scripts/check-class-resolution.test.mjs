@@ -73,7 +73,8 @@ describe('collectReverseInputs + reverseProblems', () => {
   const f = (name) => path.join(root, name);
   const files = {
     [f('a/A.module.css')]: '.used {} .unused {} .composed {} .base {} .dyn {}',
-    [f('a/A2.module.css')]: '.x { composes: composed from "./A.module.css"; } .y { composes: base from "./A.module.css"; }',
+    [f('a/A2.module.css')]: '.x { composes: composed from "./A.module.css"; } .y { composes: base from "./A.module.css"; } .z { composes: hit from "./Shared.module.css"; }',
+    [f('a/Shared.module.css')]: '.hit {}',
     [f('a/Orphan.module.css')]: '.o {}',
     [f('a/A.tsx')]: `import styles from './A.module.css'; export const u = styles.used;`,
     [f('a/A.test.tsx')]: `import styles from './A.module.css'; expect(styles.unused); expect(styles.dyn);`,
@@ -81,7 +82,7 @@ describe('collectReverseInputs + reverseProblems', () => {
     [f('a/T.spec.tsx')]: `import styles from './T.module.css'; styles.t;`,
     [f('a/P.module.css')]: '.hint-a {} .hint-b {} .other {} .tail {}',
     [f('a/P.tsx')]: 'import styles from "./P.module.css"; export const k = (n) => styles[`hint-${n}`] + styles[`${n}`] + styles.tail;',
-    [f('a/A2.tsx')]: `import s2 from './A2.module.css'; export const v = s2.x + s2.y;`,
+    [f('a/A2.tsx')]: `import s2 from './A2.module.css'; export const v = s2.x + s2.y + s2.z;`,
   };
   const read = (file) => files[file];
   const inputs = collectReverseInputs(Object.keys(files), read);
@@ -96,6 +97,11 @@ describe('collectReverseInputs + reverseProblems', () => {
     expect(out).not.toContain('.used,');
     expect(out).not.toContain('defines .composed');
     expect(out).not.toContain('defines .base');
+  });
+  it('counts a module that is only composed from another module as imported (ARCH-89)', () => {
+    const out = run([]).join('\n');
+    expect(out).not.toContain('Shared.module.css  has no importer');
+    expect(out).not.toContain('defines .hit');
   });
   it('ignores readers and importers that are tests or specs', () => {
     const out = run([]).join('\n');

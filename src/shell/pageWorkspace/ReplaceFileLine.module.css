@@ -10,7 +10,7 @@
 }
 
 .replace-button {
-  position: relative;
+  composes: hit-target from '../hitTarget.module.css';
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -29,15 +29,4 @@
 .replace-button:hover {
   color: var(--color-primary-text);
   background: var(--color-primary-soft);
-}
-
-/* The 44px hit area, as `.quiet-button` has in PageWorkspace.module.css. */
-.replace-button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 44px;
-  transform: translateY(-50%);
 }

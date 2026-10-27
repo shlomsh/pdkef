@@ -65,7 +65,7 @@
    ::before keeps the 44px hit area). Underline is reserved for links that
    navigate. */
 .start-fresh {
-  position: relative;
+  composes: hit-target from '../../../shell/hitTarget.module.css';
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -79,16 +79,6 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-decoration: none;
-}
-
-.start-fresh::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 44px;
-  transform: translateY(-50%);
 }
 
 .start-fresh:hover {

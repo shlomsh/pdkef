@@ -206,6 +206,8 @@ export function collectReverseInputs(allFiles, readFile = (f) => fs.readFileSync
   for (const [file, css] of cssSources) {
     for (const { names, from } of composesIn(css)) {
       const target = from ? path.resolve(path.dirname(file), from) : file;
+      // A module composed from another one is imported by it (ARCH-89's shared hit target).
+      if (from && importers.has(target)) importers.get(target).add(file);
       if (used.has(target)) for (const n of names) used.get(target).add(n);
     }
   }

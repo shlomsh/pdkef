@@ -439,12 +439,12 @@
 }
 
 .quiet-button {
+  composes: hit-target from '../hitTarget.module.css';
   /* Shlomi (2026-09-13): Add files, Clear all, Reset order and Start fresh
      are buttons and look like buttons: one quiet secondary style, no fill,
      a 1px strong border, 36px tall with a 44px hit area (the ::before), text
      colour. Underline is for links that navigate. Share, Compress and
      Sign keep their own row style; "Draft saved" stays plain text. */
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -461,16 +461,6 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-decoration: none;
-}
-
-.quiet-button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 44px;
-  transform: translateY(-50%);
 }
 
 @media (hover: hover) {

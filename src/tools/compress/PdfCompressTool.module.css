@@ -4,16 +4,7 @@
    The strip is the shell's ToolShell, rendered here (with BasePdfTool's
    `hideIdentity`) so the rail can hold it on a desktop. */
 .loaded-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    'strip'
-    'controls'
-    'result'
-    'sheet';
-  row-gap: 16px;
-  align-items: start;
-  text-align: start;
+  composes: loaded-layout from '../../shell/loadedLayout.module.css';
 }
 
 .strip {
@@ -59,18 +50,6 @@
 }
 
 @media (min-width: 1024px) {
-  .loaded-layout {
-    grid-template-columns: minmax(0, 1fr) 360px;
-    grid-template-areas:
-      'result strip'
-      'result controls'
-      'result sheet'
-      'result .';
-    grid-template-rows: auto auto auto 1fr;
-    column-gap: 28px;
-    row-gap: 0;
-  }
-
   .result-action {
     margin-top: 20px;
   }
