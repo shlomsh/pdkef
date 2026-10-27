@@ -1,11 +1,9 @@
 ---
 id: "ARCH-93"
 title: "docs/module-boundaries.md holds only current rules, generated from or checked against the script"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 13
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Supporting. Criterion: Docs and guidance accuracy. Structure only: no beha
 
 ## Acceptance
 
-- [ ] `docs/module-boundaries.md` cites no missing path; a renamed rule in the script fails the doc check.
+- [x] `docs/module-boundaries.md` cites no missing path; a renamed rule in the script fails the doc check.
+
+## Done (2026-10-27)
+
+The ARCH-15 snapshot moved to docs/archive/module-boundaries-arch15-snapshot.md; RULES in the script is checked against the doc by scripts/check-module-boundaries.doc.test.mjs (a renamed rule fails it).

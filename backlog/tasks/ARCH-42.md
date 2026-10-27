@@ -1,11 +1,9 @@
 ---
 id: "ARCH-42"
 title: "The Nx project graph is asserted acyclic in test:module-boundaries"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 3
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Architecture. Criterion: Layering and dependency direction. Structure only
 
 ## Acceptance
 
-- [ ] A planted cycle between two projects fails the check with both names.
-- [ ] The check runs in CI and in `check:fast` when a `project.json` or import changes.
+- [x] A planted cycle between two projects fails the check with both names.
+- [x] The check runs in CI and in `check:fast` when a `project.json` or import changes.
+
+## Done (2026-10-27)
+
+The cycle check lifts relative imports and implicitDependencies to their project.json owners and fails on any strongly connected component. With implicit edges it found a real cycle that ARCH-77 had closed (tool specs -> e2e/support owned by site-e2e -> every tool); e2e/support is now its own leaf project. 40 projects, 190 edges, no cycle.

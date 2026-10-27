@@ -1,11 +1,9 @@
 ---
 id: "ARCH-95"
 title: "The routing rule names toolIds.ts as the one place a new tool starts"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 14
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Supporting. Criterion: Docs and guidance accuracy. Structure only: no beha
 
 ## Acceptance
 
-- [ ] The paragraph exists and every file it names exists (checked by the cited-path check).
+- [x] The paragraph exists and every file it names exists (checked by the cited-path check).
+
+## Done (2026-10-27)
+
+The "Adding a tool" paragraph is in .claude/rules/routing-and-pages.md; every path it names was checked by hand. ARCH-94 makes that a standing check.

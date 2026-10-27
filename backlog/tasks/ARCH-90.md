@@ -1,11 +1,9 @@
 ---
 id: "ARCH-90"
 title: "Dependency overrides pin patched versions, not vulnerable ones"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 11
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Supporting. Criterion: Dependency hygiene. Structure only: no behaviour ch
 
 ## Acceptance
 
-- [ ] Those five alerts close; `npm ci` and CI green.
+- [x] Those five alerts close; `npm ci` and CI green.
+
+## Done (2026-10-27)
+
+Overrides bumped to fast-uri 3.1.9 and nx undici 7.30.1; npm audit no longer lists either.

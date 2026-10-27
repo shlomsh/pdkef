@@ -1,11 +1,9 @@
 ---
 id: "ARCH-77"
 title: "End-to-end specs share one fixture and navigation helper module"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 9
 depends_on: []
 ---
 
@@ -24,5 +22,9 @@ Area: Tests and CI. Criterion: Test architecture. Structure only: no behaviour c
 
 ## Acceptance
 
-- [ ] `git grep "async function makePdfBuffer" -- '*.spec.js'` finds only the support module.
-- [ ] Test counts per Playwright project unchanged; CI green.
+- [x] `git grep "async function makePdfBuffer" -- '*.spec.js'` finds only the support module.
+- [x] Test counts per Playwright project unchanged; CI green.
+
+## Done (2026-10-27)
+
+e2e/support/pdf.js (makePdfBuffer(label, opts)) and e2e/support/tool.js (openTool(page, route, opts)) replace 31 and 8 local copies; Playwright --list counts identical per project; the full e2e suite passed.
