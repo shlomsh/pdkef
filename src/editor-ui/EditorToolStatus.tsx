@@ -227,14 +227,7 @@ export default function EditorToolStatus({
           set to `visibility: hidden`, that one span's `visible` won a fight the
           ancestor should have won, and every reservation row's "or double-click
           <button>" painted on screen at once, stacked on top of the real one. */}
-      {(showKeepOn || !interactive) && <span className={styles['status-hint']}>
-        <span className={interactive && locked ? styles['status-hint-shown'] : styles['status-hint-spare']}>
-          {hintEsc}
-        </span>
-        <span className={interactive && !locked ? styles['status-hint-shown'] : styles['status-hint-spare']}>
-          {formatMessage(hintDoubleClick, { button: rowCopy.button })}
-        </span>
-      </span>}
+      {(showKeepOn || !interactive) && <StatusHint shownLocked={interactive && locked} shownUnlocked={interactive && !locked} locked={hintEsc} unlocked={formatMessage(hintDoubleClick, { button: rowCopy.button })} />}
     </>
   );
 
@@ -342,6 +335,28 @@ export default function EditorToolStatus({
 }
 
 type FieldNavProps = NonNullable<Parameters<typeof EditorToolStatus>[0]['fieldNav']>;
+
+/** The two spare-and-shown keep-on hints; both stay in the layout, CSS shows one. */
+function StatusHint({ shownLocked, shownUnlocked, locked, unlocked }: { shownLocked: boolean; shownUnlocked: boolean; locked: string; unlocked: string }) {
+  return (
+    <span className={styles['status-hint']}>
+      <span
+        className={shownLocked ? styles['status-hint-shown'] : styles['status-hint-spare']}
+        data-status-hint="locked"
+        data-shown={shownLocked ? true : undefined}
+      >
+        {locked}
+      </span>
+      <span
+        className={shownUnlocked ? styles['status-hint-shown'] : styles['status-hint-spare']}
+        data-status-hint="unlocked"
+        data-shown={shownUnlocked ? true : undefined}
+      >
+        {unlocked}
+      </span>
+    </span>
+  );
+}
 
 /** Sign's Previous/Next across detected fields, beside whichever row the stack shows. */
 function FieldNav({ hasNext, hasPrevious, onNext, onPrevious, nextLabel, previousLabel, direction }: FieldNavProps) {
