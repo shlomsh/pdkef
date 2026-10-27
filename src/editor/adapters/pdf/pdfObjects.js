@@ -175,6 +175,8 @@ export function extractPageObjects(page, pageIndex = 0) {
   const context = page.doc.context;
   const bytes = getPageContentBytes(page);
   const resources = lookupDict(context, page.node.get(PDFName.of('Resources')));
+  // Read before the walk, as it always was: a page whose size read throws stops here.
+  const pageSize = page.getSize();
   const objects = [];
   const blocks = [];
   // Forms already walked on this page. Also the cycle guard: a Form that
@@ -185,7 +187,7 @@ export function extractPageObjects(page, pageIndex = 0) {
   const env = { context, pageIndex, objects, blocks, mark, walkForm };
 
   walkContentStream(bytes, resources, IDENTITY, [], env);
-  assignIdsAndRects(objects, pageIndex, page.getSize());
+  assignIdsAndRects(objects, pageIndex, pageSize);
 
   return { objects, bytes, blocks };
 
