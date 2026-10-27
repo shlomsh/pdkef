@@ -6,7 +6,8 @@
 // level, a nested function starts its own count) under "nesting". The check fails
 // when a record grows or an unrecorded file/function crosses its threshold. A
 // shrink passes; locally it also rewrites the record lower (or drops it), in CI it
-// only prints. The function sections are top-level so ARCH-76's check-ratchet-raises,
+// only prints. Functions sharing a name (anonymous callbacks) are matched by size
+// within their file and parent, not by position. The function sections are top-level so ARCH-76's check-ratchet-raises,
 // which skips a new section, accepts their first baseline and then refuses any raise.
 //
 //   node scripts/check-size-ratchet.mjs          check (and lower records outside CI)
@@ -137,23 +138,58 @@ export function snapshot(measured, { fileThreshold, functionThreshold, nestingCa
   return { fileLines, functionLines, nesting };
 }
 
+// Pure: group { key: value } by the key without a trailing `~<n>`, as [{ key, value }]
+// sorted by value descending. Functions sharing a name (anonymous callbacks) get
+// matched by size, so inserting or removing one earlier in the file renames the
+// others without changing what they are compared to.
+function groupByBaseName(entries) {
+  const groups = new Map();
+  for (const [key, value] of Object.entries(entries)) {
+    const base = key.replace(/~\d+$/, '');
+    if (!groups.has(base)) groups.set(base, []);
+    groups.get(base).push({ key, value });
+  }
+  for (const g of groups.values()) g.sort((x, y) => y.value - x.value);
+  return groups;
+}
+
 // Pure: recorded vs current (both snapshot-shaped). A failure is a record that
 // grew or an unrecorded entry over its threshold; `lowered` lists records that
-// shrank (to a number) or fell away (to null).
+// shrank (to a number) or fell away (to null). Function tiers pair records with
+// current values per (file, base name), largest to largest; lowerings name the
+// recorded key, failures for unpaired current values name the current key.
 export function compareSize(recorded, current, thresholds) {
   const failures = [];
   const lowered = [];
   for (const [field, kind, thresholdName] of TIERS) {
     const threshold = thresholds[thresholdName];
+    const recGroups = kind === 'file' ? null : groupByBaseName(recorded[field] ?? {});
+    const curGroups = kind === 'file' ? null : groupByBaseName(current[field] ?? {});
     const rec = recorded[field] ?? {};
-    for (const [key, now] of Object.entries(current[field] ?? {})) {
-      const was = rec[key] ?? threshold;
-      if (now > was) failures.push({ key, kind, recorded: was, current: now });
+    if (kind === 'file') {
+      for (const [key, now] of Object.entries(current[field] ?? {})) {
+        const was = rec[key] ?? threshold;
+        if (now > was) failures.push({ key, kind, recorded: was, current: now });
+      }
+      for (const [key, was] of Object.entries(rec)) {
+        const now = (current[field] ?? {})[key];
+        if (now === undefined) lowered.push({ key, kind, from: was, to: null });
+        else if (now < was) lowered.push({ key, kind, from: was, to: now });
+      }
+      continue;
     }
-    for (const [key, was] of Object.entries(rec)) {
-      const now = (current[field] ?? {})[key];
-      if (now === undefined) lowered.push({ key, kind, from: was, to: null });
-      else if (now < was) lowered.push({ key, kind, from: was, to: now });
+    for (const base of new Set([...recGroups.keys(), ...curGroups.keys()])) {
+      const recs = recGroups.get(base) ?? [];
+      const curs = curGroups.get(base) ?? [];
+      curs.forEach((c, i) => {
+        const was = recs[i]?.value ?? threshold;
+        if (c.value > was) failures.push({ key: c.key, kind, recorded: was, current: c.value });
+      });
+      recs.forEach((r, i) => {
+        const now = curs[i]?.value;
+        if (now === undefined) lowered.push({ key: r.key, kind, from: r.value, to: null });
+        else if (now < r.value) lowered.push({ key: r.key, kind, from: r.value, to: now });
+      });
     }
   }
   return { failures, lowered };
