@@ -1,7 +1,7 @@
 // The src/ import graph, scanned once and shared (ARCH-32). scripts/check-module-boundaries.mjs
 // (the boundary rules) and scripts/affected-scope.mjs (e2e selection by file-level reachability)
 // both read the same edges, so the two cannot disagree about who imports what. Everything here is
-// the scan only: relative imports, re-exports, dynamic `import()` and an `.astro` file's own
+// the scan only: relative imports, re-exports, dynamic `import()`, `new URL(..., import.meta.url)`, `import.meta.glob` and an `.astro` file's own
 // `<script src>`; bare package imports are out of scope. No rule, no classification lives here.
 //
 // Every function that touches the disk takes a `root` (the repo root) defaulting to this checkout,
@@ -43,14 +43,134 @@ export const IMPORT_PATTERN = new RegExp(
   'g',
 );
 
-export function importSpecifiers(source) {
+// Comments blanked to spaces (newlines kept, so line numbers hold): prose like "the island import
+// (so only ...)" must not read as a call. One pass that tracks '...', "..." and `...` literals
+// (backslash escapes honoured; a ' or " literal ends at a newline) so `/*` inside a string is text.
+// Regex literals are not tracked.
+function blankComments(source) {
+  let out = '';
+  let quote = null;
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    if (quote) {
+      out += c;
+      if (c === '\\') { out += source[i + 1] ?? ''; i++; } else if (c === quote || (c === '\n' && quote !== '`')) quote = null;
+    } else if (c === '"' || c === "'" || c === '`') {
+      quote = c;
+      out += c;
+    } else if (c === '/' && source[i + 1] === '/') {
+      while (i < source.length && source[i] !== '\n') { out += ' '; i++; }
+      i--;
+    } else if (c === '/' && source[i + 1] === '*') {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      out += source.slice(i, stop).replace(/[^\n]/g, ' ');
+      i = stop - 1;
+    } else out += c;
+  }
+  return out;
+}
+
+const lineOf = (source, index) => source.slice(0, index).split('\n').length;
+const computedImport = (file, line) => new Error(`import-graph cannot read a computed import at ${file}:${line}; use a literal specifier`);
+
+// Every `import(` call site. The pattern above takes the plain string form; this pass looks at what
+// it cannot: a template literal with `${` or any non-literal argument has no static edge, so it
+// throws (ARCH-49) rather than leave the graph with an edge it never saw. A template literal with
+// no substitution is a plain specifier.
+const DYNAMIC_IMPORT = /(?<![.\w$])import\s*\(\s*/g;
+const STRING_ARGUMENT = /^(['"])[^'"\n]*\1\s*[,)]/;
+
+function dynamicImportSpecifiers(source, file) {
+  const specifiers = [];
+  let match;
+  DYNAMIC_IMPORT.lastIndex = 0;
+  while ((match = DYNAMIC_IMPORT.exec(source)) !== null) {
+    const rest = source.slice(match.index + match[0].length);
+    if (STRING_ARGUMENT.test(rest)) continue; // the main pattern has it
+    if (rest.startsWith(')')) continue; // `import()` with no argument is prose in a string, not a call
+    const template = /^`([^`$\\]*)`\s*[,)]/.exec(rest);
+    if (template) { specifiers.push(template[1]); continue; }
+    // Test files and build-time scripts load modules dynamically on purpose; the boundary rules govern product code.
+    if (TEST_FILE.test(path.basename(file)) || file.startsWith('scripts/')) continue;
+    throw computedImport(file, lineOf(source, match.index));
+  }
+  return specifiers;
+}
+
+// `new URL('<relative literal>', import.meta.url)` is how bundlers find workers and assets: an edge.
+const URL_IMPORT = /new\s+URL\s*\(\s*(['"`])(\.{1,2}\/[^'"`$\n]*)\1\s*,\s*import\.meta\.url\s*\)/g;
+
+export function importSpecifiers(source, file = '<source>') {
   const specifiers = [];
   let match;
   IMPORT_PATTERN.lastIndex = 0;
   while ((match = IMPORT_PATTERN.exec(source)) !== null) {
     specifiers.push(match[1] || match[2] || match[3]);
   }
+  const code = blankComments(source);
+  specifiers.push(...dynamicImportSpecifiers(code, file));
+  URL_IMPORT.lastIndex = 0;
+  while ((match = URL_IMPORT.exec(code)) !== null) specifiers.push(match[2]);
   return specifiers;
+}
+
+// `import.meta.glob('<literal pattern>')` (or an array of literals) is an edge to every file the
+// pattern matches. A non-literal argument cannot be expanded, so it throws like a computed import.
+const GLOB_CALL = /import\.meta\.glob\s*\(\s*/g;
+const GLOB_ARGUMENT = /^(?:(['"`])([^'"`$\n]+)\1|\[((?:\s*(['"`])[^'"`$\n]+\4\s*,?)+)\s*\])/;
+
+export function importGlobPatterns(rawSource, file = '<source>') {
+  const source = blankComments(rawSource);
+  const patterns = [];
+  let match;
+  GLOB_CALL.lastIndex = 0;
+  while ((match = GLOB_CALL.exec(source)) !== null) {
+    const arg = GLOB_ARGUMENT.exec(source.slice(match.index + match[0].length));
+    if (!arg) throw computedImport(file, lineOf(source, match.index));
+    if (arg[2]) patterns.push(arg[2]);
+    else patterns.push(...[...arg[3].matchAll(/(['"`])([^'"`]+)\1/g)].map((m) => m[2]));
+  }
+  return patterns.filter((p) => !p.startsWith('!'));
+}
+
+function globToRegExp(glob) {
+  let out = '';
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === '*') {
+      if (glob[i + 1] === '*') { i++; if (glob[i + 1] === '/') { i++; out += '(?:.*/)?'; } else out += '.*'; } else out += '[^/]*';
+    } else if (c === '?') out += '[^/]';
+    else if (c === '{') out += '(?:';
+    else if (c === '}') out += ')';
+    else if (c === ',' && /\{[^}]*$/.test(glob.slice(0, i))) out += '|';
+    else out += c.replace(/[.+^$()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(`^${out}$`);
+}
+
+// Files (absolute paths) a glob pattern, relative to `fromFile` or rooted at `root` for a leading
+// `/`, matches. Walks only the pattern's static directory prefix.
+export function expandGlob(fromFile, pattern, root = REPO_ROOT) {
+  const rooted = pattern.startsWith('/');
+  const baseDir = rooted ? root : path.dirname(fromFile);
+  const absolute = path.resolve(baseDir, rooted ? `.${pattern}` : pattern);
+  const segments = absolute.split(path.sep);
+  const firstGlob = segments.findIndex((seg) => /[*?{]/.test(seg));
+  if (firstGlob === -1) return fs.existsSync(absolute) && fs.statSync(absolute).isFile() ? [absolute] : [];
+  const staticDir = segments.slice(0, firstGlob).join(path.sep) || path.sep;
+  if (!fs.existsSync(staticDir)) return [];
+  const matcher = globToRegExp(absolute.split(path.sep).join('/'));
+  const out = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (matcher.test(full.split(path.sep).join('/'))) out.push(full);
+    }
+  };
+  walk(staticDir);
+  return out;
 }
 
 // TS source imports routinely spell a `.ts` file's specifier with a `.js`
@@ -85,11 +205,15 @@ export function edgesOfFiles(files, root = REPO_ROOT) {
   for (const file of files) {
     const from = relOf(file, root);
     const source = fs.readFileSync(file, 'utf8');
-    for (const specifier of importSpecifiers(source)) {
+    const targets = [];
+    for (const specifier of importSpecifiers(source, from)) {
       if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
       const resolved = resolveRelativeImport(file, specifier, root);
-      if (!resolved) continue; // unresolved relative import is not this scan's concern
-      const to = relOf(resolved, root);
+      if (resolved) targets.push(resolved); // unresolved relative import is not this scan's concern
+    }
+    for (const pattern of importGlobPatterns(source, from)) targets.push(...expandGlob(file, pattern, root));
+    for (const target of targets) {
+      const to = relOf(target, root);
       if (to === from) continue;
       const key = `${from} -> ${to}`;
       if (seen.has(key)) continue;
