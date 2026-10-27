@@ -1,7 +1,7 @@
 ---
 id: "MEM-20"
 title: "Each page's CSP hash list is emitted in a stable order"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
