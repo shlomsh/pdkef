@@ -1,0 +1,22 @@
+[
+  {
+    "file": "src/editor/adapters/pdf/sign.js",
+    "includes": "await fetch(`/fonts/",
+    "reason": "GET of a same-origin font file to embed in the exported PDF. No request body; nothing leaves the device."
+  },
+  {
+    "file": "src/site-lib/FileDropzone.tsx",
+    "includes": "await fetch('/images/redaction-guide/sample.pdf')",
+    "reason": "GET of the same-origin sample PDF the site ships. No request body; nothing leaves the device."
+  },
+  {
+    "file": "src/site-lib/ratingAggregate.ts",
+    "includes": "fetchImpl: typeof fetch = fetch",
+    "reason": "Default for the injectable fetch of the build-time rating read (Node, during astro build, never in the browser). See the call below."
+  },
+  {
+    "file": "src/site-lib/ratingAggregate.ts",
+    "includes": "await fetchImpl(",
+    "reason": "Build-time POST to the rating store of read commands for star counts. Runs in Node during the build, never in the browser; it sends no user data and no file bytes."
+  }
+]
