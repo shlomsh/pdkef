@@ -1,4 +1,3 @@
-// @ts-nocheck - matches the other .tsx island tests
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -22,7 +21,7 @@ function mount() {
   const docAdd = vi.spyOn(document, 'addEventListener');
   const docRemove = vi.spyOn(document, 'removeEventListener');
   act(() => render(<VerbStage />, sheet));
-  const names = (spy) => spy.mock.calls.map((c) => c[0]);
+  const names = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map((c) => c[0]);
   return { sheet, sheetAdd, sheetRemove, docAdd, docRemove, names };
 }
 
