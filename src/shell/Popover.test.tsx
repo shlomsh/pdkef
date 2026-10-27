@@ -1,4 +1,3 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, vi } from 'vitest';
@@ -38,11 +37,11 @@ vi.mock('@floating-ui/react', async (importOriginal) => {
 });
 
 describe('Popover Component', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -58,7 +57,7 @@ describe('Popover Component', () => {
     const content = <div id="popover-content">Popover content</div>;
 
     act(() => {
-      render(<Popover trigger={trigger} content={content} />, container);
+      render(<Popover trigger={trigger} content={content} />, container!);
     });
 
     // Verify the trigger was rendered (this also proves no ReferenceError was thrown during setup, e.g. missing hooks)
@@ -76,7 +75,7 @@ describe('Popover Component', () => {
 
     act(() => {
       // Force it open to verify portal behavior
-      render(<Popover trigger={trigger} content={content} open={true} />, container);
+      render(<Popover trigger={trigger} content={content} open={true} />, container!);
     });
 
     // Content should be in the body (or fullscreenElement), not inside the container
@@ -113,7 +112,7 @@ describe('Popover Component', () => {
     const content = <div id="popover-content">Popover content</div>;
 
     act(() => {
-      render(<Popover trigger={trigger} content={content} open={true} middleware={custom} />, container);
+      render(<Popover trigger={trigger} content={content} open={true} middleware={custom} />, container!);
     });
 
     // No crash and the content still renders; the middleware list itself is
@@ -154,7 +153,7 @@ describe('Popover Component', () => {
     act(() => {
       render(
         <Popover trigger={trigger} content={content} open={true} anchorClosest="[data-editor-element]" />,
-        container,
+        container!,
       );
     });
 
@@ -170,7 +169,7 @@ describe('Popover Component', () => {
     const content = <div id="popover-content">Popover content</div>;
 
     act(() => {
-      render(<Popover trigger={trigger} content={content} open={true} />, container);
+      render(<Popover trigger={trigger} content={content} open={true} />, container!);
     });
 
     expect(setPositionReferenceSpy).not.toHaveBeenCalled();

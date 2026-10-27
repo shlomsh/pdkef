@@ -1,4 +1,3 @@
-// @ts-nocheck - test file, mirrors PdfMergeTool.test.tsx's loose fixtures
 import { hydrate, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { renderToString } from 'preact-render-to-string';
@@ -19,14 +18,14 @@ const pdf = (name) => new File([FIXTURE], name, { type: 'application/pdf' });
    race for a caller to wait out, like the astro-island wait in the e2e specs.) */
 describe('files offered right after hydration', () => {
   const Island = PdfMergeTool;
-  let container;
+  let container: HTMLElement | null = null;
   let harness: ToolHarness;
   beforeEach(() => { harness = installToolHarness(); });
   afterEach(async () => {
     // Unmount, then let the hand-off intake's IndexedDB read settle while the DOM still exists:
     // a read that outlives the test file touches `document` after jsdom is gone (CI, 2026-10-27).
     // IndexedDB answers in order, so once a read of our own returns, the intake's earlier one has.
-    if (container) act(() => render(null, container));
+    if (container) act(() => render(null, container!));
     await harness.takeHandoff('merge');
     container?.remove();
     container = null;
@@ -37,12 +36,12 @@ describe('files offered right after hydration', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     container.innerHTML = renderToString(<Island />);
-    await act(async () => { hydrate(<Island />, container); });
+    await act(async () => { hydrate(<Island />, container!); });
     // No flush: the draft module and the grid have not loaded yet.
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [pdf('one.pdf'), pdf('two.pdf'), pdf('three.pdf')]);
     });
-    await waitUntil(() => expect(container.querySelectorAll('[data-link-row]').length).toBe(3));
+    await waitUntil(() => expect(container!.querySelectorAll('[data-link-row]').length).toBe(3));
   });
 });

@@ -1,4 +1,3 @@
-// @ts-nocheck - drives the hook with hand-made pdf.js doubles
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,7 +16,7 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 const destroyedError = () => new TypeError("Cannot read properties of undefined (reading '_intentStates')");
 
 describe('useObjectPreviews when the document is replaced and destroyed mid-read', () => {
-  let host;
+  let host: HTMLElement | null = null;
   let unhandled;
   const onUnhandled = (e) => unhandled.push(e.reason ?? e);
 
@@ -31,8 +30,8 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
   });
   afterEach(() => {
     process.off('unhandledRejection', onUnhandled);
-    act(() => render(null, host));
-    host.remove();
+    act(() => render(null, host!));
+    host!.remove();
     vi.restoreAllMocks();
   });
 
@@ -54,12 +53,12 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
       return null;
     };
 
-    act(() => render(<Probe doc={oldDoc} />, host));
+    act(() => render(<Probe doc={oldDoc} />, host!));
     await act(flush);
     expect(releaseOps).toBeTypeOf('function'); // the read is in flight
 
     // the document is replaced (add_files) and the old one destroyed mid-await
-    act(() => render(<Probe doc={newDoc} />, host));
+    act(() => render(<Probe doc={newDoc} />, host!));
     destroyed = true;
     releaseOps();
     await act(flush);
@@ -79,9 +78,9 @@ describe('useObjectPreviews when the document is replaced and destroyed mid-read
     const objects = [{ id: 'a', kind: 'text', pageIndex: 0 }];
     const Probe = ({ doc }) => { useObjectPreviews(doc, objects); return null; };
 
-    act(() => render(<Probe doc={oldDoc} />, host));
+    act(() => render(<Probe doc={oldDoc} />, host!));
     await act(flush);
-    act(() => render(<Probe doc={newDoc} />, host));
+    act(() => render(<Probe doc={newDoc} />, host!));
     rejectPage();
     await act(flush);
 

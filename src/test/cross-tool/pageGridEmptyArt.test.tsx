@@ -1,4 +1,3 @@
-// @ts-nocheck - renders islands from several tools; this folder is the cross-tool exemption
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
@@ -32,13 +31,13 @@ const WITH_VERB = [
   ['scan-to-pdf', () => <PdfScanTool />],
 ];
 
-let container;
+let container: HTMLElement | null = null;
 
 function renderEmpty(make) {
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => {
-    render(make(), container);
+    render(make(), container!);
   });
   const sheet = container.querySelector('[data-empty-state]');
   expect(sheet).not.toBeNull();
@@ -47,7 +46,7 @@ function renderEmpty(make) {
 
 afterEach(() => {
   if (container) {
-    act(() => render(null, container));
+    act(() => render(null, container!));
     container.remove();
     container = null;
   }

@@ -1,4 +1,3 @@
-// @ts-nocheck - jsdom test of the shared island boundary (ARCH-72)
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,7 +13,7 @@ function Boom({ error }) {
   throw error;
 }
 
-let container;
+let container: HTMLElement | null = null;
 beforeEach(() => {
   vi.resetModules();
   reportError.mockClear();
@@ -22,8 +21,8 @@ beforeEach(() => {
   document.body.appendChild(container);
 });
 afterEach(() => {
-  render(null, container);
-  container.remove();
+  render(null, container!);
+  container!.remove();
   vi.restoreAllMocks();
 });
 
@@ -35,7 +34,7 @@ describe('IslandErrorBoundary', () => {
   it('reports a render error once and lets it propagate', async () => {
     const Boundary = await load();
     const error = new Error('render failed');
-    expect(() => render(<Boundary><Boom error={error} /></Boundary>, container)).toThrow(error);
+    expect(() => render(<Boundary><Boom error={error} /></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
     expect(reportError.mock.calls[0][1]).toBe(error);
   });
@@ -45,7 +44,7 @@ describe('IslandErrorBoundary', () => {
     const add = vi.spyOn(window, 'addEventListener');
     const second = document.createElement('div');
     document.body.appendChild(second);
-    render(<Boundary><p>one</p></Boundary>, container);
+    render(<Boundary><p>one</p></Boundary>, container!);
     render(<Boundary><p>two</p></Boundary>, second);
     await new Promise((r) => setTimeout(r, 0)); // componentDidMount-time work has run
     const count = (type) => add.mock.calls.filter(([t]) => t === type).length;
@@ -58,14 +57,14 @@ describe('IslandErrorBoundary', () => {
   it('reports once when boundaries nest', async () => {
     const Boundary = await load();
     const error = new Error('render failed');
-    expect(() => render(<Boundary><Boundary><Boom error={error} /></Boundary></Boundary>, container)).toThrow(error);
+    expect(() => render(<Boundary><Boundary><Boom error={error} /></Boundary></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
   });
 
   it('does not report again when the same error reaches the window handler', async () => {
     const Boundary = await load();
     const error = new Error('render failed');
-    expect(() => render(<Boundary><Boom error={error} /></Boundary>, container)).toThrow(error);
+    expect(() => render(<Boundary><Boom error={error} /></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
     window.dispatchEvent(new ErrorEvent('error', { error }));
     expect(reportError).toHaveBeenCalledTimes(1);
@@ -80,7 +79,7 @@ describe('IslandErrorBoundary', () => {
       return null;
     }
     const Wrapped = mod.withIslandBoundary(Island);
-    expect(() => render(<Boundary><Wrapped /></Boundary>, container)).toThrow(error);
+    expect(() => render(<Boundary><Wrapped /></Boundary>, container!)).toThrow(error);
     expect(reportError).toHaveBeenCalledTimes(1);
   });
 });

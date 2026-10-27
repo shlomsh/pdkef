@@ -1,15 +1,14 @@
-// @ts-nocheck - follows the Preact DOM-test setup used by the Sign toolbar.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import SignFeedbackButton from './SignFeedbackButton.tsx';
 
 describe('SignFeedbackButton', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -19,7 +18,7 @@ describe('SignFeedbackButton', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
-    act(() => render(<SignFeedbackButton className="toolbar-button" labelClassName="toolbar-label" />, container));
+    act(() => render(<SignFeedbackButton className="toolbar-button" labelClassName="toolbar-label" />, container!));
 
     const link = container.querySelector('.toolbar-button');
     expect(link.getAttribute('target')).toBe('_blank');
@@ -56,10 +55,10 @@ describe('SignFeedbackButton', () => {
         labelClassName="toolbar-label"
         detectionFailure="TypeError: undefined is not an object (evaluating 'p.getOrInsertComputed')"
       />,
-      container,
+      container!,
     ));
 
-    const body = new URL(container.querySelector('.toolbar-button').href).searchParams.get('body');
+    const body = new URL(container.querySelector<HTMLAnchorElement>('.toolbar-button').href).searchParams.get('body');
     expect(body).toContain('## Added automatically');
     expect(body).toContain("TypeError: undefined is not an object (evaluating 'p.getOrInsertComputed')");
     expect(body).toContain('The form-field check did not finish on this device.');

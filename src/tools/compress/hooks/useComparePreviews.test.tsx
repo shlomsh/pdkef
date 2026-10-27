@@ -1,4 +1,3 @@
-// @ts-nocheck - test-only, mirrors usePreparedOutput.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';

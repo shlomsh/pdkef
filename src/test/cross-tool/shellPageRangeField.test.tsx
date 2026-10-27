@@ -1,4 +1,3 @@
-// @ts-nocheck - matches the other .tsx island tests
 import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -9,10 +8,10 @@ import { englishSplitMessages as t } from '../../tools/split/messages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 describe('PageRangeField', () => {
-  let host;
+  let host: HTMLElement | null = null;
   afterEach(() => {
     if (host) {
-      act(() => render(null, host));
+      act(() => render(null, host!));
       host.remove();
       host = undefined;
     }
@@ -23,12 +22,12 @@ describe('PageRangeField', () => {
     host = document.createElement('div');
     document.body.appendChild(host);
     const draw = (next) => act(() => render(
-      <PageRangeField plan={next} pageCount={next.length} onSelect={onSelect} messages={t} />, host,
+      <PageRangeField plan={next} pageCount={next.length} onSelect={onSelect} messages={t} />, host!,
     ));
     draw(plan);
     return { draw, onSelect };
   };
-  const input = () => host.querySelector('#page-selector-input');
+  const input = () => host!.querySelector('#page-selector-input');
   const type = (value) => act(() => {
     input().value = value;
     input().dispatchEvent(new Event('input', { bubbles: true }));
@@ -36,7 +35,7 @@ describe('PageRangeField', () => {
 
   it('is labelled Pages and shows the whole document as a range', () => {
     mount(planForFile(0, 6));
-    expect(host.querySelector('label[for="page-selector-input"]').textContent).toBe('Pages');
+    expect(host!.querySelector('label[for="page-selector-input"]').textContent).toBe('Pages');
     expect(input().value).toBe('1-6');
   });
 
@@ -91,7 +90,7 @@ describe('PageRangeField', () => {
     const { onSelect } = mount(planForFile(0, 4));
     type('9');
     expect(onSelect).not.toHaveBeenCalled();
-    expect(host.querySelector('[role="alert"]').textContent).toBe('Page number 9 out of range (1-4)');
+    expect(host!.querySelector('[role="alert"]').textContent).toBe('Page number 9 out of range (1-4)');
     expect(input().getAttribute('aria-invalid')).toBe('true');
     expect(input().value).toBe('9');
   });
@@ -99,13 +98,13 @@ describe('PageRangeField', () => {
   it('holds the error back while the text ends in a dash or a comma', () => {
     mount(planForFile(0, 4));
     type('2-');
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     type('2,');
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     type('x,');
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     type('x');
-    expect(host.querySelector('[role="alert"]')).not.toBeNull();
+    expect(host!.querySelector('[role="alert"]')).not.toBeNull();
   });
 
   it('rewrites the text when the plan changes from elsewhere', () => {
@@ -130,7 +129,7 @@ describe('PageRangeField', () => {
     const { draw } = mount(plan);
     type('9');
     draw(withIncludedPages(plan, [2]));
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host!.querySelector('[role="alert"]')).toBeNull();
     expect(input().value).toBe('2');
   });
 
@@ -138,7 +137,7 @@ describe('PageRangeField', () => {
     const { hebrewSplitMessages } = await import('../../tools/split/messages');
     host = document.createElement('div');
     document.body.appendChild(host);
-    act(() => render(<PageRangeField plan={planForFile(0, 4)} pageCount={4} onSelect={vi.fn()} messages={hebrewSplitMessages} />, host));
+    act(() => render(<PageRangeField plan={planForFile(0, 4)} pageCount={4} onSelect={vi.fn()} messages={hebrewSplitMessages} />, host!));
     type('9');
     expect(host.querySelector('[role="alert"]').textContent).toContain('9');
   });
