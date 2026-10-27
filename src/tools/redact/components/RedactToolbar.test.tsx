@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import RedactToolbar from './RedactToolbar.tsx';
 import { FILE_ACTIONS } from '../../../shell/ToolShell.tsx';
 // Asserts the editor toolbar button base class, a styling contract.
-import styles from '../../../editor-ui/SignToolbar.module.css';
 
 describe('RedactToolbar returning-work status', () => {
   let container = document.createElement('div');
@@ -45,7 +44,8 @@ describe('RedactToolbar returning-work status', () => {
     mount();
     const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${FILE_ACTIONS.replace.label}"]`);
     expect(button).not.toBeNull();
-    expect(button!.className.split(/\s+/).filter(Boolean)).toEqual([styles.button]);
+    expect(button!.hasAttribute('aria-pressed')).toBe(false);
+    expect(button!.hasAttribute('data-locked')).toBe(false);
   });
 
   it('keeps the neutral starter tip for a manually opened file', () => {
@@ -121,7 +121,7 @@ describe('RedactToolbar returning-work status', () => {
   it('puts the extra chip action before Undo', () => {
     const onSelect = vi.fn();
     mount({ undoAction: { message: 'Deleted an image, also on 4 other pages', extra: { label: 'Every page', onSelect } } });
-    const buttons = Array.from(container.querySelectorAll('button')).filter((b) => b.className.includes('undo-chip-btn'));
+    const buttons = Array.from(container.querySelectorAll('[role="status"] button'));
     expect(buttons.map((b) => b.textContent)).toEqual(['Every page', 'Undo']);
     buttons[0].click();
     expect(onSelect).toHaveBeenCalledTimes(1);
