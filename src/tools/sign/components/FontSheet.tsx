@@ -1,5 +1,5 @@
 import { cloneElement } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { useModalDialog } from '../../../shell/useModalDialog.ts';
 import sheetStyles from './FontSheet.module.css';
 import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
@@ -94,7 +94,10 @@ export default function FontSheet({
   // focused field (that reads as ending the fill session), so instead of
   // moving focus off-document it moves focus onto the dialog itself, which
   // carries FILL_KEEP_SESSION_ATTR for useFillFocus to recognise.
-  useModalDialog(dialogRef, open, () => closeSheet(false), { escape: 'cancel', fallback: false });
+  // Keyed on `open` alone, as the cancel listener always was: Escape calls the
+  // closeSheet of the render that opened the sheet.
+  const cancelSheet = useCallback(() => closeSheet(false), [open]);
+  useModalDialog(dialogRef, open, cancelSheet, { escape: 'cancel', fallback: false });
 
   useEffect(() => {
     const dialog = dialogRef.current;
