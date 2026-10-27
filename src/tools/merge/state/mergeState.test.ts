@@ -109,3 +109,11 @@ describe('install line and lock probe', () => {
     expect(run(fresh(), { type: 'LOCK_PROBED', probe }).lockedProbe).toBe(probe);
   });
 });
+
+describe('an action that changes nothing', () => {
+  // The separate useState setters this reducer replaced skipped the render on an unchanged value.
+  it('returns the same state, so the island does not re-render', () => {
+    const state = mergeReducer(fresh(), { type: 'RENDERED_COUNT_CHANGED', count: 4 });
+    expect(mergeReducer(state, { type: 'RENDERED_COUNT_CHANGED', count: 4 })).toBe(state);
+  });
+});

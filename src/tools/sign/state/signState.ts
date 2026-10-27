@@ -19,6 +19,7 @@
  */
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
 import type { SignedExport } from '../exportHandoff.ts';
+import { unlessUnchanged } from '../../../lib/unchangedState.ts';
 
 export type SignStatus = 'idle' | 'loading' | 'editing' | 'signing' | 'done' | 'error';
 
@@ -77,6 +78,10 @@ export function initialSignLifecycleState(): SignLifecycleState {
 }
 
 export function signLifecycleReducer(state: SignLifecycleState, action: SignLifecycleAction): SignLifecycleState {
+  return unlessUnchanged(state, nextSignLifecycleState(state, action));
+}
+
+function nextSignLifecycleState(state: SignLifecycleState, action: SignLifecycleAction): SignLifecycleState {
   switch (action.type) {
     case 'LOAD_STATUS_CHANGED':
       return { ...state, status: action.status };
