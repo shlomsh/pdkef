@@ -1,20 +1,19 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
-import { render } from 'preact';
+import { render, type VNode } from 'preact';
 import { act } from 'preact/test-utils';
 import { useState } from 'preact/hooks';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import SignatureDialog from './SignatureDialog.tsx';
 
 describe('SignatureDialog Component', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   beforeEach(() => {
     // Stub HTMLDialogElement methods since JSDOM might not support them fully in all configurations
-    HTMLDialogElement.prototype.showModal = vi.fn(function() { this.open = true; });
-    HTMLDialogElement.prototype.close = vi.fn(function() { this.open = false; });
+    HTMLDialogElement.prototype.showModal = vi.fn(function(this: HTMLDialogElement) { this.open = true; });
+    HTMLDialogElement.prototype.close = vi.fn(function(this: HTMLDialogElement) { this.open = false; });
 
     // Mock HTMLCanvasElement getContext since JSDOM doesn't support canvas out-of-the-box
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { configurable: true, writable: true, value: vi.fn(() => ({
       scale: vi.fn(),
       clearRect: vi.fn(),
       fillRect: vi.fn(),
@@ -31,7 +30,7 @@ describe('SignatureDialog Component', () => {
       drawImage: vi.fn(),
       measureText: vi.fn(() => ({ width: 100 })),
       canvas: { width: 100, height: 100 }
-    }));
+    })) });
 
     // Mock toDataURL to prevent JSDOM unimplemented error
     HTMLCanvasElement.prototype.toDataURL = vi.fn(() => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
@@ -39,7 +38,7 @@ describe('SignatureDialog Component', () => {
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -57,7 +56,7 @@ describe('SignatureDialog Component', () => {
           onClose={() => {}}
           onSaveSignature={() => {}}
         />,
-        container
+        container!
       );
     });
 
@@ -84,7 +83,7 @@ describe('SignatureDialog Component', () => {
           onClose={() => {}}
           onSaveSignature={onSave}
         />,
-        container
+        container!
       );
     });
 
@@ -95,10 +94,10 @@ describe('SignatureDialog Component', () => {
       tabBtns[1].click(); // Type tab
     });
 
-    const typeInput = container.querySelector('[data-editor-signature-input]');
+    const typeInput = container.querySelector<HTMLInputElement>('[data-editor-signature-input]')!;
     expect(typeInput).not.toBeNull();
 
-    const saveBtn = container.querySelector('button[data-editor-signature-save]');
+    const saveBtn = container.querySelector<HTMLButtonElement>('button[data-editor-signature-save]')!;
     expect(saveBtn.disabled).toBe(true);
 
     // Type a name
@@ -158,25 +157,25 @@ describe('SignatureDialog Component', () => {
     }) as unknown as typeof HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.toDataURL = vi.fn(() => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
 
-    const fontsLoad = vi.fn(() => Promise.resolve([]));
+    const fontsLoad = vi.fn((_font: string, _text?: string) => Promise.resolve([]));
     Object.defineProperty(document, 'fonts', { configurable: true, value: { load: fontsLoad } });
 
     const onSave = vi.fn();
     act(() => {
-      render(<SignatureDialog isOpen={true} onClose={() => {}} onSaveSignature={onSave} />, container);
+      render(<SignatureDialog isOpen={true} onClose={() => {}} onSaveSignature={onSave} />, container!);
     });
 
     const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
     await act(async () => { tabBtns[1].click(); });
 
-    const typeInput = container.querySelector('[data-editor-signature-input]');
+    const typeInput = container.querySelector<HTMLInputElement>('[data-editor-signature-input]')!;
     const longName = 'A Very Long Typed Signature Name';
     await act(async () => {
       typeInput.value = longName;
       typeInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
-    const saveBtn = container.querySelector('button[data-editor-signature-save]');
+    const saveBtn = container.querySelector<HTMLButtonElement>('button[data-editor-signature-save]')!;
     await act(async () => {
       saveBtn.click();
       // Flush the microtasks handleSaveSignature awaits (document.fonts.load).
@@ -213,7 +212,7 @@ describe('SignatureDialog Component', () => {
           onClose={onClose}
           onSaveSignature={() => {}}
         />,
-        container
+        container!
       );
     });
 
@@ -228,8 +227,8 @@ describe('SignatureDialog Component', () => {
   });
 
   describe('native dismissal (Escape, light dismiss)', () => {
-    let Parent;
-    const mountWithState = (onClose) => {
+    let Parent: () => VNode;
+    const mountWithState = (onClose: () => void) => {
       container = document.createElement('div');
       document.body.appendChild(container);
       Parent = function Parent() {
@@ -242,8 +241,8 @@ describe('SignatureDialog Component', () => {
           />
         );
       };
-      act(() => render(<Parent />, container));
-      return container.querySelector('dialog');
+      act(() => render(<Parent />, container!));
+      return container.querySelector<HTMLDialogElement>('dialog')!;
     };
 
     it('tells Sign when the dialog closes on its own, and stays closed on the next render', () => {
@@ -258,7 +257,7 @@ describe('SignatureDialog Component', () => {
       });
       expect(onClose).toHaveBeenCalledTimes(1);
       // A later parent render must not reopen it.
-      act(() => render(<Parent />, container));
+      act(() => render(<Parent />, container!));
       expect(dialog.open).toBe(false);
     });
 
@@ -266,7 +265,7 @@ describe('SignatureDialog Component', () => {
       const onClose = vi.fn();
       const dialog = mountWithState(onClose);
       const cancel = [...dialog.querySelectorAll('button')].find((b) => b.textContent === 'Cancel');
-      act(() => cancel.click());
+      act(() => cancel!.click());
       expect(dialog.open).toBe(false);
       act(() => { dialog.dispatchEvent(new Event('close')); });
       expect(onClose).toHaveBeenCalledTimes(1);

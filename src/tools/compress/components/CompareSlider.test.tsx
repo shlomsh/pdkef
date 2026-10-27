@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
@@ -9,18 +8,18 @@ import styles from './CompareSlider.module.css';
 // see CLAUDE.md's "Vacuous geometry tests from unmocked 0x0 rects" hazard.
 // A 0-width rect saturates the clamp identically at both ends and proves
 // nothing about the actual percent math.
-const MOCK_RECT = { left: 100, right: 500, width: 400, top: 0, bottom: 0, height: 0, x: 100, y: 0 };
+const MOCK_RECT = { left: 100, right: 500, width: 400, top: 0, bottom: 0, height: 0, x: 100, y: 0, toJSON: () => ({}) };
 
-function fireMouse(type, x) {
+function fireMouse(type: string, x: number) {
   window.dispatchEvent(new MouseEvent(type, { clientX: x, bubbles: true, cancelable: true }));
 }
 
 describe('CompareSlider', () => {
-  let container;
+  let container: HTMLElement | null = null;
 
   afterEach(() => {
     if (container) {
-      act(() => render(null, container));
+      act(() => render(null, container!));
       container.remove();
       container = null;
     }
@@ -32,7 +31,7 @@ describe('CompareSlider', () => {
     act(() => {
       render(
         <CompareSlider beforeSrc="data:before" afterSrc="data:after" beforeLabel="Original" afterLabel="Compressed" />,
-        container,
+        container!,
       );
     });
 
@@ -48,7 +47,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" tags={false} />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" tags={false} />, container!);
     });
     expect(container.querySelector(`.${styles['compare-tag']}`)).toBeNull();
   });
@@ -57,7 +56,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
     const slider = container.querySelector(`.${styles['compare-slider']}`);
@@ -71,7 +70,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
     const slider = container.querySelector(`.${styles['compare-slider']}`);
@@ -114,7 +113,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" fill />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" fill />, container!);
     });
 
     const slider = container.querySelector(`.${styles['compare-slider']}`);
@@ -139,7 +138,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
     const slider = container.querySelector(`.${styles['compare-slider']}`);
@@ -164,7 +163,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
     const slider = container.querySelector(`.${styles['compare-slider']}`);
@@ -188,7 +187,7 @@ describe('CompareSlider', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container);
+      render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
     const handle = container.querySelector(`.${styles['compare-handle']}`);
