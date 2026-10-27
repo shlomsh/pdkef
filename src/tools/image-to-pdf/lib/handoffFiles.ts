@@ -1,4 +1,4 @@
-export interface HandoffFile {
+interface HandoffFile {
   fileName: string;
   fileType: string;
   fileBytes: ArrayBuffer;

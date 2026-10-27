@@ -29,7 +29,7 @@ const RETURN_NAME_KEY: Record<UnlockReturnId, keyof SecurityMessages> = {
 const RETURN_TO = Object.fromEntries(
   UNLOCK_RETURN_IDS.map((id) => [id, { Icon: RETURN_ICON[id], href: handoffHrefOf(id) as string }]),
 ) as Record<UnlockReturnId, { Icon: typeof Eraser; href: string }>;
-export type ReturnTool = UnlockReturnId;
+type ReturnTool = UnlockReturnId;
 export const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
 
 /** The done state's controls: Download, Share and the hand-offs, or the way back to the tool that sent the file. */
