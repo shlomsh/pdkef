@@ -137,23 +137,9 @@ function BasePdfTool({
   shellMessages,
 }: BasePdfToolProps) {
   const { multiple = true, accept = 'application/pdf', dropAnywhere = true, needsPdfjs = true } = intake ?? {};
-  const {
-    file = null,
-    label: fileLabel,
-    meta: fileMeta,
-    metaExtra: fileMetaExtra,
-    note: fileNote,
-    hidden: hideIdentity = false,
-  } = identity ?? {};
-  const {
-    message: emptyStateMessage,
-    art: emptyArt,
-    heading: emptyHeading,
-    body: emptyBody,
-    action: emptyAction,
-    iosFilesHint: showIosFilesHint = false,
-    cloudDriveHint: showCloudDriveHint = false,
-  } = empty ?? {};
+  const { file = null, label: fileLabel, meta: fileMeta, metaExtra: fileMetaExtra, note: fileNote, hidden: hideIdentity = false } = identity ?? {};
+  const { message: emptyStateMessage, art: emptyArt, heading: emptyHeading, body: emptyBody, action: emptyAction } = empty ?? {};
+  const { iosFilesHint: showIosFilesHint = false, cloudDriveHint: showCloudDriveHint = false } = empty ?? {};
   /* True while a tool with draft persistence is still checking IndexedDB for a
      saved draft on mount (see useDraftPersistence.js's `isRestoring`). Renders
      a brief neutral placeholder instead of the "drop a file here" empty state,
