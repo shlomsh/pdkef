@@ -33,11 +33,14 @@ export default function MergeChipBar({ entries, chipListRef, onRemove, downloadF
     <>
       <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
       <div class={workspaceStyles['chip-bar']}>
-        <ul data-testid="chip-row" class={docStyles['chip-row']} ref={chipListRef}>
+        <ul
+          data-testid="chip-row"
+          class={docStyles['chip-row']}
+          ref={chipListRef}
+        >
           {entries.map((entry, index) => (
             <li
               key={entry.id}
-              data-testid="chip"
               class={docStyles.chip}
               data-id={entry.id}
               data-locked={entry.error === 'encrypted' ? '' : undefined}
@@ -46,12 +49,19 @@ export default function MergeChipBar({ entries, chipListRef, onRemove, downloadF
                 <span class={docStyles['chip-tag']} style={tagStyle(index)} aria-hidden="true" />
                 <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
                 {entry.error === 'encrypted' ? (
-                  <span data-testid="chip-pages" class={docStyles['chip-pages']} title={t.protectedOwnerOnlyTitle}>
+                  <span
+                    data-testid="chip-pages"
+                    class={docStyles['chip-pages']}
+                    title={t.protectedOwnerOnlyTitle}
+                  >
                     <LockKeyhole size={12} aria-hidden="true" />
                     <span class="sr-only">{t.protectedOwnerOnlyTitle}</span>
                   </span>
                 ) : (
-                  <span data-testid="chip-pages" class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
+                  <span
+                    data-testid="chip-pages"
+                    class={docStyles['chip-pages']}
+                  >{entry.pageCount ?? '…'}</span>
                 )}
                 <button
                   type="button"

@@ -58,7 +58,7 @@ function AddImagesTile({ label }: { label: string }) {
   const { requestReplace } = useToolShell();
   return (
     <li class={styles['add-tile']}>
-      <button type="button" data-testid="add-images" class={styles['add-button']} onClick={requestReplace}>
+      <button type="button" class={styles['add-button']} onClick={requestReplace}>
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
         </svg>

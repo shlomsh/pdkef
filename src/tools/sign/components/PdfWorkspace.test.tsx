@@ -6,7 +6,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
 import { rememberRecentWhiteoutColor } from '../../../editor/workspace/preferenceStore.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
-// Asserts the is-processing state class.
+// Asserts the is-processing state class; the page overlay has no role or attribute, so it is found by class.
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
@@ -241,7 +241,7 @@ describe('PdfWorkspace Component', () => {
     });
 
     expect(host.querySelector('[data-sign-page-surface]')).toBe(pageBefore);
-    const workspace = required(host.querySelector('[data-testid="workspace"]'), 'workspace');
+    const workspace = required(host.querySelector('[aria-busy]'), 'workspace');
     expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
     expect(workspace.getAttribute('aria-busy')).toBe('true');
   });
@@ -254,7 +254,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
 
     // Mock bounding rectangle so coordinate calculations resolve nicely
     overlay.getBoundingClientRect = () => rect(100, 100, 1000, 1000);
@@ -416,7 +416,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -489,7 +489,7 @@ describe('PdfWorkspace Component', () => {
     const state = testState({ selectedTool: 'text', carried: { direction: 'rtl' } });
 
     host = mountWorkspace({ state, dispatch });
-    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -508,7 +508,7 @@ describe('PdfWorkspace Component', () => {
     const state = testState({ selectedTool: 'text' });
 
     host = mountWorkspace({ state, dispatch });
-    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
     act(() => {
@@ -637,7 +637,7 @@ describe('PdfWorkspace Component', () => {
 
     host = mountWorkspace({ state, dispatch });
 
-    const overlay = required(host.querySelector<HTMLDivElement>('[data-testid="page-overlay"]'), 'page overlay');
+    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 600, 800);
 
     act(() => {
@@ -802,7 +802,7 @@ describe('PdfWorkspace Component', () => {
     }
 
     function pagesContainer(host: HTMLDivElement): HTMLDivElement {
-      return required(host.querySelector<HTMLDivElement>('[data-testid="pages-container"]'), 'pages container');
+      return required(host.querySelector('[data-editor-page-card]')?.parentElement as HTMLDivElement | null, 'pages container');
     }
 
     it('deselects on a stationary touch tap on blank page area', () => {
@@ -982,7 +982,7 @@ describe('PdfWorkspace Component', () => {
       // Ends the session the same way a real deselect does: a click on blank
       // page area (PdfWorkspace's `deactivateAll`, wired to the pages
       // container's onClick).
-      const container = required(host.querySelector<HTMLDivElement>('[data-testid="pages-container"]'), 'pages container');
+      const container = required(host.querySelector('[data-editor-page-card]')?.parentElement as HTMLDivElement | null, 'pages container');
       act(() => {
         container.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });

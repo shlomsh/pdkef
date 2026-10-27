@@ -80,7 +80,7 @@ export function MergeHeaderStatus({
            (never the persistent "Draft saved" chip, which stays a
            desktop-rail-only affordance) - CSS-hidden at 768px and
            up so the two placements never show at once. */
-        <span data-testid="header-draft-chip" class={docStyles['header-draft-chip']} role="status">
+        <span class={docStyles['header-draft-chip']} role="status">
           {t.pickedUp}
           {' '}
           <button type="button" class={docStyles['start-fresh']} onClick={onStartFresh}>{t.startFresh}</button>

@@ -555,7 +555,7 @@ describe('PdfCompressTool UI flow', () => {
       await loadPdf('labels.pdf', 100000);
       const panel = container.querySelector(`.${styles['compare-panel']}`);
       expect(panel.querySelector('[role="slider"]')).not.toBeNull();
-      expect(panel.querySelector('[data-testid="compare-tag"]')).toBeNull();
+      expect(panel.querySelector('img ~ span')).toBeNull();
       expect(labels().textContent).toContain('Compressed · 15 Bytes');
       expect(labels().textContent).toContain('Original · 97.66 KB');
     });
@@ -567,9 +567,9 @@ describe('PdfCompressTool UI flow', () => {
       await act(async () => {
         findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      await waitUntil(() => expect(container.querySelector('dialog[aria-label]')?.querySelectorAll('[data-testid="compare-tag"]')).toHaveLength(2));
+      await waitUntil(() => expect(container.querySelector('dialog[aria-label]')?.querySelectorAll('img ~ span')).toHaveLength(2));
       const dialog = container.querySelector('dialog[aria-label]');
-      expect(dialog.querySelectorAll('[data-testid="compare-tag"]')).toHaveLength(2);
+      expect(dialog.querySelectorAll('img ~ span')).toHaveLength(2);
     });
 
     it('while a run is in flight the original page shows with its label and size, and the compressed side says Compressing', async () => {

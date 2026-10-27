@@ -48,7 +48,7 @@ describe('CompareSlider', () => {
     act(() => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" tags={false} />, container!);
     });
-    expect(container.querySelector('[data-testid="compare-tag"]')).toBeNull();
+    expect(container.querySelector('img ~ span')).toBeNull();
   });
 
   it('starts at 50% reveal', () => {

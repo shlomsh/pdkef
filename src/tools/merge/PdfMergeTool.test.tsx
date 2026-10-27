@@ -916,7 +916,7 @@ describe('PdfMergeTool UI flow', () => {
     // The lock is read out, not only drawn: true of a password and an owner-only lock alike.
     expect(row.querySelector('[data-testid="file-pages"]').textContent).toBe('This PDF is protected');
     // The phone chip agrees with the rail row: a lock, not a page count.
-    const chip = container.querySelector('[data-testid="chip"][data-locked]');
+    const chip = container.querySelector('[data-testid="chip-row"] > li[data-locked]');
     expect(chip.querySelector('[data-testid="chip-pages"]').textContent).toBe('This PDF is protected');
     expect(downloadBox().getAttribute('data-state')).toBe('error');
 
@@ -1382,7 +1382,7 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => {
       remove.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(chipRow.querySelectorAll('[data-testid="chip"]').length).toBe(2);
+    expect(chipRow.querySelectorAll('li').length).toBe(2);
     expect(chipRow.textContent).not.toContain('two.pdf');
   });
 
@@ -1395,7 +1395,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await until(() => fileNames().length === 2);
 
-    const headerChip = container.querySelector(`.${workspaceStyles['doc-header-right']} [data-testid="header-draft-chip"]`);
+    const headerChip = container.querySelector(`.${workspaceStyles['doc-header-right']} [role="status"]`);
     expect(headerChip).not.toBeNull();
     expect(headerChip.textContent).toContain('Picked up where you left off');
     const startFresh = Array.from(headerChip.querySelectorAll('button')).find((b) => b.textContent === 'Start fresh');

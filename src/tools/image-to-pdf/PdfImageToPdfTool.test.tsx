@@ -187,7 +187,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(Array.from(container.querySelectorAll('[data-page] > span[aria-hidden="true"]')).map((b) => b.textContent)).toEqual(['1', '2']);
     expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
     expect(container.textContent).not.toContain('Convert');
-    expect(container.querySelector('[data-testid="add-images"]').textContent).toContain('Add images');
+    expect(container.querySelector('ul[aria-describedby="reorder-hint"] > li > button:not([aria-label])').textContent).toContain('Add images');
   });
 
   it('revokes every thumbnail URL on unmount, including ones added after the first render', async () => {
