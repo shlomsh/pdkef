@@ -45,7 +45,7 @@ export default function useRedactEditing({ state, dispatch, setAnnouncement, fil
   const { file, numPages, pdfDocument } = state.document;
   const { selectedBoxId } = state.selection;
   const { eyedropping } = state.tool;
-    const { disarmTool, brushKind, rememberColor, rememberRecentColor, rememberBlurStrength } = arming;
+  const { disarmTool, brushKind, rememberColor, rememberRecentColor, rememberBlurStrength } = arming;
 
   const { registerUndo, undoLast, redoLast, runUndoChip, clearUndoChip } = useRedactUndo({ state, dispatch });
 
