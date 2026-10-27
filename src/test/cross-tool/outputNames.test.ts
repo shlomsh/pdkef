@@ -4,7 +4,7 @@ import { outputFileName as splitName } from '../../tools/split/split.js';
 import { compressedFileName } from '../../tools/compress/outputName.ts';
 import { modifiedTitle } from '../../tools/edit-pages/outputName.ts';
 import { outputFileName as securityName } from '../../tools/security/outputName.ts';
-import { signedFileName } from '../../tools/sign/signedFileName.ts';
+import { signedFileName } from '../../tools/sign/lib/signedFileName.ts';
 import { redactedFileName } from '../../tools/redact/redactFileName.ts';
 import { imageBaseName, imageFileName } from '../../tools/to-image/toImage.js';
 import { englishScanMessages as scanMessages } from '../../tools/scan/messages.ts';

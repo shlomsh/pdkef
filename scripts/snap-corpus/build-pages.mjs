@@ -12,12 +12,12 @@ import zlib from 'node:zlib';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { collectPageInk, pageCropBox } from '../../src/tools/sign/fields/pageInk.js';
-import { horizontalRules } from '../../src/tools/sign/fields/inkEdges.js';
+import { collectPageInk, pageCropBox } from '../../src/tools/sign/lib/fields/pageInk.js';
+import { horizontalRules } from '../../src/tools/sign/lib/fields/inkEdges.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SNAP = path.join(ROOT, 'src/tools/sign/fields/corpus/snap');
-const FORMS = path.join(ROOT, 'src/tools/sign/fields/corpus/scoring/forms');
+const SNAP = path.join(ROOT, 'src/tools/sign/lib/fields/corpus/snap');
+const FORMS = path.join(ROOT, 'src/tools/sign/lib/fields/corpus/scoring/forms');
 const PDFTOPPM = '/opt/homebrew/bin/pdftoppm';
 const DPI = 200;
 const PX_PER_POINT = DPI / 72;

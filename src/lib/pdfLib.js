@@ -21,7 +21,7 @@
  * is wrong for a retry, so it is cleared on rejection: a second attempt after
  * the network comes back should be a real attempt.
  *
- * One deliberate non-caller: `src/tools/sign/useFormFieldRegions.ts` loads
+ * One deliberate non-caller: `src/tools/sign/hooks/useFormFieldRegions.ts` loads
  * pdf-lib inside a `Promise.all` of literal `import()` calls, and
  * `useFormFieldRegions.wiring.test.js` pairs those specifiers against the names
  * destructured from each, by position. Routing that one line through here

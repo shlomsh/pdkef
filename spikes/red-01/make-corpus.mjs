@@ -627,21 +627,21 @@ async function main() {
   await makeParagraphLine2();
 
   await copyRealWorldPdf({
-    src: 'src/tools/sign/fields/corpus/scoring/forms/irs-1040-2024.pdf',
+    src: 'src/tools/sign/lib/fields/corpus/scoring/forms/irs-1040-2024.pdf',
     name: 'real-world-irs-1040-2024.pdf',
     pageNumber: 1,
     wordIndexHint: 2,
     feature: 'real-world form PDF (IRS 1040 2024), page 1',
   });
   await copyRealWorldPdf({
-    src: 'src/tools/sign/fields/corpus/scoring/forms/uscis-i9-2025-01-20.pdf',
+    src: 'src/tools/sign/lib/fields/corpus/scoring/forms/uscis-i9-2025-01-20.pdf',
     name: 'real-world-uscis-i9-2025.pdf',
     pageNumber: 1,
     wordIndexHint: 3,
     feature: 'real-world form PDF (USCIS I-9 2025), page 1',
   });
   await copyRealWorldPdf({
-    src: 'src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf',
+    src: 'src/tools/sign/lib/fields/corpus/scoring/forms/health-declaration-2021.pdf',
     name: 'real-world-health-declaration-2021.pdf',
     pageNumber: 1,
     wordIndexHint: 4,

@@ -40,7 +40,7 @@ const DOM_TESTS = [
   // signExportReadiness.test.ts, fontOfflinePacks.test.js and the three
   // src/tools/sign/components/*.contract.test.ts/*.undo.test.ts files are
   // pure-logic and stay under node (proven by running them there).
-  'src/tools/sign/useWorkspaceGestures.test.js',
+  'src/tools/sign/hooks/useWorkspaceGestures.test.js',
   'src/editor/workspace/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/tools/sign/lib/signatureImagePolicy.test.ts',
   // DEBT-04 (part 2): the gesture controller moved to src/lib/gestures/ (shell's

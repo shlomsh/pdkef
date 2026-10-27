@@ -4,16 +4,16 @@
  *
  * `scripts/generate-practice-form.mjs` imports this module twice over: once to draw the page
  * (`@cantoo/pdf-lib` calls, positioning arithmetic) and once to derive the scored corpus's ground
- * truth (`src/tools/sign/fields/corpus/scoring/ground-truth/practice-form-page1.json`), so a field
+ * truth (`src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json`), so a field
  * moved here moves in both places at once and can never quietly drift out of sync with what the
  * page actually draws. `src/site-lib/FileDropzone.tsx` fetches the rendered PDF as "PDkef practice
  * form.pdf", the try-it sample that opens Sign from the home page.
  *
  * v2 is a flat vector form: no `/AcroForm`, no widgets, every box and comb cell is drawn ink the
  * detector has to read off the page's own content stream, the same as a real form someone receives
- * (`src/tools/sign/fields/pageInk.js`, `formGrid.js`, `formCells.js`). It replaces v1, a field-trip
+ * (`src/tools/sign/lib/fields/pageInk.js`, `formGrid.js`, `formCells.js`). It replaces v1, a field-trip
  * permission slip built as an interactive AcroForm and now frozen at
- * `src/tools/sign/fields/__fixtures__/practice-form-v1.pdf` for the tests that still need its exact
+ * `src/tools/sign/lib/fields/__fixtures__/practice-form-v1.pdf` for the tests that still need its exact
  * geometry.
  *
  * Dependency-free by design so a plain Node script can import it directly. That includes the

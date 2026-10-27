@@ -88,7 +88,7 @@ describe('security.js', () => {
   // A real government form (xref and object streams, 5 pages): its unlocked
   // copy would not open at all. The bytes are the Sign corpus's, read in place.
   it('a real form protected and unlocked with the same password still opens, page for page', async () => {
-    const formPath = path.resolve(__dirname, '../sign/fields/corpus/scoring/forms/thai-pnd90-2565.pdf');
+    const formPath = path.resolve(__dirname, '../sign/lib/fields/corpus/scoring/forms/thai-pnd90-2565.pdf');
     const original = fs.readFileSync(formPath);
 
     const protectedFile = new File([await protectPdf(new File([original], 'form.pdf'), 'test123')], 'form_protected.pdf');

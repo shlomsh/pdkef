@@ -64,8 +64,8 @@ Tree: /Users/sh/work/pdkef-debt17, non-test source under src/.
 | src/tools/redact/check/readSavedFile.ts:134 | Find unused parts in saved file | DEFECT | pdf-lib failed to open our own saved output (see unsure); returns [] silently | redact |
 | src/tools/redact/check/unusedParts.ts:40 | Decode a PDF stream | EXPECTED | comment: undecodable filter / damaged stream, nothing to read | |
 | src/tools/image-to-pdf/PdfImageToPdfTool.tsx:168 | Convert images to PDF | DEFECT | export step threw (corrupt image is possible); [surfaced: status error + console.error] | pdf_tool_run |
-| src/tools/sign/useFormFieldRegions.ts:289 | Detect form fields | DEFECT | the detector threw or failed to load; [surfaced: console.warn + detectionError/detectionIssue state] | sign_form_detection |
-| src/tools/sign/useAutoFontProvisioning.js:33 | Provision a font pack | EXPECTED | background fetch, retried by clearing `attempted`; offline is the norm (see unsure) | |
+| src/tools/sign/hooks/useFormFieldRegions.ts:289 | Detect form fields | DEFECT | the detector threw or failed to load; [surfaced: console.warn + detectionError/detectionIssue state] | sign_form_detection |
+| src/tools/sign/hooks/useAutoFontProvisioning.js:33 | Provision a font pack | EXPECTED | background fetch, retried by clearing `attempted`; offline is the norm (see unsure) | |
 | src/tools/sign/PdfSignTool.tsx:340 | requestFullscreen | EXPECTED | optional browser API, pseudo-fullscreen fallback | |
 | src/tools/sign/PdfSignTool.tsx:618 | Open file from PWA launch queue | EXPECTED | external launch file; loadFreshFile has its own failure UI; [surfaced: console.error] | |
 | src/tools/sign/PdfSignTool.tsx:884 | Sign/export PDF | DEFECT | export threw; [surfaced: signExportFailed telemetry + UI detail + console.error] | sign_export |

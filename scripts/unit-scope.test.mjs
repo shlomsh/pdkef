@@ -195,10 +195,10 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
     // this rule matches" without re-deriving one from a regex/prefix check.
     const candidates = [
       'src/lib/__fixtures__/sample.pdf',
-      'src/tools/sign/fields/__fixtures__/sample.pdf',
+      'src/tools/sign/lib/fields/__fixtures__/sample.pdf',
       'src/tools/compress/__fixtures__/sample.pdf',
       'public/images/redaction-guide/sample.pdf',
-      'src/tools/sign/fields/corpus/scoring/baselines.json',
+      'src/tools/sign/lib/fields/corpus/scoring/baselines.json',
       'scripts/spike/mobi-10/ground-truth/x.json',
       'public/fonts/NewFont-Regular.ttf',
       'public/hero-demo-noscript.css',
@@ -212,7 +212,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'src/styles/editorFonts.css',
       'src/lib/drafts/draftStore.ts',
       'public/sw.js',
-      'src/tools/sign/useFormFieldRegions.ts',
+      'src/tools/sign/hooks/useFormFieldRegions.ts',
       'scripts/check-editor-dependency-directions.mjs',
       'src/lib/format.js',
       'src/components/HeroDemo/HeroDemo.tsx',

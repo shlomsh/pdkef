@@ -66,7 +66,7 @@ retire with SNG-06.
   (`scripts/check-lazy-modules.js`, after `build`) walks the built graph per page and fails on it.
   Measured: /redact/ and /merge/ cannot reach them at all.
 - **The form-field detector has a corpus, and a new element belongs in it**:
-  `src/tools/sign/fields/corpus/` (Nx project `form-corpus`) is one row per form element - live
+  `src/tools/sign/lib/fields/corpus/` (Nx project `form-corpus`) is one row per form element - live
   AcroForm widgets, printed ink, hybrids of both, page geometry, and the known gaps - each built into
   a real PDF and run through the whole pipeline. Read its `README.md` before changing `pageInk.js`,
   `formGrid.js`, `formCells.js`, `fieldRegions.js` or `formWidgets.js`: a third of the rows pin things
@@ -86,7 +86,7 @@ detached from the overall sign tool UX". The Sign UX is being rewritten (SNG). T
 logic, not UI, and any UX (today's editor, fill mode, whatever comes next) calls them rather than
 re-deriving them.
 
-- **Field detection** lives only in `src/tools/sign/fields/`, as pure functions behind `detectFormFields`
+- **Field detection** lives only in `src/tools/sign/lib/fields/`, as pure functions behind `detectFormFields`
   (`test:detection-purity`). How the UI draws, walks or offers a found spot never feeds back into it.
 - **Document memory** lives only in `src/editor/model/`:
   - `documentStyle.ts` holds the style: font, size, direction, colour, alignment, bold, italic, date

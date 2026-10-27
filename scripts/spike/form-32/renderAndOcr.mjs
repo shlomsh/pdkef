@@ -59,7 +59,7 @@ const corePath = path.dirname(libRequire.resolve('tesseract.js-core/package.json
 
 // ---------------------------------------------------------------- rows and languages
 
-const baselines = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/tools/sign/fields/corpus/scoring/baselines.json'), 'utf8'));
+const baselines = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/tools/sign/lib/fields/corpus/scoring/baselines.json'), 'utf8'));
 const rows = Object.values(baselines.forms).map((f) => {
   const truth = JSON.parse(fs.readFileSync(path.join(ROOT, f.truth), 'utf8'));
   const id = path.basename(f.truth, '.json');

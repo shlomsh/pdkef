@@ -2,7 +2,7 @@
  * SNG-18: the home page navigates by setting `window.location.href` to a
  * tool's canonical URL (`FileDropzone.tsx`'s `handOff`/`openRecent`), which
  * always drops any existing query string - including the `next` param that
- * picks Sign's editor (`src/tools/sign/fill/fillMode.ts`). Loading the
+ * picks Sign's editor (`src/tools/sign/lib/fill/fillMode.ts`). Loading the
  * practice form or a recent file while on `/?next=0` landed on `/sign/`
  * with the old editor silently swapped for fill mode. This carries whatever
  * `next` value is present through, and only that: it is not a general query

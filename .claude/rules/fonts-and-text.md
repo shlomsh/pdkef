@@ -4,14 +4,14 @@ paths:
   - "src/editor/registry/text*"
   - "src/editor/adapters/pdf/**"
   - "src/editor/text/fontCoverageTable*"
-  - "src/tools/sign/signExportReadiness*"
+  - "src/tools/sign/lib/signExportReadiness*"
   - "src/tools/sign/components/FontPickerMenu*"
   - "src/tools/sign/components/SignatureDialog*"
   - "src/tools/sign/components/FontSupportNotice*"
   - "src/tools/sign/components/ExportReadinessNotice*"
   - "src/tools/sign/components/nodes/**"
   - "src/styles/editorFonts.css"
-  - "src/tools/sign/languageAcceptance*"
+  - "src/tools/sign/lib/languageAcceptance*"
   - "public/fonts/**"
   - "scripts/fonts/**"
   - "scripts/generate-font-*"
@@ -71,7 +71,7 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 
 - **The export render guard and language acceptance are their own `export-guards` project**
   (`e2e/export/`, ARCH-23), not part of `fonts` above. Both esbuild the real export path
-  (`src/editor/adapters/pdf/sign.js`, `src/tools/sign/languageAcceptance.js`) rather than only fixtures,
+  (`src/editor/adapters/pdf/sign.js`, `src/tools/sign/lib/languageAcceptance.js`) rather than only fixtures,
   so - unlike `fonts` - their Nx project (`e2e/export/project.json`) keeps a coarse, whole-project
   `implicitDependencies` edge to `font-assets`, `editor`, `lib` and `tool-sign` on purpose: a Sign
   toolbar or tooltip change still runs these two (cheap, well under a minute combined, decided the

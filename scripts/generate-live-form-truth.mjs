@@ -301,8 +301,8 @@ const FISCAL_YEAR_NOTE = 'left as text, not date: one fragment of the printed fi
 
 const irs1040 = {
   form: 'irs-1040-2024',
-  file: 'src/tools/sign/fields/corpus/scoring/forms/irs-1040-2024.pdf',
-  out: 'src/tools/sign/fields/corpus/scoring/ground-truth/irs-1040-2024-page1.json',
+  file: 'src/tools/sign/lib/fields/corpus/scoring/forms/irs-1040-2024.pdf',
+  out: 'src/tools/sign/lib/fields/corpus/scoring/ground-truth/irs-1040-2024-page1.json',
   sourceUrl: 'https://www.irs.gov/pub/irs-prior/f1040--2024.pdf',
   pageIndex: 0,
   render: { file: 'irs-1040-2024-page1.png', width: 1241, height: 1606 },
@@ -331,8 +331,8 @@ const thaiLabelFor = ({ ctx, w }) => textOf(inherited(ctx, w, 'TU'))?.trim() || 
 
 const thaiPnd90 = {
   form: 'thai-pnd90-2565',
-  file: 'src/tools/sign/fields/corpus/scoring/forms/thai-pnd90-2565.pdf',
-  out: 'src/tools/sign/fields/corpus/scoring/ground-truth/thai-pnd90-2565-page3.json',
+  file: 'src/tools/sign/lib/fields/corpus/scoring/forms/thai-pnd90-2565.pdf',
+  out: 'src/tools/sign/lib/fields/corpus/scoring/ground-truth/thai-pnd90-2565-page3.json',
   sourceUrl: 'https://www.rd.go.th/fileadmin/tax_pdf/pit/2565/271265PIT90.pdf',
   pageIndex: 2,
   render: { file: 'thai-pnd90-2565-page3.png', width: 1241, height: 1755 },
@@ -354,8 +354,8 @@ const thaiPnd90 = {
 
 const thaiLorYor01 = {
   form: 'thai-lor-yor-01-2562',
-  file: 'src/tools/sign/fields/corpus/scoring/forms/thai-lor-yor-01-2562.pdf',
-  out: 'src/tools/sign/fields/corpus/scoring/ground-truth/thai-lor-yor-01-2562-page1.json',
+  file: 'src/tools/sign/lib/fields/corpus/scoring/forms/thai-lor-yor-01-2562.pdf',
+  out: 'src/tools/sign/lib/fields/corpus/scoring/ground-truth/thai-lor-yor-01-2562-page1.json',
   sourceUrl: 'https://www.rd.go.th/fileadmin/tax_pdf/withhold/loryor01_290362.pdf',
   pageIndex: 0,
   render: { file: 'thai-lor-yor-01-2562-page1.png', width: 1241, height: 1755 },
@@ -395,8 +395,8 @@ const uscisI9Excuse = (widget) => {
 
 const uscisI9 = {
   form: 'uscis-i9-2025-01-20',
-  file: 'src/tools/sign/fields/corpus/scoring/forms/uscis-i9-2025-01-20.pdf',
-  out: 'src/tools/sign/fields/corpus/scoring/ground-truth/uscis-i9-2025-01-20-page1.json',
+  file: 'src/tools/sign/lib/fields/corpus/scoring/forms/uscis-i9-2025-01-20.pdf',
+  out: 'src/tools/sign/lib/fields/corpus/scoring/ground-truth/uscis-i9-2025-01-20-page1.json',
   sourceUrl: 'https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf',
   pageIndex: 0,
   render: { file: 'uscis-i9-2025-01-20-page1.png', width: 1241, height: 1606 },
