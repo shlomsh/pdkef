@@ -41,7 +41,7 @@
       "src/tools/sign/components/ElementToolbar.tsx#ElementToolbar": 384,
       "src/tools/sign/components/PdfWorkspace.tsx#PdfWorkspace": 718,
       "src/tools/sign/components/SignToolbar.tsx#SignToolbar": 756,
-      "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 545,
+      "src/tools/sign/components/SignatureDialog.tsx#SignatureDialog": 537,
       "src/tools/sign/components/nodes/TextNode.tsx#TextNode": 378,
       "src/tools/sign/useWorkspaceGestures.ts#useWorkspaceGestures": 426,
       "src/tools/split/PdfSplitTool.tsx#PdfSplitTool": 356,
