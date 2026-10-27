@@ -735,9 +735,6 @@ function writableArea(cell, ownText) {
   return width >= MIN_BLANK_WIDTH && height >= MIN_BLANK_HEIGHT ? { area, carve } : null;
 }
 
-/** Closure at or above this counts a cell as fully closed. */
-const CLOSED_THRESHOLD = 0.95;
-
 /**
  * Confidence of a cell candidate: the weights in `CELL_CONFIDENCE`, summed in order and capped.
  *
@@ -746,7 +743,7 @@ const CLOSED_THRESHOLD = 0.95;
  */
 function confidenceOf(resolved, kind) {
   let confidence = CELL_CONFIDENCE.base;
-  if (resolved.closure >= CLOSED_THRESHOLD) confidence += CELL_CONFIDENCE.closed;
+  if (resolved.closure >= CELL_CONFIDENCE.closedAt) confidence += CELL_CONFIDENCE.closed;
   if (resolved.label) confidence += CELL_CONFIDENCE.labelled;
   if (kind !== 'text') confidence += CELL_CONFIDENCE.keywordKind;
   return Math.min(confidence, CELL_CONFIDENCE.cap);
