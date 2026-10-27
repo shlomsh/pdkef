@@ -45,7 +45,7 @@ describe('EditorToolStatus', () => {
   };
 
   const rows = () => container.querySelectorAll('[data-help-row]');
-  const shown = () => container.querySelector<HTMLElement>('[data-shown]')!;
+  const shown = () => container.querySelector<HTMLElement>('[data-help-row][data-shown]')!;
 
   // The shell hides the filename behind this attribute on a phone, so it has
   // to mean exactly "something live is in the slot": not idle, and not only
@@ -135,7 +135,7 @@ describe('EditorToolStatus', () => {
       expect(summary()!.textContent).toBe('A quiet note');
       expect(isShown(summary()!)).toBe(true);
       // One row visible in the cell, never two stacked on each other.
-      expect(host.querySelectorAll('[data-shown]')).toHaveLength(1);
+      expect(host.querySelectorAll('[data-help-row][data-shown]')).toHaveLength(1);
       expect(isShown(host.querySelector<HTMLElement>('[data-help-row="idle"]')!)).toBe(false);
       // A row of the stack, so the cell's height already covers it.
       expect(rows()).toHaveLength(2 + TOOLS.length);
