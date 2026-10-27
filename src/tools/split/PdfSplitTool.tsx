@@ -7,7 +7,7 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
-import { formatFileSize, isolateLtr, isolateName } from '../../lib/format.js';
+import { formatFileSize, isolateLtr } from '../../lib/format.js';
 import { englishSplitMessages, type SplitMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
@@ -21,6 +21,7 @@ import HistoryButtons from '../../shell/HistoryButtons.tsx';
 import OutputName from '../../shell/OutputName.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
+import SkippedFilesNote from '../../shell/pageWorkspace/SkippedFilesNote.tsx';
 import ReplaceFileLine from '../../shell/pageWorkspace/ReplaceFileLine.tsx';
 import PhoneFinish from '../../shell/pageWorkspace/PhoneFinish.tsx';
 import { downloadDetail, pagesLabel, skippedLabel } from '../../shell/pageWorkspace/pageCounts.ts';
@@ -215,13 +216,7 @@ export default withIslandBoundary(function PdfSplitTool({
       shellMessages={shellMessages}
       hideIdentity
     >
-      {rejectedFiles.length > 0 && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: isolateName(rejectedFiles[0], t.dir) })
-            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
-        </p>
-      )}
+      <SkippedFilesNote names={rejectedFiles} messages={t} dir={t.dir} />
 
       {file && loadStatus === 'loading-file' && (
         <div class={pdfToolStyles['status-block']}>

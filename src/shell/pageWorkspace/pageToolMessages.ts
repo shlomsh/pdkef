@@ -6,6 +6,8 @@
  * narrower slice the grid component itself reads.)
  */
 export interface PageToolMessages {
+  skippedOne: string;
+  skippedMany: string;
   includeAll: string;
   skipAll: string;
   allIncluded: string;

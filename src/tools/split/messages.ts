@@ -14,8 +14,6 @@ import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 export interface SplitMessages extends PageGridMessages, PageToolMessages, DownloadMessages, HistoryButtonsMessages {
   lang: string;
   dir: 'ltr' | 'rtl';
-  skippedOne: string;
-  skippedMany: string;
   loadingPages: string;
   splitFailedBody: string;
   protectedNeedsPasswordTitle: string;
