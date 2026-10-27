@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { Camera, Check, Crop, Expand, FileSignature, ImagePlus, Maximize, Merge, Minimize2, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
 import { throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
@@ -38,38 +38,13 @@ import ScanVerb from './verb/ScanVerb.tsx';
 import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } from './lib/quad.ts';
 import { SIZE_LIMITS, type SizeLimitId } from './lib/scanBudget.ts';
 import type { ScanFilter } from './lib/filters.ts';
-import type { BuiltPage, PageSize, Placement, ProcessedPage } from './lib/scanPipeline.ts';
+import type { BuiltPage, PageSize, ProcessedPage } from './lib/scanPipeline.ts';
+import { initialScanState, reduceScan } from './state/scanState.ts';
+import { ScanWork, type PageResult, type ScanPage } from './state/scanWork.ts';
 import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
 
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
-
-interface ScanPage {
-  id: number;
-  file: File;
-  /** The small preview the corner editor and loupe show (scanPipeline's inspectPhoto); null until made. */
-  preview: string | null;
-  /** The photo's width over height, so its frame has a size before the preview decodes. */
-  aspect: number | null;
-  /** This page's look: a colour ID card and a printed form can sit in one PDF. */
-  filter: ScanFilter;
-  /** The person has seen this page's corners and used them (Use these corners). */
-  reviewed: boolean;
-  /** The page's corners in the photo, as photographed: rotating never moves them. */
-  quad: Quad;
-  /** Quarter turns clockwise for the page as it downloads (0 to 3): a page shot sideways stands up. */
-  turns: number;
-  /** The edge guess has run (or failed); until then the corners are the whole photo. */
-  guessed: boolean;
-  /** The person moved a corner: their corners win, the guess never overrides them. */
-  edited: boolean;
-  /** Whether the edge guess found a page: null until it has run. */
-  found: boolean | null;
-}
-
-interface PageResult { key: string; url: string; thumbUrl: string; page: ProcessedPage }
-/** The pages of the last built PDF, in its order: what Download saves, page for page. */
-interface Shown { key: string; pages: { url: string; place: Placement }[] }
 
 /** Fit pages print at 200 dpi (scanPipeline.ts); the same rule places a page before the build lands. */
 const FIT_POINTS_PER_PIXEL = 72 / 200;
@@ -123,7 +98,10 @@ export interface PdfScanToolProps {
 
 export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps = {}) {
   const [pages, setPages] = useState<ScanPage[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [state, dispatch] = useReducer(reduceScan, initialScanState);
+  const { selectedId, finding, findMissed, failedIds, full } = state;
+  /** The centre shows the page as it will download; corners are a mode you step into. */
+  const view = state.phase;
   /** A new photo starts with the look last chosen. */
   const [defaultFilter, setDefaultFilter] = useState<ScanFilter>('document');
   const [pageSize, setPageSize] = useState<PageSize>('fit');
@@ -133,60 +111,24 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const [results, setResults] = useState<Record<number, PageResult>>({});
   /** Each turned page's preview, turned the same way for the corner editor, by `${id}|${turns}`. */
   const [turnedPreviews, setTurnedPreviews] = useState<Record<string, string>>({});
-  const [failedIds, setFailedIds] = useState<number[]>([]);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   /** Bumped when a build lands, so the per-key maps below are read again. */
   const [, setBuilt] = useState(0);
   const [announcement, setAnnouncement] = useState('');
-  /** The centre shows the page as it will download; corners are a mode you step into. */
-  const [view, setView] = useState<'result' | 'corners'>('result');
-  /** Pages where Find the page ran on request and found nothing; and the one it is running for. */
-  const [findMissed, setFindMissed] = useState<number[]>([]);
-  const [finding, setFinding] = useState<number | null>(null);
-  // Per built key, like the preparer's own cache: going back to a setting already built is a cache
-  // hit with no build call, and its pages and its limit note must come back with it.
-  const shownByKeyRef = useRef(new Map<string, Shown>());
-  const missedKeysRef = useRef(new Set<string>());
-  const keepShown = (next: Shown) => {
-    const map = shownByKeyRef.current;
-    const old = map.get(next.key);
-    if (old) old.pages.forEach((page) => URL.revokeObjectURL(page.url));
-    map.delete(next.key);
-    map.set(next.key, next);
-    // Twice the preparer's cache (4), so a key it can still serve always has its pages here.
-    while (map.size > 8) {
-      const [oldest, evicted] = map.entries().next().value as [string, Shown];
-      evicted.pages.forEach((page) => URL.revokeObjectURL(page.url));
-      map.delete(oldest);
-    }
-  };
-  const forgetShown = () => {
-    for (const kept of shownByKeyRef.current.values()) kept.pages.forEach((page) => URL.revokeObjectURL(page.url));
-    shownByKeyRef.current.clear();
-    missedKeysRef.current.clear();
-  };
+  // The queues, caches and latest-render values async callbacks read (state/scanWork.ts).
+  const workRef = useRef<ScanWork | null>(null);
+  workRef.current ??= new ScanWork();
+  const work = workRef.current;
+  const { enqueue, dropCached, keepShown, forgetShown } = work;
   const editorRef = useRef<HTMLElement | null>(null);
   /** The photo and the pages: on desktop they fill the card down to the first screen's foot. */
   const workbenchRef = useRef<HTMLDivElement | null>(null);
-  const stageHeight = useFloorHeight(workbenchRef, pages.length > 0);
-  const hadPagesRef = useRef(false);
-  const pagesRef = useRef(pages);
-  pagesRef.current = pages;
-  const defaultFilterRef = useRef(defaultFilter);
-  defaultFilterRef.current = defaultFilter;
-  /** Each page's preview, kept as bytes too, so Find the page decodes 1600px instead of the photo. */
-  const previewBlobsRef = useRef(new Map<number, Blob>());
-  /** One page is processed at a time, so a phone holds one full-size photo in memory, not ten. */
-  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
-  const processingRef = useRef(new Map<string, Promise<ProcessedPage>>());
-  /** Keys whose result this component is already waiting on: one handler per run. */
-  const watchingRef = useRef(new Set<string>());
-  /** Pages removed while their edge guess still waited in the queue. */
-  const removedRef = useRef(new Set<number>());
-  const resultsRef = useRef<Record<number, PageResult>>({});
+  const headingRef = useRef<HTMLParagraphElement | null>(null);
   /** Async work that finishes after the island is gone makes no object URLs and sets no state. */
   const unmountedRef = useRef(false);
-  const resetDownloadFlowRef = useRef<() => void>(() => {});
+  const stageHeight = useFloorHeight(workbenchRef, pages.length > 0);
+  work.pages = pages;
+  work.defaultFilter = defaultFilter;
 
   useHoldUpdate(pages.length > 0, 'open');
   const downloaded = useDownloaded();
@@ -198,44 +140,29 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     setAnnouncement((previous) => (previous === text ? `${text} ` : text));
   }, []);
 
-  const enqueue = <T,>(task: () => Promise<T>): Promise<T> => {
-    // The queue tail never rejects (below), so every task runs after the one before it.
-    const run = queueRef.current.then(task);
-    queueRef.current = run.catch(() => {
-      // expected: the queue only orders work; each task's own caller handles its failure
-    });
-    return run;
-  };
-
   /** True while `key` is what the page on screen and the current look ask for. */
   const isCurrentKey = (key: string) => {
     const id = Number(key.slice(0, key.indexOf('|')));
-    const live = pagesRef.current.find((p) => p.id === id);
+    const live = work.pages.find((p) => p.id === id);
     return !!live && resultKey(live) === key;
-  };
-
-  const dropCached = (id: number, keep?: string) => {
-    for (const cachedKey of [...processingRef.current.keys()]) {
-      if (cachedKey.startsWith(`${id}|`) && cachedKey !== keep) processingRef.current.delete(cachedKey);
-    }
   };
 
   /** The processed page for these corners and this look: cached, so the strip and the build share one run. */
   const processed = useCallback((page: ScanPage): Promise<ProcessedPage> => {
     const key = resultKey(page);
-    const cached = processingRef.current.get(key);
+    const cached = work.processing.get(key);
     if (cached) return cached;
     const run = enqueue(async () => {
       // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
       throwIfAborted({ aborted: !isCurrentKey(key) });
       return (await loadPipeline()).processPage(page.file, pageQuad(page), page.filter);
     });
-    processingRef.current.set(key, run);
+    work.processing.set(key, run);
     run.then(() => {
-      if (!isCurrentKey(key)) processingRef.current.delete(key);
+      if (!isCurrentKey(key)) work.processing.delete(key);
     }, () => {
       // expected: a failed run is reported by its caller; dropping it here lets the next try run again
-      processingRef.current.delete(key);
+      work.processing.delete(key);
     });
     return run;
   }, []);
@@ -247,28 +174,26 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     setRejectedFiles(rejected.map((f) => f.name));
     if (accepted.length === 0) return;
     const added: ScanPage[] = accepted.map((file) => ({
-      id: nextId++, file, preview: null, aspect: null, filter: defaultFilterRef.current, reviewed: false,
+      id: nextId++, file, preview: null, aspect: null, filter: work.defaultFilter, reviewed: false,
       quad: FULL_QUAD, turns: 0, guessed: false, edited: false, found: null,
     }));
     setPages((current) => [...current, ...added]);
     // A new photo is shown first as itself, corners on top, to approve or adjust (Use these corners).
-    setSelectedId(added[0].id);
-    setView('corners');
-    // Bring the new photo's corners into view, wherever the page was scrolled to pick it.
-    topPendingRef.current = true;
+    // Also brings the new photo's corners into view, wherever the page was scrolled to pick it.
+    dispatch({ type: 'photosAdded', firstId: added[0].id });
     announce(added.length === 1 ? t.announceAddedOne : formatMessage(t.announceAddedMany, { count: added.length }));
     recordAction('add_files');
     for (const page of added) {
-      enqueue(async () => (removedRef.current.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
+      enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).inspectPhoto(page.file)))
         .then((seen) => seen, (err) => {
           reportError('pdf_tool_run', err, 'scan_inspect_photo');
           return null;
         })
         .then((seen) => {
-          if (removedRef.current.has(page.id) || unmountedRef.current) return;
+          if (work.removed.has(page.id) || unmountedRef.current) return;
           // A photo that could not be decoded: say so (failedIds), never "finding edges" forever.
-          if (!seen) setFailedIds((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
-          if (seen) previewBlobsRef.current.set(page.id, seen.preview);
+          if (!seen) dispatch({ type: 'pageFailed', id: page.id });
+          if (seen) work.previewBlobs.set(page.id, seen.preview);
           const preview = seen ? URL.createObjectURL(seen.preview) : null;
           const quad = seen?.quad ?? null;
           setPages((current) => current.map((p) => (
@@ -294,38 +219,37 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       // Not yet inspected, or inspected and unreadable (failedIds already says so): nothing to process.
       if (!page.guessed || page.preview === null) continue;
       const key = resultKey(page);
-      if (resultsRef.current[page.id]?.key === key || watchingRef.current.has(key)) continue;
-      watchingRef.current.add(key);
+      if (work.results[page.id]?.key === key || work.watching.has(key)) continue;
+      work.watching.add(key);
       processed(page).then((result) => {
-        watchingRef.current.delete(key);
-        if (unmountedRef.current || !isCurrentKey(key) || resultsRef.current[page.id]?.key === key) return;
-        const previous = resultsRef.current[page.id];
+        work.watching.delete(key);
+        if (unmountedRef.current || !isCurrentKey(key) || work.results[page.id]?.key === key) return;
+        const previous = work.results[page.id];
         if (previous) {
           URL.revokeObjectURL(previous.url);
           URL.revokeObjectURL(previous.thumbUrl);
         }
         // Older corners for this page will not come back; let their bytes go.
         dropCached(page.id, key);
-        resultsRef.current = { ...resultsRef.current, [page.id]: { key, url: URL.createObjectURL(result.blob), thumbUrl: URL.createObjectURL(result.thumb), page: result } };
-        setResults(resultsRef.current);
-        setFailedIds((ids) => ids.filter((id) => id !== page.id));
+        work.results = { ...work.results, [page.id]: { key, url: URL.createObjectURL(result.blob), thumbUrl: URL.createObjectURL(result.thumb), page: result } };
+        setResults(work.results);
+        dispatch({ type: 'failureCleared', id: page.id });
       }, (err) => {
-        watchingRef.current.delete(key);
+        work.watching.delete(key);
         // expected: work superseded before its turn is skipped on purpose, not a failure
         if (err?.name === 'AbortError') return;
         reportError('pdf_tool_run', err, 'scan_process_page');
-        setFailedIds((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
+        dispatch({ type: 'pageFailed', id: page.id });
       });
     }
   }, [pages]);
 
   // Revoke every live object URL on unmount.
-  const urlsRef = useRef<string[]>([]);
-  urlsRef.current = [
+  work.urls = [
     ...pages.flatMap((p) => (p.preview ? [p.preview] : [])),
     ...Object.values(results).flatMap((r) => [r.url, r.thumbUrl]),
     ...Object.values(turnedPreviews),
-    ...[...shownByKeyRef.current.values()].flatMap((kept) => kept.pages.map((p) => p.url)),
+    ...[...work.shown.values()].flatMap((kept) => kept.pages.map((p) => p.url)),
   ];
   useEffect(() => {
     // Set on mount too: a dev server's hot swap runs this cleanup on a live island, then mounts it again.
@@ -333,7 +257,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     return () => {
       unmountedRef.current = true;
       // A dev server's hot swap keeps the island's state, photos included: only a real unmount frees them.
-      if (!import.meta.hot) urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      if (!import.meta.hot) work.urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
 
@@ -341,13 +265,12 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const key = allGuessed
     ? `${pages.map((p) => resultKey(p)).join(',')}|${pageSize}|${limit}`
     : null;
-  const inputsRef = useRef({ pages, pageSize, limit, key });
-  inputsRef.current = { pages, pageSize, limit, key };
+  work.inputs = { pages, pageSize, limit, key };
   const prepared = usePreparedOutput({
     key,
     quietPolicy,
     build: async (signal, onProgress) => {
-      const { pages: current, pageSize: size, limit: chosen, key: builtKey } = inputsRef.current;
+      const { pages: current, pageSize: size, limit: chosen, key: builtKey } = work.inputs;
       const made = await Promise.all(current.map((page) => processed(page)));
       throwIfAborted(signal);
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
@@ -355,8 +278,8 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
       throwIfAborted(unmountedRef.current ? { aborted: true } : signal);
       const builtAs = builtKey as string;
-      if (fit.metTarget) missedKeysRef.current.delete(builtAs);
-      else missedKeysRef.current.add(builtAs);
+      if (fit.metTarget) work.missedKeys.delete(builtAs);
+      else work.missedKeys.add(builtAs);
       keepShown({ key: builtAs, pages: fit.pages.map((page: BuiltPage) => ({ url: URL.createObjectURL(page.blob), place: page.place })) });
       setBuilt((n) => n + 1);
       return { blob: fit.blob, pageCount: current.length };
@@ -376,7 +299,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     navigate,
   });
   const { tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
-  resetDownloadFlowRef.current = resetDownloadFlow;
+  work.resetDownloadFlow = resetDownloadFlow;
 
   const { listRef, focusIdRef } = usePhotoTileList({
     active: pages.length > 0,
@@ -399,46 +322,37 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   };
   useEffect(() => {
     const has = pages.length > 0;
-    if (has && !hadPagesRef.current) showEditorTop();
-    hadPagesRef.current = has;
+    if (has && !work.hadPages) showEditorTop();
+    work.hadPages = has;
   }, [pages.length > 0]);
-  // Asked for by a view change, run once the new view is laid out (the scroll target moves with it).
-  const topPendingRef = useRef(false);
-  /** The photo and corners just approved, for the flatten animation into the result. */
-  const flattenFromRef = useRef<FlattenFrom | null>(null);
-  const stopFlattenRef = useRef<() => void>(() => {});
   // Before paint: the result's first frame already has the flatten over it. After paint, the empty paper
   // showed for one frame before the photo came back over it (Scan QA, Pixel 7).
   useLayoutEffect(() => {
     // Whatever was playing belongs to the view that just went.
-    stopFlattenRef.current();
-    stopFlattenRef.current = () => {};
-    if (focusPendingRef.current) {
-      focusPendingRef.current = false;
-      headingRef.current?.focus({ preventScroll: true });
-    }
-    const from = flattenFromRef.current;
-    flattenFromRef.current = null;
+    work.stopFlatten();
+    work.stopFlatten = () => {};
+    // Asked for by a view change, run once the new view is laid out (the scroll target moves with it).
+    const { topPending, focusPending } = state;
+    if (topPending || focusPending) dispatch({ type: 'scrollFocusConsumed' });
+    if (focusPending) headingRef.current?.focus({ preventScroll: true });
+    const from = work.flattenFrom;
+    work.flattenFrom = null;
     const host = editorRef.current;
     const target = host?.querySelector<HTMLImageElement>('[data-paper] img');
     // Only when the page is already made: an empty paper has nothing to land.
     const flatten = !!(from && view === 'result' && host && target);
     // One motion at a time: with a flatten to play, the scroll jumps first and the page moves alone.
-    if (topPendingRef.current) {
-      topPendingRef.current = false;
-      showEditorTop(flatten);
-    }
+    if (topPending) showEditorTop(flatten);
     if (flatten) {
-      stopFlattenRef.current = playFlatten(host as HTMLElement, from as FlattenFrom, target as HTMLImageElement);
+      work.stopFlatten = playFlatten(host as HTMLElement, from as FlattenFrom, target as HTMLImageElement);
     }
   }, [view, selectedId]);
-  useEffect(() => () => stopFlattenRef.current(), []);
+  useEffect(() => () => work.stopFlatten(), []);
 
-  /** The corners full screen: the browser's own, on the editor (Sign's pattern, PdfSignTool), or a
-   * fixed full-page layer where it has none for an element (iPhone Safari). */
-  const [full, setFull] = useState<'native' | 'layer' | null>(null);
+  // The corners full screen (state.full): the browser's own, on the editor (Sign's pattern, PdfSignTool),
+  // or a fixed full-page layer where it has none for an element (iPhone Safari).
   useEffect(() => {
-    const onChange = () => setFull((mode) => (document.fullscreenElement === editorRef.current ? 'native' : mode === 'native' ? null : mode));
+    const onChange = () => dispatch({ type: 'fullscreenChanged', native: document.fullscreenElement === editorRef.current });
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
@@ -447,34 +361,32 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     const el = editorRef.current;
     if (el?.requestFullscreen && document.fullscreenEnabled !== false) {
       // expected: element full screen is optional, the layer stands in
-      el.requestFullscreen()?.catch(() => setFull('layer'));
-    } else setFull('layer');
+      el.requestFullscreen()?.catch(() => dispatch({ type: 'fullLayerEntered' }));
+    } else dispatch({ type: 'fullLayerEntered' });
   };
   const exitFull = () => {
     // The browser's own: `full` follows its fullscreenchange, once the card is back on screen.
     if (document.fullscreenElement === editorRef.current && document.exitFullscreen) {
       // expected: the browser may already have left full screen (Esc), nothing to undo
-      document.exitFullscreen()?.catch(() => setFull(null));
-    } else setFull(null);
+      document.exitFullscreen()?.catch(() => dispatch({ type: 'fullExited' }));
+    } else dispatch({ type: 'fullExited' });
   };
   /** Approved full screen: the result waits for the card, and the flatten starts from the photo where
    * the card shows it. Measured full screen, the page flew in from full-screen coordinates (2026-10-27). */
-  const resultAfterFullRef = useRef<ScanPage | null>(null);
   const showResult = (page: ScanPage) => {
     if (full) {
-      resultAfterFullRef.current = page;
+      dispatch({ type: 'resultAfterFullQueued', landing: { quad: page.quad, turns: page.turns } });
       exitFull();
       return;
     }
     captureFlatten(page);
-    setView('result');
+    dispatch({ type: 'resultShown' });
   };
   useLayoutEffect(() => {
-    const page = resultAfterFullRef.current;
+    const page = state.landing;
     if (full || !page) return;
-    resultAfterFullRef.current = null;
     captureFlatten(page);
-    setView('result');
+    dispatch({ type: 'resultAfterFullShown' });
   }, [full]);
   // Full screen is for the corners: the page as it downloads comes back in the card.
   useEffect(() => {
@@ -490,7 +402,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     const root = document.documentElement;
     const overflow = root.style.overflow;
     root.style.overflow = 'hidden';
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setFull(null); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') dispatch({ type: 'fullExited' }); };
     document.addEventListener('keydown', onKey);
     return () => {
       root.style.overflow = overflow;
@@ -498,17 +410,13 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     };
   }, [full]);
 
-  const headingRef = useRef<HTMLParagraphElement | null>(null);
-  /** Set by a view switch the person made: the page heading takes focus once the new view is up. */
-  const focusPendingRef = useRef(false);
-
-  const captureFlatten = (page: ScanPage) => {
+  const captureFlatten = (page: { quad: Quad; turns: number }) => {
     const host = editorRef.current;
     const frame = host?.querySelector('[data-corner-frame]');
     // The editor's own photo, already decoded: the flatten paints from it on its first frame.
     const photo = frame?.querySelector<HTMLImageElement>('img');
     if (!host || !frame || !photo) return;
-    flattenFromRef.current = {
+    work.flattenFrom = {
       photo,
       frame: relativeBox(frame.getBoundingClientRect(), host.getBoundingClientRect()),
       quad: turnedQuad(page.quad, page.turns),
@@ -547,22 +455,22 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
   // Find the page again, on request: the person asked, so what it finds becomes their corners.
   const findPage = (page: ScanPage) => {
-    setFinding(page.id);
-    enqueue(async () => (removedRef.current.has(page.id) ? null : (await loadPipeline()).guessPage(previewBlobsRef.current.get(page.id) ?? page.file)))
+    dispatch({ type: 'findStarted', id: page.id });
+    enqueue(async () => (work.removed.has(page.id) ? null : (await loadPipeline()).guessPage(work.previewBlobs.get(page.id) ?? page.file)))
       .then((quad) => quad, (err) => {
         reportError('pdf_tool_run', err, 'scan_find_page');
         return null;
       })
       .then((quad) => {
         if (unmountedRef.current) return;
-        setFinding(null);
-        if (removedRef.current.has(page.id)) return;
+        dispatch({ type: 'findEnded' });
+        if (work.removed.has(page.id)) return;
         if (!quad) {
-          setFindMissed((ids) => (ids.includes(page.id) ? ids : [...ids, page.id]));
+          dispatch({ type: 'findMissed', id: page.id });
           announce(t.findMissed);
           return;
         }
-        setFindMissed((ids) => ids.filter((id) => id !== page.id));
+        dispatch({ type: 'findFound', id: page.id });
         setPages((current) => current.map((p) => (p.id === page.id ? { ...p, quad, edited: true, found: true } : p)));
         announce(t.pageFoundAnnounce);
         recordAction('change_setting');
@@ -594,28 +502,22 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     if (!removed) return;
     if (removed.preview) URL.revokeObjectURL(removed.preview);
     forgetTurned((k) => k.startsWith(`${id}|`));
-    previewBlobsRef.current.delete(id);
-    removedRef.current.add(id);
+    work.previewBlobs.delete(id);
+    work.removed.add(id);
     dropCached(id);
     const left = pages.filter((p) => p.id !== id);
-    if (resultsRef.current[id]) {
-      URL.revokeObjectURL(resultsRef.current[id].url);
-      URL.revokeObjectURL(resultsRef.current[id].thumbUrl);
-      const { [id]: _gone, ...rest } = resultsRef.current;
-      resultsRef.current = rest;
+    if (work.results[id]) {
+      URL.revokeObjectURL(work.results[id].url);
+      URL.revokeObjectURL(work.results[id].thumbUrl);
+      const { [id]: _gone, ...rest } = work.results;
+      work.results = rest;
       setResults(rest);
     }
-    setFailedIds((ids) => ids.filter((x) => x !== id));
     setPages(left);
     const neighbour = left[index] ?? left[index - 1];
-    if (selectedId === id) {
-      // Removing the photo under review: on to the next new one, or to the result when none is left.
-      const nextNew = view === 'corners' ? left.find((p) => !p.reviewed) : undefined;
-      setSelectedId(nextNew?.id ?? neighbour?.id ?? null);
-      if (view === 'corners' && !nextNew) setView('result');
-      // A new photo opens in view, whether this one went from its own box or from the strip.
-      if (nextNew) topPendingRef.current = true;
-    }
+    // Removing the photo under review: on to the next new one, or to the result when none is left.
+    const nextNew = view === 'corners' ? left.find((p) => !p.reviewed) : undefined;
+    dispatch({ type: 'pageRemoved', id, neighbourId: neighbour?.id ?? null, nextNewId: nextNew?.id ?? null });
     focusIdRef.current = neighbour?.id ?? null;
     announce(formatMessage(t.announceRemoved, { position: index + 1 }));
     recordAction('remove_file');
@@ -623,21 +525,19 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   };
 
   const reset = () => {
-    for (const url of urlsRef.current) URL.revokeObjectURL(url);
-    processingRef.current.clear();
-    for (const page of pagesRef.current) removedRef.current.add(page.id);
-    resultsRef.current = {};
+    for (const url of work.urls) URL.revokeObjectURL(url);
+    work.processing.clear();
+    for (const page of work.pages) work.removed.add(page.id);
+    work.results = {};
     forgetShown();
-    previewBlobsRef.current.clear();
+    work.previewBlobs.clear();
     forgetTurned(() => true);
-    setView('result');
     setPages([]);
     setResults({});
-    setFailedIds([]);
-    setSelectedId(null);
+    dispatch({ type: 'cleared' });
     setCustomName(null);
     setRejectedFiles([]);
-    resetDownloadFlowRef.current();
+    work.resetDownloadFlow();
     announce(t.announceCleared);
   };
 
@@ -667,11 +567,11 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const turnKey = selected && selected.turns !== 0 ? `${selected.id}|${selected.turns}` : null;
   useEffect(() => {
     if (view !== 'corners' || !selected || !turnKey || turnedPreviews[turnKey]) return;
-    const blob = previewBlobsRef.current.get(selected.id);
+    const blob = work.previewBlobs.get(selected.id);
     if (!blob) return;
     const { id, turns } = selected;
     loadPipeline().then((pipeline) => pipeline.turnImage(blob, turns)).then((turned) => {
-      if (unmountedRef.current || removedRef.current.has(id)) return;
+      if (unmountedRef.current || work.removed.has(id)) return;
       setTurnedPreviews((map) => (map[turnKey] ? map : { ...map, [turnKey]: URL.createObjectURL(turned) }));
     }, (err) => reportError('pdf_tool_run', err, 'scan_turn_preview'));
   }, [view, turnKey, selected?.preview]);
@@ -680,10 +580,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const showFailedPage = () => {
     const failed = pages.find((p) => failedIds.includes(p.id));
     if (!failed) return;
-    setSelectedId(failed.id);
-    setView('corners');
-    topPendingRef.current = true;
-    focusPendingRef.current = true;
+    dispatch({ type: 'failedPageShown', id: failed.id });
   };
 
   // Use these corners: on to the next new photo still waiting for a look, or to the result.
@@ -691,10 +588,9 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     if (!selected) return;
     setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, reviewed: true } : p)));
     const next = pages.find((p) => !p.reviewed && p.id !== selected.id);
-    if (next) setSelectedId(next.id);
+    if (next) dispatch({ type: 'pageSelected', id: next.id });
     else showResult(selected);
-    topPendingRef.current = true;
-    focusPendingRef.current = true;
+    dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
     announce(next ? formatMessage(t.announceCornersOf, { position: pages.indexOf(next) + 1 }) : t.announceResult);
     recordAction('move_mark');
   };
@@ -722,7 +618,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     label: limitLabels[l.id],
     hint: l.bytes === null ? t.limitNoneHint : formatMessage(t.limitHint, { size: limitLabels[l.id] }),
   }));
-  const limitNote = key !== null && missedKeysRef.current.has(key) ? t.limitMissed : undefined;
+  const limitNote = key !== null && work.missedKeys.has(key) ? t.limitMissed : undefined;
 
   // One set for the rail, one for phones under the pages (the rail is hidden below 1024px).
   const controls = (suffix: string) => (
@@ -742,7 +638,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
 
   // The page as it will download: the built PDF's own JPEG once it matches what is on screen,
   // otherwise this page's newest result laid on its paper by the same rule, shown as updating.
-  const shown = key === null ? undefined : shownByKeyRef.current.get(key);
+  const shown = key === null ? undefined : work.shown.get(key);
   const exact = !!shown && prepared.status === 'ready';
   const resultView = (page: ScanPage, index: number) => {
     if (exact && shown?.pages[index]) return { src: shown.pages[index].url, place: shown.pages[index].place, exact: true };
@@ -909,8 +805,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                         type="button"
                         class={workspaceStyles['quiet-button']}
                         onClick={() => {
-                          setView('corners');
-                          focusPendingRef.current = true;
+                          dispatch({ type: 'cornersOpened', focus: true });
                           announce(formatMessage(t.announceCornersOf, { position: selectedIndex + 1 }));
                         }}
                       >
@@ -952,7 +847,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                       class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
                       onClick={() => {
                         // The next photo comes into view: this one's error box was not its height.
-                        topPendingRef.current = true;
+                        dispatch({ type: 'scrollFocusRequested', top: true });
                         removePage(selected.id);
                       }}
                     >
@@ -984,8 +879,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                       disabled={selected.preview === null}
                       onClick={selected.reviewed ? () => {
                         showResult(selected);
-                        topPendingRef.current = true;
-                        focusPendingRef.current = true;
+                        dispatch({ type: 'scrollFocusRequested', top: true, focus: true });
                         announce(t.announceResult);
                       } : approveCorners}
                     >
@@ -1003,7 +897,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                     {selected.found === false && !selected.edited && (
                       <p class={styles['not-found']} role="status">
                         {t.notFound}
-                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => setView('corners')}>
+                        <button type="button" class={workspaceStyles['quiet-button']} onClick={() => dispatch({ type: 'cornersOpened', focus: false })}>
                           <Crop size={16} aria-hidden="true" />
                           {t.adjustCorners}
                         </button>
@@ -1031,9 +925,9 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                         role="button"
                         aria-pressed={page.id === selected.id}
                         aria-label={formatMessage(t.tileLabel, { position: index + 1, total: pages.length })}
-                        onClick={() => setSelectedId(page.id)}
+                        onClick={() => dispatch({ type: 'pageSelected', id: page.id })}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(page.id); return; }
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'pageSelected', id: page.id }); return; }
                           onTileKeyDown(e, page.id);
                         }}
                       >
