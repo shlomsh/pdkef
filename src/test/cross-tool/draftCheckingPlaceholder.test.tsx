@@ -2,7 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
-import styles from '../../shell/Dropzone.module.css';
 import { RESTORE_TIMEOUT_MS } from '../../lib/drafts/useDraftPersistence.js';
 
 // Coverage for the "checking draft" gate that replaces the flicker of an empty
@@ -128,7 +127,7 @@ describe('checking-draft placeholder (avoids the empty-dropzone flicker)', () =>
         render(<PdfSignTool />, container!);
       });
 
-      expect(container.querySelector(`.${styles.dropzone}`)?.getAttribute('aria-busy')).toBe('true');
+      expect(container.querySelector('[aria-busy]')?.getAttribute('aria-busy')).toBe('true');
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(RESTORE_TIMEOUT_MS + 10);

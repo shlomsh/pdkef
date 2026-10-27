@@ -11,8 +11,6 @@ import PdfEditPagesTool from '../../tools/edit-pages/PdfEditPagesTool.tsx';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import PdfScanTool from '../../tools/scan/PdfScanTool.tsx';
-import paper from '../../shell/verb/paper.module.css';
-import dropzone from '../../shell/Dropzone.module.css';
 
 // docs/tool-hero-show-the-verb.md, Guards: every page-grid tool's empty sheet shows its
 // verb (VerbStage) instead of the generic file-plus icon.
@@ -55,7 +53,7 @@ afterEach(() => {
 describe('page-grid tools pass an emptyArt', () => {
   it.each(WITH_VERB)('%s shows the verb stage, not the file-plus icon', (_name, make) => {
     const sheet = renderEmpty(make);
-    expect(sheet.querySelector(`[aria-hidden="true"].${paper.box}`)).not.toBeNull();
-    expect(sheet.querySelector(`.${dropzone['dropzone-icon']}`)).toBeNull();
+    expect(sheet.querySelector('[aria-hidden="true"][data-testid="verb-stage"]')).not.toBeNull();
+    expect(sheet.querySelector('[data-testid="dropzone-icon"]')).toBeNull();
   });
 });

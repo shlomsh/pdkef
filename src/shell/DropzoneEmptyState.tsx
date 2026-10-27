@@ -76,8 +76,8 @@ export default function DropzoneEmptyState({
       phone
     ) : (
       <>
-        <span class={styles['empty-phone']}>{phone}</span>
-        <span class={styles['empty-desktop']}>{desktop}</span>
+        <span class={styles['empty-phone']} data-testid="empty-phone">{phone}</span>
+        <span class={styles['empty-desktop']} data-testid="empty-desktop">{desktop}</span>
       </>
     );
 
@@ -130,6 +130,7 @@ export default function DropzoneEmptyState({
       // .dropzone for the box styling but must never be hidden by it) - see
       // the `html[data-draft-hint]` rule in Dropzone.module.css.
       data-empty-state
+      data-testid="dropzone"
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
@@ -140,6 +141,7 @@ export default function DropzoneEmptyState({
       {art ?? (
         <svg
           class={styles['dropzone-icon']}
+          data-testid="dropzone-icon"
           width="48"
           height="48"
           viewBox="0 0 48 48"
@@ -157,15 +159,15 @@ export default function DropzoneEmptyState({
         <strong class={styles['drag-heading']}>{twoWidths(defaultHeading, heading)}</strong>
         {/* Shown instead of the heading while a file is dragged over the page
             (BasePdfTool's `data-dragging`), by CSS alone. */}
-        <strong class={styles['drag-caption']}>
+        <strong class={styles['drag-caption']} data-testid="drag-caption">
           {multiple ? messages.dragCaptionMany : messages.dragCaptionOne}
         </strong>
       </p>
 
       {/* A tool's extra way in (Scan's "Take a photo") is an equal choice: one row, side by side. */}
-      {action ? <div class={styles['pick-row']}>{pickerEl}{action}</div> : pickerEl}
+      {action ? <div class={styles['pick-row']} data-testid="pick-row">{pickerEl}{action}</div> : pickerEl}
 
-      <p class={styles['privacy-line']}>
+      <p class={styles['privacy-line']} data-testid="privacy-line">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"

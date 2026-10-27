@@ -712,10 +712,10 @@ export default function PageGrid({
             whether or not it is a run's first cell - that is what keeps
             every thumbnail below it aligned to one row, tag or no tag. */}
         {labelSources && (
-          <span class={styles['cell-tag']}>
+          <span class={styles['cell-tag']} data-testid="cell-tag">
             {tagForThisCell && (
               <>
-                <span class={styles['cell-tag-square']} style={tagForThisCell.style} aria-hidden="true" />
+                <span class={styles['cell-tag-square']} data-testid="cell-tag-square" style={tagForThisCell.style} aria-hidden="true" />
                 <FileName name={tagForThisCell.name} className={styles['cell-tag-name']} extension={false} />
               </>
             )}
@@ -754,15 +754,17 @@ export default function PageGrid({
             cards are bottom-aligned, its thumbnail jumped upward. */}
         <span
           class={styles['skipped-word']}
+          data-testid="skipped-word"
           data-visible={entry.skipped || undefined}
           aria-hidden={!entry.skipped}
         >
           {entry.skipped ? t.skippedBadge.toLowerCase() : '\u00a0'}
         </span>
-        <span class={styles.actions}>
+        <span class={styles.actions} data-testid="page-actions">
           <button
             type="button"
             class={styles.action}
+            data-testid="page-action"
             aria-label={formatMessage(t.rotatePage, { number: position })}
             onClick={() => rotate(entry.key, position)}
           >
@@ -784,11 +786,12 @@ export default function PageGrid({
                 until the button is hovered or keyboard-focused; the
                 aria-label above stays the real accessible name so a screen
                 reader is never told the word twice. */}
-            <span class={styles.tip} aria-hidden="true">{t.tipRotate}</span>
+            <span class={styles.tip} data-testid="page-action-tip" aria-hidden="true">{t.tipRotate}</span>
           </button>
           <button
             type="button"
             class={styles.action}
+            data-testid="page-action"
             aria-pressed={entry.skipped}
             aria-label={formatMessage(entry.skipped ? t.includePage : t.skipPage, { number: position })}
             onClick={() => toggleSkip(entry.key, position)}
@@ -810,11 +813,12 @@ export default function PageGrid({
                 )}
               </svg>
             </span>
-            <span class={styles.tip} aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>
+            <span class={styles.tip} data-testid="page-action-tip" aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>
           </button>
           <button
             type="button"
             class={styles.action}
+            data-testid="page-action"
             aria-label={formatMessage(t.openPreview, { number: position })}
             onClick={() => openPreview(index)}
           >
@@ -824,18 +828,19 @@ export default function PageGrid({
                 <path d="M10.3 10.3L14 14" />
               </svg>
             </span>
-            <span class={styles.tip} aria-hidden="true">{t.tipOpen}</span>
+            <span class={styles.tip} data-testid="page-action-tip" aria-hidden="true">{t.tipOpen}</span>
           </button>
           {action && (
             <a
               class={styles.action}
+              data-testid="page-action"
               href={action.href}
               download={action.download}
               aria-label={action.label}
               onClick={(event) => { event.stopPropagation(); action.onActivate?.(); }}
             >
               <span class={styles['action-glyph']} aria-hidden="true"><Download size={16} strokeWidth={1.8} /></span>
-              <span class={styles.tip} aria-hidden="true">{action.tip}</span>
+              <span class={styles.tip} data-testid="page-action-tip" aria-hidden="true">{action.tip}</span>
             </a>
           )}
         </span>

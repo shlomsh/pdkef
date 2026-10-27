@@ -180,7 +180,7 @@ export default function EditorExportActions({
   }
 
   return (
-    <div className={workspaceStyles['export-actions']} dir={dir} lang={lang}>
+    <div className={workspaceStyles['export-actions']} data-testid="export-actions" dir={dir} lang={lang}>
       {downloadButton}
       {shareButton}
     </div>
