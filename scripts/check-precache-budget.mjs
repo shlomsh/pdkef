@@ -12,23 +12,25 @@ import { fileURLToPath } from 'node:url';
  * These are budgets, not ratchets (CLAUDE.md): a number is raised only by a
  * decision, never to make a red run green. Measured 2026-10-27 (brotli bytes, from `--table`):
  *
- *     shell                         305,151   (37 urls)
- *     /sign/ and /he/sign/        1,640,826   (60 urls, heaviest tool)
- *     /redact/                    1,165,846
- *     /merge/, /he/merge/         1,086,721 / 1,090,931
- *     other tool routes           1,020,339 to 1,061,471
- *     /                              96,124   (heaviest page without a tool)
- *     article and trust pages        17,455 to 35,274
+ *     shell                          360,580   (41 urls)
+ *     whole install                3,203,299   (183 urls, shell plus every page)
+ *     /sign/ and /he/sign/         1,453,772   (heaviest tool)
+ *     /redact/                       978,780
+ *     / and /he/                     151,553 / 148,841   (carry the Redact sample PDF)
+ *     heaviest article (/open/)       35,329
  *
- * Each budget is the heaviest measured closure of its kind, rounded up to the
- * next 100 KB (400K, 1.7M, 100K), plus about 15% headroom.
+ * Per-page budgets are the heaviest measured closure of their kind plus 15 to
+ * 20% headroom. The install budget is a decision, not headroom (see below).
  */
 export const BUDGETS = {
   shell: 460_000,
   tool: 1_950_000,
   home: 180_000, // measured 151,553 for / (148,841 /he/), +19%: the home pages carry the Redact sample PDF on purpose
-  other: 115_000, // measured 35,329 for the heaviest article (/open/); kept at the earlier 100 KB-plus-headroom figure
-  install: 3_700_000, // measured 3,203,299 (183 urls), +15%
+  other: 42_000, // measured 35,329 for the heaviest article (/open/), +19%
+  // Not headroom: the line Shlomi drew on 2026-10-27 (MEM-15). The whole app is
+  // precached only while it stays under 5 MB (measured 3,203,299, 183 urls);
+  // past it, bring per-tool caching back instead of raising this.
+  install: 5_000_000,
 };
 
 // A localized home is `/` or `/<xx>/`.
@@ -90,7 +92,7 @@ export function findBudgetFailures({ shell, pages, toolPages, sizes, budgets }) 
   }
   const installBytes = closureBytes(installUrls({ shell, pages }), sizes);
   if (installBytes > budgets.install) {
-    failures.push(`install: ${installBytes} brotli bytes for the whole app, budget ${budgets.install}`);
+    failures.push(`install: ${installBytes} brotli bytes for the whole app, budget ${budgets.install}. Over it, revisit per-tool caching (MEM-15 decision), do not raise the budget`);
   }
   return failures;
 }
