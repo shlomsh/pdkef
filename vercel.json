@@ -100,6 +100,11 @@
       "permanent": true
     },
     {
+      "source": "/open",
+      "destination": "/open/",
+      "permanent": true
+    },
+    {
       "source": "/licenses",
       "destination": "/licenses/",
       "permanent": true
