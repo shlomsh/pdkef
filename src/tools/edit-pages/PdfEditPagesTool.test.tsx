@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from './editPages.js';
+import { editPages } from './lib/editPages.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
@@ -45,7 +45,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
 }));
 
 // Mock core page editing logic
-vi.mock('./editPages.js', () => ({
+vi.mock('./lib/editPages.js', () => ({
   editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
 }));
 

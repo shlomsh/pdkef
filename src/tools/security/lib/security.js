@@ -1,6 +1,6 @@
-import { getPdfLib } from '../../lib/pdfLib.js';
-import { openPdfDoc } from '../../lib/openPdfDoc.ts';
-import { reportError } from '../../lib/errorReport.ts';
+import { getPdfLib } from '../../../lib/pdfLib.js';
+import { openPdfDoc } from '../../../lib/openPdfDoc.ts';
+import { reportError } from '../../../lib/errorReport.ts';
 
 export class SecurityError extends Error {
   constructor(message, options) {

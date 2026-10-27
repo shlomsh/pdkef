@@ -66,7 +66,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
 
 // Wraps the real splitPdf so every test still builds real PDFs, and records what it was asked for.
 const { splitCalls } = vi.hoisted(() => ({ splitCalls: { calls: [] as any[], fail: false } }));
-vi.mock('./split.js', async (importOriginal) => {
+vi.mock('./lib/split.js', async (importOriginal) => {
   const actual: any = await importOriginal();
   return {
     ...actual,

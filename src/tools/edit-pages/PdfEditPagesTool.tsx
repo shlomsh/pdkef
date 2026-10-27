@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { FileSignature, Shrink } from 'lucide-preact';
-import { editPages } from './editPages.js';
-import { editOptionsFromPlan } from './editPlan.ts';
+import { editPages } from './lib/editPages.js';
+import { editOptionsFromPlan } from './lib/editPlan.ts';
 import { englishEditPagesMessages as t } from './messages.ts';
 import { outputPageCount, planKey } from '../../lib/pagePlan.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -32,7 +32,7 @@ import EditPagesVerb from './verb/EditPagesVerb.tsx';
 import PageNumbersVerb from './verb/PageNumbersVerb.tsx';
 import RemovePagesVerb from './verb/RemovePagesVerb.tsx';
 import RotatePagesVerb from './verb/RotatePagesVerb.tsx';
-import { modifiedTitle } from './outputName.ts';
+import { modifiedTitle } from './lib/outputName.ts';
 
 /** The page's one job (SEO-47): each landing page over this island shows that job in its empty state. */
 type PageJob = 'organize' | 'rotate' | 'remove' | 'numbers';

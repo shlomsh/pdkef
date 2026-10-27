@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from './editPages.js';
+import { editPages } from './lib/editPages.js';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
 import { loadPdfWithPages } from '../../lib/loadPdfPages.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
@@ -27,7 +27,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   })),
 }));
 
-vi.mock('./editPages.js', () => ({
+vi.mock('./lib/editPages.js', () => ({
   editPages: vi.fn(() => Promise.resolve(new Blob(['out'], { type: 'application/pdf' }))),
 }));
 

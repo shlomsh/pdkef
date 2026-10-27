@@ -3,12 +3,12 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFString, PDFHexString, PDFInvalidObject } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import { probeEncryption } from '../../../lib/pdfEncryption.ts';
 import { unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
 
 describe('security.js', () => {
   function getFixtureFile(name = 'num-1.pdf') {
-    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
@@ -42,7 +42,7 @@ describe('security.js', () => {
   const legacyPdfjs = () => pdfjs;
   const probe = (file) => file.arrayBuffer().then((bytes) => probeEncryption(bytes, legacyPdfjs));
   function encryptedFixture(name) {
-    const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', `${name}.pdf`));
+    const buffer = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__/encrypted', `${name}.pdf`));
     return new File([buffer], `${name}.pdf`, { type: 'application/pdf' });
   }
 
@@ -88,7 +88,7 @@ describe('security.js', () => {
   // A real government form (xref and object streams, 5 pages): its unlocked
   // copy would not open at all. The bytes are the Sign corpus's, read in place.
   it('a real form protected and unlocked with the same password still opens, page for page', async () => {
-    const formPath = path.resolve(__dirname, '../sign/fields/corpus/scoring/forms/thai-pnd90-2565.pdf');
+    const formPath = path.resolve(__dirname, '../../sign/fields/corpus/scoring/forms/thai-pnd90-2565.pdf');
     const original = fs.readFileSync(formPath);
 
     const protectedFile = new File([await protectPdf(new File([original], 'form.pdf'), 'test123')], 'form_protected.pdf');

@@ -61,7 +61,7 @@ const { convertCalls, convertOverride } = vi.hoisted(() => ({
   convertCalls: { n: 0, last: null as any },
   convertOverride: { fn: null as any },
 }));
-vi.mock('./toImage.js', async (importOriginal) => ({
+vi.mock('./lib/toImage.js', async (importOriginal) => ({
   ...(await importOriginal()),
   convertPdfToImages: (...args: any[]) => {
     convertCalls.n += 1;
