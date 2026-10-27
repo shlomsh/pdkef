@@ -2,23 +2,23 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import CornerEditor from './CornerEditor.tsx';
-import { isConvexQuad } from '../lib/quad.ts';
+import { isConvexQuad, type Quad } from '../lib/quad.ts';
 
-const QUAD = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
-const LABELS = { group: 'Page corners', corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] };
+const QUAD: Quad = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }];
+const LABELS: { group: string; corners: [string, string, string, string] } = { group: 'Page corners', corners: ['Top-left corner', 'Top-right corner', 'Bottom-right corner', 'Bottom-left corner'] };
 // 200x100 box at (50, 20): a real rect, not jsdom's 0x0.
-const RECT = { left: 50, top: 20, width: 200, height: 100, right: 250, bottom: 120, x: 50, y: 20 };
+const RECT = { left: 50, top: 20, width: 200, height: 100, right: 250, bottom: 120, x: 50, y: 20, toJSON: () => ({}) };
 
 let container: HTMLElement | null = null;
-function mount(onCommit, quad = QUAD) {
+function mount(onCommit: (quad: Quad) => void, quad: Quad = QUAD) {
   container = document.createElement('div');
   document.body.appendChild(container);
   act(() => render(<CornerEditor src="x.jpg" quad={quad} onCommit={onCommit} labels={LABELS} />, container!));
   container.querySelector('[data-corner-frame]').getBoundingClientRect = () => RECT;
   return container;
 }
-const handle = (i) => container!.querySelectorAll('button')[i];
-const mouse = (type, x, y, target = window) =>
+const handle = (i: number) => container!.querySelectorAll('button')[i];
+const mouse = (type: string, x: number, y: number, target: EventTarget = window) =>
   act(() => { target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })); });
 
 afterEach(() => {
