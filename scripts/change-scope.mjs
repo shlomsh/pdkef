@@ -116,7 +116,7 @@ export function resolveBase(explicit) {
 // output, so a file moved from one tool's folder to another's affects only
 // the destination and the source's tests are skipped (DEBT-03). Measured on
 // this repo, `git diff --name-only 370ace3~1 370ace3 | grep -c
-// src/components/SignTool` is 0, and 37 with `--no-renames`. A rename must
+// SignTool` is 0, and 37 with `--no-renames`. A rename must
 // affect both its source and its destination owners.
 export function changedFiles(base, head, run = git) {
   if (head) {

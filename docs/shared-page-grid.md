@@ -46,7 +46,7 @@ Moved out of `src/tools/merge/lib/mergePlan.ts`, which keeps only what is about 
 the merged name helpers) and re-exports nothing. The field stays `fileId`: Merge's saved work stores
 plans with it, so renaming it would need a draft migration for no gain. Edit Pages uses `fileId: 0`.
 
-### `src/shell/pageGrid/` (from `src/tools/merge/components/PageStrip.tsx`)
+### `src/shell/pageGrid/` (from `src/shell/pageGrid/PageGrid.tsx`)
 
 `PageGrid.tsx`, `PageGrid.module.css`, `stageFit.ts`, `useStageFit.ts` (moved from `src/tools/merge/`).
 

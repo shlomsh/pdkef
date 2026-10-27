@@ -1,6 +1,6 @@
 // The URL prefixes under which localized editions live (`/he/...`), as plain
 // JS so build scripts that run under Node without a TypeScript loader
-// (scripts/precacheFilter.mjs) can read them. documentationLocales.ts is the
+// (src/site-lib/precachePolicy.js) can read them. documentationLocales.ts is the
 // registry; localePrefixes.test.js fails if the two ever disagree, so this is
 // a mirror with a guard, not a second source of truth.
 export const LOCALIZED_PATH_PREFIXES = Object.freeze([

@@ -13,7 +13,7 @@
 // agent may run this before committing) - see resolveBase()/changedFiles()
 // in change-scope.mjs, which affected-scope.mjs's resolveScope() already
 // calls this same way. Every step below either calls a function exported
-// from affected-scope.mjs (Nx-decided e2e/font/export scope) or
+// from affected-scope.mjs (Nx-decided e2e, font and export scope) or
 // scripts/unit-scope.mjs (ARCH-28: unit tests, by Vitest's own module graph,
 // against that one already-resolved base) against a once-computed scope
 // object, or runs the exact npm script ci.yml's `checks`/`build` jobs run -
@@ -275,7 +275,7 @@ function printScope({ base, dirty, scope, unitScope }) {
   const lines = [
     `check:push scope (base ${base ? base.slice(0, 7) : '(none)'})${dirty ? ' - working tree has uncommitted/untracked changes; scope includes them' : ''}:`,
     `  docs_only:      ${scope.docsOnly}`,
-    `  everything:     ${scope.everything}  (${scope.reason})  [e2e/font/export scope, Nx-decided]`,
+    `  everything:     ${scope.everything}  (${scope.reason})  [e2e, font and export scope, Nx-decided]`,
     // ARCH-28: unit selection is a separate mechanism (scripts/unit-scope.mjs,
     // Vitest's own module graph) from the Nx-decided everything/e2e_paths
     // above - a core-project (`everything: true`) verdict no longer implies

@@ -50,7 +50,7 @@ const FONT_GUARDS = [
 // rasterises the real `signPdf` output against a runner-pinned baseline;
 // language-acceptance.spec.js runs the same bundle over every shipped
 // language/face combination. Both esbuild the real export path
-// (src/editor/adapters/pdf/sign.js, src/tools/sign/lib/languageAcceptance.js),
+// (src/tools/sign/lib/sign.js, src/tools/sign/lib/languageAcceptance.js),
 // so - unlike `fonts` above - their own Nx project (e2e/export/project.json)
 // keeps a coarse, whole-project implicitDependencies edge to editor/lib/
 // tool-sign: a Sign toolbar or tooltip change still runs these two (cheap,
@@ -96,14 +96,14 @@ const FONT_GUARDS_SHARD_1 = [
 const PERF_BUDGETS = [
   // '**/merge/**/merge-ready-time.spec.js', not '**/merge/merge-ready-time.spec.js':
   // the extra '**/' matches zero segments too, so this glob covers both
-  // e2e/merge/merge-ready-time.spec.js (pre-ARCH-18) and
+  // src/tools/merge/e2e/merge-ready-time.spec.js (pre-ARCH-18) and
   // src/tools/merge/e2e/merge-ready-time.spec.js (post-move), with nothing to
   // rewrite when that move lands - same trick the compress line below uses.
   '**/merge/**/merge-ready-time.spec.js',
   '**/merge/**/merge-thumbnail-throughput.spec.js',
   // '**/compress/**/compare-preview.spec.js', not '**/compress/compare-preview.spec.js':
   // the extra '**/' matches zero segments too, so this glob covers both
-  // e2e/compress/compare-preview.spec.js (today) and
+  // src/tools/compress/e2e/compare-preview.spec.js (today) and
   // src/tools/compress/e2e/compare-preview.spec.js (once ARCH-17 moves it),
   // with nothing to rewrite when that move lands.
   '**/compress/**/compare-preview.spec.js',

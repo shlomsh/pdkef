@@ -11,7 +11,7 @@ vi.mock('../../../shell/Popover.tsx', async (importOriginal) => {
 });
 
 // SNG-17: a controllable MediaQueryList, same shape as
-// src/tools/sign/useCoarsePointer.test.tsx's own harness, since
+// useCoarsePointer.test.tsx's own harness, since
 // useCoarsePointer (the local editor-ui copy of that same primitive) reads
 // `matchMedia('(pointer: coarse)')` on mount.
 function installMatchMedia(matches: boolean) {

@@ -146,7 +146,7 @@ question - how many consumers reach a module - than an edge-by-edge legality che
 boundary kept in sync by hand. The checker runs in about 2s at the top of `check:fast`.
 
 **DEBT-04:** `src/editor/registry/types.ts` used to import the `SignMessages` type from
-`src/i18n/toolMessages.ts` (since split into each tool's own `messages.ts`, e.g. `src/tools/sign/messages.ts`) - an `editor -> site-i18n` edge none of the seven rules above actually
+the former `toolMessages.ts` (since split into each tool's own `messages.ts`, e.g. `src/tools/sign/messages.ts`) - an `editor -> site-i18n` edge none of the seven rules above actually
 covers, so `check-module-boundaries.mjs` never flagged it even though it made the headless core
 depend on the site's message shape. The interface now lives in `src/editor/registry/messages.ts`;
 `i18n` imports and re-exports it, so the editor imports nothing from `i18n`.

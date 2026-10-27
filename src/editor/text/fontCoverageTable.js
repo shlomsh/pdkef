@@ -7,7 +7,7 @@
  * src/editor/text/fontCoverageTable.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
- * Keyed by the exact filename src/editor/adapters/pdf/sign.js's loadCustomFont() requests -
+ * Keyed by the exact filename src/tools/sign/lib/sign.js's loadCustomFont() requests -
  * "${family.replace(/\s+/g, '')}-${Regular|Bold|Italic|BoldItalic}.ttf" -
  * because glyph coverage belongs to the specific (family, weight, style) file
  * that gets embedded, not to the family as a whole (see

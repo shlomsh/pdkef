@@ -7,11 +7,11 @@ import type { BlurStrength } from './blurStrength.ts';
 // the plain objects the editors already produce and consume.
 //
 // Field shapes are read from reality, not invented:
-//   - creation:  src/lib/useWorkspaceGestures.ts (text/symbol/line/shape/whiteout
+//   - creation:  src/tools/sign/hooks/useWorkspaceGestures.ts (text/symbol/line/shape/whiteout
 //                factories) and PdfSignTool.tsx `placeSignatureAt` (signature).
 //   - rendering: Sign's node components (passed to registry/renderers.ts's
 //                createElementRenderers; see its own header comment).
-//   - export:    src/editor/adapters/pdf/sign.js `signPdf` (the bake-out reads these fields).
+//   - export:    src/tools/sign/lib/sign.js `signPdf` (the bake-out reads these fields).
 //   - geometry:  DraggableWrapper.tsx drag/resize (left/top/width/height percents,
 //                x1..y2 line endpoints, aspectRatio, fontSize).
 //

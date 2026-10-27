@@ -225,20 +225,20 @@ export interface SignMessages {
   dragToResizeTitle: string;
   dragToResizeFontSizeTitle: string;
   dragToSpanBoxesTitle: string;
-  /** SignTool/nodes/TextNode.tsx's two placeholders. */
+  /** src/tools/sign/components/nodes/TextNode.tsx's two placeholders. */
   typeYourTextPlaceholder: string;
   doubleClickToEditPlaceholder: string;
   /** MOBI-21: the empty-box placeholder on a coarse pointer, where double-click does not exist. */
   tapToEditPlaceholder: string;
-  /** SignTool/ExportReadinessNotice.tsx. */
+  /** src/tools/sign/components/ExportReadinessNotice.tsx. */
   exportReadinessBoldOne: string;
   exportReadinessBoldOther: string;
   exportReadinessSuffix: string;
   reviewFieldsLabel: string;
-  /** SignTool/FontSupportNotice.tsx. */
+  /** src/tools/sign/components/FontSupportNotice.tsx. */
   textNeedsAttentionAria: string;
   textNeedsAttentionTitle: string;
-  /** SignTool/textMessages.ts's text-policy sentences. */
+  /** src/tools/sign/components/textMessages.ts's text-policy sentences. */
   fontSubstitutionTemplate: string;
   unrepresentableSavingTemplate: string;
   unrepresentableTypingTemplate: string;
@@ -302,7 +302,7 @@ export interface SignMessages {
   clearedPageAnnouncementTemplate: string;
   clearedPageDescriptionOne: string;
   clearedPageDescriptionOther: string;
-  /** src/lib/useWorkspaceGestures.ts's announcements and history descriptions -
+  /** src/tools/sign/hooks/useWorkspaceGestures.ts's announcements and history descriptions -
    * `addedShapeDescriptionTemplate`/`addedShapeAnnouncementTemplate` fix the
    * raw-tool-id interpolation bug this ticket calls out, via
    * `signElementTypeLabel` above. */

@@ -58,7 +58,7 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   fail-open trigger (an unowned file, the CI oracle itself, no resolvable base) that already forced
   `everything=true` for unrelated reasons and keeps forcing `fonts=true` too, unconditionally, the way
   it always has. What no longer forces it: `editor`/`lib` being core projects for some other reason
-  (e.g. a `src/lib/drafts/draftStore.js` change), or `tool-sign`/`editor-ui` being affected for a
+  (e.g. a `src/lib/drafts/draftStore.ts` change), or `tool-sign`/`editor-ui` being affected for a
   UI-only reason. `docs/nx-affected-ci.md` has the mechanics and the measurement behind choosing a glob
   over a second Nx project. `ci.yml`'s `font-guards` job runs the guards as two time-balanced shards
   (QUAL-06): `fonts-shard-1` in `playwright.config.js` is the six heaviest specs listed by hand,
@@ -71,7 +71,7 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 
 - **The export render guard and language acceptance are their own `export-guards` project**
   (`e2e/export/`, ARCH-23), not part of `fonts` above. Both esbuild the real export path
-  (`src/editor/adapters/pdf/sign.js`, `src/tools/sign/lib/languageAcceptance.js`) rather than only fixtures,
+  (`src/tools/sign/lib/sign.js`, `src/tools/sign/lib/languageAcceptance.js`) rather than only fixtures,
   so - unlike `fonts` - their Nx project (`e2e/export/project.json`) keeps a coarse, whole-project
   `implicitDependencies` edge to `font-assets`, `editor`, `lib` and `tool-sign` on purpose: a Sign
   toolbar or tooltip change still runs these two (cheap, well under a minute combined, decided the
@@ -92,8 +92,8 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   the second assertion.
 - **Substitution is explained, never silent** (`resolveFontSubstitution` returns the forcing script and
   the editor shows a notice), and **a refusal happens while typing, not at Download.** Two modules must
-  agree: `src/editor/text/textCoverage.js` (export side, walks the document against real font bytes,
-  owns the message strings, is what `signPdf` refuses with) and `src/editor/text/textFontSupport.js`
+  agree: `src/tools/sign/lib/textCoverage.js` (export side, walks the document against real font bytes,
+  owns the message strings, is what `signPdf` refuses with) and `src/tools/sign/lib/textFontSupport.js`
   (editing side, synchronous, from the generated glyph data; rendered by `FontPickerMenu.tsx` and by
   `TextNode.tsx` via `FontSupportNotice.tsx`). Both resolve through `fonts.js`, both truncate
   comb fields via `textForCoverage` in `comb.js`, both run the same missing-glyph transforms.

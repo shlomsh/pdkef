@@ -21,14 +21,14 @@
  * genuinely absent from Heebo, Assistant, Gveret Levin and Alef, so a
  * "Hebrew: full" row for those four means ordinary vowelized Hebrew, not
  * every mark the block defines - and someone who does type one still gets
- * named the character at typing time (src/lib/textCoverage.js), which is
+ * named the character at typing time (src/tools/sign/lib/textCoverage.js), which is
  * where that honesty is enforced rather than here.
  * A family absent from both lists has zero of that language's codepoints.
  *
  * Not imported by any browser bundle - see the header of
  * generate-font-coverage-report.mjs for why the Sign page's Languages card
  * is instead cross-checked against this at test time
- * (src/editor/text/languageCoverage.test.js), not fed from it at runtime.
+ * (src/test/languageCoverage.test.js), not fed from it at runtime.
  */
 
 /** @typedef {{ family: string, style: 'handwriting' | 'upright' }} CoveringFamily */
