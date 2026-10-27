@@ -168,3 +168,40 @@ export async function makeEncryptedPdf({ password, unparseableObject = false }) 
   doc.encrypt({ userPassword: password, ownerPassword: password });
   return Buffer.from(await doc.save());
 }
+
+/** Helvetica advance width of `text` at `size`, for specs that place boxes by measured text. */
+export async function helveticaWidth(text, size) {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  return font.widthOfTextAtSize(text, size);
+}
+
+/** One Letter page of Helvetica lines `{ text, x, y, size }` in the font's default colour. */
+export async function makeHelveticaLinesPdf(lines) {
+  const doc = await PDFDocument.create();
+  const pdfPage = doc.addPage([612, 792]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  for (const { text, x, y, size } of lines) pdfPage.drawText(text, { x, y, size, font });
+  return Buffer.from(await doc.save());
+}
+
+/** One Letter page: a red top half and a black CONFIDENTIAL in the top right. */
+export async function makeRedHalfConfidentialPdf() {
+  const doc = await PDFDocument.create();
+  const pdfPage = doc.addPage([612, 792]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  pdfPage.drawRectangle({ x: 0, y: 396, width: 612, height: 396, color: rgb(1, 0, 0) });
+  pdfPage.drawText('CONFIDENTIAL', { x: 420, y: 750, size: 20, font, color: rgb(0, 0, 0) });
+  return Buffer.from(await doc.save());
+}
+
+/** A 300x400 page with two black lines (AAAA 111, BBBB 222) and a 40x40 square in `markerColor`. */
+export async function makeMarkedPdf(markerColor) {
+  const doc = await PDFDocument.create();
+  const pdfPage = doc.addPage([300, 400]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  pdfPage.drawText('AAAA 111', { x: 40, y: 320, size: 20, font, color: rgb(0, 0, 0) });
+  pdfPage.drawText('BBBB 222', { x: 40, y: 80, size: 20, font, color: rgb(0, 0, 0) });
+  pdfPage.drawRectangle({ x: 220, y: 20, width: 40, height: 40, color: markerColor });
+  return Buffer.from(await doc.save());
+}
