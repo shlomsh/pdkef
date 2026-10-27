@@ -46,7 +46,7 @@ const CACHE_PREFIX = 'pdkef-';
 const CRITICAL_VERSION = 10;
 // MEM-22: the build id the generator stamps in, which the manifest carries too.
 const BUILD_ID = '__BUILD_ID__';
-const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-${BUILD_ID}`;
+const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-__BUILD_ID__`;
 
 const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
 
@@ -260,11 +260,11 @@ function appUrls({ shell, pages }) {
 }
 
 function validManifest(manifest) {
-  const { version, build, shell, pages, html } = manifest ?? {};
+  const { version, build, shell, pages, hashes } = manifest ?? {};
   if (version !== 2 || !Array.isArray(shell) || shell.length === 0 || !pages || typeof pages !== 'object') {
     throw new Error('Precache manifest has no URLs.');
   }
-  return { version, build, shell, pages, html };
+  return { version, build, shell, pages, hashes };
 }
 
 // Run task over items with at most `limit` in flight. A rejection propagates and
@@ -287,7 +287,7 @@ async function forEachLimited(items, limit, task) {
 // handler below, so a miss costs nothing but the offline guarantee for that one
 // asset. Only REQUIRED_URL ('/') is load-bearing enough to fail the install
 // over. Resolves to the URLs it did not cache.
-async function precacheUrls(cache, urls, previousCaches, { skipCached = false } = {}) {
+async function precacheUrls(cache, urls, previousCaches, { skipCached = false, hashes = {} } = {}) {
   const missed = [];
   // MEM-16: carry unchanged hashed files over from the previous build's cache
   // instead of downloading them again. Activate deletes those caches only
@@ -312,7 +312,17 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false } 
       await withPrecacheTimeout(async (signal, touch) => {
         const response = isHashedUrl(url) ? await fetch(new Request(resolve(url), { signal })) : await fetchFresh(url, signal);
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
-        await cache.put(url, trackProgress(response, touch));
+        const expected = hashes[url];
+        if (!expected) {
+          await cache.put(url, trackProgress(response, touch));
+          return;
+        }
+        // MEM-22: an unhashed file is stored only with the bytes this build's
+        // manifest names, so a deploy landing mid-install cannot mix builds.
+        // Reading the body counts as progress for the stall timer.
+        const bytes = await trackProgress(response, touch).arrayBuffer();
+        if (await hashBytes(bytes) !== expected) throw new Error(`Precache ${url} is not this build's file.`);
+        await cache.put(url, new Response(bytes, { status: response.status, statusText: response.statusText, headers: response.headers }));
       });
     } catch (error) {
       if (url === REQUIRED_URL) throw error;
@@ -334,7 +344,7 @@ async function precacheAppShell({ skipCached = false } = {}) {
     // No readable previous cache.
   }
   const urls = appUrls(manifest);
-  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached });
+  const missed = await precacheUrls(cache, urls, previousCaches, { skipCached, hashes: manifest.hashes ?? {} });
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
@@ -490,9 +500,9 @@ function navigationCacheKey(request) {
 }
 
 // MEM-22: the first 16 hex characters of the body's SHA-256, as pageHash in
-// scripts/pageHash.mjs computes them for the manifest's `html` map.
-async function hashBody(response) {
-  const digest = await crypto.subtle.digest('SHA-256', await response.arrayBuffer());
+// scripts/pageHash.mjs computes them for the manifest's `hashes` map.
+async function hashBytes(buffer) {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
   return Array.from(new Uint8Array(digest).subarray(0, 8), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
@@ -500,8 +510,8 @@ async function hashBody(response) {
 async function belongsToThisBuild(cache, cacheKey, response) {
   try {
     const stored = await cache.match(resolve(MANIFEST_PATH));
-    const expected = stored ? (await stored.json()).html?.[cacheKey] : undefined;
-    return !!expected && expected === await hashBody(response.clone());
+    const expected = stored ? (await stored.json()).hashes?.[cacheKey] : undefined;
+    return !!expected && expected === await hashBytes(await response.clone().arrayBuffer());
   } catch {
     return false;
   }

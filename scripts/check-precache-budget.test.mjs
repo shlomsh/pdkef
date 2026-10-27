@@ -138,11 +138,16 @@ describe('checkPrecache coverage', () => {
 });
 
 describe('manifestIdentityProblems (MEM-22)', () => {
-  const bytes = { '/a/': '<html>a</html>', '/b/': '<html>b</html>' };
+  const bytes = { '/a/': '<html>a</html>', '/b/': '<html>b</html>', '/icons/i.png': 'png' };
   const readPage = (url) => bytes[url];
   const workerSource = 'const c=`pdkef-c3-0123456789ab`;';
-  const clean = { build: '0123456789ab', pages: { '/a/': [], '/b/': [] }, html: { '/a/': pageHash(bytes['/a/']), '/b/': pageHash(bytes['/b/']) } };
-  it('passes a manifest whose build is in the worker and whose hashes match the pages', () => {
+  const clean = {
+    build: '0123456789ab',
+    shell: ['/icons/i.png', '/_astro/x.js'],
+    pages: { '/a/': ['/a/', '/_astro/y.js'], '/b/': ['/b/', '/icons/i.png'] },
+    hashes: { '/a/': pageHash(bytes['/a/']), '/b/': pageHash(bytes['/b/']), '/icons/i.png': pageHash(bytes['/icons/i.png']) },
+  };
+  it('passes a manifest whose build is in the worker and whose hashes match', () => {
     expect(manifestIdentityProblems(clean, { readPage, workerSource })).toEqual([]);
   });
   it('names a missing build', () => {
@@ -152,14 +157,25 @@ describe('manifestIdentityProblems (MEM-22)', () => {
   it('names a build the worker does not carry', () => {
     expect(manifestIdentityProblems({ ...clean, build: 'ffffffffffff' }, { readPage, workerSource })[0]).toContain('ffffffffffff');
   });
-  it('names html keys that differ from pages keys', () => {
-    const f = manifestIdentityProblems({ ...clean, html: { '/a/': clean.html['/a/'], '/c/': 'x' } }, { readPage, workerSource });
-    expect(f.join('\n')).toContain('/b/');
+  it('names a page missing from hashes', () => {
+    const { '/b/': _b, ...hashes } = clean.hashes;
+    expect(manifestIdentityProblems({ ...clean, hashes }, { readPage, workerSource }).join('\n')).toContain('/b/');
+  });
+  it('names a non-page unhashed URL missing from hashes', () => {
+    const { '/icons/i.png': _i, ...hashes } = clean.hashes;
+    expect(manifestIdentityProblems({ ...clean, hashes }, { readPage, workerSource }).join('\n')).toContain('/icons/i.png');
+  });
+  it('names a /_astro/ URL listed in hashes', () => {
+    const f = manifestIdentityProblems({ ...clean, hashes: { ...clean.hashes, '/_astro/x.js': 'abc' } }, { readPage, workerSource });
+    expect(f.join('\n')).toContain('/_astro/x.js');
+  });
+  it('names a URL in hashes that is not in the precache set', () => {
+    const f = manifestIdentityProblems({ ...clean, hashes: { ...clean.hashes, '/c/': 'x' } }, { readPage, workerSource });
     expect(f.join('\n')).toContain('/c/');
   });
-  it('names a page whose bytes no longer hash to the recorded value', () => {
-    const f = manifestIdentityProblems(clean, { readPage: (u) => (u === '/b/' ? '<html>changed</html>' : bytes[u]), workerSource });
+  it('names a file whose bytes no longer hash to the recorded value', () => {
+    const f = manifestIdentityProblems(clean, { readPage: (u) => (u === '/icons/i.png' ? 'changed' : bytes[u]), workerSource });
     expect(f).toHaveLength(1);
-    expect(f[0]).toContain('/b/');
+    expect(f[0]).toContain('/icons/i.png');
   });
 });
