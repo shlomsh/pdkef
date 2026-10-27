@@ -18,7 +18,7 @@ const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text:
 // (indexedDB has no addInitScript equivalent), so callers seed after the
 // first goto and reload to pick it up, the same order handoff.spec.js uses.
 // The tool that last touched an entry lives on the recency-index row, not on
-// the entry itself (see draftStore.js's loadRecentFile), so this only writes
+// the entry itself (see draftStore.ts's loadRecentFile), so this only writes
 // the entry; callers seed the index row (and any pointer) separately.
 async function seedEntry(page, { id, fileName: name, bytes, work = {} }) {
   await page.evaluate(

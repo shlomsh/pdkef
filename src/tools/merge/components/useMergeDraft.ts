@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import {
   deleteDraft, hasDraftHint, loadDraft, saveDraft, subscribeToDraftChanges,
-} from '../../../lib/drafts/draftStore.js';
+} from '../../../lib/drafts/draftStore.ts';
 import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
 import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
@@ -11,7 +11,7 @@ import { mimeTypeOf } from '../../../lib/fileKind.js';
 import { outputPageCount, type PlanEntry } from '../../../lib/pagePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
-// Sign and Redact already use (draftStore.js's 'merge' record shape - see its
+// Sign and Redact already use (draftStore.ts's 'merge' record shape - see its
 // header comment), but shaped around a *list* of files rather than one. This
 // hook is deliberately a sibling of useDraftPersistence.js, not a
 // generalisation of it: the two record shapes, and what counts as "the same
@@ -205,7 +205,7 @@ export function useMergeDraft({
   const restoreInProgressRef = useRef(enabled);
 
   // A storage event never fires in the writer tab, only in its peers - see
-  // draftStore.js's notifyDraftChange. Surface the conflict rather than
+  // draftStore.ts's notifyDraftChange. Surface the conflict rather than
   // silently replacing an in-progress edit; the next local save deterministically wins.
   useEffect(() => {
     if (!enabled) return undefined;
@@ -230,7 +230,7 @@ export function useMergeDraft({
     return cached;
   };
 
-  // Builds the multi-file record draftStore.js's saveDraft expects (see its
+  // Builds the multi-file record draftStore.ts's saveDraft expects (see its
   // header comment): the plan's stable per-entry fileId is translated into a
   // plain index into the `files` array being saved, since that is all a
   // restored session needs to reconstruct the same plan against freshly

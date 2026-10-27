@@ -8,7 +8,7 @@ test.use({serviceWorkers:'block'});
 // `tool` field is the primary key, `recent:<id>`, not a friendly tool name),
 // carrying every tool's work in one `work` map rather than one record per
 // tool. `tools` below is which tools have work on that entry, derived the
-// same way readDraftMeta/hasDraftHint do - see draftStore.js's header comment.
+// same way readDraftMeta/hasDraftHint do - see draftStore.ts's header comment.
 // QUAL-10: opening or restoring an unchanged document deliberately does not
 // write to `work` any more - only a real edit does (useDraftPersistence.js's
 // `isDirty`), so a freshly opened file's `tools` stays `[]` here. Use
@@ -36,7 +36,7 @@ async function draftSnapshot(page) {
 
 // MEM-01: the entry's index row (pdf-toolkit:workspace:recent-files) is
 // where preview/savedAt live now, found via the tool's pointer
-// (pdf-toolkit:workspace:current:<tool>) - see draftStore.js's header
+// (pdf-toolkit:workspace:current:<tool>) - see draftStore.ts's header
 // comment. Both are read directly here rather than through draftStore.js
 // itself, the same way ToolPageLayout.astro's own pre-paint script does,
 // since page.evaluate cannot import an ES module.
@@ -54,7 +54,7 @@ async function currentIndexRow(page, tool) {
 // and PdfSignTool.tsx's `onDocument`), then again once the page-1 thumbnail
 // finishes rendering, this time carrying `preview` (useDraftPersistence.js's
 // preview effect). Both calls independently take `Date.now()`
-// (draftStore.js's cacheRecentFile) and each does its own async content hash
+// (draftStore.ts's cacheRecentFile) and each does its own async content hash
 // plus IndexedDB round trip, so they are not guaranteed to commit in call
 // order - the no-preview write can land after the with-preview one and bump
 // savedAt again without changing fileName or preview, since upsertIndexEntry

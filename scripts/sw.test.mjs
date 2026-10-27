@@ -385,7 +385,7 @@ describe('offline-first service worker', () => {
  * sheet sends (see manifest.webmanifest's share_target), so this worker is
  * the only thing that ever sees the shared file. It must lift the bytes out
  * of the multipart body into the exact IndexedDB handoff record
- * draftStore.js's saveHandoff('sign', ...) already writes (same DB/store/key
+ * draftStore.ts's saveHandoff('sign', ...) already writes (same DB/store/key
  * shape), so the Sign tool's existing takeHandoff('sign') mount-time restore
  * - the same path FileDropzone's home-page drop already feeds - picks it up
  * with no changes on that side, and never touch the network with the file.

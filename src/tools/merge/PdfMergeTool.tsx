@@ -5,7 +5,7 @@ import type { ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { Shrink, FileSignature, LockKeyhole, File as FileIcon, FilePlus, Trash2, X as XIcon } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
-import { hasDraftHint } from '../../lib/drafts/draftStore.js';
+import { hasDraftHint } from '../../lib/drafts/draftStore.ts';
 import DraftRetentionHint from '../../shell/DraftRetentionHint';
 import {
   insertPages,

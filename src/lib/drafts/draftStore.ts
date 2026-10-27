@@ -3,11 +3,146 @@ import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 import { markHandoffPending } from '../handoffPending.ts';
 import { RECENT_FILES_META_KEY } from './recentFilesKey.js';
 
+/** One source file inside a multi-file record (Merge, Image to PDF). */
+export interface DraftFile {
+  fileName?: string;
+  fileType?: string;
+  fileBytes: ArrayBuffer;
+  [field: string]: unknown;
+}
+
+/** One tool's work on an entry, stored verbatim under `work[tool]` next to its revision triple.
+ * Everything else in it is the tool's own and opaque here. */
+export interface ToolWork {
+  revision: number;
+  updatedAt: number;
+  writerId: string;
+  [field: string]: unknown;
+}
+
+/** A row of the recency index in localStorage (display metadata only, never bytes or work). */
+export interface DraftEntry {
+  id: string;
+  tool: string;
+  fileName: string;
+  fileType?: string;
+  savedAt: number;
+  preview?: string;
+  pageCount?: number;
+  fileCount?: number;
+  hasWork?: string[];
+}
+
+/** The IndexedDB record behind one recents entry, keyed `recent:<id>`: the source bytes (one file or
+ * `files`) plus every tool's work on it. */
+export interface StoredEntry {
+  tool: string;
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileBytes?: ArrayBuffer;
+  files?: DraftFile[];
+  savedAt: number;
+  work?: Record<string, ToolWork>;
+}
+
+/** What `loadRecentFile` returns: the stored entry with `tool` set to the index row's tool. */
+export type RecentFileRecord = StoredEntry;
+
+/** What a tool's restore receives from `loadDraft`: the entry's file fields, `sourceId`, `savedAt`,
+ * then `work[tool]` spread on top. The work fields are the tool's own, so they read as `unknown`. */
+export type DraftRecord = {
+  fileName: string;
+  fileType: string;
+  fileBytes?: ArrayBuffer;
+  files?: DraftFile[];
+  sourceId: string;
+  savedAt: number;
+} & Record<string, unknown>;
+
+/** A hand-off record: one file, or a `files` list in pick order. `from` names the sending tool. */
+export type HandoffFile = { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
+export type HandoffRecord = Partial<HandoffFile> & {
+  files?: Partial<HandoffFile>[];
+  from?: string;
+  tool?: string;
+  savedAt?: number;
+};
+
+/** Fields `saveDraft` and `cacheRecentFile` read off the record a tool passes; the rest is opaque and
+ * stored under `work[tool]`. */
+export type DraftSaveRecord = {
+  fileName?: string;
+  fileType?: string;
+  fileBytes?: ArrayBuffer;
+  files?: DraftFile[];
+  preview?: string;
+  pageCount?: number;
+  fileCount?: number;
+} & Record<string, unknown>;
+
+/** A pre-MEM-01 record, keyed literally by tool name. */
+type LegacyRecord = Partial<ToolWork> & {
+  fileName?: string;
+  fileType?: string;
+  fileBytes?: ArrayBuffer;
+  files?: DraftFile[];
+  savedAt: number;
+  [field: string]: unknown;
+};
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+/** The read edge for IndexedDB entries: every stored entry passes through here. It narrows the type and
+ * changes nothing; anything that is not an object (an absent key) is null. */
+export function parseStoredEntry(raw: unknown): StoredEntry | null {
+  return isObject(raw) ? (raw as unknown as StoredEntry) : null;
+}
+
+/** The read edge for hand-off records, same contract as parseStoredEntry. */
+export function parseHandoff(raw: unknown): HandoffRecord | null {
+  return isObject(raw) ? (raw as HandoffRecord) : null;
+}
+
+/** The read edge for legacy per-tool records, same contract as parseStoredEntry. */
+function parseLegacyRecord(raw: unknown): LegacyRecord | null {
+  return isObject(raw) ? (raw as unknown as LegacyRecord) : null;
+}
+
+/**
+ * Parse an IndexedDB value into the record `loadDraft` hands a tool: the entry's file fields, `sourceId`
+ * and `savedAt`, with `work[tool]` spread on top. Null when the value is not an entry, or when the entry
+ * has neither bytes nor a usable `files` list (Merge's multi-file shape is usable only if every file still
+ * carries its bytes). It decides nothing about expiry; loadDraft does that first.
+ */
+export function parseDraftRecord(raw: unknown, tool: string, id: string): DraftRecord | null {
+  const entry = parseStoredEntry(raw);
+  if (!entry) return null;
+  const work = entry.work?.[tool] || {};
+  if (entry.fileBytes) {
+    return {
+      fileName: entry.fileName, fileType: entry.fileType, fileBytes: entry.fileBytes,
+      sourceId: id, savedAt: entry.savedAt, ...work,
+    };
+  }
+  if (Array.isArray(entry.files) && entry.files.length > 0 && entry.files.every((file) => file?.fileBytes)) {
+    return {
+      fileName: entry.fileName, fileType: entry.fileType, files: entry.files,
+      sourceId: id, savedAt: entry.savedAt, ...work,
+    };
+  }
+  return null;
+}
+
+type DraftChange = { kind: 'saved' | 'deleted'; revision: number; updatedAt: number; writerId: string };
+type DraftChangeEvent = { revision: number; kind: 'saved' | 'deleted'; conflictPolicy: 'last-writer-wins' };
+
 // The catches below also cover opening the database, which fails in private or
 // locked-down windows (InvalidStateError, UnknownError). That is the
 // environment, not a defect, so those two names are not reported.
-function reportStoreError(area, error, step) {
-  const name = error?.name;
+function reportStoreError(area: Parameters<typeof reportError>[0], error: unknown, step: string) {
+  const name = (error as { name?: string } | null)?.name;
   if (name === 'InvalidStateError' || name === 'UnknownError') return;
   reportError(area, error, step);
 }
@@ -64,9 +199,9 @@ const DB_VERSION = 1;
 // second tab say what happened without ever copying a filename, PDF byte, edit,
 // or document identifier through the `storage` event channel.
 const DRAFT_CHANGE_PREFIX = 'pdf-toolkit:workspace:draft-change:';
-let tabWriterId;
+let tabWriterId: string | undefined;
 
-function getTabWriterId() {
+function getTabWriterId(): string {
   if (tabWriterId) return tabWriterId;
   try {
     const existing = sessionStorage.getItem('pdf-toolkit:draft-writer');
@@ -80,7 +215,7 @@ function getTabWriterId() {
   }
 }
 
-function notifyDraftChange(tool, change) {
+function notifyDraftChange(tool: string, change: DraftChange) {
   try {
     localStorage.setItem(DRAFT_CHANGE_PREFIX + tool, JSON.stringify(change));
   } catch {
@@ -94,10 +229,10 @@ function notifyDraftChange(tool, change) {
  * entry. A live editor intentionally keeps its own edits open; callers use
  * this as an explicit conflict warning, and the next local save deterministically wins.
  */
-export function subscribeToDraftChanges(tool, listener) {
+export function subscribeToDraftChanges(tool: string, listener: (change: DraftChangeEvent) => void): () => void {
   if (typeof window === 'undefined') return () => {};
   const key = DRAFT_CHANGE_PREFIX + tool;
-  const onStorage = (event) => {
+  const onStorage = (event: StorageEvent) => {
     if (event.key !== key || !event.newValue) return;
     try {
       const change = JSON.parse(event.newValue);
@@ -116,11 +251,11 @@ export function subscribeToDraftChanges(tool, listener) {
 /** Stable content address for one source PDF. Null means this browser cannot
  * safely deduplicate; we fail the best-effort entry write rather than risk a
  * metadata collision attaching work to a different document. */
-export async function sourceIdForBytes(fileBytes) {
+export async function sourceIdForBytes(fileBytes: unknown): Promise<string | null> {
   // `instanceof ArrayBuffer` fails for a File read in a different browser
   // realm (and in the test DOM), even though Web Crypto accepts it.
   if (Object.prototype.toString.call(fileBytes) !== '[object ArrayBuffer]' || !globalThis.crypto?.subtle) return null;
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', fileBytes);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', fileBytes as ArrayBuffer);
   return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -145,10 +280,8 @@ export const MERGE_DRAFT_MAX_BYTES = 200 * 1024 * 1024;
  * Null (like sourceIdForBytes) means this browser cannot safely deduplicate;
  * callers fail the write rather than risk a metadata collision.
  *
- * @param {{ fileBytes: ArrayBuffer }[]} files
- * @returns {Promise<string|null>}
  */
-export async function sourceIdForFiles(files) {
+export async function sourceIdForFiles(files: ({ fileBytes?: unknown } | null | undefined)[]): Promise<string | null> {
   const digests = [];
   for (const file of files) {
     // expected: crypto.subtle missing (plain-http LAN), null means no drafts
@@ -178,9 +311,9 @@ export const HANDOFF_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
 // whatever signing work was saved there - and wrote a record with no fileBytes, so
 // the restore path skipped it and the dropped file was lost too. Nothing outside
 // this file may write to a tool's entry on a tool's behalf.
-const handoffKey = (tool) => `handoff:${tool}`;
+const handoffKey = (tool: string) => `handoff:${tool}`;
 // One file, or (SITE-42) a non-empty `files` list where every entry has its bytes.
-const isValidHandoff = (record) =>
+const isValidHandoff = (record: HandoffRecord) =>
   Array.isArray(record.files)
     ? record.files.length > 0 && record.files.every((f) => f && f.fileBytes)
     : Boolean(record.fileBytes);
@@ -198,16 +331,18 @@ const isValidHandoff = (record) =>
  * one file, or (SITE-42, the home page's launcher handing several picked files to
  * Merge or Image to PDF) a `files` list in pick order.
  *
- * @param {string} tool - 'sign' | 'redact' | 'compress' | 'split' (the target tool's key)
+ * `tool` is 'sign' | 'redact' | 'compress' | 'split' (the target tool's key).
  * `from` names the sending tool when the hand-off is a detour the person will come back from:
  * Redact sends a protected file to Unlock with `from: 'redact'`, and Unlock leads back there
  * (docs/ux-design-guidelines.md section 13). Receivers that do not use it ignore it.
- *
- * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer, from?: string }
- *   | { files: Array<{ fileName: string, fileType?: string, fileBytes: ArrayBuffer }>, from?: string }} record
- * @returns {Promise<boolean>} true if written
+ * Resolves true if written.
  */
-export async function saveHandoff(tool, record) {
+export async function saveHandoff(
+  tool: string,
+  record:
+    | { fileName: string; fileType?: string; fileBytes: ArrayBuffer; from?: string }
+    | { files: HandoffFile[]; from?: string },
+): Promise<boolean> {
   if (!hasIndexedDB()) return false;
   try {
     await withStore('readwrite', (store) => {
@@ -235,17 +370,15 @@ export async function saveHandoff(tool, record) {
  * reaches only tools that take several files (Merge, Image to PDF) or the hooks in
  * useHandoffIntake.ts.
  *
- * @param {string} tool - the target tool's own key, e.g. 'sign' when Merge (MERGE-14)
- *   hands its output there
- * @param {(record: object) => boolean} [accept] - when given, a valid record it returns false for
- *   is left in place, not consumed (src/lib/handoffKinds.ts: one key, two pages)
- * @returns {Promise<object|null>}
+ * `tool` is the target tool's own key, e.g. 'sign' when Merge (MERGE-14) hands its output there.
+ * `accept`, when given, leaves a valid record it returns false for in place, not consumed
+ * (src/lib/handoffKinds.ts: one key, two pages).
  */
-export async function takeHandoff(tool, accept) {
+export async function takeHandoff(tool: string, accept?: (record: HandoffRecord) => boolean): Promise<HandoffRecord | null> {
   if (!hasIndexedDB()) return null;
   const key = handoffKey(tool);
   try {
-    const record = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    const record = parseHandoff(await withStore('readonly', (store) => reqToPromise(store.get(key))));
     if (!record) return null;
     const fresh = !(typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS);
     // A valid record the asker does not take stays for the page it is meant for (one key can open
@@ -275,7 +408,7 @@ const CURRENT_ENTRY_PREFIX = 'pdf-toolkit:workspace:current:';
 
 /** Point `tool` at entry `id`. Exported for MEM-02/03: the home page sets this
  * when it opens a recent tile, and saveDraft/cacheRecentFile set it here too. */
-export function setCurrentEntry(tool, id) {
+export function setCurrentEntry(tool: string, id: string) {
   try {
     localStorage.setItem(CURRENT_ENTRY_PREFIX + tool, id);
   } catch {
@@ -284,7 +417,7 @@ export function setCurrentEntry(tool, id) {
 }
 
 /** Drop `tool`'s pointer, e.g. once its work on that entry has been cleared. */
-export function clearCurrentEntry(tool) {
+export function clearCurrentEntry(tool: string) {
   try {
     localStorage.removeItem(CURRENT_ENTRY_PREFIX + tool);
   } catch {
@@ -295,7 +428,7 @@ export function clearCurrentEntry(tool) {
 /** The entry id `tool` currently points at, or null. Synchronous, best-effort -
  * the id may point at an entry that has since expired or been evicted; callers
  * that care use hasDraftHint/loadDraft, which check against the live index. */
-export function readCurrentEntryId(tool) {
+export function readCurrentEntryId(tool: string): string | null {
   try {
     return localStorage.getItem(CURRENT_ENTRY_PREFIX + tool) || null;
   } catch {
@@ -312,9 +445,9 @@ export function readCurrentEntryId(tool) {
 const RECENT_FILE_PREFIX = 'recent:';
 export const MAX_RECENT_FILES = 6;
 
-const recentFileKey = (id) => `${RECENT_FILE_PREFIX}${id}`;
+const recentFileKey = (id: string) => `${RECENT_FILE_PREFIX}${id}`;
 
-function writeRecentFiles(entries) {
+function writeRecentFiles(entries: DraftEntry[]) {
   try {
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
   } catch {
@@ -323,8 +456,8 @@ function writeRecentFiles(entries) {
   }
 }
 
-function validIndexEntry(entry) {
-  return entry && typeof entry === 'object'
+function validIndexEntry(entry: unknown): entry is DraftEntry {
+  return isObject(entry)
     && typeof entry.id === 'string' && entry.id.length > 0
     && typeof entry.tool === 'string' && entry.tool.length > 0
     && typeof entry.fileName === 'string'
@@ -332,7 +465,7 @@ function validIndexEntry(entry) {
     && !isDraftExpired(entry.savedAt);
 }
 
-function readIndexEntries() {
+function readIndexEntries(): DraftEntry[] {
   try {
     const raw = localStorage.getItem(RECENT_FILES_META_KEY);
     if (!raw) return [];
@@ -359,11 +492,11 @@ function readIndexEntries() {
 
 /** Synchronous metadata read for the home page. File bytes are never copied
  * into localStorage; they are loaded only after a person chooses an entry. */
-export function readRecentFiles() {
+export function readRecentFiles(): DraftEntry[] {
   return readIndexEntries();
 }
 
-function removeRecentMeta(id) {
+function removeRecentMeta(id: string) {
   writeRecentFiles(readIndexEntries().filter((entry) => entry.id !== id));
 }
 
@@ -376,7 +509,7 @@ function removeRecentMeta(id) {
  * must not push out something touched more recently. Returns the kept rows so
  * callers can prune IndexedDB records that fell out of them.
  */
-function upsertIndexEntry({ id, tool, fileName, fileType, savedAt, preview, pageCount, fileCount, hasWork }) {
+function upsertIndexEntry({ id, tool, fileName, fileType, savedAt, preview, pageCount, fileCount, hasWork }: DraftEntry): DraftEntry[] {
   const existing = readIndexEntries();
   const previous = existing.find((entry) => entry.id === id);
   const resolvedPreview = preview ?? previous?.preview;
@@ -403,7 +536,7 @@ function upsertIndexEntry({ id, tool, fileName, fileType, savedAt, preview, page
 /** Patch just the `hasWork` field of an existing index row, e.g. after
  * deleteDraft clears one tool's work but the entry itself stays in recents.
  * A no-op if the row already fell out of the index (nothing to patch). */
-function updateIndexHasWork(id, hasWorkKeys) {
+function updateIndexHasWork(id: string, hasWorkKeys: string[]) {
   const entries = readIndexEntries();
   const index = entries.findIndex((entry) => entry.id === id);
   if (index === -1) return;
@@ -420,7 +553,7 @@ function updateIndexHasWork(id, hasWorkKeys) {
  * (this is a best-effort convenience cache, not the source of truth for
  * content, so it does not need to share a transaction with the write that
  * triggered it). */
-async function pruneOrphans(keptEntries) {
+async function pruneOrphans(keptEntries: DraftEntry[]) {
   const keepKeys = new Set(keptEntries.map((entry) => recentFileKey(entry.id)));
   try {
     await withStore('readwrite', (store) => {
@@ -446,7 +579,7 @@ async function pruneOrphans(keptEntries) {
  * entry instead of consuming another of the six slots; an entry that already
  * carries work from another tool keeps it untouched.
  */
-export async function cacheRecentFile(tool, record) {
+export async function cacheRecentFile(tool: string, record: DraftSaveRecord | null | undefined): Promise<boolean> {
   if (!hasIndexedDB() || !record?.fileBytes) return false;
   await ensureMigrated();
   // expected: crypto.subtle missing, returns false
@@ -454,18 +587,18 @@ export async function cacheRecentFile(tool, record) {
   if (!id) return false;
   const savedAt = Date.now();
   const key = recentFileKey(id);
-  let committedEntry = null;
+  let committedEntry: StoredEntry | null = null;
   try {
     await withStore('readwrite', (store) => {
       const oldRequest = store.get(key);
       oldRequest.onsuccess = () => {
-        const old = oldRequest.result;
-        const entry = {
+        const old = parseStoredEntry(oldRequest.result);
+        const entry: StoredEntry = {
           tool: key,
           id,
-          fileName: record.fileName || old?.fileName || 'Untitled document',
-          fileType: record.fileType || old?.fileType || 'application/pdf',
-          fileBytes: record.fileBytes,
+          fileName: record!.fileName || old?.fileName || 'Untitled document',
+          fileType: record!.fileType || old?.fileType || 'application/pdf',
+          fileBytes: record!.fileBytes,
           savedAt,
           work: old?.work || {},
         };
@@ -478,14 +611,15 @@ export async function cacheRecentFile(tool, record) {
     console.error('draftStore.cacheRecentFile failed:', e);
     return false;
   }
+  const entry = committedEntry as unknown as StoredEntry;
   const kept = upsertIndexEntry({
     id,
     tool,
-    fileName: committedEntry.fileName,
-    fileType: committedEntry.fileType,
+    fileName: entry.fileName,
+    fileType: entry.fileType,
     savedAt,
     preview: record.preview,
-    hasWork: Object.keys(committedEntry.work),
+    hasWork: Object.keys(entry.work || {}),
   });
   await pruneOrphans(kept);
   setCurrentEntry(tool, id);
@@ -495,19 +629,19 @@ export async function cacheRecentFile(tool, record) {
 /** Load (without consuming) a recent source PDF selected on the home page. The
  * returned record now includes `work`, since an entry is no longer just a
  * cached source - see this file's header comment. */
-export async function loadRecentFile(id) {
+export async function loadRecentFile(id: unknown): Promise<RecentFileRecord | null> {
   if (!hasIndexedDB() || typeof id !== 'string') return null;
   await ensureMigrated();
   const meta = readIndexEntries().find((item) => item.id === id);
   if (!meta) return null;
   const key = recentFileKey(id);
   try {
-    const record = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    const record = parseStoredEntry(await withStore('readonly', (store) => reqToPromise(store.get(key))));
     const usable = record && (
       record.fileBytes
       || (Array.isArray(record.files) && record.files.length > 0 && record.files.every((file) => file?.fileBytes))
     );
-    if (!usable || isDraftExpired(record.savedAt)) {
+    if (!record || !usable || isDraftExpired(record.savedAt)) {
       await withStore('readwrite', (store) => { store.delete(key); });
       removeRecentMeta(id);
       return null;
@@ -542,11 +676,9 @@ export async function loadRecentFile(id) {
  * preview that resolves after the pointer moved on (Replace file, or expiry)
  * would resurrect metadata for a document the tool is no longer on.
  *
- * @param {string} tool - 'sign' | 'redact' | 'merge'
- * @param {string} preview - data URL
- * @returns {boolean} true if an entry existed and was updated
+ * `tool` is 'sign' | 'redact' | 'merge'; `preview` is a data URL. Returns true if an entry existed and was updated.
  */
-export function attachDraftPreview(tool, preview) {
+export function attachDraftPreview(tool: string, preview: string): boolean {
   if (!preview) return false;
   try {
     const id = readCurrentEntryId(tool);
@@ -578,10 +710,10 @@ export function attachDraftPreview(tool, preview) {
  * to exist; FileDropzone does, by handing the tool a plain navigation and
  * letting the tool's own restore decide.
  *
- * @param {string} tool
- * @returns {{ fileName?: string, savedAt?: number, preview?: string, pageCount?: number, fileCount?: number }|null}
  */
-export function readDraftMeta(tool) {
+export function readDraftMeta(
+  tool: string,
+): { fileName?: string; savedAt?: number; preview?: string; pageCount?: number; fileCount?: number } | null {
   try {
     const id = readCurrentEntryId(tool);
     if (!id) return null;
@@ -616,11 +748,8 @@ export function readDraftMeta(tool) {
  * no files" at face value and dropped the marker before IndexedDB answered,
  * which revealed the page and then pushed everything down as the grid
  * mounted (QUAL-10).
- *
- * @param {string} tool
- * @returns {boolean}
  */
-export function hasDraftHint(tool) {
+export function hasDraftHint(tool: string): boolean {
   try {
     const id = readCurrentEntryId(tool);
     if (!id) return false;
@@ -697,9 +826,8 @@ function requestStoragePersistence() {
  * of anything, and useDraftPersistence.js's warning gate only ever acts on a
  * definite `false`.
  *
- * @returns {Promise<boolean|'unknown'>}
  */
-export async function isStoragePersisted() {
+export async function isStoragePersisted(): Promise<boolean | 'unknown'> {
   try {
     const result = await navigator?.storage?.persisted?.();
     return typeof result === 'boolean' ? result : 'unknown';
@@ -709,7 +837,7 @@ export async function isStoragePersisted() {
   }
 }
 
-function openDb() {
+function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
@@ -725,13 +853,13 @@ function openDb() {
 
 // Run a single transaction against the workspace store and resolve with `resultFn`'s
 // value once the transaction commits. Closes the connection afterwards.
-async function withStore(mode, work) {
+async function withStore<T>(mode: IDBTransactionMode, work: (store: IDBObjectStore) => T | Promise<T>): Promise<T> {
   const db = await openDb();
   try {
-    return await new Promise((resolve, reject) => {
+    return await new Promise<T>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, mode);
       const store = tx.objectStore(STORE_NAME);
-      let result;
+      let result: T;
       Promise.resolve(work(store))
         .then((value) => {
           result = value;
@@ -747,7 +875,7 @@ async function withStore(mode, work) {
   }
 }
 
-function reqToPromise(request) {
+function reqToPromise<T = unknown>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -760,9 +888,9 @@ function reqToPromise(request) {
 // pure function, not a behaviour change, so every place that assigns a
 // revision cannot drift on how - the actual read-then-put still happens
 // inside each caller's own single transaction.
-function nextDraftRevision(old, writerId) {
+function nextDraftRevision(old: Partial<ToolWork> | null | undefined, writerId: string): Pick<ToolWork, 'revision' | 'updatedAt' | 'writerId'> {
   const oldMeta = old && Number.isInteger(old.revision)
-    ? { revision: old.revision, updatedAt: old.updatedAt || 0, writerId: old.writerId || 'legacy' }
+    ? { revision: old.revision as number, updatedAt: old.updatedAt || 0, writerId: old.writerId || 'legacy' }
     : { revision: 0, updatedAt: 0, writerId: 'legacy' };
   const now = Date.now();
   return {
@@ -786,22 +914,21 @@ function nextDraftRevision(old, writerId) {
  * is stored verbatim under `work[tool]` alongside the revision metadata - see
  * this file's header comment.
  *
- * @param {string} tool - 'sign' | 'redact' | 'merge'
- * @param {object} record
- * @returns {Promise<boolean>} true if written
+ * `tool` is 'sign' | 'redact' | 'merge'. Resolves true if written.
  */
-export async function saveDraft(tool, record) {
+export async function saveDraft(tool: string, record: DraftSaveRecord): Promise<boolean> {
   if (!hasIndexedDB()) return false;
   await ensureMigrated();
-  const isMulti = Array.isArray(record.files);
+  const recordFiles = record.files;
+  const isMulti = Array.isArray(recordFiles);
   if (isMulti) {
     // Nothing to merge, nothing to resume: refuse rather than write a
     // partial entry.
-    if (record.files.length === 0) return false;
+    if (recordFiles.length === 0) return false;
     // A merge entry holds every source file's bytes at once, so it can
     // approach IndexedDB quota far sooner than a single-document entry ever
     // could (MERGE-13's honest limit).
-    const totalBytes = record.files.reduce((sum, file) => sum + (file?.fileBytes?.byteLength || 0), 0);
+    const totalBytes = recordFiles.reduce((sum, file) => sum + (file?.fileBytes?.byteLength || 0), 0);
     if (totalBytes > MERGE_DRAFT_MAX_BYTES) return false;
   }
   // `preview` is display metadata for the home page, not part of an entry's
@@ -811,14 +938,14 @@ export async function saveDraft(tool, record) {
   const { preview, fileBytes, files, fileName, fileType, ...toolFields } = record;
   const id = isMulti
     // expected: crypto.subtle missing, save skipped
-    ? await sourceIdForFiles(files).catch(() => null)
+    ? await sourceIdForFiles(files as DraftFile[]).catch(() => null)
     // expected: crypto.subtle missing, save skipped
     : await sourceIdForBytes(fileBytes).catch(() => null);
   if (!id) return false;
   const { savedAt } = createDraftRetention();
   const writerId = getTabWriterId();
   const key = recentFileKey(id);
-  let committedEntry = null;
+  let committedEntry: StoredEntry | null = null;
   try {
     await withStore('readwrite', (store) => {
       // One transaction serializes same-user tabs. It reads the committed
@@ -829,11 +956,11 @@ export async function saveDraft(tool, record) {
       // own `tool` key inside `work`.
       const oldRequest = store.get(key);
       oldRequest.onsuccess = () => {
-        const old = oldRequest.result;
+        const old = parseStoredEntry(oldRequest.result);
         const oldWork = old?.work || {};
         const metadata = nextDraftRevision(oldWork[tool], writerId);
         const toolWork = { ...toolFields, ...metadata };
-        const entry = {
+        const entry: StoredEntry = {
           tool: key,
           id,
           fileName: fileName || old?.fileName || 'Untitled document',
@@ -854,16 +981,17 @@ export async function saveDraft(tool, record) {
   // First real save, this module lifetime: exactly the moment to ask the
   // browser to keep this origin (see requestStoragePersistence's comment).
   requestStoragePersistence();
+  const committed = committedEntry as unknown as StoredEntry;
   const kept = upsertIndexEntry({
     id,
     tool,
-    fileName: committedEntry.fileName,
-    fileType: committedEntry.fileType,
+    fileName: committed.fileName,
+    fileType: committed.fileType,
     savedAt,
     preview,
-    pageCount: toolFields.pageCount,
-    fileCount: toolFields.fileCount,
-    hasWork: Object.keys(committedEntry.work),
+    pageCount: toolFields.pageCount as number | undefined,
+    fileCount: toolFields.fileCount as number | undefined,
+    hasWork: Object.keys(committed.work || {}),
   });
   await pruneOrphans(kept);
   setCurrentEntry(tool, id);
@@ -872,7 +1000,7 @@ export async function saveDraft(tool, record) {
   // built, and only notify if it is still current - the same guard the
   // single-transaction serialization above makes meaningful.
   try {
-    const latest = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    const latest = parseStoredEntry(await withStore('readonly', (store) => reqToPromise(store.get(key))));
     const latestWork = latest?.work?.[tool];
     if (latestWork?.writerId === writerId) {
       notifyDraftChange(tool, { kind: 'saved', revision: latestWork.revision, updatedAt: latestWork.updatedAt, writerId });
@@ -891,13 +1019,11 @@ export async function saveDraft(tool, record) {
  * expiry takes every tool's work on that file with it (see this file's
  * header comment on why that is the one place an entry may still drop out).
  *
- * @param {string} tool
- * @returns {Promise<object|null>} `{ fileName, fileType, fileBytes|files,
- *   sourceId, savedAt, ...work[tool] }` if there is a current entry, even one
- *   with no work[tool] yet (a file that was opened but never edited is still
- *   the tool's current file); null otherwise.
+ * Resolves `{ fileName, fileType, fileBytes|files, sourceId, savedAt, ...work[tool] }` if there is a
+ * current entry, even one with no work[tool] yet (a file that was opened but never edited is still
+ * the tool's current file); null otherwise.
  */
-export async function loadDraft(tool) {
+export async function loadDraft(tool: string): Promise<DraftRecord | null> {
   // No IndexedDB means no entry ever gets written by this module, so any
   // pointer still sitting in localStorage (from a previous browser/profile
   // whose export got copied, say) cannot correspond to a real record here -
@@ -912,7 +1038,7 @@ export async function loadDraft(tool) {
   if (!id) return null;
   const key = recentFileKey(id);
   try {
-    const entry = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    const entry = parseStoredEntry(await withStore('readonly', (store) => reqToPromise(store.get(key))));
     if (!entry) {
       clearCurrentEntry(tool);
       return null;
@@ -926,31 +1052,18 @@ export async function loadDraft(tool) {
       clearCurrentEntry(tool);
       const old = entry.work?.[tool];
       notifyDraftChange(tool, {
-        kind: 'deleted', revision: (Number.isInteger(old?.revision) ? old.revision : 0) + 1,
+        kind: 'deleted', revision: (Number.isInteger(old?.revision) ? (old as ToolWork).revision : 0) + 1,
         updatedAt: Date.now(), writerId: getTabWriterId(),
       });
       return null;
     }
-    const work = entry.work?.[tool] || {};
-    if (entry.fileBytes) {
-      return {
-        fileName: entry.fileName, fileType: entry.fileType, fileBytes: entry.fileBytes,
-        sourceId: id, savedAt: entry.savedAt, ...work,
-      };
-    }
-    // Merge's multi-file shape: usable only if every file still carries its
-    // bytes. A `files: []` or a file missing `fileBytes` is corrupt in the
-    // same sense a single-file entry with no `fileBytes` is - treat it as no
-    // entry rather than hand a tool a record it cannot restore from. Only
-    // this tool's pointer is at fault here, not the entry itself (another
-    // tool's work on it may be fine), so drop the pointer without touching
-    // the stored record.
-    if (Array.isArray(entry.files) && entry.files.length > 0 && entry.files.every((file) => file?.fileBytes)) {
-      return {
-        fileName: entry.fileName, fileType: entry.fileType, files: entry.files,
-        sourceId: id, savedAt: entry.savedAt, ...work,
-      };
-    }
+    // A single-file entry with `fileBytes`, or Merge's multi-file shape with every file still carrying its
+    // bytes. A `files: []` or a file missing `fileBytes` is corrupt in the same sense a single-file entry
+    // with no `fileBytes` is - treat it as no entry rather than hand a tool a record it cannot restore
+    // from. Only this tool's pointer is at fault here, not the entry itself (another tool's work on it
+    // may be fine), so drop the pointer without touching the stored record.
+    const record = parseDraftRecord(entry, tool, id);
+    if (record) return record;
     clearCurrentEntry(tool);
     return null;
   } catch (e) {
@@ -967,10 +1080,8 @@ export async function loadDraft(tool) {
  * stay in recents - this no longer removes any file from the memory space,
  * unlike the old per-tool delete it replaces (Replace file used to mean
  * "this file is gone"; now it only ever means "I'm not editing it right now").
- * @param {string} tool
- * @returns {Promise<boolean>}
  */
-export async function deleteDraft(tool) {
+export async function deleteDraft(tool: string): Promise<boolean> {
   if (!hasIndexedDB()) return false;
   await ensureMigrated();
   const id = readCurrentEntryId(tool);
@@ -980,13 +1091,13 @@ export async function deleteDraft(tool) {
   }
   const writerId = getTabWriterId();
   const key = recentFileKey(id);
-  let change = null;
-  let remainingWorkKeys = null;
+  let change: DraftChange | null = null;
+  let remainingWorkKeys: string[] | null = null;
   try {
     await withStore('readwrite', (store) => {
       const request = store.get(key);
       request.onsuccess = () => {
-        const entry = request.result;
+        const entry = parseStoredEntry(request.result);
         if (!entry?.work || !(tool in entry.work)) return;
         const oldToolWork = entry.work[tool];
         const { [tool]: _removed, ...restWork } = entry.work;
@@ -1019,14 +1130,14 @@ const LEGACY_DRAFT_HINT_PREFIX = 'pdf-toolkit:workspace:has-draft:';
 const LEGACY_DRAFT_META_PREFIX = 'pdf-toolkit:workspace:draft-meta:';
 const LEGACY_TOOLS = ['sign', 'redact', 'merge'];
 
-function clearLegacyLocalStorage(tool) {
+function clearLegacyLocalStorage(tool: string) {
   // expected: best-effort cleanup
   try { localStorage.removeItem(LEGACY_DRAFT_HINT_PREFIX + tool); } catch { /* best-effort */ }
   // expected: best-effort cleanup
   try { localStorage.removeItem(LEGACY_DRAFT_META_PREFIX + tool); } catch { /* best-effort */ }
 }
 
-let migratedPromise = null;
+let migratedPromise: Promise<void> | null = null;
 
 // Runs the fold-in exactly once per module lifetime (memoised, not per call).
 // Every other async export awaits this first, so a legacy record can never
@@ -1035,7 +1146,7 @@ let migratedPromise = null;
 // they are already best-effort/advisory, and gating a synchronous API on an
 // async migration would defeat the reason they are synchronous at all - a
 // pre-migration read just sees fewer entries until the fold-in lands.
-function ensureMigrated() {
+function ensureMigrated(): Promise<void> {
   if (!hasIndexedDB()) return Promise.resolve();
   if (!migratedPromise) {
     // Sequential, not Promise.all: each migration reads-then-writes the
@@ -1062,10 +1173,10 @@ function ensureMigrated() {
 // localStorage hint either way. An expired legacy record, or one whose
 // content cannot be addressed, is simply deleted (MEM-01's ticket: "Legacy
 // records that are expired are simply deleted").
-async function migrateLegacyDraft(tool) {
-  let legacy;
+async function migrateLegacyDraft(tool: string): Promise<void> {
+  let legacy: LegacyRecord | null;
   try {
-    legacy = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
+    legacy = parseLegacyRecord(await withStore('readonly', (store) => reqToPromise(store.get(tool))));
   } catch (e) {
     reportStoreError('drafts', e, 'read_legacy_draft');
     console.error('draftStore.migrateLegacyDraft failed to read:', e);
@@ -1085,7 +1196,7 @@ async function migrateLegacyDraft(tool) {
   const isMulti = Array.isArray(legacy.files);
   const id = isMulti
     // expected: crypto.subtle missing, record dropped
-    ? await sourceIdForFiles(legacy.files).catch(() => null)
+    ? await sourceIdForFiles(legacy.files as DraftFile[]).catch(() => null)
     // expected: crypto.subtle missing, record dropped
     : await sourceIdForBytes(legacy.fileBytes).catch(() => null);
   if (!id) {
@@ -1105,22 +1216,22 @@ async function migrateLegacyDraft(tool) {
   } = legacy;
   // Carries the legacy revision/updatedAt/writerId over as-is: this is a
   // straight fold-in, not a new save, so nothing here bumps the revision.
-  const toolWork = {
+  const toolWork: ToolWork = {
     ...toolFields,
-    revision: Number.isInteger(revision) ? revision : 1,
-    updatedAt: Number.isFinite(updatedAt) ? updatedAt : savedAt,
+    revision: Number.isInteger(revision) ? (revision as number) : 1,
+    updatedAt: Number.isFinite(updatedAt) ? (updatedAt as number) : savedAt,
     writerId: writerId || 'legacy',
   };
   const key = recentFileKey(id);
-  let committedEntry = null;
+  let committedEntry: StoredEntry | null = null;
   try {
     await withStore('readwrite', (store) => {
       store.delete(tool);
       const request = store.get(key);
       request.onsuccess = () => {
-        const existing = request.result;
+        const existing = parseStoredEntry(request.result);
         const work = { ...(existing?.work || {}), [tool]: toolWork };
-        const entry = existing
+        const entry: StoredEntry = existing
           ? { ...existing, work, savedAt: Math.max(existing.savedAt, savedAt) }
           : {
               tool: key,
@@ -1141,15 +1252,16 @@ async function migrateLegacyDraft(tool) {
     return;
   }
   if (!committedEntry) return;
+  const committed = committedEntry as StoredEntry;
   const kept = upsertIndexEntry({
     id,
     tool,
-    fileName: committedEntry.fileName,
-    fileType: committedEntry.fileType,
-    savedAt: committedEntry.savedAt,
-    pageCount: toolFields.pageCount,
-    fileCount: toolFields.fileCount,
-    hasWork: Object.keys(committedEntry.work),
+    fileName: committed.fileName,
+    fileType: committed.fileType,
+    savedAt: committed.savedAt,
+    pageCount: toolFields.pageCount as number | undefined,
+    fileCount: toolFields.fileCount as number | undefined,
+    hasWork: Object.keys(committed.work || {}),
   });
   await pruneOrphans(kept);
   setCurrentEntry(tool, id);
