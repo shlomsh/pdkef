@@ -85,6 +85,11 @@ Nx project `test-support`, which imports no src project. A helper that needs `li
 other project does not belong there. The repo-wide guards stay directly under `src/test/` (`site-test`).
 That split keeps `lib -> site-test -> editor -> lib` from closing a loop.
 
+Island tests mock only the storage and network edge, through `src/test/harness/toolHarness.ts`
+(ARCH-78): fresh fake IndexedDB and storage per test, recorded beacons, created blobs, and the stored
+draft read back through the real `draftStore`. It imports `lib`, so it lives in `site-test`, not
+`test-support`. The only module mocks an island test keeps are pdf.js edges jsdom cannot run.
+
 ## `src/test/cross-tool/`
 
 A test file may not launder a cross-tool import that a real edge in the same location would be
