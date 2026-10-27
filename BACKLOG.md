@@ -72,7 +72,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | MEM-16 | P2 | [MEM-16](backlog/tasks/MEM-16.md) · A new build's cache carries every unchanged content-hashed file over from the previous cache | In progress |
 | MEM-18 | P2 | [MEM-18](backlog/tasks/MEM-18.md) · CI budgets each page's precache closure and keeps tool-specific assets out of other tools' closures | In progress |
-| MEM-15 | P2 | [MEM-15](backlog/tasks/MEM-15.md) · The precache manifest is per page: a visit caches the shell plus that page's import closure | In progress |
+| MEM-15 | P2 | [MEM-15](backlog/tasks/MEM-15.md) · The precache is built from per-page import closures: the install caches their union, not every file in dist/ | In progress |
 | MEM-17 | P3 | [MEM-17](backlog/tasks/MEM-17.md) · Service worker registration waits for the island's hydration and an idle callback | In progress |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |

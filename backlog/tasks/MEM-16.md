@@ -1,7 +1,7 @@
 ---
 id: "MEM-16"
 title: "A new build's cache carries every unchanged content-hashed file over from the previous cache"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
@@ -41,3 +41,19 @@ depends_on: []
       the second install downloads, before and after this change, in the Done section.
 - [ ] `e2e/offline/app-update.spec.js` and the "draft survives an app-cache upgrade" case in
       `e2e/offline/offline-workflows.spec.js` stay green.
+
+## Done (2026-10-27)
+
+- `public/sw.js`: a URL is content-hashed when its path starts with `/_astro/`. The pure
+  `planPrecache(urls, previouslyCached)` returns `{copy, fetch}`; install copies hashed URLs from the
+  previous own caches before activate deletes them. Everything else is fetched with `cache: 'no-cache'`
+  (validated with the server, a 304 when unchanged) instead of `'reload'`. Unit tests in
+  `scripts/sw.test.mjs` cover the plan, a copy with no network and the cache modes.
+- Two-build run (whole-app install, persistent profile, visit /redact/ on build 1, rebuild with one line
+  added to `PdfRedactTool.tsx`, revisit), the new worker's traffic until its cache was complete:
+  - Before: every deploy re-downloaded the whole precache, 268 requests and 5,202,979 wire bytes (the
+    old install fetched every URL with `cache: 'reload'`; equal to the measured first install).
+  - After, server with ETags (as Vercel sends): 71 requests, 54,681 bytes. 114 hashed files copied, the
+    one changed chunk fetched (34,980), 67 non-hashed URLs answered 304, `/about/` 200 (11,992).
+  - After, server without validators: 71 requests, 2,402,835 bytes, all non-hashed URLs downloaded again.
+- `e2e/offline/app-update.spec.js` and the "draft survives an app-cache upgrade" case green.
