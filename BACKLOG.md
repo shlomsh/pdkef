@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 90 live: 13 up next, 14 then, 26 waiting, 37 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 101 live: 15 up next, 18 then, 26 waiting, 42 parked.
 
 ## Redact: finish removal
 
@@ -118,6 +118,8 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | --- | --- | --- | --- |
 | ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
+| QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e |  |
+| QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes |  |
 
 ### Then, in order
 
@@ -125,6 +127,10 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | --- | --- | --- | --- |
 | ARCH-101 | P2 | [ARCH-101](backlog/tasks/ARCH-101.md) · src/lib groups its modules by domain, and a check holds the shape |  |
 | ARCH-123 | P2 | [ARCH-123](backlog/tasks/ARCH-123.md) · The narrowed share of main runs is reported and acted on |  |
+| QUAL-34 | P2 | [QUAL-34](backlog/tasks/QUAL-34.md) · Each file outside an Nx project gets its own scope, not "everything" |  |
+| QUAL-35 | P3 | [QUAL-35](backlog/tasks/QUAL-35.md) · CI narrows a test-only push the way check:push does |  |
+| QUAL-36 | P3 | [QUAL-36](backlog/tasks/QUAL-36.md) · Editing a dist guard script runs the build and dist guards locally |  |
+| QUAL-37 | P3 | [QUAL-37](backlog/tasks/QUAL-37.md) · test:precache-budget reuses compressed sizes by hashed filename |  |
 
 ### Parked
 
@@ -150,6 +156,11 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-126 | P3 | [ARCH-126](backlog/tasks/ARCH-126.md) · The zod pin held by @vercel/cli-config is gone and its exception removed |  |
 | ARCH-127 | P3 | [ARCH-127](backlog/tasks/ARCH-127.md) · The advisory exceptions list holds no entry that matches nothing |  |
 | ARCH-128 | P3 | [ARCH-128](backlog/tasks/ARCH-128.md) · The boundary rules are written once and checked against every copy |  |
+| QUAL-38 | P3 | [QUAL-38](backlog/tasks/QUAL-38.md) · The four chromium e2e shards finish within 20 s of each other |  |
+| QUAL-39 | P3 | [QUAL-39](backlog/tasks/QUAL-39.md) · Unit tests run in two parallel CI jobs |  |
+| QUAL-40 | P3 | [QUAL-40](backlog/tasks/QUAL-40.md) · A localized content or image change runs only the specs that use it |  |
+| QUAL-41 | P3 | [QUAL-41](backlog/tasks/QUAL-41.md) · Every file a spec reads directly is covered by a scope rule |  |
+| QUAL-42 | P3 | [QUAL-42](backlog/tasks/QUAL-42.md) · CI builds once per run, not once per job |  |
 
 ## Search and languages
 
