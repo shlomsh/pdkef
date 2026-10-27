@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* MEM-02: the tool-side half of the one-memory-space rewrite (MEM-01). Two
    things this guard proves that no unit test can (jsdom has no real
@@ -25,7 +26,7 @@ const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text:
 async function openSignTool(page, buffer, fileName) {
   await page.addInitScript(() => { localStorage.clear(); });
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -126,7 +127,7 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   await reopened.setViewportSize({ width: 900, height: 900 });
   await measureRestoreCls(reopened);
   await reopened.goto('/sign/?next=0');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
   await expect(reopened.locator('html')).toHaveAttribute('data-view-density', 'relaxed');
   await expect(reopened.locator('html')).toHaveAttribute('data-draft-hint', '1');
@@ -143,7 +144,7 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   await putSecondEntryOnPointer(reopened, fileB, 'sign-restore-b.pdf');
 
   await reopened.goto('/sign/?next=0');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('[class*="page-overlay"]')).toBeVisible({ timeout: 10_000 });
   // B has no work of its own on this entry - nothing restores onto it.
   await expect(reopened.locator('[data-editor-element]')).toHaveCount(0);
@@ -154,7 +155,7 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   await reopened.goto('/');
   await reopened.evaluate((id) => localStorage.setItem('pdf-toolkit:workspace:current:sign', id), entryAId);
   await reopened.goto('/sign/?next=0');
-  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(reopened);
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
 });
 
@@ -167,7 +168,7 @@ test('Sign ignores a stale saved-work pointer before its first paint', async ({ 
   });
 
   await page.goto('/sign/?next=0');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await expect(page.getByText('Choose file', { exact: true })).toBeVisible();
   // A pointer without a matching recent-file index row cannot restore. Do not
   // reserve a viewport first and collapse it after hydration.

@@ -19,6 +19,7 @@
 // the first row. Both thresholds below are generous next to those numbers.
 import { test, expect } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // Reloading to exercise the draft-restore path fetches more than one
 // dynamically-served asset across the reload; blocking the service worker
@@ -51,7 +52,7 @@ async function makeFixtureFiles() {
 
 test('17 pages across 6 files all render a thumbnail within 2.5s', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   await page.locator('input[type="file"]').setInputFiles(await makeFixtureFiles());
 
@@ -61,7 +62,7 @@ test('17 pages across 6 files all render a thumbnail within 2.5s', async ({ page
 
 test('a draft restored at 375px wide renders its visible row within 2.5s of reload', async ({ page }) => {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   await page.locator('input[type="file"]').setInputFiles(await makeFixtureFiles());
 
@@ -74,7 +75,7 @@ test('a draft restored at 375px wide renders its visible row within 2.5s of relo
 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.reload();
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
 
   // Four columns at 375px wide (PageGrid.tsx's phone `gridMetrics`: a 72px
   // cell plus an 8px gap fits 4 into the 319px card content width) - the

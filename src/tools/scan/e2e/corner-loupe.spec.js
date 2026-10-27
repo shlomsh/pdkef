@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // SCAN-01, Shlomi on his iPhone: "my finger hides the exact positioning". A touch drag on a
 // corner shows a magnifier loupe off the finger, and it goes away on release. Real touch events
@@ -39,7 +40,7 @@ const center = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 }
 test('a touch drag on a corner shows a loupe away from the finger, gone on release', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'touch events are dispatched through CDP');
   await page.goto('/scan-to-pdf/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.locator('input[type=file]:not([capture])').first().setInputFiles({
     name: 'desk-photo.jpg', mimeType: 'image/jpeg', buffer: await makePhotoBytes(page),
   });

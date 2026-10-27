@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 /* A Merge restore is unlike Sign/Redact: it rebuilds several files, then
  * asynchronously derives each file's page count and preview before mounting
@@ -95,7 +96,7 @@ async function installRestoreTrace(page) {
 async function openMergeTool(page, files) {
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles(files);
   await expect(page.locator('ul[class*="grid"] > li[data-key]').first()).toBeVisible({ timeout: 15_000 });
 }
@@ -142,7 +143,7 @@ for (const restoreCase of RESTORE_CASES) {
     await restored.setViewportSize(restoreCase.viewport);
     await installRestoreTrace(restored);
     await restored.goto('/merge/');
-    await restored.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(restored);
     await expect(restored.locator('ul[class*="file-list"] > li[class*="file-row"]')).toHaveCount(3, { timeout: 15_000 });
     const restoredFirstCard = restored.locator('ul[class*="grid"] > li[data-key]').first();
     await expect(restoredFirstCard).toHaveAttribute('data-rotation', '90', { timeout: 15_000 });

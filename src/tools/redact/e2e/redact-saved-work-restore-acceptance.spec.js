@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 /*
  * The ordinary Redact draft-restore spec proves a small document survives a
@@ -16,26 +17,12 @@ const RESTORE_CASES = [
   { name: 'mobile', viewport: { width: 390, height: 844 } },
 ];
 
-async function makeLongPdfBuffer() {
-  const document = await PDFDocument.create();
-  const font = await document.embedFont(StandardFonts.Helvetica);
-  for (let pageIndex = 0; pageIndex < 77; pageIndex += 1) {
-    const page = document.addPage([612, 792]);
-    page.drawText(`Saved redaction acceptance page ${pageIndex + 1}`, {
-      x: 72,
-      y: 720,
-      size: 16,
-      font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-  }
-  return Buffer.from(await document.save());
-}
+const makeLongPdfBuffer = () => makePdfBuffer(null, { pages: 77, title: false, lines: (i) => [{ text: `Saved redaction acceptance page ${i + 1}`, size: 16 }] });
 
 async function openRedactTool(page, buffer) {
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/redact/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
@@ -168,7 +155,7 @@ for (const restoreCase of RESTORE_CASES) {
     await restored.setViewportSize(restoreCase.viewport);
     await installRestoreTrace(restored);
     await restored.goto('/redact/');
-    await restored.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(restored);
     await expect(restored.locator('[class*="redact-box"]')).toHaveCount(1);
     // The restored page count is in the identity at every width; below 560px
     // SIGN-27 keeps that meta text out of the one-row phone card, so only

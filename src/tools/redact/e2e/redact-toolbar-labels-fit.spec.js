@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
+import { makePdfBuffer } from '../../../../e2e/support/pdf.js';
 
 // RED-61: after a Delete export the Redact toolbar has eleven controls, and
 // at 390px six per row gave each one 44.9px, narrower than "Download" (52.2px
@@ -9,14 +10,7 @@ import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 // both sides (scrollWidth only reports the inline-end half of a centred
 // label's overflow). Every offender is collected and named, never the first.
 
-async function makeFixture() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([300, 400]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('KEEP ME', { x: 40, y: 320, size: 20, font });
-  page.drawText('SECRET 123', { x: 40, y: 80, size: 20, font });
-  return Buffer.from(await doc.save());
-}
+const makeFixture = () => makePdfBuffer(null, { size: [300, 400], title: false, lines: [{ text: 'KEEP ME', x: 40, y: 320, size: 20, gray: null }, { text: 'SECRET 123', x: 40, y: 80, size: 20, gray: null }] });
 
 const WIDTHS = [360, 375, 390, 414, 430];
 
@@ -24,7 +18,7 @@ for (const width of WIDTHS) {
   test(`every Redact toolbar label sits inside its button at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/redact');
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    await waitForIsland(page);
     const chooser = page.waitForEvent('filechooser');
     await page.getByText('Choose file', { exact: true }).click();
     await (await chooser).setFiles({ name: 'toolbar-fit.pdf', mimeType: 'application/pdf', buffer: await makeFixture() });

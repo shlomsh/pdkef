@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, PDFName, PDFArray, PDFDict } from '@cantoo/pdf-lib';
 import { analyzePdf } from '../lib/analyzePdf.js';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 // COMP-01 - the floors the tool's copy may quote, measured with the real
 // encoder in a real browser on the committed fixtures. A change that drops
@@ -33,7 +34,7 @@ async function chooseLevel(page, levelTitle) {
 
 async function compress(page, fixture, levelTitle) {
   await page.goto('/compress/');
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await waitForIsland(page);
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: fixture, mimeType: 'application/pdf', buffer: read(fixture) });
@@ -77,7 +78,7 @@ test.describe('compress KPI (COMP-01)', () => {
   for (const fixture of ['text-only.pdf', 'vector-drawing.pdf']) {
     test(`${fixture} at Balanced has nothing to shrink and offers no download`, async ({ page }) => {
       await page.goto('/compress/');
-      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+      await waitForIsland(page);
       const chooser = page.waitForEvent('filechooser');
       await page.getByText('Choose file', { exact: true }).click();
       await (await chooser).setFiles({ name: fixture, mimeType: 'application/pdf', buffer: read(fixture) });

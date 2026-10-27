@@ -20,6 +20,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { waitForIsland } from '../../../../e2e/support/tool.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,7 +48,7 @@ async function countNonWhitePixels(img) {
 
 async function uploadAndCountNonWhitePixels(page, fixtureName) {
   await page.goto('/merge/');
-  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await waitForIsland(page);
   await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, fixtureName));
 
   // The grid only renders an <img> once the page's own thumbnail resolves
