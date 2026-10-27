@@ -31,7 +31,7 @@ already muted from reports, `src/lib/errorReport.ts:31`). A file that is only pr
 starts working. Then two `PDFDocument.load` calls without `ignoreEncryption` throw `EncryptedPDFError`:
 
 - `list_objects`: `listDeletableObjects` loads at `src/editor/adapters/pdf/deleteObjects.js:628`, from an
-  effect that fires on every open (`src/tools/redact/useDeletableObjects.js:26-48`, reported at `:40`),
+  effect that fires on every open (`src/tools/redact/hooks/useDeletableObjects.js:26-48`, reported at `:40`),
   before pdf.js has even finished. It is swallowed, so Delete mode quietly has no targets.
 - `export`: `redactPdf` loads at `src/editor/adapters/pdf/redact.js:200` (or `deleteObjectsFromPdf` at
   `deleteObjects.js:36` when Delete marks exist), reached from `handleSavePdf`

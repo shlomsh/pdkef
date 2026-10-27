@@ -1,0 +1,133 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { checkSavedFile } from '../lib/check/checkSavedFile.ts';
+import type { CheckOutcome } from '../lib/check/runCheck.ts';
+import type { CheckBox, CheckTerm, TermResult } from '../lib/check/types.ts';
+import { termFinder } from '../lib/find/finders.ts';
+import type { MeasureText } from '../lib/find/matchBoxes.ts';
+import { dropCause, reportError } from '../../../lib/errorReport.ts';
+import { changesSummary, survivedAlways, survivedDetails, survivorLabel } from '../lib/details/describeDetails.ts';
+import type { DetailRow } from '../lib/details/describeDetails.ts';
+import type { DetailEdits } from '../lib/detailEdits.js';
+import { DETAILS_CHANGED_ANNOUNCEMENT, DETAILS_SURVIVED_ANNOUNCEMENT } from '../lib/check/checkCopy.ts';
+
+/** en-GB reads "7 Oct 09:14", the approved form for a plain English page. */
+export function traceLocale(): string {
+  const lang = document.documentElement.lang;
+  return !lang || lang === 'en' ? 'en-GB' : lang;
+}
+
+export type SavedFileCheckState =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'failed' }
+  | { status: 'updated' }
+  | { status: 'done'; outcome: CheckOutcome; typed: TermResult[] };
+
+/**
+ * RED-17: checks each saved export on its own, once it exists, and drops the
+ * result the moment the export goes stale (`saved` becomes null). A term the
+ * person types is checked against the same reading, without reading again.
+ */
+export default function useSavedFileCheck({
+  pdfDocument,
+  originalBytes: heldBytes,
+  saved,
+  boxes,
+  deletedWords,
+  picturePages,
+  measure,
+  announce,
+  detailEdits,
+  detailRows,
+}: {
+  pdfDocument: PDFDocumentProxy | null;
+  /** RED-59: the bytes read when the file opened, to compare its traces. Held, never re-read from the File. */
+  originalBytes: ArrayBuffer | null;
+  saved: Blob | null;
+  boxes: CheckBox[];
+  /** Words the person deleted, checked alongside what the boxes cover. */
+  deletedWords: CheckTerm[];
+  picturePages: number[];
+  measure?: MeasureText;
+  /** Says the traces verdict once a check finishes. */
+  announce?: (message: string) => void;
+  /** RED-59: what the person edited; read back against the saved file. */
+  detailEdits: DetailEdits;
+  detailRows: DetailRow[];
+}) {
+  const [state, setState] = useState<SavedFileCheckState>({ status: 'idle' });
+  const [detailsSurvived, setDetailsSurvived] = useState<string[]>([]);
+  // The check reads the latest edits and rows when it finishes, without a new edit re-running it.
+  const latest = useRef({ detailEdits, detailRows });
+  latest.current = { detailEdits, detailRows };
+
+  // Only a new export starts a check; the boxes and terms it reads are the
+  // ones that export was made from, since any edit clears `saved` first.
+  useEffect(() => {
+    if (!saved || !pdfDocument || !heldBytes) {
+      setState({ status: 'idle' });
+      setDetailsSurvived([]);
+      return;
+    }
+    let current = true;
+    setState({ status: 'checking' });
+    setDetailsSurvived([]);
+    (async () => {
+      let savedBytes: Uint8Array;
+      try {
+        savedBytes = new Uint8Array(await saved.arrayBuffer());
+      } catch (error) {
+        // expected: NotReadableError on a Blob or File we hold is the environment (iOS invalidates the
+        // saved Blob once its download starts), not our code. The check did not run, so say nothing.
+        if ((error as { name?: string } | null)?.name === 'NotReadableError') {
+          if (current) setState({ status: 'idle' });
+          return;
+        }
+        reportError('redact', error, 'check_saved_file');
+        console.error('Redact could not read the saved file', error);
+        if (current) setState({ status: 'failed' });
+        return;
+      }
+      // A view, not a copy: the check only reads it.
+      const originalBytes = new Uint8Array(heldBytes);
+      try {
+        const { runSavedFileCheck } = await import('../lib/check/runCheck.ts');
+        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, originalBytes, boxes, extraTerms: deletedWords, picturePages, measure });
+        if (!current) return;
+        setState({ status: 'done', outcome, typed: [] });
+        const { detailEdits, detailRows } = latest.current;
+        const labels = [
+          ...survivedDetails(detailEdits, outcome.traces.saved).map((id) => survivorLabel(id, detailRows)),
+          ...survivedAlways(outcome.traces.saved),
+        ];
+        setDetailsSurvived(labels);
+        const changes = changesSummary(detailRows, detailEdits);
+        if (labels.length > 0) {
+          announce?.(DETAILS_SURVIVED_ANNOUNCEMENT(labels.join(', ')));
+          reportError('redact', new Error('trace survived export'), 'export_trace_survived');
+        } else if (changes) {
+          announce?.(DETAILS_CHANGED_ANNOUNCEMENT(changes));
+        }
+      } catch (error) {
+        reportError('redact', error, 'check_saved_file');
+        console.error('Redact could not check the saved file', error);
+        // A tab left open across a deploy asks for chunks the new deploy no longer serves; a reload fixes it.
+        if (current) setState({ status: dropCause(error) === 'module_load' ? 'updated' : 'failed' });
+      }
+    })();
+    return () => {
+      current = false;
+    };
+  }, [saved, pdfDocument, heldBytes]);
+
+  const search = (text: string) => {
+    const label = text.trim();
+    if (!label || state.status !== 'done') return;
+    const term: CheckTerm = { label, source: 'typed', finder: termFinder(label) };
+    const [result] = checkSavedFile({ ...state.outcome.context, terms: [term] });
+    setState({ ...state, typed: [...state.typed.filter((entry) => entry.term.label !== label), result] });
+  };
+
+  return { state, search, detailsSurvived };
+}
