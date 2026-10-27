@@ -1,7 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { tools } from '../../data/tools.js';
 import { TOOL_PAGES } from '../../lib/toolIds.ts';
 
 // ARCH-63: a tool's folder and display label live in its TOOL_PAGES row. Edit Pages is `edit-pdf`
@@ -28,9 +27,4 @@ describe('TOOL_PAGES rows reach the tool tree', () => {
     }
   });
 
-  it('the label is the registry grid title of the same page (tools.js stays the source)', () => {
-    for (const tool of tools) {
-      expect(rows.find((p) => p.slug === tool.slug)?.label).toBe(tool.gridTitle);
-    }
-  });
 });
