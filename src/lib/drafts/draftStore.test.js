@@ -945,3 +945,73 @@ describe('saveHandoff / takeHandoff (single and multi-file records)', () => {
     expect(await takeHandoff('merge')).toBeNull();
   });
 });
+
+// A store keyed by `tool` cannot be handed a non-object by put(), but a corrupt or foreign
+// value is still a "stored but not parseable" read, and every reader used to clean it up the same
+// way it cleans an empty or expired one. These make get() answer `'corrupt'` for one key.
+describe('a stored value that is not an object is cleaned up, not left behind', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.stubGlobal('crypto', webcrypto);
+    indexedDB = new IDBFactory();
+    vi.resetModules();
+  });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  function corruptReadOf(key) {
+    const realGet = IDBObjectStore.prototype.get;
+    vi.spyOn(IDBObjectStore.prototype, 'get').mockImplementation(function get(query) {
+      const real = realGet.call(this, query);
+      if (query !== key) return real;
+      return {
+        set onsuccess(fn) { real.onsuccess = fn; },
+        set onerror(fn) { real.onerror = fn; },
+        get result() { return 'corrupt'; },
+        get error() { return real.error; },
+      };
+    });
+  }
+
+  it('takeHandoff deletes the key and returns null', async () => {
+    await saveHandoff('sign', { fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 a') });
+    corruptReadOf('handoff:sign');
+    expect(await takeHandoff('sign')).toBeNull();
+    vi.restoreAllMocks();
+    expect(await getRawRecord('handoff:sign')).toBeUndefined();
+  });
+
+  it('loadDraft deletes the entry, drops the index row and the pointer, and returns null', async () => {
+    await saveDraft('sign', { fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 a'), elements: [] });
+    const id = readCurrentEntryId('sign');
+    corruptReadOf(`recent:${id}`);
+    expect(await loadDraft('sign')).toBeNull();
+    vi.restoreAllMocks();
+    expect(await getRawRecord(`recent:${id}`)).toBeUndefined();
+    expect(readRecentFiles()).toEqual([]);
+    expect(readCurrentEntryId('sign')).toBeNull();
+  });
+
+  it('loadRecentFile deletes the entry and its index row and returns null', async () => {
+    await saveDraft('sign', { fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 a'), elements: [] });
+    const id = readCurrentEntryId('sign');
+    corruptReadOf(`recent:${id}`);
+    expect(await loadRecentFile(id)).toBeNull();
+    vi.restoreAllMocks();
+    expect(await getRawRecord(`recent:${id}`)).toBeUndefined();
+    expect(readRecentFiles()).toEqual([]);
+  });
+
+  it('the legacy migration deletes the record and clears its localStorage hint', async () => {
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
+    await putRawRecord({
+      tool: 'sign', fileName: 'a.pdf', fileBytes: bytesOf('%PDF-1.4 legacy'), savedAt: Date.now(), elements: [],
+    });
+    corruptReadOf('sign');
+    const store = await import('./draftStore.ts');
+    await store.loadDraft('sign');
+    vi.restoreAllMocks();
+    expect(await getRawRecord('sign')).toBeUndefined();
+    expect(localStorage.getItem('pdf-toolkit:workspace:has-draft:sign')).toBeNull();
+  });
+});
