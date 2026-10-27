@@ -30,6 +30,11 @@ export const ALLOW = [
   { file: 'sign-pdf-no-signup.yaml', includes: 'the free tier, and stop one person', reason: 'explains why other services meter usage; says nothing about our own product (rewording would restale the Hebrew sourceHash)' },
 ];
 
+// Em dashes (CLAUDE.md Voice: "No em dashes"). Existing lines live in the JSON allowlist
+// ({ file, includes, reason }); it is empty today. A new em dash fails.
+export const EM_DASH = { re: /\u2014/, why: 'em dash (U+2014); use a spaced hyphen, a comma, or split the sentence' };
+export const EM_DASH_ALLOW = JSON.parse(readFileSync(new URL('./never-say-em-dash-allowlist.json', import.meta.url), 'utf8'));
+
 export const FILES = [
   'src/data/tools.js',
   'src/data/homeContent.js',
@@ -49,7 +54,7 @@ export function englishLines(text) {
   return out;
 }
 
-export function findViolations({ file, text, banned = BANNED, allow = ALLOW }) {
+export function findViolations({ file, text, banned = BANNED, allow = ALLOW, emDashAllow = EM_DASH_ALLOW }) {
   const lines = /Messages\.ts$/.test(file)
     ? englishLines(text)
     : text.split('\n').map((t, i) => ({ line: i + 1, text: t }));
@@ -57,9 +62,10 @@ export function findViolations({ file, text, banned = BANNED, allow = ALLOW }) {
   const hits = [];
   for (const { line, text: t } of lines) {
     if (isComment(t)) continue;
-    for (const { re, why } of banned) {
+    for (const { re, why } of [...banned, EM_DASH]) {
       if (!re.test(t)) continue;
-      if (allow.some((a) => file.endsWith(a.file) && t.includes(a.includes))) continue;
+      const list = re === EM_DASH.re ? emDashAllow : allow;
+      if (list.some((a) => file.endsWith(a.file) && t.includes(a.includes))) continue;
       hits.push({ file, line, why, text: t.trim() });
     }
   }

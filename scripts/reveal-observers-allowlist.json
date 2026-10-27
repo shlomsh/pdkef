@@ -1,0 +1,17 @@
+[
+  {
+    "file": "src/shell/pageGrid/PageGrid.tsx",
+    "includes": "new IntersectionObserver(",
+    "reason": "Watches the page-grid cards and queues the ones near the viewport for thumbnail rendering. The cards are already in the DOM and visible as placeholders; nothing JS hid is revealed."
+  },
+  {
+    "file": "src/components/HeroDemo/ScrollDriver.tsx",
+    "includes": "new IntersectionObserver(",
+    "reason": "Watches the hero demo root and only sets isVisible to pause autoplay while it is off screen. It shows or hides nothing."
+  },
+  {
+    "file": "src/editor-ui/hooks/useCurrentPage.js",
+    "includes": "new IntersectionObserver(",
+    "reason": "Watches the document pages inside the scroll root to compute the current-page number. It reveals nothing."
+  }
+]
