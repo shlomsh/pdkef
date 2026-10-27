@@ -1,0 +1,1032 @@
+{
+  "_why": "Recorded recall and precision per scored form, plus the exact raw counts they are computed from (targets, candidates, matched at form level; targets/found for recall and candidates/matchedCandidates for precision at kind level). A ratchet, like the CSS ones: these only ever go DOWN by a deliberate edit that says why in its commit message. A number going up is free and should be re-recorded in the same change that earned it, or the next change gets to lose it silently. The counts are what scoring.test.js checks with exact equality; the percentages beside them stay the human-readable view.",
+  "_labels": "FORM-03 (2026-10-01): `labels` is label association, the third gate criterion (85% on both Hebrew forms). Of the matched pairs whose truth target names a label, how many got a candidate label that contains, or is contained in, the target's (match.js labelAssociationCorrect, the spike's own test). Cells carry the label formCells.js resolved; combs and checkboxes are labelled by fieldLabels.js, as the MOBI-10 chain did, because the gate was defined on that union. `null` means the truth has no labelled targets matched, and pins zero graded pairs. Same ratchet as recall and precision: exact counts, SLACK on the rate. The low figures on the Latin and Thai forms are real (fieldLabels.js was tuned on the two Hebrew forms), recorded so they can only go up on purpose.",
+  "_measuredAt": "2026-10-01",
+  "_iou": 0.5,
+  "_readMe": "src/tools/sign/lib/fields/corpus/README.md, section 'The scored corpus'. MOBI-13 has the programme and the one decision still open.",
+  "forms": {
+    "pdkef-practice-form": {
+      "pdf": "public/images/redaction-guide/sample.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/practice-form-page1.json",
+      "note": "SNG-10 (2026-09-25): v2 is the flat Employee details form generated, with its ground truth, straight from its own layout by scripts/generate-practice-form.mjs (scripts/practice-form-content.mjs), not eyeballed - see that truth file's own notes. It scores 13/13, 100% recall and 100% precision, through closed cells, combs, checkboxes, the new lone-box rule (formCells.js: a single undivided box - no interior wall - is read as a field once it is empty and a header label sits above it, never merely because geometry allows it) and the open-line detector in formLines.js. Re-recorded the same day the row was first written: the form's own MARGIN_RULE hack (a decorative rule drawn solely to give every lone field a fake interior wall) came out, which is what the lone-box rule above replaces it with - the sha256 changed, the counts did not. v1 stays committed at src/tools/sign/lib/fields/__fixtures__/practice-form-v1.pdf for the tests that still need its exact widget geometry. SNG-10 v2 brand pass (2026-09-25, same day): re-themed under PDkef's own palette - box/comb/checkbox/line strokes and the embedded app logo now read their colour from global.css's :root tokens at generation time (practice-form-content.mjs's PALETTE_TOKENS) instead of a hard-coded leftover teal, and the header gained the logo, 'PDkef' wordmark and 'Practice form' tagline. Layout, and therefore every field rect the ground truth is built from, did not move - the sha256 changed (new ink colours, new embedded PNG), the counts did not.",
+      "targets": 13,
+      "candidates": 13,
+      "matched": 13,
+      "recall": 100,
+      "precision": 100,
+      "labels": {
+        "rate": 100,
+        "evaluated": 13,
+        "correct": 13
+      },
+      "byKind": {
+        "text": {
+          "recall": 100,
+          "targets": 5,
+          "found": 5,
+          "precision": 100,
+          "candidates": 7,
+          "matchedCandidates": 7
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 2,
+          "found": 2,
+          "precision": 100,
+          "candidates": 2,
+          "matchedCandidates": 2
+        },
+        "date": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
+          "precision": 100,
+          "candidates": 1,
+          "matchedCandidates": 1
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 2,
+          "found": 2,
+          "precision": 100,
+          "candidates": 2,
+          "matchedCandidates": 2
+        },
+        "signature": {
+          "recall": 100,
+          "targets": 1,
+          "found": 1,
+          "precision": 100,
+          "candidates": 1,
+          "matchedCandidates": 1
+        }
+      },
+      "sha256": "3e6d1bb51c3a23880e56c3eeb027608fc33b0056266f878ba2335965a8d26e0e"
+    },
+    "health": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/health-declaration-2021.pdf",
+      "truth": "scripts/spike/mobi-10/ground-truth/health-page1.json",
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20), and it reproduces the spike's recorded 86.7%/94.2% exactly. The 10 misses are real detector gaps, not artifacts: both dates and the signature line are kinds the detector does not report at all, and the two phone combs and the e-mail/clause text cells are boxes it does not close. Nothing here is a fixture caveat any more. FORM-14 (2026-09-25): the four false positives were this form's own four column headings ('שם פרטי', 'שם משפחה', 'שנת לידה', 'עיסוק'), each centred in its cell over a single data row - `writableArea`'s side carve could not tell a heading from a label, and FORM-13's row-run rule could not see a heading over just one row. Reading the caption's own gaps instead (RTL_RE, HEADER_GAP_RATIO) removes all four with recall held: 94.2 -> 100.0, 69 candidates -> 65. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `checkbox` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-34 (2026-10-08): underscore-character blanks are leaders now, named by reading direction (caption side first, then the other side, then a caption under the line): recall 86.7 -> 94.7 (+6 text and date matches), precision 100 -> 98.6, labels 96.9 -> 95.8 because one new match, the wrapped sentence t069, takes only its last line; no previously correct label changed. Labels 95.8 -> 98.6 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "targets": 75,
+      "candidates": 72,
+      "matched": 71,
+      "recall": 94.7,
+      "precision": 98.6,
+      "labels": {
+        "rate": 98.6,
+        "evaluated": 71,
+        "correct": 70
+      },
+      "byKind": {
+        "text": {
+          "recall": 93.3,
+          "targets": 15,
+          "found": 14,
+          "precision": 94.1,
+          "candidates": 17,
+          "matchedCandidates": 16
+        },
+        "comb": {
+          "recall": 66.7,
+          "targets": 6,
+          "found": 4,
+          "precision": 100,
+          "candidates": 4,
+          "matchedCandidates": 4
+        },
+        "radio": {
+          "recall": 100,
+          "targets": 51,
+          "found": 51,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "date": {
+          "recall": 100,
+          "targets": 2,
+          "found": 2,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "signature": {
+          "recall": 0,
+          "targets": 1,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 51,
+          "matchedCandidates": 51
+        }
+      },
+      "sha256": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53"
+    },
+    "itc101": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/income-tax-101-2024.pdf",
+      "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20). Committing the original brought the text layer back, the scored corpus runs the pdf.js text pass the product runs, and MOBI-11's tick-column fix took checkbox recall from 0 to 87.1% and the form to 85.6%/96.7%. Then FORM-12 (2026-09-22): buildClosedCells scopes rows per column, so a stray rule from the boxes to the left of the children table (y=450.42 and friends) no longer splits its rows. That found all 12 of the table's cells (t043-t045, t053-t055, t058-t060, t063-t065: four name cells and eight tick cells, so the 8 checkbox misses were never drawn squares), text 70 -> 83.3 and checkbox 87.1 -> 100. Precision went DOWN deliberately, 96.7 -> 95.6: the same table's column-header row (captions 'מספר זהות' and 'שם', y 461.6-474.0) used to be split by a stray rule at 471.4 and hidden. Now it closes and its captions pass writableArea's side carve, which is 2 false positives, tracked as FORM-13. FORM-13 (2026-09-24) earned it back and one more: a side-carved caption whose own column continues as two or more identical empty rows is that column's heading, not a label beside a blank. It drops those two headers and the letter-spaced 'השינויים בפרטי' title over the changes table, so precision 95.6 -> 97.8 with recall held; over every page of every scored form those three and two column captions on this form's second page are the only cells it removes. The 3 false positives left are the e-mail cell and two cells on the changes table's third row that sit over its date and signature targets without matching them. The 8 misses left are 5 text cells (the private address row, the health fund name, the e-mail), 2 signature lines and 1 date. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `table-cell` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-26 (2026-09-26): the private-address row's columns are divided by short ticks standing on its underline, with each caption printed below it; buildClosedCells now reads a tick rising at least 0.3 of the band from its floor as a column edge, and such a column publishes one line on the underline labelled by the caption below it (no caption, no field). That finds t013-t015 (city, house number, street), which the whole-band cell used to lose to the postcode comb's containment claim. Their truth boxes were snapped to the printed ticks in the same change (they split city/number at 174pt where nothing is printed and ran the street box into the passport column). Recall 94.2 -> 96.4, precision held at 97.8; no other form moved. SNG-09 (2026-09-26): a Zapf Dingbats checkbox region is now the printed square (the glyph's inner contour) rather than the glyph's advance by the font's ascent and descent, so a centred tick lands in the square. The 36 glyph-backed checkbox truth boxes on this page were loose boxes around the whole glyph and would have matched the square below IoU 0.5, so they were snapped to that square from the embedded font in the same change; every number here holds exactly.",
+      "targets": 139,
+      "candidates": 137,
+      "matched": 134,
+      "recall": 96.4,
+      "precision": 97.8,
+      "labels": {
+        "rate": 85.8,
+        "evaluated": 134,
+        "correct": 115
+      },
+      "byKind": {
+        "comb": {
+          "recall": 100,
+          "targets": 20,
+          "found": 20,
+          "precision": 100,
+          "candidates": 38,
+          "matchedCandidates": 38
+        },
+        "text": {
+          "recall": 93.3,
+          "targets": 30,
+          "found": 28,
+          "precision": 85.7,
+          "candidates": 14,
+          "matchedCandidates": 12
+        },
+        "date": {
+          "recall": 95.8,
+          "targets": 24,
+          "found": 23,
+          "precision": 83.3,
+          "candidates": 6,
+          "matchedCandidates": 5
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 62,
+          "found": 62,
+          "precision": 100,
+          "candidates": 62,
+          "matchedCandidates": 62
+        },
+        "signature": {
+          "recall": 33.3,
+          "targets": 3,
+          "found": 1,
+          "precision": 100,
+          "candidates": 1,
+          "matchedCandidates": 1
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 16,
+          "matchedCandidates": 16
+        }
+      },
+      "sha256": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad"
+    },
+    "irs-1040-2024": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/irs-1040-2024.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/irs-1040-2024-page1.json",
+      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 100% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page. FORM-12 (2026-09-22): the page body is one 492x666pt unstroked fill, and its left side at x=91.6 was read as a wall that split every field it crossed. Treating a filled, unstroked panel taller and wider than any row as background, not ink, found t004 (the one miss, which had fallen under IoU 0.5) and removed 4 false positives. It added one: the line 6c amount box, closed on all four sides but not in the truth, so 2 false positives remain, both printed-geometry cells the widgets do not corroborate. A drop here means the widget pass broke. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `table-cell` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-15 (2026-10-01): a drawn cell that no widget touches is dropped when at least 90% of the page's drawn cells are wired to one (here 66 of 68), which removes the line 1i and line 6c boxes: candidates 90 to 88, precision 97.8 to 100, recall unchanged. No other scored form moves. The 100% is partly structural, as the recall is: the truth comes from the same widgets the rule reads.",
+      "targets": 88,
+      "candidates": 88,
+      "matched": 88,
+      "recall": 100,
+      "precision": 100,
+      "labels": {
+        "rate": 53.4,
+        "evaluated": 88,
+        "correct": 47
+      },
+      "byKind": {
+        "text": {
+          "recall": 100,
+          "targets": 54,
+          "found": 54,
+          "precision": 100,
+          "candidates": 18,
+          "matchedCandidates": 18
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 6,
+          "found": 6,
+          "precision": 100,
+          "candidates": 6,
+          "matchedCandidates": 6
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 28,
+          "found": 28,
+          "precision": 100,
+          "candidates": 28,
+          "matchedCandidates": 28
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 36,
+          "matchedCandidates": 36
+        }
+      },
+      "sha256": "0a7a54354283044cb41373c6faabfa50955d44bdf91b4b76fa1ca2bf13f6d718"
+    },
+    "irs-1040-1970": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/irs-1040-1970.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/irs-1040-1970-page1.json",
+      "note": "A genuinely scanned page, and the only form here the detector cannot see at all. Its whole page is one CCITTFaxDecode image, so collectPageInk finds zero verticals, zero horizontals and zero rects: there is no vector ink to read, and 0 candidates is the honest answer rather than a fault to fix under MOBI-13. That is why precision is null rather than 0 - with nothing emitted there is nothing to be precise about. The zero is an assertion: scoring.test.js pins candidates at exactly 0, so the day a raster path finds anything here the row fails and has to be re-recorded by whoever earned it. The 64 targets are annotated by eye from the render and describe the form, so they are ready to measure against the moment that happens. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
+      "targets": 64,
+      "candidates": 0,
+      "matched": 0,
+      "recall": 0,
+      "precision": null,
+      "labels": null,
+      "byKind": {
+        "date": {
+          "recall": 0,
+          "targets": 4,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "text": {
+          "recall": 0,
+          "targets": 41,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 0,
+          "targets": 16,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "signature": {
+          "recall": 0,
+          "targets": 3,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        }
+      },
+      "sha256": "8d9b89b6966313ada1cf15f9e51fee18f110bfac63ab85b4623ee53255305811"
+    },
+    "thai-pnd90-2565": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/thai-pnd90-2565.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/thai-pnd90-2565-page3.json",
+      "pageIndex": 2,
+      "note": "Revenue Department form ภ.ง.ด.90 (personal income tax return), tax year 2565 BE (2022), page 3 of 5 (0-based pageIndex 2). The first Thai forms in the corpus (FORM-16): Thai runs left to right like the 1040 but stacks vowel and tone marks the way Hebrew stacks niqqud, and this form draws its comb boxes with dotted leaders rather than the ruled boxes the Hebrew forms use. A live AcroForm with 353 fields across the whole document, so the widgets are the truth; page 3 was picked over the other four because it carries the most widgets (105 of 398 total) and the widest mix on one page. Recall on the mutually-exclusive-choice fields is partly structural in the same way the 1040's is: all 18 radio targets match (100%), because those squares are drawn as one clean box each with nothing to split. Text also holds 100% (13/13). Comb is the one that suffers: 24 of 74 (32.4%), because this form's answer combs use a bold internal divider between the whole-number group and its two-digit satang (cents) group - and, on the repeating right-hand sub-tables, sometimes a second divider further left - which the ink-based comb reader (pageInk/formGrid) reads as a full comb boundary rather than as texture inside one field. One AcroForm widget therefore surfaces as two or three ink-based candidates: a wide left/middle fragment still labelled comb (most of the 100 comb false positives) and a narrow trailing fragment close to one cell wide, square enough that the detector calls it checkbox instead (79 of the 97 checkbox-kind candidates it emits, since only 18 are real - checked directly: the detector never emits a literal 'radio' kind here, only 'checkbox', which the matcher treats as compatible). Every one of the 50 missed comb targets and effectively all 179 false positives trace back to this one splitting behaviour, verified on a rendered overlay (scripts/spike/mobi-10/overlay.mjs), not to 50 independent misses. The 24 matched combs are the ones drawn with no internal divider (the plain 13-digit tax-ID combs and the short percentage-deduction boxes). Source: https://www.rd.go.th/fileadmin/tax_pdf/pit/2565/271265PIT90.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `checkbox` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-17 (2026-10-01): re-recorded after adjacent runs on one row are merged when the gap between them is under 1.2 pitches and their pitches are within 0.7-1.4x (mergeAdjacentRuns, formGrid.js). Measured on this page, the cause was not a bold divider: the digits are not drawn at one exact pitch (7.7 to 10.1pt cell to cell, past the 1pt tolerance) and a ~4.8pt gap for the decimal point sits before the two satang digits, so exact-pitch chaining cut one field into a lead piece, a body and a 2-cell tail that was too short to be a comb. Every one of the 74 combs is now found (24 -> 74) and the 100 comb and ~79 narrow-piece checkbox false positives are gone (precision 23.5 -> 86.8, recall 52.4 -> 100); the remaining 16 false positives are all checkbox-kind. No other scored form moved. Labels 6 -> 11.9 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "targets": 105,
+      "candidates": 121,
+      "matched": 105,
+      "recall": 100,
+      "precision": 86.8,
+      "labels": {
+        "rate": 11.9,
+        "evaluated": 67,
+        "correct": 8
+      },
+      "byKind": {
+        "comb": {
+          "recall": 100,
+          "targets": 74,
+          "found": 74,
+          "precision": 100,
+          "candidates": 74,
+          "matchedCandidates": 74
+        },
+        "radio": {
+          "recall": 100,
+          "targets": 18,
+          "found": 18,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "text": {
+          "recall": 100,
+          "targets": 13,
+          "found": 13,
+          "precision": 100,
+          "candidates": 13,
+          "matchedCandidates": 13
+        },
+        "checkbox": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 52.9,
+          "candidates": 34,
+          "matchedCandidates": 18
+        }
+      },
+      "sha256": "af17a77db1a145d29bcf4173a5ed0374e21a5c75bd4443950377d475a536ed8e"
+    },
+    "thai-lor-yor-01-2562": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/thai-lor-yor-01-2562.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/thai-lor-yor-01-2562-page1.json",
+      "note": "Revenue Department form ล.ย.01 (personal allowances and deductions declaration for withholding tax), issued 2562 BE (2019), one page. The second Thai form added under FORM-16, alongside ภ.ง.ด.90. Left-to-right, no XFA packet, drawn with far less ink than ภ.ง.ด.90's dense page 3: almost every answer location is a bare comb or radio square with no ruled box, dotted leader or internal divider under it. A live AcroForm, so its 47 widgets (58 minus one excluded push button, the 'ล้างข้อมูล' / clear-data button) are the truth. Every target matches: 100%/100%, text 37/37, comb 2/2, radio 18/18. That is a genuine full pass rather than a structural one dressed up as one: unlike ภ.ง.ด.90's page, nothing here has an internal divider for the ink-based comb reader to misread as a boundary, so there is nothing to split. Almost none of its 57 targets carry a label: only one widget on the whole page has a /TU tooltip at all (the excluded clear button), and every other field has an auto-generated name only (Text1, Radio Button3, ...), so a label-lookup regression on this form would have nothing to catch - worth recording, not a gap to fix. Source: https://www.rd.go.th/fileadmin/tax_pdf/withhold/loryor01_290362.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `checkbox` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
+      "targets": 57,
+      "candidates": 57,
+      "matched": 57,
+      "recall": 100,
+      "precision": 100,
+      "labels": null,
+      "byKind": {
+        "text": {
+          "recall": 100,
+          "targets": 37,
+          "found": 37,
+          "precision": 100,
+          "candidates": 37,
+          "matchedCandidates": 37
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 2,
+          "found": 2,
+          "precision": 100,
+          "candidates": 2,
+          "matchedCandidates": 2
+        },
+        "radio": {
+          "recall": 100,
+          "targets": 18,
+          "found": 18,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 18,
+          "matchedCandidates": 18
+        }
+      },
+      "sha256": "5bde6321f7f53a4cfdf07ca9ab2637f7b6718561a6bae4a738c92adea42e40ab"
+    },
+    "uscis-i9-2025-01-20": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/uscis-i9-2025-01-20.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/uscis-i9-2025-01-20-page1.json",
+      "note": "USCIS Form I-9 (Employment Eligibility Verification), edition 01/20/25, page 1 of 4. The 2023 redesign put Section 1 (Employee Information and Attestation) and Section 2 (Employer Review and Verification, including the List A / List B / List C acceptable-documents table) on one page, so page 1 is the whole form a person fills; page 2 is a non-fillable List of Acceptable Documents reference table (0 widgets) and pages 3-4 are Supplement A (preparer/translator) and Supplement B (reverification/rehire), used only in edge cases. The second English form added under FORM-16 and the first outside the 1040 family: like both 1040 rows, it is self-labelling (its truth is the widgets formWidgets.js itself reads), so a high recall is partly structural - what it actually tests is the ink pass staying quiet beside the widget pass on a dense page. A live AcroForm with 130 widgets across the document, 52 on page 1: 46 text, 1 comb (the 9-digit SSN, the only field that sets the Comb flag with MaxLen > 1 - the ZIP, USCIS A-Number and Form I-94 boxes all carry a MaxLen but not the flag, so they score text, measured not assumed) and 5 checkboxes, each its own field with no Radio flag, exactly like the 1040's filing-status boxes. Page 1's /Annots also holds 3 /Link entries (URIs to uscis.gov/I-9); collectWidgetTargets otherwise assumes every annotation is a widget, so this form's own excuse rule drops them, and among the 52 real widgets nothing else is excluded. Scores 98.1%/92.7%, 51 of 52 targets found. The 1 miss and 1 of the 4 false positives are one real cell read two ways: 'Signature of Employee' and \"Today's Date\" share one unbroken ruled row with no internal rule, and the Date widget's own /Rect (x 0.609-0.775 of the page) covers only part of that visual cell, while the ink reader publishes the whole visual date cell (x 0.598-0.941) as its candidate - IoU 0.48, just under the 0.5 threshold. That is the same class of near-miss as the 1040's line 6c box and itc101's uncorroborated cells: a widget narrower than the ink it sits inside. The other 3 false positives are a new class: the List A / List B / List C column headings print in their own thin ruled row above the Document Title / Issuing Authority / Document Number / Expiration Date rows, not sharing a cell with a blank the way FORM-13's drop rule expects - that rule only fires on a side-carved caption sharing one cell with its own blank, and a caption that is a whole separate header cell is untouched by it. So the header row reads as three candidates with no matching target: 'List A' on its own (kind text), 'List B AND List C' as one candidate since nothing marks the boundary between them (kind text), and the narrow 'OR' divider between List A and List B, square enough to read as a checkbox - the same shape thai-pnd90's internal comb dividers take. Verified on a rendered overlay (scripts/spike/mobi-10/overlay.mjs). Source: https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf. US federal work, public domain (17 U.S.C. 105). FORM-14 (2026-09-25): 'List A' and 'List B AND List C' were both LTR captions that reached their cell's midpoint and side-carved, the same shape a real label takes; RTL_RE rejects a side carve outright when the caption is not RTL, which removes exactly those two (their own row's midpoint ratio, near 2.55, is the nearest LTR case measured on the whole scored corpus). Precision 92.7 -> 96.2 with recall held at 98.1 (51/52), 55 candidates -> 53. The 'OR' divider is a checkbox-kind false positive from a different detector path (formGrid.js's comb/checkbox reader, not writableArea) and is unaffected, as is the Signature/Date shared-cell false positive. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `table-cell` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. Labels 60.8 -> 62.7 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now. Two truth labels (t015, t016) were corrected to the sentences printed on the form, which the old bare \"2.\" and \"3.\" labels only matched as substrings.",
+      "targets": 52,
+      "candidates": 53,
+      "matched": 51,
+      "recall": 98.1,
+      "precision": 96.2,
+      "labels": {
+        "rate": 62.7,
+        "evaluated": 51,
+        "correct": 32
+      },
+      "byKind": {
+        "text": {
+          "recall": 97.8,
+          "targets": 46,
+          "found": 45,
+          "precision": 96.3,
+          "candidates": 27,
+          "matchedCandidates": 26
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 1,
+          "found": 1,
+          "precision": 100,
+          "candidates": 1,
+          "matchedCandidates": 1
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 5,
+          "found": 5,
+          "precision": 83.3,
+          "candidates": 6,
+          "matchedCandidates": 5
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 19,
+          "matchedCandidates": 19
+        }
+      },
+      "sha256": "780f348c34df694bb0b4dbbfaf9f22b99b9757b80d16a37ba89aadf069597281"
+    },
+    "thai-sso-1-10": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/thai-sso-1-10.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/thai-sso-1-10-page1.json",
+      "pageIndex": 0,
+      "note": "Social Security Office form สปส.1-10 part 1 (monthly contribution list), landscape, page 1 of 4. The first flat Thai form (FORM-16): no widgets, so its 46 targets were annotated by eye from a render, snapped to the page's own ink and glyph positions, and checked by Shlomi against the overlay (2026-09-24). Its legacy Thai fonts have no ToUnicode and swap ำ and า in extraction, so the text pass reads slightly wrong words; labels in the truth are read from the page, not the extraction. Decided while annotating: the employer account number is one 10-digit comb although the print groups it 2-7-1 with dashes, and the postcode/phone/fax parts and the day/month/year parts are separate fields because each has its own printed label. Today the detector sees only the item table: 8 of its ruled amount cells match, and the one false positive merges items 3 and 4's baht cells into one box. Everything else is missed: the two combs, the four checkboxes (printed as Wingdings glyphs, so there is no ink square to find), and every dotted-leader field (text, date, signature), because a dotted leader is text, not ruled ink. Source: https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/918a5ffc639945c7890f199112922f09.pdf. FORM-14 (2026-09-25): that one false positive was a Thai caption reaching its cell's midpoint, the same shape as a real label - Thai is not in RTL_RE, so it can no longer side-carve. Precision 88.9 -> 100.0 with recall held at 17.4 (8/46), 9 candidates -> 8. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `table-cell` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-19 (2026-10-01): dotted-leader fields are now read from the text layer (formLeaders.js, its own `leaders` source, last in SOURCE_ORDER and silent on any page that declares its own widgets). Recall 17.4 -> 82.6 (8/46 -> 38/46) with precision held at 100: all 7 date and 3 signature targets and 28 of 30 text targets are found. Still missed: the two combs and four glyph checkboxes (not leaders; FORM-20 is the checkbox glyph), the 'รวมเงินสมทบที่นำส่งทั้งสิ้น' amount cell and one unlabelled dotted line. FORM-20 (2026-10-01): the four checkboxes are Wingdings 2 glyphs (U+F02A through a ToUnicode map, CID 13 in the embedded subset, whose outline is two nested rectangles), now read by collectCheckboxGlyphs through a font-family and code table. Recall 82.6 -> 91.3 (42/46), checkbox recall 0 -> 100 with precision held at 100; the remaining misses are the two combs, the 'รวมเงินสมทบที่นำส่งทั้งสิ้น' amount cell and one unlabelled dotted line. FORM-31 (2026-10-04): the four Wingdings 2 checkbox truth boxes were loose boxes around the whole glyph (9.9 x 14.7pt); they are snapped to the printed square, the glyph's outer ring edge (7.45pt) placed by pdf.js's text layer, the same snap form 101's glyph boxes got in SNG-09, because the detector now reports that square. Sizes and positions only; every scored number holds exactly.",
+      "targets": 46,
+      "candidates": 42,
+      "matched": 42,
+      "recall": 91.3,
+      "precision": 100,
+      "labels": {
+        "rate": 53.8,
+        "evaluated": 39,
+        "correct": 21
+      },
+      "byKind": {
+        "text": {
+          "recall": 93.3,
+          "targets": 30,
+          "found": 28,
+          "precision": 100,
+          "candidates": 20,
+          "matchedCandidates": 20
+        },
+        "date": {
+          "recall": 100,
+          "targets": 7,
+          "found": 7,
+          "precision": 100,
+          "candidates": 7,
+          "matchedCandidates": 7
+        },
+        "comb": {
+          "recall": 0,
+          "targets": 2,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 4,
+          "found": 4,
+          "precision": 100,
+          "candidates": 4,
+          "matchedCandidates": 4
+        },
+        "signature": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
+          "precision": 100,
+          "candidates": 3,
+          "matchedCandidates": 3
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 8,
+          "matchedCandidates": 8
+        }
+      },
+      "sha256": "71881457c8f488e1957135c5d6dd657f6d2a6b9666c5d3e6b6954ffe99890234"
+    },
+    "hmrc-sa100-2026": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/hmrc-sa100-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/hmrc-sa100-2026-page6.json",
+      "pageIndex": 5,
+      "note": "HMRC SA100 (2026) Self Assessment tax return, page TR 4 (tax reliefs, charitable giving, Blind Person's Allowance; 0-based pageIndex 5 of 10). Crown copyright, Open Government Licence v3.0. The first flat English form (FORM-16): annotated by eye, snapped to the page's ink, and checked by Shlomi against the overlay (2026-09-24). This page was picked because it carries all three of the form's answer shapes (amount boxes, tick boxes, a text box) and none of its 4 widgets. Each amount box is 11 separately painted squares: a '£' cell, 8 digit cells and 2 pre-printed '0' pence cells; the target is the 8 digit cells a person writes in. FORM-18 (2026-10-01): the detector now reads separately painted equal cells on one baseline as a comb (findSquareCombRuns), grouped by size and paint so the unfilled '£' and pence cells stay out; all 11 amount targets are found and the 88 tick-column false positives are gone (recall 26.7 -> 100, precision 4.3 -> 93.8). Before: no comb at all, 88 checkbox candidates, 8 per amount box. The 3 tick boxes and the text box are found. Source: https://assets.publishing.service.gov.uk/media/69c14d07cfa346b9d4704a8d/SA100-2026.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
+      "targets": 15,
+      "candidates": 16,
+      "matched": 15,
+      "recall": 100,
+      "precision": 93.8,
+      "labels": {
+        "rate": 6.7,
+        "evaluated": 15,
+        "correct": 1
+      },
+      "byKind": {
+        "comb": {
+          "recall": 100,
+          "targets": 11,
+          "found": 11,
+          "precision": 100,
+          "candidates": 11,
+          "matchedCandidates": 11
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
+          "precision": 100,
+          "candidates": 3,
+          "matchedCandidates": 3
+        },
+        "text": {
+          "recall": 100,
+          "targets": 1,
+          "found": 1,
+          "precision": 50,
+          "candidates": 2,
+          "matchedCandidates": 1
+        }
+      },
+      "sha256": "53841ec2138b5d1ccd8e69ae402b35e6e3a04f17556bb3b0829f55b47f51b506"
+    },
+    "btl-bl211-2015-p2": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-bl211-2015.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-bl211-2015-page2.json",
+      "pageIndex": 1,
+      "note": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, supplied by Shlomi; issuer https://www.btl.gov.il, exact file URL unknown. The first Microsoft Word export in the corpus (FORM-30): flat, no AcroForm, a text layer, Wingdings checkbox glyphs, open-top tick combs, and underline leaders typed as '_' characters rather than drawn rules. PDF page 2, printed 'עמוד 1 מתוך 8' (claimant and workplace details). Measured 2026-10-04 on a reviewed overlay, the misses are three detector gaps, not truth artifacts: (1) a ruled cell about 23pt tall is found but reported as an 11.5pt strip at its top, so IoU with the whole cell is 0.36-0.48 (registered address row, email, employer name, both employer address rows: 13 misses); the mailing-address row, about 15pt tall, matches because a one-line strip covers most of it; (2) the six underscore-character leaders (both header lines, 'מחלת מקצוע, פרט', 'מס' פקס', both 'כן, פרט') get no candidate at all; (3) the self-employed address row (t058-t061) gets nothing although the identical employer row above it is found. Precision is low because every open-top tick comb surfaces as two or three stacked comb candidates plus small checkbox-kind squares at its end ticks (37 extra combs, 29 extra checkboxes), and the office-use box and the 'שכיר/מתנדב' sub-heading bar are reported. Every real comb, date comb and checkbox is found. FORM-31 (2026-10-04): the checkbox truth boxes were measured from the raster with the glyph's drop shadow (10.1pt) and are now the printed square, the glyph's inner contour (7.4pt) placed by pdf.js's text layer, as form 101's and Thai SSO's are, because the detector now reports that square and a shadowed truth would match it only at IoU 0.54. Sizes and positions only. FORM-34 (2026-10-08): underscore-character blanks are leaders now: recall 64.5 -> 74.2 (+6), precision 30.1 -> 33.1, labels 87.5 -> 89.1; no previously correct label changed. Labels 89.1 -> 93.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
+      "targets": 62,
+      "candidates": 139,
+      "matched": 46,
+      "recall": 74.2,
+      "precision": 33.1,
+      "labels": {
+        "rate": 93.5,
+        "evaluated": 46,
+        "correct": 43
+      },
+      "byKind": {
+        "text": {
+          "recall": 50,
+          "targets": 32,
+          "found": 16,
+          "precision": 55.6,
+          "candidates": 27,
+          "matchedCandidates": 15
+        },
+        "date": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
+          "precision": 0,
+          "candidates": 3,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 19,
+          "found": 19,
+          "precision": 39.6,
+          "candidates": 48,
+          "matchedCandidates": 19
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 8,
+          "found": 8,
+          "precision": 21.3,
+          "candidates": 47,
+          "matchedCandidates": 10
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 14.3,
+          "candidates": 14,
+          "matchedCandidates": 2
+        }
+      }
+    },
+    "btl-bl211-2015-p7": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-bl211-2015.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-bl211-2015-page7.json",
+      "pageIndex": 6,
+      "note": "Israel National Insurance form BL/211 (work-injury claim), 05.2015 edition, supplied by Shlomi; issuer https://www.btl.gov.il, exact file URL unknown. The first Microsoft Word export in the corpus (FORM-30): flat, no AcroForm, a text layer, Wingdings checkbox glyphs, open-top tick combs, and underline leaders typed as '_' characters rather than drawn rules. PDF page 7, printed 'עמוד 6 מתוך 8' (the employer section, 12 and 13, with the four-month salary table). Measured 2026-10-04 on a reviewed overlay: (1) underscore-character leaders are the bulk of the 52 misses, every one of the ~25 text and all 6 date underlines (place and time of injury, names and IDs of witnesses, start/stop dates); (2) in the salary table only row 1's cells are found, rows 2-4 (21 cells) and every month cell get nothing; (3) three of the four section-12 cells under the two-line caption row miss while their neighbour is found; (4) the checkboxes: recorded first with five of the 29 missed (24 of 29, 82.8%), because the Wingdings box region was the glyph's advance by the font-wide ascent/descent, 12.6 x 9.7pt for a 10.1pt square and 2.2pt too high, which scored an IoU of 0.50 to 0.51 and fell under 0.5 on rows where a neighbour shifted it. FORM-31 (2026-10-04) bounds the glyph by its own square, so all 29 are found at 100% precision (recall +17.2, form recall 39.5 -> 45.3, precision 75.6 -> 86.7). Labels went 94.1 -> 92.3 because the five newly matched boxes are now graded and one has a wrong label: the yes/no box t029 reads 'לא,' where the truth wants the question too; the other two wrong labels (t078, t080) were wrong before. The 12-cell deductions-file comb is found, with four stacked comb candidates on top of it. FORM-31 (2026-10-04): the checkbox truth boxes were measured from the raster with the glyph's drop shadow (10.1pt) and are now the printed square, the glyph's inner contour (7.4pt) placed by pdf.js's text layer, as form 101's and Thai SSO's are, because the detector now reports that square and a shadowed truth would match it only at IoU 0.54. Sizes and positions only. FORM-34 (2026-10-08): underscore-character blanks are leaders now (finding 1), and an empty closed cell in a column of four or more empty closed cells keeps a header far above it (finding 2, salary rows 2-4): recall 45.3 -> 84.9, precision 86.7 -> 83.9, labels 92.3 -> 90.4. No previously correct label changed; of the 34 new matches, 4 are wrong: the 'ת.ז' blank of each 'שם ______ ת.ז ______' run takes 'שם' (2), 'היקף המשרה ב-%' takes its neighbour's 'בשבוע', and t034 gets none. The month cells (finding 2's 'every month cell') still miss: their cell holds the printed word 'חודש'. Labels 90.4 -> 93.2 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "f8ed49edef699cfdb10ca7695d4fb30084941c157d3c22d473a98bf8a0cfea3e",
+      "targets": 86,
+      "candidates": 87,
+      "matched": 73,
+      "recall": 84.9,
+      "precision": 83.9,
+      "labels": {
+        "rate": 93.2,
+        "evaluated": 73,
+        "correct": 68
+      },
+      "byKind": {
+        "text": {
+          "recall": 74,
+          "targets": 50,
+          "found": 37,
+          "precision": 69.7,
+          "candidates": 33,
+          "matchedCandidates": 23
+        },
+        "date": {
+          "recall": 100,
+          "targets": 6,
+          "found": 6,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 29,
+          "found": 29,
+          "precision": 100,
+          "candidates": 29,
+          "matchedCandidates": 29
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 1,
+          "found": 1,
+          "precision": 20,
+          "candidates": 5,
+          "matchedCandidates": 1
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 100,
+          "candidates": 20,
+          "matchedCandidates": 20
+        }
+      }
+    },
+    "btl-1500-2026-p2": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page2.json",
+      "pageIndex": 1,
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 2 (printed 'עמוד 1 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 76.7 -> 86 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+      "targets": 52,
+      "candidates": 71,
+      "matched": 43,
+      "recall": 82.7,
+      "precision": 60.6,
+      "labels": {
+        "rate": 86,
+        "evaluated": 43,
+        "correct": 37
+      },
+      "byKind": {
+        "text": {
+          "recall": 71.9,
+          "targets": 32,
+          "found": 23,
+          "precision": 74.3,
+          "candidates": 35,
+          "matchedCandidates": 26
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 4,
+          "found": 4,
+          "precision": 26.3,
+          "candidates": 19,
+          "matchedCandidates": 5
+        },
+        "date": {
+          "recall": 100,
+          "targets": 4,
+          "found": 4,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 12,
+          "found": 12,
+          "precision": 85.7,
+          "candidates": 14,
+          "matchedCandidates": 12
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 0,
+          "candidates": 3,
+          "matchedCandidates": 0
+        }
+      }
+    },
+    "btl-1500-2026-p3": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page3.json",
+      "pageIndex": 2,
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 3 (printed 'עמוד 2 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 47.4 -> 84.2 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+      "targets": 19,
+      "candidates": 28,
+      "matched": 19,
+      "recall": 100,
+      "precision": 67.9,
+      "labels": {
+        "rate": 84.2,
+        "evaluated": 19,
+        "correct": 16
+      },
+      "byKind": {
+        "text": {
+          "recall": 100,
+          "targets": 2,
+          "found": 2,
+          "precision": 44.4,
+          "candidates": 9,
+          "matchedCandidates": 4
+        },
+        "date": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 14,
+          "found": 14,
+          "precision": 100,
+          "candidates": 14,
+          "matchedCandidates": 14
+        },
+        "comb": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 25,
+          "candidates": 4,
+          "matchedCandidates": 1
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 0,
+          "candidates": 1,
+          "matchedCandidates": 0
+        }
+      }
+    },
+    "btl-1500-2026-p4": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page4.json",
+      "pageIndex": 3,
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 4 (printed 'עמוד 3 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 60.4 -> 75.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+      "targets": 78,
+      "candidates": 127,
+      "matched": 53,
+      "recall": 67.9,
+      "precision": 41.7,
+      "labels": {
+        "rate": 75.5,
+        "evaluated": 53,
+        "correct": 40
+      },
+      "byKind": {
+        "text": {
+          "recall": 68.4,
+          "targets": 19,
+          "found": 13,
+          "precision": 35.9,
+          "candidates": 39,
+          "matchedCandidates": 14
+        },
+        "date": {
+          "recall": 29.6,
+          "targets": 27,
+          "found": 8,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 2,
+          "found": 2,
+          "precision": 45.5,
+          "candidates": 11,
+          "matchedCandidates": 5
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 30,
+          "found": 30,
+          "precision": 93.8,
+          "candidates": 32,
+          "matchedCandidates": 30
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 8.9,
+          "candidates": 45,
+          "matchedCandidates": 4
+        }
+      }
+    },
+    "btl-1500-2026-p5": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page5.json",
+      "pageIndex": 4,
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 5 (printed 'עמוד 4 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. The label rate falls only because the newly matched checkboxes are evaluated too; no label that was right before is wrong now. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 70.6 -> 76.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+      "targets": 24,
+      "candidates": 25,
+      "matched": 17,
+      "recall": 70.8,
+      "precision": 68,
+      "labels": {
+        "rate": 76.5,
+        "evaluated": 17,
+        "correct": 13
+      },
+      "byKind": {
+        "text": {
+          "recall": 75,
+          "targets": 4,
+          "found": 3,
+          "precision": 50,
+          "candidates": 10,
+          "matchedCandidates": 5
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 12,
+          "found": 12,
+          "precision": 100,
+          "candidates": 12,
+          "matchedCandidates": 12
+        },
+        "date": {
+          "recall": 33.3,
+          "targets": 6,
+          "found": 2,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "signature": {
+          "recall": 0,
+          "targets": 2,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 0,
+          "candidates": 3,
+          "matchedCandidates": 0
+        }
+      }
+    },
+    "btl-1500-2026-p6": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page6.json",
+      "pageIndex": 5,
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 6 (printed 'עמוד 5 מתוך 6'). Re-recorded 2026-10-08 with FORM-37: the '❑' now resolves to FORM-31's printed square, because BL/1500's two-byte Wingdings maps it to U+2751 rather than the private-use U+F071, so checkbox recall is 100. Several of the new ones take the item number (\". 1\") or a reversed parenthesis as their label, a label-association gap of its own (FORM-38). Labels 81.4 -> 91.5 on 2026-10-08: FORM-38 glues letters pdf.js splits into abutting items, strips blank and dash filler at a label's edges, decides RTL paren mirroring by a per-page vote, and skips a bare list number when words follow it; a per-target comparison shows no label that was right before is wrong now.",
+      "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+      "targets": 67,
+      "candidates": 113,
+      "matched": 59,
+      "recall": 88.1,
+      "precision": 52.2,
+      "labels": {
+        "rate": 91.5,
+        "evaluated": 59,
+        "correct": 54
+      },
+      "byKind": {
+        "text": {
+          "recall": 78.6,
+          "targets": 28,
+          "found": 22,
+          "precision": 52.1,
+          "candidates": 48,
+          "matchedCandidates": 25
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
+          "precision": 25.9,
+          "candidates": 27,
+          "matchedCandidates": 7
+        },
+        "date": {
+          "recall": 100,
+          "targets": 7,
+          "found": 7,
+          "precision": 0,
+          "candidates": 5,
+          "matchedCandidates": 0
+        },
+        "checkbox": {
+          "recall": 100,
+          "targets": 27,
+          "found": 27,
+          "precision": 87.1,
+          "candidates": 31,
+          "matchedCandidates": 27
+        },
+        "signature": {
+          "recall": 0,
+          "targets": 2,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 0,
+          "candidates": 2,
+          "matchedCandidates": 0
+        }
+      }
+    },
+    "btl-1500-2026-p7": {
+      "pdf": "src/tools/sign/lib/fields/corpus/scoring/forms/btl-1500-2026.pdf",
+      "truth": "src/tools/sign/lib/fields/corpus/scoring/ground-truth/btl-1500-2026-page7.json",
+      "pageIndex": 6,
+      "note": "Israel National Insurance form BL/1500 (unemployment claim), 05.2026 edition, supplied by Shlomi on 2026-10-08 as T1500.pdf; issuer https://www.btl.gov.il, exact file URL unknown. Flat Word export (no AcroForm), a text layer, '❑' checkboxes in Wingdings (0x71), typed-underscore blanks, tick combs. Published after CommonForms, so a held-out form (FORM-36); truth annotated from the page, never from our output, overlays checked by Shlomi. Recorded 2026-10-08 with FORM-34 in. PDF page 7 (printed 'עמוד 6 מתוך 6').",
+      "sha256": "bcf2e881669517d2ce5c60cc84ab3728c0c66c554f8228b49c818612447c4ae3",
+      "targets": 184,
+      "candidates": 182,
+      "matched": 170,
+      "recall": 92.4,
+      "precision": 93.4,
+      "labels": {
+        "rate": 46.5,
+        "evaluated": 170,
+        "correct": 79
+      },
+      "byKind": {
+        "text": {
+          "recall": 92.7,
+          "targets": 178,
+          "found": 165,
+          "precision": 50,
+          "candidates": 10,
+          "matchedCandidates": 5
+        },
+        "comb": {
+          "recall": 100,
+          "targets": 1,
+          "found": 1,
+          "precision": 33.3,
+          "candidates": 3,
+          "matchedCandidates": 1
+        },
+        "date": {
+          "recall": 100,
+          "targets": 4,
+          "found": 4,
+          "precision": 66.7,
+          "candidates": 6,
+          "matchedCandidates": 4
+        },
+        "signature": {
+          "recall": 0,
+          "targets": 1,
+          "found": 0,
+          "precision": null,
+          "candidates": 0,
+          "matchedCandidates": 0
+        },
+        "table-cell": {
+          "recall": null,
+          "targets": 0,
+          "found": 0,
+          "precision": 98.2,
+          "candidates": 163,
+          "matchedCandidates": 160
+        }
+      }
+    }
+  }
+}
