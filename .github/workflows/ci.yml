@@ -180,6 +180,9 @@ jobs:
     - name: Verify typed JavaScript folders and the .js file ratchet
       run: npm run test:js-typed
 
+    - name: Verify the unused-exports ratchet
+      run: npm run test:unused-exports
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
