@@ -266,12 +266,12 @@ export default withIslandBoundary(function PdfCompressTool({
           {/* The shell's own strip, placed here rather than above the card so a
               desktop shows it in the rail beside the result (UX guidelines §18
               rule 3). Its content still comes from the props above. */}
-          <div class={styles.strip}>
+          <div class={styles.strip} data-strip>
             <ToolShell flush>
               <FileActions />
             </ToolShell>
           </div>
-          <div class={styles.controls}>
+          <div class={styles.controls} data-controls>
             {isImageMode ? (
               <TargetSizePanel
                 t={t}
@@ -293,7 +293,7 @@ export default withIslandBoundary(function PdfCompressTool({
               />
             )}
             {showFlatten && (
-              <label class={styles['flatten-switch']}>
+              <label class={styles['flatten-switch']} data-flatten-switch>
                 <input type="checkbox" checked={flatten} onChange={(e) => handleFlattenChange(e.currentTarget.checked)} />
                 <span><strong>{t.flattenLabel}</strong> {analysis?.hasText !== false ? t.flattenHint : t.flattenHintNoText}</span>
               </label>

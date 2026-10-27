@@ -9,11 +9,10 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import UnlockVerb from './verb/UnlockVerb.tsx';
 import PagePreview from './components/PagePreview.tsx';
-import SecurityActions, { returnToolOf } from './components/SecurityActions.tsx';
+import SecurityActions, { SubmitButton, returnToolOf } from './components/SecurityActions.tsx';
 import { planPreview } from './lib/previewPlan.js';
 import ToolShell, { FileActions } from '../../shell/ToolShell.tsx';
 import styles from './PdfSecurityTool.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
@@ -269,15 +268,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
 
               {/* One primary control with states: when the output exists, Download takes its place. */}
               {status !== 'done' && (
-                <button
-                  type="submit"
-                  class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
-                  disabled={!password || status === 'processing'}
-                >
-                  {status === 'processing'
-                    ? (mode === 'unlock' ? t.unlocking : t.protecting)
-                    : (mode === 'unlock' ? t.unlockPdf : t.protectPdf)}
-                </button>
+                <SubmitButton processing={status === 'processing'} disabled={!password} label={mode === 'unlock' ? t.unlockPdf : t.protectPdf} busyLabel={mode === 'unlock' ? t.unlocking : t.protecting} />
               )}
             </form>
           ))}

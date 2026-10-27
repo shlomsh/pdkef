@@ -11,11 +11,6 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { formatFileSize } from '../../lib/format.js';
 import { saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
-import outputNameStyles from '../../shell/OutputName.module.css';
-import sortMenuStyles from '../../shell/SortMenu.module.css';
-import dropzoneStyles from '../../shell/Dropzone.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
-import toolShellStyles from '../../shell/ToolShell.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
@@ -165,14 +160,15 @@ describe('PdfImageToPdfTool UI flow', () => {
   const wait = (ms) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   const tileNames = () => Array.from(container.querySelectorAll('[data-page]')).map((el) => el.getAttribute('aria-label').split(',')[0]);
   const removeButtons = () => container.querySelectorAll('ul[aria-describedby="reorder-hint"] li > button[aria-label]');
-  const downloadLink = () => container.querySelector(`.${pdfToolStyles['download-button']}`);
+  const downloadLink = () => container.querySelector('a[download]');
+  const buttonByText = (text) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim().includes(text));
   const press = (el, key) => act(async () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   });
 
   it('renders the initial file dropper zone', () => {
     mount();
-    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    const dropzone = container.querySelector('[data-dropzone]');
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop images here');
   });
@@ -181,11 +177,12 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png', 'two.png']);
 
-    const identity = container.querySelector(`.${toolShellStyles.name}`);
+    const identity = container.querySelector('[data-file-identity]');
     expect(identity.textContent).toContain('2 images');
     expect(tileNames()).toEqual(['one.png', 'two.png']);
     expect(Array.from(container.querySelectorAll('[data-page] > span[aria-hidden="true"]')).map((b) => b.textContent)).toEqual(['1', '2']);
-    expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
+    expect(container.querySelector('[data-processing]')).toBeNull();
+    expect(buttonByText('Try again')).toBeUndefined();
     expect(container.textContent).not.toContain('Convert');
     expect(container.querySelector('ul[aria-describedby="reorder-hint"] > li > button:not([aria-label])').textContent).toContain('Add images');
   });
@@ -218,7 +215,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     await act(async () => {
       setInputFiles(input, [makeImageFile('doc.pdf', 'application/pdf')]);
     });
-    const hint = container.querySelector(`.${pdfToolStyles['hint-message']}`);
+    const hint = container.querySelector('[role="status"]');
     expect(hint.textContent).toContain('not a JPG or PNG');
   });
 
@@ -237,7 +234,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(link.textContent).toContain('Download PDF');
     expect(link.textContent).toContain(formatFileSize(builtPdfs()[0].size));
 
-    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    const shareButton = buttonByText('Share');
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('doc1.pdf');
@@ -275,12 +272,12 @@ describe('PdfImageToPdfTool UI flow', () => {
 
     await act(async () => { downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
-    expect(container.querySelector(`.${pdfToolStyles['is-processing']}`).textContent).toContain('Preparing');
+    expect(container.querySelector('[data-processing]').textContent).toContain('Preparing');
     expect(clicks).not.toHaveBeenCalled();
 
     await act(async () => { release(); });
     await wait(0);
-    expect(container.querySelector(`.${pdfToolStyles['is-processing']}`)).toBeNull();
+    expect(container.querySelector('[data-processing]')).toBeNull();
     expect(harness.blobForUrl(downloadLink().getAttribute('href'))).toBe(builtPdfs().at(-1));
     expect(clicks).toHaveBeenCalledTimes(1);
   });
@@ -319,7 +316,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['holiday.jpg', 'b.png']);
     await wait(0);
-    const nameEl = () => container.querySelector(`.${outputNameStyles.name}`);
+    const nameEl = () => container.querySelector('[aria-label="PDF file name"]');
     expect(nameEl().textContent).toBe('holiday');
 
     await act(async () => { nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
@@ -384,7 +381,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const trigger = () => container.querySelector('button[aria-haspopup="listbox"]');
     expect(trigger().getAttribute('aria-label')).toBe('Order images: Your order');
     await act(async () => trigger().click());
-    await act(async () => { document.querySelector(`.${sortMenuStyles['sort-option']}[data-value="nameAsc"]`).click(); });
+    await act(async () => { document.querySelector(`[role="option"][data-value="nameAsc"]`).click(); });
     expect(tileNames()).toEqual(['a.png', 'b.png', 'c.png']);
     expect(trigger().getAttribute('aria-label')).toBe('Order images: Name A–Z');
 
@@ -410,7 +407,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     await loadFiles(['a.png']);
     await wait(0);
     expect(container.querySelector('[role="alert"]').textContent).toContain('A file may be damaged - remove it and try again.');
-    const retry = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    const retry = buttonByText('Try again');
     expect(retry.textContent).toContain('Try again');
     await act(async () => { retry.click(); });
     await wait(0);
@@ -519,7 +516,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     await act(async () => { removeButtons()[0].click(); });
     await wait(20);
     expect(downloadLink().textContent).toContain(size);
-    const share = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    const share = buttonByText('Share');
     expect(share).not.toBeNull();
     await act(async () => share.click());
     expect(nativeShare.share).not.toHaveBeenCalled();
@@ -527,7 +524,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   describe('Share through the shared download flow', () => {
-    const shareButton = () => container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    const shareButton = () => buttonByText('Share');
     const status = () => container.querySelector('p.sr-only[role="status"]').textContent.trim();
 
     it('says the PDF is still ready when the share sheet is canceled, and records nothing', async () => {
@@ -581,7 +578,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const before = downloadLink();
     await act(async () => { before.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     await wait(0);
-    const busy = container.querySelector(`.${pdfToolStyles['is-processing']}`);
+    const busy = container.querySelector('[data-processing]');
     expect(busy).toBe(before);
     expect(busy.tagName).toBe('A');
     expect(busy.getAttribute('aria-disabled')).toBe('true');
@@ -635,7 +632,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const trigger = () => container.querySelector('button[aria-haspopup="listbox"]');
     const pick = async (v) => {
       await act(async () => trigger().click());
-      await act(async () => { document.querySelector(`.${sortMenuStyles['sort-option']}[data-value="${v}"]`).click(); });
+      await act(async () => { document.querySelector(`[role="option"][data-value="${v}"]`).click(); });
     };
     await pick('nameAsc');
     const first = live();

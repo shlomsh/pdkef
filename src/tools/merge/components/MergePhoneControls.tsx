@@ -33,7 +33,7 @@ export default function MergePhoneControls({
 }: MergePhoneControlsProps) {
   return (
     <div class={workspaceStyles['mobile-file-controls']} data-merge-file-controls>
-      <div class={workspaceStyles['quiet-row']}>
+      <div class={workspaceStyles['quiet-row']} data-quiet-row>
         <button type="button" class={workspaceStyles['quiet-button']} onClick={onAdd}><FilePlus size={16} aria-hidden="true" />{sm.addLabel}</button>
         <button type="button" class={workspaceStyles['quiet-button']} onClick={onClear}><Trash2 size={16} aria-hidden="true" />{sm.clearLabel}</button>
       </div>
@@ -41,7 +41,7 @@ export default function MergePhoneControls({
         <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} hideLabel />
       )}
       {fileCount >= 2 && rearranged && (
-        <div class={railStyles['rearranged-note']} role="status">
+        <div class={railStyles['rearranged-note']} data-rearranged-note role="status">
           <span>{t.pagesRearranged}</span>
           <button type="button" class={railStyles['reset-order']} onClick={onResetOrder}>
             {t.resetOrder}

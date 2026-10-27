@@ -55,7 +55,7 @@ export default function SecurityActions({ t, mode, status, downloadUrl, outputBl
           <>
             <ContinueButton tool={returnTool} name={t[RETURN_NAME_KEY[returnTool]]} label={t.continueIn} disabled={handoffBusy} onClick={() => { void requestHandoff(returnTool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }} />
             <div class={styles['handoff-row']}>
-              <a class={styles['handoff-button']} href={downloadUrl} download={fileName} onClick={onDownloadTap}>
+              <a class={styles['handoff-button']} data-quiet-download href={downloadUrl} download={fileName} onClick={onDownloadTap}>
                 <Download size={16} aria-hidden="true" />
                 {t.downloadUnlockedPdf}
               </a>
@@ -107,6 +107,20 @@ function ContinueButton({ tool, name, label, disabled, onClick }: { tool: Return
     <button ref={ref} type="button" class={`${pdfToolStyles['download-button']} ${styles['continue-button']}`} disabled={disabled} onClick={onClick}>
       <Icon size={20} aria-hidden="true" />
       <span class={pdfToolStyles['download-button-label']}>{formatMessage(label, { name })}</span>
+    </button>
+  );
+}
+
+/** The form's one primary control: Unlock or Protect, then the busy label while it runs. */
+export function SubmitButton({ processing, disabled, label, busyLabel }: { processing: boolean; disabled: boolean; label: string; busyLabel: string }) {
+  return (
+    <button
+      type="submit"
+      class={`${pdfToolStyles['tool-primary-action']}${processing ? ` ${pdfToolStyles['is-processing']}` : ''}`}
+      data-processing={processing || undefined}
+      disabled={disabled || processing}
+    >
+      {processing ? busyLabel : label}
     </button>
   );
 }
