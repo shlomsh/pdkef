@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { typecheckSteps, parseArgs, summaryLine, unitsDetail } from './check-fast.mjs';
+import { typecheckSteps, parseArgs, summaryLine, unitsDetail, GUARD_STEPS } from './check-fast.mjs';
+import { ALWAYS_GUARD_STEPS } from './check-push.mjs';
 import { ORACLE_FILES } from './unit-scope.mjs';
 
 describe('typecheckSteps', () => {
@@ -56,4 +57,12 @@ describe('summaryLine', () => {
 
 it('is itself an oracle file, so changing it widens the unit run', () => {
   expect(ORACLE_FILES.has('scripts/check-fast.mjs')).toBe(true);
+});
+
+describe('GUARD_STEPS', () => {
+  // A subagent iterates with check:fast alone; a ratchet it skips fails only at check:push or in CI.
+  it('runs every ratchet check:push runs, in the same order', () => {
+    const ratchets = ALWAYS_GUARD_STEPS.filter((s) => /ratchet|unused-exports|untested-modules|e2e-sleeps/.test(s));
+    expect(GUARD_STEPS.filter((s) => ratchets.includes(s))).toEqual(ratchets);
+  });
 });
