@@ -1889,7 +1889,11 @@ describe('PdfMergeTool quiet-time prepare', () => {
     await act(async () => pageNumbersBox().click());
     await advance(1700);
     // The build loads pdf-lib and the page-number font before its first read: real work, not fake time.
-    await vi.waitFor(() => expect(reads.isBlocked()).toBe(true));
+    // Waits on the real loop only, so the fake clock stays at 1700 ms.
+    for (const until = performance.now() + 5000; !reads.isBlocked() && performance.now() < until;) {
+      await act(() => new Promise((resolve) => setImmediate(resolve)));
+    }
+    expect(reads.isBlocked()).toBe(true);
     expect(box().getAttribute('data-state')).toBe('ready');
     await act(async () => { box().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); });
     expect(box().getAttribute('data-state')).toBe('preparing');
