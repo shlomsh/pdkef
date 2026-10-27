@@ -7,6 +7,7 @@ import path from 'path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
 const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,8 +42,7 @@ describe('files offered right after hydration', () => {
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
       setInputFiles(input, [pdf('one.pdf'), pdf('two.pdf'), pdf('three.pdf')]);
-      await flush(10);
     });
-    expect(container.querySelectorAll('[data-link-row]').length).toBe(3);
+    await waitUntil(() => expect(container.querySelectorAll('[data-link-row]').length).toBe(3));
   });
 });
