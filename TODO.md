@@ -17,6 +17,14 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Unify the tools, narrow the graph
 
+- [ARCH-43](backlog/tasks/ARCH-43.md) P3 · The site reads font tables from a data module, not from the editor core (in progress)
+- [ARCH-47](backlog/tasks/ARCH-47.md) P3 · signHelpers.js splits into text direction, text layout and image tint modules (in progress)
+- [ARCH-49](backlog/tasks/ARCH-49.md) P3 · The import graph sees every import form, or rejects the ones it cannot read (in progress)
+- [ARCH-54](backlog/tasks/ARCH-54.md) P3 · Scan moves its ref-held state into a typed state module (in progress)
+- [ARCH-56](backlog/tasks/ARCH-56.md) P3 · Home and tool page layouts are composed of section components (in progress)
+- [ARCH-63](backlog/tasks/ARCH-63.md) P3 · Each tool has one id used by code, with folder and label fields in TOOL_PAGES (in progress)
+- [ARCH-65](backlog/tasks/ARCH-65.md) P3 · Merge drag options and detection confidence weights are named constants (in progress)
+- [ARCH-86](backlog/tasks/ARCH-86.md) P3 · The unit suite runs as its own CI job beside the guards (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
 
 ### Search and languages

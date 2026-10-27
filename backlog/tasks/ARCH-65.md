@@ -1,10 +1,10 @@
 ---
 id: "ARCH-65"
 title: "Merge drag options and detection confidence weights are named constants"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 10
 depends_on: []
 ---

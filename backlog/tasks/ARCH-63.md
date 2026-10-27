@@ -1,10 +1,10 @@
 ---
 id: "ARCH-63"
 title: "Each tool has one id used by code, with folder and label fields in TOOL_PAGES"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 9
 depends_on: []
 ---

@@ -1,10 +1,10 @@
 ---
 id: "ARCH-47"
 title: "signHelpers.js splits into text direction, text layout and image tint modules"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "later"
+horizon: "now"
 order: 3
 depends_on: []
 ---
