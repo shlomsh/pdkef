@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PageRangeField from '../../shell/pageWorkspace/PageRangeField.tsx';
-import { planForFile, skipAll, withIncludedPages } from '../../lib/pagePlan.ts';
+import { type PlanEntry, planForFile, skipAll, withIncludedPages } from '../../lib/pagePlan.ts';
 import { englishSplitMessages as t } from '../../tools/split/messages';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
@@ -13,22 +13,22 @@ describe('PageRangeField', () => {
     if (host) {
       act(() => render(null, host!));
       host.remove();
-      host = undefined;
+      host = null;
     }
     resetActionTrailForTests();
   });
 
-  const mount = (plan, onSelect = vi.fn()) => {
+  const mount = (plan: PlanEntry[], onSelect = vi.fn()) => {
     host = document.createElement('div');
     document.body.appendChild(host);
-    const draw = (next) => act(() => render(
+    const draw = (next: PlanEntry[]) => act(() => render(
       <PageRangeField plan={next} pageCount={next.length} onSelect={onSelect} messages={t} />, host!,
     ));
     draw(plan);
     return { draw, onSelect };
   };
-  const input = () => host!.querySelector('#page-selector-input');
-  const type = (value) => act(() => {
+  const input = () => host!.querySelector<HTMLInputElement>('#page-selector-input')!;
+  const type = (value: string) => act(() => {
     input().value = value;
     input().dispatchEvent(new Event('input', { bubbles: true }));
   });
@@ -70,7 +70,7 @@ describe('PageRangeField', () => {
     const { onSelect } = mount(planForFile(0, 6));
     type('2-3, 5');
     expect(onSelect).toHaveBeenCalledWith([2, 3, 5], { merge: false });
-    expect(recentActions().map((a) => a.action ?? a)).toContain('select_pages');
+    expect(recentActions()).toContain('select_pages');
   });
 
   it('does not commit when the parse keeps the same pages', () => {
