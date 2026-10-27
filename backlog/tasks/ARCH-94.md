@@ -1,7 +1,7 @@
 ---
 id: "ARCH-94"
 title: "Guidance and source comments cite only paths that exist"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
