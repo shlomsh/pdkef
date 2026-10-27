@@ -7,7 +7,7 @@
 // literal edges rather than only trusting the CLI run.
 import { describe, expect, it } from 'vitest';
 import {
-  parseModule, checkForbiddenImports, checkForbiddenGlobals, checkModuleLevelState, checkAll,
+  parseModule, checkForbiddenImports, checkForbiddenGlobals, checkModuleLevelState, checkStaleShims, checkAll,
 } from './check-detection-purity.mjs';
 
 const FILE = 'src/tools/sign/fields/formGrid.js'; // a real, non-shim entry in DETECTION_MODULES
@@ -269,7 +269,7 @@ describe('detection purity guard: scope-resolved mutation (rule 2, review findin
 describe('detection purity guard: per-function shim allowlist (rule 1, review finding 4)', () => {
   it('allows a reference to an imported pdf-lib binding inside an allowlisted function', () => {
     const source = "import { PDFName } from '@cantoo/pdf-lib';\n"
-      + 'export function lookupDict(context, value) {\n'
+      + 'export function pageWidgets(context, value) {\n'
       + '  return PDFName.of("x");\n'
       + '}\n';
     expect(imports(source, PDFOBJECTS_FILE)).toEqual([]);
@@ -332,5 +332,34 @@ describe('detection purity guard: the real tree', () => {
     const { violations, missing } = checkAll();
     expect(missing).toEqual([]);
     expect(violations).toEqual([]);
+  });
+});
+
+describe('detection purity guard: the pdfObjects.js split (ARCH-55)', () => {
+  const PDFFONTS_FILE = 'src/editor/adapters/pdf/pdfFonts.js';
+  const SPLIT_MODULES = [
+    'textState.js', 'contentStreamWalk.js', 'pdfFonts.js', 'checkboxGlyphs.js', 'textRunJoin.js',
+    'pdkefMark.js', 'dictReads.js', 'pageContent.js', 'xobjectTable.js',
+  ].map((name) => `src/editor/adapters/pdf/${name}`);
+
+  it('scans every module pdfObjects.js pulls code from', () => {
+    expect(checkAll().scanned).toEqual(expect.arrayContaining(SPLIT_MODULES));
+  });
+
+  it('fails a pdf-lib reference in a function pdfFonts.js does not name', () => {
+    const source = "import { PDFName } from '@cantoo/pdf-lib';\nexport function sneaky() { return PDFName.of('X'); }\n";
+    const found = imports(source, PDFFONTS_FILE).filter((v) => v.includes('per-function allowlist'));
+    expect(found).toHaveLength(1);
+  });
+
+  it('keeps textState.js free of any shim, so a pdf-lib import there fails', () => {
+    expect(imports("import { PDFName } from '@cantoo/pdf-lib';\n", 'src/editor/adapters/pdf/textState.js')).toHaveLength(1);
+  });
+
+  it('fails a FUNCTION_SHIMS entry naming a function the file no longer has', () => {
+    const source = "export function present() { return 1; }\n";
+    const stale = checkStaleShims(parseModule(PDFOBJECTS_FILE, source), PDFOBJECTS_FILE);
+    expect(stale.some((v) => v.includes("'widgetEntries'"))).toBe(true);
+    expect(stale.some((v) => v.includes("'present'"))).toBe(false);
   });
 });
