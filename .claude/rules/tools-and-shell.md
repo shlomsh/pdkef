@@ -71,6 +71,14 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
   File/Blob/ArrayBuffer/typed array into a Uint8Array without `instanceof`. `abort.js` `throwIfAborted(signal)`
   throws the signal's own AbortError; never build one by hand.
 
+## Tool folder template (ARCH-45)
+
+Every `src/tools/<tool>/` has the same shape. The root holds only the island(s) `Pdf*Tool*.tsx`, their
+`Pdf*Tool*.test.ts(x)` and `Pdf*Tool*.module.css`, `messages.ts` / `messages.test.ts` and `project.json`.
+Everything else lives in `components/`, `hooks/`, `lib/`, `state/`, `e2e/`, `verb/` or `__fixtures__/`,
+and feature subfolders nest inside those. `node scripts/check-tool-shape.mjs` fails naming any other root
+file or top-level folder; `--list` prints the violations per tool without failing.
+
 ## Catching errors
 
 Ask what threw. If it is the environment or the person's file (blocked or full storage, a missing optional API, a cancelled picker, a stored value that will not parse, a password-protected PDF), fall back quietly and say why in a comment. **A PDF the parser rejects as damaged is reported, not filtered** (`InvalidPDFException`, `MissingPDFException`, `FormatError` travel; pdf-lib's cause travels from Merge's `MergeFileError` via `reportableCause`): a valid file the library cannot read looks the same as a broken one, and a PDF with an empty `/CreationDate ()` was shown as "damaged" for exactly that reason (2026-10-15). A protected PDF is the gate's job (`src/lib/pdfEncryption.ts`) before it reaches a catch; one that still reaches a catch is ours and is reported. If it is our code or a library we ship (a detector, a renderer, a parser, an export step, a draft write after the database opened), call `reportError(area, err, step)` (`src/lib/errorReport.ts`) before the fallback, even when the UI or console already shows it. Every call passes a step label naming the operation in code terms (`export`, `render_thumbnail`), never a filename or anything from a document. Keep the `try` narrow so one block never mixes both, and never report from best-effort cleanup or from telemetry itself. `docs/debt-17-catch-triage.md` is the worked classification. `npm run test:swallowed-errors` enforces this with zero tolerance: a catch (or `.catch` / `.then` handler) that neither reports, rethrows at the top level of its body, nor carries a `// expected: <why>` comment inside it or on the line above is a finding. Run `npm run test:swallowed-errors -- --list` to see findings.
