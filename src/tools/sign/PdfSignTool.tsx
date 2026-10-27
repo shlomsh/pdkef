@@ -958,23 +958,26 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   return (
     <BasePdfTool
       hasFiles={hasFiles}
-      analyticsTool="sign"
-      emptyArt={<SignVerb />}
       onFilesAdded={handleFilesAdded}
-      multiple={false}
-      // Editor-mode shell draws no preview; the shell uses it to count a replacement (DEBT-58).
-      file={file}
-      fileLabel={file?.name}
-      fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null, shellMessages)}
-      draftSaveState={draftSaveState}
-      ownsShell
+      intake={{ multiple: false }}
+      identity={{
+        // Editor-mode shell draws no preview; the shell uses it to count a replacement (DEBT-58).
+        file,
+        label: file?.name,
+        meta: describeFile(file, numPages, isFullscreenActive ? currentPage : null, shellMessages),
+      }}
+      empty={{
+        art: <SignVerb />,
+        // MOBI-09: iOS has no Web Share Target, so the Android share-sheet path
+        // the rest of this tool's mobile handling assumes doesn't exist there.
+        // Scoped to Sign only, per the ticket - Sign is where the "someone
+        // shared me a form over WhatsApp/Mail" case actually lands.
+        iosFilesHint: true,
+      }}
+      draft={{ saveState: draftSaveState, checking: isRestoring }}
+      analytics={{ tool: 'sign' }}
+      owns={{ shell: true }}
       shellMessages={shellMessages}
-      checkingDraft={isRestoring}
-      // MOBI-09: iOS has no Web Share Target, so the Android share-sheet path
-      // the rest of this tool's mobile handling assumes doesn't exist there.
-      // Scoped to Sign only, per the ticket - Sign is where the "someone
-      // shared me a form over WhatsApp/Mail" case actually lands.
-      showIosFilesHint
     >
       {needsUnlock && (
         <NeedsUnlock

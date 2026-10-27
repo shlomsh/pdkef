@@ -866,20 +866,25 @@ export default withIslandBoundary(function PdfCompressTool({
 
   return (
     <BasePdfTool
-      emptyArt={<CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />}
       hasFiles={hasFiles}
-      analyticsTool={analyticsTool}
-      analyticsStatus={status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap}
       onFilesAdded={handleFilesAdded}
-      multiple={false}
-      accept="application/pdf,image/jpeg,image/png"
-      emptyStateMessage={emptyStateMessage ?? t.dropHint}
-      file={file}
-      fileLabel={file?.name}
-      fileMetaExtra={sizesExtra}
-      fileNote={<span data-compress-note>{stripNote}</span>}
+      intake={{ multiple: false, accept: 'application/pdf,image/jpeg,image/png' }}
+      identity={{
+        file,
+        label: file?.name,
+        metaExtra: sizesExtra,
+        note: <span data-compress-note>{stripNote}</span>,
+        hidden: true,
+      }}
+      empty={{
+        art: <CompressVerb subject={analyticsTool === 'compress-image' ? 'photo' : 'page'} />,
+        message: emptyStateMessage ?? t.dropHint,
+      }}
+      analytics={{
+        tool: analyticsTool,
+        status: status === 'error' ? 'error' : flow.tap !== 'idle' ? flow.tap : retryTap,
+      }}
       shellMessages={shellMessages}
-      hideIdentity
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
