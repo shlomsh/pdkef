@@ -1,6 +1,6 @@
 export type GestureEvent = MouseEvent | TouchEvent;
 
-export interface GestureControllerOptions<P> {
+interface GestureControllerOptions<P> {
   computePatch(event: GestureEvent): P;
   writeDOM(patch: P): void;
   commit(patch: P | undefined): void;

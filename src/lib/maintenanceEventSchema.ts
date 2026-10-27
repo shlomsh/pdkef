@@ -18,9 +18,6 @@
 // No imports, and none may be added: `api/report.ts` loads this file in the
 // deployed function (see errorReportSchema.ts and functionImports.test.js).
 
-export const MAINTENANCE_EVENT_NAMES = ['sign_export', 'sign_form_detection', 'pdf_page_tree'] as const;
-export type MaintenanceEventName = (typeof MAINTENANCE_EVENT_NAMES)[number];
-
 export const EXPORT_DURATION_BUCKETS = ['under_1s', 'under_5s', 'under_30s', '30s_or_more'] as const;
 export type ExportDurationBucket = (typeof EXPORT_DURATION_BUCKETS)[number];
 
@@ -51,7 +48,7 @@ export type PageKind = (typeof PAGE_KINDS)[number];
  * export list, so there is one vocabulary to review, not two that drift.
  */
 export const FORM_DETECTION_ERROR_CODES = [...EXPORT_ERROR_CODES, 'modules_unavailable', 'not_started'] as const;
-export type FormDetectionErrorCode = (typeof FORM_DETECTION_ERROR_CODES)[number];
+type FormDetectionErrorCode = (typeof FORM_DETECTION_ERROR_CODES)[number];
 
 /**
  * A PDF whose page list could not be read as written (DEBT-54), one event per
@@ -75,16 +72,14 @@ export type PdfPageTreeProperties = Readonly<{
   roots: PageTreeRoots;
 }>;
 
-export type SignExportProperties =
+type SignExportProperties =
   | Readonly<{ outcome: 'success'; duration_bucket: ExportDurationBucket }>
   | Readonly<{ outcome: 'failure'; duration_bucket: ExportDurationBucket; error_code: ExportErrorCode }>;
 
 /** The detection walk's outcome. No duration: it is not a performance question. */
-export type FormDetectionProperties =
+type FormDetectionProperties =
   | Readonly<{ outcome: 'success'; field_count_bucket: FieldCountBucket; page_kind?: PageKind }>
   | Readonly<{ outcome: 'failure'; error_code: FormDetectionErrorCode }>;
-
-export type MaintenanceEventProperties = SignExportProperties | FormDetectionProperties | PdfPageTreeProperties;
 
 /**
  * Keyed on the name, so `sign_export` cannot be handed a field count and have

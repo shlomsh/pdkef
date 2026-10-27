@@ -25,21 +25,15 @@ import type {
 
 // The event shapes live in the import-free schema the endpoint shares (DEBT-27).
 export {
-  MAINTENANCE_EVENT_NAMES,
   parseMaintenanceEvent,
   type ExportDurationBucket,
   type ExportErrorCode,
   type FieldCountBucket,
-  type FormDetectionErrorCode,
-  type FormDetectionProperties,
   type MaintenanceEvent,
-  type MaintenanceEventName,
-  type MaintenanceEventProperties,
-  type SignExportProperties,
 } from './maintenanceEventSchema';
 
 /** The only transport shape approved for this client-side boundary. */
-export type MaintenanceTransport = (event: MaintenanceEvent) => void;
+type MaintenanceTransport = (event: MaintenanceEvent) => void;
 
 function bucketDuration(durationMs: number): ExportDurationBucket {
   if (!Number.isFinite(durationMs) || durationMs < 0) return '30s_or_more';
@@ -217,7 +211,7 @@ export function sanitizeAnalyticsPath(url: string): string {
   }
 }
 
-export interface AnalyticsBeforeSendEvent {
+interface AnalyticsBeforeSendEvent {
   type: 'pageview' | 'event';
   url: string;
 }
