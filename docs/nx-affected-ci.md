@@ -40,7 +40,7 @@ the repo root, `.nx/` gitignored:
 | `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | - | ✓ |
 | `site-e2e` | `e2e` | - | ✓ |
 | `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | ✓ | - |
-| `form-corpus` | `src/tools/sign/fields/corpus` (nested inside `tool-sign`'s root, same shape as `cross-tool-tests` inside `site-test` - ARCH-24 moved it out of `editor`'s root) | ✓ | - |
+| `form-corpus` | `src/tools/sign/lib/fields/corpus` (nested inside `tool-sign`'s root, same shape as `cross-tool-tests` inside `site-test` - ARCH-24 moved it out of `editor`'s root) | ✓ | - |
 | `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | ✓ | - |
 | `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | ✓ | - |
 
@@ -253,7 +253,7 @@ that recreates the ARCH-20 problem goes red instead of silently widening every n
 
 `arch-20-prep` found `src/lib/useWorkspaceGestures.ts` had a genuine runtime import from
 `src/i18n/toolMessages.ts` (since split by ARCH-35; `englishSignMessages`, `formatMessage`, `signElementTypeLabel`); ARCH-17/18
-later moved that file to `src/tools/sign/useWorkspaceGestures.ts` (Sign's own folder, not `lib`), and
+later moved that file to `src/tools/sign/hooks/useWorkspaceGestures.ts` (Sign's own folder, not `lib`), and
 today it is `src/shell/` that carries the real edge instead (`RecentFiles.tsx`, `ToolShell.tsx`,
 `BasePdfTool.tsx`, `FileDropzone.tsx`, `DropzoneEmptyState.tsx` all import from `src/i18n/`). Every
 tool also has its own direct, permitted edge to `i18n` (module-boundaries rule 1). None of this widens
@@ -420,7 +420,7 @@ the day.
    to a new top-level `e2e/export/` directory and a new `export-guards` Nx/Playwright project
    (`e2e/export/project.json`). Unlike `fonts`, this project *keeps* `editor`, `lib`, `tool-sign` and
    `font-assets` as coarse, whole-project `implicitDependencies` - deliberately, because these two specs
-   really do exercise `src/editor/adapters/pdf/sign.js` and `src/tools/sign/languageAcceptance.js`, and
+   really do exercise `src/editor/adapters/pdf/sign.js` and `src/tools/sign/lib/languageAcceptance.js`, and
    at only two specs (well under a minute combined) the coarse edge costs nothing like the 27-guard
    version did. `export_guards` in `affected-scope.mjs`'s output is decided the normal way - Nx's
    affected-set, `affectedSet.has('export-guards')` - the same as any `tool-*` project, not a glob.

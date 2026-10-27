@@ -60,7 +60,7 @@ Source: https://raw.githubusercontent.com/firecrawl/pdf-inspector/main/src/types
 - **`ItemType`** (verified): `Text`, `Image`, `Link(String)`, `FormField`.
 - **`FormField` is an AcroForm reader** (verified, `extract_form_fields`): it processes widget
   annotations, takes the text from the `/V` value and the position from the widget's `/Rect`. That is
-  the same data `src/tools/sign/fields/formWidgets.js` already reads through pdf-lib, and the corpus
+  the same data `src/tools/sign/lib/fields/formWidgets.js` already reads through pdf-lib, and the corpus
   forms the detectors struggle with are flat (MOBI-10: "0 found (none exist)" for native widgets).
   It would add nothing to a flat form.
 - **`PdfRect` and `PdfLine`** (verified to exist): `re` rectangles and `m`/`l`/`S` segments with a
@@ -124,7 +124,7 @@ Source: https://raw.githubusercontent.com/firecrawl/pdf-inspector/main/src/types
 
 ## 5. Overlap with what pdkef already does
 
-The bar is the 2026-10-01 `src/tools/sign/fields/corpus/scoring/baselines.json` (IoU 0.5, recall /
+The bar is the 2026-10-01 `src/tools/sign/lib/fields/corpus/scoring/baselines.json` (IoU 0.5, recall /
 precision / labels), not the ticket's older 82.0 / 92.7:
 
 | Form | Recall | Precision | Labels |

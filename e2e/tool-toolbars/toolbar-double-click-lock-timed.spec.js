@@ -27,7 +27,7 @@ import { openTool as openSharedTool } from '../support/tool.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIELDS_FIXTURE = path.resolve(
-  here, '..', '..', 'src', 'tools', 'sign', 'fields', '__fixtures__',
+  here, '..', '..', 'src', 'tools', 'sign', 'lib', 'fields', '__fixtures__',
   'income-tax-101-page1-geometry.pdf',
 );
 

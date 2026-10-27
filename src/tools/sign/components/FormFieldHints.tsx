@@ -1,5 +1,5 @@
 import type { CombRegion, FieldRegion } from '../lib/combPlacement.ts';
-import { boxKey } from '../fill/fillDom.ts';
+import { boxKey } from '../lib/fill/fillDom.ts';
 import styles from './FormFieldHints.module.css';
 
 /**

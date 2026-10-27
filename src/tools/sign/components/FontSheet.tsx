@@ -10,7 +10,7 @@ import type { SignMessages } from '../../../editor/registry/messages';
  * fill session alive when focus lands inside an element carrying this
  * attribute, instead of reading it as a blur to `<body>` that should end
  * editing. The canonical constant is `FILL_KEEP_SESSION_ATTR` in
- * `src/tools/sign/fill/fillDom.ts` (commit 975538bc); `editor-ui` may never
+ * `src/tools/sign/lib/fill/fillDom.ts` (commit 975538bc); `editor-ui` may never
  * import a tool (`docs/module-boundaries.md` rule 2), so this is the same
  * string literal, kept in sync by hand rather than by import.
  */

@@ -13,9 +13,9 @@ import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
-import { revealFieldAfterKeyboard } from '../useFieldNavigation.ts';
-import { useFill, useTextFill } from '../fill/FillContext.tsx';
-import { keepFillFocus } from '../fill/fillDom.ts';
+import { revealFieldAfterKeyboard } from '../hooks/useFieldNavigation.ts';
+import { useFill, useTextFill } from './fill/FillContext.tsx';
+import { keepFillFocus } from '../lib/fill/fillDom.ts';
 import compactBarFor from './compactBar.ts';
 
 import { cloneElement, toChildArray } from 'preact';
