@@ -7,6 +7,7 @@ import { applyFilter, type ScanFilter } from './filters.ts';
 import { insetQuad, scaleQuad, type GrayImage, type Quad } from './quad.ts';
 import { fitScanToBudget, type FitResult } from './scanBudget.ts';
 import { canvasToBlob } from '../../lib/canvasBlob.js';
+import { throwIfAborted } from '../../lib/abort.js';
 import { imagesToPdf } from '../../lib/imagesToPdf.js';
 import { placeImage } from '../../lib/imagePage.js';
 import { MAX_SEARCH_MS } from '../../lib/targetSizeSearch.js';
@@ -163,10 +164,6 @@ export async function processPage(photo: Blob, quad: Quad, filter: ScanFilter): 
     freeCanvas(small);
   }
 }
-
-const throwIfAborted = (signal?: AbortSignal) => {
-  if (signal?.aborted) throw new DOMException('Scan build aborted', 'AbortError');
-};
 
 /** Fit pages print at this density whatever the size limit did to their pixels. */
 const FIT_DPI = 200;

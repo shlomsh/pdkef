@@ -32,7 +32,7 @@ src/tools/<t>/   the island, its components, its lib modules, its unit tests, it
 src/lib/         the genuinely shared modules only (about eight today)
 src/site-lib/    site-only/build-only helpers with no tool, shell, editor or lib consumer
                  (DEBT-05): contentMarkup, markdownRender, gitLastModified, cspHash,
-                 inlineStyles, localeOfflinePacks, acceptNegotiation                (classified `site`)
+                 localeOfflinePacks, acceptNegotiation (inlineStyles moved to src/components/, ARCH-34)              (classified `site`)
 site             src/pages, src/content, src/data, src/i18n, src/layouts, src/styles and the
                  .astro components, as today
 ```
@@ -55,7 +55,9 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    state and binds events to it.
 4. The site (pages, layouts, content, data, i18n, styles, and the `.astro` files still under
    `src/components/`) may reach a tool only through that tool's island entry point, `Pdf*Tool.tsx`
-   directly under `src/tools/<name>/`.
+   directly under `src/tools/<name>/`, or its text, `messages.ts` directly under `src/tools/<name>/`
+   (ARCH-35: the site's message registry, `src/site-lib/toolMessageRegistry.ts`, picks a tool's
+   catalogue without loading its island).
 5. **`components` is what is left of the flat `src/components/` now that ARCH-16 through ARCH-18
    have landed:** only `.astro` site components (which classify as `site`, not `components`) and
    `HeroDemo/` remain there. `components` MUST NOT import a tool. The reverse allowance this rule
@@ -121,11 +123,12 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
    and thickness pickers (`FontPickerMenu`, `FontOptionsList`, `FontSheet`, `ThicknessPickerMenu`)
    and `useCoarsePointer` moved into `src/tools/sign/` and `BlurStrengthSlider` into
-   `src/tools/redact/`, by this rule. An `.astro` file's `<script src="...">` is invisible to the main
+   `src/tools/redact/`, by this rule. ARCH-37 (2026-10-26) moved `useCoarsePointer` back into `src/editor-ui/hooks/` once Sign and Redact both used one meaning of it. An `.astro` file's `<script src="...">` is invisible to the main
    edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
    consumes a given module.
+10. **`lib` is the bottom layer: it may import only `lib`** (ARCH-34). A `src/lib/` module that imports `editor`, `editor-ui`, `shell`, `i18n` or `data` fails `test:module-boundaries` (zero violations, no allowlist); text and colour helpers that needed `editor/text` live in `src/editor/text/` instead.
 
-`scripts/check-module-boundaries.mjs` enforces exactly these nine rules; its header comment is the
+`scripts/check-module-boundaries.mjs` enforces exactly these ten rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
 never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteViolations()`,
@@ -417,8 +420,8 @@ own text layer, not a site-only helper, even though neither is imported by a bro
 | `security.js` | `PdfSecurityTool` | `security` |
 | `split.js` | `PdfSplitTool` | `split` |
 | `toImage.js` | `PdfToImageTool`, `toImageOutput.ts` | `to-image` |
-| `imagesToPdf.js` | `useImagesPdfBuild.ts` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
-| `pageOrder.js` | `PdfImageToPdfTool`, `useImagesPdfBuild.ts` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
+| `imagesToPdf.js` | `PdfImageToPdfTool` (`image-to-pdf`), Scan | `image-to-pdf`, `scan` |
+| `pageOrder.js` | `PdfImageToPdfTool`, Scan | `image-to-pdf`, `scan` |
 | `useDeletableObjects.js` | `PdfRedactTool` | `redact` |
 | `useViewDensity.js` | `ViewControl.tsx` | `editor-ui`, not a tool - see the `editor-ui` section above |
 | `fontCoverageTable.js` | `src/editor/text/fonts.js` (the editor core) | moved to `src/editor/text/` (DEBT-04) - the core itself was the sole consumer |

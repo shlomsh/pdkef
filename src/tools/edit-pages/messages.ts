@@ -1,12 +1,12 @@
-import type { DownloadMessages, PageGridMessages } from '../../i18n/toolMessages';
+import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
+import type { DownloadMessages, PageGridMessages } from '../../shell/shellMessages';
 import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
 
 /* Edit Pages' one English catalogue: the slices the shared page grid, the
    Download element and the Undo/Redo pair read, plus the few strings that are
-   this tool's own. Values start from Merge's English set (toolMessages.ts)
+   this tool's own. Values start from Merge's English set (src/tools/merge/messages.ts)
    and say "skip" / "edited" where Merge says "merged"; the grid's sentence
-   shapes are unchanged. Not localized yet, so it is a plain object here and
-   not part of the i18n catalogue. */
+   shapes are unchanged. English only until a Hebrew edition exists. */
 
 export interface EditPagesMessages extends PageGridMessages, DownloadMessages, HistoryButtonsMessages {
   includeAll: string;
@@ -36,6 +36,10 @@ export interface EditPagesMessages extends PageGridMessages, DownloadMessages, H
   handoffSign: string;
   handoffFailed: string;
   shareLabel: string;
+  /* The load-failure line: a protected PDF opens in Unlock first. */
+  failureLead: string;
+  failureUnlock: string;
+  failureTail: string;
 }
 
 export const englishEditPagesMessages: EditPagesMessages = {
@@ -107,4 +111,11 @@ export const englishEditPagesMessages: EditPagesMessages = {
   handoffSign: 'Sign',
   handoffFailed: 'Could not hand the file over. Download it instead.',
   shareLabel: 'Share',
+  failureLead: 'A protected PDF opens in',
+  failureUnlock: 'Unlock',
+  failureTail: 'first. Otherwise the file may be damaged - try another PDF.',
 };
+
+export function getEditPagesMessages(_locale: DocumentationLocaleId): EditPagesMessages {
+  return englishEditPagesMessages;
+}

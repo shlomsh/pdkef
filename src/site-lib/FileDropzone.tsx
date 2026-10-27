@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { routeFiles, handoffKeyFor, type FileRoute } from './routeFiles.ts';
-import { saveHandoff, setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
+import { sendHandoff } from '../lib/sendHandoff.ts';
+import { setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
 import { noteRecentOpen } from '../lib/fileArrival.ts';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
@@ -8,8 +9,9 @@ import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 import { withFillModeParam } from './withFillModeParam.ts';
 import { tools, pageForToolId } from '../data/tools.js';
-import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
-import type { RecentFilesMessages } from '../i18n/toolMessages';
+import { englishFileDropzoneMessages, type FileDropzoneMessages } from './fileDropzoneMessages';
+import { formatMessage } from '../lib/formatMessage';
+import type { RecentFilesMessages } from './recentFilesMessages';
 
 /* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
    Merge file set alike - is an ordinary row now that work lives on the entry
@@ -188,9 +190,7 @@ export default function FileDropzone({
       const records = await Promise.all(files.map(async file => ({
         fileName: file.name, fileType: fileTypeOf(file), fileBytes: await file.arrayBuffer(),
       })));
-      const saved = await saveHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records });
-      if (!saved) throw new Error('handoff');
-      window.location.href = withFillModeParam(href, window.location.search);
+      await sendHandoff(handoffKeyFor(tool), records.length === 1 ? records[0] : { files: records }, { href: withFillModeParam(href, window.location.search) });
       return true;
     } catch {
       // expected: the user sees handoffFailed, and saveHandoff reports its own failure

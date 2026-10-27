@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './scanPipeline.ts';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { rotateQuad, turnedQuad } from './quad.ts';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({

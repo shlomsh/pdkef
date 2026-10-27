@@ -10,7 +10,7 @@
 // `defaults` is a plain argument rather than a set of constants imported
 // here: this file lives under `src/editor/model/`, and
 // `test:editor-dependency-directions` only lets model code import model
-// code, never `src/constants/signGeometry.js`. Taking the tool's defaults as
+// code, never `src/editor/model/signGeometry.js`. Taking the tool's defaults as
 // data keeps the one set of constants (signGeometry.js) the single source of
 // truth instead of a second copy living in the model layer.
 import type { DocumentStyle } from './documentStyle.ts';

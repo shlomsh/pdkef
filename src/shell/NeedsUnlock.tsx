@@ -4,6 +4,7 @@ import FileName from './FileName.tsx';
 import ReplaceFileLine from './pageWorkspace/ReplaceFileLine.tsx';
 import pdfToolStyles from './PdfTool.module.css';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
+import { sendHandoff } from '../lib/sendHandoff.ts';
 import styles from './NeedsUnlock.module.css';
 
 export type NeedsUnlockKind = 'needs-password' | 'owner-restricted';
@@ -63,10 +64,7 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
     setBusy(true);
     setFailed(false);
     try {
-      const { saveHandoff } = await import('../lib/drafts/draftStore.js');
-      const saved = await saveHandoff('unlock', { fileName: file.name, fileType: 'application/pdf', fileBytes: bytes, from });
-      if (!saved) throw new Error('handoff');
-      window.location.href = '/unlock/';
+      await sendHandoff('unlock', { fileName: file.name, fileType: 'application/pdf', fileBytes: bytes, from });
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the quiet hint line
       console.error(err);

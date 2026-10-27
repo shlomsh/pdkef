@@ -7,6 +7,8 @@
  * tool, mirroring validateDocumentationTranslationFreshness's role for guides.
  */
 import { tools, toolsBySlug } from '../data/tools.js';
+// The registry owns which islands have a catalogue (ARCH-38); this set is derived from it.
+import { LOCALIZED_ISLAND_SLUGS } from '../lib/toolIds.ts';
 import {
   getDocumentationLocale,
   documentationPath,
@@ -199,7 +201,7 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
  * English behind the shell's "controls are in English" notice rather than
  * claiming a translation that does not exist. Add a slug here only once that
  * tool's component actually has a reviewed message catalogue
- * (src/i18n/toolMessages.ts) and the .astro route below wires it up.
+ * (src/tools/<tool>/messages.ts) and the .astro route below wires it up.
  *
  * `split` joined with its own catalogue (SplitMessages) once /he/split/ was drafted;
  * `pdf-to-image` joined the same way (ToImageMessages) with /he/pdf-to-image/;
@@ -212,7 +214,7 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
  * `data-tool-controls-english` disclosure. Redact is the one tool still
  * behind that notice, since none of its editor strings have a catalogue yet.
  */
-export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress', 'split', 'pdf-to-image', 'image-to-pdf', 'sign']);
+export const LOCALIZED_TOOL_ISLANDS: ReadonlySet<string> = new Set(LOCALIZED_ISLAND_SLUGS);
 
 /**
  * Every published page of one edition - the locale's home page, its tool

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { Download, Eraser, FileEdit, FileSignature, Merge, Shrink } from 'lucide-preact';
 import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
+import { isPdfFile } from '../../lib/fileKind.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -15,44 +16,55 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
-import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useDownloadFlow } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
-import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
+import { UNLOCK_RETURN_IDS, handoffHrefOf, type UnlockReturnId } from '../../lib/toolIds.ts';
+import { outputFileName } from './outputName.ts';
+import { englishSecurityMessages, type SecurityMessages } from './messages.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
 
 // The tools that can send a protected file here as a detour, and the way back to each. Unlock's done
 // state leads with "Continue in <name>" for a file that arrived with that `from` (guidelines 13).
-// Keyed by the sender's tool id; the page is its own field because the Edit Pages island ('edit-pdf') lives at /organize-pdf/.
-const RETURN_TO = {
-  redact: { name: 'Redact', href: '/redact/', Icon: Eraser },
-  sign: { name: 'Sign', href: '/sign/', Icon: FileSignature },
-  compress: { name: 'Compress', href: '/compress/', Icon: Shrink },
-  'edit-pdf': { name: 'Organize PDF', href: '/organize-pdf/', Icon: FileEdit },
-  merge: { name: 'Merge', href: '/merge/', Icon: Merge },
-} as const;
-type ReturnTool = keyof typeof RETURN_TO;
+// Which tools those are, and their pages, come from the registry (src/lib/toolIds.ts); the name and icon are this tool's wording.
+const RETURN_ICON: Record<UnlockReturnId, typeof Eraser> = {
+  redact: Eraser,
+  sign: FileSignature,
+  compress: Shrink,
+  'edit-pdf': FileEdit,
+  merge: Merge,
+};
+const RETURN_NAME_KEY: Record<UnlockReturnId, keyof SecurityMessages> = {
+  redact: 'returnRedact',
+  sign: 'returnSign',
+  compress: 'returnCompress',
+  'edit-pdf': 'returnEditPdf',
+  merge: 'returnMerge',
+};
+const RETURN_TO = Object.fromEntries(
+  UNLOCK_RETURN_IDS.map((id) => [id, { Icon: RETURN_ICON[id], href: handoffHrefOf(id) as string }]),
+) as Record<UnlockReturnId, { Icon: typeof Eraser; href: string }>;
+type ReturnTool = UnlockReturnId;
 const returnToolOf = (from: string | null): ReturnTool | null => (from && from in RETURN_TO ? from as ReturnTool : null);
 
-// One name for the Download button, the share sheet and the hand-off, so they cannot drift.
-const outputFileName = (name: string, mode: string) => `${name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`;
 
-// The result cell before there is a mode: the encryption check is running, or the file could not be read.
-const CHECKING_PLAN = { tag: 'Checking', source: 'none', locked: false, protectedDone: false } as const;
-const UNREADABLE_PLAN = { tag: 'Not readable', source: 'none', locked: false, protectedDone: false } as const;
-
-const WRONG_PASSWORD = 'The password may be incorrect.';
-const DAMAGED = 'This file could not be unlocked. It may be damaged.';
-// Not the file's fault: the unlock itself threw something other than a password or a read error.
-const UNLOCK_FAILED = 'Something went wrong while unlocking this file. Please try again.';
-const PROTECT_FAILED = 'The file might already be encrypted or corrupted.';
-
-export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; } }: {
+export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; }, messages }: {
   intent?: string;
   /** Tests only: jsdom cannot navigate. */
   navigate?: (href: string) => void;
+  messages?: Partial<SecurityMessages>;
 }) {
+  const t: SecurityMessages = { ...englishSecurityMessages, ...messages };
+  // The result cell before there is a mode: the encryption check is running, or the file could not be read.
+  const CHECKING_PLAN = { tag: t.tagChecking, source: 'none', locked: false, protectedDone: false } as const;
+  const UNREADABLE_PLAN = { tag: t.tagNotReadable, source: 'none', locked: false, protectedDone: false } as const;
+  const WRONG_PASSWORD = t.wrongPassword;
+  const DAMAGED = t.damaged;
+  // Not the file's fault: the unlock itself threw something other than a password or a read error.
+  const UNLOCK_FAILED = t.unlockFailed;
+  const PROTECT_FAILED = t.protectFailed;
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
@@ -60,18 +72,41 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
   useHoldUpdate(file !== null, 'open');
   const [mode, setMode] = useState<string | null>(null); // 'unlock' | 'protect' | null
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
-  const [outputBytes, setOutputBytes] = useState<ArrayBuffer | null>(null); // what the hand-off row passes on
+  const [outputBlob, setOutputBlob] = useState<Blob | null>(null); // what Download, Share and the hand-off row pass on
+  const outputGenerationRef = useRef(0);
   const [noPassword, setNoPassword] = useState(false); // owner-password-only: unlocked with no password asked
   // The tool that sent the file here, if one did. Redact sends a protected file over as a detour, so
   // once it is open the way on is back to Redact, not a choice of next steps (ux-design-guidelines 13).
   const [origin, setOrigin] = useState<string | null>(null);
   const [errorText, setErrorText] = useState('');
-  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [readError, setReadError] = useState<string | null>(null); // why the picked file could not be checked
-  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const passwordRef = useRef<HTMLInputElement | null>(null);
+
+  // The output exists only after a password submit, so it is not a usePreparedOutput build: this is
+  // the finished result the shared flow shares, counts, and hands off.
+  const unlocked = mode === 'unlock';
+  const downloadFlow = useDownloadFlow({
+    prepared: {
+      status: outputBlob && status === 'done' ? 'ready' : 'idle',
+      blob: outputBlob,
+      url: downloadUrl,
+      parts: null,
+      generation: outputGenerationRef.current,
+      prepareNow: () => {},
+    },
+    fileName: file && mode ? outputFileName(file.name, mode) : '',
+    blocked: null,
+    announce: setAnnouncement,
+    messages: {
+      ready: unlocked ? t.readyUnlocked : t.readyProtected,
+      shared: unlocked ? t.sharedUnlocked : t.sharedProtected,
+      canceled: t.canceled,
+      shareError: t.shareError,
+    },
+    navigate,
+  });
+  const { shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
   // DEBT-18: both async paths here belong to one file, so they share one run.
   // `begin()` supersedes whatever was in flight (a second pick retires the
   // first file's encryption check), and resetOutput - which every file pick
@@ -81,11 +116,10 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
 
   const resetOutput = () => {
     fileRun.invalidate();
-    clearPrepared();
+    resetDownloadFlow();
     setStatus('idle');
     clearDownload();
-    setOutputBytes(null);
-    setHandoffFailed(false);
+    setOutputBlob(null);
   };
 
   // Shared by the password form and the no-password path. Captured before the
@@ -93,24 +127,23 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
   // never be written under a newer file's name.
   const runSecurity = async (sourceFile: File, sourceMode: string, pw: string) => {
     setStatus('processing');
-    setAnnouncement(sourceMode === 'unlock' ? 'Unlocking PDF…' : 'Protecting PDF…');
+    setAnnouncement(sourceMode === 'unlock' ? t.unlockingAnnounce : t.protectingAnnounce);
     const run = fileRun.begin();
 
     try {
       const blob = sourceMode === 'unlock'
         ? await unlockPdf(sourceFile, pw)
         : await protectPdf(sourceFile, pw);
-      const bytes = await blob.arrayBuffer();
 
       if (!run.isCurrent()) return;
       run.settle();
       setDownloadBlob(blob);
-      setOutputBytes(bytes);
-      prepare(blob, outputFileName(sourceFile.name, sourceMode));
+      outputGenerationRef.current += 1;
+      setOutputBlob(blob);
       setStatus('done');
       setAnnouncement(sourceMode === 'unlock'
-        ? 'Your unlocked PDF is ready.'
-        : 'Your protected PDF is ready.'
+        ? t.readyUnlocked
+        : t.readyProtected
       );
     } catch (err: any) {
       console.error(err);
@@ -124,17 +157,17 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       setStatus('error');
       setErrorText(sourceMode !== 'unlock' ? PROTECT_FAILED : wrongPassword ? WRONG_PASSWORD : err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED);
       if (wrongPassword) {
-        setAnnouncement('Incorrect password.');
+        setAnnouncement(t.incorrectPassword);
         passwordRef.current?.focus();
         passwordRef.current?.select();
       } else {
-        setAnnouncement(sourceMode === 'unlock' ? (err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED) : err.message || 'An error occurred.');
+        setAnnouncement(sourceMode === 'unlock' ? (err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED) : err.message || t.errorFallback);
       }
     }
   };
 
   const handleFilesAdded = async (files: FileList | File[], from: string | null = null) => {
-    const incoming = Array.from(files).filter((f) => f.type === 'application/pdf');
+    const incoming = Array.from(files).filter((f) => isPdfFile(f));
     if (incoming.length === 0) return;
     
     const selectedFile = incoming[0];
@@ -146,7 +179,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
     setNoPassword(false);
     setOrigin(from);
     recordAction('add_files');
-    setAnnouncement(`Checking file "${selectedFile.name}"...`);
+    setAnnouncement(formatMessage(t.checkingFile, { name: selectedFile.name }));
 
     const run = fileRun.begin();
     let protection: Awaited<ReturnType<typeof probeEncryption>>;
@@ -157,10 +190,10 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       if (!run.isCurrent()) return;
       reportError('pdf_tool_run', err, 'check_encryption');
       run.settle();
-      const message = 'Something went wrong while opening it. Please try again.';
+      const message = t.openFailed;
       setReadError(message);
       setStatus('error');
-      setAnnouncement(`This file could not be read. ${message}`);
+      setAnnouncement(formatMessage(t.couldNotRead, { message }));
       return;
     }
     // A slower check on a file that has since been replaced must not decide
@@ -169,10 +202,10 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
     if (!run.isCurrent()) return;
     run.settle();
     if (protection === 'unreadable') {
-      const message = 'Make sure it is a PDF and is not damaged.';
+      const message = t.unreadable;
       setReadError(message);
       setStatus('error');
-      setAnnouncement(`This file could not be read. ${message}`);
+      setAnnouncement(formatMessage(t.couldNotRead, { message }));
       return;
     }
     const newMode = protection === 'open' ? 'protect' : 'unlock';
@@ -183,9 +216,9 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       setNoPassword(true);
       await runSecurity(selectedFile, 'unlock', '');
     } else if (newMode === 'unlock') {
-      setAnnouncement(`File "${selectedFile.name}" loaded. Enter its password to unlock.`);
+      setAnnouncement(formatMessage(t.loadedUnlock, { name: selectedFile.name }));
     } else {
-      setAnnouncement(`File "${selectedFile.name}" loaded. Enter a password to protect it.`);
+      setAnnouncement(formatMessage(t.loadedProtect, { name: selectedFile.name }));
     }
   };
 
@@ -203,42 +236,9 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
     await runSecurity(file, mode, password);
   };
 
-  const handleShare = async () => {
-    const result = await sharePrepared();
-    if (result.status === 'shared') recordAction('share');
-    if (result.status === 'shared') setAnnouncement(`${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF shared successfully.`);
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
-  };
-
-  // Park the unlocked bytes for the target tool and navigate. The Download
-  // above stays; this is only a next step.
-  const handOff = async (tool: ReturnTool) => {
-    if (handoffBusy || !file || !outputBytes) return;
-    setHandoffBusy(true);
-    setHandoffFailed(false);
-    try {
-      // The store is only needed once a result is being handed off.
-      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff(tool, {
-        fileName: outputFileName(file.name, 'unlock'),
-        fileType: 'application/pdf',
-        fileBytes: outputBytes,
-      });
-      if (!saved) throw new Error('handoff');
-      navigate(RETURN_TO[tool].href);
-    } catch (err) {
-      // expected: saveHandoff reports its own failure, this shows the handoff-failed line
-      console.error(err);
-      setHandoffFailed(true);
-      setHandoffBusy(false);
-    }
-  };
-
   const hasFiles = !!file;
   const returnTool = returnToolOf(origin);
-  const preview = planPreview({ mode: mode as 'unlock' | 'protect' | null, status, noPassword });
-  const outputBlob = useMemo(() => (outputBytes ? new Blob([outputBytes], { type: 'application/pdf' }) : null), [outputBytes]);
+  const preview = planPreview({ mode: mode as 'unlock' | 'protect' | null, status, noPassword }, t);
   const previewSource = preview?.source === 'input' ? file : preview?.source === 'output' ? outputBlob : null;
 
   return (
@@ -251,7 +251,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       analyticsStatus={status === 'error' && errorText === WRONG_PASSWORD ? 'needs_password' : status}
       onFilesAdded={(files: FileList | File[]) => handleFilesAdded(files)}
       multiple={false}
-      emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}
+      emptyStateMessage={intent === 'unlock' ? t.emptyUnlock : t.emptyProtect}
       file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
@@ -266,22 +266,22 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
           </div>
           <div class={styles.controls}>
           {!mode && status === 'error' && readError && (
-            <ErrorMessage title="This file could not be read.">{readError}</ErrorMessage>
+            <ErrorMessage title={t.readErrorTitle}>{readError}</ErrorMessage>
           )}
           {mode && (noPassword ? (
             <p class={styles.line}>
               {status === 'error'
-                ? 'Choose another file with Replace.'
+                ? t.noPasswordFailed
                 : status === 'done'
-                  ? 'No password needed. The protection is off.'
-                  : `No password needed. This takes the protection off.${status === 'processing' ? ' Unlocking…' : ''}`}
+                  ? t.noPasswordDone
+                  : status === 'processing' ? t.noPasswordProcessing : t.noPasswordTakesOff}
             </p>
           ) : !(mode === 'unlock' && status === 'done') && (
             // Once unlocked, the password has done its job and the form goes. Protect keeps its field:
             // there the password is a setting of the output, and changing it starts over.
             <form class={styles['unlock-form']} onSubmit={handleSubmit}>
               <label class={styles['unlock-label']} htmlFor="security-password">
-                {mode === 'unlock' ? 'PDF password' : 'Set Password'}
+                {mode === 'unlock' ? t.passwordLabelUnlock : t.passwordLabelProtect}
               </label>
               <input
                 ref={passwordRef}
@@ -290,7 +290,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                 type="password"
                 value={password}
                 onInput={handlePasswordChange}
-                placeholder={mode === 'unlock' ? "Enter the PDF's password" : "Enter a new password"}
+                placeholder={mode === 'unlock' ? t.passwordPlaceholderUnlock : t.passwordPlaceholderProtect}
                 autoComplete={mode === 'unlock' ? "off" : "new-password"}
                 autoFocus
               />
@@ -303,8 +303,8 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                   disabled={!password || status === 'processing'}
                 >
                   {status === 'processing'
-                    ? (mode === 'unlock' ? 'Unlocking…' : 'Protecting…')
-                    : (mode === 'unlock' ? 'Unlock PDF' : 'Protect PDF')}
+                    ? (mode === 'unlock' ? t.unlocking : t.protecting)
+                    : (mode === 'unlock' ? t.unlockPdf : t.protectPdf)}
                 </button>
               )}
             </form>
@@ -313,21 +313,21 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
           {mode && status === 'error' && <ErrorMessage>{errorText}</ErrorMessage>}
           </div>
 
-          {preview ? <PagePreview plan={preview} source={previewSource} failed={status === 'error'} /> : (
-            <PagePreview plan={readError ? UNREADABLE_PLAN : CHECKING_PLAN} source={null} pending={!readError} />
+          {preview ? <PagePreview plan={preview} source={previewSource} failed={status === 'error'} label={t.firstPageLabel} /> : (
+            <PagePreview plan={readError ? UNREADABLE_PLAN : CHECKING_PLAN} source={null} pending={!readError} label={t.firstPageLabel} />
           )}
 
           <div class={styles.actions}>
           {mode && status === 'done' && downloadUrl && (
-            returnTool && mode === 'unlock' && outputBytes ? (
+            returnTool && mode === 'unlock' && outputBlob ? (
               <>
-                <ContinueButton tool={returnTool} disabled={handoffBusy} onClick={() => handOff(returnTool)} />
+                <ContinueButton tool={returnTool} name={t[RETURN_NAME_KEY[returnTool]]} label={t.continueIn} disabled={handoffBusy} onClick={() => { void requestHandoff(returnTool); }} />
                 <div class={styles['handoff-row']}>
-                  <a class={styles['handoff-button']} href={downloadUrl} download={outputFileName(file.name, mode)} onClick={() => recordAction('download')}>
+                  <a class={styles['handoff-button']} href={downloadUrl} download={outputFileName(file.name, mode)} onClick={onDownloadTap}>
                     <Download size={16} aria-hidden="true" />
-                    Download unlocked PDF
+                    {t.downloadUnlockedPdf}
                   </a>
-                  <PdfShareButton visible={shareReady} onShare={handleShare} label="Share" className={styles['handoff-button']} />
+                  <PdfShareButton visible={shareReady} onShare={handleShare} label={t.share} className={styles['handoff-button']} />
                 </div>
               </>
             ) : (
@@ -335,19 +335,19 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                 <DownloadButton
                   href={downloadUrl}
                   download={outputFileName(file.name, mode)}
-                  label={`Download ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
-                  onClick={() => recordAction('download')}
+                  label={mode === 'unlock' ? t.downloadLabelUnlocked : t.downloadLabelProtected}
+                  onClick={onDownloadTap}
                 />
-                <PdfShareButton visible={shareReady} onShare={handleShare} label="Share" />
-                {mode === 'unlock' && outputBytes && (
+                <PdfShareButton visible={shareReady} onShare={handleShare} label={t.share} />
+                {mode === 'unlock' && outputBlob && (
                   <div class={styles['handoff-row']}>
-                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => handOff('redact')}>
+                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => { void requestHandoff('redact'); }}>
                       <Eraser size={16} aria-hidden="true" />
-                      Redact it
+                      {t.redactIt}
                     </button>
-                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => handOff('sign')}>
+                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => { void requestHandoff('sign'); }}>
                       <FileSignature size={16} aria-hidden="true" />
-                      Sign it
+                      {t.signIt}
                     </button>
                   </div>
                 )}
@@ -357,7 +357,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
 
           {status === 'done' && handoffFailed && (
             <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-              Could not hand this off. Download it instead and open it there.
+              {t.handoffFailed}
             </p>
           )}
           </div>
@@ -373,8 +373,8 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
 }
 
 /** The done state's primary control when another tool sent the file here: the way back to that tool. */
-function ContinueButton({ tool, disabled, onClick }: { tool: ReturnTool; disabled: boolean; onClick: () => void }) {
-  const { name, Icon } = RETURN_TO[tool];
+function ContinueButton({ tool, name, label, disabled, onClick }: { tool: ReturnTool; name: string; label: string; disabled: boolean; onClick: () => void }) {
+  const { Icon } = RETURN_TO[tool];
   const ref = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
@@ -382,7 +382,7 @@ function ContinueButton({ tool, disabled, onClick }: { tool: ReturnTool; disable
   return (
     <button ref={ref} type="button" class={`${pdfToolStyles['download-button']} ${styles['continue-button']}`} disabled={disabled} onClick={onClick}>
       <Icon size={20} aria-hidden="true" />
-      <span class={pdfToolStyles['download-button-label']}>Continue in {name}</span>
+      <span class={pdfToolStyles['download-button-label']}>{formatMessage(label, { name })}</span>
     </button>
   );
 }

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
-import { textAnchorsRightEdge } from '../../lib/signHelpers.js';
+import { textAnchorsRightEdge } from '../../editor/text/signHelpers.js';
 import { touchClaimsElement } from '../../editor/gestures/touchClaim.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
-} from '../../constants/signGeometry.js';
+} from '../../editor/model/signGeometry.js';
 
 // MOBI-21. How far a finger may travel and still have meant a tap rather than
 // a move. It is deliberately the browser's own touch slop (Chromium and

@@ -7,6 +7,7 @@ import useObjectPreviews from './useObjectPreviews.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { RedactCommands } from './useRedactCommands.ts';
+import { englishRedactMessages } from './messages.ts';
 import { deletedSummary } from './deleteMarquee.ts';
 import type { RedactElement } from './redactElements.ts';
 import { EVERY_PAGE_MESSAGE, restOfImage, sharedImageMessage } from './sameImage.ts';
@@ -119,7 +120,7 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
       if (otherPages > 0) {
         chipMessage = sharedImageMessage(otherPages);
         // Through a ref: this runs on a later render, and `add` must see that render's elements.
-        undoExtra = { label: 'Every page', onSelect: () => latest.current(rest, { summary: EVERY_PAGE_MESSAGE }) };
+        undoExtra = { label: englishRedactMessages.deleted.everyPageLabel, onSelect: () => latest.current(rest, { summary: EVERY_PAGE_MESSAGE }) };
       }
     }
     add(created, { type: 'ADD_DELETE', description: summary, undoChip: true, undoExtra, chipMessage });

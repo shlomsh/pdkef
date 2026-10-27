@@ -2,7 +2,7 @@
 // the form Astro's `Astro.csp.insertStyleHash` / `insertScriptHash` take.
 // Astro hashes the styles it bundles itself; a `<style is:inline>` (CompareFigure,
 // TheO) has to be registered by hand, from the route or layout that owns the
-// <head> (see inlineStyles.ts). Plain JS so no Node type declarations are needed
+// <head> (see components/inlineStyles.ts). Plain JS so no Node type declarations are needed
 // by the files that import it.
 import { createHash } from 'node:crypto';
 

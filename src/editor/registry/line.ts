@@ -2,7 +2,7 @@ import type { ElementDefinition, LineResizeInput, LineResizePatch } from './type
 import type { LineElement } from '../model/editorModel.ts';
 import { rgb } from '../../lib/pdfLiterals.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
-import { hexToRgbFractions } from '../../lib/signHelpers.js';
+import { hexToRgbFractions } from '../text/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';
 
 export function applyLineResize({ handle, delta, start }: LineResizeInput): LineResizePatch {

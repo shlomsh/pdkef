@@ -1,27 +1,32 @@
 import { applyRotation } from '../../lib/pageOps.js';
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { openPdfDoc } from '../../lib/openPdfDoc.ts';
+import { throwIfAborted } from '../../lib/abort.js';
+import { toBytes } from '../../lib/toBytes.js';
+import { outputBase, withAffixes } from '../../lib/outputName.ts';
 
 // DEBT-23: parsePageSelector moved to src/lib/pageSelector.js (shared with
 // PDF to Image). Import it from there.
 
 // The source's base name, ".pdf" stripped, "split" when nothing is left.
 export function outputBaseName(fileName) {
-  return (fileName || '').replace(/\.pdf$/i, '') || 'split';
+  return outputBase(fileName || '', { fallback: 'split' });
 }
 
-// The single-file output is `extracted_<base>.pdf`, the shape every other
-// tool uses (`merged_x.pdf`, `signed_x.pdf`, `compressed_x.pdf`): a prefix in
+// The single-file output is `extracted_<base>.pdf`, the shape Merge, Sign and
+// Redact use (`merged_x.pdf`, `signed_x.pdf`, `redacted_x.pdf`): a prefix in
 // the tool's language, then the name in its own direction, so a Hebrew name
-// needs no bidi isolation (ux-design-guidelines §5). Per-page files keep
+// needs no bidi isolation (ux-design-guidelines §5). Compress is the one tool
+// that suffixes instead (`x-compressed.pdf`). Per-page files keep
 // `<base>-page-<n>.pdf`, one per page, in page order.
 export function outputFileName(fileName, mode, pageNumber) {
   const base = outputBaseName(fileName);
-  return mode === 'separate' ? `${base}-page-${pageNumber}.pdf` : extractedFileName(base);
+  return mode === 'separate' ? withAffixes(base, { suffix: `-page-${pageNumber}` }) : extractedFileName(base);
 }
 
 // The single-file name for a base the person may have renamed in the heading.
 export function extractedFileName(base) {
-  return `extracted_${base}.pdf`;
+  return withAffixes(base, { prefix: 'extracted_' });
 }
 
 // Splits the input PDF file based on the selected page numbers and mode.
@@ -29,15 +34,12 @@ export function extractedFileName(base) {
 // 0|90|180|270 } map of the delta the person applied with the per-cell
 // rotate control, added on top of whatever rotation the source page already
 // carried (pageOps.js's applyRotation, shared with Merge and Edit Pages).
-function throwIfAborted(signal) {
-  if (signal?.aborted) throw new DOMException('The split was superseded.', 'AbortError');
-}
-
 export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations = {}, onProgress, signal }) {
   const { PDFDocument } = await getPdfLib();
-  const bytes = await file.arrayBuffer();
+  const bytes = await toBytes(file);
   throwIfAborted(signal);
-  const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  // The island repairs a lost page tree at intake and hands over the repaired file (ARCH-39 decision), so no repair here.
+  const { doc: source } = await openPdfDoc(bytes, { encryption: 'ignore' });
   // An owner-only file loads without a password, but its page streams are still
   // encrypted: copying them out would save a valid PDF of blank pages.
   if (source.isEncrypted) throw new Error('This PDF is password protected.');

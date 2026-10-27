@@ -11,7 +11,7 @@ reviewNotes: >-
   2026-10-14: AI draft published on Shlomi's request, not yet read by him.
   Pending his own read-through, like the Hebrew home page. The vocabulary
   (המרת PDF לתמונה, JPG, PNG) comes from Hebrew autocomplete, not from a
-  measured query volume. The control labels live in src/i18n/toolMessages.ts.
+  measured query volume. The control labels live in src/tools/to-image/messages.ts.
   10-15: hash moved only because h1Name was added; translation unchanged.
   2026-10-17: step 3 and two FAQ answers follow the new UI (no Convert button).
   2026-10-22: Shlomi's read-through; no changes.

@@ -5,6 +5,7 @@
 // does it - see ToolPageLayout.astro, which passes them into <AppBar>.
 // Keeps the single crawlable <h1> per page; the app-bar breadcrumb is nav.
 import { splitHeroTitle } from '../site-lib/heroTitle';
+import { layoutOf } from '../lib/toolIds.ts';
 
 interface Props {
   icon: any;
@@ -40,7 +41,7 @@ const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, s
 // take the stacked look too (the E block below), so their h1 is split like the
 // others and a neutraliser renders the two spans as the one line they were
 // everywhere else.
-const isEditor = slug === 'sign' || slug === 'redact';
+const { editorLayout: isEditor, iconTone } = layoutOf(slug);
 const stacked = !isEditor;
 const split = splitHeroTitle(title, titleName);
 
@@ -81,7 +82,6 @@ const sentences = subhead.split(/(?<=\. )/);
 // small rules below (scoped, in this file's own <style>) say the same thing in
 // far fewer bytes. Sign/redact are the two tools with a tone of their own; every
 // other tool leaves the attribute unset and gets the plain default below.
-const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undefined;
 ---
 
 {/*

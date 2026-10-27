@@ -2,14 +2,5 @@
   "name": "editor-ui",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "src/editor-ui",
-  "targets": {
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npx vitest run src/editor-ui/",
-        "cwd": "{workspaceRoot}"
-      }
-    }
-  }
+  "sourceRoot": "src/editor-ui"
 }

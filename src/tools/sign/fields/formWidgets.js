@@ -1,5 +1,5 @@
 // @ts-check
-import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 import { createPageGeometry, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { pageCropBox } from './pageInk.js';
 import { pageWidgets, widgetEntries } from '../../../editor/adapters/pdf/pdfObjects.js';

@@ -17,7 +17,7 @@ import {
 } from './mergePlan.ts';
 import { outputPageCount, planForFile, type PlanEntry } from '../../lib/pagePlan.ts';
 import { deriveFileKind } from '../../lib/fileKind.js';
-import { sortByDate, sortByName } from '../../lib/sort.js';
+import { moveEntry, sortEntries } from '../../lib/pageOrder.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize, isolateName } from '../../lib/format.js';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -35,7 +35,7 @@ import railStyles from './components/MergeRail.module.css';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
-import { useDownloadFlow, type HandoffTool, type HandoffHrefs } from '../../shell/pageWorkspace/useDownloadFlow.ts';
+import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './useLinkedHighlight.ts';
 import DownloadElement from '../../shell/DownloadElement.tsx';
 import FinishRow from '../../shell/pageWorkspace/FinishRow.tsx';
@@ -52,13 +52,9 @@ import { usePreparedMerge } from './components/usePreparedMerge.ts';
 import type { PageGridProps } from '../../shell/pageGrid/PageGrid.tsx';
 import type { MergeDraftPersistenceProps } from './components/MergeDraftPersistence.tsx';
 import type { MergeDraftRestore, MergeDraftSaveState } from './components/useMergeDraft.ts';
-import {
-  englishMergeMessages,
-  englishShellMessages,
-  formatMessage,
-  type MergeMessages,
-  type ShellMessages,
-} from '../../i18n/toolMessages';
+import { englishMergeMessages, type MergeMessages } from './messages';
+import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import { reportError } from '../../lib/errorReport.ts';
 import { reportableCause } from './reportableCause.ts';
 
@@ -196,8 +192,6 @@ interface PdfMergeToolProps {
   navigate?: (href: string) => void;
 }
 
-const DEFAULT_HANDOFF_HREFS: HandoffHrefs = { compress: '/compress/', sign: '/sign/' };
-
 export default function PdfMergeTool({
   messages: messagesProp,
   shellMessages,
@@ -206,7 +200,6 @@ export default function PdfMergeTool({
   quietPolicy,
   navigate = (href) => { window.location.href = href; },
 }: PdfMergeToolProps = {}) {
-  const hrefs: HandoffHrefs = { ...DEFAULT_HANDOFF_HREFS, ...handoffHrefs };
   const t: MergeMessages = { ...englishMergeMessages, ...messagesProp };
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   /* GRID-03: one Undo/Redo stack over the whole document. A user edit is a
@@ -386,7 +379,7 @@ export default function PdfMergeTool({
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs,
+    hrefs: handoffHrefs,
     blocked: entries.length < 2 ? 'one-file' : (failedEntry || otherError) ? 'error' : null,
     // Page counts still arriving leave the plan empty; that is not "every page skipped".
     nothing: plan.length > 0 && outputPageCount(plan) === 0,
@@ -741,12 +734,10 @@ export default function PdfMergeTool({
 
   const moveFileEntry = useCallback((id: number, delta: number) => {
     commitModel((current: Model) => {
-      const index = current.entries.findIndex((e) => e.id === id);
-      const newIndex = index + delta;
-      if (index === -1 || newIndex < 0 || newIndex >= current.entries.length) return current;
-      const next = [...current.entries];
-      const [moved] = next.splice(index, 1);
-      next.splice(newIndex, 0, moved);
+      const next: FileEntry[] = moveEntry(current.entries, id, delta);
+      if (next === current.entries) return current;
+      const newIndex = next.findIndex((e) => e.id === id);
+      const moved = next[newIndex];
       setAnnouncement(formatMessage(t.fileMovedTo, { name: moved.file.name, position: newIndex + 1, total: next.length }));
       return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)), sortMode: 'added' };
     });
@@ -770,17 +761,11 @@ export default function PdfMergeTool({
 
   const onSortChange = useCallback((value: string) => {
     const mode = value as SortMode;
-    const sorted = mode === 'nameAsc'
-      ? sortByName(entries, 'asc')
-      : mode === 'nameDesc'
-        ? sortByName(entries, 'desc')
-        : mode === 'dateAsc'
-          ? sortByDate(entries, 'asc')
-          : mode === 'dateDesc'
-            ? sortByDate(entries, 'desc')
-            : mode === 'reversed'
-              ? [...entries].reverse()
-              : [...entries].sort((a, b) => a.id - b.id);
+    const sorted = mode === 'reversed'
+      ? [...entries].reverse()
+      : mode === 'added'
+        ? [...entries].sort((a, b) => a.id - b.id)
+        : sortEntries(entries, mode);
     reorderEntries(sorted, mode, t.filesReordered);
     recordAction('sort');
   }, [entries, reorderEntries, t.filesReordered]);

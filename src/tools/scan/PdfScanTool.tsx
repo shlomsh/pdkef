@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import Sortable from 'sortablejs';
 import { Camera, Check, Crop, Expand, FileSignature, ImagePlus, Maximize, Merge, Minimize2, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
+import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
@@ -10,7 +11,7 @@ import { reportError } from '../../lib/errorReport.ts';
 import { reportEdit } from '../../lib/productAnalytics.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { formatFileSize } from '../../lib/format.js';
-import { formatMessage } from '../../i18n/toolMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
@@ -27,7 +28,7 @@ import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/use
 import OptionRow, { type Option } from '../../shell/pageWorkspace/OptionRow.tsx';
 import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
 import { useMediaQuery } from './useMediaQuery.ts';
-import { englishShellMessages } from '../../i18n/toolMessages';
+import { englishShellMessages } from '../../shell/shellMessages';
 import CornerEditor from './CornerEditor.tsx';
 import ResultPage from './ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
@@ -37,12 +38,9 @@ import { FULL_QUAD, quadKey, rotateQuad, turnedQuad, unturnedQuad, type Quad } f
 import { SIZE_LIMITS, type SizeLimitId } from './scanBudget.ts';
 import type { ScanFilter } from './filters.ts';
 import type { BuiltPage, PageSize, Placement, ProcessedPage } from './scanPipeline.ts';
-import { scanMessages as t } from './scanMessages.ts';
+import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
-const ACCEPT = ACCEPTED_TYPES.join(',');
-const HANDOFF_HREFS = { compress: '/compress/', sign: '/sign/', merge: '/merge/' };
 const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
 
 interface ScanPage {
@@ -167,13 +165,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     shownByKeyRef.current.clear();
     missedKeysRef.current.clear();
   };
-  const listRef = useRef<HTMLUListElement | null>(null);
   const editorRef = useRef<HTMLElement | null>(null);
   /** The photo and the pages: on desktop they fill the card down to the first screen's foot. */
   const workbenchRef = useRef<HTMLDivElement | null>(null);
   const stageHeight = useFloorHeight(workbenchRef, pages.length > 0);
   const hadPagesRef = useRef(false);
-  const focusIdRef = useRef<number | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
   const defaultFilterRef = useRef(defaultFilter);
@@ -231,7 +227,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (cached) return cached;
     const run = enqueue(async () => {
       // A corner moved again, the look changed or the page went while this waited: skip the decode and warp.
-      if (!isCurrentKey(key)) throw new DOMException('Superseded scan work', 'AbortError');
+      throwIfAborted({ aborted: !isCurrentKey(key) });
       return (await loadPipeline()).processPage(page.file, pageQuad(page), page.filter);
     });
     processingRef.current.set(key, run);
@@ -353,11 +349,11 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     build: async (signal, onProgress) => {
       const { pages: current, pageSize: size, limit: chosen, key: builtKey } = inputsRef.current;
       const made = await Promise.all(current.map((page) => processed(page)));
-      if (signal.aborted) throw new DOMException('Scan build aborted', 'AbortError');
+      throwIfAborted(signal);
       const budgetBytes = SIZE_LIMITS.find((l) => l.id === chosen)?.bytes ?? null;
       // Through the queue like every decode: a phone holds one photo's worth of pixels at a time.
       const fit = await enqueue(async () => (await loadPipeline()).buildScanPdf(made, { pageSize: size, budgetBytes, onProgress, signal }));
-      if (signal.aborted || unmountedRef.current) throw new DOMException('Scan build aborted', 'AbortError');
+      throwIfAborted(unmountedRef.current ? { aborted: true } : signal);
       const builtAs = builtKey as string;
       if (fit.metTarget) missedKeysRef.current.delete(builtAs);
       else missedKeysRef.current.add(builtAs);
@@ -373,7 +369,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const downloadFlow = useDownloadFlow({
     prepared,
     fileName,
-    hrefs: HANDOFF_HREFS,
     // A photo that could not be read holds the PDF back: Download says so instead of preparing for good.
     blocked: prepared.status === 'error' || failedIds.length > 0 ? 'error' : null,
     announce: setAnnouncement,
@@ -383,27 +378,15 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
   const { tap, downloadState, shareReady, handoffBusy, handoffFailed, requestHandoff, onDownloadTap, onRowPreparingTap, handleShare, reset: resetDownloadFlow } = downloadFlow;
   resetDownloadFlowRef.current = resetDownloadFlow;
 
-  // Drag to reorder: SortableJS owns the DOM order during a drag; on drop the order is read back into state.
-  useEffect(() => {
-    if (!listRef.current) return undefined;
-    const sortable = Sortable.create(listRef.current, {
-      animation: 220,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      draggable: '[data-id]',
-      filter: 'button',
-      preventOnFilter: false,
-      delay: 150,
-      delayOnTouchOnly: true,
-      ghostClass: styles['is-ghost'],
-      onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        const { oldIndex, newIndex } = evt;
-        setPages((current) => reorderEntries(current, oldIndex, newIndex));
-        recordAction('reorder');
-      },
-    });
-    return () => sortable.destroy();
-  }, [pages.length > 0]);
+  const { listRef, focusIdRef } = usePhotoTileList({
+    active: pages.length > 0,
+    items: pages,
+    ghostClass: styles['is-ghost'],
+    onReorder: (oldIndex, newIndex) => {
+      setPages((current) => reorderEntries(current, oldIndex, newIndex));
+      recordAction('reorder');
+    },
+  });
 
   // Bring the page's top into view: the first photos replace the tall empty state, and moving on from
   // the corners (whose buttons sit under the photo) would otherwise leave the person under the next view.
@@ -527,13 +510,6 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     if (at.left < box.left) list.scrollLeft -= box.left - at.left;
     else if (at.right > box.right) list.scrollLeft += at.right - box.right;
   }, [selectedId]);
-
-  useLayoutEffect(() => {
-    const id = focusIdRef.current;
-    if (id === null) return;
-    focusIdRef.current = null;
-    listRef.current?.querySelector<HTMLElement>(`[data-id="${id}"] [data-page]`)?.focus();
-  }, [pages]);
 
   const onTileKeyDown = (event: KeyboardEvent, id: number) => {
     const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
@@ -821,7 +797,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                   <div class={workspaceStyles['quiet-row']}>
                     <button type="button" class={workspaceStyles['quiet-button']} onClick={requestClear}>
                       <Trash2 size={16} aria-hidden="true" />
-                      {englishShellMessages.clearLabel ?? 'Clear all'}
+                      {englishShellMessages.clearLabel ?? t.clearAll}
                     </button>
                   </div>
                 </>

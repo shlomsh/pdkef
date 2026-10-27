@@ -4,7 +4,8 @@ import { onAction } from '../lib/actionTrail.ts';
 import { markAsked, markRated, reportRating, reportRatingComment, shouldAsk, type RatingStorage } from '../lib/ratingReport.ts';
 import type { RatingTool, Stars } from '../lib/ratingSchema.ts';
 import { STARS } from '../lib/ratingSchema.ts';
-import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
+import { englishShellMessages, type ShellMessages } from './shellMessages';
+import { formatMessage } from '../lib/formatMessage';
 
 type RatingMessages = Pick<
   ShellMessages,

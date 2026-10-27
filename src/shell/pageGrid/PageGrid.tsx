@@ -4,9 +4,10 @@ import Sortable from 'sortablejs';
 import { Download } from 'lucide-preact';
 import styles from './PageGrid.module.css';
 import FileName from '../FileName.tsx';
-import { moveEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../lib/pagePlan.ts';
+import { movePlanEntry, outputPageCount, rotateEntry, updateEntry, type PlanEntry } from '../../lib/pagePlan.ts';
 import { openThumbnailSource } from '../../lib/thumbnails.js';
-import { formatMessage, type PageGridMessages } from '../../i18n/toolMessages';
+import { type PageGridMessages } from '../shellMessages';
+import { formatMessage } from '../../lib/formatMessage';
 import type { PreviewTarget, PreviewToggle, PreviewMessages } from '../PagePreviewDialog.tsx';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -456,7 +457,7 @@ export default function PageGrid({
         clearDraggingCursor();
         if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return;
         const { oldIndex, newIndex } = evt;
-        onPlanChange((current) => moveEntry(current, oldIndex, newIndex));
+        onPlanChange((current) => movePlanEntry(current, oldIndex, newIndex));
         recordAction('reorder');
         announce(formatMessage(t.pageMoved, { position: newIndex + 1, total: planRef.current.length }));
       },
@@ -501,7 +502,7 @@ export default function PageGrid({
     const target = index + delta;
     if (target < 0 || target >= planRef.current.length) return;
     focusKey.current = planRef.current[index].key;
-    onPlanChange((current) => moveEntry(current, index, target));
+    onPlanChange((current) => movePlanEntry(current, index, target));
     recordAction('reorder');
     announce(formatMessage(t.pageMoved, { position: target + 1, total: planRef.current.length }));
   }, [onPlanChange, announce, t.pageMoved]);

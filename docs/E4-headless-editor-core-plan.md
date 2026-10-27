@@ -73,7 +73,7 @@ The `type === 'line'` / `!isLine` / `isShape` / `symbol||signature` branching in
 | `signature` | 4 corners | Center-anchored, aspect-ratio-locked; `MAX_SHAPE_SIZE_PCT` ceiling (freeform ink, not a checkbox-sized mark) | Click-place (or dialog if none active) |
 | `line` | `line-start` / `line-end` endpoint handles | Move the dragged endpoint only (no bbox); `MIN_LINE_LENGTH_PCT` reset on release | Drag-drawn from a point |
 
-Geometry constants all live in [`signGeometry.js`](../src/constants/signGeometry.js); the registry
+Geometry constants all live in [`signGeometry.js`](../src/editor/model/signGeometry.js); the registry
 consumes them, it does not re-define them.
 
 ### 1d. The two element models are not the same shape (the E4.4 reconciliation)

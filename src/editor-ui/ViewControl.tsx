@@ -9,8 +9,8 @@ const FULLSCREEN = 2;
 
 // LOC-09 stage 1: English defaults, overridable per label - SignToolbar.tsx
 // passes its own catalogue's viewRelaxed/viewCondensed/viewFullscreen/
-// viewExitFullscreen/viewDensityLabel (src/i18n/toolMessages.ts's
-// SignMessages); RedactToolbar.tsx passes none of these and keeps this exact
+// viewExitFullscreen/viewDensityLabel (SignMessages in
+// src/editor/registry/messages.ts); RedactToolbar.tsx passes none of these and keeps this exact
 // English wording.
 export interface ViewControlLabels {
   relaxed: string;

@@ -1,5 +1,5 @@
 import { createPageGeometry, toPagePercentBox } from '../../../editor/geometry/coords.ts';
-import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { collectCheckboxGlyphs } from '../../../editor/adapters/pdf/pdfObjects.js';
 import { collectCheckboxWidgets } from './formWidgets.js';

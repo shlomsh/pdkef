@@ -1,4 +1,6 @@
 import styles from './PdfRedactTool.module.css';
+import { englishRedactMessages as t } from './messages.ts';
+import { formatMessage } from '../../lib/formatMessage.ts';
 
 export interface DeletablePdfObject {
   id: string;
@@ -39,12 +41,12 @@ export default function DeletableObjectOverlay({ objects, markedIds, onSelect }:
         data-delete-id={object.id}
         title={
           object.kind === 'image'
-            ? 'Click to delete this image'
+            ? t.deleteImage
             : object.preview?.trim()
-              ? `Click to delete: "${object.preview.trim()}"`
+              ? formatMessage(t.deleteText, { preview: object.preview.trim() })
               : object.kind === 'mark'
-                ? 'Click to delete this mark'
-                : 'Click to delete this text'
+                ? t.deleteMark
+                : t.deleteTextFallback
         }
         style={{
           position: 'absolute',

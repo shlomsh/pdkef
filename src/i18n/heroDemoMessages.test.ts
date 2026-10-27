@@ -40,7 +40,7 @@ const ALLOWED_EMPTY_KEYS = new Set(['blurCaption.after']);
 const NESTED_UNIVERSAL_KEYS = new Set(['signCaption.after']);
 
 describe('hero demo messages', () => {
-  // Mirrors toolMessages.test.ts's own contract test: the English catalogue
+  // Mirrors the tools' messages.test.ts contract tests: the English catalogue
   // is what every existing English render asserts against, and the Hebrew
   // catalogue has to cover the exact same surface or a locale falls back to
   // a half-translated demo silently, one key at a time.

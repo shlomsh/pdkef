@@ -2,9 +2,8 @@ import workerUrl from './pdfjsWorker.js?worker&url';
 import { installPdfjsPolyfills } from './pdfjsPolyfills.js';
 
 /**
- * The one way to set pdf.js up. The caller keeps its own `import('pdfjs-dist')` and
- * passes it in as `importPdfjs`, so a test that mocks 'pdfjs-dist' still reaches its
- * mock from the caller's module (it does not from here).
+ * Sets pdf.js up around an import the caller supplies. Callers use `getPdfjs()` below;
+ * this stays exported for a test that passes the legacy build.
  *
  * Installs the built-ins an older browser lacks before pdf.js is first imported (it
  * calls some at load, DEBT-42), and points pdf.js at the bundled worker, which installs
@@ -18,4 +17,24 @@ export async function loadPdfjs(importPdfjs) {
   const pdfjsLib = await importPdfjs();
   pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
   return pdfjsLib;
+}
+
+/** @type {Promise<typeof import('pdfjs-dist')> | undefined} */
+let pdfjsPromise;
+
+/**
+ * The one pdf.js loader (ARCH-39): the only `import('pdfjs-dist')` in src/, memoized, so every
+ * tool sets pdf.js up once. `vi.mock('pdfjs-dist')` reaches it because Vitest mocks by module id.
+ * A failed import is not cached, so a retry can succeed.
+ *
+ * @returns {Promise<typeof import('pdfjs-dist')>}
+ */
+export async function getPdfjs() {
+  pdfjsPromise ??= loadPdfjs(() => import('pdfjs-dist'));
+  try {
+    return await pdfjsPromise;
+  } catch (error) {
+    pdfjsPromise = undefined;
+    throw error;
+  }
 }

@@ -4,7 +4,7 @@ import { useContext } from 'preact/hooks';
 import styles from './ToolShell.module.css';
 import FilePreview from './FilePreview.tsx';
 import DraftRetentionHint from './DraftRetentionHint';
-import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
+import { englishShellMessages, type ShellMessages } from './shellMessages';
 
 interface FileAction {
   label: string;

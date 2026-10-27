@@ -172,6 +172,18 @@ export const WIDEN_RULES = [
     tests: ['src/components/HeroDemo/heroDemoStageDefaults.test.js'],
   },
   {
+    id: 'e2e-projects-guard',
+    reason: 'scripts/e2e-projects.test.mjs reads project.json files, spec text and nx.json/playwright.config.js with fs/git; no import edge reaches it',
+    match: (f) =>
+      /^e2e\/.+\/project\.json$/.test(f) ||
+      /^e2e\/.+\.spec\.js$/.test(f) ||
+      /^src\/tools\/[^/]+\/e2e\/.+\.spec\.js$/.test(f) ||
+      /^src\/tools\/[^/]+\/project\.json$/.test(f) ||
+      f === 'nx.json' ||
+      f === 'playwright.config.js',
+    tests: ['scripts/e2e-projects.test.mjs'],
+  },
+  {
     id: 'llms-txt',
     reason: 'public/llms.txt is read with fs.readFileSync(path.join(process.cwd(), ...))',
     match: (f) => f === 'public/llms.txt',

@@ -13,7 +13,7 @@
  * not a byte scan (wrong on object-stream files and on `/Encrypt` text in a comment); the measurements are
  * in the plan, section 2.
  */
-import { getPdfjs } from './thumbnails.js';
+import { getPdfjs } from './loadPdfjs.js';
 import { PDFJS_WASM_URL } from './pdfjsWasm.js';
 
 export type PdfProtection = 'open' | 'needs-password' | 'owner-restricted' | 'unreadable';

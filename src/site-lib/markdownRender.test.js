@@ -157,7 +157,7 @@ describe('contentPageToMarkdown', () => {
   // Every real content-pages entry is exercised by `npm run build` itself
   // (src/pages/[slug].md.ts calls contentPageToMarkdown for each collection
   // entry) rather than here: astro:content is deliberately unavailable under
-  // Vitest (see src/test/astroContentStub.js) so unit tests pass in fixture
+  // Vitest (see src/test/support/astroContentStub.js) so unit tests pass in fixture
   // data instead of reaching into the content layer.
 });
 

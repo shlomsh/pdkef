@@ -18,7 +18,7 @@ import { resolveFontFamily } from '../../../editor/text/fonts.js';
 import { carriedTextStyle } from '../../../editor/model/elementDefaults.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
-import { DEFAULT_FONT_FAMILY, DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
+import { DEFAULT_FONT_FAMILY, DEFAULT_STROKE_WIDTH } from '../../../editor/model/signGeometry.js';
 import type { FillSlot } from './fillTypes.ts';
 
 /**
