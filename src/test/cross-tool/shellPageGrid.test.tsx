@@ -5,6 +5,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 // Asserts the .action class on the save link: a cell action is styled as one of the card's actions.
+import styles from '../../shell/pageGrid/PageGrid.module.css';
 import PageGrid, { cellEdge } from '../../shell/pageGrid/PageGrid.tsx';
 import { planForFile } from '../../lib/pagePlan.ts';
 import { englishMergeMessages } from '../../tools/merge/messages';
@@ -592,6 +593,7 @@ describe('PageGrid', () => {
       expect(link.getAttribute('href')).toBe('blob:one');
       expect(link.getAttribute('download')).toBe('a-1.png');
       expect(link.getAttribute('aria-label')).toBe('Save page 1 as an image');
+      expect(link.classList.contains(styles.action)).toBe(true);
       expect(link.querySelector('[data-tip]').textContent).toBe('Save');
       expect([...first.querySelectorAll('button[aria-label], a[aria-label]')].at(-1)).toBe(link);
       expect(saveLinks(second)).toHaveLength(0);
