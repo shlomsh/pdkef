@@ -7,12 +7,6 @@ import PdfRedactTool from './PdfRedactTool.tsx';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { CHECKING } from './lib/check/checkCopy.ts';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
-import dropzoneStyles from '../../shell/Dropzone.module.css';
-import workspaceStyles from '../../editor-ui/Workspace.module.css';
-import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
-import toolShellStyles from '../../shell/ToolShell.module.css';
-// Asserts the selected-box state class.
-import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '../../lib/actionTrail.ts';
 import * as gestureController from '../../lib/gestures/controller.ts';
@@ -220,7 +214,7 @@ describe('PdfRedactTool UI flow', () => {
       render(<PdfRedactTool />, container);
     });
 
-    const dropzone = query(container, `.${dropzoneStyles.dropzone}`);
+    const dropzone = query(container, '[data-dropzone]');
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Select or drop a PDF to redact');
   });
@@ -242,8 +236,8 @@ describe('PdfRedactTool UI flow', () => {
     // Verify hint message appears indicating editing mode (once the async file load lands). Nothing is armed on
     // load - a tool is one-shot here now, exactly as in the Sign editor - so
     // this is the idle tip, not any tool's own copy.
-    await waitUntil(() => expect(query(container, `.${toolbarStyles.help}`).textContent).toContain('pick a tool'));
-    const header = query(container, `.${toolbarStyles.help}`);
+    await waitUntil(() => expect(query(container, '[data-tool-status]').textContent).toContain('pick a tool'));
+    const header = query(container, '[data-tool-status]');
     expect(header).not.toBeNull();
     expect(header.textContent).toContain('pick a tool');
     
@@ -255,7 +249,7 @@ describe('PdfRedactTool UI flow', () => {
 
     // RED-36: before anything is drawn, the finish row below the document is a
     // sentence that says what to do, not a greyed Download (guideline §2).
-    expect(container.querySelector(`.${workspaceStyles['export-actions']}`)).toBeNull();
+    expect(container.querySelector('[data-export-actions]')).toBeNull();
     expect(container.textContent).toContain('Draw a box or delete something, then download it here.');
 
     // E9: ViewControl replaced FullscreenButton in this exact slot.
@@ -626,7 +620,7 @@ describe('PdfRedactTool UI flow', () => {
         () => (window.URL.revokeObjectURL as Mock).mock.calls.length > 0,
       );
 
-      expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+      expect(container.querySelector('[data-workspace]')).not.toBeNull();
       expect(container.querySelector('[data-redact-box-id]')).not.toBeNull();
       expect(container.querySelector('.download-button')).toBeNull();
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
@@ -934,11 +928,11 @@ describe('PdfRedactTool UI flow', () => {
       await settleUntil('the export to reach its pdf.js read', exportRead.reached);
 
       expect(container.querySelector('.redact-draw-area')).toBe(pageBefore);
-      expect(container.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
-      expect(container.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
+      expect(container.querySelector('[data-workspace]').hasAttribute('data-processing')).toBe(true);
+      expect(container.querySelector('[data-workspace]').getAttribute('aria-busy')).toBe('true');
 
       await act(async () => { exportRead.release(); });
-      await settleUntil('the export to finish', () => !container.querySelector(`.${workspaceStyles.workspace}`)!.classList.contains(workspaceStyles['is-processing']));
+      await settleUntil('the export to finish', () => !container.querySelector('[data-workspace]')!.hasAttribute('data-processing'));
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -1006,7 +1000,7 @@ describe('PdfRedactTool UI flow', () => {
         () => container.querySelector('button[title="Share the redacted PDF"]') !== null,
       );
 
-      expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+      expect(container.querySelector('[data-workspace]')).not.toBeNull();
       // Label stays "Share" in both states (MOBI-07 follow-up), so the ready
       // state is found by its title, not its text.
       const shareButton = container.querySelector('button[title="Share the redacted PDF"]');
@@ -2049,7 +2043,7 @@ describe('PdfRedactTool UI flow', () => {
           findBox().focus();
           findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         });
-        expect(findBox().className).toContain(redactStyles.selected);
+        expect(findBox().hasAttribute('data-selected')).toBe(true);
 
         const before = parseFloat(findBox().style.top);
         await act(async () => {
@@ -2164,13 +2158,13 @@ describe('PdfRedactTool UI flow', () => {
 
       await armTool('Blackout', { lock: true });
       const blackoutBtn = findToolButton('Blackout');
-      expect(blackoutBtn.className).toContain(toolbarStyles.locked);
+      expect(blackoutBtn.hasAttribute('data-locked')).toBe(true);
 
       await drawBox(drawArea, 50, 200, 200, 500);
       expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(1);
       // The lock survived the commit - still locked, no re-arm needed for the
       // second box.
-      expect(blackoutBtn.className).toContain(toolbarStyles.locked);
+      expect(blackoutBtn.hasAttribute('data-locked')).toBe(true);
 
       await drawBox(drawArea, 60, 220, 220, 520);
       expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(2);
@@ -2181,7 +2175,7 @@ describe('PdfRedactTool UI flow', () => {
     // Scoped to the toolbar's own help/status line, not just any [role="status"]
     // - the sr-only announcement region at the top of PdfRedactTool.tsx has the
     // same role for its own, unrelated reason (live-announcing text changes).
-    const statusChip = () => query<HTMLButtonElement>(container, `.${toolbarStyles.help} [role="status"] button`);
+    const statusChip = () => query<HTMLButtonElement>(container, '[data-tool-status] [role="status"] button');
 
     it('names the armed tool rather than the action, and locks it on when clicked', async () => {
       await loadFileAndGetDrawArea(); // arms Blackout, unlocked
@@ -2193,7 +2187,7 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(statusChip().getAttribute('aria-checked')).toBe('true');
-      expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
+      expect(findToolButton('Blackout').hasAttribute('data-locked')).toBe(true);
     });
 
     // Redact is why the chip cannot use a bare verb: this tool takes a run out
@@ -2220,8 +2214,8 @@ describe('PdfRedactTool UI flow', () => {
       // under the pointer, and a mis-tap is one tap from being undone.
       expect(statusChip()).not.toBeNull();
       expect(statusChip().getAttribute('aria-checked')).toBe('false');
-      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.locked);
-      expect(findToolButton('Blackout').className).toContain(toolbarStyles.active);
+      expect(findToolButton('Blackout').hasAttribute('data-locked')).toBe(false);
+      expect(findToolButton('Blackout').getAttribute('aria-pressed')).toBe('true');
     });
 
     // Leaving the tool entirely is a statement about the tool, so it is made at
@@ -2235,7 +2229,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
 
-      expect(container.querySelector(`.${toolbarStyles.help} [role="status"]`)).toBeNull();
+      expect(container.querySelector('[data-tool-status] [role="status"]')).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
     });
   });
@@ -2277,7 +2271,7 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(deleteBtn.hasAttribute('aria-describedby')).toBe(false);
-      expect(document.querySelector(`.${toolbarStyles.hint}`)).toBeNull();
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
     });
   });
 
@@ -2296,14 +2290,14 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileWithoutArming();
       await armTool('Blackout', { lock: true });
       expect(drawArea.style.touchAction).toBe('none');
-      expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
+      expect(findToolButton('Blackout').hasAttribute('data-locked')).toBe(true);
 
       await openSecondFile('second.pdf');
 
       const next = query<HTMLElement>(container, '.redact-draw-area');
       expect(next.style.touchAction).toBe('auto');
-      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.locked);
-      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.active);
+      expect(findToolButton('Blackout').hasAttribute('data-locked')).toBe(false);
+      expect(findToolButton('Blackout').getAttribute('aria-pressed')).toBe('false');
     });
   });
 
@@ -2316,7 +2310,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
 
-      expect(container.querySelector(`.${toolbarStyles.help} [role="status"]`)).toBeNull();
+      expect(container.querySelector('[data-tool-status] [role="status"]')).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
     });
 
@@ -2329,7 +2323,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
 
-      expect(container.querySelector(`.${toolbarStyles.help} [role="status"]`)).toBeNull();
+      expect(container.querySelector('[data-tool-status] [role="status"]')).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
     });
   });
@@ -2349,7 +2343,7 @@ describe('PdfRedactTool UI flow', () => {
     // it over as `override`), so it is the shown `role="status"` row inside
     // `.help`, over the same hidden reservations the armed rows use. That is
     // what keeps the slot's height put while the chip comes and goes.
-    const statusSlot = () => query<HTMLElement>(container, `.${toolbarStyles.help} [role="status"]`);
+    const statusSlot = () => query<HTMLElement>(container, '[data-tool-status] [role="status"]');
 
     it('announces and offers Undo when a single box is deleted, and Undo restores it', async () => {
       const drawArea = await loadFileAndGetDrawArea();
@@ -2380,9 +2374,9 @@ describe('PdfRedactTool UI flow', () => {
       // The chip did not replace the stack: every tool's hidden reservation is
       // still there under it, holding the row's height, and the shell is told
       // the slot is live (that attribute is what hides the filename on a phone).
-      const help = required(chip.closest<HTMLElement>(`.${toolbarStyles.help}`), 'help stack around the chip');
+      const help = required(chip.closest<HTMLElement>('[data-tool-status]'), 'help stack around the chip');
       expect(help.hasAttribute('data-status-active')).toBe(true);
-      expect(help.querySelectorAll(`.${toolbarStyles['help-spare']}`).length).toBeGreaterThanOrEqual(4);
+      expect(help.querySelectorAll('[data-help-row]:not([data-shown])').length).toBeGreaterThanOrEqual(4);
 
       const undoButton = required(chip.querySelector<HTMLButtonElement>('[role="status"] button'), 'chip Undo button');
       await act(async () => {
@@ -3404,7 +3398,7 @@ describe('PdfRedactTool UI flow', () => {
       await loadFileWithoutArming(makePdfFile('secret.pdf'));
 
       expect(container.querySelector('[data-redact-count]')).toBeNull();
-      const name = query(container, `.${toolShellStyles.name}`);
+      const name = query(container, '[data-file-identity] [title]');
       expect(name.textContent).toBe('secret.pdf');
     });
 
@@ -3413,7 +3407,7 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
 
       expect(query(container, '[data-redact-count]').textContent).toBe('Saves with 1 box');
-      expect(query(container, `.${toolShellStyles.name}`).textContent).toBe('redacted_secret.pdf');
+      expect(query(container, '[data-file-identity] [title]').textContent).toBe('redacted_secret.pdf');
 
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
@@ -3459,8 +3453,8 @@ describe('PdfRedactTool UI flow', () => {
         });
         await settleUntil('the export to reach its pdf.js read', exportRead.reached);
 
-        const workspace = query(container, `.${workspaceStyles.workspace}`);
-        expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
+        const workspace = query(container, '[data-workspace]');
+        expect(workspace.hasAttribute('data-processing')).toBe(true);
 
         // The keystroke the processing overlay cannot block.
         await act(async () => {
@@ -3479,8 +3473,8 @@ describe('PdfRedactTool UI flow', () => {
         expect(container.textContent).not.toContain('Saved redacted_');
 
         // Dropping the export still has to hand the editor back.
-        expect(query(container, `.${workspaceStyles.workspace}`)
-          .classList.contains(workspaceStyles['is-processing'])).toBe(false);
+        expect(query(container, '[data-workspace]')
+          .hasAttribute('data-processing')).toBe(false);
       } finally {
         window.URL.createObjectURL = originalCreateObjectURL;
         window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -3512,8 +3506,8 @@ describe('PdfRedactTool UI flow', () => {
           downloadButton.click();
         });
         await settleUntil('the export to reach its pdf.js read', exportRead.reached);
-        expect(query(container, `.${workspaceStyles.workspace}`)
-          .classList.contains(workspaceStyles['is-processing'])).toBe(true);
+        expect(query(container, '[data-workspace]')
+          .hasAttribute('data-processing')).toBe(true);
 
         // Hold the replacement's document open, so the assertions below land
         // in the window where the new file is still being read.
@@ -3545,7 +3539,7 @@ describe('PdfRedactTool UI flow', () => {
         // editor is off screen either way - dropping the guard makes this
         // window say the wrong thing rather than draw the wrong thing.
         expect(resolveReplacementDocument).toBeDefined();
-        expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
+        expect(container.querySelector('[data-workspace]')).toBeNull();
         expect(query(container, '[role="status"][aria-live="polite"]').textContent)
           .not.toContain('Your edits changed while the PDF was being prepared');
 
@@ -3553,8 +3547,8 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           resolveReplacementDocument(harness.pdfjs.fakeDocument(2));
         });
-        await waitUntil(() => expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull());
-        expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+        await waitUntil(() => expect(container.querySelector('[data-workspace]')).not.toBeNull());
+        expect(container.querySelector('[data-workspace]')).not.toBeNull();
         expect(container.querySelectorAll('[data-redact-box-id]')).toHaveLength(0);
 
         // And the export started from the file that is no longer open commits
@@ -3631,7 +3625,7 @@ describe('PdfRedactTool UI flow', () => {
       act(() => { render(<PdfRedactTool />, container); });
       await act(async () => { setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [file]); });
       // The file has been read: either the needs-unlock state or the editor is on screen.
-      await waitUntil(() => state() !== null || container.querySelector(`.${workspaceStyles.workspace}`) !== null);
+      await waitUntil(() => state() !== null || container.querySelector('[data-workspace]') !== null);
     }
 
     const state = () => container.querySelector<HTMLElement>('[data-needs-unlock]');
@@ -3651,7 +3645,7 @@ describe('PdfRedactTool UI flow', () => {
       const shown = required(state(), 'the needs-unlock state');
       expect(shown.querySelector('h2')?.textContent).toBe(title);
       expect(shown.querySelector('p')?.textContent).toBe(body);
-      expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
+      expect(container.querySelector('[data-workspace]')).toBeNull();
       expect(container.textContent).not.toContain("This PDF didn't open");
       expect(await failedOperations()).toEqual([]);
       expect(load).not.toHaveBeenCalled();
@@ -3710,7 +3704,7 @@ describe('PdfRedactTool UI flow', () => {
       const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
         .find((button) => button.textContent?.trim() === 'Replace file'), 'Replace file button');
       await act(async () => { confirmReplace.click(); });
-      await waitUntil(() => container.querySelector(`.${workspaceStyles.workspace}`) !== null);
+      await waitUntil(() => container.querySelector('[data-workspace]') !== null);
       expect(state()).toBeNull();
     });
   });

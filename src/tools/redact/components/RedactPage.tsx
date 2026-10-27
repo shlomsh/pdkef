@@ -42,6 +42,7 @@ export default function RedactPage({ index: i, state, dispatch, pages, arming, e
       />
       <div
         className={`${workspaceStyles['page-wrapper']} redact-draw-area`}
+        data-page-wrapper
         data-eyedropper-surface
         ref={(el) => { pages.pageWrapperRefs.current[i] = el; }}
         onMouseDown={(e) => editing.handlePointerDown(e, i)}

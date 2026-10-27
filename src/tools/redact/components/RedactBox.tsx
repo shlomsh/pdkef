@@ -104,6 +104,11 @@ interface RedactBoxProps {
 // position, the position itself moving between the resize-handles-shown and hidden
 // states) confusing enough to remove it in favour of one shared selection chrome for
 // every type.
+const boxStateAttrs = (peeking: boolean, selected: boolean) => ({
+  'data-peeking': peeking || undefined,
+  'data-selected': selected || undefined,
+});
+
 export default function RedactBox({
   el,
   isSelected,
@@ -296,7 +301,7 @@ export default function RedactBox({
       }}
       className={className}
       data-editor-shape={!isStroke || undefined}
-      data-peeking={peekAll || undefined}
+      {...boxStateAttrs(peekAll, isSelected)}
       data-redact-box-id={el.id}
       tabIndex={0}
       role="group"

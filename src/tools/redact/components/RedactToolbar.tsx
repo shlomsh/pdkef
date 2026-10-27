@@ -193,8 +193,11 @@ export default function RedactToolbar({
     ? (brushArmed ? BRUSH_COPY[activeStyle] : TOOL_COPY[activeStyle])
     : null;
 
-  const toolClass = (tool: RedactToolType) =>
-    `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`;
+  const toolProps = (tool: RedactToolType) => ({
+    className: `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`,
+    'aria-pressed': activeStyle === tool,
+    'data-locked': (activeStyle === tool && toolLocked) || undefined,
+  });
 
   return (
     // No inline margin here any more. This file used to add one and SignToolbar
@@ -241,9 +244,8 @@ export default function RedactToolbar({
         <ArmHint tool="blur" label={TOOL_COPY.blur.button} action={TOOL_COPY.blur.action} locked={activeStyle === 'blur' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
-            className={toolClass('blur')}
+            {...toolProps('blur')}
             onClick={armTool('blur')}
-            aria-pressed={activeStyle === 'blur'}
           >
             <BlurToolIcon />
             <span className={styles.label}>{TOOL_COPY.blur.button}</span>
@@ -253,9 +255,8 @@ export default function RedactToolbar({
         <ArmHint tool="blackout" label={TOOL_COPY.blackout.button} action={TOOL_COPY.blackout.action} locked={activeStyle === 'blackout' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
-            className={toolClass('blackout')}
+            {...toolProps('blackout')}
             onClick={armTool('blackout')}
-            aria-pressed={activeStyle === 'blackout'}
           >
             <BlackoutToolIcon />
             <span className={styles.label}>{TOOL_COPY.blackout.button}</span>
@@ -265,9 +266,8 @@ export default function RedactToolbar({
         <ArmHint tool="whiteout" label={TOOL_COPY.whiteout.button} action={TOOL_COPY.whiteout.action} locked={activeStyle === 'whiteout' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
-            className={toolClass('whiteout')}
+            {...toolProps('whiteout')}
             onClick={armTool('whiteout')}
-            aria-pressed={activeStyle === 'whiteout'}
           >
             <WhiteoutIcon />
             <span className={styles.label}>{TOOL_COPY.whiteout.button}</span>
@@ -277,9 +277,8 @@ export default function RedactToolbar({
         <ArmHint tool="delete" label={TOOL_COPY.delete.button} action={TOOL_COPY.delete.action} locked={activeStyle === 'delete' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
-            className={toolClass('delete')}
+            {...toolProps('delete')}
             onClick={armTool('delete')}
-            aria-pressed={activeStyle === 'delete'}
           >
             <EraserIcon />
             <span className={styles.label}>{TOOL_COPY.delete.button}</span>

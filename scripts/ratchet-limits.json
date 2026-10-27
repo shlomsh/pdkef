@@ -38,7 +38,7 @@
       "src/tools/merge/lib/merge.js#mergePdfs": 188,
       "src/tools/redact/components/FindBar.tsx#FindBar": 177,
       "src/tools/redact/components/RedactBox.tsx#RedactBox": 256,
-      "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 253,
+      "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 252,
       "src/tools/redact/components/details/DetailsSheet.tsx#DetailsSheet": 152,
       "src/tools/redact/hooks/useRedactExport.ts#useRedactExport": 218,
       "src/tools/redact/state/redactState.ts#redactReducer": 244,

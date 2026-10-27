@@ -116,6 +116,8 @@ export default withIslandBoundary(function PdfRedactTool() {
         <div
           className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'redacting' ? ` ${workspaceStyles['is-processing']}` : ''}`}
           ref={workspaceRef}
+          data-workspace
+          data-processing={status === 'redacting' || undefined}
           data-pseudo-fullscreen={isPseudoFullscreen || undefined}
           aria-busy={status === 'redacting'}
           data-redact-workspace-ready={numPages > 0 && sizedPageCount === numPages ? 'true' : 'false'}
