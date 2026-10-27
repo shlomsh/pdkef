@@ -9,7 +9,7 @@ import type { APIRoute } from 'astro';
 import { toolsBySlug } from '../../data/tools.js';
 import { toolToMarkdown, contentPageToMarkdown, markdownLabels } from '../../site-lib/markdownRender.js';
 import { documentationSourceFiles, lastModifiedFor } from '../../site-lib/gitLastModified.js';
-import { documentationLocales } from '../../i18n/documentationLocales';
+import { documentationLocales, type DocumentationLocaleId } from '../../i18n/documentationLocales';
 import { getDocumentationVariants } from '../../i18n/documentation';
 import { getLocalizedToolVariants, mergeLocalizedTool } from '../../i18n/localizedTools';
 import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
@@ -17,7 +17,7 @@ import { getDocumentationShellMessages } from '../../i18n/documentationMessages'
 export async function getStaticPaths() {
   const entryData = (variant: { entry?: unknown }) => (variant.entry as { data: Record<string, any> }).data;
   const prefixOf = (localeId: string) => documentationLocales.find((record) => record.id === localeId)!.prefix;
-  const labelsFor = (localeId: string) => markdownLabels(getDocumentationShellMessages(localeId as any));
+  const labelsFor = (localeId: DocumentationLocaleId) => markdownLabels(getDocumentationShellMessages(localeId));
 
   const toolEntries = (await getLocalizedToolVariants())
     .filter((variant) => variant.locale !== 'en')

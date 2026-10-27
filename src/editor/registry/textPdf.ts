@@ -15,20 +15,13 @@ import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting } from '../text/textTransforms.js';
 import { fieldTextInset, getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../text/signHelpers.js';
 import { resolveTypography } from '../text/fonts.js';
-import { fontkitFont, type BidiDirection } from '../text/textMetrics.ts';
+import { fontkitFont, pdfFontEmbedder, type BidiDirection } from '../text/textMetrics.ts';
 import { layoutRun, shapedWidth } from '../text/shapeRun.ts';
 
 const gidHex = (id: number) => id.toString(16).toUpperCase().padStart(4, '0');
 
 function remapGlyphForSubset(pdfFont: PDFFont, glyph: { id: number }): number {
-  const embedder = (pdfFont as unknown as {
-    embedder?: {
-      subset?: { includeGlyph: (glyph: unknown) => number };
-      glyphs?: unknown[];
-      glyphIdMap?: Map<number, number>;
-      glyphCache?: { invalidate: () => void };
-    };
-  }).embedder;
+  const embedder = pdfFontEmbedder(pdfFont);
   if (embedder?.subset) {
     if (!embedder.glyphs || !embedder.glyphIdMap || !embedder.glyphCache) {
       throw new Error('drawShapedRun found a subset-embedded font whose glyph bookkeeping (glyphs/glyphIdMap/glyphCache) is missing - @cantoo/pdf-lib\'s CustomFontSubsetEmbedder internals have changed shape. Emitting raw glyph ids here would silently draw the wrong glyphs.');

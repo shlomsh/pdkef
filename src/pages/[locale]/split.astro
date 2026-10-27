@@ -11,5 +11,5 @@ const page = await loadLocalizedToolPage('split', Astro.props.localeId, Astro.pa
 ---
 
 <LocalizedToolLayout page={page}>
-  <PdfSplitTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+  <PdfSplitTool client:load messages={page.toolMessages} shellMessages={page.shellMessages} />
 </LocalizedToolLayout>

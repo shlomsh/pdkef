@@ -11,5 +11,5 @@ const page = await loadLocalizedToolPage('merge', Astro.props.localeId, Astro.pa
 ---
 
 <LocalizedToolLayout page={page}>
-  <PdfMergeTool client:load messages={page.toolMessages as any} shellMessages={page.shellMessages} />
+  <PdfMergeTool client:load messages={page.toolMessages} shellMessages={page.shellMessages} />
 </LocalizedToolLayout>
