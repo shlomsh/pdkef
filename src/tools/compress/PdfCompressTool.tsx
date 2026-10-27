@@ -5,8 +5,8 @@ import { usePreparedOutput, type Built } from '../../lib/usePreparedOutput.ts';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
-import { compressPdf, compressPdfToTarget } from './compress.js';
-import { compressImageToTarget } from './compressImage.js';
+import { compressPdf, compressPdfToTarget } from './lib/compress.js';
+import { compressImageToTarget } from './lib/compressImage.js';
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -19,11 +19,11 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
-import CompareSlider from './CompareSlider.tsx';
+import CompareSlider from './components/CompareSlider.tsx';
 import LevelPicker, { TargetSizePanel, type Level } from './components/LevelPicker.tsx';
-import { useComparePreviews } from './useComparePreviews.ts';
+import { useComparePreviews } from './hooks/useComparePreviews.ts';
 import { useDownloadFlow, type DownloadFlowInput } from '../../shell/pageWorkspace/useDownloadFlow.ts';
-import { useLastResult } from './useLastResult.ts';
+import { useLastResult } from './hooks/useLastResult.ts';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { isolateLtr, isolateName } from '../../lib/format.js';
 import { englishCompressMessages, type CompressMessages } from './messages';
@@ -34,7 +34,7 @@ import { openPdfDoc } from '../../lib/openPdfDoc.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import { reportEdit, type AnalyticsTool } from '../../lib/productAnalytics.ts';
-import { compressedFileName as deriveDownloadName } from './outputName.ts';
+import { compressedFileName as deriveDownloadName } from './lib/outputName.ts';
 import { isCurrentAnalysis, isCurrentRun } from './state/compressMachine.ts';
 import { useCompressMachine } from './state/useCompressMachine.ts';
 
@@ -265,7 +265,7 @@ export default withIslandBoundary(function PdfCompressTool({
     }
     try {
       // Dynamic: analyzePdf.js pulls in pdf-lib, which must not ride in the first download (DEBT-20).
-      const { analyzePdf } = await import('./analyzePdf.js');
+      const { analyzePdf } = await import('./lib/analyzePdf.js');
       const result = analyzePdf(doc, { totalBytes });
       if (isCurrentAnalysis(machine.read(), token)) setAnalysis(result);
     } catch (err) {
@@ -404,7 +404,7 @@ export default withIslandBoundary(function PdfCompressTool({
     }
 
     if (!flat) {
-            const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('./compressImages.js');
+            const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('./lib/compressImages.js');
       const result: { blob: Blob; metTarget?: boolean; reason: string; keptBytes?: number; imageBytes?: number } = lv === 'target'
         ? await compressPdfImagesToTarget(activeFile, { targetKB: kb, onProgress })
         : await compressPdfImages(activeFile, { ...IMAGE_LEVELS[lv as 'high' | 'medium' | 'low'], onProgress });

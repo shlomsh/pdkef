@@ -41,7 +41,7 @@ planForFile(fileId, pageCount): PlanEntry[]
 moveEntry(plan, from, to) / updateEntry(plan, key, patch) / rotateEntry(plan, key, delta) / outputPageCount(plan)
 ```
 
-Moved out of `src/tools/merge/mergePlan.ts`, which keeps only what is about several files
+Moved out of `src/tools/merge/lib/mergePlan.ts`, which keeps only what is about several files
 (`fileOrder`, `isGrouped`, `regroupPlan`, `moveFileBlock`, `insertPages`, `removeFile`, `toMergeMap`,
 the merged name helpers) and re-exports nothing. The field stays `fileId`: Merge's saved work stores
 plans with it, so renaming it would need a draft migration for no gain. Edit Pages uses `fileId: 0`.

@@ -6,7 +6,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 
-vi.mock('./merge.js', () => {
+vi.mock('./lib/merge.js', () => {
   class MergeFileError extends Error {}
   return {
     MergeFileError,

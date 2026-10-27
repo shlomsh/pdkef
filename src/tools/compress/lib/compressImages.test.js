@@ -17,7 +17,7 @@ const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQg
 const jpeg1x1 = () => Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
 
 const fixture = (name) =>
-  new File([readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url))], name, {
+  new File([readFileSync(new URL(`../__fixtures__/${name}`, import.meta.url))], name, {
     type: 'application/pdf',
   });
 
@@ -461,7 +461,7 @@ describe('compressPdfImages on encrypted files', () => {
     documentAssembly: false,
   };
   const encryptedScan = async (userPassword) => {
-    const doc = await PDFDocument.load(readFileSync(new URL('./__fixtures__/scan.pdf', import.meta.url)));
+    const doc = await PDFDocument.load(readFileSync(new URL('../__fixtures__/scan.pdf', import.meta.url)));
     doc.encrypt({ userPassword, ownerPassword: 'x', permissions: perms });
     return new File([await doc.save()], 'enc.pdf', { type: 'application/pdf' });
   };

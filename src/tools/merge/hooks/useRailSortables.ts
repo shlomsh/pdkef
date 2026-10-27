@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact';
 import Sortable from 'sortablejs';
-import railStyles from './MergeRail.module.css';
-import docStyles from './MergeDocument.module.css';
+import railStyles from '../components/MergeRail.module.css';
+import docStyles from '../components/MergeDocument.module.css';
 
 interface Options {
   /** The desktop rail's file list. */

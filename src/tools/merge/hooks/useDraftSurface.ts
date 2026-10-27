@@ -3,7 +3,7 @@ import type { Dispatch } from 'preact/hooks';
 import type { ComponentType } from 'preact';
 import { reportError } from '../../../lib/errorReport.ts';
 import type { PageGridProps } from '../../../shell/pageGrid/PageGrid.tsx';
-import type { MergeDraftPersistenceProps } from './MergeDraftPersistence.tsx';
+import type { MergeDraftPersistenceProps } from '../components/MergeDraftPersistence.tsx';
 import type { MergeAction, MergeStatus } from '../state/mergeState.ts';
 
 interface SettleOptions {
@@ -25,7 +25,7 @@ export function useLazySurfaces(hasFiles: boolean, dispatch: Dispatch<MergeActio
 
   useEffect(() => {
     let cancelled = false;
-    import('./MergeDraftPersistence.tsx')
+    import('../components/MergeDraftPersistence.tsx')
       .then((module) => { if (!cancelled) setDraftPersistence(() => module.default); })
       .catch((err) => { reportError('chunk_load', err, 'import_draft_persistence'); if (!cancelled) dispatch({ type: 'DRAFT_MODULE_FAILED' }); });
     return () => { cancelled = true; };

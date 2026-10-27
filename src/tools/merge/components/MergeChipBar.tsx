@@ -7,9 +7,9 @@ import PhoneFinish from '../../../shell/pageWorkspace/PhoneFinish.tsx';
 import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
 import docStyles from './MergeDocument.module.css';
 import { tagStyle } from './tagStyle.ts';
-import type { FileEntry } from '../mergeModel.ts';
+import type { FileEntry } from '../lib/mergeModel.ts';
 import type { MergeMessages } from '../messages';
-import type { PreparedMerge } from './usePreparedMerge.ts';
+import type { PreparedMerge } from '../hooks/usePreparedMerge.ts';
 import type { useDownloadFlow } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
 
 interface MergeChipBarProps {

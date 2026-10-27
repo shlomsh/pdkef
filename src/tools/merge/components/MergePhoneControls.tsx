@@ -2,7 +2,7 @@ import { FilePlus, Trash2 } from 'lucide-preact';
 import SortMenu from '../../../shell/SortMenu.tsx';
 import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx';
 import railStyles from './MergeRail.module.css';
-import type { SortMode } from '../mergeModel.ts';
+import type { SortMode } from '../lib/mergeModel.ts';
 import type { MergeMessages } from '../messages';
 import type { ShellMessages } from '../../../shell/shellMessages';
 
