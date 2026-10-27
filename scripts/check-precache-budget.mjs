@@ -39,10 +39,29 @@ export const BUDGETS = {
 // Tool islands are the Pdf*Tool entry chunks Astro names in component-url.
 const TOOL_ISLAND = /^\/_astro\/Pdf\w+Tool\.[\w-]+\.js$/;
 
+// `sizes` holds only files that exist in dist/; a listed URL with no entry is reported by findMissingFiles.
 export function closureBytes(files, sizes) {
   let total = 0;
   for (const f of new Set(files)) total += sizes[f] ?? 0;
   return total;
+}
+
+export function findMissingFiles({ shell, pages, sizes }) {
+  const failures = [];
+  for (const f of new Set(shell)) if (!(f in sizes)) failures.push(`shell: lists ${f}, which is not in dist/`);
+  for (const [page, files] of Object.entries(pages)) {
+    for (const f of new Set(files)) if (!(f in sizes)) failures.push(`${page}: closure lists ${f}, which is not in dist/`);
+  }
+  return failures;
+}
+
+// Extensions scripts/precacheClosure.mjs knows how to walk or carry; anything else in dist/_astro/ could escape every closure.
+const HANDLED_ASTRO_EXTENSIONS = new Set(['.js', '.mjs', '.css', '.wasm', '.webp', '.png', '.jpg', '.jpeg', '.gif', '.avif', '.svg']);
+
+export function findUnhandledAssets(astroFiles) {
+  return astroFiles
+    .filter((f) => !HANDLED_ASTRO_EXTENSIONS.has(path.extname(f).toLowerCase()))
+    .map((f) => `${f}: extension not handled by the precache closure walker (scripts/precacheClosure.mjs)`);
 }
 
 export function findBudgetFailures({ shell, pages, toolPages, sizes, budgets }) {
@@ -79,11 +98,13 @@ export function findForeignIslands({ pages, islands, sizes }) {
   return failures;
 }
 
-export function checkPrecache({ shell, pages, islands, sizes, budgets }) {
+export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFiles = [] }) {
   const toolPages = new Set(Object.keys(islands).filter((p) => islands[p].length > 0));
   return [
+    ...findMissingFiles({ shell, pages, sizes }),
     ...findBudgetFailures({ shell, pages, toolPages, sizes, budgets }),
     ...findForeignIslands({ pages, islands, sizes }),
+    ...findUnhandledAssets(astroFiles),
   ];
 }
 
@@ -101,10 +122,13 @@ function main() {
   const sizeOf = (url) => {
     if (!(url in sizes)) {
       const file = path.join(dist, fileOf(url));
-      sizes[url] = fs.existsSync(file) ? brotli(fs.readFileSync(file)) : 0;
+      if (fs.existsSync(file)) sizes[url] = brotli(fs.readFileSync(file));
     }
   };
   [...manifest.shell, ...Object.values(manifest.pages).flat()].forEach(sizeOf);
+
+  const astroDir = path.join(dist, '_astro');
+  const astroFiles = fs.existsSync(astroDir) ? fs.readdirSync(astroDir).map((f) => `_astro/${f}`) : [];
 
   const islands = {};
   for (const page of Object.keys(manifest.pages)) {
@@ -118,7 +142,7 @@ function main() {
     for (const [b, n, p] of rows) console.log(`${p}\t${n} urls\t${b}`);
   }
 
-  const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS });
+  const failures = checkPrecache({ shell: manifest.shell, pages: manifest.pages, islands, sizes, budgets: BUDGETS, astroFiles });
   if (failures.length) {
     console.error(failures.join('\n'));
     console.error(`FAIL: ${failures.length} precache budget problem(s)`);

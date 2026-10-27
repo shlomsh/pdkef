@@ -18,16 +18,18 @@ const QUOTE = '["\'`]';
 const STATIC_IMPORT = new RegExp(
   // `import "./x.js"`, `import a from"./x.js"`, `import{a as b}from"./x.js"`.
   // The character class excludes `(` so a dynamic `import("./x.js")` cannot match.
-  `(?:^|[;}\\s])import\\s*(?:[^"'\`()]*?from\\s*)?${QUOTE}\\./([^"'\`]+\\.js)${QUOTE}`,
+  `(?:^|[;}\\s])import\\s*(?:[^"'\`()]*?from\\s*)?${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}`,
   'g',
 );
-const REEXPORT = new RegExp(`export\\s*(?:\\*|\\{[^}]*\\})\\s*from\\s*${QUOTE}\\./([^"'\`]+\\.js)${QUOTE}`, 'g');
-const DYNAMIC_IMPORT = new RegExp(`import\\(\\s*${QUOTE}\\./([^"'\`]+\\.js)${QUOTE}\\s*\\)`, 'g');
+const REEXPORT = new RegExp(`export\\s*(?:\\*|\\{[^}]*\\})\\s*from\\s*${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}`, 'g');
+const DYNAMIC_IMPORT = new RegExp(`import\\(\\s*${QUOTE}\\./([^"'\`]+\\.m?js)${QUOTE}\\s*\\)`, 'g');
 // Vite's preload list: `m.f=["_astro/a.js","_astro/b.css"]`, relative to the site root.
 const MAP_DEPS = /m\.f=\[([^\]]*)\]/g;
 const QUOTED = new RegExp(`${QUOTE}([^"'\`]+)${QUOTE}`, 'g');
 // A worker or chunk spelled as an absolute path string.
-const ASTRO_STRING = new RegExp(`${QUOTE}(/_astro/[^"'\`\\s]+\\.(?:js|css|wasm))${QUOTE}`, 'g');
+const ASTRO_STRING = new RegExp(`${QUOTE}(/_astro/[^"'\`\\s]+\\.(?:m?js|css|wasm))${QUOTE}`, 'g');
+// A same-origin image a chunk names (the offline sample PDF and its preview); the byte policy drops runtime-only directories.
+const IMAGES_STRING = new RegExp(`${QUOTE}(/images/[^"'\`\\s]+\\.[A-Za-z0-9]+)${QUOTE}`, 'g');
 const URL_FROM_META = new RegExp(`new URL\\(\\s*${QUOTE}(\\.{1,2}/[^"'\`]+)${QUOTE}\\s*,\\s*import\\.meta\\.url`, 'g');
 const WASM_DIR = '/pdfjs-dist-wasm/';
 const CSS_URL = /url\(\s*(["']?)([^)"']+)\1\s*\)/g;
@@ -90,9 +92,11 @@ function cssUrls(css, baseUrl) {
 /**
  * Every same-origin file a page's HTML references: script src, modulepreload,
  * stylesheet and font preloads, astro-island entry URLs, absolute /_astro/
- * strings in inline scripts, and url(...) in inline CSS. Links to other pages
- * (`<a href>`, canonical, alternate) and `<img>`/`<source>` rasters are not
- * references in this sense. `icons` adds the icon and manifest links (the shell).
+ * strings in inline scripts, url(...) in inline CSS, and the src and every
+ * srcset candidate of an `<img>` without loading="lazy" (the header logo is
+ * on screen at first paint, so it must be cached by the first visit). Links to
+ * other pages (`<a href>`, canonical, alternate), lazy `<img>` and `<source>`
+ * are not references in this sense. `icons` adds the icon and manifest links (the shell).
  */
 export function htmlRefs(html, { icons = false } = {}) {
   const refs = new Set(pageEntries(html));
@@ -105,6 +109,16 @@ export function htmlRefs(html, { icons = false } = {}) {
     const href = /\bhref="([^"]*)"/.exec(link[0])?.[1];
     if (rel && href && rel.split(/\s+/).some((r) => rels.includes(r))) refs.add(href);
   }
+  for (const img of html.matchAll(/<img\b[^>]*>/g)) {
+    if (/\bloading="lazy"/.test(img[0])) continue;
+    const src = /\ssrc="([^"]*)"/.exec(img[0])?.[1];
+    if (src) refs.add(src);
+    const srcset = /\ssrcset="([^"]*)"/.exec(img[0])?.[1] ?? '';
+    for (const candidate of srcset.split(',')) {
+      const url = candidate.trim().split(/\s+/)[0];
+      if (url) refs.add(url);
+    }
+  }
   for (const block of inlineBlocks(html, 'script', ['application/json', 'application/ld+json'])) {
     for (const url of matchAll(block, ASTRO_STRING)) refs.add(url);
   }
@@ -114,6 +128,7 @@ export function htmlRefs(html, { icons = false } = {}) {
   return [...refs];
 }
 
+const isScript = (relative) => relative.endsWith('.js') || relative.endsWith('.mjs');
 const fileDir = (relative) => path.posix.dirname(relative);
 const joinRelative = (relative, ref) => path.posix.join(fileDir(relative), ref);
 
@@ -126,6 +141,7 @@ function dynamicDeps(relative, source) {
   const found = matchAll(source, DYNAMIC_IMPORT).map((ref) => joinRelative(relative, `./${ref}`));
   for (const list of matchAll(source, MAP_DEPS)) found.push(...matchAll(list, QUOTED));
   for (const url of matchAll(source, ASTRO_STRING)) found.push(url.slice(1));
+  for (const url of matchAll(source, IMAGES_STRING)) found.push(url.slice(1));
   for (const ref of matchAll(source, URL_FROM_META)) found.push(joinRelative(relative, ref));
   return found;
 }
@@ -148,7 +164,7 @@ function walk(view, entryUrls, follow) {
 
 /** The files a page loads without running a dynamic import(): static imports only, JS only. */
 export function staticClosure(view, entryUrls) {
-  return walk(view, entryUrls, (relative) => (relative.endsWith('.js') ? staticDeps(relative, view.files.get(relative) ?? '') : []));
+  return walk(view, entryUrls, (relative) => (isScript(relative) ? staticDeps(relative, view.files.get(relative) ?? '') : []));
 }
 
 /** The name a pdf.js wasm-directory file goes by inside a chunk: "openjpeg" for "openjpeg.wasm". */
@@ -161,7 +177,7 @@ const wasmStem = (relative) => path.posix.basename(relative).split('.')[0];
  * in some JS file already in the closure.
  */
 function namedWasmFiles(view, closure, paths) {
-  const sources = [...closure].filter((relative) => relative.endsWith('.js')).map((relative) => view.files.get(relative) ?? '');
+  const sources = [...closure].filter(isScript).map((relative) => view.files.get(relative) ?? '');
   if (!sources.some((source) => source.includes(WASM_DIR))) return [];
   const dir = WASM_DIR.slice(1);
   return [...paths].filter((candidate) => {
@@ -176,7 +192,7 @@ export function fullClosure(view, entryUrls) {
   const closure = walk(view, entryUrls, (relative) => {
     const source = view.files.get(relative) ?? '';
     if (relative.endsWith('.css')) return cssUrls(source, `/${relative}`).map(toRelative).filter(Boolean);
-    if (!relative.endsWith('.js')) return [];
+    if (!isScript(relative)) return [];
     return [...staticDeps(relative, source), ...dynamicDeps(relative, source)];
   });
   for (const file of namedWasmFiles(view, closure, pathSet(view))) closure.add(file);
