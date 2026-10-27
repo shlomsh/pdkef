@@ -6,6 +6,7 @@ import PdfScanTool from './PdfScanTool.tsx';
 import * as pipeline from './scanPipeline.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { rotateQuad, turnedQuad } from './quad.ts';
+import { playFlatten } from './flattenAnimation.ts';
 
 vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -15,6 +16,11 @@ vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
 vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
   ...(await importOriginal()),
   takeHandoff: vi.fn(() => Promise.resolve(null)),
+}));
+
+vi.mock('./flattenAnimation.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  playFlatten: vi.fn(() => () => {}),
 }));
 
 vi.mock('./scanPipeline.ts', () => ({
@@ -395,6 +401,68 @@ describe('PdfScanTool', () => {
     await useCorners();
     expect(editor().hasAttribute('data-full')).toBe(false);
     expect(byText('Full screen')).toHaveLength(0);
+  });
+
+  // The flatten starts from the photo where the card shows it: measured full screen, the page flew
+  // in from the full-screen coordinates once the card was back (2026-10-27).
+  describe('approved full screen', () => {
+    const CARD = { left: 100, top: 200, width: 300, height: 400 };
+    const FULL = { left: 0, top: 0, width: 2000, height: 1300 };
+    let originalRect;
+    beforeEach(() => {
+      vi.mocked(playFlatten).mockClear();
+      originalRect = Element.prototype.getBoundingClientRect;
+      // The editor fills the screen while full; its photo frame sits inside it at 0,0.
+      Element.prototype.getBoundingClientRect = function () {
+        const editor = this.closest('[data-page-heading]')?.closest('section') ?? this.closest('section');
+        const full = editor?.hasAttribute('data-full') || document.fullscreenElement === editor;
+        if (this.matches('[data-corner-frame]')) return full ? FULL : { ...CARD, left: CARD.left + 20, top: CARD.top + 20 };
+        return full ? FULL : CARD;
+      };
+    });
+    afterEach(() => {
+      Element.prototype.getBoundingClientRect = originalRect;
+      delete HTMLElement.prototype.requestFullscreen;
+      delete document.exitFullscreen;
+      delete document.fullscreenElement;
+    });
+
+    const approveFull = async () => {
+      mount();
+      await pick([jpeg('a.jpg')]);
+      await settle();
+      await act(async () => { byText('Full screen')[0].click(); });
+      await settle();
+      await useCorners();
+      await settle();
+    };
+    const fromFrame = () => vi.mocked(playFlatten).mock.calls.at(-1)?.[1].frame;
+
+    it('as the full-page layer', async () => {
+      await approveFull();
+      expect(fromFrame()).toEqual({ left: 20, top: 20, width: 300, height: 400 });
+    });
+
+    it('in the browser\'s own full screen, once the browser has left it', async () => {
+      HTMLElement.prototype.requestFullscreen = function () {
+        Object.defineProperty(document, 'fullscreenElement', { value: this, configurable: true });
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+      document.exitFullscreen = () => new Promise((resolve) => {
+        // The browser leaves a moment later, as a real one does.
+        setTimeout(() => {
+          Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true });
+          document.dispatchEvent(new Event('fullscreenchange'));
+          resolve();
+        }, 50);
+      });
+      await approveFull();
+      expect(playFlatten).not.toHaveBeenCalled();
+      await settle(100);
+      expect(fromFrame()).toEqual({ left: 20, top: 20, width: 300, height: 400 });
+      expect(container.querySelector('[data-paper]')).not.toBeNull();
+    });
   });
 
   it('turns the photo with Rotate while setting corners, and keeps the corners in the photo as photographed', async () => {

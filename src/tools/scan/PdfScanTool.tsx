@@ -451,10 +451,31 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     } else setFull('layer');
   };
   const exitFull = () => {
-    // expected: the browser may already have left full screen (Esc), nothing to undo
-    if (document.fullscreenElement === editorRef.current) document.exitFullscreen?.()?.catch(() => {});
-    setFull(null);
+    // The browser's own: `full` follows its fullscreenchange, once the card is back on screen.
+    if (document.fullscreenElement === editorRef.current && document.exitFullscreen) {
+      // expected: the browser may already have left full screen (Esc), nothing to undo
+      document.exitFullscreen()?.catch(() => setFull(null));
+    } else setFull(null);
   };
+  /** Approved full screen: the result waits for the card, and the flatten starts from the photo where
+   * the card shows it. Measured full screen, the page flew in from full-screen coordinates (2026-10-27). */
+  const resultAfterFullRef = useRef<ScanPage | null>(null);
+  const showResult = (page: ScanPage) => {
+    if (full) {
+      resultAfterFullRef.current = page;
+      exitFull();
+      return;
+    }
+    captureFlatten(page);
+    setView('result');
+  };
+  useLayoutEffect(() => {
+    const page = resultAfterFullRef.current;
+    if (full || !page) return;
+    resultAfterFullRef.current = null;
+    captureFlatten(page);
+    setView('result');
+  }, [full]);
   // Full screen is for the corners: the page as it downloads comes back in the card.
   useEffect(() => {
     if (view !== 'corners') exitFull();
@@ -671,10 +692,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
     setPages((current) => current.map((p) => (p.id === selected.id ? { ...p, reviewed: true } : p)));
     const next = pages.find((p) => !p.reviewed && p.id !== selected.id);
     if (next) setSelectedId(next.id);
-    else {
-      captureFlatten(selected);
-      setView('result');
-    }
+    else showResult(selected);
     topPendingRef.current = true;
     focusPendingRef.current = true;
     announce(next ? formatMessage(t.announceCornersOf, { position: pages.indexOf(next) + 1 }) : t.announceResult);
@@ -965,8 +983,7 @@ export default function PdfScanTool({ quietPolicy, navigate }: PdfScanToolProps 
                       class={`${workspaceStyles['quiet-button']} ${styles['done-button']}`}
                       disabled={selected.preview === null}
                       onClick={selected.reviewed ? () => {
-                        captureFlatten(selected);
-                        setView('result');
+                        showResult(selected);
                         topPendingRef.current = true;
                         focusPendingRef.current = true;
                         announce(t.announceResult);
