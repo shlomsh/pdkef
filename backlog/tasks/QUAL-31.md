@@ -1,10 +1,9 @@
 ---
 id: "QUAL-31"
 title: "check:push typechecks .astro scripts when the diff reaches an .astro file"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -26,6 +25,15 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] Unit test in `scripts/check-push.test.mjs`: a diff touching an `.astro` file plans `astro check`;
+- [x] Unit test in `scripts/check-push.test.mjs`: a diff touching an `.astro` file plans `astro check`;
       a diff touching only `.ts` does not.
-- [ ] The run time of the added step is written in the Done section.
+- [x] The run time of the added step is written in the Done section.
+
+## Done
+
+*2026-10-27.* `planSteps` adds an `astro-check` step (`npm run typecheck`, which is `astro check`) when
+the diff reaches an `.astro` file, in its own stage before the build so the two never write `.astro/` at
+once. `astro check` on this worktree: 15.8 s wall, 0 errors.
+
+A `.ts` or `.js` change that only an `.astro` page consumes still skips it locally; CI's `astro check`
+catches that, as it did for the incident above.

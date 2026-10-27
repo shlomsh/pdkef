@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
-import { commitFromEnv, hasPlaceholder, stampBuildCommit } from './buildCommit.mjs';
+import { sortCspHashes } from './cspHashOrder.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
 import { pageClosure, shellClosure, toPublicUrl as relativeToUrl } from './precacheClosure.mjs';
@@ -24,6 +24,14 @@ if (!fs.existsSync(distDir)) {
 }
 
 const allFiles = walk(distDir).sort();
+
+// Astro lists each page's CSP hash sources in an unstable order, which made every page differ
+// per deploy (MEM-20). Sort them before anything below reads or hashes the HTML.
+for (const filePath of allFiles.filter((name) => name.endsWith('.html'))) {
+  const html = fs.readFileSync(filePath, 'utf8');
+  const sorted = sortCspHashes(html);
+  if (sorted !== html) fs.writeFileSync(filePath, sorted);
+}
 
 // v2 (MEM-15): the shell, and the closure of each page, so the worker installs the union
 // of the closures instead of every file in the build.
@@ -78,27 +86,4 @@ if (!about.includes('__BUILD_ID__')) {
 }
 fs.writeFileSync(aboutPath, about.replaceAll('__BUILD_ID__', buildId));
 
-// The deploying commit, also after the hash and for the same reason: it lives
-// in HTML only (BaseLayout's `pdkef-build` meta), so a push that changes no
-// content keeps the build id and the service worker cache name. No commit
-// (a local build) removes the tag. Hard failure if no page carried it.
-const commit = commitFromEnv(process.env);
-let stamped = 0;
-let signHasTag = false;
-for (const filePath of allFiles) {
-  if (!filePath.endsWith('.html')) continue;
-  const html = fs.readFileSync(filePath, 'utf8');
-  if (!hasPlaceholder(html)) continue;
-  stamped += 1;
-  if (filePath === path.join(distDir, 'sign', 'index.html')) signHasTag = true;
-  const next = stampBuildCommit(html, commit);
-  if (next !== html) fs.writeFileSync(filePath, next);
-}
-if (stamped === 0) {
-  throw new Error('No dist/ page carries the __BUILD_COMMIT__ placeholder (BaseLayout lost it).');
-}
-if (!signHasTag) {
-  throw new Error('dist/sign/index.html is missing the __BUILD_COMMIT__ placeholder.');
-}
-
-console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}), commit ${commit || 'none (no commit)'} on ${stamped} pages.`);
+console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);

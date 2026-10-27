@@ -145,13 +145,15 @@ function readTranslated(): boolean {
 const BUILD_COMMIT = /^[0-9a-f]{7}$/;
 
 /**
- * The 7-character commit the page was built from, off `<meta name="pdkef-build">` (written by the
- * production build only), or undefined when the tag is missing or malformed. Never throws.
+ * The 7-character commit the page was built from (MEM-19), off the `build` entry of the navigation's
+ * `Server-Timing` header (set by middleware.ts), or undefined when it is missing or malformed. The header
+ * survives the service worker's Cache API, so cache-served pages carry it too. Never throws.
  */
-export function readBuildCommit(doc?: Pick<Document, 'querySelector'>): string | undefined {
+export function readBuildCommit(perf?: Pick<Performance, 'getEntriesByType'>): string | undefined {
   return safely(() => {
-    const content = (doc ?? document).querySelector('meta[name="pdkef-build"]')?.getAttribute('content');
-    return typeof content === 'string' && BUILD_COMMIT.test(content) ? content : undefined;
+    const [navigation] = (perf ?? performance).getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const description = navigation?.serverTiming?.find((entry) => entry.name === 'build')?.description;
+    return typeof description === 'string' && BUILD_COMMIT.test(description) ? description : undefined;
   }, undefined);
 }
 

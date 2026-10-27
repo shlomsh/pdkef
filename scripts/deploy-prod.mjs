@@ -1,7 +1,8 @@
 // `npm run deploy:prod [-- --dry-run] [vercel args]` (DEBT-37): the forced production deploy used when a
 // `patches/` file changes (the push-triggered deploy fails on Vercel's cached node_modules), with the commit
-// passed as a build env. A push-triggered build gets VERCEL_GIT_COMMIT_SHA from Vercel; a CLI build gets none,
-// so its pages would carry no stamp (DEBT-35) and its crash reports would read as unverifiable (DEBT-36).
+// passed as a build env and a runtime env. A push-triggered deploy gets VERCEL_GIT_COMMIT_SHA from Vercel; a CLI
+// deploy gets none, and middleware.ts reads it at request time to send the Server-Timing build header (MEM-19),
+// so without it crash reports would read as unverifiable (DEBT-36).
 //
 // Nothing here deploys unless a person runs it; --dry-run prints the command and runs nothing.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -12,7 +13,7 @@ const COMMIT = /^[0-9a-f]{7,40}$/;
 
 export function deployArgs({ sha, extra }) {
   if (!COMMIT.test(String(sha ?? ''))) throw new Error(`not a commit: ${JSON.stringify(sha)}`);
-  return ['deploy', '--prod', '--force', '--build-env', `VERCEL_GIT_COMMIT_SHA=${sha}`, ...extra];
+  return ['deploy', '--prod', '--force', '--build-env', `VERCEL_GIT_COMMIT_SHA=${sha}`, '--env', `VERCEL_GIT_COMMIT_SHA=${sha}`, ...extra];
 }
 
 export function parseArgs(argv) {

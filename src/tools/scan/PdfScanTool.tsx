@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
-import { Camera, Check, Crop, Expand, FileSignature, ImagePlus, Maximize, Merge, Minimize2, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
+import { Camera, Check, Crop, Eraser, FileSignature, ImagePlus, Maximize, RotateCw, Shrink, Trash2, WandSparkles } from 'lucide-preact';
 import { isAbortError, throwIfAborted } from '../../lib/abort.js';
 import { moveEntry, reorderEntries } from '../../lib/pageOrder.js';
 import { PHOTO_ACCEPT as ACCEPT, PHOTO_ACCEPTED_TYPES as ACCEPTED_TYPES, usePhotoTileList } from '../../lib/usePhotoTileList.ts';
@@ -16,6 +16,7 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
 import DownloadElement from '../../shell/DownloadElement.tsx';
+import { useAdoptPrePickedFiles } from '../../shell/prePickedFiles.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import OutputName from '../../shell/OutputName.tsx';
@@ -31,6 +32,7 @@ import { useFloorHeight } from '../../shell/pageWorkspace/useFloorHeight.ts';
 import { useMediaQuery } from './hooks/useMediaQuery.ts';
 import { englishShellMessages } from '../../shell/shellMessages';
 import CornerEditor from './components/CornerEditor.tsx';
+import FullScreenButton from './components/FullScreenButton.tsx';
 import ResultPage from './components/ResultPage.tsx';
 import { placeImage } from '../../lib/imagePage.js';
 import { playFlatten, relativeBox, type FlattenFrom } from './lib/flattenAnimation.ts';
@@ -44,7 +46,7 @@ import { ScanWork, type PageResult, type ScanPage } from './state/scanWork.ts';
 import { englishScanMessages as t } from './messages.ts';
 import styles from './PdfScanTool.module.css';
 
-const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'merge', 'compress'];
+const HANDOFF_TOOLS: HandoffTool[] = ['sign', 'redact', 'compress'];
 
 /** Fit pages print at 200 dpi (scanPipeline.ts); the same rule places a page before the build lands. */
 const FIT_POINTS_PER_PIXEL = 72 / 200;
@@ -64,6 +66,8 @@ const loadPipeline = () => (pipelinePromise ??= import('./lib/scanPipeline.ts'))
  * picker, so iOS opens the camera natively. The pages column's is a quiet tile, the phone bar's a bar button. */
 function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-photo-button'] }: { onFiles: (files: File[]) => void; primary?: boolean; buttonClass?: string }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // The empty state's camera button is server-rendered, so a photo can be taken before this loads.
+  useAdoptPrePickedFiles(inputRef, onFiles);
   const onChange = (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
     if (input.files?.length) onFiles(Array.from(input.files));
@@ -75,7 +79,7 @@ function TakePhotoButton({ onFiles, primary = false, buttonClass = styles['take-
         {/* No icon: it pairs with Choose files, which has none, as two equal buttons. */}
         <label class={dropzoneStyles['file-picker-button']}>
           {t.takePhoto}
-          <input type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
+          <input ref={inputRef} type="file" accept={ACCEPT} capture="environment" class={dropzoneStyles['file-input']} onChange={onChange} />
         </label>
       </span>
     );
@@ -388,9 +392,10 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
     captureFlatten(page);
     dispatch({ type: 'resultAfterFullShown' });
   }, [full]);
-  // Full screen is for the corners: the page as it downloads comes back in the card.
+  // Full screen belongs to the view it was opened on (the corners, or the page as it downloads): a
+  // view change brings the card back.
   useEffect(() => {
-    if (view !== 'corners') exitFull();
+    exitFull();
   }, [view]);
   useEffect(() => () => {
     // expected: leaving the page while full screen, nothing to report
@@ -631,7 +636,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
   const detail = downloadDetail(prepared, pages.length, englishShellMessages, t.dir);
   const handoffItems = [
     { tool: 'sign' as HandoffTool, label: t.handoffSign, Icon: FileSignature },
-    { tool: 'merge' as HandoffTool, label: t.handoffMerge, Icon: Merge },
+    { tool: 'redact' as HandoffTool, label: t.handoffRedact, Icon: Eraser },
     { tool: 'compress' as HandoffTool, label: t.handoffCompress, Icon: Shrink },
   ];
   const analyticsStatus = prepared.status === 'error' ? 'error' : tap;
@@ -654,11 +659,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
       onFilesAdded={addFiles}
       intake={{ accept: ACCEPT, needsPdfjs: false }}
       identity={{ label: pagesLabel(pages.length, englishShellMessages), hidden: true }}
-      empty={{
-        art: <ScanVerb />,
-        action: <TakePhotoButton onFiles={addFiles} primary />,
-        message: t.dropHere,
-      }}
+      empty={{ art: <ScanVerb />, action: <TakePhotoButton onFiles={addFiles} primary />, message: t.dropHere }}
       clearAll={{ onClear: reset, summary: pagesLabel(pages.length, englishShellMessages) }}
       analytics={{ tool: 'scan-to-pdf', status: analyticsStatus }}
       owns={{ rating: true }}
@@ -740,7 +741,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                     busy={handoffBusy}
                     onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
                     onWarm={prepared.prepareNow}
-                    labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, merge: t.handoffMerge }}
+                    labels={{ share: t.shareLabel, compress: t.handoffCompress, sign: t.handoffSign, redact: t.handoffRedact }}
                     tools={HANDOFF_TOOLS}
                   />
                   {handoffFailed && (
@@ -787,10 +788,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                         <RotateCw size={16} aria-hidden="true" />
                         {t.rotate}
                       </button>
-                      <button type="button" class={workspaceStyles['quiet-button']} onClick={full ? exitFull : enterFull}>
-                        {full ? <Minimize2 size={16} aria-hidden="true" /> : <Expand size={16} aria-hidden="true" />}
-                        {full ? t.exitFullScreen : t.fullScreen}
-                      </button>
+                      <FullScreenButton full={full !== null} onToggle={full ? exitFull : enterFull} labels={{ enter: t.fullScreen, exit: t.exitFullScreen }} />
                     </div>
                   )}
                   {view === 'result' && (
@@ -810,6 +808,7 @@ export default withIslandBoundary(function PdfScanTool({ quietPolicy, navigate }
                         <Crop size={16} aria-hidden="true" />
                         {t.adjustCorners}
                       </button>
+                      <FullScreenButton full={full !== null} onToggle={full ? exitFull : enterFull} labels={{ enter: t.fullScreen, exit: t.exitFullScreen }} />
                     </div>
                   )}
                 </div>
