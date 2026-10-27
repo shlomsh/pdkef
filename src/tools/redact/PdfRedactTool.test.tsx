@@ -653,6 +653,9 @@ describe('PdfRedactTool UI flow', () => {
       act(() => { render(<PdfRedactTool />, container); });
       const input = query<HTMLInputElement>(container, 'input[type="file"]');
       await act(async () => { setInputFiles(input, [makePdfFile('broken.pdf')]); });
+      await waitUntil(() => expect(container.textContent).toContain("This PDF didn't open"));
+      await harness.flush();
+      // Short settle: the exact trail below also proves nothing else was recorded after the failure.
       await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
       expect(recentActions()).toEqual(['add_files']);
     } finally {
