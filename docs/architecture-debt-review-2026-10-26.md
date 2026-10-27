@@ -64,7 +64,7 @@ lines with its own quiet preparer and `a[download]` delivery. PDF to Image passe
   (`:283-292`) where Redact uses `lib/useLatestRun`.
 - Smaller copies between the two editors: the fullscreen toggle, the undo/redo pair, two
   `useCoarsePointer` hooks with different semantics (`sign/useCoarsePointer.ts`,
-  `redact/RedactBoxBar.tsx`).
+  `redact/components/RedactBoxBar.tsx`).
 
 ### 4. Adding a tool means editing about nine lists (ARCH-38)
 
