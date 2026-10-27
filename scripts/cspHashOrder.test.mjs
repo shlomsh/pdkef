@@ -25,4 +25,21 @@ describe('sortCspHashes', () => {
     const out = sortCspHashes(page("script-src 'sha256-y' 'sha256-x'; style-src 'self' 'sha256-d' 'sha256-c'"));
     expect(out).toContain("script-src 'sha256-x' 'sha256-y'; style-src 'self' 'sha256-c' 'sha256-d'");
   });
+
+  it('keeps a trailing semicolon', () => {
+    const out = sortCspHashes(page("script-src 'sha256-b' 'sha256-a';"));
+    expect(out).toContain("content=\"script-src 'sha256-a' 'sha256-b';");
+  });
+
+  it('passes a directive with no hashes through unchanged', () => {
+    const out = sortCspHashes(page("default-src 'self'; script-src 'sha256-b' 'sha256-a'"));
+    expect(out).toContain("default-src 'self'; script-src 'sha256-a' 'sha256-b'");
+  });
+
+  it('sorts two CSP metas in one document', () => {
+    const meta = (c) => `<meta http-equiv="content-security-policy" content="${c}">`;
+    const out = sortCspHashes(`<head>${meta("script-src 'sha256-b' 'sha256-a'")}${meta("style-src 'sha256-d' 'sha256-c'")}</head>`);
+    expect(out).toContain("script-src 'sha256-a' 'sha256-b'");
+    expect(out).toContain("style-src 'sha256-c' 'sha256-d'");
+  });
 });
