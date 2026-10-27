@@ -54,6 +54,13 @@ describe('IslandErrorBoundary', () => {
     second.remove();
   });
 
+  it('reports once when boundaries nest', async () => {
+    const Boundary = await load();
+    const error = new Error('render failed');
+    expect(() => render(<Boundary><Boundary><Boom error={error} /></Boundary></Boundary>, container)).toThrow(error);
+    expect(reportError).toHaveBeenCalledTimes(1);
+  });
+
   it('does not report again when the same error reaches the window handler', async () => {
     const Boundary = await load();
     const error = new Error('render failed');

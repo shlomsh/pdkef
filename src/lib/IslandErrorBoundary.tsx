@@ -1,5 +1,5 @@
 import { Component, type ComponentChildren, type ComponentType } from 'preact';
-import { installUncaughtErrorReporting, markReported, reportError } from './errorReport.ts';
+import { installUncaughtErrorReporting, isReported, markReported, reportError } from './errorReport.ts';
 
 /**
  * The one boundary every island renders inside (ARCH-72). It installs the window
@@ -13,9 +13,11 @@ export default class IslandErrorBoundary extends Component<{ children?: Componen
   }
 
   componentDidCatch(error: unknown): void {
-    // Marked first, so the window handler that sees this same throw next skips it.
-    markReported(error);
-    reportError('uncaught', error, 'island_render');
+    // Marked first, so an outer boundary or the window handler that sees this same throw next skips it.
+    if (!isReported(error)) {
+      markReported(error);
+      reportError('uncaught', error, 'island_render');
+    }
     throw error;
   }
 

@@ -260,7 +260,8 @@ export function markReported(error: unknown): void {
   if (typeof error === 'object' && error !== null) reported.add(error);
 }
 
-function isReported(error: unknown): boolean {
+/** Whether a boundary already reported this thrown value. */
+export function isReported(error: unknown): boolean {
   return typeof error === 'object' && error !== null && reported.has(error);
 }
 
