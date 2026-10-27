@@ -117,7 +117,9 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    site-classified node instead of the node's own path, and moved the shell modules that reading
    now correctly flagged as site-only (`FileDropzone.tsx`, `homeWorkspace.ts`, `RecentFiles.tsx`,
    `sampleDocument.ts`) into `src/site-lib/`. Enforced by `commonLayerConsumerViolations()`, with no
-   ratcheting allowlist and no exception list of any kind (like rules 6 and 8): it holds at zero
+   ratcheting allowlist (like rules 6 and 8) beyond `{ rule: 9, file, reason }` entries in
+   `scripts/module-boundaries-allowlist.json` for `src/editor/` files only tests, generators or e2e
+   guards read (ARCH-46; a stale entry fails, `*.test-helper.js` is never counted): it holds at zero
    violations, so a module that fails it moves into the tool that actually uses it, or is deleted if
    nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
    and thickness pickers (`FontPickerMenu`, `FontOptionsList`, `FontSheet`, `ThicknessPickerMenu`)
