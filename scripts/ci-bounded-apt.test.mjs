@@ -98,4 +98,17 @@ describe.runIf(process.platform === 'linux')('ci-bounded-apt.sh behaviour (GNU t
     expect(r.status).not.toBe(0);
     expect(count(f)).toBe(2);
   });
+
+  // apt-get runs as a grandchild (npx -> playwright -> apt-get). If the runner's
+  // timeout signalled only its direct child, a killed attempt would leave apt holding
+  // the dpkg lock and the retry would fail on it. Ubuntu 26.04 ships uutils coreutils,
+  // so this proves the process-group kill on the image CI actually uses.
+  it('kills the grandchildren of a command that outlives the bound', () => {
+    const pids = counter();
+    run(['1', 'bash', '-c', `sleep 30 & echo $! >> ${pids}; wait`]);
+    const left = readFileSync(pids, 'utf8').trim().split('\n').filter((pid) => {
+      try { process.kill(Number(pid), 0); return true; } catch { return false; }
+    });
+    expect(left).toEqual([]);
+  });
 });
