@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 84 live: 11 up next, 11 then, 26 waiting, 36 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 91 live: 13 up next, 13 then, 26 waiting, 39 parked.
 
 ## Redact: finish removal
 
@@ -72,6 +72,8 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-64 | P2 | [DEBT-64](backlog/tasks/DEBT-64.md) · Merge's phone chip test passes alone and fails under parallel load |  |
 | DEBT-65 | P2 | [DEBT-65](backlog/tasks/DEBT-65.md) · Two layout-shift specs failed once each in the 2026-10-27 nightly | In progress |
+| MEM-19 | P2 | [MEM-19](backlog/tasks/MEM-19.md) · The deploying commit lives outside the page HTML, so an update re-downloads only the pages that changed |  |
+| MEM-20 | P2 | [MEM-20](backlog/tasks/MEM-20.md) · Each page's CSP hash list is emitted in a stable order |  |
 | ENC-16 | P2 | [ENC-16](backlog/tasks/ENC-16.md) · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name | In progress |
 
 ### Then, in order
@@ -80,7 +82,9 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-47 | P2 | [DEBT-47](backlog/tasks/DEBT-47.md) · Sign's funnel has a clean baseline after the dropzone routing fix |  |
 | DEBT-53 | P2 | [DEBT-53](backlog/tasks/DEBT-53.md) · A Download tapped before the build lands still downloads on an iPhone | Needs Shlomi: A check on your iPhone |
+| QUAL-31 | P2 | [QUAL-31](backlog/tasks/QUAL-31.md) · check:push typechecks .astro scripts when the diff reaches an .astro file |  |
 | DEBT-55 | P3 | [DEBT-55](backlog/tasks/DEBT-55.md) · Every tool that loads with pdf-lib repairs a lost page list the way Edit Pages does |  |
+| MEM-21 | P3 | [MEM-21](backlog/tasks/MEM-21.md) · A nightly job measures what an update downloads against the previous deploy, with a target of about 500 KB |  |
 
 ### Waiting
 
@@ -104,6 +108,8 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ENC-14 | P3 | [ENC-14](backlog/tasks/ENC-14.md) · PDF to Image meets a protected PDF at the door and leads back after Unlock |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
+| MEM-22 | P3 | [MEM-22](backlog/tasks/MEM-22.md) · A build's cache holds only that build's files |  |
+| MEM-23 | P3 | [MEM-23](backlog/tasks/MEM-23.md) · Each precache request has a time limit |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
 ## Unify the tools, narrow the graph
@@ -206,6 +212,7 @@ Small, independent, good for a spare hour.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | ENC-12 | P3 | [ENC-12](backlog/tasks/ENC-12.md) · One hand-off row, not four copies |  |
+| SCAN-03 | P3 | [SCAN-03](backlog/tasks/SCAN-03.md) · The Scan guide photos load lazily |  |
 
 # Closed work
 
