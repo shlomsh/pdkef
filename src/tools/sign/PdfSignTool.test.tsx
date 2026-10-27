@@ -4,10 +4,10 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
+import { overlayHost } from '../../editor-ui/whiteout/overlayHost.ts';
 import * as signModule from './lib/sign.js';
 import { resetMaintenanceEventsForTests } from '../../lib/maintenanceTelemetry.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-// Asserts the pseudo-fullscreen state class; the page overlay has no role or attribute, so it is found by class.
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '../../lib/actionTrail.ts';
@@ -189,7 +189,9 @@ describe('PdfSignTool UI flow', () => {
       });
 
       const workspace = query(container, '[data-workspace]');
-      expect(workspace.hasAttribute('data-pseudo-fullscreen')).toBe(true);
+      // The eyedropper loupe stays on body: the workspace must not look like a pseudo-fullscreen host to overlayHost.
+      expect(overlayHost()).toBe(document.body);
+      expect(workspace.getAttribute('data-fullscreen')).toBe('pseudo');
     } finally {
       window.history.pushState({}, '', originalUrl);
     }
