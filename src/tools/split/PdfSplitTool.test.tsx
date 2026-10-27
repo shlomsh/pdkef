@@ -145,7 +145,8 @@ describe('PdfSplitTool UI flow', () => {
   };
   const undo = () => click(container.querySelector('[aria-label="Undo last change"]'));
   const redo = () => click(container.querySelector('[aria-label="Redo last undone change"]'));
-  const events = (name) => harness.usageEvents(name).length;
+  // Beacons are read asynchronously: flush first so a zero count cannot pass before they landed.
+  const events = async (name) => { await harness.flush(); return harness.usageEvents(name).length; };
   // What a built blob holds: its pages in order, with each one's rotation and width.
   const pagesOf = async (blob: Blob) => {
     const { PDFDocument } = await getPdfLib();
@@ -425,7 +426,7 @@ describe('PdfSplitTool UI flow', () => {
       expect(harness.createdBlobs()).toHaveLength(0);
       await harness.flush();
       expect(harness.reports()).toEqual([]);
-      expect(events('tool_operation_failed')).toBe(0);
+      expect(await events('tool_operation_failed')).toBe(0);
     });
   });
 
@@ -459,7 +460,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(downloadElement().getAttribute('data-state')).toBe('error');
     expect(container.querySelector('[role="alert"] a[href="/unlock/"]')).not.toBeNull();
     expect(harness.reports()).toMatchObject([{ area: 'pdf_tool_run', step: 'prepare_split', type: 'Error' }]);
-    expect(events('tool_operation_failed')).toBe(1);
+    expect(await events('tool_operation_failed')).toBe(1);
   });
 
   it('a load failure still offers Replace file, which asks first', async () => {
@@ -501,7 +502,7 @@ describe('PdfSplitTool UI flow', () => {
     await pick(new File(['this is not a PDF'], 'broken.pdf', { type: 'application/pdf' }));
     await until(() => container.querySelector('[role="alert"]'));
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
-    expect(events('tool_operation_failed')).toBe(1);
+    expect(await events('tool_operation_failed')).toBe(1);
   });
 
   describe('usage events (DEBT-46)', () => {
@@ -512,8 +513,8 @@ describe('PdfSplitTool UI flow', () => {
       await click(radio('One PDF per page'));
       await until(() => downloadElement()?.getAttribute('data-state') === 'ready' && downloadElement()?.textContent.includes('1 page each'));
       expect(downloadElement().getAttribute('data-state')).toBe('ready');
-      expect(events('tool_operation_started')).toBe(0);
-      expect(events('tool_result_ready')).toBe(0);
+      expect(await events('tool_operation_started')).toBe(0);
+      expect(await events('tool_result_ready')).toBe(0);
     });
 
     it('reports an edit when the person changes a page or the mode, not on arrival (DEBT-58)', async () => {
@@ -545,16 +546,16 @@ describe('PdfSplitTool UI flow', () => {
     it('reports started then ready for a Download tap, again after a change', async () => {
       await open();
       await click(downloadElement());
-      await until(() => events('tool_result_ready') === 1);
-      expect(events('tool_operation_started')).toBe(1);
-      expect(events('tool_result_ready')).toBe(1);
+      await until(() => harness.usageEvents('tool_result_ready').length === 1);
+      expect(await events('tool_operation_started')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(1);
       await click(skipButton(1));
       await builtWith(4);
-      expect(events('tool_operation_started')).toBe(1);
+      expect(await events('tool_operation_started')).toBe(1);
       await click(downloadElement());
-      await until(() => events('tool_result_ready') === 2);
-      expect(events('tool_operation_started')).toBe(2);
-      expect(events('tool_result_ready')).toBe(2);
+      await until(() => harness.usageEvents('tool_result_ready').length === 2);
+      expect(await events('tool_operation_started')).toBe(2);
+      expect(await events('tool_result_ready')).toBe(2);
     });
 
     it('reports started at a tap while preparing and ready once the queued download is delivered', async () => {
@@ -563,11 +564,11 @@ describe('PdfSplitTool UI flow', () => {
       expect(downloadElement().getAttribute('data-state')).toBe('ready');
       await click(downloadElement());
       expect(downloadElement().getAttribute('data-state')).toBe('preparing');
-      expect(events('tool_operation_started')).toBe(1);
-      expect(events('tool_result_ready')).toBe(0);
+      expect(await events('tool_operation_started')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(0);
       await until(() => downloadElement()?.getAttribute('data-state') === 'saved');
       expect(downloadElement().getAttribute('data-state')).toBe('saved');
-      expect(events('tool_result_ready')).toBe(1);
+      expect(await events('tool_result_ready')).toBe(1);
     });
 
     it('shares the result from the finish row', async () => {

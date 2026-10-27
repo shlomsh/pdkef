@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import PdfCompressTool from './PdfCompressTool.tsx';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import * as compressLib from './lib/compress.js';
+import * as imagesLib from './lib/compressImages.js';
 import { hebrewCompressMessages } from './messages';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -40,7 +42,21 @@ describe('PdfCompressTool with a protected PDF', () => {
     probeEncryption.mockImplementation((bytes) => realProbe(bytes, legacyPdfjs));
   });
 
+  // Call-through spies on the four PDF compress engines: only a call count proves "never ran".
+  let engineSpies = [];
+  const spyEngines = () => {
+    engineSpies = [
+      vi.spyOn(compressLib, 'compressPdf'),
+      vi.spyOn(compressLib, 'compressPdfToTarget'),
+      vi.spyOn(imagesLib, 'compressPdfImages'),
+      vi.spyOn(imagesLib, 'compressPdfImagesToTarget'),
+    ];
+    return engineSpies;
+  };
+
   afterEach(() => {
+    engineSpies.forEach((spy) => spy.mockRestore());
+    engineSpies = [];
     if (container) {
       act(() => render(null, container));
       container.remove();
@@ -99,8 +115,12 @@ describe('PdfCompressTool with a protected PDF', () => {
   });
 
   it('never compresses a small file that needs a password', async () => {
+    const engines = spyEngines();
     mount();
     await pick(fixtureFile('needs-password'));
+
+    // No engine was ever called.
+    for (const engine of engines) expect(engine).not.toHaveBeenCalled();
 
     // No build ever started: no run layout, no run counter, no result built into a download.
     expect(loaded()).toBe(false);
@@ -138,16 +158,19 @@ describe('PdfCompressTool with a protected PDF', () => {
   it('does not run until the password check has answered, then runs once', async () => {
     let release;
     probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const [, , compressImagesSpy] = spyEngines();
     mount();
     await pick(fixtureFile('plain'), false);
 
     // The strip is up while the check is out, but no build has started.
+    expect(compressImagesSpy).not.toHaveBeenCalled();
     expect(runs()).toBe('0');
     expect(statusNow()).not.toMatch(/^(processing|done)$/);
     await act(async () => { release('open'); });
     for (let i = 0; i < 100 && statusNow() !== 'done'; i++) await nap(20);
     expect(statusNow()).toBe('done');
     await nap(100);
+    expect(compressImagesSpy).toHaveBeenCalledTimes(1);
     expect(runs()).toBe('1');
   });
 
@@ -179,6 +202,7 @@ describe('PdfCompressTool with a protected PDF', () => {
   it('drops a probe result that lands after a newer image pick', async () => {
     let release;
     probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const [, , compressImagesSpy] = spyEngines();
     mount();
     await pick(fixtureFile('needs-password'));
     // An image is never probed, so it starts no run of its own; the pick itself has to drop the old one.
@@ -189,6 +213,7 @@ describe('PdfCompressTool with a protected PDF', () => {
     // Only the image's own build ran: a PDF build from the dropped probe would have made the counter 2.
     expect(statusNow()).toBe('done');
     expect(runs()).toBe('1');
+    expect(compressImagesSpy).not.toHaveBeenCalled();
   });
 
   it('falls back to the normal state when the probe throws', async () => {
