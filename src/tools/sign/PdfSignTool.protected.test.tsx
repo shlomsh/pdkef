@@ -7,7 +7,7 @@ import * as pdfjsDist from 'pdfjs-dist';
 import PdfSignTool from './PdfSignTool.tsx';
 import { hebrewSignMessages } from './messages';
 import type { SignMessages } from '../../editor/registry/messages';
-import { saveHandoff } from '../../lib/drafts/draftStore.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 
@@ -15,17 +15,8 @@ declare const __dirname: string;
 
 // ENC-07: a protected PDF is one quiet state in Sign, not an editor or an alert.
 
-vi.mock('../../lib/drafts/draftStore.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.ts')>();
-  return { ...actual, saveHandoff: vi.fn(actual.saveHandoff) };
-});
-
-const { lifecycleSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn() }));
-vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/productAnalytics.ts')>();
-  return { ...actual, reportToolLifecycleEvent: lifecycleSpy };
-});
-
+// EDGE: pdf.js cannot run its worker in jsdom, so getDocument is faked below. draftStore and analytics run
+// for real over the harness.
 const plainDocument = () => ({
   numPages: 1,
   getPermissions: vi.fn(async () => null),
@@ -55,6 +46,12 @@ async function settleUntil(description: string, ready: () => boolean, limit = 50
 
 describe('a protected PDF in Sign (ENC-07)', () => {
   let container = document.createElement('div');
+  let harness: ToolHarness;
+  // The failed-operation events Sign counted so far.
+  const signFailures = async () => {
+    await harness.flush();
+    return harness.usageEvents('tool_operation_failed').filter((event) => event.properties.tool === 'sign');
+  };
 
   const fixture = (name: string) => new File(
     [fs.readFileSync(`${__dirname}/../../lib/__fixtures__/encrypted/${name}`)],
@@ -86,7 +83,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
   );
 
   beforeEach(() => {
-    lifecycleSpy.mockClear();
+    harness = installToolHarness();
     vi.mocked(pdfjsDist.getDocument).mockImplementation(() => ({
       promise: Promise.resolve(plainDocument()),
       destroy: vi.fn(),
@@ -101,6 +98,7 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     window.history.pushState({}, '', '/');
+    harness.restore();
   });
 
   it.each([
@@ -115,32 +113,33 @@ describe('a protected PDF in Sign (ENC-07)', () => {
     expect(shown.querySelector('p')?.textContent).toBe(body);
     expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
     expect(container.querySelector('[data-editor-element]')).toBeNull();
-    expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'sign');
+    expect(await signFailures()).toEqual([]);
     expect(container.textContent).toContain('Replace');
   });
 
   it('Unlock it parks the file for Unlock, then navigates there', async () => {
     mockProtection('owner-restricted');
-    vi.mocked(saveHandoff).mockResolvedValueOnce(true);
     await pick(fixture('owner-only.pdf'));
     const location = { href: '/sign/' };
     vi.stubGlobal('location', location);
     await act(async () => { unlockButton().click(); });
     await settleUntil('the hand-off to Unlock', () => location.href === '/unlock/');
-    expect(saveHandoff).toHaveBeenCalledWith('unlock', expect.objectContaining({
-      fileName: 'owner-only.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer), from: 'sign',
-    }));
+    const parked = await harness.takeHandoff('unlock');
+    expect(parked).toEqual(expect.objectContaining({ fileName: 'owner-only.pdf', fileType: 'application/pdf', from: 'sign' }));
+    // The bytes are the file's own (read back from IndexedDB, so a different realm's ArrayBuffer).
+    expect((parked?.fileBytes as ArrayBuffer).byteLength).toBe(fixture('owner-only.pdf').size);
   });
 
   it('a failed save says so quietly and leaves the button usable', async () => {
     mockProtection('needs-password');
-    vi.mocked(saveHandoff).mockResolvedValueOnce(false);
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await pick(fixture('needs-password.pdf'));
+    // A browser with no usable IndexedDB (a locked-down window) cannot park the file.
+    vi.stubGlobal('indexedDB', undefined);
     await act(async () => { unlockButton().click(); });
     await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
     expect(unlockButton().disabled).toBe(false);
-    expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'sign');
+    expect(await signFailures()).toEqual([]);
   });
 
   it('choosing another file clears the state', async () => {

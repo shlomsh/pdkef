@@ -5,18 +5,20 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
 import * as signModule from './lib/sign.js';
-import * as maintenanceTelemetry from '../../lib/maintenanceTelemetry.ts';
+import { resetMaintenanceEventsForTests } from '../../lib/maintenanceTelemetry.ts';
+import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
+import { recentActions } from '../../lib/actionTrail.ts';
 
 declare const __dirname: string;
 
-// FORM-35: lets one test hand the tool a finished walk with a chosen page kind;
+// FORM-35: lets one test hand the tool a finished walk with a chosen page kind (kept as an override of the
+// real hook: a real finished walk always names a kind, so the "omits" case cannot come from one);
 // null leaves the real hook alone, which is what every other test here wants.
 const formRegionsOverride = vi.hoisted(() => ({ value: null as Record<string, unknown> | null }));
 vi.mock('./hooks/useFormFieldRegions.ts', async (importOriginal) => {
@@ -91,10 +93,19 @@ vi.mock('pdfjs-dist', () => {
 describe('PdfSignTool UI flow', () => {
   let container = document.createElement('div');
   let restoreFetch: () => void = () => {};
+  let harness: ToolHarness;
+  // The maintenance events the island sent (they travel by the same beacon as usage events), as sent.
+  const maintenanceEvents = async (name?: string) => {
+    await harness.flush();
+    return harness.beacons()
+      .map((beacon) => beacon.payload as { name: string; properties: Record<string, unknown> })
+      .filter((event) => name === undefined || event.name === name);
+  };
 
   beforeEach(() => {
+    harness = installToolHarness();
+    resetMaintenanceEventsForTests();
     restoreFetch = mockFontFetch();
-    resetActionTrailForTests();
     // This file exercises the old editor by default (SNG-19: fill mode is
     // the default, so the old editor needs ?next=0 to stay reachable).
     window.history.pushState({}, '', '?next=0');
@@ -108,6 +119,7 @@ describe('PdfSignTool UI flow', () => {
     document.body.innerHTML = '';
     restoreFetch();
     vi.restoreAllMocks();
+    harness.restore();
     window.history.pushState({}, '', '/');
   });
 
@@ -192,7 +204,6 @@ describe('PdfSignTool UI flow', () => {
   // cannot walk a page, so the walk here fails, which is the outcome worth
   // guarding: it is reported, once, as a code and nothing else.
   it('reports the form-field walk once per document, as one anonymous event', async () => {
-    const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportMaintenanceEvent');
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => { render(<PdfSignTool />, container); });
@@ -204,11 +215,8 @@ describe('PdfSignTool UI flow', () => {
 
     // The walk is asynchronous (pdf-lib and the five detectors arrive by
     // dynamic import), so the event lands after the file does.
-    const detected = () => reportEvent.mock.calls
-      .map(([event]) => event)
-      .filter((event) => event.name === 'sign_form_detection');
-    await vi.waitFor(() => expect(detected()).toHaveLength(1), { timeout: 3000, interval: 50 });
-    const detection = detected();
+    await vi.waitFor(async () => expect(await maintenanceEvents('sign_form_detection')).toHaveLength(1), { timeout: 3000, interval: 50 });
+    const detection = await maintenanceEvents('sign_form_detection');
     expect(Object.keys(detection[0].properties)).toEqual(['outcome', 'error_code']);
     // Nothing about the document travels, the filename included.
     expect(JSON.stringify(detection[0])).not.toContain('form.pdf');
@@ -224,7 +232,6 @@ describe('PdfSignTool UI flow', () => {
   ])('a finished walk %s page_kind', async (_label, pageKind, keys) => {
     formRegionsOverride.value = { detection: 'done', detectionError: undefined, pageKind };
     try {
-      const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportMaintenanceEvent');
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfSignTool />, container); });
@@ -232,11 +239,8 @@ describe('PdfSignTool UI flow', () => {
         setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('kind.pdf')]);
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
-      const detected = () => reportEvent.mock.calls
-        .map(([event]) => event)
-        .filter((event) => event.name === 'sign_form_detection');
-      await vi.waitFor(() => expect(detected().length).toBeGreaterThan(0), { timeout: 3000, interval: 50 });
-      const success = detected().find((event) => event.properties.outcome === 'success');
+      await vi.waitFor(async () => expect((await maintenanceEvents('sign_form_detection')).length).toBeGreaterThan(0), { timeout: 3000, interval: 50 });
+      const success = (await maintenanceEvents('sign_form_detection')).find((event) => event.properties.outcome === 'success');
       expect(Object.keys(required(success, 'a success event').properties)).toEqual(keys);
       if (pageKind) expect(success?.properties).toMatchObject({ page_kind: pageKind });
     } finally {
@@ -415,7 +419,6 @@ describe('PdfSignTool UI flow', () => {
 
     const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
     const sign = vi.spyOn(signModule, 'signPdf').mockResolvedValue(signedBlob);
-    const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportMaintenanceEvent');
 
     try {
       container = document.createElement('div');
@@ -454,7 +457,7 @@ describe('PdfSignTool UI flow', () => {
       // By name, not by call count: opening the file also reports FORM-11's
       // one form-detection event, which is about the document and not about
       // this export.
-      expect(reportEvent.mock.calls.map(([event]) => event.name)).not.toContain('sign_export');
+      expect((await maintenanceEvents()).map((event) => event.name)).not.toContain('sign_export');
 
       // Once the background export lands, Share is ready with no prior tap.
       await vi.waitFor(() => {
@@ -474,7 +477,7 @@ describe('PdfSignTool UI flow', () => {
       await vi.waitFor(() => {
         expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
       }, { timeout: 3000, interval: 50 });
-      expect(reportEvent.mock.calls.map(([event]) => event.name)).not.toContain('sign_export');
+      expect((await maintenanceEvents()).map((event) => event.name)).not.toContain('sign_export');
     } finally {
       if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
       else Reflect.deleteProperty(navigator, 'share');
