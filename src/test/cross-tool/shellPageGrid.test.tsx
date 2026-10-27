@@ -11,12 +11,15 @@ import { englishMergeMessages } from '../../tools/merge/messages';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 
 const sources = [];
+// What each mocked file reports for its page sizes; null = the source cannot say (the thumbnail's own size is used).
+const probe = vi.hoisted(() => ({ aspects: null as number[] | null }));
 
 vi.mock('../../lib/thumbnails.js', () => ({
   openThumbnailSource: vi.fn(async (file) => {
     const source = {
       file,
       pageCount: 2,
+      aspects: vi.fn(async () => probe.aspects),
       render: vi.fn(async (pageIndex, { signal } = {}) => {
         if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
         return `data:image/png;base64,${file.name}-${pageIndex}`;
@@ -77,6 +80,7 @@ describe('PageGrid', () => {
 
   beforeEach(() => {
     sources.length = 0;
+    probe.aspects = null;
     observers = [];
     originalIO = globalThis.IntersectionObserver;
     globalThis.IntersectionObserver = FakeIntersectionObserver;
@@ -216,7 +220,9 @@ describe('PageGrid', () => {
 
   it('renders thumbnails only for cards near the viewport, one pdf.js document per file, and releases a removed file', async () => {
     const { rerender, entries } = mount();
-    expect(thumbnailsLib.openThumbnailSource).not.toHaveBeenCalled();
+    // Each file opens once up front, to read its page sizes; no page renders until it nears the viewport.
+    await waitFor(() => thumbnailsLib.openThumbnailSource.mock.calls.length === 2);
+    expect(container.querySelectorAll(`.${styles.thumb}`)).toHaveLength(0);
 
     await act(async () => { observers.at(-1).intersect(['1:1', '2:0']); });
     await waitFor(() => container.querySelectorAll(`.${styles.thumb}`).length === 2);
@@ -231,6 +237,28 @@ describe('PageGrid', () => {
     await waitFor(() => sourceA.destroy.mock.calls.length > 0);
     expect(sourceA.destroy).toHaveBeenCalled();
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
+  });
+
+  // DEBT-65: the span comes from the PDF's own page sizes, so a landscape page is two cells wide
+  // before any thumbnail renders and nothing refits when one arrives.
+  it('lays a landscape page out from the page size, before its thumbnail renders', async () => {
+    probe.aspects = [1.5, 0.77];
+    mount();
+    await waitFor(() => cards()[0].style.gridColumn === 'span 2');
+    expect(container.querySelectorAll(`.${styles.thumb}`)).toHaveLength(0);
+    expect(cards()[0].style.getPropertyValue('--cell-w')).toBe('144px');
+    expect(cards()[1].style.gridColumn).not.toBe('span 2');
+  });
+
+  it('holds the grid back while a file is still being read, then shows it once the sizes are in', async () => {
+    probe.aspects = [1.5, 0.77];
+    const entries = [{ id: 1, file: makeFile('a.pdf'), pageCount: null, error: null }];
+    const { rerender } = mount({ entries, plan: planForFile(1, 2) });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    expect(container.querySelector('[data-fit-settled]')).toBeNull();
+
+    rerender({ sources: [{ ...entries[0], pageCount: 2 }], plan: planForFile(1, 2) });
+    await waitFor(() => container.querySelector('[data-fit-settled]') != null);
   });
 
   // Review P1/D2: a landscape cell used to swap the portrait box's own

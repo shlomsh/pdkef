@@ -20,7 +20,7 @@
       "src/data/tools.js": 1030,
       "src/layouts/HomePageLayout.astro": 1394,
       "src/lib/drafts/draftStore.ts": 1154,
-      "src/shell/pageGrid/PageGrid.tsx": 890,
+      "src/shell/pageGrid/PageGrid.tsx": 882,
       "src/tools/compress/PdfCompressTool.tsx": 956,
       "src/tools/redact/PdfRedactTool.tsx": 1331,
       "src/tools/scan/PdfScanTool.tsx": 1075,
@@ -33,7 +33,7 @@
     "functionLines": {
       "src/lib/drafts/useDraftPersistence.js#useDraftPersistence": 326,
       "src/shell/BasePdfTool.tsx#BasePdfTool": 428,
-      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 696,
+      "src/shell/pageGrid/PageGrid.tsx#PageGrid": 693,
       "src/site-lib/FileDropzone.tsx#FileDropzone": 326,
       "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 853,
       "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 348,

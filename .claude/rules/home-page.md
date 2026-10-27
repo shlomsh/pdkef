@@ -118,7 +118,10 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   duplicate recent tiles once (`203b204`). Changing either half alone brings it back. Guards with
   checked sabotage controls: `e2e/home/recent-files.spec.js` (shell present with JS disabled) and
   `FileDropzone.test.tsx` (first render shows the starter card and has not called `readRecentFiles`).
-  Recent tiles always arrive after mount; the card swap is not a layout shift.
+  Recent tiles always arrive after mount; on tablet and desktop the card swap is not a layout shift. On a
+  phone (no reserved rows) the starter card is 111px taller than five real tiles, so the picker moves up
+  once they land; hydration usually beats first paint, a 6x-throttled run does not (CLS 0.031, DEBT-65).
+  The phone spec therefore samples from the moment the tiles are in.
 - **The picker tile's shape is the same on every frame.** `FileDropzone.module.css` once collapsed the
   tile from 180px (132px mobile) to a 76px compact row via `.launcher:has([data-home-recents] li:nth-child(3))`; since
   the first frame always renders one fallback item, three or more real recents flipped it a frame later

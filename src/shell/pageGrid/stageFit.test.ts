@@ -108,9 +108,15 @@ describe('fitSettled', () => {
     expect(fitSettled({ ...ready, measured: false })).toBe(false);
   });
 
-  it('settles after the 400ms patience whatever is still unknown', () => {
-    expect(fitSettled({ known: 0, total: 30, elapsed: 399, measured: true })).toBe(false);
-    expect(fitSettled({ known: 0, total: 30, elapsed: 400, measured: false })).toBe(true);
+  it('settles after the 3s patience whatever is still unknown', () => {
+    expect(fitSettled({ known: 0, total: 30, elapsed: 2999, measured: true })).toBe(false);
+    expect(fitSettled({ known: 0, total: 30, elapsed: 3000, measured: false })).toBe(true);
+  });
+
+  it('settles when the page-size read has ended, even for pages that never reported', () => {
+    expect(fitSettled({ known: 0, total: 30, elapsed: 50, measured: true, probing: false })).toBe(true);
+    expect(fitSettled({ known: 0, total: 30, elapsed: 50, measured: true, probing: true })).toBe(false);
+    expect(fitSettled({ known: 0, total: 30, elapsed: 50, measured: false, probing: false })).toBe(false);
   });
 
   it('has nothing to settle with no pages', () => {
