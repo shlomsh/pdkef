@@ -1,7 +1,6 @@
-import { useState, useReducer, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
+import { useReducer, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
 import type {
   EditorElement,
-  SignatureElement,
   SignToolType,
 } from '../../editor/model/editorModel.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -16,10 +15,9 @@ import { SignToolProvider, useDocumentStyle, useSignTool } from './components/Si
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
 import SignatureDialog from './components/SignatureDialog.tsx';
-import { uniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
-import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
-import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../editor/model/signGeometry.js';
+import { pageGeometryFromPdfJsPage } from '../../editor/geometry/coords.js';
+import { DEFAULT_INK_COLOR } from '../../editor/model/signGeometry.js';
 import { useEditorFileSession } from '../../editor-ui/hooks/useEditorFileSession.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './hooks/useFormFieldRegions.ts';
@@ -32,12 +30,10 @@ import { useSignHistory } from './hooks/useSignHistory.ts';
 import { useFormDetectionTelemetry } from './hooks/useFormDetectionTelemetry.ts';
 import { useSignKeyboard } from './hooks/useSignKeyboard.ts';
 import { useElementClipboard } from './hooks/useElementClipboard.ts';
+import { useSignaturePlacement } from './hooks/useSignaturePlacement.ts';
 import { useSavedSignatures } from './hooks/useSavedSignatures.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
-import {
-  captureAddedElement,
-} from '../../editor/model/actionHistory.ts';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { getSignExportReadiness } from './lib/signExportReadiness.ts';
@@ -50,7 +46,6 @@ import {
 } from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
-import type { PendingSignaturePlacement } from './hooks/useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
@@ -123,8 +118,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   } = lifecycle;
   const setAnnouncement = useCallback((message: string) => lifecycleDispatch({ type: 'ANNOUNCED', message }), []);
   useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [tempPlacement, setTempPlacement] = useState<PendingSignaturePlacement | null>(null);
   // ENC-07: a protected PDF is a precondition, not a failure. Set by the load gate (or the export
   // belt) and shown as NeedsUnlock (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
@@ -255,64 +248,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     },
   });
 
-  // Helper to place a signature at a specific location
-  const placeSignatureAt = (dataUrl: string, aspectRatio: number, pageIdx: number, leftPercent: number, topPercent: number) => {
-    const id = uniqueId();
-    // Width defaults to whatever the last placed/resized signature used, so
-    // consecutive placements of the same signature keep its size instead of
-    // resetting to the default every time.
-    const widthPercent = style.signatureWidth ?? DEFAULT_START_WIDTH_PCT;
-
-    // Calculate page wrapper dimension
-    let pageWrapperHeight = 800;
-    let pageWrapperWidth = 600;
-    
-    const wrapper = pageWrapperRefs.current[pageIdx];
-    if (wrapper) {
-      const rect = wrapper.getBoundingClientRect();
-      pageWrapperWidth = rect.width;
-      pageWrapperHeight = rect.height;
-    }
-    
-    const heightPercent = widthPercentToHeightPercent(widthPercent, aspectRatio, pageWrapperWidth, pageWrapperHeight);
-    
-    const newEl: SignatureElement = {
-      id,
-      type: 'signature',
-      pageIndex: pageIdx,
-      left: leftPercent - (widthPercent / 2),
-      top: topPercent - (heightPercent / 2),
-      width: widthPercent,
-      height: heightPercent,
-      aspectRatio,
-      dataUrl
-    };
-    
-    dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-    logAction('add', 'ADD_SIGNATURE', pageIdx, t.addedSignatureDescription, [captureAddedElement(newEl, elements.length)]);
-    setAnnouncement(t.placedSignatureOnPage);
-  };
-
-  // Add signature element from modal
-  const handleAddSignatureElement = (dataUrl: string, aspectRatio: number) => {
-    const { signature: newSig, persisted } = saveNewSignature(dataUrl, aspectRatio);
-    recordAction('draw');
-    setActiveSignature(newSig);
-    dispatch({ type: 'SET_TOOL', payload: 'signature' });
-    
-    const placement = tempPlacement || { pageIndex: 0, left: 40, top: 40 };
-    recordAction('place_mark');
-    placeSignatureAt(dataUrl, aspectRatio, placement.pageIndex, placement.left, placement.top);
-    // The dialog both creates and places the signature, so that counts as the
-    // tool's one placement - same as a click-placement on the page overlay.
-    dispatch({ type: 'DISARM_TOOL' });
-    setDialogOpen(false);
-    setTempPlacement(null);
-    if (!persisted) {
-      setAnnouncement(t.signaturePlacedNotSaved);
-    }
-  };
+  const { dialogOpen, setDialogOpen, setTempPlacement, placeSignatureAt, handleAddSignatureElement, closeDialog } = useSignaturePlacement({
+    dispatch, elements, style, pageWrapperRefs, logAction, setAnnouncement, saveNewSignature, setActiveSignature, messages: t,
+  });
 
   useSignKeyboard({
     dispatch, elements, activeElementId, editingElementId, fieldNavigation, enabled, logAction, setAnnouncement, messages: t,
@@ -592,10 +530,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       {/* Signature Creation Modal Component */}
       <SignatureDialog
         isOpen={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setTempPlacement(null);
-        }}
+        onClose={closeDialog}
         onSaveSignature={handleAddSignatureElement}
         messages={messages}
       />
