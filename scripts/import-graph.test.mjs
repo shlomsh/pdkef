@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildEdges, buildReachGraph, buildToolRouteMap, edgesOfFiles, importSpecifiers, reverseEdgeMap } from './import-graph.mjs';
+import { importGlobPatterns, buildEdges, buildReachGraph, buildToolRouteMap, edgesOfFiles, importSpecifiers, reverseEdgeMap } from './import-graph.mjs';
 
 /* scripts/import-graph.mjs is the scan check-module-boundaries.mjs (its own tests are the oracle for
    the main edge scan) and affected-scope.mjs (ARCH-32) share. This pins what only the second one
@@ -128,5 +128,17 @@ describe('edgesOfFiles side doors', () => {
   });
   it('fails loudly on a computed import', () => {
     expect(() => edgesOfFiles([at('src/lib/bad.ts')], tree)).toThrow(/computed import at src\/lib\/bad\.ts:1/);
+  });
+});
+
+describe('comment blanking is string-aware', () => {
+  it('keeps /** and /* inside a glob string', () => {
+    expect(importGlobPatterns("const a = import.meta.glob('./icons/**/*.svg');", 'src/x.js')).toEqual(['./icons/**/*.svg']);
+  });
+  it('does not start a comment inside a string literal', () => {
+    expect(importSpecifiers("const s = '/* not a comment'; import('./a.js'); const t = '*/';")).toEqual(['./a.js']);
+  });
+  it('still ignores import(x) inside real comments', () => {
+    expect(importSpecifiers('/* import(x) */\n// import(y)\nconst a = 1;', 'src/x.js')).toEqual([]);
   });
 });

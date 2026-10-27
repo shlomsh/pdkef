@@ -44,10 +44,32 @@ export const IMPORT_PATTERN = new RegExp(
 );
 
 // Comments blanked to spaces (newlines kept, so line numbers hold): prose like "the island import
-// (so only ...)" must not read as a call. A `//` right after `:` or a quote is a URL, not a comment.
-const blankComments = (source) => source
-  .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '))
-  .replace(/(^|[^:'"`\w])\/\/[^\n]*/g, (c, lead) => lead + ' '.repeat(c.length - lead.length));
+// (so only ...)" must not read as a call. One pass that tracks '...', "..." and `...` literals
+// (backslash escapes honoured; a ' or " literal ends at a newline) so `/*` inside a string is text.
+// Regex literals are not tracked.
+function blankComments(source) {
+  let out = '';
+  let quote = null;
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    if (quote) {
+      out += c;
+      if (c === '\\') { out += source[i + 1] ?? ''; i++; } else if (c === quote || (c === '\n' && quote !== '`')) quote = null;
+    } else if (c === '"' || c === "'" || c === '`') {
+      quote = c;
+      out += c;
+    } else if (c === '/' && source[i + 1] === '/') {
+      while (i < source.length && source[i] !== '\n') { out += ' '; i++; }
+      i--;
+    } else if (c === '/' && source[i + 1] === '*') {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      out += source.slice(i, stop).replace(/[^\n]/g, ' ');
+      i = stop - 1;
+    } else out += c;
+  }
+  return out;
+}
 
 const lineOf = (source, index) => source.slice(0, index).split('\n').length;
 const computedImport = (file, line) => new Error(`import-graph cannot read a computed import at ${file}:${line}; use a literal specifier`);
