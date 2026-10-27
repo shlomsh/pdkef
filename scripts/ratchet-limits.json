@@ -14,7 +14,7 @@
     "functions": {
       "scripts/seo-refresh.mjs#main": 151,
       "scripts/serve-backlog-board.mjs#client": 260,
-      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 249,
+      "src/editor-ui/EditorToolStatus.tsx#EditorToolStatus": 242,
       "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement": 264,
       "src/editor-ui/hooks/useDraggableElement.js#useDraggableElement.handlePointerDown": 225,
       "src/editor-ui/hooks/useElementResize.js#useElementResize": 263,
@@ -151,7 +151,7 @@
       "src/data/tools.js": 1015,
       "src/lib/drafts/draftStore.ts": 1154,
       "src/shell/pageGrid/PageGrid.tsx": 882,
-      "src/tools/sign/components/SignToolbar.tsx": 833,
+      "src/tools/sign/components/SignToolbar.tsx": 826,
       "src/tools/sign/lib/fields/formCells.js": 1061
     },
     "fileThreshold": 800

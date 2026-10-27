@@ -201,7 +201,7 @@ export default function ToolShell({ editor = false, inlineStatus = false, flush 
         {status && <div class={styles.status}>{status}</div>}
       </div>
 
-      <div class={styles.controls}>{children}</div>
+      <div class={styles.controls} data-shell-controls>{children}</div>
 
       {!editor && note && <div class={styles.note} data-note>{note}</div>}
     </div>

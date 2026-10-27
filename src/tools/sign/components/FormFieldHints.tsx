@@ -64,6 +64,7 @@ export default function FormFieldHints({ regions, kind, pageIndex, aimedKey = nu
             key={`${region.left}-${region.top}-${region.width}`}
             className={`${styles['field-hint']} ${modifierClass(region)}${aimed ? ` ${styles['field-hint-aimed']}` : ''}`}
             data-aimed={aimed || undefined}
+            data-hint-kind={kind === 'comb' && (region as CombRegion).boxed ? undefined : kind}
             style={{
               left: `${region.left}%`,
               top: `${region.top}%`,

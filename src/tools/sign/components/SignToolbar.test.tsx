@@ -12,8 +12,8 @@ import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../messages';
 // Asserts toolbar state and layout classes (locked, hint, help-reserve-nav, label and dropdown structure) and the base button class.
+// Kept for the scoped class structure test (.button, .label, .toolbar, .dropdown) and the base button class check.
 import styles from '../../../editor-ui/SignToolbar.module.css';
-import toolShellStyles from '../../../shell/ToolShell.module.css';
 
 declare const __dirname: string;
 
@@ -282,7 +282,7 @@ describe('SignToolbar Component', () => {
 
       expect(state.selectedTool).toBe('text');
       expect(state.toolLocked).toBe(true);
-      expect(textBtn.className).toContain(styles.locked);
+      expect(textBtn.hasAttribute('data-locked')).toBe(true);
     });
 
     // These buttons used to carry a native `title` for the action ("Add a text
@@ -361,7 +361,7 @@ describe('SignToolbar Component', () => {
         ellipse.click();
       });
 
-      const bubble = query(document, `.${styles.hint}`);
+      const bubble = query(document, '[data-arm-hint]');
       expect(bubble).not.toBeNull();
       expect(bubble.textContent).toContain('Double-click to keep Shapes on');
     });
@@ -389,7 +389,7 @@ describe('SignToolbar Component', () => {
 
       expect(state.selectedTool).toBe('ellipse');
       expect(state.toolLocked).toBe(true);
-      expect(shapesBtn.className).toContain(styles.locked);
+      expect(shapesBtn.hasAttribute('data-locked')).toBe(true);
     });
 
     // SIGN-30: picking a different shape from the menu is re-arming the same
@@ -597,7 +597,7 @@ describe('SignToolbar Component', () => {
         item.click();
       });
 
-      const bubble = document.querySelector(`.${styles.hint}`);
+      const bubble = document.querySelector('[data-arm-hint]');
       expect(bubble).not.toBeNull();
       expect(bubble.textContent).toContain('Double-click to keep Sign on');
     });
@@ -623,7 +623,7 @@ describe('SignToolbar Component', () => {
 
       expect(state.selectedTool).toBe('signature');
       expect(state.toolLocked).toBe(true);
-      expect(sigBtn.className).toContain(styles.locked);
+      expect(sigBtn.hasAttribute('data-locked')).toBe(true);
     });
 
     // SIGN-30: picking a saved signature from the menu re-arms the same
@@ -795,7 +795,7 @@ describe('SignToolbar Component', () => {
       // The row the stack is actually showing. `[role="status"]` alone is no
       // longer unique here: FORM-11's field-summary row is a live region too,
       // sitting hidden in the same cell whenever a tool is armed.
-      return query(container, `.${styles['help-shown']}`).textContent;
+      return query(container, '[data-help-row][data-shown]').textContent;
     };
 
     // The status line's one control: a toggle reading "Keep Shapes on" while the
@@ -843,7 +843,7 @@ describe('SignToolbar Component', () => {
     // only where the gesture exists, which CSS handles (see .status-hint).
     it('names the double-click shortcut in the line itself, not only in a title', () => {
       armAndRead('text');
-      const hint = () => container.querySelector(`.${styles['status-hint-shown']}`).textContent.trim();
+      const hint = () => container.querySelector('[data-status-hint][data-shown]').textContent.trim();
       expect(hint()).toBe('or double-click Text');
 
       // Not the switch's inverse, and says so: Escape drops the tool, the
@@ -858,7 +858,7 @@ describe('SignToolbar Component', () => {
     // that had just clicked it. Both strings stay in the layout at all times.
     it('keeps both hints in the layout so toggling cannot move the switch', () => {
       armAndRead('text');
-      const spare = () => container.querySelector(`.${styles['status-hint-spare']}`);
+      const spare = () => container.querySelector('[data-status-hint]:not([data-shown])');
       expect(spare().textContent.trim()).toBe('or press Esc to stop entirely');
 
       armAndRead('text', true);
@@ -898,7 +898,7 @@ describe('SignToolbar Component', () => {
       // tool's, hidden) in `.help` at once, to hold its height steady across
       // arming - see SignToolbar.module.css's `.help` comment. Only the
       // `.help-shown` row is the one actually on screen.
-      const tip = () => container.querySelector(`.${styles['help-shown']}`).textContent;
+      const tip = () => container.querySelector('[data-help-row][data-shown]').textContent;
       // No direction word: the tip lives in the shell's file row now, which sits
       // above the toolbar, so "above" would have been pointing the wrong way.
       expect(tip()).toContain('pick a tool to start');
@@ -1100,7 +1100,7 @@ describe('SignToolbar Component', () => {
     const exportButton = query<HTMLButtonElement>(container, 'button[title*="share"]');
     expect(exportButton).not.toBeNull();
     expect(exportButton.textContent).toContain('Share');
-    expect(container.querySelectorAll(`.${styles.download}`)).toHaveLength(1);
+    expect(Array.from(container.querySelectorAll('button')).filter((b) => b.textContent?.trim() === 'Download')).toHaveLength(1);
   });
 
   it('changes the export control to share the prepared file', () => {
@@ -1286,7 +1286,7 @@ describe('SignToolbar Component', () => {
 
     const toolbar = query<HTMLElement>(container, '[role="toolbar"]');
     expect(toolbar).not.toBeNull();
-    expect(required(toolbar.parentElement, 'toolbar parent').classList.contains(toolShellStyles.controls)).toBe(true);
+    expect(required(toolbar.parentElement, 'toolbar parent').hasAttribute('data-shell-controls')).toBe(true);
 
     // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to
@@ -1373,7 +1373,7 @@ describe('SignToolbar Component', () => {
     const textBtn = findExactButton(toolbar, hebrewSignMessages.textButton);
     expect(textBtn).not.toBeUndefined();
 
-    const tip = query(container, `.${styles['help-shown']}`);
+    const tip = query(container, '[data-help-row][data-shown]');
     expect(tip.textContent).toBe(hebrewSignMessages.tipIdle);
   });
 
@@ -1442,7 +1442,7 @@ describe('SignToolbar Component', () => {
       if (context.editingText) {
         act(() => { dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: 'typed' }); });
       }
-      return container.querySelector(`.${styles['field-nav']}`);
+      return container.querySelector('[data-field-nav]');
     };
 
     it('renders no field-nav control when the document has none (the default)', () => {
@@ -1454,10 +1454,10 @@ describe('SignToolbar Component', () => {
     // field, idle included, or arming Text is what grows the row.
     it('reserves the row height for field-nav as soon as the document has fields, even idle', () => {
       mountNav({ fieldNavigation: noFields });
-      expect(container.querySelector(`.${styles.help}`)?.className).not.toContain(styles['help-reserve-nav']);
+      expect(container.querySelector('[data-tool-status]')?.hasAttribute('data-reserve-nav')).toBe(false);
 
       mountNav({ fieldNavigation: someFields });
-      expect(container.querySelector(`.${styles.help}`)?.className).toContain(styles['help-reserve-nav']);
+      expect(container.querySelector('[data-tool-status]')?.hasAttribute('data-reserve-nav')).toBe(true);
     });
 
     // The complaint that prompted the gate (e114c8c): on a form full of
@@ -1501,7 +1501,7 @@ describe('SignToolbar Component', () => {
 
     it('disables each button by its own hasNext/hasPrevious', () => {
       mountNav({ fieldNavigation: { ...someFields, hasPrevious: false } }, { tool: 'text' });
-      const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      const [previous, next] = container.querySelectorAll<HTMLButtonElement>('[data-field-nav] button');
       expect(previous.disabled).toBe(true);
       expect(next.disabled).toBe(false);
       expect(previous.getAttribute('aria-label')).toBe('Previous field');
@@ -1512,7 +1512,7 @@ describe('SignToolbar Component', () => {
       const goToNext = vi.fn();
       const goToPrevious = vi.fn();
       mountNav({ fieldNavigation: { ...someFields, goToNext, goToPrevious } }, { tool: 'text' });
-      const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      const [previous, next] = container.querySelectorAll<HTMLButtonElement>('[data-field-nav] button');
       next.click();
       previous.click();
       expect(goToNext).toHaveBeenCalledTimes(1);
@@ -1521,7 +1521,7 @@ describe('SignToolbar Component', () => {
 
     it('reads its labels from the given message catalogue, same as every other string here', () => {
       mountNav({ fieldNavigation: someFields, messages: hebrewSignMessages }, { tool: 'text' });
-      const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      const [previous, next] = container.querySelectorAll<HTMLButtonElement>('[data-field-nav] button');
       expect(previous.getAttribute('aria-label')).toBe(hebrewSignMessages.previousFieldLabel);
       expect(next.getAttribute('aria-label')).toBe(hebrewSignMessages.nextFieldLabel);
     });
@@ -1532,7 +1532,7 @@ describe('SignToolbar Component', () => {
     it('passes the document direction through while the labels stay the locale\'s', () => {
       const nav = mountNav({ fieldNavigation: { ...someFields, direction: 'ltr' }, messages: hebrewSignMessages }, { tool: 'text' });
       expect(nav!.getAttribute('dir')).toBe('ltr');
-      expect(container.querySelector(`.${styles.help}`)!.getAttribute('dir')).toBe('rtl');
+      expect(container.querySelector('[data-tool-status]')!.getAttribute('dir')).toBe('rtl');
     });
   });
 
@@ -1547,7 +1547,7 @@ describe('SignToolbar Component', () => {
       act(() => {
         render(<SignToolProvider><SignToolbar {...props} /></SignToolProvider>, container);
       });
-      return query(container, `.${styles['help-fields']}`);
+      return query(container, '[data-help-row="fields"]');
     };
 
     it('says nothing at all until the one walk for this file has finished', () => {
@@ -1573,7 +1573,7 @@ describe('SignToolbar Component', () => {
 
       const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: x is not a function' } });
       expect(failed.textContent).toBe('Could not check this PDF for form fields. The Feedback button has the details.');
-      expect(failed.classList.contains(styles['help-fields-problem'])).toBe(true);
+      expect(failed.hasAttribute('data-problem')).toBe(true);
       // Never the error itself: what is on screen is copy, and the detail
       // rides in the Feedback report where it is introduced.
       expect(failed.textContent).not.toContain('TypeError');
@@ -1587,7 +1587,7 @@ describe('SignToolbar Component', () => {
     it('tells a detector that never loaded apart from one that ran and threw', () => {
       const unavailable = mountToolbar({ formDetection: { state: 'unavailable', count: 0, detail: 'TypeError: Importing a module script failed.' } });
       expect(unavailable.textContent).toBe('Could not load the form field check. Reopening this page usually fixes it.');
-      expect(unavailable.classList.contains(styles['help-fields-problem'])).toBe(true);
+      expect(unavailable.hasAttribute('data-problem')).toBe(true);
 
       const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: null } });
       expect(failed.textContent).not.toBe(unavailable.textContent);
@@ -1607,7 +1607,7 @@ describe('SignToolbar Component', () => {
       });
       expect(notStarted.textContent)
         .toBe('The form field check did not start on this file. The Feedback button has the details.');
-      expect(notStarted.classList.contains(styles['help-fields-problem'])).toBe(true);
+      expect(notStarted.hasAttribute('data-problem')).toBe(true);
 
       const wordings = new Set((['done', 'failed', 'unavailable', 'not-started'] as const).map((state) => (
         mountToolbar({ formDetection: { state, count: 0, detail: null } }).textContent
