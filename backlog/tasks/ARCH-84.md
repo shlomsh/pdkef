@@ -1,11 +1,9 @@
 ---
 id: "ARCH-84"
 title: "The prose-only invariants each get a small guard"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 18
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Tests and CI. Criterion: Guardrails and CI health. Structure only: no beha
 
 ## Acceptance
 
-- [ ] Each guard fails on a planted case and has a test.
+- [x] Each guard fails on a planted case and has a test.
+
+## Done (2026-10-27)
+
+check-never-say fails an em dash in copy (none exist today); check-reveal-observers and check-fetch-sites allowlist each IntersectionObserver and fetch site with its reason. Each guard failed on a planted case first; none found a violation. Each allowlist entry covers exactly one call site, so a second one in a listed file fails, as does a stale entry.
