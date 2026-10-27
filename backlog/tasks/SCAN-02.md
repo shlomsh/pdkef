@@ -1,10 +1,9 @@
 ---
 id: "SCAN-02"
 title: "Scan's loaded state: pages and Add photos in view, a photo that fills the stage, named and iconed controls"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
 ---
 
 # SCAN-02 · Scan's loaded state, laid out for the screen it is on
@@ -43,14 +42,14 @@ crop of the finish row).
 
 ## Acceptance
 
-- [ ] At 1440x900 and 1280x720 with two photos in: the photo, its controls, every page tile and Add photos are fully
+- [x] At 1440x900 and 1280x720 with two photos in: the photo, its controls, every page tile and Add photos are fully
       inside the viewport after the photo scrolls into view, and nothing in the finish row overflows its button.
-- [ ] At 390x844 and 375x667: the bar's Take a photo and Download, the photo and "Use these corners" are inside the
+- [x] At 390x844 and 375x667: the bar's Take a photo and Download, the photo and "Use these corners" are inside the
       viewport after a pick; no sideways scroll at 320.
-- [ ] At 820x1180: the same, with the strip under the controls.
-- [ ] Unit tests follow the new names; the corner-drag and loupe e2e specs pass.
+- [x] At 820x1180: the same, with the strip under the controls.
+- [x] Unit tests follow the new names; the corner-drag and loupe e2e specs pass.
 
-## Progress 2026-10-27 (branch `scan-layout`, not on main)
+## Progress 2026-10-27
 
 Added after the first layout pass, at Shlomi's asks: Rotate in both views (the corners view turns the photo
 itself, `turnedQuad`/`unturnedQuad`), full screen for the corners, the desktop fit measured to the card's floor
@@ -69,4 +68,5 @@ and scroll after removing a photo. Left on purpose: the Download block moving wh
 36px segmented options (shared OptionRow), the corners head wrapping at 1024, a bad photo first in a batch
 needing removal, the iPad landscape-photo gap, and the site header's crumb at 320px (not Scan's).
 
-Still to do: Shlomi on his iPhone, `check:push` on the final branch, landing.
+Landed on main 2026-10-27 at Shlomi's call, before his own iPhone read, after merging main's unify-and-narrow
+refactor (Scan's strings in `messages.ts`, the shared `usePhotoTileList`, FinishRow's optional hand-offs).
