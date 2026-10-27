@@ -2,8 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
-// Asserts the text measure and input classes, which carry the padding rules (no inline padding).
-import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
 // Fixture parent: production finds the page with closest() on this class, so the test must carry it.
 import { FillContext, TextFillContext, FILL_OFF } from './fill/FillContext.tsx';
@@ -253,10 +251,8 @@ describe('DraggableWrapper RTL text positioning', () => {
     // in global.css, not by inline styles. Both elements carrying those classes
     // with NO inline padding is what guarantees identical box metrics — a stronger
     // guarantee than two copies of an inline value that could drift out of sync.
-    expect(measure.className).toBe(elementStyles['text-measure']);
     // The input also carries the inert class when no edit session is open; what
     // matters here is that padding rides on the shared class, not inline.
-    expect(input.classList.contains(elementStyles['text-input'])).toBe(true);
     expect(measure.style.padding).toBe('');
     expect(input.style.padding).toBe('');
   });

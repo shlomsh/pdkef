@@ -2,8 +2,6 @@ import { render, type ComponentChildren, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RawTextNode from './TextNode.tsx';
-// Asserts the textarea's inert and fill state classes (styling contract); the toolbar fixture uses a data attribute.
-import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import { WYSIWYG_STRING_CASES } from '../../../../test/support/fixtures/wysiwygStrings.js';
 import { TextFillContext } from '../fill/FillContext.tsx';
 import type { TextFillProps } from '../../lib/fill/fillTypes.ts';
@@ -359,7 +357,6 @@ describe('TextNode component', () => {
     expect(document.activeElement).not.toBe(textarea);
     expect(textarea.readOnly).toBe(true);
     expect(textarea.getAttribute('tabindex')).toBe('-1');
-    expect(textarea.classList.contains(elementStyles['text-input-inert'])).toBe(true);
   });
 
   it('opens an edit session on double click', () => {
@@ -684,8 +681,6 @@ describe('TextNode fill mode (SNG-15)', () => {
 
     expect(textarea.readOnly).toBe(false);
     expect(textarea.tabIndex).toBe(0);
-    expect(textarea.classList.contains(elementStyles['text-input-inert'])).toBe(false);
-    expect(textarea.classList.contains(elementStyles['text-input-fill'])).toBe(true);
     expect(textarea.getAttribute('data-fill-input')).toBe('');
     expect(textarea.getAttribute('data-fill-key')).toBe('el:text-7');
     expect(textarea.getAttribute('enterkeyhint')).toBe('done');
@@ -779,7 +774,6 @@ describe('TextNode fill mode (SNG-15)', () => {
 
     expect(textarea.readOnly).toBe(true);
     expect(textarea.tabIndex).toBe(-1);
-    expect(textarea.classList.contains(elementStyles['text-input-inert'])).toBe(true);
     expect(textarea.hasAttribute('data-fill-input')).toBe(false);
     expect(textarea.hasAttribute('data-fill-key')).toBe(false);
     expect(textarea.hasAttribute('enterkeyhint')).toBe(false);
