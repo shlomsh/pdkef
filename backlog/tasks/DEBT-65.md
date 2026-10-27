@@ -1,7 +1,7 @@
 ---
 id: "DEBT-65"
 title: "Two layout-shift specs failed once each in the 2026-10-27 nightly"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
@@ -34,6 +34,27 @@ both whole spec files `--repeat-each=6 --workers=10` passed 744 of 744. So far i
 CI runners. A 111px jump is not timing noise in a measurement: something (recents, the launcher
 grid, a font) lands after the first frame on that run.
 
+## Findings (2026-10-27)
+
+Both reproduce with `Emulation.setCPUThrottlingRate` on a production build; neither is timing noise.
+
+- **Picker (phone, 390x844):** the first sampled frame is the server-rendered starter card, not the
+  recents. The card is 111px taller than five real tiles, so the picker moves up when they land (CLS
+  0.031 at 6x, y 744 -> 633, launcher 586 -> 475px). At 1x hydration finishes before the sampler's
+  first frame, so it passed. Phones reserve no rows by design, so the spec was wrong, not the page:
+  it now samples once the tiles are in and counts shifts from then on. Red at 6x before (3 of 6),
+  green after; the whole file at 4x, 10 repeats, 150 of 150.
+- **Merge restore:** `FIT_PATIENCE_MS` (`src/shell/pageGrid/stageFit.ts`) is a 400ms wall clock. When
+  the thumbnails take longer (2.4-3s at 20x), the grid shows with page aspects unknown, then the
+  fitted cell refits as they arrive: page cells 364 -> 310px tall, CLS 0.0387 + 0.0022 + 0.012 =
+  0.053. At 1x and 6x there is no shift. A real slow-device shift in the shared PageGrid.
+  **Fixed:** `openThumbnailSource` sources now report every page's aspect from its size
+  (`aspects()`, no render), PageGrid reads them for every file as soon as it has pages, and the fit
+  settles when that read ends (`fitSettled`'s `probing`), with `FIT_PATIENCE_MS` raised to 3000 as a
+  safety cap only. Restore CLS is 0.0000 at 1x, 6x and 20x (was 0.05 at 20x); the spec at 4x, 10 repeats,
+  10 of 10. A first attempt that left pages still being inspected out of "probing" settled early and
+  made the spec fail unthrottled (0.039); the unit test now holds that case.
+
 ## Outcome
 
 - Name what moves the picker and what shifts Merge's restore on a slow runner, with evidence (a
@@ -42,6 +63,6 @@ grid, a font) lands after the first frame on that run.
 
 ## Acceptance
 
-- [ ] The cause of each failure is named in this ticket with the evidence.
-- [ ] Throttled local runs (CPU 4x) of both files with `--repeat-each=10` are green.
+- [x] The cause of each failure is named in this ticket with the evidence.
+- [x] Throttled local runs (CPU 4x) of both files with `--repeat-each=10` are green (picker file 150 of 150; Merge restore 10 of 10).
 - [ ] Three consecutive nightlies with no failure of either spec.
