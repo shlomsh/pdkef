@@ -12,7 +12,6 @@ const SAFE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
  * look. Matched strictly: a built asset filename and two numbers, nothing else,
  * and any frame that is not that shape is dropped rather than trimmed.
  */
-const STACK_FRAME = /\/_astro\/([A-Za-z0-9_.-]+\.m?js):(\d+):(\d+)/;
 
 /**
  * A whole stack line that is one frame in our own built output, in either
