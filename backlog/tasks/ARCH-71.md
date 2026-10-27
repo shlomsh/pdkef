@@ -1,7 +1,7 @@
 ---
 id: "ARCH-71"
 title: "Message registries and content helpers are typed, removing any and double casts"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "next"

@@ -1,7 +1,7 @@
 ---
 id: "ARCH-46"
 title: "Single-tool modules leave the editor core, and rule 9 covers src/editor"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

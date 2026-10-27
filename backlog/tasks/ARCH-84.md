@@ -1,7 +1,7 @@
 ---
 id: "ARCH-84"
 title: "The prose-only invariants each get a small guard"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

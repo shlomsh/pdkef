@@ -1,7 +1,7 @@
 ---
 id: "ARCH-85"
 title: "Per-spec flake rates are recorded and read nightly"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "unify-and-narrow"
 horizon: "next"

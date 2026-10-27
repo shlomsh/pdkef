@@ -1,7 +1,7 @@
 ---
 id: "ARCH-73"
 title: "Floating promises are checked in CI"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
