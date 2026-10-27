@@ -1,3 +1,5 @@
+import type { SignStatus } from './state/signState.ts';
+
 /** A signed export, tagged with the document revision it was made from. */
 export interface SignedExport {
   blob: Blob;
@@ -30,7 +32,7 @@ export function exportToHandOff(
  * Download is enabled (editing, not blocked) and something is placed. A restored
  * draft counts. The same gate the background export prepares under.
  */
-export function signExportReady({ status, elementCount, blocked }: { status: string; elementCount: number; blocked: boolean }): boolean {
+export function signExportReady({ status, elementCount, blocked }: { status: SignStatus; elementCount: number; blocked: boolean }): boolean {
   return status === 'editing' && elementCount > 0 && !blocked;
 }
 
