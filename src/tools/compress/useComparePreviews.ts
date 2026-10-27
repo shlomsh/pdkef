@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { useModalDialog } from '../../shell/useModalDialog.ts';
 import type { MutableRef } from 'preact/hooks';
 import { deriveFileKind } from '../../lib/fileKind.js';
 import { reportError } from '../../lib/errorReport.ts';
@@ -181,15 +182,8 @@ export function useComparePreviews({ runTokenRef }: { runTokenRef: MutableRef<nu
     }
   };
 
-  // showModal() puts the dialog in the top layer, so it shows over a real
-  // fullscreen element (a plain `open` attribute would not). jsdom has no
-  // dialog implementation, hence the fallbacks (same as ConfirmDialog).
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog || !fullscreenOpen || dialog.open) return;
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.open = true;
-  }, [fullscreenOpen]);
+  // The hook opens it in the top layer; closeFullscreen below closes it.
+  useModalDialog(dialogRef, fullscreenOpen, () => {}, { escape: false, closeWhenHidden: false });
 
   const closeFullscreen = () => {
     const dialog = dialogRef.current;
