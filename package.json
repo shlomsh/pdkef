@@ -37,6 +37,7 @@
     "test:reveal-observers": "node scripts/check-reveal-observers.mjs",
     "test:fetch-sites": "node scripts/check-fetch-sites.mjs",
     "test:patch-pins": "node scripts/check-patch-pins.mjs",
+    "test:tool-shape": "node scripts/check-tool-shape.mjs",
     "test:seo": "node scripts/verify-seo.js",
     "test:redirects": "node scripts/check-trailing-slash-redirects.js",
     "test:css": "node scripts/check-class-resolution.js && node scripts/check-color-literals.mjs && node scripts/check-editor-global-css.js && node scripts/check-dead-utilities.js && node scripts/check-css-duplication.js && node scripts/check-built-html-comments.js && node scripts/check-animation-shorthand.js",
