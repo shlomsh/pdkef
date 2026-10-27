@@ -487,6 +487,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
   test('a chip remove button is a 44px target on a 36px pill and removes that file', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
     const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
       name,
       mimeType: 'application/pdf',
