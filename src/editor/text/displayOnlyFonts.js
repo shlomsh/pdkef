@@ -2,7 +2,7 @@
  * Display-only bundled fonts: TTFs in `public/fonts/` that exist purely for
  * marketing/demo chrome - never selectable in the Sign editor's font picker,
  * never passed to `signPdf`/fontkit - so they are deliberately kept out of
- * `src/lib/fonts/fontManifest.js`. That manifest drives the editor's
+ * `src/lib/fonts/fontManifest.ts`. That manifest drives the editor's
  * runtime catalogue, its generated `@font-face` CSS, and the export path;
  * none of that applies to a font a document can never actually use.
  *
@@ -32,7 +32,7 @@ export const DISPLAY_ONLY_FONTS = [
       "src/components/HeroDemo/HeroDemo.module.css and used only by the " +
       "homepage hero demo's handwritten caption, to keep the full ~303KB " +
       "editor face off the homepage's critical rendering path. Never " +
-      "registered in src/lib/fonts/fontManifest.js and never handed to " +
+      "registered in src/lib/fonts/fontManifest.ts and never handed to " +
       "signPdf, so it carries no export/shaping obligations of its own.",
   },
   {
@@ -52,7 +52,7 @@ export const DISPLAY_ONLY_FONTS = [
       "Hebrew edition of the homepage hero demo's handwritten caption " +
       "(LOC-09), the Hebrew counterpart to 'Caveat Demo' above, and by the " +
       "handwritten name under the Hebrew home page's founder story. Never " +
-      "registered in src/lib/fonts/fontManifest.js and never handed to " +
+      "registered in src/lib/fonts/fontManifest.ts and never handed to " +
       "signPdf, so it carries no export/shaping obligations of its own.",
   },
 ];

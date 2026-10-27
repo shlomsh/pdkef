@@ -24,7 +24,7 @@ describe('precache manifest delivery policy', () => {
   });
 
   it('keeps the default family, because a first-ever offline session has no font to embed otherwise', () => {
-    // DEFAULT_FONT_FAMILY in src/lib/fonts/fontManifest.js. Without this one file, signPdf's
+    // DEFAULT_FONT_FAMILY in src/lib/fonts/fontManifest.ts. Without this one file, signPdf's
     // fetch fails offline, loadCustomFont returns null, and serialize throws
     // rather than degrading to something upright.
     expect(PRECACHED_FONTS).toEqual(['fonts/Arimo-Regular.ttf']);

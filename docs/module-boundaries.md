@@ -134,9 +134,9 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
 11. **The site never imports the editor core** (ARCH-43): a page, layout, `.astro` component, `i18n`/`data`
     module or `src/site-lib/` helper never imports `src/editor/`, so the headless core is not a public
     API for build-time site code. Data the editor and the site both read lives in `src/lib/`: the font
-    manifest and license tables (`src/lib/fonts/fontManifest.js`, `fontLicenses.js`) moved there from
+    manifest and license tables (`src/lib/fonts/fontManifest.ts`, `fontLicenses.ts`) moved there from
     `src/editor/text/`, read by the editor, `precachePolicy.js` and `licenses.astro` alike. Zero
-    violations, no allowlist. (`fontLicenses.js` has the site as its only consumer, so it carries a rule 9
+    violations, no allowlist. (`fontLicenses.ts` has the site as its only consumer, so it carries a rule 9
     allowlist entry: the editor-side tests that guard it are not consumers.)
 
 **Test support.** `src/test/` (cross-tool included) classifies as `test-support`, a module of its own

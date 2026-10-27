@@ -8,7 +8,7 @@ import { DOCUMENT_CASES, ELEMENT_CASES } from './corpus.js';
 import { detectFormFields } from '../detectFormFields.ts';
 import { detectWidgetRegions } from '../formWidgets.js';
 import { detectPageCellCandidates } from '../formCells.js';
-import { CELL_CONFIDENCE } from '../confidenceWeights.js';
+import { CELL_CONFIDENCE } from '../confidenceWeights.ts';
 
 /**
  * The corpus runner. `README.md` has the paradigm; `corpus.js` has the cases.

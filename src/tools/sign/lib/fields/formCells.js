@@ -1,7 +1,7 @@
 // @ts-check
 import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../../../editor/geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { CELL_CONFIDENCE } from './confidenceWeights.js';
+import { CELL_CONFIDENCE } from './confidenceWeights.ts';
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
 /**

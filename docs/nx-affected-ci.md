@@ -394,7 +394,7 @@ the day.
    **Design choice: (a), a file-glob, not a new `editor-text` Nx project.** Both were considered (a
    carved-out `editor-text` project rooted at `src/editor/text/` would give the same graph-based answer
    `tool-<name>` projects get). The glob wins on one measured fact: `src/editor/text/` mixes the
-   catalogue (`fonts.js`, `fontManifest.js`, ...) with shaping/runtime code that shares the same
+   catalogue (`fonts.js`, `fontManifest.ts`, ...) with shaping/runtime code that shares the same
    directory (`bidiRuns.js`, `combPlacement.ts`, `dateFormat.ts`, `hebrewComposition.js`,
    `textCoverage.js`, `textFontSupport.js`, `textMetrics.ts`,
    `textTransforms.js`) - a real Nx project is directory-rooted, so carving one out would need an actual

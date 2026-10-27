@@ -31,7 +31,7 @@
   },
   {
     "rule": 9,
-    "file": "src/lib/fonts/fontLicenses.js",
-    "reason": "read only by src/pages/licenses.astro; src/lib/fonts/fontLicenses.test.js and src/editor/text/fontAttribution.test.js guard it against the manifest, and a test is not a consumer, so it stays beside fontManifest.js rather than split from it"
+    "file": "src/lib/fonts/fontLicenses.ts",
+    "reason": "read only by src/pages/licenses.astro; src/lib/fonts/fontLicenses.test.js and src/editor/text/fontAttribution.test.js guard it against the manifest, and a test is not a consumer, so it stays beside fontManifest.ts rather than split from it"
   }
 ]

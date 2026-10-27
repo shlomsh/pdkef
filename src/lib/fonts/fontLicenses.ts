@@ -1,8 +1,8 @@
 /**
  * Per-family OFL license metadata (version, spec URL, copyright line), keyed
- * by family name exactly as it appears in src/lib/fonts/fontManifest.js.
+ * by family name exactly as it appears in src/lib/fonts/fontManifest.ts.
  *
- * Kept out of fontManifest.js on purpose: the editor and the exporter both
+ * Kept out of fontManifest.ts on purpose: the editor and the exporter both
  * import that module on every Sign session, and copyright prose has no
  * runtime use there - only the build-time /licenses/ page
  * (src/pages/licenses.astro) and scripts/generate-font-manifest.mjs (which
@@ -11,9 +11,9 @@
  * test; fontLicenses.test.js asserts the two modules' family key sets are
  * identical, so a font added to one and not the other fails fast.
  */
-import { FONT_MANIFEST } from './fontManifest.js';
+import { FONT_MANIFEST } from './fontManifest.ts';
 
-export const FONT_LICENSES = Object.freeze({
+export const FONT_LICENSES: Readonly<Record<string, { version: string; url: string; copyright: string }>> = Object.freeze({
   Caveat: { version: '1.1', url: 'https://fonts.google.com/specimen/Caveat', copyright: 'Copyright The Caveat Project Authors' },
   'Dancing Script': { version: '1.1', url: 'https://fonts.google.com/specimen/Dancing+Script', copyright: 'Copyright The Dancing Script Project Authors' },
   'Great Vibes': { version: '1.1', url: 'https://fonts.google.com/specimen/Great+Vibes', copyright: 'Copyright The Great Vibes Project Authors' },
@@ -55,7 +55,7 @@ export const FONT_LICENSES = Object.freeze({
 });
 
 /** `FONT_LICENSES[family]`, or throws - every catalogue family must have one. */
-export function licenseFor(family) {
+export function licenseFor(family: string) {
   const license = FONT_LICENSES[family];
   if (!license) throw new Error(`No license metadata for font family "${family}"`);
   return license;
@@ -66,6 +66,6 @@ export function licenseFor(family) {
 // checked at module load rather than only in the test.
 for (const font of FONT_MANIFEST) {
   if (!FONT_LICENSES[font.family]) {
-    throw new Error(`fontLicenses.js is missing a license entry for "${font.family}"`);
+    throw new Error(`fontLicenses.ts is missing a license entry for "${font.family}"`);
   }
 }
