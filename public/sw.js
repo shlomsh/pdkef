@@ -10,7 +10,9 @@
 //     it, so a page's own first-ever load - including a `client:load`
 //     island's hydration bundle - happens uncontrolled and uncached; without
 //     precaching the app up front, reopening any tool offline would need a
-//     second, separate online visit first just to warm it.
+//     second, separate online visit first just to warm it. A new build copies
+//     its unchanged content-hashed /_astro/ files from the previous build's
+//     cache and fetches only the rest, so a redeploy costs the diff, not the site.
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable.
 //   - Other same-origin assets are cache-first after precache or first use.
@@ -162,6 +164,47 @@ function fetchFresh(url) {
   return fetch(new Request(resolve(url), { cache: 'reload' }));
 }
 
+// MEM-16: only /_astro/ files are content-hashed, so their bytes never change
+// under the same URL. Everything else (pages, fonts, wasm, icons) can.
+function isHashedUrl(url) {
+  return url.startsWith('/_astro/');
+}
+
+// Which manifest URLs install copies out of a previous build's cache and which
+// it fetches. Pure: previouslyCached is the set of pathnames those caches hold.
+// Only a hashed URL already held there is copied; a page or an unhashed asset
+// is always fetched, because the same URL may now name different bytes.
+function planPrecache(urls, previouslyCached) {
+  const copy = [];
+  const toFetch = [];
+  for (const url of urls) {
+    (isHashedUrl(url) && previouslyCached.has(url) ? copy : toFetch).push(url);
+  }
+  return { copy, fetch: toFetch };
+}
+
+async function previousCacheHandles() {
+  const keys = await caches.keys();
+  return Promise.all(keys.filter((key) => isOwnCache(key) && key !== CACHE_VERSION).map((key) => caches.open(key)));
+}
+
+async function pathnamesIn(previousCaches) {
+  const held = new Set();
+  for (const oldCache of previousCaches) {
+    for (const request of await oldCache.keys()) held.add(new URL(request.url).pathname);
+  }
+  return held;
+}
+
+// The hashed file from the first previous cache that holds it, or null.
+async function findInPrevious(previousCaches, url) {
+  for (const oldCache of previousCaches) {
+    const response = await oldCache.match(resolve(url));
+    if (response) return response;
+  }
+  return null;
+}
+
 async function loadPrecacheManifest() {
   const response = await fetchFresh(PRECACHE_MANIFEST_URL);
   if (response.status === 404) {
@@ -203,10 +246,29 @@ async function precacheAppShell({ skipCached = false } = {}) {
   // but the offline guarantee for that one asset. Only REQUIRED_URL ('/')
   // is load-bearing enough to fail the install over.
   const missed = [];
+  // MEM-16: carry unchanged hashed files over from the previous build's cache
+  // instead of downloading them again. Activate deletes those caches only
+  // after this install, so they are still here to read.
+  let previousCaches = [];
+  let plan = { copy: [], fetch: urls };
+  try {
+    previousCaches = await previousCacheHandles();
+    plan = planPrecache(urls, await pathnamesIn(previousCaches));
+  } catch {
+    // No readable previous cache: fetch everything, as a first install does.
+  }
+  const toCopy = new Set(plan.copy);
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
     if (skipCached && await cache.match(url)) return;
     try {
-      const response = await fetchFresh(url);
+      if (toCopy.has(url)) {
+        const kept = await findInPrevious(previousCaches, url).catch(() => null);
+        if (kept) {
+          await cache.put(url, kept);
+          return;
+        }
+      }
+      const response = isHashedUrl(url) ? await fetch(new Request(resolve(url))) : await fetchFresh(url);
       if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
       await cache.put(url, response);
     } catch (error) {
