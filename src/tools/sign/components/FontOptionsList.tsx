@@ -1,6 +1,6 @@
 import styles from '../../../editor-ui/EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../../../editor/text/fonts.js';
-import { getFontSupport } from '../../../editor/text/textFontSupport.js';
+import { getFontSupport } from '../lib/textFontSupport.js';
 import { formatMessage } from '../../../lib/formatMessage';
 import type { SignMessages } from '../../../editor/registry/messages';
 

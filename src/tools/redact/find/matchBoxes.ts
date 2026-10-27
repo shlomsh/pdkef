@@ -9,7 +9,7 @@
  * whose glyphs could not be read, so Find never offers nothing.
  */
 
-import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import { toPagePercentBox, type PageGeometry } from '../../../editor/geometry/coords.ts';
 import { glyphsBox, type PointBox } from './glyphBoxes.ts';
 import { glyphsOf, pageGlyphMap } from './itemGlyphs.ts';

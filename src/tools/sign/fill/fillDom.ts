@@ -4,7 +4,7 @@
  * so "next" is simply the next fill input in the document.
  */
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
-import type { PercentBox } from '../../../editor/text/combPlacement.ts';
+import type { PercentBox } from '../lib/combPlacement.ts';
 
 const SELECTOR = `[${FILL_INPUT_ATTR}]`;
 

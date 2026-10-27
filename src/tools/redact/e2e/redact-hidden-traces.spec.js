@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import { PDFDocument, PDFName, PDFString, StandardFonts } from '@cantoo/pdf-lib';
-import { readDocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import { readDocumentTraces } from '../lib/documentTraces.js';
 
 // RED-59: the file's details are the person's. An untouched download keeps
 // them (and drops only the cached page pictures); an altered or deleted one

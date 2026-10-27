@@ -4,9 +4,9 @@
  * `wordsUnderBoxes`, the same touch rule a covered page's flatten pass uses
  * to decide what a box hides.
  */
-import { wordsUnderBoxes } from '../../../editor/adapters/pdf/textLayer.ts';
+import { wordsUnderBoxes } from '../lib/textLayer.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from '../lib/pageGlyphs.ts';
 import type { PercentBox } from '../find/types.ts';
 import { termFinder } from '../find/finders.ts';
 import type { CheckTerm } from './types.ts';

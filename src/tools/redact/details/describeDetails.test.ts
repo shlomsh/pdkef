@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { changesPieces, changesSummary, describeDetails, detailsSummary, survivedAlways, survivedDetails, survivorLabel } from './describeDetails.ts';
-import type { DocumentTraces } from '../../../editor/adapters/pdf/documentTraces.js';
+import type { DocumentTraces } from '../lib/documentTraces.js';
 
 const empty = (): DocumentTraces => ({
   title: null, author: null, subject: null, keywords: null, creator: null, producer: null,

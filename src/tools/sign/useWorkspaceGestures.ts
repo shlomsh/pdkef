@@ -15,11 +15,11 @@ import type {
   SymbolMark,
 } from '../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
-import { carriedTextStyle } from '../../editor/model/elementDefaults.ts';
+import { carriedTextStyle } from './lib/elementDefaults.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
-import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
+import { ensureMinimumElementSize } from './lib/minimumSize.ts';
 import { samplePageColor } from './whiteoutPageColor.ts';
 import {
   cellRegionAt,
@@ -29,7 +29,7 @@ import {
   placeTextOnField,
   type FieldRegion,
   type TypableField,
-} from '../../editor/text/combPlacement.ts';
+} from './lib/combPlacement.ts';
 import { placeSymbolOnRegion } from '../../editor/registry/symbol.ts';
 import { DESIGN_BOX, markInkExtent } from '../../editor/registry/symbolMarks.ts';
 import { dateFormatForComb, formatDate, isDateFormatId, toIsoDateString } from '../../editor/text/dateFormat.ts';

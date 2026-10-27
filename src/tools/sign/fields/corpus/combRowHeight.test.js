@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { detectFormFields, pageGeometry, toPageTextRuns } from '../detectFormFields.ts';
-import { baselineDropEm, placeCombOnRegion, placeTextOnCell } from '../../../../editor/text/combPlacement.ts';
+import { baselineDropEm, placeCombOnRegion, placeTextOnCell } from '../../lib/combPlacement.ts';
 
 /**
  * An open comb's field is its printed row (FORM-27, Shlomi 2026-09-26), on the

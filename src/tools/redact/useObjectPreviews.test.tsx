@@ -2,14 +2,14 @@ import { h, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { PageGlyph } from '../../editor/adapters/pdf/pageGlyphs.ts';
+import type { PageGlyph } from './lib/pageGlyphs.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import * as errorReport from '../../lib/errorReport.ts';
 import useObjectPreviews from './useObjectPreviews.ts';
 
 const readGlyphsMock = vi.fn<(pdfjs: unknown, page: { pageNumber: number }) => Promise<PageGlyph[] | null>>();
 vi.mock('../../editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({}) }));
-vi.mock('../../editor/adapters/pdf/readGlyphs.js', () => ({ readGlyphs: (pdfjs: unknown, page: { pageNumber: number }) => readGlyphsMock(pdfjs, page) }));
+vi.mock('./lib/readGlyphs.js', () => ({ readGlyphs: (pdfjs: unknown, page: { pageNumber: number }) => readGlyphsMock(pdfjs, page) }));
 
 const line = (chars: string): PageGlyph[] =>
   [...chars].map((ch, i) => ({ unicode: ch, isSpace: ch === ' ', matrix: [10, 0, 0, 10, i * 5, 400], width: 0.5 }));

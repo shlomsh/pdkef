@@ -288,7 +288,7 @@ describe('deriveScope', () => {
   // input rather than trying to name only the catalogue files.
   it('a change inside src/editor/text/ still forces fonts=true even when it is shaping code, not the catalogue (directory rule, ARCH-23)', () => {
     const scope = deriveScope({
-      files: ['src/editor/text/combPlacement.ts'],
+      files: ['src/editor/text/bidiRuns.js'],
       affected: ['editor', 'tool-sign', 'tool-redact'],
       roots: ROOTS,
     });
@@ -342,7 +342,7 @@ describe('deriveScope', () => {
   // decide it, the same as any tool-<name> project.
   it('a change to the real export pipeline marks export-guards affected, decided by Nx like a tool project', () => {
     const scope = deriveScope({
-      files: ['src/editor/adapters/pdf/sign.js'],
+      files: ['src/tools/sign/lib/sign.js'],
       affected: ['editor', 'export-guards', 'tool-sign', 'tool-redact'],
       roots: ROOTS,
     });
@@ -619,7 +619,7 @@ describe('matchesFontsGlob', () => {
   it.each([
     'public/fonts/NewFont-Regular.ttf',
     'src/editor/text/fonts.js',
-    'src/editor/text/combPlacement.ts', // directory rule, not a named list
+    'src/editor/text/bidiRuns.js', // directory rule, not a named list
     'src/styles/editorFonts.css',
     'scripts/fonts/build-cjk-subset.py',
     'scripts/generate-font-manifest.mjs',
@@ -993,6 +993,6 @@ describe('narrowByReachability on the real repo graph (ARCH-32 review fix)', () 
   });
 
   it('a redact-only editor adapter still narrows to redact', () => {
-    expect(realReach('src/editor/adapters/pdf/deleteObjects.js').tools).toEqual(['redact']);
+    expect(realReach('src/tools/redact/lib/deleteObjects.js').tools).toEqual(['redact']);
   });
 });

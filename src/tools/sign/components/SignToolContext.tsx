@@ -6,8 +6,8 @@ import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } fr
 import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
-import { resolveDocumentStyle } from '../../../editor/model/elementDefaults.ts';
-import { ensureMinimumElementSize } from '../../../editor/geometry/minimumSize.ts';
+import { resolveDocumentStyle } from '../lib/elementDefaults.ts';
+import { ensureMinimumElementSize } from '../lib/minimumSize.ts';
 
 /**
  * Mutable fields from any editor element variant. Identity, kind, and page are

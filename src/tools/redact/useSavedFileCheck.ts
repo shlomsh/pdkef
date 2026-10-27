@@ -8,7 +8,7 @@ import type { MeasureText } from './find/matchBoxes.ts';
 import { dropCause, reportError } from '../../lib/errorReport.ts';
 import { changesSummary, survivedAlways, survivedDetails, survivorLabel } from './details/describeDetails.ts';
 import type { DetailRow } from './details/describeDetails.ts';
-import type { DetailEdits } from '../../editor/adapters/pdf/detailEdits.js';
+import type { DetailEdits } from './lib/detailEdits.js';
 import { DETAILS_CHANGED_ANNOUNCEMENT, DETAILS_SURVIVED_ANNOUNCEMENT } from './check/checkCopy.ts';
 
 /** en-GB reads "7 Oct 09:14", the approved form for a plain English page. */

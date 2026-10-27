@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from './fillWorkspace.ts';
 import { freeSlotKey, slotKey } from './fillSlots.ts';
 import { boxKey } from './fillDom.ts';
-import type { FieldRegion, PercentBox, TypableField } from '../../../editor/text/combPlacement.ts';
+import type { FieldRegion, PercentBox, TypableField } from '../lib/combPlacement.ts';
 import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
 import type { FillItem, FillSlot, PagePoint } from './fillTypes.ts';
 import {

@@ -9,8 +9,8 @@ import {
   DEFAULT_FONT_SIZE_PT,
   TEXT_BOX_LINE_HEIGHT_EM,
 } from '../../../editor/model/signGeometry.js';
-import { elementIsOnField } from '../../../editor/text/fieldOrder.ts';
-import type { FieldRegion, PercentBox, TypableField } from '../../../editor/text/combPlacement.ts';
+import { elementIsOnField } from '../lib/fieldOrder.ts';
+import type { FieldRegion, PercentBox, TypableField } from '../lib/combPlacement.ts';
 import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
 import { detectedSlots, freeSlot, placementForField, placementForFree } from './fillSlots.ts';
 import { fillOrder } from './fillOrder.ts';

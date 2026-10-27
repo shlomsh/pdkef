@@ -8,7 +8,7 @@ import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../../editor/model/si
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
+import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 
 declare global {
   interface ParentNode {
