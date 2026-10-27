@@ -1,8 +1,21 @@
+// @ts-check
 /** Baseline drift allowed between joined show ops, as a fraction of the font size. */
 const JOIN_BASELINE_TOLERANCE = 0.1;
 /** Gap allowed between one op's end and the next op's start, as a fraction of the font size. */
 const JOIN_GAP_TOLERANCE = 0.3;
 
+/**
+ * @typedef {{ x: number, y: number, width: number, height: number }} Box
+ * @typedef {{ start: number, end: number }} Range
+ * @typedef {{ fontKey: string | null, size: number, scale: number, from: number[], to: number[] }} Run what a show op says about its font and position
+ * @typedef {import('./contentStreamWalk.js').PageObject & { run: Run }} RunOp one show op, as the walk records it
+ */
+
+/**
+ * @param {Box} a
+ * @param {Box} b
+ * @returns {Box}
+ */
 const unionBox = (a, b) => {
   const x = Math.min(a.x, b.x);
   const y = Math.min(a.y, b.y);
@@ -14,17 +27,24 @@ const unionBox = (a, b) => {
   };
 };
 
-/** The byte range of an inline BDC dict that may carry the text it marks, else null. */
+/** The byte range of an inline BDC dict that may carry the text it marks, else null.
+ * @param {import('./contentStream.js').Token | undefined} token
+ * @returns {Range | null}
+ */
 export function textDictRange(token) {
   const carries = token?.type === 'dict'
     && token.value.some((t) => t.type === 'name' && ['ActualText', 'Alt', 'E'].includes(t.value));
   return carries ? { start: token.start, end: token.end } : null;
 }
 
-/** The distinct dict ranges among several units' `strip` lists. */
+/** The distinct dict ranges among several units' `strip` lists.
+ * @param {Array<Range[] | undefined>} lists
+ * @returns {Range[]}
+ */
 export const unionStrips = (lists) => {
+  /** @type {Map<number, Range>} */
   const byStart = new Map();
-  for (const range of lists.flat().filter(Boolean)) byStart.set(range.start, range);
+  for (const range of lists.flat()) if (range) byStart.set(range.start, range);
   return [...byStart.values()];
 };
 
@@ -36,7 +56,8 @@ export const unionStrips = (lists) => {
  * A joined unit carries `parts`, the replacement of each op, so a delete keeps the positioning
  * operators between them. A lone op keeps its own `replacement` and has no `parts`.
  *
- * @param {Array<{run: {fontKey, size, scale, from: number[], to: number[]}}>} ops units in stream order
+ * @param {RunOp[]} ops units in stream order
+ * @returns {Array<import('./contentStreamWalk.js').PageObject>}
  */
 export function joinRuns(ops) {
   const groups = [];
@@ -54,6 +75,7 @@ export function joinRuns(ops) {
     else groups.push([op]);
   }
   return groups.map((group) => {
+    /** @param {RunOp} op */
     const withoutRun = ({ run, ...unit }) => unit;
     if (group.length === 1) return withoutRun(group[0]);
     const { replacement, ...first } = withoutRun(group[0]);
