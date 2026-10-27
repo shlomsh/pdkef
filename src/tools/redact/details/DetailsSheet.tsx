@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useModalDialog } from '../../../shell/useModalDialog.ts';
 import { expandDetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
 import type { DetailEdit, DetailEdits } from '../../../editor/adapters/pdf/detailEdits.js';
 import type { DetailRow } from './describeDetails.ts';
@@ -33,36 +34,20 @@ export function DetailsSheet({ open, rows, edits, onEdit, onRestore, onClose }: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const implied = expandDetailEdits(edits);
+  const onEscape = useCallback(() => {
+    if (editingId !== null) {
+      pendingFocus.current = { id: editingId, action: 'edit' };
+      setEditingId(null);
+    } else closeRef.current();
+  }, [editingId]);
   // Where focus goes once the row has re-rendered into its next state.
   const pendingFocus = useRef<{ id: string; action: 'edit' | 'delete' | 'undo' } | null>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.open = true;
-    } else if (!open && dialog.open) {
-      if (typeof dialog.close === 'function') dialog.close();
-      else dialog.open = false;
-    }
-    if (!open) setEditingId(null);
-  }, [open]);
+  useModalDialog(dialogRef, open, onEscape);
 
   useEffect(() => {
-    if (!open) return;
-    const onEsc = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (editingId !== null) {
-        pendingFocus.current = { id: editingId, action: 'edit' };
-        setEditingId(null);
-      } else closeRef.current();
-    };
-    window.addEventListener('keydown', onEsc, { capture: true });
-    return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [open, editingId]);
+    if (!open) setEditingId(null);
+  }, [open]);
 
   useEffect(() => {
     if (editingId !== null) inputRef.current?.focus();
