@@ -7,7 +7,7 @@ import { expect } from '@playwright/test';
  * @param {import('@playwright/test').Page} page
  */
 export async function waitForIsland(page) {
-  await waitForIsland(page);
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
 }
 
 /**
