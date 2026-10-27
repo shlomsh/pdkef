@@ -280,6 +280,24 @@ describe('offline-first service worker', () => {
       }
     });
 
+    it('counts a URL as missed when its body never finishes storing', async () => {
+      vi.useFakeTimers();
+      try {
+        const worker = createWorker(manifestResponder(['/', '/sign/', '/_astro/app.js']));
+        const store = worker.cache.put.getMockImplementation();
+        worker.cache.put.mockImplementation((request, response) => (
+          new URL(requestUrl(request)).pathname === '/sign/' ? new Promise(() => {}) : store(request, response)
+        ));
+        const install = dispatchInstall(worker);
+        await vi.advanceTimersByTimeAsync(LIMIT);
+        await install;
+        expect(worker.entries.has('https://pdkef.test/_astro/app.js')).toBe(true);
+        expect(worker.entries.has('https://pdkef.test/sign/')).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('clears the timer of a request that resolves in time', async () => {
       vi.useFakeTimers();
       try {
