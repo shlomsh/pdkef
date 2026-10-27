@@ -118,6 +118,10 @@ describe('planSteps', () => {
     expect(steps).toEqual(expect.arrayContaining(ALWAYS_GUARD_STEPS));
   });
 
+  it('the ratchet guards run on every diff (ARCH-76)', () => {
+    expect(ALWAYS_GUARD_STEPS).toEqual(expect.arrayContaining(['test:ratchet-raises', 'test:size-ratchet']));
+  });
+
   it('a scripts-only diff (tooling, no build script touched): unit + typecheck, no build, no e2e', () => {
     const files = ['scripts/generate-backlog.mjs'];
     const scope = deriveScope({ files, affected: ['tooling'], roots: ROOTS });

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /**
  * Real Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z, in a real browser.
@@ -19,19 +19,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 const MODIFIER = process.platform === 'darwin' ? 'Meta' : 'Control';
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Sign undo/redo e2e fixture', {
-    x: 72,
-    y: 720,
-    size: 18,
-    font,
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Sign undo/redo e2e fixture' }] });
 
 async function openSignTool(page) {
   await page.goto('/sign/?next=0');

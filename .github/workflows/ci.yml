@@ -145,6 +145,20 @@ jobs:
     - name: Verify module boundaries
       run: npm run test:module-boundaries
 
+    # ARCH-76: scripts/ratchet-limits.json holds every ratchet limit; a value that
+    # rose (or an entry added to an existing section) against the base fails here.
+    # BASE is empty when the scope job could not resolve one; the script then
+    # falls back to the merge base with origin/main.
+    - name: Refuse raised ratchet limits
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: npm run test:ratchet-raises -- --base "$BASE"
+
+    # ARCH-50: files over 800 lines and functions over 300 are recorded in the same
+    # JSON; one that grew, or a new one over the threshold, fails.
+    - name: Verify size ratchet
+      run: npm run test:size-ratchet
+
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 

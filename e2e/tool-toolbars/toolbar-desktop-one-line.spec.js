@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
+import { openTool as openSharedTool } from '../support/tool.js';
 
 /* SIGN-29 (Shlomi, 2026-09-18): the Download button wrapped onto a full-width
    second row on a normal laptop, because the labelled row outgrew hand-measured
@@ -18,23 +19,11 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
    box, 32.3px spare, and Date is labelled again. SignToolbar.module.css's
    closing comment carries the rest of those numbers. */
 
-async function makePdfBuffer() {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText('Toolbar one-line fixture', { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = () => buildPdf(null, { title: false, lines: [{ text: 'Toolbar one-line fixture' }] });
 
-async function openTool(page, toolPath, fixtureName) {
-  await page.goto(toolPath);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-  const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Choose file', { exact: true }).click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles({ name: fixtureName, mimeType: 'application/pdf', buffer: await makePdfBuffer() });
-  await expect(page.locator('[role="toolbar"]')).toBeVisible();
-}
+const openTool = async (page, toolPath, fixtureName) => {
+  await openSharedTool(page, toolPath, { file: { name: fixtureName, buffer: await makePdfBuffer() }, expectToolbar: true });
+};
 
 // navigator.canShare/.share do not exist in Playwright's default Chromium
 // profile, so PdfSignTool/PdfRedactTool's usePdfShare() reads canSharePdf as

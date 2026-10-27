@@ -1,5 +1,6 @@
 import { cloneElement } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useModalDialog } from '../../../shell/useModalDialog.ts';
 import sheetStyles from './FontSheet.module.css';
 import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
 import type { SignMessages } from '../../../editor/registry/messages';
@@ -87,42 +88,30 @@ export default function FontSheet({
     setOpen(true);
   };
 
-  // Native <dialog> open/close and the top-layer requirement for a real
-  // fullscreen edit session (`<dialog open>` alone renders invisibly there).
+  // The hook opens the dialog in the top layer (a real fullscreen edit
+  // session renders `<dialog open>` invisibly) and routes Escape to cancel.
   // Per the lead's correction: this sheet must not blur the previously
   // focused field (that reads as ending the fill session), so instead of
   // moving focus off-document it moves focus onto the dialog itself, which
   // carries FILL_KEEP_SESSION_ATTR for useFillFocus to recognise.
+  // Keyed on `open` alone, as the cancel listener always was: Escape calls the
+  // closeSheet of the render that opened the sheet.
+  const cancelSheet = useCallback(() => closeSheet(false), [open]);
+  useModalDialog(dialogRef, open, cancelSheet, { escape: 'cancel', fallback: false });
+
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open) {
-      if (!dialog.open) dialog.showModal();
-      dialog.focus();
+    if (!dialog || !open) return;
+    dialog.focus();
 
-      // Scroll so the element being styled is not hidden under the sheet.
-      const anchor = triggerRef.current?.closest('[data-editor-element]');
-      if (anchor) {
-        const elementRect = anchor.getBoundingClientRect();
-        const sheetRect = dialog.getBoundingClientRect();
-        const delta = computeSheetRevealScroll(elementRect.bottom, sheetRect.top);
-        if (delta > 0) window.scrollBy({ top: delta });
-      }
-    } else if (dialog.open) {
-      dialog.close();
+    // Scroll so the element being styled is not hidden under the sheet.
+    const anchor = triggerRef.current?.closest('[data-editor-element]');
+    if (anchor) {
+      const elementRect = anchor.getBoundingClientRect();
+      const sheetRect = dialog.getBoundingClientRect();
+      const delta = computeSheetRevealScroll(elementRect.bottom, sheetRect.top);
+      if (delta > 0) window.scrollBy({ top: delta });
     }
-  }, [open]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog || !open) return undefined;
-    const onCancel = (event: Event) => {
-      event.preventDefault();
-      closeSheet(false);
-    };
-    dialog.addEventListener('cancel', onCancel);
-    return () => dialog.removeEventListener('cancel', onCancel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* MERGE-13: a merge survives a crash. `useMergeDraft.ts` and
    `MergeDraftPersistence.tsx` were wired into PdfMergeTool.tsx by another
@@ -16,13 +16,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    restore in its place. */
 test.use({ serviceWorkers: 'block' });
 
-async function makePdfBuffer(label) {
-  const document = await PDFDocument.create();
-  document.addPage([612, 792]);
-  document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { pages: 2 });
 
 test('a file set and a page rotation survive closing and reopening the tab', async ({ page, context }) => {
   await page.goto('/merge/');

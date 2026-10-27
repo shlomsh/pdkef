@@ -18,28 +18,23 @@
 // case (reported as zero thumbnails rendered at 5s) down to under 0.5s for
 // the first row. Both thresholds below are generous next to those numbers.
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 // Reloading to exercise the draft-restore path fetches more than one
 // dynamically-served asset across the reload; blocking the service worker
 // avoids it serving a stale bundle (see merge-restore.spec.js's comment).
 test.use({ serviceWorkers: 'block' });
 
-async function makePdfBuffer(label, pageCount, withText) {
-  const document = await PDFDocument.create();
-  const font = withText ? await document.embedFont(StandardFonts.Helvetica) : null;
-  for (let i = 0; i < pageCount; i += 1) {
-    const page = document.addPage([200, 300]);
-    if (withText) {
-      page.drawText(
-        `${label} page ${i + 1} of ${pageCount}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
-        { x: 20, y: 250, size: 10, font },
-      );
-    }
-  }
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (label, pageCount, withText) => buildPdf(label, {
+  pages: pageCount,
+  size: [200, 300],
+  lines: withText
+    ? (i, total) => [{
+      text: `${label} page ${i + 1} of ${total}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
+      x: 20, y: 250, size: 10, gray: null,
+    }]
+    : [],
+});
 
 // Five 1-page PDFs (~1.3KB each) + one 12-page text-only report (~13KB) - the
 // reviewer's exact fixture shape, 17 pages across 6 files in all.

@@ -2,13 +2,11 @@
  * @file textCoverage.js
  * @description Which characters in a document no font can draw.
  *
- * **Three files sit near this name; they do different jobs.** Getting them
+ * **Two files sit near this name; they do different jobs.** Getting them
  * confused is easy and has bitten this area before, so:
  *
  *  - `fontCoverage.test.js` - a *build-time* check that the catalogue's claims
  *    in fonts.js match the real asset bytes.
- *  - `liveFontCoverage.js` - the *editor's* font loader: fetches a TTF and
- *    parses it with fontkit, cached per file for the life of the page.
  *  - **this file** - the *policy*: which elements get judged, which of their
  *    characters actually reach the page, and which font each one resolves to.
  *

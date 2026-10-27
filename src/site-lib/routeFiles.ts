@@ -7,11 +7,10 @@
  */
 
 import { deriveFileKind } from '../lib/fileKind.js';
-import { FILE_CAPABILITIES, handoffKeyOf, type FileKind } from '../lib/toolIds.ts';
+import { FILE_CAPABILITIES, handoffKeyOf, type FileKind, type TOOL_PAGES } from '../lib/toolIds.ts';
 
-export type ToolSlug =
-  | 'sign' | 'redact' | 'merge' | 'pdf-to-image' | 'image-to-pdf'
-  | 'split' | 'compress' | 'compress-image' | 'unlock' | 'organize-pdf';
+/** The pages the home dropzone can route a file to: the registry rows that declare `accepts`. */
+export type ToolSlug = Extract<(typeof TOOL_PAGES)[number], { accepts: object }>['slug'];
 
 type Kind = FileKind;
 

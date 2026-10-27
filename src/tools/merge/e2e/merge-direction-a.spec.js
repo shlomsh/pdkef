@@ -1,17 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { makePdfBuffer as buildPdf } from '../../../../e2e/support/pdf.js';
 
 /* Direction A (2026-09-13): three guards the critique's writeup called out
    as P0/P1, added alongside the rewritten specs rather than folded into
    them, since each is a standalone invariant of the new document-centre
    layout rather than a re-check of an existing scenario. */
 
-async function makePdfBuffer(label, pageCount = 1) {
-  const document = await PDFDocument.create();
-  for (let i = 0; i < pageCount; i += 1) document.addPage([612, 792]);
-  document.setTitle(label);
-  return Buffer.from(await document.save());
-}
+const makePdfBuffer = (label, pageCount = 1) => buildPdf(label, { pages: pageCount });
 
 test('the Download element keeps the same DOM node across preparing and ready (MERGE-16)', async ({ page }, testInfo) => {
   await page.goto('/merge/');

@@ -9,6 +9,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-64](backlog/tasks/DEBT-64.md) P2 · Merge's phone chip test passes alone and fails under parallel load
+- [DEBT-65](backlog/tasks/DEBT-65.md) P2 · Two layout-shift specs failed once each in the 2026-10-27 nightly
 - [ENC-16](backlog/tasks/ENC-16.md) P2 · Locked-file state polish: Merge's calm notice, the panel's sizing, focus ring and file name (in progress)
 - [QUAL-30](backlog/tasks/QUAL-30.md) P2 · merge-ready-time guards the wait and the poll, not the merge (in progress)
 
@@ -28,7 +29,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Polish
 
 - [QUAL-21](backlog/tasks/QUAL-21.md) P2 · Pages render at the size they are shown, and the practice form's logo is sharp (in progress)
-- [SITE-44](backlog/tasks/SITE-44.md) P2 · App bar: the tool crumb gives way instead of shrinking to a letter (in progress)
 
 ## Waiting, by date
 

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { existsSync, readFileSync } from 'node:fs';
 import { startTwoBuildServer } from './twoBuildServer.js';
+import { makePdfBuffer as buildPdf } from '../support/pdf.js';
 
 /*
  * MEM-10: tabs on an old build, a new build deployed. The next navigation in
@@ -36,13 +36,7 @@ test.beforeEach(async ({ browser }) => {
 });
 test.afterEach(async () => { await context?.close(); });
 
-async function makePdfBuffer(label) {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([612, 792]);
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  page.drawText(label, { x: 72, y: 720, size: 18, font, color: rgb(0.1, 0.1, 0.1) });
-  return Buffer.from(await doc.save());
-}
+const makePdfBuffer = (label) => buildPdf(label, { title: false, lines: [{ text: label }] });
 
 async function waitForController(page) {
   await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller !== null, null, {

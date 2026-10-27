@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
+import { openTool } from '../support/tool.js';
 
 /* ENC-07: the same detour as encrypted-roundtrip.spec.js, from Sign. A protected PDF is a precondition,
    not a failure: Sign shows one quiet state, "Unlock it" opens /unlock/ with the file, and Unlock leads
@@ -18,10 +19,6 @@ function watchReports(page) {
   return sent;
 }
 
-async function openTool(page, path) {
-  await page.goto(path);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
-}
 
 test('an owner-only file in Sign goes to Unlock with no prompt and comes back to Sign', async ({ page }) => {
   const reports = watchReports(page);

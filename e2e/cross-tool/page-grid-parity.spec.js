@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { openTool } from '../support/tool.js';
 
 /* GRID epic (docs/shared-page-grid.md): one page grid, identical in every
    tool. Merge, Edit Pages, Split and PDF to Image all render the shared PageGrid
@@ -31,9 +32,8 @@ async function makePdf() {
   return Buffer.from(await doc.save());
 }
 
-async function openTool(page, route) {
-  await page.goto(route);
-  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+async function openGridTool(page, route) {
+  await openTool(page, route);
   await page.locator('input[type="file"]').setInputFiles({
     name: 'ten-pages.pdf',
     mimeType: 'application/pdf',
@@ -91,7 +91,7 @@ for (const viewport of VIEWPORTS) {
       for (const route of routes) {
         const context = await browser.newContext(contextOptions);
         const page = await context.newPage();
-        await openTool(page, route);
+        await openGridTool(page, route);
         out.push(await measure(page));
         await context.close();
       }
@@ -182,7 +182,7 @@ async function dragPage(page, fromIndex, toIndex) {
 for (const route of ROUTES.filter((r) => !REORDERABLE.includes(r))) {
   test(`${route} keeps source order: a drag and the arrow keys move nothing`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await openTool(page, route);
+    await openGridTool(page, route);
     const before = await keys(page);
     await dragPage(page, 1, 4);
     await cells(page).nth(4).focus();
@@ -198,7 +198,7 @@ for (const route of ROUTES) {
 
     test('dragging page 2 onto page 5 reorders it', async ({ page }) => {
       test.skip(!REORDERABLE.includes(route), 'source order only');
-      await openTool(page, route);
+      await openGridTool(page, route);
       const before = await keys(page);
       await dragPage(page, 1, 4);
       // The drop commits through the tool's history on the next render. Where it
@@ -208,7 +208,7 @@ for (const route of ROUTES) {
     });
 
     test('keyboard: r rotates, Delete skips, Enter opens the preview', async ({ page }) => {
-      await openTool(page, route);
+      await openGridTool(page, route);
       const first = cells(page).first();
       await first.focus();
       await expect(first).toBeFocused();
@@ -223,7 +223,7 @@ for (const route of ROUTES) {
     });
 
     test('undo and redo travel through a rotation', async ({ page }) => {
-      await openTool(page, route);
+      await openGridTool(page, route);
       const first = cells(page).first();
       await first.focus();
       await expect(first).toBeFocused();
@@ -242,7 +242,7 @@ for (const route of ROUTES) {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
     test('a tap on a page body does not skip it', async ({ page }) => {
-      await openTool(page, route);
+      await openGridTool(page, route);
       const cell = cells(page).nth(1);
       await cell.scrollIntoViewIfNeeded();
       await cell.locator('[data-thumb-box]').tap();
@@ -264,7 +264,7 @@ for (const route of ROUTES) {
     test(`the loaded card reaches the foot of a ${width}x${height} screen (${density}), ${route}`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await page.addInitScript((d) => localStorage.setItem('pdf-toolkit:view-density', d), density);
-      await openTool(page, route);
+      await openGridTool(page, route);
       const floor = await page.evaluate(() => {
         const card = document.querySelector('[data-tool-loaded]');
         return card.getBoundingClientRect().top + parseFloat(getComputedStyle(card).minHeight);
@@ -284,7 +284,7 @@ const EDGE_ROUTES = [...ROUTES, '/he/split/', '/he/pdf-to-image/'];
 for (const route of EDGE_ROUTES) {
   test(`at 375px every action of an edge page is on screen, ${route}`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await openTool(page, route);
+    await openGridTool(page, route);
     const columns = await columnCount(page);
     // PDF to Image adds its Save link once the images are built.
     // The sticky bars cover the top of a phone screen: centre a page before clicking it.
