@@ -24,7 +24,7 @@
 // created on or after the commit named by --since), each row is Actions'
 // idea of run wall-clock (createdAt..updatedAt), the checks job's verdict
 // (narrowed to <projects>, or everything with affected-scope.mjs's own
-// reason string), the checks job's "Run tests" step duration, each e2e
+// reason string), the "Run tests" step duration (`units`, or `checks` before ARCH-86), each e2e
 // shard's step duration and Playwright-reported test count, the
 // `e2e-webkit` job's two Playwright steps (webkit, then the perf budgets)
 // the same way, whether font-guards' Playwright step actually ran (its step
@@ -203,7 +203,9 @@ for (const run of runs) {
       gh(['api', `/repos/{owner}/{repo}/actions/jobs/${checksJob.databaseId}/logs`])
     );
     ({ verdict, reason } = verdictFromLog(log));
-    checksTestSeconds = stepDurationSeconds(findStep(checksJob, /^Run tests$/));
+    // ARCH-86 moved the unit suite into its own `units` job; older runs ran it inside `checks`.
+    const unitsJob = jobs.find((j) => j.name === 'units');
+    checksTestSeconds = stepDurationSeconds(findStep(unitsJob ?? checksJob, /^Run tests$/));
   }
 
   const e2eShards = jobs
