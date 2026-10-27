@@ -1,7 +1,7 @@
 ---
 id: "MEM-17"
 title: "Service worker registration waits for the island's hydration and an idle callback"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "now"
