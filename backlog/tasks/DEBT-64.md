@@ -1,11 +1,9 @@
 ---
 id: "DEBT-64"
 title: "Merge's phone chip test passes alone and fails under parallel load"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
-order: 9
 depends_on: []
 ---
 
@@ -31,5 +29,28 @@ A flaky e2e on main costs every push that selects Merge.
 
 ## Acceptance
 
-- [ ] The cause is named in this ticket with the evidence.
-- [ ] `--repeat-each=10 --workers=4` on the spec file is green on a production build.
+- [x] The cause is named in this ticket with the evidence.
+- [x] `--repeat-each=10 --workers=4` on the spec file is green on a production build.
+
+## Done
+
+*2026-10-27.* No product change and no new test edit: the cause was already fixed by `aac3ebe7`
+("Merge's chip-remove spec waits for hydration"), which landed after the 9d9331db measurement
+(9d9331db is its ancestor) and is in this branch's base.
+
+**Cause.** The chip test called `setInputFiles` on the server-rendered `<input type="file">` right
+after `page.goto`, with no wait for the island. If the `change` event fires before Preact hydrates the
+handler, it is lost and no chip ever renders, so the 10 s wait saw none. It passed alone only because
+hydration usually beat `makePdfBuffer`; under 4 workers it did not. Every other test in the file
+already waited for the island.
+
+**Evidence.** A throwaway spec (deleted) slowed `/_astro/*.js` by 1.5 s: the old flow (goto, build
+PDFs, `setInputFiles`, no wait) saw 0 chips after 8 s and failed; the same flow with
+`waitForIsland` passed. All 12 `goto` calls in `merge-mobile.spec.js` are now followed by
+`waitForIsland`, and no other Merge spec sets files without one. The pre-fix spec did not fail on the
+unloaded production build here (0 of 10 failures with 4 workers), so the slowed-script run is the
+reproduction, not the original 4-of-5.
+
+**Result.** `npm run build`, then `PLAYWRIGHT_PORT=4533 npx playwright test
+src/tools/merge/e2e/merge-mobile.spec.js --project=chromium --repeat-each=10 --workers=4`: 140 of 140
+passed (14 tests x 10); with webkit as well, `--repeat-each=5`: 140 of 140 passed.
