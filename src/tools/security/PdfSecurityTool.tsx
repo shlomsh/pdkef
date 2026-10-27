@@ -248,10 +248,7 @@ export default withIslandBoundary(function PdfSecurityTool({ intent = 'unlock', 
       onFilesAdded={(files: FileList | File[]) => handleFilesAdded(files)}
       intake={{ multiple: false }}
       identity={{ file, label: file?.name, meta: describeFile(file), hidden: true }}
-      empty={{
-        art: <UnlockVerb />,
-        message: intent === 'unlock' ? t.emptyUnlock : t.emptyProtect,
-      }}
+      empty={{ art: <UnlockVerb />, message: intent === 'unlock' ? t.emptyUnlock : t.emptyProtect }}
       analytics={{
         tool: mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined,
         pageTool: intent === 'protect' ? 'protect' : 'unlock',
