@@ -145,3 +145,25 @@ describe('static closure (what check-lazy-modules asks)', () => {
     for (const file of staticClosure(view, pageEntries(SIGN_HTML))) expect(full.has(file)).toBe(true);
   });
 });
+
+describe('Vite preload list (__vite__mapDeps)', () => {
+  const viteChunk = (letter) =>
+    `const __vite__mapDeps=(i,${letter}=__vite__mapDeps,d=(${letter}.f||(${letter}.f=["_astro/mapped.js","_astro/page.css"])))=>i.map(i=>d[i]);`;
+  const mapped = (source) => {
+    const paths = ['_astro/mapped.js', '_astro/page.css', '_astro/entry.js'];
+    const entryView = { files: new Map([['_astro/entry.js', source], ['_astro/mapped.js', ''], ['_astro/page.css', '']]), paths };
+    return fullClosure(entryView, ['/_astro/entry.js']);
+  };
+
+  it('reads the list whatever letter the minifier gave the variable', () => {
+    for (const letter of ['m', 'x', 'q$']) {
+      const closure = mapped(viteChunk(letter));
+      expect(closure.has('_astro/mapped.js')).toBe(true);
+      expect(closure.has('_astro/page.css')).toBe(true);
+    }
+  });
+
+  it('throws naming the chunk when it mentions __vite__mapDeps but no list can be read', () => {
+    expect(() => mapped('const __vite__mapDeps=(i)=>i.map(i=>listMovedElsewhere[i]);')).toThrow('_astro/entry.js');
+  });
+});

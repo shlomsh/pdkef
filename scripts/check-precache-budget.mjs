@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
  * Budgets what the service worker downloads: the shell, and the closure of
  * each page (dist/precache-manifest.json, "pages"), summed in brotli bytes at
  * the quality check-page-weight.js uses. Also refuses a page whose closure
- * carries another tool's island entry chunk.
+ * carries another tool's island entry chunk or lacks its own, and any
+ * script, style or wasm file in dist/_astro/ that no list of the install names.
  *
  * These are budgets, not ratchets (CLAUDE.md): a number is raised only by a
  * decision, never to make a red run green. Measured 2026-10-27 (brotli bytes, from `--table`):
@@ -20,11 +21,11 @@ import { fileURLToPath } from 'node:url';
  *     heaviest article (/open/)       35,329
  *
  * Per-page budgets are the heaviest measured closure of their kind plus 15 to
- * 20% headroom. The install budget is a decision, not headroom (see below).
+ * 20% headroom (tool pages: 1,700,000, +17%). The install budget is a decision, not headroom (see below).
  */
 export const BUDGETS = {
   shell: 460_000,
-  tool: 1_950_000,
+  tool: 1_700_000, // measured 1,453,772 for /sign/ (and /he/sign/), +17%
   home: 180_000, // measured 151,553 for / (148,841 /he/), +19%: the home pages carry the Redact sample PDF on purpose
   other: 42_000, // measured 35,329 for the heaviest article (/open/), +19%
   // Not headroom: the line Shlomi drew on 2026-10-27 (MEM-15). The whole app is
@@ -76,6 +77,33 @@ export function findUnhandledAssets(astroFiles) {
     .map((f) => `${f}: extension not handled by the precache closure walker (scripts/precacheClosure.mjs)`);
 }
 
+// Script, style and wasm files in dist/_astro/ that no list of the install may leave out: the worker would never cache them.
+const CODE_EXTENSIONS = new Set(['.js', '.mjs', '.css', '.wasm']);
+
+// Files that are in dist/ on purpose and in no list, keyed by name without the hash ("PageWorkspace.css"), each with its reason.
+export const KNOWN_ORPHANS = {
+  'PageWorkspace.css': 'its rules are inlined into the pages that use it and no file or page names the file',
+};
+
+const withoutHash = (file) => path.basename(file).replace(/\.[\w-]+(\.[a-z]+)$/i, '$1');
+
+export function findOrphanedAssets({ astroFiles, shell, pages }) {
+  const installed = new Set(installUrls({ shell, pages }));
+  return astroFiles
+    .filter((f) => CODE_EXTENSIONS.has(path.extname(f).toLowerCase()) && !installed.has(`/${f}`) && !(withoutHash(f) in KNOWN_ORPHANS))
+    .map((f) => `${f}: in dist/_astro/ but in no list of the install, so it is never cached for offline use (a closure walker gap; list it in KNOWN_ORPHANS with a reason only if nothing needs it)`);
+}
+
+// A tool page's own island entry chunk must be in its closure, or the tool cannot start offline.
+export function findMissingIslands({ pages, islands }) {
+  const failures = [];
+  for (const [page, chunks] of Object.entries(islands)) {
+    const listed = new Set(pages[page] ?? []);
+    for (const chunk of chunks) if (!listed.has(chunk)) failures.push(`${page}: closure lacks its own island ${chunk}`);
+  }
+  return failures;
+}
+
 export function findBudgetFailures({ shell, pages, toolPages, sizes, budgets }) {
   const failures = [];
   const shellBytes = closureBytes(shell, sizes);
@@ -121,6 +149,8 @@ export function checkPrecache({ shell, pages, islands, sizes, budgets, astroFile
     ...findBudgetFailures({ shell, pages, toolPages, sizes, budgets }),
     ...findForeignIslands({ pages, islands, sizes }),
     ...findUnhandledAssets(astroFiles),
+    ...findOrphanedAssets({ astroFiles, shell, pages }),
+    ...findMissingIslands({ pages, islands }),
   ];
 }
 
