@@ -1,11 +1,9 @@
 ---
 id: "ARCH-43"
 title: "The site reads font tables from a data module, not from the editor core"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -24,4 +22,4 @@ Area: Architecture. Criterion: Layering and dependency direction. Structure only
 
 ## Acceptance
 
-- [ ] `check-module-boundaries` covers site to editor edges; no unclassified edge remains.
+- [x] `check-module-boundaries` covers site to editor edges; no unclassified edge remains.

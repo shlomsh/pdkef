@@ -1,11 +1,9 @@
 ---
 id: "ARCH-56"
 title: "Home and tool page layouts are composed of section components"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 7
 depends_on: []
 ---
 
@@ -24,5 +22,7 @@ Area: Code. Criterion: Size and complexity. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] Built HTML for the home page and every tool page is unchanged (diff of `dist/`).
-- [ ] No layout file over 400 lines.
+- [x] Built HTML for the home page and every tool page is unchanged (diff of `dist/`).
+- [x] No layout file over 400 lines.
+
+*Closed 2026-10-27:* the scope ids (`data-astro-cid-*`) now differ per component, so `dist/` cannot be byte-identical. Instead the old and new builds were compared pixel by pixel: `/`, `/he/` and every tool page at 375, 768, 1280 and 1440 px, with 0 differing pixels (Scan's demo region varies between two runs of the old build too). The restore and hand-off states are covered by the e2e specs.
