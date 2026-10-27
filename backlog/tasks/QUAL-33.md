@@ -1,7 +1,7 @@
 ---
 id: "QUAL-33"
 title: "A stalled apt install costs at most one retry, not ten minutes"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"
@@ -34,3 +34,26 @@ depends_on: []
 
 - [ ] No apt step can run longer than its bound plus one retry.
 - [ ] Over the next 20 main runs, no job spends more than 120 s installing system packages.
+
+## Progress
+
+*2026-10-28.* Measured first: over 14 main runs "Install Playwright system dependencies" took 8 to 29 s and
+poppler 6 to 50 s; the 371 s stall on job 122397775209 logged "Fetched 24.9 MB in 6min 2s (68.9 kB/s)", a
+trickling mirror rather than a dead connection, so apt's own timeouts would not fire.
+
+`scripts/ci-bounded-apt.sh SECONDS COMMAND...` runs the command as root under `timeout` (which signals the
+whole process group, so apt under npx dies too), retries once after `dpkg --configure -a`, warns on each
+failed attempt, and refuses to run if `timeout` is missing. Every apt step in ci.yml goes through it at
+120 s: poppler in `units`, and `install-deps chromium` in `font-guards` and `export-guards`, which now
+always run bounded; a cache miss then runs `npx playwright install chromium` as the normal user (no
+`--with-deps`), so the browser still lands in the cached `~/.cache/ms-playwright`. A test fails any
+workflow `run:` that touches apt without the script or uses `--with-deps`. The script's behaviour tests,
+including one that a grandchild dies at the bound, run only on Linux (macOS has no GNU timeout), so CI's
+`units` job is their first run.
+
+After review: the retry gets a longer bound than the first attempt (`120 300`), so a mirror that stays
+slow fails a job only after about seven minutes rather than turning every slow green into a red; root
+npx runs with `HOME=/root` so it never leaves root-owned files in the runner user's `~/.npm`; the
+workflow test requires each apt `run:` to start with the bounded call and two integers.
+
+Closes once 20 main runs show no job spending more than 120 s installing system packages.

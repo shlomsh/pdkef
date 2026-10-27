@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf, runsProductE2e, formatOutputs, buildPipelineFiles } from './affected-scope.mjs';
+import { readFileSync } from 'node:fs';
 import { buildReachGraph } from './import-graph.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
@@ -994,5 +995,110 @@ describe('narrowByReachability on the real repo graph (ARCH-32 review fix)', () 
 
   it('a redact-only editor adapter still narrows to redact', () => {
     expect(realReach('src/tools/redact/lib/deleteObjects.js').tools).toEqual(['redact']);
+  });
+});
+
+describe('runsProductE2e (QUAL-32)', () => {
+  const base = { affected: [], fonts: false, export_guards: false, reason: '' };
+  it('is true for a full run', () => {
+    expect(runsProductE2e({ ...base, everything: true, e2e_paths: '' })).toBe(true);
+  });
+  it('is true for a narrowed scope with paths', () => {
+    expect(runsProductE2e({ ...base, everything: false, e2e_paths: 'src/tools/merge/e2e' })).toBe(true);
+  });
+  it('is false for a narrowed scope with no paths', () => {
+    expect(runsProductE2e({ ...base, everything: false, e2e_paths: '' })).toBe(false);
+  });
+  it('is printed as product_e2e', () => {
+    const out = (scope) => formatOutputs({ ...base, ...scope });
+    expect(out({ everything: true, e2e_paths: '' })).toContain('product_e2e=true');
+    expect(out({ everything: false, e2e_paths: 'e2e/home' })).toContain('product_e2e=true');
+    expect(out({ everything: false, e2e_paths: '' })).toContain('product_e2e=false');
+  });
+});
+
+describe('build pipeline files are wide (QUAL-32 follow-up)', () => {
+  const realPkg = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
+  const realRead = (rel) => {
+    try {
+      return readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8');
+    } catch {
+      return null;
+    }
+  };
+  const real = buildPipelineFiles(realPkg, realRead);
+  const scopeOf = (files) =>
+    deriveScope({ files, affected: ['tooling'], roots: ROOTS, buildFiles: real, siteE2ePaths: [], toolE2eExists: () => true });
+
+  it.each(['scripts/generate-precache-manifest.mjs', 'scripts/pageHash.mjs', 'scripts/buildId.mjs', 'src/site-lib/precachePolicy.js'])(
+    '%s runs everything with product e2e on',
+    (file) => {
+      const scope = scopeOf([file]);
+      expect(scope.everything).toBe(true);
+      expect(runsProductE2e(scope)).toBe(true);
+      expect(scope.reason).toContain(`build pipeline: ${file}`);
+    },
+  );
+
+  it('a non-build script still narrows to no product e2e', () => {
+    const scope = scopeOf(['scripts/check-size-ratchet.mjs']);
+    expect(scope.everything).toBe(false);
+    expect(runsProductE2e(scope)).toBe(false);
+  });
+
+  it('derives from a fake package.json build script and its imports, no list', () => {
+    const files = {
+      'scripts/x.mjs': "import { a } from './deep/a.mjs';\nimport fs from 'node:fs';",
+      'scripts/deep/a.mjs': "import b from '../../src/lib/b.js';",
+      'src/lib/b.js': 'export default 1;',
+      'scripts/other.mjs': 'export {}',
+      'scripts/verify.mjs': "import c from './c.mjs';",
+      'scripts/c.mjs': 'export default 1;',
+    };
+    const pkg = JSON.stringify({ scripts: { build: 'node scripts/verify.mjs --check && astro build && node scripts/x.mjs', test: 'node scripts/other.mjs' } });
+    const set = buildPipelineFiles(pkg, (rel) => files[rel] ?? null);
+    expect([...set].sort()).toEqual(['scripts/deep/a.mjs', 'scripts/x.mjs', 'src/lib/b.js']);
+  });
+
+  it('real set includes the build entries and their imports', () => {
+    for (const f of ['scripts/generate-precache-manifest.mjs', 'scripts/repoOnlyFiles.mjs', 'scripts/pageHash.mjs']) expect(real.has(f)).toBe(true);
+  });
+
+  // A `--check` step only verifies a committed file; it does not shape dist/, so the
+  // files it reaches (Sign's language acceptance, the font manifest) keep their own scope.
+  it('leaves out --check steps and what only they reach', () => {
+    for (const f of ['scripts/generate-language-acceptance.mjs', 'src/tools/sign/lib/languageAcceptance.js', 'scripts/generate-font-manifest.mjs']) expect(real.has(f)).toBe(false);
+  });
+});
+
+describe('ci.yml gates product e2e on product_e2e (QUAL-32)', () => {
+  const yml = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const jobText = (name) => {
+    const m = yml.match(new RegExp(`^  ${name}:\\n[\\s\\S]*?(?=^  [a-z][a-z0-9-]*:\\n)`, 'm'));
+    return m ? m[0] : '';
+  };
+  const steps = (job) => job.split(/^    - /m).slice(1);
+  const GATE = "steps.affected.outputs.product_e2e != 'false'";
+  // The step's own `if:` key line (indented), never a comment that mentions one.
+  const ifLine = (step) => step.split('\n').find((l) => /^\s+if: /.test(l))?.trim();
+
+  it.each(['e2e', 'e2e-webkit'])('%s: Build and every product Playwright step carry the gate', (name) => {
+    const job = jobText(name);
+    expect(job).not.toBe('');
+    const gated = steps(job).filter((s) => /^name: Build\n/.test(s) || /playwright test --project=(chromium|webkit|perf)/.test(s));
+    expect(gated.length).toBeGreaterThanOrEqual(name === 'e2e' ? 2 : 3);
+    for (const s of gated) expect(ifLine(s), s.split('\n')[0]).toBe(`if: ${GATE}`);
+  });
+
+  it.each(['e2e', 'e2e-webkit'])('%s: Resolve affected scope carries no product_e2e gate', (name) => {
+    const resolve = steps(jobText(name)).filter((s) => /^name: Resolve affected scope\n/.test(s));
+    expect(resolve.length).toBeGreaterThan(0);
+    for (const s of resolve) expect(ifLine(s) ?? '').not.toContain('product_e2e');
+  });
+
+  it('ifLine ignores a gate that only appears in a comment', () => {
+    const commented = `name: Build\n  # if: ${GATE}\n  run: npm run build\n`;
+    expect(ifLine(commented)).toBeUndefined();
+    expect(ifLine(`name: Build\n  if: ${GATE}\n  run: x\n`)).toBe(`if: ${GATE}`);
   });
 });

@@ -17,8 +17,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [ARCH-82](backlog/tasks/ARCH-82.md) P3 · Behaviour tests find elements by role and label, not CSS Module class names (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
-- [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e
-- [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes
+- [QUAL-32](backlog/tasks/QUAL-32.md) P2 · CI skips Playwright when a push reaches no e2e (in progress)
+- [QUAL-33](backlog/tasks/QUAL-33.md) P2 · A stalled apt install costs at most one retry, not ten minutes (in progress)
 
 ### Search and languages
 
