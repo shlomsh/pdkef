@@ -61,6 +61,7 @@ export default function FontSupportNotice({ reference, message, needsAttention, 
     <div
       ref={refs.setFloating}
       style={floatingStyles}
+      data-notice-mode={isActive ? 'detail' : 'marker'}
       className={`${styles.notice} ${isActive ? styles.detail : styles.marker}${needsAttention ? ` ${styles.warning}` : ''}`}
       data-editor-font-notice
       data-editor-font-placement={position.placement}
