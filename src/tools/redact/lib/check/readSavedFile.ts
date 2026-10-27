@@ -11,6 +11,7 @@
  */
 import { buildPageText } from '../find/pageText.ts';
 import { readTextItems } from '../../../../lib/pdfTextItems.ts';
+import type { TextItemLike } from '../find/types.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
 import { pageGeometryFromPdfJsPage } from '../../../../editor/geometry/coords.ts';
@@ -18,6 +19,7 @@ import { fieldValueTexts, isNonBlank } from './placeText.ts';
 import { unusedPartsText } from './unusedParts.ts';
 import { openPdfDoc } from '../../../../lib/openPdfDoc';
 import { reportError } from '../../../../lib/errorReport.ts';
+import type { PdfDocument, PdfjsModule } from '../../../../lib/pdfTypes.ts';
 
 interface ReadSavedFileOptions {
   /** Pages already known to be pictures (from redaction), zero-based. */
@@ -50,7 +52,7 @@ function outlineTitles(items: Array<{ title?: string; items?: unknown[] }>): Sav
   return places;
 }
 
-async function readPlacesForPage(pdfjs: any, pdfDoc: any, pageIndex: number): Promise<SavedPlace[]> {
+async function readPlacesForPage(pdfjs: PdfjsModule, pdfDoc: PdfDocument, pageIndex: number): Promise<SavedPlace[]> {
   const page = await pdfDoc.getPage(pageIndex + 1);
   const annotations = await page.getAnnotations();
   const places: SavedPlace[] = [];
@@ -99,7 +101,7 @@ function metadataPlaces(info: Record<string, unknown> | undefined, metadata: unk
 
   // pdf.js's Metadata class has no getAll(); it exposes entries only through
   // its Symbol.iterator (get(name) for one key). Iterate it directly.
-  if (metadata && typeof (metadata as any)[Symbol.iterator] === 'function') {
+  if (metadata && typeof (metadata as Iterable<unknown>)[Symbol.iterator] === 'function') {
     for (const [, value] of metadata as Iterable<[string, unknown]>) {
       if (isNonBlank(value)) {
         places.push({ kind: 'metadata', text: value });
@@ -109,7 +111,7 @@ function metadataPlaces(info: Record<string, unknown> | undefined, metadata: unk
   return places;
 }
 
-async function attachmentPlaces(pdfDoc: any): Promise<{ places: SavedPlace[]; attachmentCount: number }> {
+async function attachmentPlaces(pdfDoc: PdfDocument): Promise<{ places: SavedPlace[]; attachmentCount: number }> {
   const attachments = await pdfDoc.getAttachments();
   if (!attachments) return { places: [], attachmentCount: 0 };
   const places: SavedPlace[] = [];
@@ -126,7 +128,7 @@ async function attachmentPlaces(pdfDoc: any): Promise<{ places: SavedPlace[]; at
  * no page shows. pdf.js only follows what a page reaches, so this reads the
  * raw objects with pdf-lib, through the same `unusedPartsText` that Remove it's
  * locator uses. A file pdf-lib can't open has nothing to report here. */
-async function unusedPlaces(doc: any, bytes: Uint8Array | undefined): Promise<SavedPlace[]> {
+async function unusedPlaces(doc: PdfDocument, bytes: Uint8Array | undefined): Promise<SavedPlace[]> {
   try {
     const data = bytes ?? (await doc.getData());
     const { doc: lib } = await openPdfDoc(data, { updateMetadata: false, encryption: 'ignore', fast: true });
@@ -143,7 +145,7 @@ function pageHasImagePaint(operatorList: { fnArray: number[] }, imageOps: Set<nu
   return operatorList.fnArray.some((fn) => imageOps.has(fn));
 }
 
-export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFileOptions): Promise<SavedFile> {
+export async function readSavedFile(pdfjs: PdfjsModule, doc: PdfDocument, options: ReadSavedFileOptions): Promise<SavedFile> {
   const pageCount = doc.numPages;
   const imageOps = new Set<number>(
     IMAGE_OPS_NAMES.map((name) => pdfjs.OPS?.[name]).filter((value): value is number => typeof value === 'number'),
@@ -157,7 +159,7 @@ export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFile
     const page = await doc.getPage(pageIndex + 1);
     // readTextItems, never getTextContent(): the latter throws on every iOS
     // browser (pdfTextItems.ts has the story).
-    const items = (await readTextItems(page)).filter((item: any) => typeof item.str === 'string') as any[];
+    const items = (await readTextItems(page)).filter((item): item is TextItemLike => typeof (item as { str?: unknown }).str === 'string');
     const text = buildPageText(pageIndex, items);
     const geometry = pageGeometryFromPdfJsPage(page);
     pages.push({ text, geometry });

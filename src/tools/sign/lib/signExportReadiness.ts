@@ -12,7 +12,7 @@ export type SignExportReadiness = {
   blockingElementIds: string[];
 };
 
-export function getSignExportReadiness(elements: any[] = []): SignExportReadiness {
+export function getSignExportReadiness<E extends { type?: string; id?: unknown }>(elements: E[] = []): SignExportReadiness {
   const blockingElements = elements.filter((element) =>
     element.type === 'text' && getTextFontSupport(element).status === 'incompatible'
   );

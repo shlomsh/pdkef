@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
 import { FileSignature, Shrink } from 'lucide-preact';
 import { outputPageCount, planKey } from '../../lib/pagePlan.ts';
 import { usePreparedOutput } from '../../lib/usePreparedOutput.ts';
@@ -41,7 +42,7 @@ import { outputBaseName, extractedFileName } from './lib/split.js';
 const FILE_ID = 0;
 
 /** Fills a sentence that holds one non-text node (a link) at `{slot}`. */
-function withSlot(template: string, slot: string, node: any) {
+function withSlot(template: string, slot: string, node: ComponentChildren) {
   const [before, after] = template.split(slot);
   return <>{before}{node}{after}</>;
 }
