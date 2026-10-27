@@ -15,23 +15,12 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Unify the tools, narrow the graph
 
 - [ARCH-46](backlog/tasks/ARCH-46.md) P2 · Single-tool modules leave the editor core, and rule 9 covers src/editor (in progress)
-- [ARCH-51](backlog/tasks/ARCH-51.md) P2 · Merge keeps its lifecycle in one reducer and its decisions in mergePlan (in progress)
-- [ARCH-52](backlog/tasks/ARCH-52.md) P2 · Sign keeps its document and finish lifecycle in one typed reducer (in progress)
-- [ARCH-53](backlog/tasks/ARCH-53.md) P2 · Compress runs its build and gate lifecycle through one explicit state machine (in progress)
 - [ARCH-37](backlog/tasks/ARCH-37.md) P2 · Opening a file is one hook per kind of tool (in progress)
-- [ARCH-55](backlog/tasks/ARCH-55.md) P2 · pdfObjects.js splits into a parser, one text-state interpreter and extractors (in progress)
-- [ARCH-60](backlog/tasks/ARCH-60.md) P3 · Sign and Redact read tap samples through one function (in progress)
-- [ARCH-67](backlog/tasks/ARCH-67.md) P2 · The draft store is TypeScript with one record type parsed where it is read (in progress)
-- [ARCH-71](backlog/tasks/ARCH-71.md) P3 · Message registries and content helpers are typed, removing any and double casts (in progress)
 - [ARCH-72](backlog/tasks/ARCH-72.md) P2 · Uncaught-error reporting installs from the layout, and every island has an error boundary (in progress)
-- [ARCH-73](backlog/tasks/ARCH-73.md) P2 · Floating promises are checked in CI (in progress)
-- [ARCH-74](backlog/tasks/ARCH-74.md) P3 · The swallowed-errors check covers api/ and middleware, and expected reasons carry words (in progress)
 - [ARCH-79](backlog/tasks/ARCH-79.md) P2 · E2e specs wait on conditions, and fixed sleeps are a shrinking ratchet (in progress)
 - [ARCH-83](backlog/tasks/ARCH-83.md) P2 · Every CI run reports how far affected-scope narrowed it (in progress)
 - [ARCH-84](backlog/tasks/ARCH-84.md) P2 · The prose-only invariants each get a small guard (in progress)
 - [ARCH-85](backlog/tasks/ARCH-85.md) P3 · Per-spec flake rates are recorded and read nightly (in progress)
-- [ARCH-88](backlog/tasks/ARCH-88.md) P2 · Shadows and scrims are tokens, and color literals outside :root fail a check (in progress)
-- [ARCH-92](backlog/tasks/ARCH-92.md) P2 · Patched dependencies are pinned to the version their patch names (in progress)
 
 ### Search and languages
 

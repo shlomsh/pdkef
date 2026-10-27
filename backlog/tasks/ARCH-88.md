@@ -1,11 +1,9 @@
 ---
 id: "ARCH-88"
 title: "Shadows and scrims are tokens, and color literals outside :root fail a check"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 20
 depends_on: ["ARCH-76"]
 ---
 
@@ -25,4 +23,8 @@ Area: Supporting. Criterion: Styling architecture. Structure only: no behaviour 
 
 ## Acceptance
 
-- [ ] The check runs in `test:css`; module literals are replaced by tokens.
+- [x] The check runs in `test:css`; module literals are replaced by tokens.
+
+## Done (2026-10-27)
+
+Scrims, shadows and translucent inks are :root tokens in global.css with the exact literal values; check-color-literals runs in test:css. The three ::backdrop scrims stay literal on the allowlist, because ::backdrop does not inherit custom properties before Safari 17.4.

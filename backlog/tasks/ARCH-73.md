@@ -1,11 +1,9 @@
 ---
 id: "ARCH-73"
 title: "Floating promises are checked in CI"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 13
 depends_on: ["ARCH-76"]
 ---
 
@@ -24,4 +22,8 @@ Area: Safety nets. Criterion: Error handling and async. Structure only: no behav
 
 ## Acceptance
 
-- [ ] The three sites above are handled; a planted floating promise fails the check.
+- [x] The three sites above are handled; a planted floating promise fails the check.
+
+## Done (2026-10-27)
+
+scripts/check-floating-promises.mjs (test first, planted cases) runs in CI and check:push. The three named sites and 52 more are handled: a reporting .catch, or void with a reason where the callee handles its own failure.

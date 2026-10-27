@@ -1,11 +1,9 @@
 ---
 id: "ARCH-55"
 title: "pdfObjects.js splits into a parser, one text-state interpreter and extractors"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 6
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Code. Criterion: Size and complexity. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] No file in the split is over 500 lines.
-- [ ] One text-state implementation remains; existing PDF object tests pass.
+- [x] No file in the split is over 500 lines.
+- [x] One text-state implementation remains; existing PDF object tests pass.
+
+## Done (2026-10-27)
+
+pdfObjects.js (1,335 lines) splits into textState.js, contentStreamWalk.js, pdfFonts.js, checkboxGlyphs.js and small modules; none is over 500 lines. One text-state implementation remains (the two copies were identical). pageInk.js's switch turned out to be the path-ink graphics switch, not text state, so it is unchanged. The detection-purity guard scans the new modules and now fails stale shim entries.

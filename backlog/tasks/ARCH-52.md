@@ -1,11 +1,9 @@
 ---
 id: "ARCH-52"
 title: "Sign keeps its document and finish lifecycle in one typed reducer"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 4
 depends_on: []
 ---
 
@@ -25,5 +23,9 @@ Area: Code. Criterion: Thin components over pure logic. Structure only: no behav
 
 ## Acceptance
 
-- [ ] No string-typed status remains in Sign.
-- [ ] The island test passes; the reducer has its own tests.
+- [x] No string-typed status remains in Sign.
+- [x] The island test passes; the reducer has its own tests.
+
+## Done (2026-10-27)
+
+Sign's document and finish lifecycle is signLifecycleReducer in src/tools/sign/state/signState.ts with a typed SignStatus; no string-typed status remains (PdfWorkspace and signExportReady take SignStatus). The reducer has its own tests; Sign island and cross-tool tests pass unchanged.

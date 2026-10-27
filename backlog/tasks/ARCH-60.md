@@ -1,11 +1,9 @@
 ---
 id: "ARCH-60"
 title: "Sign and Redact read tap samples through one function"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 7
 depends_on: []
 ---
 
@@ -24,4 +22,8 @@ Area: Code. Criterion: Duplication. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] One definition remains, with a unit test.
+- [x] One definition remains, with a unit test.
+
+## Done (2026-10-27)
+
+One readTapSample(touch, time, scrollTop) beside TapGestureSample in src/lib/gestures/tapOutsideDeselect.ts, with unit tests; Redact, Sign and Sign fill (a third copy) call it with their own scrollTop.

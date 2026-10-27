@@ -1,11 +1,9 @@
 ---
 id: "ARCH-71"
 title: "Message registries and content helpers are typed, removing any and double casts"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 11
 depends_on: []
 ---
 
@@ -25,4 +23,8 @@ Area: Safety nets. Criterion: Type safety. Structure only: no behaviour change.
 
 ## Acceptance
 
-- [ ] No `as any` in `src/pages/[locale]/`; no `as unknown as` outside the wrappers.
+- [x] No `as any` in `src/pages/[locale]/`; no `as unknown as` outside the wrappers.
+
+## Done (2026-10-27)
+
+The tool-message registry returns per-tool types, so no `as any` remains in src/pages/[locale]/. One astro:content wrapper (src/i18n/contentEntries.ts) and one pdf-lib embedder accessor (textMetrics.ts) replace the double casts.
