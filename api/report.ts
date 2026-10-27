@@ -164,6 +164,7 @@ export async function POST(request: Request): Promise<Response> {
       await pipeline(store, withDayExpiry(errorTotalKey(day), total.result, counting));
     }
   } catch {
+    // expected: this endpoint is the error sink, so it cannot report to itself; the log line is the record and the client always gets 204
     console.error('error-report: dropped');
   }
   return NO_CONTENT();
