@@ -3,6 +3,7 @@ import type { RefObject } from 'preact';
 import Sortable from 'sortablejs';
 import railStyles from '../components/MergeRail.module.css';
 import docStyles from '../components/MergeDocument.module.css';
+import { RAIL_ANIMATION_MS, TOUCH_HOLD_DELAY_MS, TOUCH_START_THRESHOLD_PX } from '../lib/sortableOptions.ts';
 
 interface Options {
   /** The desktop rail's file list. */
@@ -29,7 +30,7 @@ export function useRailSortables({ listRef, chipListRef, hasFiles, canReorderFil
     if (!listRef.current) return undefined;
     sortableRef.current?.destroy();
     sortableRef.current = Sortable.create(listRef.current, {
-      animation: 220,
+      animation: RAIL_ANIMATION_MS,
       easing: EASING,
       handle: `.${railStyles.grip}`,
       ghostClass: railStyles['is-ghost'],
@@ -59,12 +60,12 @@ export function useRailSortables({ listRef, chipListRef, hasFiles, canReorderFil
     if (!chipListRef.current) return undefined;
     chipSortableRef.current?.destroy();
     chipSortableRef.current = Sortable.create(chipListRef.current, {
-      animation: 220,
+      animation: RAIL_ANIMATION_MS,
       easing: EASING,
       draggable: `.${docStyles.chip}`,
-      delay: 100,
+      delay: TOUCH_HOLD_DELAY_MS,
       delayOnTouchOnly: true,
-      touchStartThreshold: 10,
+      touchStartThreshold: TOUCH_START_THRESHOLD_PX,
       // A press on a chip's remove button never starts a drag, and its click
       // still fires.
       filter: `.${docStyles['chip-remove']}`,
