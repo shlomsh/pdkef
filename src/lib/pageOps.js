@@ -35,6 +35,7 @@ export function applyRotation(page, deltaDegrees) {
 // so the label is rotated and moved to whichever unrotated edge ends up at the
 // bottom: right for 90, top for 180, left for 270. `box` is the visible box
 // (CropBox, else MediaBox) and may have a non-zero origin.
+/** @testSeam */
 export function pageNumberPlacement({ box, rotation, textWidth, inset = 22 }) {
   const { x, y, width, height } = box;
   const angle = ((Math.round(rotation / 90) * 90) % 360 + 360) % 360;

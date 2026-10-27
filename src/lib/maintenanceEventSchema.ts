@@ -18,9 +18,11 @@
 // No imports, and none may be added: `api/report.ts` loads this file in the
 // deployed function (see errorReportSchema.ts and functionImports.test.js).
 
+/** @testSeam */
 export const EXPORT_DURATION_BUCKETS = ['under_1s', 'under_5s', 'under_30s', '30s_or_more'] as const;
 export type ExportDurationBucket = (typeof EXPORT_DURATION_BUCKETS)[number];
 
+/** @testSeam */
 export const EXPORT_ERROR_CODES = ['unsupported_text', 'cancelled', 'invalid_document', 'processing_failed'] as const;
 export type ExportErrorCode = (typeof EXPORT_ERROR_CODES)[number];
 
@@ -28,6 +30,7 @@ export type ExportErrorCode = (typeof EXPORT_ERROR_CODES)[number];
  * How many form fields the on-open detector published, coarsely (FORM-11): the
  * question is "does detection come back empty in the wild", and a bucket
  * answers it without a number specific enough to characterise a document.
+ * @testSeam
  */
 export const FIELD_COUNT_BUCKETS = ['none', 'one_to_five', 'six_to_twenty', 'over_twenty'] as const;
 export type FieldCountBucket = (typeof FIELD_COUNT_BUCKETS)[number];
@@ -37,6 +40,7 @@ export type FieldCountBucket = (typeof FIELD_COUNT_BUCKETS)[number];
  * box ink, only an image, or none of these. Decided on the device from what
  * detection already reads; it answers how often Sign opens scans, and is never
  * document content.
+ * @testSeam
  */
 export const PAGE_KINDS = ['text', 'vector', 'image', 'none'] as const;
 export type PageKind = (typeof PAGE_KINDS)[number];
@@ -46,6 +50,7 @@ export type PageKind = (typeof PAGE_KINDS)[number];
  * holding a cached shell from before a deploy; `not_started` is the run never
  * happening because its inputs were not there. Every other failure reuses the
  * export list, so there is one vocabulary to review, not two that drift.
+ * @testSeam
  */
 export const FORM_DETECTION_ERROR_CODES = [...EXPORT_ERROR_CODES, 'modules_unavailable', 'not_started'] as const;
 type FormDetectionErrorCode = (typeof FORM_DETECTION_ERROR_CODES)[number];
@@ -59,14 +64,17 @@ type FormDetectionErrorCode = (typeof FORM_DETECTION_ERROR_CODES)[number];
  * several. `outcome` says whether the repair produced a usable page list. All of
  * it is decided on the device from the file's structure and is never document
  * content, like `page_kind`.
+ * @testSeam
  */
 export const PAGE_TREE_OUTCOMES = ['repaired', 'failed'] as const;
+/** @testSeam */
 export const PAGE_TREE_SHAPES = ['no_pages_key', 'pages_ref_missing', 'pages_wrong_type'] as const;
 export type PageTreeShape = (typeof PAGE_TREE_SHAPES)[number];
+/** @testSeam */
 export const PAGE_TREE_ROOTS = ['none', 'one', 'several'] as const;
 export type PageTreeRoots = (typeof PAGE_TREE_ROOTS)[number];
 
-export type PdfPageTreeProperties = Readonly<{
+type PdfPageTreeProperties = Readonly<{
   outcome: 'repaired' | 'failed';
   shape: PageTreeShape;
   roots: PageTreeRoots;

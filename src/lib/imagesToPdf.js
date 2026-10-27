@@ -3,6 +3,7 @@ import { addImagePage, UnsupportedImageError } from './imagePage.js';
 import { mimeTypeOf } from './fileKind.js';
 import { throwIfAborted } from './abort.js';
 
+/** @testSeam */
 export { UnsupportedImageError };
 
 // Combines image files into a single PDF, one image per page. With the default

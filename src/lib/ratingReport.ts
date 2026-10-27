@@ -8,10 +8,15 @@ import { parseRatingCommentEvent, parseRatingEvent, type RatingTool, type Stars 
 
 export type RatingStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
+/** @testSeam */
 export const ratedKey = (tool: RatingTool): string => `pdkef:rated:${tool}`;
 
-/** Device-wide: when any rating prompt was last shown (epoch ms). */
+/**
+ * Device-wide: when any rating prompt was last shown (epoch ms).
+ * @testSeam
+ */
 export const ASKED_AT_KEY = 'pdkef:rating-asked-at';
+/** @testSeam */
 export const RATING_ASK_GAP_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
