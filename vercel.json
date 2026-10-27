@@ -55,6 +55,16 @@
       "permanent": true
     },
     {
+      "source": "/edit-pdf/",
+      "destination": "/organize-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/edit-pdf",
+      "destination": "/organize-pdf/",
+      "permanent": true
+    },
+    {
       "source": "/organize-pdf",
       "destination": "/organize-pdf/",
       "permanent": true
