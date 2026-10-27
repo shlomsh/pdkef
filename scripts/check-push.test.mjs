@@ -216,7 +216,7 @@ describe('narrowTestOnlyChange (ARCH-31)', () => {
   const wideScope = { everything: true, e2e_paths: '', fonts: true, export_guards: true, reason: 'core' };
 
   it('leaves the scope alone when any non-test file changed', () => {
-    const files = ['src/tools/merge/merge.test.js', 'src/tools/merge/merge.js'];
+    const files = ['src/tools/merge/lib/merge.test.js', 'src/tools/merge/lib/merge.js'];
     expect(narrowTestOnlyChange(wideScope, files)).toBe(wideScope);
   });
 
@@ -246,7 +246,7 @@ describe('narrowTestOnlyChange (ARCH-31)', () => {
   });
 
   it('a tool spec plus a unit test runs just that spec', () => {
-    const scope = narrowTestOnlyChange(wideScope, ['src/tools/merge/e2e/merge-share.spec.js', 'src/tools/merge/merge.test.js']);
+    const scope = narrowTestOnlyChange(wideScope, ['src/tools/merge/e2e/merge-share.spec.js', 'src/tools/merge/lib/merge.test.js']);
     expect(scope).toMatchObject({ everything: false, e2e_paths: 'src/tools/merge/e2e/merge-share.spec.js', fonts: false, export_guards: false });
   });
 });

@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { PDFDocument, PDFName, PDFArray, PDFDict } from '@cantoo/pdf-lib';
-import { analyzePdf } from '../analyzePdf.js';
+import { analyzePdf } from '../lib/analyzePdf.js';
 
 // COMP-01 - the floors the tool's copy may quote, measured with the real
 // encoder in a real browser on the committed fixtures. A change that drops

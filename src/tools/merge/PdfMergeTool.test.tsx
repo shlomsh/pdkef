@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
-import * as mergeLib from './merge.js';
+import * as mergeLib from './lib/merge.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 import * as draftStore from '../../lib/drafts/draftStore.ts';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -43,7 +43,7 @@ function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
 // and the identity line have real counts to show.
 const pageCounts = new Map();
 
-vi.mock('./merge.js', () => {
+vi.mock('./lib/merge.js', () => {
   class MergeFileError extends Error {
     constructor(message, { fileIndex, reason, cause } = {}) {
       super(message);
@@ -1738,7 +1738,7 @@ describe('merge.js library integration with real fixtures', () => {
   }
 
   it('merges num-1, num-2, num-3, num-4 in order', async () => {
-    const { mergePdfs } = await vi.importActual('./merge.js');
+    const { mergePdfs } = await vi.importActual('./lib/merge.js');
     const files = [
       getFixtureFile('num-1.pdf'),
       getFixtureFile('num-2.pdf'),
@@ -1755,7 +1755,7 @@ describe('merge.js library integration with real fixtures', () => {
   });
 
   it('merges in a reordered input to preserve input order, not sorted order', async () => {
-    const { mergePdfs } = await vi.importActual('./merge.js');
+    const { mergePdfs } = await vi.importActual('./lib/merge.js');
     const files = [
       getFixtureFile('num-3.pdf'),
       getFixtureFile('num-1.pdf'),

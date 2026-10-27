@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { useMergeDraft, type UseMergeDraftOptions, type UseMergeDraftResult } from './useMergeDraft.ts';
+import { useMergeDraft, type UseMergeDraftOptions, type UseMergeDraftResult } from '../hooks/useMergeDraft.ts';
 
 // MERGE-13: the island loads this through a dynamic import() (same reason
 // PageGrid and the preview dialog do, per PdfMergeTool's own comment on

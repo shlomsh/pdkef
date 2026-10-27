@@ -12,7 +12,7 @@ import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreati
 // checkable from the merged output without a canvas/pdf.js round trip.
 describe('mergePdfs library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
@@ -323,7 +323,7 @@ describe('mergePdfs library integration with real fixtures', () => {
       const files = [
         getFixtureFile('num-5.pdf'),
         (() => {
-          const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-2.pdf'));
+          const buffer = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__/num-2.pdf'));
           return new File([buffer], 'דוח מס.pdf', { type: 'application/pdf' });
         })(),
         getFixtureFile('num-3.pdf'),
@@ -401,7 +401,7 @@ describe('mergePdfs library integration with real fixtures', () => {
 
   describe('MERGE-22 photos as pages', () => {
     function getPhotoFile(name, type) {
-      const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__', name));
+      const buffer = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__', name));
       return new File([buffer], name, { type });
     }
     const jpg = () => getPhotoFile('photo-1.jpg', 'image/jpeg');
@@ -475,7 +475,7 @@ describe('mergePdfs library integration with real fixtures', () => {
     });
 
     it('rejects a .jpg or .png holding PDF bytes from inspectPdf', async () => {
-      const pdfBytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-1.pdf'));
+      const pdfBytes = fs.readFileSync(path.resolve(__dirname, '../../../lib/__fixtures__/num-1.pdf'));
       const fakeJpg = new File([pdfBytes], 'fake.jpg', { type: 'image/jpeg' });
       const fakePng = new File([pdfBytes], 'fake.png', { type: 'image/png' });
       await expect(inspectPdf(fakeJpg, 2)).rejects.toMatchObject({ fileIndex: 2, reason: 'unreadable' });

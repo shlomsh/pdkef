@@ -4,14 +4,14 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
 import { englishCompressMessages, hebrewCompressMessages } from './messages';
-import * as compressLib from './compress.js';
-import * as analyzePdfLib from './analyzePdf.js';
-import * as compressImageLib from './compressImage.js';
-import * as imagesLib from './compressImages.js';
+import * as compressLib from './lib/compress.js';
+import * as analyzePdfLib from './lib/analyzePdf.js';
+import * as compressImageLib from './lib/compressImage.js';
+import * as imagesLib from './lib/compressImages.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import styles from './PdfCompressTool.module.css';
-import sliderStyles from './CompareSlider.module.css';
+import sliderStyles from './components/CompareSlider.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
@@ -78,7 +78,7 @@ vi.mock('pdfjs-dist', () => {
 // A PDF is probed for a password before its first run; none of these files has one.
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(() => Promise.resolve('open')) }));
 
-vi.mock('./compressImages.js', () => ({
+vi.mock('./lib/compressImages.js', () => ({
   IMAGE_LEVELS: {
     high: { maxLongSidePx: 1000, quality: 0.4 },
     medium: { maxLongSidePx: 1600, quality: 0.6 },
@@ -99,7 +99,7 @@ function imagesResult(overrides = {}) {
   };
 }
 
-vi.mock('./compress.js', () => {
+vi.mock('./lib/compress.js', () => {
   return {
     compressPdf: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 })),
     compressPdfToTarget: vi.fn(() =>
@@ -113,7 +113,7 @@ vi.mock('./compress.js', () => {
 });
 
 // analyzePdf statically imports pdf-lib; the island loads it dynamically.
-vi.mock('./analyzePdf.js', () => ({
+vi.mock('./lib/analyzePdf.js', () => ({
   analyzePdf: vi.fn(() => ({ images: [{}], hasText: true, imageShare: 0.9 })),
 }));
 vi.mock('../../lib/pdfLib.js', () => ({
@@ -123,7 +123,7 @@ vi.mock('../../lib/pdfLib.js', () => ({
 // The interface this tool is built against (see compressImage.js's own
 // tests): mocked here so this suite never depends on its implementation,
 // only the shape it promises to return.
-vi.mock('./compressImage.js', () => ({
+vi.mock('./lib/compressImage.js', () => ({
   compressImageToTarget: vi.fn(() => Promise.resolve(makeImageResult())),
 }));
 
@@ -971,7 +971,7 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('renders passthroughNotice, not rasterizeNotice, and no slider for a PDF target-mode passthrough result on the pages-to-pictures path', async () => {
-    // compressPdfToTarget's own passthrough rule (src/tools/compress/compress.js,
+    // compressPdfToTarget's own passthrough rule (src/tools/compress/lib/compress.js,
     // "Already under target") returns the input File itself as `blob` when the
     // file is already under the target size - the PDF-side mirror of
     // compressImageToTarget's rule exercised above.

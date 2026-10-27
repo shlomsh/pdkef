@@ -8,7 +8,7 @@ import { workspaceStyles } from '../../../shell/pageWorkspace/PageWorkspace.tsx'
 import railStyles from './MergeRail.module.css';
 import { tagStyle } from './tagStyle.ts';
 import type { SortOption } from './MergePhoneControls.tsx';
-import type { FileEntry, SortMode } from '../mergeModel.ts';
+import type { FileEntry, SortMode } from '../lib/mergeModel.ts';
 import type { MergeMessages } from '../messages';
 import type { ShellMessages } from '../../../shell/shellMessages';
 

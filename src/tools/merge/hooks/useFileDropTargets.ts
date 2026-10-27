@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'preact/hooks';
 import { isFileDrag } from '../../../shell/fileDragDepth.ts';
-import { cardInsertIndex, pointWithin, rowInsertIndex } from '../mergeDrag.ts';
+import { cardInsertIndex, pointWithin, rowInsertIndex } from '../lib/mergeDrag.ts';
 
 /**
  * MERGE-07 and MERGE-10: insert where dropped. BasePdfTool's card catches the

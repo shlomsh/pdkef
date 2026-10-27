@@ -22,7 +22,7 @@
  */
 import type { NeedsUnlockKind } from '../../../shell/NeedsUnlock.tsx';
 import { unlessUnchanged } from '../../../lib/unchangedState.ts';
-import type { MergeDraftSaveState } from '../components/useMergeDraft.ts';
+import type { MergeDraftSaveState } from '../hooks/useMergeDraft.ts';
 
 /** 'checking-draft' until the draft store has said whether a draft exists;
  * 'ready' after. */

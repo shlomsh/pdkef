@@ -54,7 +54,7 @@ describe('docs-only changes', () => {
 
   it('is docs-only only when every file is docs, and never for an empty change', () => {
     expect(classify(['backlog/tasks/A.md', 'TODO.md']).docs_only).toBe(true);
-    expect(classify(['backlog/tasks/A.md', 'src/tools/merge/merge.js']).docs_only).toBe(false);
+    expect(classify(['backlog/tasks/A.md', 'src/tools/merge/lib/merge.js']).docs_only).toBe(false);
     expect(classify([]).docs_only).toBe(false);
   });
 });

@@ -30,7 +30,7 @@
       "src/tools/compress/PdfCompressTool.tsx#PdfCompressTool": 853,
       "src/tools/image-to-pdf/PdfImageToPdfTool.tsx#PdfImageToPdfTool": 348,
       "src/tools/merge/PdfMergeTool.tsx#PdfMergeTool": 452,
-      "src/tools/merge/components/useMergeDraft.ts#useMergeDraft": 309,
+      "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
       "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1204,
       "src/tools/redact/RedactToolbar.tsx#RedactToolbar": 315,
       "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 952,

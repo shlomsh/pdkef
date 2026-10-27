@@ -1,7 +1,7 @@
 import { useRef } from 'preact/hooks';
-import { mergePdfs, MergeFileError } from '../merge.js';
-import { reportableCause } from '../reportableCause.ts';
-import { toMergeMap } from '../mergePlan.ts';
+import { mergePdfs, MergeFileError } from '../lib/merge.js';
+import { reportableCause } from '../lib/reportableCause.ts';
+import { toMergeMap } from '../lib/mergePlan.ts';
 import { outputPageCount, planKey, type PlanEntry } from '../../../lib/pagePlan.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 import { type QuietPolicy } from '../../../lib/quietPrepare.ts';

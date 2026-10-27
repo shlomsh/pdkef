@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'preact/hooks';
-import type { PreparedOutput } from '../../lib/usePreparedOutput.ts';
-import { useObjectUrls } from '../../lib/useObjectUrls.js';
+import type { PreparedOutput } from '../../../lib/usePreparedOutput.ts';
+import { useObjectUrls } from '../../../lib/useObjectUrls.js';
 
 /** The last output that landed, with a link that stays valid while a newer one builds. */
 export interface LastResult<M> { blob: Blob; meta: M; url: string | null }

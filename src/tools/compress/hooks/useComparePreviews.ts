@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { useModalDialog } from '../../shell/useModalDialog.ts';
+import { useModalDialog } from '../../../shell/useModalDialog.ts';
 import type { MutableRef } from 'preact/hooks';
-import { deriveFileKind } from '../../lib/fileKind.js';
-import { reportError } from '../../lib/errorReport.ts';
-import { comparePreviewWidth } from './compareSize.js';
+import { deriveFileKind } from '../../../lib/fileKind.js';
+import { reportError } from '../../../lib/errorReport.ts';
+import { comparePreviewWidth } from '../lib/compareSize.js';
 
 export type PreviewStatus = 'idle' | 'loading' | 'error';
 interface PreviewPair { before: string; after: string }
@@ -84,7 +84,7 @@ export function useComparePreviews({ runTokenRef }: { runTokenRef: MutableRef<nu
     const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
     originalPromiseRef.current = (async () => {
       try {
-        const { renderComparePreview } = await import('../../lib/thumbnails.js');
+        const { renderComparePreview } = await import('../../../lib/thumbnails.js');
         const url = await decoded(await renderComparePreview(source, width));
         if (token === originalTokenRef.current) {
           setOriginal(url);
@@ -136,7 +136,7 @@ export function useComparePreviews({ runTokenRef }: { runTokenRef: MutableRef<nu
     const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
     setStatus('loading');
     try {
-      const { renderComparePreview } = await import('../../lib/thumbnails.js');
+      const { renderComparePreview } = await import('../../../lib/thumbnails.js');
       const [pending, after] = await Promise.all([
         originalPromiseRef.current ?? Promise.resolve(null),
         renderComparePreview(blob, width),
@@ -166,7 +166,7 @@ export function useComparePreviews({ runTokenRef }: { runTokenRef: MutableRef<nu
     const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, window.innerWidth);
     setFullscreenStatus('loading');
     try {
-      const { renderComparePreview } = await import('../../lib/thumbnails.js');
+      const { renderComparePreview } = await import('../../../lib/thumbnails.js');
       const [before, after] = await Promise.all([
         renderComparePreview(file, width),
         renderComparePreview(blob, width),

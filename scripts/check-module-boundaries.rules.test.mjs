@@ -52,16 +52,16 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
   });
 
   it('may import its own other files (same tool, not a violation)', () => {
-    expect(check('src/tools/merge/mergePlan.ts', 'src/tools/merge/PdfMergeTool.tsx')).toBeNull();
+    expect(check('src/tools/merge/lib/mergePlan.ts', 'src/tools/merge/PdfMergeTool.tsx')).toBeNull();
   });
 
   it('may not import the site surface', () => {
-    expect(check('src/tools/merge/mergePlan.ts', 'src/pages/tools/merge.astro'))
+    expect(check('src/tools/merge/lib/mergePlan.ts', 'src/pages/tools/merge.astro'))
       .toBe('a tool may import site-i18n and site-data but not site (pages/layouts/content/styles) or the flat components module');
   });
 
   it('may not import the flat components module', () => {
-    expect(check('src/tools/merge/mergePlan.ts', 'src/components/HeroDemo/ScrollDriver.tsx'))
+    expect(check('src/tools/merge/lib/mergePlan.ts', 'src/components/HeroDemo/ScrollDriver.tsx'))
       .toBe('a tool may import site-i18n and site-data but not site (pages/layouts/content/styles) or the flat components module');
   });
 
@@ -74,7 +74,7 @@ describe('module boundaries: ruleViolation() - rule 1, a tool', () => {
     ['src/i18n/translate.js'],
     ['src/data/tools.js'],
   ])('may import %s', (to) => {
-    expect(check('src/tools/merge/mergePlan.ts', to)).toBeNull();
+    expect(check('src/tools/merge/lib/mergePlan.ts', to)).toBeNull();
   });
 });
 
@@ -150,12 +150,12 @@ describe('module boundaries: ruleViolation() - rule 4, site reaches a tool only 
   });
 
   it('forbids a page reaching past the entry point into tool internals', () => {
-    expect(check('src/pages/tools/merge.astro', 'src/tools/merge/mergePlan.ts'))
+    expect(check('src/pages/tools/merge.astro', 'src/tools/merge/lib/mergePlan.ts'))
       .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
   it('forbids site-i18n reaching past the entry point the same way', () => {
-    expect(check('src/i18n/translate.js', 'src/tools/merge/mergePlan.ts'))
+    expect(check('src/i18n/translate.js', 'src/tools/merge/lib/mergePlan.ts'))
       .toBe('site may reach a tool only through its Pdf*Tool.tsx island entry point or its messages.ts');
   });
 
@@ -207,7 +207,7 @@ describe('module boundaries: testImportViolation() - rule 6, test files scanned 
   });
 
   it('allows a tool:a test importing its own tool', () => {
-    expect(testImportViolation('src/tools/merge/PdfMergeTool.test.tsx', 'src/tools/merge/mergePlan.ts')).toBeNull();
+    expect(testImportViolation('src/tools/merge/PdfMergeTool.test.tsx', 'src/tools/merge/lib/mergePlan.ts')).toBeNull();
   });
 
   it('allows a core test importing another core module', () => {
@@ -324,7 +324,7 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
   it('the same tool importing from two of its own files is still one consumer', () => {
     const graph = reverseGraph([
       ['src/lib/shared.js', 'src/tools/merge/PdfMergeTool.tsx'],
-      ['src/lib/shared.js', 'src/tools/merge/mergePlan.ts'],
+      ['src/lib/shared.js', 'src/tools/merge/lib/mergePlan.ts'],
     ]);
     expect(commonLayerConsumers('src/lib/shared.js', graph)).toEqual(new Set(['tool:merge']));
   });

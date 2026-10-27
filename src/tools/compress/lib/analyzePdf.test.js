@@ -188,7 +188,7 @@ describe('analyzePdf', () => {
 // decided from exactly these fields.
 describe('analyzePdf on the compress fixtures', () => {
   const read = async (name) => {
-    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', name));
+    const bytes = fs.readFileSync(path.resolve(__dirname, '../__fixtures__', name));
     const doc = await PDFDocument.load(bytes, { updateMetadata: false });
     return analyzePdf(doc, { totalBytes: bytes.length });
   };
@@ -229,11 +229,11 @@ describe('analyzePdf on the compress fixtures', () => {
   });
 
   it('reports components for Device and ICCBased colour spaces', async () => {
-    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
+    const bytes = fs.readFileSync(path.resolve(__dirname, '../__fixtures__', 'mixed.pdf'));
     const doc = await PDFDocument.load(bytes, { updateMetadata: false });
     const images = analyzePdf(doc, { totalBytes: bytes.length }).images;
     expect(images[0].components).toBe(3);
-    const scan = await PDFDocument.load(fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'scan.pdf')));
+    const scan = await PDFDocument.load(fs.readFileSync(path.resolve(__dirname, '../__fixtures__', 'scan.pdf')));
     expect(analyzePdf(scan, { totalBytes: 1 }).images[0].components).toBe(1);
 
     const [num, gen] = images[1].ref.split(' ').map(Number);
@@ -250,7 +250,7 @@ describe('analyzePdf on the compress fixtures', () => {
   });
 
   it('reports whether an SMask carries a /Matte', async () => {
-    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
+    const bytes = fs.readFileSync(path.resolve(__dirname, '../__fixtures__', 'mixed.pdf'));
     const doc = await PDFDocument.load(bytes, { updateMetadata: false });
     const find = () => analyzePdf(doc, { totalBytes: bytes.length }).images;
     expect(find().every((i) => i.smaskHasMatte === false)).toBe(true);
@@ -263,7 +263,7 @@ describe('analyzePdf on the compress fixtures', () => {
   });
 
   it('reports a Flate predictor and a /Decode array', async () => {
-    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
+    const bytes = fs.readFileSync(path.resolve(__dirname, '../__fixtures__', 'mixed.pdf'));
     const doc = await PDFDocument.load(bytes, { updateMetadata: false });
     const flate = analyzePdf(doc, { totalBytes: bytes.length }).images[1];
     const [num, gen] = flate.ref.split(' ').map(Number);
