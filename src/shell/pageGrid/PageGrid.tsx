@@ -753,8 +753,7 @@ export default function PageGrid({
             card rendered this flex child, making that card taller; because
             cards are bottom-aligned, its thumbnail jumped upward. */}
         <span
-          class={styles['skipped-word']}
-          data-testid="skipped-word"
+          class={styles['skipped-word']} data-testid="skipped-word"
           data-visible={entry.skipped || undefined}
           aria-hidden={!entry.skipped}
         >
@@ -763,8 +762,7 @@ export default function PageGrid({
         <span class={styles.actions} data-testid="page-actions">
           <button
             type="button"
-            class={styles.action}
-            data-testid="page-action"
+            class={styles.action} data-testid="page-action"
             aria-label={formatMessage(t.rotatePage, { number: position })}
             onClick={() => rotate(entry.key, position)}
           >
@@ -790,8 +788,7 @@ export default function PageGrid({
           </button>
           <button
             type="button"
-            class={styles.action}
-            data-testid="page-action"
+            class={styles.action} data-testid="page-action"
             aria-pressed={entry.skipped}
             aria-label={formatMessage(entry.skipped ? t.includePage : t.skipPage, { number: position })}
             onClick={() => toggleSkip(entry.key, position)}
@@ -817,8 +814,7 @@ export default function PageGrid({
           </button>
           <button
             type="button"
-            class={styles.action}
-            data-testid="page-action"
+            class={styles.action} data-testid="page-action"
             aria-label={formatMessage(t.openPreview, { number: position })}
             onClick={() => openPreview(index)}
           >
@@ -832,8 +828,7 @@ export default function PageGrid({
           </button>
           {action && (
             <a
-              class={styles.action}
-              data-testid="page-action"
+              class={styles.action} data-testid="page-action"
               href={action.href}
               download={action.download}
               aria-label={action.label}

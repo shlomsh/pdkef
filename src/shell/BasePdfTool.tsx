@@ -392,8 +392,7 @@ function BasePdfTool({
   return (
     <ToolShellContext.Provider value={shell}>
     <div
-      class={pdfToolStyles['tool-card']}
-      data-testid="tool-card"
+      class={pdfToolStyles['tool-card']} data-testid="tool-card"
       /* Direction A reduction: the "has a file" signal for a tool that hides
          ToolShell (`hideIdentity`), so the page-level `:has()` gate in
          ToolPageLayout.astro (the two-column grid applies only while neither
