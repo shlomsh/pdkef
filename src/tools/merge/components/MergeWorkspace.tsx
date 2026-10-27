@@ -13,8 +13,7 @@ import type { FailedFile } from '../lib/mergeView.ts';
 import MergeChipBar from './MergeChipBar.tsx';
 import MergePhoneControls, { type SortOption } from './MergePhoneControls.tsx';
 import { MergeHeading, MergeHeaderStatus } from './MergeHeading.tsx';
-import MergeRailContent from './MergeRailContent.tsx';
-import MergeRailPinned from './MergeRailPinned.tsx';
+import { MergeRailContentSlot, MergeRailPinnedSlot } from './MergeRailSlots.tsx';
 import MergeNotices from './MergeNotices.tsx';
 
 export interface MergeWorkspaceProps extends FailedFile {
@@ -144,55 +143,8 @@ export default function MergeWorkspace(p: MergeWorkspaceProps) {
               t={t}
             />
           )}
-          railContent={(
-            <MergeRailContent
-              entries={entries}
-              listRef={p.listRef}
-              canReorderFiles={p.canReorderFiles}
-              rearranged={p.rearranged}
-              showSortControls={p.showSortControls}
-              sortMode={p.sortMode}
-              sortOptions={p.sortOptions}
-              draftStatusLabel={p.draftStatusLabel}
-              showDraftRetentionHint={state.draftSaveState !== 'error' && state.draftSaveState !== 'conflict'}
-              showPickedUpSentence={state.showPickedUpSentence}
-              isRestoredWorkspace={state.isRestoredWorkspace}
-              onRemove={p.onRemove}
-              onRowKeyDown={p.onRowKeyDown}
-              onRowClick={p.onRowClick}
-              onSortChange={p.onSortChange}
-              onResetOrder={p.onResetOrder}
-              onAdd={requestReplace}
-              onClear={requestClear}
-              t={t}
-              sm={sm}
-            />
-          )}
-          railPinned={(
-            <MergeRailPinned
-              fileCount={entries.length}
-              addPageNumbers={state.addPageNumbers}
-              onPageNumbersChange={p.onPageNumbersChange}
-              lockedView={p.lockedView}
-              downloadFlow={p.downloadFlow}
-              prepared={p.prepared}
-              fileName={p.fileName}
-              detail={p.detail}
-              renderedCount={state.renderedCount}
-              renderTotal={renderTotal}
-              outputCount={p.outputCount}
-              hasFailedEntry={!!p.failedEntry}
-              isOutputNameBeingRenamed={state.isRenamingOutputName}
-              onChooseFiles={requestReplace}
-              onStartAgain={p.onStartAgain}
-              showInstallLine={state.showInstallLine}
-              installPrompt={state.installPrompt}
-              onIos={state.onIos}
-              onInstall={p.onInstall}
-              t={t}
-              sm={sm}
-            />
-          )}
+          railContent={<MergeRailContentSlot p={p} requestReplace={requestReplace} requestClear={requestClear} />}
+          railPinned={<MergeRailPinnedSlot p={p} requestReplace={requestReplace} />}
         >
           <MergeNotices
             needsUnlock={p.needsUnlock}
