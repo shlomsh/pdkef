@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
+import { useState, useReducer, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   EditorElement,
@@ -8,7 +8,7 @@ import type {
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import SignVerb from './verb/SignVerb.tsx';
-import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
+import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages } from './messages';
 import { signElementTypeLabel } from '../../editor/registry/signLabels';
 import type { SignMessages } from '../../editor/registry/messages';
@@ -71,6 +71,7 @@ import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { sendHandoff } from '../../lib/sendHandoff.ts';
+import { initialSignLifecycleState, signLifecycleReducer, type SignStatus } from './state/signState.ts';
 import { exportAtRevision, exportToHandOff, handoffHref, signExportReady, type SignedExport } from './exportHandoff.ts';
 import { signedFileName } from './signedFileName.ts';
 
@@ -136,26 +137,23 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     dispatch,
   } = useSignTool();
   const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
-  const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
+  // The document and finish lifecycle (state/signState.ts). Export errors are
+  // recoverable without unmounting the editor; a failed document load still
+  // uses status='error' with the workspace's load copy.
+  const [lifecycle, lifecycleDispatch] = useReducer(signLifecycleReducer, undefined, initialSignLifecycleState);
+  const { status, errorDetail, announcement, needsUnlock, signedExport, handoffFailed } = lifecycle;
+  const setAnnouncement = useCallback((message: string) => lifecycleDispatch({ type: 'ANNOUNCED', message }), []);
   useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
-  // Export errors are recoverable without unmounting the editor. A failed
-  // document load still uses status='error' with the workspace's load copy.
-  const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const [, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [signatureToDelete, setSignatureToDelete] = useState<string | null>(null);
-  const [announcement, setAnnouncement] = useState('');
   // ENC-07: a protected PDF is a precondition, not a failure. Set by the load gate (or the export
   // belt) and shown as NeedsUnlock (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
-  const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   // The last signed export of the document as it stands (the Compress it / Redact it
   // hand-offs carry it on), and the most recent one prepared for sharing, which the
   // Download and Share taps promote to it. Both retire with the document revision.
-  const [signedExport, setSignedExport] = useState<SignedExport | null>(null);
   const preparedExportRef = useRef<SignedExport | null>(null);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
 
   // Every setting a person chooses while filling (colour, font, size,
   // direction, alignment, bold, italic, date format, symbol mark and size,
@@ -316,8 +314,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   useEffect(() => {
     clearPrepared();
     preparedExportRef.current = null;
-    setSignedExport(null);
-    setHandoffFailed(false);
+    lifecycleDispatch({ type: 'EXPORT_RETIRED' });
     // Retires the export in flight (if any) and says whether one was live.
     const wasLive = exportRun.invalidate();
     if (!wasLive) return;
@@ -327,9 +324,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // correct. Only a real, user-initiated export in flight is worth telling
     // the user their edit invalidated it.
     if (activeExportSpeculativeRef.current) return;
-    setStatus('editing');
-    setProgress(0);
-    setAnnouncement(t.editsChangedWhilePreparing);
+    lifecycleDispatch({ type: 'EXPORT_INTERRUPTED', announcement: t.editsChangedWhilePreparing });
   }, [file, documentRevision, clearPrepared, exportRun]);
 
   const toggleFullscreen = () => toggleWorkspaceFullscreen(workspaceRef.current, isPseudoFullscreen, setIsPseudoFullscreen);
@@ -492,7 +487,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     file,
     pdfDocument,
     status,
-    setLoadStatus: setStatus,
+    setLoadStatus: (next) => lifecycleDispatch({ type: 'LOAD_STATUS_CHANGED', status: next }),
     setAnnouncement,
     messages: {
       invalidPdf: t.invalidPdfFile,
@@ -505,15 +500,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         loadedTemplate: t.pdfLoadedTemplate,
       },
     },
-    onNeedsUnlock: setNeedsUnlock,
+    onNeedsUnlock: (kind) => lifecycleDispatch({ type: 'NEEDS_UNLOCK_FOUND', kind }),
     initialize: ({ file: selected, bytes, preset }) => {
-      setNeedsUnlock(null);
+      lifecycleDispatch({ type: 'DOCUMENT_OPENED' });
       setFile(selected);
       setPdfDocument(null);
       setNumPages(0);
       setPageSizes([]);
-      setErrorDetail(null);
-      setProgress(0);
       dispatch({
         type: 'LOAD_DOCUMENT',
         payload: {
@@ -791,10 +784,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const ticket = exportRun.begin();
     activeExportSpeculativeRef.current = speculative;
     if (!speculative) {
-      setErrorDetail(null);
-      setStatus('signing');
-      setProgress(0);
-      setAnnouncement(t.writingSignaturesIntoPdf);
+      lifecycleDispatch({ type: 'EXPORT_STARTED', announcement: t.writingSignaturesIntoPdf });
       reportToolLifecycleEvent('tool_operation_started', 'sign');
       recordAction('export');
     }
@@ -805,7 +795,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     try {
       const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
       const signedBlob = await signPdf(sourceBytes, elements, (p: number) => {
-        if (!speculative && ticket.isCurrent()) setProgress(p);
+        if (!speculative && ticket.isCurrent()) lifecycleDispatch({ type: 'EXPORT_PROGRESSED', progress: p });
       });
       if (!ticket.isCurrent()) return;
       ticket.settle();
@@ -825,19 +815,16 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);
-      setStatus('editing');
       // ENC-07: the load gate should have caught a protected file, so this is reported above (a gate
       // miss), but the person gets the way on rather than a retry that can never work.
       const name = Reflect.get(Object(err), 'name');
       const message = String(Reflect.get(Object(err), 'message') ?? '');
       if (name === 'EncryptedPDFError' || message.includes('is encrypted')) {
-        setNeedsUnlock('owner-restricted');
-        setAnnouncement(t.protectedOwnerOnlyTitle);
+        lifecycleDispatch({ type: 'EXPORT_NEEDS_UNLOCK', announcement: t.protectedOwnerOnlyTitle });
         return;
       }
       const detail = describeSignFailure(err, t);
-      setErrorDetail(detail);
-      setAnnouncement(`${t.signingStoppedLabel} ${detail}`);
+      lifecycleDispatch({ type: 'EXPORT_FAILED', detail, announcement: `${t.signingStoppedLabel} ${detail}` });
     }
   };
 
@@ -846,45 +833,50 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
     if (prepare(signedBlob, filename)) {
       preparedExportRef.current = made;
-      setSignedExport(made);
       // navigator.share() needs a fresh user activation. PDF generation is
       // asynchronous, so retain the File and let the next tap open the
       // native share sheet instead of risking a browser-blocked request.
-      setStatus('editing');
-      setAnnouncement(t.signedPdfReadyToShare);
+      lifecycleDispatch({ type: 'EXPORT_FINISHED', signedExport: made, announcement: t.signedPdfReadyToShare });
       return;
     }
 
     recordAction('download');
     download(signedBlob, filename);
-    setStatus('editing');
-    setAnnouncement(t.pdfSignedDownloadStarted);
+    lifecycleDispatch({ type: 'EXPORT_FINISHED', announcement: t.pdfSignedDownloadStarted });
   });
 
   const handleDownloadPdf = () => {
-    setErrorDetail(null);
+    lifecycleDispatch({ type: 'EXPORT_ERROR_CLEARED' });
     if (downloadPrepared()) {
-      setSignedExport(exportAtRevision(preparedExportRef.current, documentRevisionRef.current));
       recordAction('download');
-      setAnnouncement(t.downloadStarted);
+      lifecycleDispatch({
+        type: 'EXPORT_DELIVERED',
+        signedExport: exportAtRevision(preparedExportRef.current, documentRevisionRef.current),
+        announcement: t.downloadStarted,
+      });
       return;
     }
 
     runExport((signedBlob, filename) => {
-      setSignedExport({ blob: signedBlob, name: filename, revision: documentRevisionRef.current });
       recordAction('download');
       download(signedBlob, filename);
-      setStatus('editing');
-      setAnnouncement(t.pdfSignedDownloadStarted);
+      lifecycleDispatch({
+        type: 'EXPORT_FINISHED',
+        signedExport: { blob: signedBlob, name: filename, revision: documentRevisionRef.current },
+        announcement: t.pdfSignedDownloadStarted,
+      });
     });
   };
 
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
-      setSignedExport(exportAtRevision(preparedExportRef.current, documentRevisionRef.current));
       recordAction('share');
-      setAnnouncement(t.pdfSignedSuccessfully);
+      lifecycleDispatch({
+        type: 'EXPORT_DELIVERED',
+        signedExport: exportAtRevision(preparedExportRef.current, documentRevisionRef.current),
+        announcement: t.pdfSignedSuccessfully,
+      });
     } else if (result.status === 'canceled') {
       setAnnouncement(t.sharingCanceledStillReady);
     } else if (result.status === 'error') {
@@ -905,7 +897,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     } catch (err) {
       // expected: saveHandoff reports its own failure, this shows the quiet line
       console.error(err);
-      setHandoffFailed(true);
+      lifecycleDispatch({ type: 'HANDOFF_FAILED' });
       setHandoffBusy(false);
     }
   };
@@ -916,10 +908,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const requestHandoff = async (tool: string) => {
     if (handoffBusy) return;
     setHandoffBusy(true);
-    setHandoffFailed(false);
     const ready = exportToHandOff(signedExport, preparedExportRef.current, documentRevisionRef.current);
+    lifecycleDispatch({ type: 'HANDOFF_REQUESTED', ready });
     if (ready) {
-      setSignedExport(ready);
       await carryOn(tool, ready);
       return;
     }
@@ -927,8 +918,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     await runExport((signedBlob, filename) => {
       handedOn = true;
       const made = { blob: signedBlob, name: filename, revision: documentRevisionRef.current };
-      setSignedExport(made);
-      setStatus('editing');
+      lifecycleDispatch({ type: 'EXPORT_FINISHED', signedExport: made });
       void carryOn(tool, made);
     });
     // A failed or superseded export hands nothing on: runExport shows its own error.
