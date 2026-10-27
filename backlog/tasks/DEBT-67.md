@@ -1,7 +1,7 @@
 ---
 id: "DEBT-67"
 title: "Merge's \"a clicked cell lets go of its action buttons\" e2e times out on main"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
