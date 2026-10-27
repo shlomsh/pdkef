@@ -1,11 +1,9 @@
 ---
 id: "ARCH-78"
 title: "Island tests mock only the storage and network edge, through one harness"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "next"
-order: 15
 depends_on: []
 ---
 
@@ -34,3 +32,7 @@ src/test/harness/toolHarness.ts (fake IndexedDB, recorded beacons, created blobs
 ## Progress (2026-10-27, finish)
 
 The pdf.js edge moved into the harness: `src/test/harness/pdfjsEdges.ts` holds the fakes (encryption probe, thumbnail source and previews, `pdfjs-dist` for Redact), steered per test through `harness.pdfjs`, and registered by setup files that only the `island*` vitest projects load. Compress's three engines are registered the same way; its `analyzePdf` and `pdfLib` mocks are gone, the real analysis reads real PDFs (`src/test/support/analysisPdfFixtures.ts`, plus the encrypted fixtures). Module mocks across the seven islands: 21 to 3 (Split's page-load gate, To Image's conversion, Redact's ring sampler), each commented. `islandSetup.test.ts` proves a non-island test sees the real modules.
+
+## Closed
+
+Closed 2026-10-27. 3 module mocks remain in the seven audited island tests (21 before), plus 6 shared edge mocks in `src/test/harness/setup/` loaded only by the island vitest projects; `islandSetup.test.ts` proves other tests see the real modules. Full suite 536 files, 9,320 tests; check:push green.

@@ -1,11 +1,9 @@
 ---
 id: "ARCH-97"
 title: "Structural drift from the audit is cleaned up and guarded"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "unify-and-narrow"
-horizon: "now"
-order: 2
 depends_on: []
 ---
 
@@ -28,6 +26,10 @@ depends_on: []
 
 ## Acceptance
 
-- [ ] A planted unwrapped island fails the new check.
-- [ ] SIGN-40 matches an `island_render` report.
-- [ ] check:push green.
+- [x] A planted unwrapped island fails the new check.
+- [x] SIGN-40 matches an `island_render` report.
+- [x] check:push green.
+
+## Closed
+
+Closed 2026-10-27. `test:island-boundary` runs in check:push and CI; a review closed two holes test-first (a `>` inside an earlier prop, a commented-out wrapper). SIGN-40 matches `island_render`; check:push green.
