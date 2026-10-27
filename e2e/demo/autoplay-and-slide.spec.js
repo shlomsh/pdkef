@@ -13,6 +13,8 @@ test('the visible demo plays without scrolling, scroll scrubs it, and story two 
     scrollY: window.scrollY,
     progress: Number(el.style.getPropertyValue('--p-track')),
   }));
+  // Time on purpose: the page must not scroll across the whole window while the demo plays.
+  await page.waitForTimeout(700);
   await expect.poll(() => signStage.evaluate(el => Number(el.style.getPropertyValue('--p-track')))).toBeGreaterThan(progress + 0.005);
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
 

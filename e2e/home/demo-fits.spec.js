@@ -97,6 +97,8 @@ test.describe('dock fits the page', () => {
           const card = cards.nth(index);
           await card.hover();
           await expect(card.locator('.app-tooltip')).toBeVisible();
+          // Visibility flips at transition start: wait for the tooltip's transitions to finish before reading rects.
+          await expect.poll(() => card.locator('.app-tooltip').evaluate((el) => el.getAnimations().length)).toBe(0);
           const tip = await card.locator('.app-tooltip').evaluate((el) => {
             const r = el.getBoundingClientRect();
             return { left: Math.round(r.left), right: Math.round(r.right), visible: getComputedStyle(el).visibility };
