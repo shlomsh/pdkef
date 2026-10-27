@@ -25,6 +25,7 @@ import { buildPdf, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts'
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { until } from '../../test/support/until.js';
+import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { hebrewMergeMessages } from './messages';
 import { hebrewShellMessages } from '../../shell/shellMessages';
 import { recentActions } from '../../lib/actionTrail.ts';
@@ -419,7 +420,7 @@ describe('PdfMergeTool UI flow', () => {
     // The grid (PageGrid) itself arrives through a dynamic import(); give
     // it a beat to mount and start observing before the IntersectionObserver
     // instance it creates is read below.
-    await act(async () => { await flush(20); });
+    await waitUntil(() => expect(instances.at(-1)?.targets.size).toBeGreaterThan(0));
     // Four pages total (two files, two pages each); rendering has not
     // started yet, so the heading names the total and says none are done.
     const heading = () => container.querySelector(`.${workspaceStyles['doc-heading']}`);
@@ -430,9 +431,8 @@ describe('PdfMergeTool UI flow', () => {
     const io = instances.at(-1);
     await act(async () => {
       io.callback(Array.from(io.targets).map((target) => ({ target, isIntersecting: true })));
-      await flush(50);
     });
-    expect(heading().textContent).not.toContain('rendered');
+    await waitUntil(() => expect(heading().textContent).not.toContain('rendered'));
 
     globalThis.IntersectionObserver = originalIO;
   });
@@ -752,9 +752,8 @@ describe('PdfMergeTool UI flow', () => {
 
     await act(async () => {
       status.querySelector('button').click();
-      await flush(10);
     });
-    expect(fileNames()).toEqual(['dup.pdf', 'other.pdf', 'dup.pdf']);
+    await waitUntil(() => expect(fileNames()).toEqual(['dup.pdf', 'other.pdf', 'dup.pdf']));
   });
 
   it('sorts with the styled menu, Reverse folded in as its own option, and regroups the plan to match', async () => {
@@ -971,9 +970,10 @@ describe('PdfMergeTool UI flow', () => {
     mount({ messages: hebrewMergeMessages, shellMessages: hebrewShellMessages });
     await loadFiles(['locked.pdf']);
     await settle();
-    await act(async () => { await flush(20); });
-    expect(container.textContent).toContain(hebrewMergeMessages.protectedNeedsPasswordTitle);
-    expect(container.textContent).toContain(hebrewMergeMessages.protectedUnlockIt);
+    await waitUntil(() => {
+      expect(container.textContent).toContain(hebrewMergeMessages.protectedNeedsPasswordTitle);
+      expect(container.textContent).toContain(hebrewMergeMessages.protectedUnlockIt);
+    });
   });
 
   it('keeps the inline error when a protected file sits among several (MERGE-04)', async () => {
@@ -1001,8 +1001,8 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['locked.pdf']);
     await settle();
-    await act(async () => { await flush(20); });
-    expect(container.querySelector('[data-needs-unlock]')).not.toBeNull();
+    await waitUntil(() => expect(container.querySelector('[data-needs-unlock]')).not.toBeNull());
+    await act(async () => { await flush(20); }); // the absence below keeps its window
     expect(container.querySelector('[data-state="one-file"]')).toBeNull();
   });
 
@@ -1080,7 +1080,6 @@ describe('PdfMergeTool UI flow', () => {
     const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Compress');
     await act(async () => {
       button.click();
-      await flush(10);
     });
     await until(() => navigate.mock.calls.length > 0);
     // The hand-off is what Compress will find: the merged file, whole.
@@ -1105,9 +1104,8 @@ describe('PdfMergeTool UI flow', () => {
 
     await act(async () => {
       handoff('Compress').click();
-      await flush(10);
     });
-    expect(navigate).toHaveBeenCalledWith('/compress/');
+    await waitUntil(() => expect(navigate).toHaveBeenCalledWith('/compress/'));
     expect(handoff('Sign').disabled).toBe(true);
 
     await act(async () => {
@@ -1119,9 +1117,8 @@ describe('PdfMergeTool UI flow', () => {
     expect(handoff('Sign').disabled).toBe(false);
     await act(async () => {
       handoff('Sign').click();
-      await flush(10);
     });
-    expect(navigate).toHaveBeenLastCalledWith('/sign/');
+    await waitUntil(() => expect(navigate).toHaveBeenLastCalledWith('/sign/'));
   });
 
   // MEM-01/02: this used to ask first, and on confirmation call
@@ -1145,7 +1142,6 @@ describe('PdfMergeTool UI flow', () => {
     const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Sign');
     await act(async () => {
       button.click();
-      await flush(10);
     });
     await until(() => navigate.mock.calls.length > 0);
     expect((await harness.takeHandoff('sign'))?.fileName).toBe('merged_a.pdf');
@@ -1445,10 +1441,17 @@ describe('PdfMergeTool UI flow', () => {
       expect(container.querySelector(`ul.${railStyles['file-list']}`)).toBeNull();
 
       await loadFiles(['c.pdf', 'd.pdf']);
-      await flush(10);
-
-      const list = container.querySelector(`ul.${railStyles['file-list']}`);
-      const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+      const listOf = () => container.querySelector(`ul.${railStyles['file-list']}`);
+      const chipRowOf = () => container.querySelector(`ul.${docStyles['chip-row']}`);
+      await waitUntil(() => {
+        expect(listOf()).not.toBeNull();
+        expect(chipRowOf()).not.toBeNull();
+        expect(Sortable.get(listOf())).toBeDefined();
+        expect(Sortable.get(chipRowOf())).toBeDefined();
+      });
+      await flush(10); // the error checks below are absences: keep a window
+      const list = listOf();
+      const chipRow = chipRowOf();
       expect(list).not.toBeNull();
       expect(chipRow).not.toBeNull();
       expect(errors).toEqual([]);
