@@ -65,6 +65,16 @@ async function installShiftSampler(page) {
   });
 }
 
+// Fonts loaded, recent thumbnails decoded, then two frames: the condition the late-reflow
+// sleep stood in for, before the final rects are read.
+async function settleLayout(page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await Promise.all([...document.querySelectorAll('#home-files img')].map((img) => img.decode().catch(() => {})));
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  });
+}
+
 async function readRects(page) {
   return page.evaluate(() => {
     const box = (el) => {
@@ -137,7 +147,7 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
         await expect(page.locator('#home-files li').last()).toContainText(`recent-${count - 1}.pdf`);
         // Give any late reflow (fonts, images) a moment to settle before
         // reading the final rects.
-        await page.waitForTimeout(300);
+        await settleLayout(page);
 
         const result = await readRects(page);
 
@@ -177,7 +187,7 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
 
         await expect(page.locator('#home-files li')).toHaveCount(count);
         await expect(page.locator('#home-files li').last()).toContainText(`recent-${count - 1}.pdf`);
-        await page.waitForTimeout(300);
+        await settleLayout(page);
 
         const result = await readRects(page);
 
@@ -213,7 +223,7 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
         if (count > 0) {
           await expect(page.locator('#home-files li').last()).toContainText(`recent-${count - 1}.pdf`);
         }
-        await page.waitForTimeout(300);
+        await settleLayout(page);
 
         const result = await readRects(page);
 
@@ -264,7 +274,7 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
     await page.goto('/');
 
     await expect(page.locator('#home-files li')).toHaveCount(PHONE_RECENTS.length);
-    await page.waitForTimeout(300);
+    await settleLayout(page);
 
     const result = await readRects(page);
 

@@ -42,7 +42,7 @@ async function drawRedaction(page, styleName, startRatio, endRatio) {
   await page.mouse.move(box.x + box.width * startRatio.x, box.y + box.height * startRatio.y);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * endRatio.x, box.y + box.height * endRatio.y, { steps: 6 });
-  await page.waitForTimeout(50);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.mouse.up();
 }
 

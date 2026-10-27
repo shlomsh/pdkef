@@ -28,6 +28,7 @@ async function makePhotoBytes(page) {
 async function waitForScrollToSettle(page) {
   await expect.poll(async () => {
     const a = await page.evaluate(() => window.scrollY);
+    // Time on purpose: the sampling interval between two scroll reads.
     await page.waitForTimeout(120);
     return a === await page.evaluate(() => window.scrollY);
   }, { timeout: 5_000 }).toBe(true);

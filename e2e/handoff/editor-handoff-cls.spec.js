@@ -25,6 +25,7 @@ const WATCH = () => {
 async function expectLanded(page, tool) {
   await page.waitForURL(new RegExp(`/${tool}/?$`));
   await expect(page.locator(EDITOR_SHOWS).first()).toBeVisible({ timeout: 20_000 });
+  // Time on purpose: a layout-shift observation window after the editor shows.
   await page.waitForTimeout(1000);
   expect(await page.evaluate(() => window.__pendingSeen), 'marker set before the document showed').toBe(true);
   const { cls, pending, key } = await page.evaluate((t) => ({

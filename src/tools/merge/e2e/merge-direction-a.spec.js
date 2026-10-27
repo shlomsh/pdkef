@@ -47,7 +47,7 @@ test('the Download element keeps the same DOM node across preparing and ready (M
     // The sticky app bar and the sticky file row cover the top of a 659px
     // iPhone viewport; a tap under either lands on them. Centre the cell first, as a thumb would by scrolling.
     await firstCard.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-    await page.waitForTimeout(300);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await firstCard.tap();
     // The tap must select the cell, or its Rotate button never shows.
     await expect(firstCard).toHaveAttribute('data-selected');
@@ -70,6 +70,7 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   // UX guidelines §2: the rebuild waits for quiet and is silent, so the
   // element stays ready after the change. Preparing shows only for a tap
   // that lands before the build is done, and that tap delivers on ready.
+  // Time on purpose: the rebuild waits for quiet, so the element must stay ready through this window.
   await page.waitForTimeout(200);
   expect(await handle.evaluate((el) => el.__states.join('>'))).toBe('ready');
   const download = page.waitForEvent('download');
@@ -239,7 +240,7 @@ test.describe('thumbnails after a reload', () => {
     await expect(page.locator('[class*="draft-status-row"]').filter({ hasText: 'Draft saved' }).first()).toBeAttached({ timeout: 10_000 });
 
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(400);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await page.reload();
     await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
     const cells = page.locator('li[class*="page"][data-key]');

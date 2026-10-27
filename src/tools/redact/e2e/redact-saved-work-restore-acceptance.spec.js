@@ -181,6 +181,7 @@ for (const restoreCase of RESTORE_CASES) {
     // More than the 700ms debounce: a restoration is not an edit, so neither
     // persistence state may appear and the stored work must be byte-for-byte
     // equivalent at this revision.
+    // Time on purpose: a negative check across the debounce, nothing may appear.
     await restored.waitForTimeout(1_200);
     await expect(restored.getByText('Saving draft…', { exact: true })).toHaveCount(0);
     await expect(restored.getByText('Draft saved', { exact: true })).toHaveCount(0);
