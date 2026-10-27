@@ -90,7 +90,6 @@ const BUILD_INVOKED_SCRIPTS = new Set([
   'scripts/generate-language-acceptance.mjs',
   'scripts/generate-precache-manifest.mjs',
   'scripts/buildId.mjs',
-  'scripts/buildCommit.mjs',
   'scripts/cspHashOrder.mjs',
   'scripts/minifyServiceWorker.mjs',
   'scripts/precacheClosure.mjs',

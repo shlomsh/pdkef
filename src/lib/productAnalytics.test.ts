@@ -103,8 +103,8 @@ describe('reportToolLifecycleEvent', () => {
 
   it('adds the build commit when the page carries one, and only then', async () => {
     const page = (content: string | null) =>
-      vi.stubGlobal('document', {
-        querySelector: () => (content === null ? null : { getAttribute: () => content }),
+      vi.stubGlobal('performance', {
+        getEntriesByType: () => [{ serverTiming: content === null ? [] : [{ name: 'build', description: content }] }],
       });
     page('08e10cf');
     reportToolLifecycleEvent('tool_result_ready', 'merge');
