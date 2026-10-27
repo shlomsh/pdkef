@@ -1,6 +1,6 @@
 [
   {
-    "file": "src/editor/adapters/pdf/sign.js",
+    "file": "src/tools/sign/lib/sign.js",
     "includes": "await fetch(`/fonts/",
     "reason": "GET of a same-origin font file to embed in the exported PDF. No request body; nothing leaves the device."
   },
