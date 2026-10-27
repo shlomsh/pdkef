@@ -7,7 +7,6 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { recentActions } from '../../lib/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
-import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -171,7 +170,7 @@ describe('PdfSplitTool UI flow', () => {
   // UX guideline 20: the output choice, then which pages, then Download and hand-offs, Replace file last.
   it('runs the rail in order of consequence, with Replace file last', async () => {
     await open();
-    const rail = container.querySelector(`.${workspaceStyles.rail}`);
+    const rail = container.querySelector('[data-rail]');
     const order = Array.from(rail.querySelectorAll('[role="radiogroup"], input, button, a[data-state]'))
       .filter((el) => !el.closest('[role="radiogroup"]') || el.getAttribute('role') === 'radiogroup')
       .map((el) => el.getAttribute('role') || el.id || (el.hasAttribute('data-state') ? 'download' : el.textContent.trim()));

@@ -12,9 +12,7 @@ import * as mergeLib from './lib/merge.js';
 import { MERGE_DRAFT_SCHEMA_VERSION } from './hooks/useMergeDraft.ts';
 import { saveDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
 import { getPdfLib } from '../../lib/pdfLib.js';
-// Styling contracts kept on purpose: the file-name bidi class (what carries unicode-bidi) and the rail-pinned region (shell, no attribute).
-import railStyles from './components/MergeRail.module.css';
-import { workspaceStyles } from '../../shell/pageWorkspace/PageWorkspace.tsx';
+import railStyles from './components/MergeRail.module.css'; // kept on purpose: the file-name bidi class is the styling under test
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { buildPdf, noPagesKey } from '../../test/support/pdfPageTreeFixtures.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
@@ -824,7 +822,7 @@ describe('PdfMergeTool UI flow', () => {
     const rows = container.querySelectorAll('input[type="checkbox"]');
     expect(rows.length).toBe(1);
     expect(mobileControls.querySelector('input[type="checkbox"]')).toBeNull();
-    expect(rows[0].closest(`.${workspaceStyles['rail-pinned']}`)).not.toBeNull();
+    expect(rows[0].closest('[data-rail-pinned]')).not.toBeNull();
   });
 
   it('renders no quiet Download in the file row for one file (MERGE-24)', async () => {

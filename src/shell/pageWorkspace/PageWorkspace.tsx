@@ -63,9 +63,9 @@ export default function PageWorkspace({
           {children}
         </div>
 
-        <div class={styles.rail}>
+        <div class={styles.rail} data-rail>
           <div class={styles['rail-scroll']}>{railContent}</div>
-          <div class={styles['rail-pinned']}>{railPinned}</div>
+          <div class={styles['rail-pinned']} data-rail-pinned>{railPinned}</div>
         </div>
       </div>
     </div>
