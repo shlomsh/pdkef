@@ -115,6 +115,7 @@ export function figureCentreEm(fontFamily) {
  * verified against the real asset bytes by src/editor/text/fontCoverage.test.js and
  * src/editor/registry/hebrewMarkPlacement.test.js's mark-placement guard, so
  * it stays as a plain, hand-checked fact about the catalogue.
+ * @testSeam
  */
 export const HEBREW_CAPABLE_FONTS = FONT_MANIFEST
   .filter((font) => font.acceptance?.hebrewMarkPlacement)

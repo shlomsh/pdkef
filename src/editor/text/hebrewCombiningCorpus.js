@@ -58,6 +58,7 @@ const COMPOSABLE_ENTRIES = Array.from(__internal.HEBREW_PRESENTATION_FORMS, ([de
  * get SHEVA appended after their own marks instead of inserted between them -
  * inserting it there would just be a second copy of the two-mark case NFC's
  * reordering already has to get right on every other entry, not a new axis.
+ * @testSeam
  */
 export const ORDER_VARIANT_GROUPS = COMPOSABLE_ENTRIES.map(({ base, marks, composed }) => {
   const id = `${codePointName(base.codePointAt(0))}+${[...marks].map((m) => codePointName(m.codePointAt(0))).join('+')}`;
@@ -101,7 +102,11 @@ export const ORDER_VARIANT_GROUPS = COMPOSABLE_ENTRIES.map(({ base, marks, compo
  * real regression on the well-anchored letters or tight enough to flag a
  * letter's ordinary, pre-existing rendering as a false failure.
  */
+/** @testSeam */
 export const CALIBRATION_MARK = 'ְ'; // SHEVA, U+05B0
 
-/** Every distinct base letter a composable entry uses, for building a per-base calibration reference. */
+/**
+ * Every distinct base letter a composable entry uses, for building a per-base calibration reference.
+ * @testSeam
+ */
 export const COMPOSABLE_BASES = [...new Set(COMPOSABLE_ENTRIES.map((entry) => entry.base))];

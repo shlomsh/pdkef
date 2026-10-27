@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tools, toolsBySlug, toolIdOf, listedTools, pageForToolId, variantsOf } from './tools.js';
+import { tools, toolsBySlug, toolIdOf, listedTools, pageForToolId } from './tools.js';
 
 describe('tool registry helpers', () => {
   it('toolIdOf is the slug unless the entry or its parent says otherwise', () => {
@@ -24,12 +24,6 @@ describe('tool registry helpers', () => {
     expect(pageForToolId('edit-pdf').slug).toBe('organize-pdf');
     expect(pageForToolId('split').slug).toBe('split');
     expect(pageForToolId('nope')).toBeUndefined();
-  });
-
-  it('variantsOf lists the landing pages of a parent in registry order', () => {
-    expect(variantsOf('organize-pdf').map((t) => t.slug)).toEqual(['rotate-pdf', 'remove-pages', 'add-page-numbers-to-pdf']);
-    expect(variantsOf('split').map((t) => t.slug)).toEqual(['extract-pdf-pages']);
-    expect(variantsOf('merge')).toEqual([]);
   });
 
   it('every variant points at a listed parent and keeps slug = URL', () => {

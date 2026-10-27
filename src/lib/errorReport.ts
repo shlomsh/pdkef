@@ -248,10 +248,12 @@ const drops = new Set<string>();
 // import time.
 let enabled = import.meta.env?.PROD === true;
 
+/** @testSeam */
 export function setReportingEnabledForTests(value: boolean): void {
   enabled = value;
 }
 
+/** @testSeam */
 export function resetErrorReportingForTests(): void {
   sent.clear();
   sentSites.clear();

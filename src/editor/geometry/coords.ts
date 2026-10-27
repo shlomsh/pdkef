@@ -299,11 +299,6 @@ export function pxDeltaToPercent(dx: number, parentPx: number): number {
   return (dx / parentPx) * 100;
 }
 
-// Inverse of pxToPercent/pxDeltaToPercent.
-export function percentToPx(pct: number, parentPx: number): number {
-  return (pct / 100) * parentPx;
-}
-
 // Percent of a page dimension -> PDF points along that same dimension.
 export function percentToPoints(pct: number, pageDimPoints: number): number {
   return (pct / 100) * pageDimPoints;

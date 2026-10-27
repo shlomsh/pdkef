@@ -6,6 +6,7 @@ import { installUncaughtErrorReporting, isReported, markReported, reportError } 
  * `error` / `unhandledrejection` reporting once per page (the install is idempotent, so any
  * number of islands share it), and reports a render error a child throws, then throws it again:
  * what a person sees is exactly what they would see with no boundary at all.
+ * @testSeam The default export is the component itself, which the tests render directly.
  */
 export default class IslandErrorBoundary extends Component<{ children?: ComponentChildren }> {
   componentDidMount(): void {

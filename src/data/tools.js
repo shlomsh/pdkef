@@ -1013,5 +1013,3 @@ export const listedTools = tools.filter((tool) => !tool.variantOf);
 
 // The listed page for an id a tool stored (a recent saved as 'edit-pdf').
 export const pageForToolId = (id) => listedTools.find((tool) => toolIdOf(tool) === id);
-
-export const variantsOf = (slug) => tools.filter((tool) => tool.variantOf === slug);

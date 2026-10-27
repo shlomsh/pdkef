@@ -17,8 +17,6 @@ interface HistoryElementSnapshot<TElement extends HistoryElement = HistoryElemen
 }
 
 type SnapshotOperation = 'add' | 'delete';
-export type HistoryOperation = SnapshotOperation | 'update' | 'remove-place';
-
 /**
  * One element's change, as the fields that changed and nothing else: `before`
  * holds their values as they were, `after` as they became. A key that was

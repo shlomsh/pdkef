@@ -166,11 +166,6 @@ export function rejectCommands(reason: RejectReason, engine: string, day: string
   ];
 }
 
-/** Both steps, in order, as one list (the shape the contract names). */
-export function reportCommands(report: ErrorReport, engine: string, day: string): Command[] {
-  return [...capCommands(day), ...countCommands(report, engine, day)];
-}
-
 export function readEnv(
   env: Readonly<Record<string, string | undefined>>,
 ): { url: string; token: string } | null {

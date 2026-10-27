@@ -10,7 +10,6 @@ import {
   resetMaintenanceEventsForTests,
   MAX_EVENTS_PER_PAGE,
   sanitizeAnalyticsEvent,
-  sanitizeAnalyticsPath,
   signExportFailed,
   signExportSucceeded,
   signFormDetectionCompleted,
@@ -171,8 +170,6 @@ describe('anonymous maintenance telemetry', () => {
   });
 
   it('removes query strings and fragments while preserving the absolute URL Vercel requires', () => {
-    expect(sanitizeAnalyticsPath('https://pdkef.com/sign/?file=private.pdf#signature')).toBe('/sign/');
-    expect(sanitizeAnalyticsPath('javascript:private-medical-record.pdf')).toBe('/');
     expect(sanitizeAnalyticsEvent({ type: 'pageview', url: 'https://pdkef.com/sign/?document=abc#signature' })).toEqual({
       type: 'pageview',
       url: 'https://pdkef.com/sign/',

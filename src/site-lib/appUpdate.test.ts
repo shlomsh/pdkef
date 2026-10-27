@@ -13,7 +13,6 @@ import {
   STATUS_TIMEOUT_MS,
   TAB_CLOSED_RECHECK_MS,
   VISIBLE_CHECK_MIN_MS,
-  isUpdateWaiting,
   lineStateFor,
   respondToCriticalUpdate,
   shouldCheckForUpdate,
@@ -132,14 +131,6 @@ afterEach(() => {
 });
 
 describe('pure decisions', () => {
-  it('isUpdateWaiting needs a waiting worker and a controller', () => {
-    expect(isUpdateWaiting({ waiting: {} }, {})).toBe(true);
-    expect(isUpdateWaiting({ waiting: {} }, null)).toBe(false);
-    expect(isUpdateWaiting({ waiting: null }, {})).toBe(false);
-    expect(isUpdateWaiting(null, {})).toBe(false);
-    expect(isUpdateWaiting(undefined, {})).toBe(false);
-  });
-
   it('lineStateFor: no reply or a build that is not ready shows nothing', () => {
     expect(lineStateFor(null)).toBeNull();
     expect(lineStateFor({ ready: false, busy: 2, silent: 1 })).toBeNull();
