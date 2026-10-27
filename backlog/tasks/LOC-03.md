@@ -301,3 +301,39 @@ For the 11-06 read: impressions are settled, read clicks and CTR per query, Isra
 window. For the localization gate: Hebrew ranks natively where `/merge/` cannot hold page one in English, so
 the gate's field half (an English page of ours already in the top ten) may undervalue a weak native field.
 Raise it at the 11-08 Indonesian read (LOC-17), not before.
+
+## 2026-10-27: /he/sign/ leads with חתימה על מסמך PDF, reversing the 09-24 fill-form lead
+
+Shlomi flagged `הוספת חתימה על מסמך pdf` (2 impressions at 80.5) as a query we want. Three instruments,
+all pointing the same way:
+
+- **GSC, Shlomi's export of 2026-10-27 (web, last 3 months, all countries), 37 Hebrew sign and fill rows,
+  378 impressions, 0 attributed clicks** (`/he/sign/` itself 17 clicks / 531 at 29.6, so its clicks come
+  through anonymized queries). By family: `מסמך` 198 impressions at weighted position 42 (`איך חותמים על
+  מסמך pdf` 74 at 24.1, `חתימה על מסמך pdf חינם` 28 at 48.5, `... אנדרואיד` 27 at 39.9, `חתימה על מסמך pdf`
+  18 at 74.9, `הוספת חתימה למסמך pdf` 15 at 72); `טופס` 30 at 12.0 (`טופס לחתימה אונליין` 14 at 4.7);
+  `מילוי` 7 at 5.3; `הוספת` 24 at 55. The fill family sits on page one and still draws 7 impressions, so
+  that is close to its whole demand; the document family drew 198 from pages 3 to 8, where impressions
+  are a small fraction of searches. The 09-24 lead optimised for the small family.
+- **Google autocomplete** (`hl=iw&gl=il`, firefox and chrome clients): `חתימה על מסמך pdf` is the first
+  suggestion for `חתימה על`, `חתימה על מסמך` and `איך לחתום על`, at relevance 1250 (`חתימה על pdf` leads
+  with `חינם`). `טופס` in a signing query completes to government forms (101, 161, ירוק, תיווך) and `מילוי
+  טופס` to 101 and lottery forms, 1 of 10 a PDF. `הוספת חתימה` leads with `למסמך pdf` (1250) but half its
+  list is email signatures (Outlook, Gmail, Docs). `דיגיטלית` is the common modifier, `אלקטרונית` appears
+  only in its own stem, with legal intent (טאבו, עורכי דין).
+- **Hebrew competitor pages** (fetched 2026-10-27): 6 of 11 titles carry `חתימה על PDF` and two lead with
+  `חתימה על מסמך PDF` (pdfguru, onlinetools.co.il); three lead with filling (Sejda, Adobe, PDF Services).
+  `חתימה דיגיטלית` and `אלקטרונית` are in no title or h1. The PDF tools with no Hebrew page are iLovePDF,
+  Smallpdf, DocuSign and Soda. DuckDuckGo `kl=il-he` (a proxy for who competes, not our Google position)
+  for `חתימה על מסמך pdf` has PDF24, Adobe, pdfguru, onlinetools.co.il, TweakFiles, Aspose.
+
+Changed on Shlomi's approval: `seoTitle` to `'חתימה על מסמך PDF ומילוי טפסים בחינם, גם בעברית | PDkef'`;
+h1 to `'חתימה על מסמך PDF ומילוי טפסים, בחינם ובדפדפן'` (h1Name `'חתימה על מסמך PDF'`); aboutHeading
+from `'איך למלא ולחתום על קובץ PDF'` to `'איך להוסיף חתימה למסמך PDF'`, the exact-match home for `הוספת
+חתימה`; `seoDescription` now opens `חתמו על מסמך PDF והוסיפו חתימה`. `טפסים` and `בעברית` stay because
+`טופס לחתימה אונליין` (4.7), `מילוי טופס pdf בעברית` (3.5) and `חתימה בעברית` (3.8) are our only Hebrew
+sign rows on page one. Accepted risk: `אונליין` leaves the title for the description (its rows sit at 19),
+and SEO-45 records `/merge/` dropping out of results when its title lead changed.
+
+For the 11-06 read: sign-family queries count from this change, not from 09-24; the fill-family rows are
+the guard on what the title gave up. Indexing request for `/he/sign/` after the deploy.
