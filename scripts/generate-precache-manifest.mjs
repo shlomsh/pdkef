@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
+import { sortCspHashes } from './cspHashOrder.mjs';
 import { commitFromEnv, hasPlaceholder, stampBuildCommit } from './buildCommit.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
@@ -24,6 +25,14 @@ if (!fs.existsSync(distDir)) {
 }
 
 const allFiles = walk(distDir).sort();
+
+// Astro lists each page's CSP hash sources in an unstable order, which made every page differ
+// per deploy (MEM-20). Sort them before anything below reads or hashes the HTML.
+for (const filePath of allFiles.filter((name) => name.endsWith('.html'))) {
+  const html = fs.readFileSync(filePath, 'utf8');
+  const sorted = sortCspHashes(html);
+  if (sorted !== html) fs.writeFileSync(filePath, sorted);
+}
 
 // v2 (MEM-15): the shell, and the closure of each page, so the worker installs the union
 // of the closures instead of every file in the build.
