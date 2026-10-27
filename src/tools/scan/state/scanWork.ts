@@ -29,10 +29,10 @@ export interface ScanPage {
 
 export interface PageResult { key: string; url: string; thumbUrl: string; page: ProcessedPage }
 /** The pages of the last built PDF, in its order: what Download saves, page for page. */
-export interface Shown { key: string; pages: { url: string; place: Placement }[] }
+interface Shown { key: string; pages: { url: string; place: Placement }[] }
 
 /** What the build reads when it runs: the latest render's inputs, not the ones it was created with. */
-export interface BuildInputs { pages: ScanPage[]; pageSize: PageSize; limit: SizeLimitId; key: string | null }
+interface BuildInputs { pages: ScanPage[]; pageSize: PageSize; limit: SizeLimitId; key: string | null }
 
 /**
  * The island's true instance values: work queues, caches and the latest render's values, which async
