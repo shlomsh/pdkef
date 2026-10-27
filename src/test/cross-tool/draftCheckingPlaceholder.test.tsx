@@ -13,14 +13,14 @@ import { RESTORE_TIMEOUT_MS } from '../../lib/drafts/useDraftPersistence.js';
 // depending on real IndexedDB timing (which jsdom doesn't implement).
 
 function deferred() {
-  let resolve;
-  const promise = new Promise((res) => {
+  let resolve!: (value: unknown) => void;
+  const promise = new Promise<unknown>((res) => {
     resolve = res;
   });
   return { promise, resolve };
 }
 
-function draftRecord(fileName) {
+function draftRecord(fileName: string) {
   return {
     fileName,
     fileSize: 8,
@@ -33,8 +33,8 @@ function draftRecord(fileName) {
   };
 }
 
-let loadDraftDeferred;
-let hint;
+let loadDraftDeferred: ReturnType<typeof deferred>;
+let hint: boolean | undefined;
 
 vi.mock('../../lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
