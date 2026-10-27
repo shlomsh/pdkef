@@ -2,7 +2,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
 import CompareSlider from './CompareSlider.tsx';
-import styles from './CompareSlider.module.css';
 
 // Real drag math needs a realistic mocked rect, not jsdom's default 0x0 -
 // see CLAUDE.md's "Vacuous geometry tests from unmocked 0x0 rects" hazard.
@@ -35,7 +34,7 @@ describe('CompareSlider', () => {
       );
     });
 
-    const images = container.querySelectorAll(`.${styles['compare-image']}`);
+    const images = container.querySelectorAll('img');
     expect(images).toHaveLength(2);
     expect(images[0].getAttribute('src')).toBe('data:before');
     expect(images[1].getAttribute('src')).toBe('data:after');
@@ -49,7 +48,7 @@ describe('CompareSlider', () => {
     act(() => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" tags={false} />, container!);
     });
-    expect(container.querySelector(`.${styles['compare-tag']}`)).toBeNull();
+    expect(container.querySelector('img ~ span')).toBeNull();
   });
 
   it('starts at 50% reveal', () => {
@@ -59,10 +58,10 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container.querySelector(`.${styles['compare-slider']}`);
+    const slider = container!.firstElementChild as HTMLElement;
     expect(slider.style.getPropertyValue('--reveal')).toBe('50%');
 
-    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    const handle = container.querySelector('[role="slider"]');
     expect(handle.getAttribute('aria-valuenow')).toBe('50');
   });
 
@@ -73,8 +72,8 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container.querySelector(`.${styles['compare-slider']}`);
-    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    const slider = container!.firstElementChild as HTMLElement;
+    const handle = container.querySelector('[role="slider"]');
     slider.getBoundingClientRect = () => MOCK_RECT;
 
     // mousedown at the container's left edge (0%) starts the gesture and
@@ -116,9 +115,9 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" fill />, container!);
     });
 
-    const slider = container.querySelector(`.${styles['compare-slider']}`);
-    const handle = container.querySelector(`.${styles['compare-handle']}`);
-    const image = container.querySelector(`.${styles['compare-image']}`);
+    const slider = container!.firstElementChild as HTMLElement;
+    const handle = container.querySelector('[role="slider"]');
+    const image = container.querySelector('img');
     slider.getBoundingClientRect = () => MOCK_RECT;
 
     act(() => {
@@ -141,8 +140,8 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container.querySelector(`.${styles['compare-slider']}`);
-    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    const slider = container!.firstElementChild as HTMLElement;
+    const handle = container.querySelector('[role="slider"]');
     slider.getBoundingClientRect = () => MOCK_RECT;
     let rectReads = 0;
     slider.getBoundingClientRect = () => {
@@ -166,8 +165,8 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const slider = container.querySelector(`.${styles['compare-slider']}`);
-    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    const slider = container!.firstElementChild as HTMLElement;
+    const handle = container.querySelector('[role="slider"]');
     slider.getBoundingClientRect = () => MOCK_RECT;
 
     act(() => {
@@ -190,7 +189,7 @@ describe('CompareSlider', () => {
       render(<CompareSlider beforeSrc="data:before" afterSrc="data:after" />, container!);
     });
 
-    const handle = container.querySelector(`.${styles['compare-handle']}`);
+    const handle = container.querySelector('[role="slider"]');
 
     act(() => {
       handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));

@@ -7,7 +7,7 @@ import PdfSignTool from './PdfSignTool.tsx';
 import * as signModule from './lib/sign.js';
 import { resetMaintenanceEventsForTests } from '../../lib/maintenanceTelemetry.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
+// Asserts the pseudo-fullscreen state class; the page overlay has no role or attribute, so it is found by class.
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -191,7 +191,7 @@ describe('PdfSignTool UI flow', () => {
         fullscreenButton.click();
       });
 
-      const workspace = query(container, `.${workspaceStyles.workspace}`);
+      const workspace = query(container, '[aria-busy]');
       expect(workspace.className).toContain(workspaceStyles['pseudo-fullscreen']);
     } finally {
       window.history.pushState({}, '', originalUrl);
@@ -274,7 +274,7 @@ describe('PdfSignTool UI flow', () => {
         await new Promise(resolve => setTimeout(resolve, 50));
       });
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
-      const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+      const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
       const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
       wrapper.getBoundingClientRect = () => pageRect;
       overlay.getBoundingClientRect = () => pageRect;
@@ -297,7 +297,7 @@ describe('PdfSignTool UI flow', () => {
       // Export code is loaded on demand, so the click starts an async module
       // fetch before it reaches the mocked serializer.
       await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(1));
-      expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(wrapper);
+      expect(container.querySelector('[data-sign-page-surface]')).toBe(wrapper);
       expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
       expect(textInput.value).toBe(initialText);
       expect(query(container, '[role="alert"]').textContent).toContain(errorText);
@@ -451,7 +451,7 @@ describe('PdfSignTool UI flow', () => {
       // A background pre-generation must never show the "signing" UI, which
       // replaces the whole workspace with a spinner - that would read as the
       // app doing something the user never asked for.
-      expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).not.toBeNull();
+      expect(container.querySelector('[data-sign-page-surface]')).not.toBeNull();
       expect(container.textContent).not.toContain('Saving document layers');
       // Nor may it count as a user export for SIG-13's export-duration signal.
       // By name, not by call count: opening the file also reports FORM-11's
@@ -511,7 +511,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Locate the signature tool button in the toolbar
-    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
     const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
     expect(sigBtn).not.toBeNull();
 
@@ -554,7 +554,7 @@ describe('PdfSignTool UI flow', () => {
 
     // Clicking Signature when local storage is empty opens the dialog directly
     localStorage.removeItem('pdf-toolkit:signatures');
-    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
     const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
     
     await act(async () => {
@@ -660,7 +660,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select symbol tool
-    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
     
     await act(async () => {
       // Index 0 is Text, Index 1 is Symbol
@@ -999,7 +999,7 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0,
@@ -1109,7 +1109,7 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
@@ -1166,7 +1166,7 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
@@ -1225,7 +1225,7 @@ describe('PdfSignTool UI flow', () => {
       });
 
       localStorage.removeItem('pdf-toolkit:signatures');
-      const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+      const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
       const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
       
       await act(async () => {
@@ -1301,14 +1301,14 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select the saved signature from the dropdown, arming `activeSignature`.
-    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button');
     const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
     await act(async () => { sigBtn.click(); });
     const dropdownItem = query<HTMLButtonElement>(document.body, '[data-editor-signature-item]');
     await act(async () => { dropdownItem.click(); });
 
     const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
-    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const wrapper = query<HTMLElement>(container, '[data-sign-page-surface]');
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
