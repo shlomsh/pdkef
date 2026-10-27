@@ -6,6 +6,7 @@ import {
   collectReverseInputs,
   composesIn,
   definedClasses,
+  keyPrefixesUsed,
   keysUsed,
   moduleImportsIn,
   reexportedAliases,
@@ -75,6 +76,11 @@ describe('collectReverseInputs + reverseProblems', () => {
     [f('a/A2.module.css')]: '.x { composes: composed from "./A.module.css"; } .y { composes: base from "./A.module.css"; }',
     [f('a/Orphan.module.css')]: '.o {}',
     [f('a/A.tsx')]: `import styles from './A.module.css'; export const u = styles.used;`,
+    [f('a/A.test.tsx')]: `import styles from './A.module.css'; expect(styles.unused); expect(styles.dyn);`,
+    [f('a/T.module.css')]: '.t {}',
+    [f('a/T.spec.tsx')]: `import styles from './T.module.css'; styles.t;`,
+    [f('a/P.module.css')]: '.hint-a {} .hint-b {} .other {} .tail {}',
+    [f('a/P.tsx')]: 'import styles from "./P.module.css"; export const k = (n) => styles[`hint-${n}`] + styles[`${n}`] + styles.tail;',
     [f('a/A2.tsx')]: `import s2 from './A2.module.css'; export const v = s2.x + s2.y;`,
   };
   const read = (file) => files[file];
@@ -90,6 +96,18 @@ describe('collectReverseInputs + reverseProblems', () => {
     expect(out).not.toContain('.used,');
     expect(out).not.toContain('defines .composed');
     expect(out).not.toContain('defines .base');
+  });
+  it('ignores readers and importers that are tests or specs', () => {
+    const out = run([]).join('\n');
+    expect(out).toContain('A.module.css  defines .unused');
+    expect(out).toContain('T.module.css  has no importer');
+  });
+  it('reads styles[`prefix${x}`] as a read of every class with that prefix, but not an empty prefix', () => {
+    expect([...keyPrefixesUsed('styles[`hint-${n}`] styles[`${n}`]', 'styles')]).toEqual(['hint-']);
+    const out = run([]).join('\n');
+    expect(out).not.toContain('defines .hint-a');
+    expect(out).not.toContain('defines .hint-b');
+    expect(out).toContain('P.module.css  defines .other');
   });
   it('lets the allowlist cover a dynamic key, and flags a stale entry', () => {
     const ok = run([{ file: f('a/A.module.css'), class: 'dyn', reason: 'built by styles[k]' }]).join('\n');
