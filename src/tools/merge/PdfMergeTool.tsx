@@ -1,32 +1,23 @@
-import { useCallback, useMemo, useReducer, useRef, useState } from 'preact/hooks';
-import { markArrival } from '../../lib/fileArrival.ts';
-import { MergeFileError } from './lib/merge.js';
+import { useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { hasDraftHint } from '../../lib/drafts/draftStore.ts';
 import { isGrouped, isInListOrder, mergedTitle } from './lib/mergePlan.ts';
 import { outputPageCount } from '../../lib/pagePlan.ts';
-import { isolateName } from '../../lib/format.js';
-import { useHandoffFilesIntake } from '../../lib/useHandoffIntake.ts';
 import { useDocumentHistory } from '../../lib/history/useDocumentHistory.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { withIslandBoundary } from '../../lib/IslandErrorBoundary.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import MergeVerb from './verb/MergeVerb.tsx';
-import ToolShellBridge from '../../shell/ToolShellBridge.tsx';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { useDownloadFlow, type HandoffTool } from '../../shell/pageWorkspace/useDownloadFlow.ts';
 import { useLinkedHighlight, useMergeMoment } from './hooks/useLinkedHighlight.ts';
-import PageWorkspace from '../../shell/pageWorkspace/PageWorkspace.tsx';
 import { downloadDetail } from '../../shell/pageWorkspace/pageCounts.ts';
-import { recordAction } from '../../lib/actionTrail.ts';
 import type { QuietPolicy } from '../../lib/quietPrepare.ts';
 import { usePreparedMerge } from './hooks/usePreparedMerge.ts';
-import type { MergeDraftRestore } from './hooks/useMergeDraft.ts';
 import { englishMergeMessages, type MergeMessages } from './messages';
 import { englishShellMessages, type ShellMessages } from '../../shell/shellMessages';
 import { formatMessage } from '../../lib/formatMessage';
-import { EMPTY_MODEL, toEntry, type Model } from './lib/mergeModel.ts';
-import { initialMergeState, mergeReducer, type MergeState } from './state/mergeState.ts';
-import { readRememberedOptions, rememberOptions } from './components/rememberedOptions.ts';
+import { EMPTY_MODEL, type Model } from './lib/mergeModel.ts';
+import { initialMergeState, mergeReducer } from './state/mergeState.ts';
+import { readRememberedOptions } from './components/rememberedOptions.ts';
 import { useRailSortables } from './hooks/useRailSortables.ts';
 import { useFileDropTargets } from './hooks/useFileDropTargets.ts';
 import { useMergeFiles } from './hooks/useMergeFiles.ts';
@@ -34,12 +25,11 @@ import { useTransientHints } from './hooks/useTransientHints.ts';
 import { useInstallPrompt } from './hooks/useInstallPrompt.ts';
 import { useLockedProbe } from './hooks/useLockedProbe.ts';
 import { useLazySurfaces, useRestoreSettling } from './hooks/useDraftSurface.ts';
-import MergeChipBar from './components/MergeChipBar.tsx';
-import MergePhoneControls from './components/MergePhoneControls.tsx';
-import { MergeHeading, MergeHeaderStatus } from './components/MergeHeading.tsx';
-import MergeRailContent from './components/MergeRailContent.tsx';
-import MergeRailPinned from './components/MergeRailPinned.tsx';
-import MergeNotices from './components/MergeNotices.tsx';
+import { useMergeLifecycle } from './hooks/useMergeLifecycle.ts';
+import { useMergeHandlers } from './hooks/useMergeHandlers.ts';
+import { draftStatusLabelOf, failedFileOf, sortOptionsOf } from './lib/mergeView.ts';
+import MergeHints from './components/MergeHints.tsx';
+import MergeWorkspace from './components/MergeWorkspace.tsx';
 
 export type { FileEntry } from './lib/mergeModel.ts';
 
@@ -56,11 +46,6 @@ export type { FileEntry } from './lib/mergeModel.ts';
    moment the store's key format changes. */
 function hasMergeDraftHint(): boolean {
   return hasDraftHint('merge');
-}
-
-function prefersReducedMotion(): boolean {
-  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 interface PdfMergeToolProps {
@@ -110,7 +95,7 @@ export default withIslandBoundary(function PdfMergeTool({
     undefined,
     () => initialMergeState({ draftHint: hasMergeDraftHint(), addPageNumbers: readRememberedOptions().addPageNumbers }),
   );
-  const { addPageNumbers, customOutputName, renderedCount } = state;
+  const { addPageNumbers, customOutputName } = state;
   const downloaded = useDownloaded();
   const [layoutEl, setLayoutEl] = useState<HTMLDivElement | null>(null);
   useLinkedHighlight(layoutEl);
@@ -164,13 +149,7 @@ export default withIslandBoundary(function PdfMergeTool({
     quietPolicy,
   });
 
-  // MERGE-04: which file failed, and why. Inspection catches most cases
-  // before a merge is attempted; mergePdfs's MergeFileError is the second line.
-  const failedEntry = entries.find((e) => e.error)
-    ?? (prepared.error instanceof MergeFileError ? entries[prepared.error.fileIndex] ?? null : null);
-  const failedReason: 'encrypted' | 'unreadable' | null = failedEntry
-    ? (failedEntry.error ?? (prepared.error instanceof MergeFileError ? prepared.error.reason : 'unreadable'))
-    : null;
+  const { failedEntry, failedReason } = failedFileOf(entries, prepared.error);
   const otherError = !failedEntry && prepared.status === 'error';
   const { needsUnlock, probeSettled, lockedView } = useLockedProbe(entries, state.lockedProbe, dispatch);
 
@@ -194,114 +173,15 @@ export default withIslandBoundary(function PdfMergeTool({
   useRailSortables({ listRef, chipListRef, hasFiles, canReorderFiles, onReorder: applyFileReorder });
   const { requestInstall } = useInstallPrompt(state, dispatch, prepared.status);
 
-  // A restored draft: fresh entries for the stored files (the index doubles as
-  // the id, which is what the stored plan's fileId already is), then the same
-  // inspection a fresh pick gets, for thumbnails and to re-check each file.
-  const onDraftRestore = useCallback((restored: MergeDraftRestore, source: 'restore' | 'recent') => {
-    // SITE-42: files handed off from the home page are the newest intent and
-    // win; a restore resolving after them must not overwrite or join them.
-    if (handedOffRef.current) return;
-    // DEBT-58: marked past that bail, so a restore that loses never relabels the hand-off.
-    markArrival(source);
-    restoreScrollPendingRef.current = true;
-    const restoredEntries = restored.files.map((file) => toEntry(file));
-    const idByIndex = restoredEntries.map((e) => e.id);
-    const restoredPlan = restored.plan.map((p) => ({ ...p, fileId: idByIndex[p.fileId], key: `${idByIndex[p.fileId]}:${p.pageIndex}` }));
-    resetModel({ entries: restoredEntries, plan: restoredPlan, sortMode: 'added' });
-    dispatch({ type: 'DRAFT_RESTORED', addPageNumbers: restored.options.addPageNumbers, outputName: restored.outputName });
-    startPickedUpTimer();
-    void Promise.allSettled(restoredEntries.map((entry) => inspectEntry(entry))) // reason: allSettled never rejects
-      .then(() => dispatch({ type: 'RESTORE_HYDRATED' }));
-  }, [resetModel, inspectEntry, startPickedUpTimer]);
-
-  // Everything on screen that belongs to the current set, shared by Clear all
-  // and a home-page hand-off so the two cannot drift. It never touches the
-  // saved draft: Clear all deletes that itself, a hand-off must not.
-  const clearWorkspace = useCallback(() => {
-    resetModel(EMPTY_MODEL);
-    resetDownloadFlow();
-    dispatch({ type: 'WORKSPACE_CLEARED' });
-    cancelHints();
-    forgetPendingPlanIndexes();
-  }, [resetDownloadFlow, resetModel, cancelHints, forgetPendingPlanIndexes]);
-
-  // SITE-42: several files picked on the home page arrive as a brand-new set,
-  // through addFiles like a manual pick. Whatever a restore already put on
-  // screen is replaced, but the saved set is NOT cleared (no reset(), no
-  // clearDraftRef): it stays in the shared recents, and the new set saves as
-  // its own entry because an entry's id is derived from its files' bytes
-  // (draftStore's sourceIdForFiles), never reused from the current pointer.
-  useHandoffFilesIntake('merge', (files) => {
-    handedOffRef.current = true;
-    clearWorkspace();
-    dispatch({ type: 'HANDOFF_ARRIVED', addPageNumbers: readRememberedOptions().addPageNumbers });
-    addFiles(files, { force: true, fresh: true });
+  const { onDraftRestore, reset } = useMergeLifecycle({
+    resetModel, inspectEntry, addFiles, forgetPendingPlanIndexes, resetDownloadFlow, startPickedUpTimer, cancelHints,
+    dispatch, announce: setAnnouncement, clearedMessage: t.cleared, handedOffRef, restoreScrollPendingRef, clearDraftRef,
   });
-
-  const reset = useCallback(() => {
-    clearWorkspace();
-    void clearDraftRef.current?.(); // reason: clearDraft goes through draftStore, which reports its own failure
-    setAnnouncement(t.cleared);
-    recordAction('clear_all');
-  }, [clearWorkspace, t.cleared]);
-
-  const onRowKeyDown = useCallback(
-    (event: KeyboardEvent, id: number) => {
-      if (!canReorderFiles) return;
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        moveFileEntry(id, -1);
-      } else if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        moveFileEntry(id, 1);
-      }
-    },
-    [moveFileEntry, canReorderFiles],
-  );
-
-  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z are bound by useDocumentHistory, which stands down while
-  // focus is in an input (the page-numbers checkbox, the rename field). The prepared output
-  // follows the plan on its own (usePreparedMerge keys on it), so nothing is cleared here.
-
-  const onPageNumbersChange = useCallback((event: Event) => {
-    const next = (event.target as HTMLInputElement).checked;
-    dispatch({ type: 'PAGE_NUMBERS_CHANGED', value: next });
-    rememberOptions({ addPageNumbers: next });
-    recordAction('change_setting');
-  }, []);
-
-  // MERGE-11: the rename itself lives in the shell's OutputName. '' means the
-  // person emptied it, which goes back to the automatic name.
-  const renameOutput = useCallback((next: string) => {
-    dispatch({ type: 'OUTPUT_RENAMED', name: next.length > 0 ? next : null });
-  }, []);
-  const onDraftStateChange = useCallback(
-    (next: { isRestoring: boolean; draftSaveState: MergeState['draftSaveState'] }) => dispatch({ type: 'DRAFT_CHECK_SETTLED', ...next }),
-    [],
-  );
-  const onRenderedCountChange = useCallback((count: number) => dispatch({ type: 'RENDERED_COUNT_CHANGED', count }), []);
-
-  const scrollToCaption = useCallback((fileId: number) => {
-    const container = documentRef.current;
-    const target = container?.querySelector<HTMLElement>(`[data-caption-for="${fileId}"]`)
-      ?? container?.querySelector<HTMLElement>(`[data-key^="${fileId}:"]`);
-    target?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-  }, []);
+  const {
+    onRowKeyDown, onPageNumbersChange, renameOutput, onDraftStateChange, onRenderedCountChange, scrollToCaption,
+  } = useMergeHandlers({ dispatch, canReorderFiles, moveFileEntry, documentRef });
 
   const rearranged = hasFiles && (!grouped || !listOrdered);
-  const showSortControls = entries.length >= 2 && !rearranged;
-  const detail = downloadDetail(prepared, outputPageCount(plan), sm, t.dir);
-  // A file flagged by inspection (encrypted, unreadable) is the person's file,
-  // not a failed operation; a failure of the merge run itself, which
-  // usePreparedMerge reports, still counts.
-  const analyticsStatus = prepared.status === 'error' ? 'error' : tap;
-  const { draftSaveState } = state;
-  const draftStatusLabel = draftSaveState === 'saved' ? sm.draftSaved
-    : draftSaveState === 'pending' ? sm.draftSaving
-      : draftSaveState === 'error' ? sm.draftNotSaved
-        : draftSaveState === 'conflict' ? sm.draftConflict
-          : null;
-
   // Heading and Download-element counts: the merge OUTPUT (skipped pages
   // excluded), never the raw plan length - a skipped page still gets a
   // "1 skipped" addendum, never inflates the page count itself (PART 2:
@@ -309,16 +189,6 @@ export default withIslandBoundary(function PdfMergeTool({
   // progress ("7 of 9 rendered") is a separate figure: it tracks every cell
   // that needs a thumbnail, skipped ones included, and disappears once done.
   const outputCount = outputPageCount(plan);
-  const renderTotal = plan.length;
-  const sortOptions = [
-    { value: 'added' as const, label: t.sortAsAdded },
-    { value: 'reversed' as const, label: t.sortReversed },
-    { value: 'nameAsc' as const, label: t.sortNameAsc },
-    { value: 'nameDesc' as const, label: t.sortNameDesc },
-    { value: 'dateAsc' as const, label: t.sortDateAsc },
-    { value: 'dateDesc' as const, label: t.sortDateDesc },
-  ];
-
   const rating = <RatingPrompt tool="merge" downloaded={downloaded} messages={sm} />;
 
   return (
@@ -333,7 +203,10 @@ export default withIslandBoundary(function PdfMergeTool({
         onClear: reset,
         summary: entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length }),
       }}
-      analytics={{ tool: 'merge', status: analyticsStatus }}
+      // A file flagged by inspection (encrypted, unreadable) is the person's file,
+      // not a failed operation; a failure of the merge run itself, which
+      // usePreparedMerge reports, still counts.
+      analytics={{ tool: 'merge', status: prepared.status === 'error' ? 'error' : tap }}
       owns={{ rating: true }}
       // Direction A wave 2 (Shlomi): with the add bar gone, dropping
       // anywhere on the page is the only invitation left, so the
@@ -355,173 +228,67 @@ export default withIslandBoundary(function PdfMergeTool({
         />
       )}
 
-      {state.rejectedFiles.length > 0 && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          {state.rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: isolateName(state.rejectedFiles[0], t.dir) })
-            : formatMessage(t.skippedMany, { count: state.rejectedFiles.length })}
-        </p>
-      )}
-
-      {state.duplicates.length > 0 && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          <span>{state.duplicates.map((f) => formatMessage(t.alreadyAdded, { name: isolateName(f.name, t.dir) })).join(' ')}</span>{' '}
-          <button type="button" class={pdfToolStyles['quiet-link']} onClick={() => addFiles(state.duplicates, { force: true })}>
-            {t.addAnyway}
-          </button>
-        </p>
-      )}
+      <MergeHints
+        rejectedFiles={state.rejectedFiles}
+        duplicates={state.duplicates}
+        onAddAnyway={(files) => addFiles(files, { force: true })}
+        t={t}
+      />
 
       {hasFiles && (
-        <ToolShellBridge>
-          {({ requestReplace, requestClear }) => (
-            <PageWorkspace
-              rootAttrs={{
-                'data-merge-workspace-ready': workspaceReady ? '' : undefined,
-                'data-merge-restored-workspace': state.isRestoredWorkspace || undefined,
-              }}
-              layoutRef={setLayoutEl}
-              documentRef={documentRef}
-              phoneBar={(
-                <MergeChipBar
-                  entries={entries}
-                  chipListRef={chipListRef}
-                  onRemove={removeEntry}
-                  downloadFlow={downloadFlow}
-                  prepared={prepared}
-                  fileName={fileName}
-                  detail={detail}
-                  t={t}
-                  rating={rating}
-                />
-              )}
-              phoneControls={(
-                <MergePhoneControls
-                  fileCount={entries.length}
-                  rearranged={rearranged}
-                  sortMode={sortMode}
-                  sortOptions={sortOptions}
-                  onSortChange={onSortChange}
-                  onResetOrder={resetPageOrder}
-                  onAdd={requestReplace}
-                  onClear={requestClear}
-                  t={t}
-                  sm={sm}
-                />
-              )}
-              /* Coarse pointer only (CSS-gated, PageWorkspace.module.css): the
-                 chip row and the page grid below both drag on press-and-hold
-                 (SortableJS's delayOnTouchOnly), with no grip icon standing in
-                 for the gesture the way the desktop rail's handle does, so
-                 nothing tells a phone that dragging works at all. Gated on
-                 having something worth reordering, same threshold as the
-                 desktop rail's own Sort control. */
-              touchHint={(entries.length > 1 || outputCount > 1) && t.touchDragHint}
-              heading={lockedView ? null : (
-                <MergeHeading
-                  title={title}
-                  outputCount={outputCount}
-                  skippedCount={plan.length - outputCount}
-                  stillRendering={renderTotal > 0 && renderedCount < renderTotal}
-                  renderedCount={renderedCount}
-                  onRename={renameOutput}
-                  onRenamingChange={(renaming) => dispatch({ type: 'RENAMING_CHANGED', renaming })}
-                  t={t}
-                  sm={sm}
-                />
-              )}
-              headerStatus={lockedView ? null : (
-                <MergeHeaderStatus
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  onUndo={handleUndo}
-                  onRedo={handleRedo}
-                  showPickedUp={state.showPickedUpSentence}
-                  showShortcuts={state.showShortcutsHint}
-                  isRestoredWorkspace={state.isRestoredWorkspace}
-                  onStartFresh={requestClear}
-                  t={t}
-                />
-              )}
-              railContent={(
-                <MergeRailContent
-                  entries={entries}
-                  listRef={listRef}
-                  canReorderFiles={canReorderFiles}
-                  rearranged={rearranged}
-                  showSortControls={showSortControls}
-                  sortMode={sortMode}
-                  sortOptions={sortOptions}
-                  draftStatusLabel={draftStatusLabel}
-                  showDraftRetentionHint={draftSaveState !== 'error' && draftSaveState !== 'conflict'}
-                  showPickedUpSentence={state.showPickedUpSentence}
-                  isRestoredWorkspace={state.isRestoredWorkspace}
-                  onRemove={removeEntry}
-                  onRowKeyDown={onRowKeyDown}
-                  onRowClick={scrollToCaption}
-                  onSortChange={onSortChange}
-                  onResetOrder={resetPageOrder}
-                  onAdd={requestReplace}
-                  onClear={requestClear}
-                  t={t}
-                  sm={sm}
-                />
-              )}
-              railPinned={(
-                <MergeRailPinned
-                  fileCount={entries.length}
-                  addPageNumbers={addPageNumbers}
-                  onPageNumbersChange={onPageNumbersChange}
-                  lockedView={lockedView}
-                  downloadFlow={downloadFlow}
-                  prepared={prepared}
-                  fileName={fileName}
-                  detail={detail}
-                  renderedCount={renderedCount}
-                  renderTotal={renderTotal}
-                  outputCount={outputCount}
-                  hasFailedEntry={!!failedEntry}
-                  isOutputNameBeingRenamed={state.isRenamingOutputName}
-                  onChooseFiles={requestReplace}
-                  onStartAgain={reset}
-                  showInstallLine={state.showInstallLine}
-                  installPrompt={state.installPrompt}
-                  onIos={state.onIos}
-                  onInstall={requestInstall}
-                  t={t}
-                  sm={sm}
-                />
-              )}
-            >
-              <MergeNotices
-                needsUnlock={needsUnlock}
-                probeSettled={probeSettled}
-                failedEntry={failedEntry}
-                failedReason={failedReason}
-                otherError={otherError}
-                unlockHref={unlockHref}
-                onRemove={removeEntry}
-                t={t}
-              />
-
-              {!needsUnlock && PageGrid && plan.length > 0 && (
-                <PageGrid
-                  sources={entries}
-                  plan={plan}
-                  onPlanChange={onPlanChange}
-                  announce={setAnnouncement}
-                  messages={t}
-                  labelledBy="page-grid-heading"
-                  grouped={grouped}
-                  labelSources
-                  gridRef={stripRef}
-                  onRenderedCountChange={onRenderedCountChange}
-                  onFirstKeyboardFocus={onFirstKeyboardFocus}
-                />
-              )}
-            </PageWorkspace>
-          )}
-        </ToolShellBridge>
+        <MergeWorkspace
+          entries={entries}
+          plan={plan}
+          sortMode={sortMode}
+          sortOptions={sortOptionsOf(t)}
+          state={state}
+          dispatch={dispatch}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onPlanChange={onPlanChange}
+          announce={setAnnouncement}
+          PageGrid={PageGrid}
+          workspaceReady={workspaceReady}
+          layoutRef={setLayoutEl}
+          documentRef={documentRef}
+          chipListRef={chipListRef}
+          listRef={listRef}
+          stripRef={stripRef}
+          grouped={grouped}
+          rearranged={rearranged}
+          showSortControls={entries.length >= 2 && !rearranged}
+          canReorderFiles={canReorderFiles}
+          title={title}
+          fileName={fileName}
+          detail={downloadDetail(prepared, outputCount, sm, t.dir)}
+          outputCount={outputCount}
+          downloadFlow={downloadFlow}
+          prepared={prepared}
+          rating={rating}
+          lockedView={lockedView}
+          needsUnlock={needsUnlock}
+          probeSettled={probeSettled}
+          failedEntry={failedEntry}
+          failedReason={failedReason}
+          otherError={otherError}
+          unlockHref={unlockHref}
+          draftStatusLabel={draftStatusLabelOf(state.draftSaveState, sm)}
+          onRemove={removeEntry}
+          onRowKeyDown={onRowKeyDown}
+          onRowClick={scrollToCaption}
+          onSortChange={onSortChange}
+          onResetOrder={resetPageOrder}
+          onStartAgain={reset}
+          onRename={renameOutput}
+          onPageNumbersChange={onPageNumbersChange}
+          onRenderedCountChange={onRenderedCountChange}
+          onFirstKeyboardFocus={onFirstKeyboardFocus}
+          onInstall={requestInstall}
+          t={t}
+          sm={sm}
+        />
       )}
 
       <p class="sr-only" role="status" aria-live="polite">
