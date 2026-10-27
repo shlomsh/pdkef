@@ -13,43 +13,43 @@ import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } fr
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
 import { useRecentWhiteoutColors } from '../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
 import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
-import useDeleteTool from './useDeleteTool.ts';
-import useRedactCommands from './useRedactCommands.ts';
-import RedactToolbar from './RedactToolbar.tsx';
-import RedactBox from './RedactBox.tsx';
-import usePeekAll from './usePeekAll.ts';
-import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
-import { resolveWhiteoutColor, resolveRedactBlurStrength } from './redactStyle.ts';
-import BrushControls, { brushStyleOf, resolveBrush, type BrushSettings } from './BrushControls.tsx';
+import useDeleteTool from './hooks/useDeleteTool.ts';
+import useRedactCommands from './hooks/useRedactCommands.ts';
+import RedactToolbar from './components/RedactToolbar.tsx';
+import RedactBox from './components/RedactBox.tsx';
+import usePeekAll from './hooks/usePeekAll.ts';
+import BrushLayer, { type CommittedStroke } from './components/BrushLayer.tsx';
+import { resolveWhiteoutColor, resolveRedactBlurStrength } from './lib/redactStyle.ts';
+import BrushControls, { brushStyleOf, resolveBrush, type BrushSettings } from './components/BrushControls.tsx';
 import { useEyedropper, sampleRingColor } from '../../editor-ui/whiteout/pageSampling.ts';
 import { autoColorChanges, type PercentBox } from '../../editor-ui/whiteout/pageColor.ts';
-import { checkBoxesFromElements } from './check/checkBoxes.ts';
-import usePageSizesPt, { needsPageSizes } from './usePageSizesPt.ts';
-import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
-import DeleteLift from './DeleteLift.tsx';
-import DeleteMarquee from './DeleteMarquee.tsx';
-import { groupMembers, repeatCopies } from './repeatGroup.ts';
-import { findSetMembers } from './findSet.ts';
-import useLinkedBoxes from './useLinkedBoxes.ts';
-import { isDeleteElement, type RedactElement } from './redactElements.ts';
+import { checkBoxesFromElements } from './lib/check/checkBoxes.ts';
+import usePageSizesPt, { needsPageSizes } from './hooks/usePageSizesPt.ts';
+import DeletableObjectOverlay from './components/DeletableObjectOverlay.tsx';
+import DeleteLift from './components/DeleteLift.tsx';
+import DeleteMarquee from './components/DeleteMarquee.tsx';
+import { groupMembers, repeatCopies } from './lib/repeatGroup.ts';
+import { findSetMembers } from './lib/findSet.ts';
+import useLinkedBoxes from './hooks/useLinkedBoxes.ts';
+import { isDeleteElement, type RedactElement } from './lib/redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
-import FindBar, { PRESET_LABELS } from './FindBar.tsx';
-import SavedFileCheck from './SavedFileCheck.tsx';
-import { removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
-import { DetailsFooter } from './details/DetailsFooter.tsx';
-import { DetailsSheet } from './details/DetailsSheet.tsx';
-import { useDocumentDetails } from './details/useDocumentDetails.ts';
-import { describeDetails, detailsSummary, changesPieces } from './details/describeDetails.ts';
+import FindBar, { PRESET_LABELS } from './components/FindBar.tsx';
+import SavedFileCheck from './components/SavedFileCheck.tsx';
+import { removedMessage, type InPlaceFinding } from './lib/check/checkCopy.ts';
+import { DetailsFooter } from './components/details/DetailsFooter.tsx';
+import { DetailsSheet } from './components/details/DetailsSheet.tsx';
+import { useDocumentDetails } from './hooks/details/useDocumentDetails.ts';
+import { describeDetails, detailsSummary, changesPieces } from './lib/details/describeDetails.ts';
 import type { DetailEdits } from './lib/detailEdits.js';
-import useSavedFileCheck, { traceLocale } from './useSavedFileCheck.ts';
-import { deletedTerms } from './check/deletedTerms.ts';
-import { uncoveredMatches } from './find/findMatches.ts';
-import { PRESET_FINDERS, termFinder } from './find/finders.ts';
-import type { CheckBox, CheckTerm, SavedPlace } from './check/types.ts';
-import FindHighlights from './FindHighlights.tsx';
-import useFind from './useFind.ts';
-import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
-import type { FindMatch } from './find/types.ts';
+import useSavedFileCheck, { traceLocale } from './hooks/useSavedFileCheck.ts';
+import { deletedTerms } from './lib/check/deletedTerms.ts';
+import { uncoveredMatches } from './lib/find/findMatches.ts';
+import { PRESET_FINDERS, termFinder } from './lib/find/finders.ts';
+import type { CheckBox, CheckTerm, SavedPlace } from './lib/check/types.ts';
+import FindHighlights from './components/FindHighlights.tsx';
+import useFind from './hooks/useFind.ts';
+import { useTapOutsideDeselect } from './hooks/useTapOutsideDeselect.ts';
+import type { FindMatch } from './lib/find/types.ts';
 import type { ActionHistoryEntry, HistoryPlace, PlaceHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
   initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
@@ -63,12 +63,12 @@ import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { FileActions } from '../../shell/ToolShell.tsx';
-import RedactFinish from './RedactFinish.tsx';
-import RedactDoneStrip from './RedactDoneStrip.tsx';
+import RedactFinish from './components/RedactFinish.tsx';
+import RedactDoneStrip from './components/RedactDoneStrip.tsx';
 import RatingPrompt, { useDownloaded } from '../../shell/RatingPrompt.tsx';
 import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
-import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
-import { redactedFileName } from './redactFileName.ts';
+import { finishStatusText, type FinishFacts, type FinishPhase } from './lib/finishState.ts';
+import { redactedFileName } from './lib/redactFileName.ts';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
@@ -820,7 +820,7 @@ export default withIslandBoundary(function PdfRedactTool() {
       // "try again". Repeat exports reuse the module registry's copy.
       const [{ applyPageEdits }, { removePlaces }] = await Promise.all([
         import('./lib/applyPageEdits.js'),
-        import('./check/removePlaces.ts'),
+        import('./lib/check/removePlaces.ts'),
       ]);
       // RED-60: every removal replays, oldest first, onto the new document.
       const places = [...(overrides.removedPlaces ?? selectRemovedPlaces(state))].reverse();

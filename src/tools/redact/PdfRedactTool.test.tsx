@@ -14,8 +14,8 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import type { GestureControllerOptions } from '../../lib/gestures/controller.ts';
-import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
-import { buildPageText } from './find/pageText.ts';
+import usePageTexts, { type PageTextsState } from './hooks/usePageTexts.ts';
+import { buildPageText } from './lib/find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { loadDraft, saveHandoff } from '../../lib/drafts/draftStore.ts';
@@ -132,25 +132,25 @@ const mockedRedactPdf = vi.mocked(redactPdf);
 // the same buildPageText/createPageGeometry helpers findMatches.test.ts uses.
 // Defaults to 'idle' (Find never opened) so every test outside the RED-11
 // describe block below is unaffected - only that block overrides it.
-vi.mock('./usePageTexts.ts', () => ({ default: vi.fn(() => ({ status: 'idle', pages: [] })) }));
+vi.mock('./hooks/usePageTexts.ts', () => ({ default: vi.fn(() => ({ status: 'idle', pages: [] })) }));
 const mockedUsePageTexts = vi.mocked(usePageTexts);
 
 const checkOverride = vi.hoisted(() => ({ current: null as null | ((args: never) => unknown) }));
 // RED-25: the saved-file check runs the real hook unless a test overrides it.
-vi.mock('./useSavedFileCheck.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./useSavedFileCheck.ts')>();
+vi.mock('./hooks/useSavedFileCheck.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./hooks/useSavedFileCheck.ts')>();
   return { ...actual, default: (...args: Parameters<typeof actual.default>) => ((checkOverride.current ?? actual.default) as (...a: typeof args) => ReturnType<typeof actual.default>)(...args) };
 });
 // RED-59: jsdom cannot read a file's details, so the hook is steered per test (null = a file with none).
 const detailsOverride = vi.hoisted(() => ({ current: null as null | Record<string, unknown> }));
-vi.mock('./details/useDocumentDetails.ts', () => ({ useDocumentDetails: () => detailsOverride.current }));
+vi.mock('./hooks/details/useDocumentDetails.ts', () => ({ useDocumentDetails: () => detailsOverride.current }));
 const authorTraces = {
   title: 'Quarterly', author: 'Ada Lovelace', subject: null, keywords: null, creator: null, producer: null, creationDate: null, modDate: null,
   otherInfoKeys: [], pieceInfo: false, xmp: { present: false, hasHistory: false }, attachments: [], scripts: { document: false, pages: [] },
   thumbnails: [], pageDetails: [],
 };
 const mockedRemovePlaces = vi.hoisted(() => vi.fn());
-vi.mock('./check/removePlaces.ts', () => ({ removePlaces: mockedRemovePlaces }));
+vi.mock('./lib/check/removePlaces.ts', () => ({ removePlaces: mockedRemovePlaces }));
 
 // RED-51: jsdom cannot read a page, so the ring sampler is steered per test.
 // The default is null (what jsdom gives today); the recorder is a plain

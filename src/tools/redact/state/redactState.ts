@@ -30,9 +30,9 @@ import { pushCommand, redoStep, revertCommands, type HistoryStack } from '../../
 import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import type { RedactToolType } from '../../../editor/model/editorModel.ts';
-import type { BrushSettings } from '../BrushControls.tsx';
-import type { FinishPhase } from '../finishState.ts';
-import type { RedactElement } from '../redactElements.ts';
+import type { BrushSettings } from '../components/BrushControls.tsx';
+import type { FinishPhase } from '../lib/finishState.ts';
+import type { RedactElement } from '../lib/redactElements.ts';
 import type { DetailEdit, DetailEdits } from '../lib/documentTraces.js';
 
 export type RedactStatus = 'idle' | 'loading' | 'editing' | 'redacting' | 'error';
