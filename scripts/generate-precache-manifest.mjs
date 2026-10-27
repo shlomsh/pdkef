@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
 import { sortCspHashes } from './cspHashOrder.mjs';
+import { pageHash } from './pageHash.mjs';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
 import { pageClosure, shellClosure, toPublicUrl as relativeToUrl } from './precacheClosure.mjs';
@@ -46,7 +47,6 @@ for (const relative of [...view.files.keys()].filter((name) => name.endsWith('.h
   pages[relativeToUrl(relative)] = pageClosure(view, relative, { keep });
 }
 const shell = shellClosure(view, { keep });
-const manifest = JSON.stringify({ version: 2, shell, pages }, null, 2);
 
 // Hashed from every file already in dist/ (the manifest and sw.js are written
 // below, after this), not just the precache lists - see buildId.mjs for why a
@@ -58,8 +58,6 @@ const buildId = computeBuildId(
     content: fs.readFileSync(filePath),
   })),
 );
-
-fs.writeFileSync(path.join(distDir, manifestName), `${manifest}\n`);
 
 const workerPath = path.join(distDir, workerName);
 const worker = fs.readFileSync(workerPath, 'utf8');
@@ -85,5 +83,13 @@ if (!about.includes('__BUILD_ID__')) {
   throw new Error('dist/about/index.html is missing the __BUILD_ID__ placeholder.');
 }
 fs.writeFileSync(aboutPath, about.replaceAll('__BUILD_ID__', buildId));
+
+// Written last (MEM-22): `html` hashes each page's final bytes, after the about rewrite above,
+// so the worker can store a refreshed page only when it is the page this build serves.
+const html = {};
+for (const url of Object.keys(pages)) {
+  html[url] = pageHash(fs.readFileSync(path.join(distDir, url.endsWith('/') ? `${url}index.html` : url)));
+}
+fs.writeFileSync(path.join(distDir, manifestName), `${JSON.stringify({ version: 2, build: buildId, shell, pages, html }, null, 2)}\n`);
 
 console.log(`✅ Precache manifest: ${shell.length} shell files and ${Object.keys(pages).length} pages (pdkef-${buildId}).`);
