@@ -1,0 +1,446 @@
+import { createPageGeometry, toPagePercentBox } from '../../../../editor/geometry/coords.ts';
+import { MAX_COMB_CELLS } from '../../../../editor/model/signGeometry.js';
+import { collectPageInk, pageCropBox } from './pageInk.js';
+import { collectCheckboxGlyphs } from '../../../../editor/adapters/pdf/pdfObjects.js';
+import { collectCheckboxWidgets } from './formWidgets.js';
+import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
+
+/**
+ * Recovers fillable geometry from a flat form's own vector content.
+ *
+ * The forms people actually receive have no `/AcroForm` and no widget
+ * annotations, but the boxes they are meant to write into are right there in
+ * the page's drawing operators. This module reads the axis-aligned ink
+ * `pageInk.js` collects and reports two kinds of candidate region:
+ *
+ *   - a **comb run**: five or more equal cells on one baseline at a regular
+ *     pitch, which is what an identity-number, date or phone field looks like;
+ *   - a **checkbox**: an isolated near-square in the checkbox size band.
+ *
+ * Regions come out in the page-percent model the editor already stores
+ * elements in, routed through `geometry/coords.ts`. That is the one
+ * page-coordinate transform in this repo (SIGN-05, ARCH-02) and a second copy
+ * of it would be a defect, not a convenience.
+ *
+ * ## How a run is actually found, and why it is not just "equal gaps"
+ *
+ * The teeth of a comb are short vertical marks hanging from the field's rule.
+ * They are the seed, but they are **not** the whole field: on form 101 the
+ * nine-digit identity comb draws eight teeth and takes its two outer walls
+ * from the enclosing table - the left wall as a tall stroked segment, the
+ * right wall as the edge of a filled `re`. Seeding on teeth alone yields eight
+ * cells for a nine-digit field, which is exactly the kind of off-by-one a
+ * person then has to fix by dragging, i.e. the thing this exists to delete.
+ * So a seeded run is extended by one pitch at each end when real ink stands
+ * where the next wall would be. A cell has to be bounded on both sides by ink
+ * that the page actually draws; nothing is invented.
+ *
+ * The converse matters just as much: a run has to *stop*. Form 101's two date
+ * fields sit side by side on one baseline at one pitch with a table rule
+ * between them, so a detector that only looks for equal gaps offers a single
+ * sixteen-cell target covering two different dates. See `runsFromTeeth` for
+ * why the wider gap between them is read as a boundary rather than as a tooth
+ * the producer forgot to draw - MOBI-03 assumed the opposite, and the fixtures
+ * say otherwise.
+ */
+
+/** Ink taller than this on a comb baseline is a table rule, not a tooth (PDF points). */
+const TOOTH_MAX_HEIGHT = 14;
+/** A closed digit-comb may use full-height cells instead of short teeth. */
+const BOXED_COMB_MAX_HEIGHT = 28;
+/** Ink shorter than this is a dot or an artefact rather than a deliberate mark. */
+const TOOTH_MIN_HEIGHT = 1.5;
+/** Teeth of one row hang from the same rule; this is how far their feet may differ. */
+const BASELINE_TOLERANCE = 1.5;
+/** How far a separator may sit from where the pitch predicts it (PDF points). */
+const PITCH_TOLERANCE = 1;
+/** Narrower than this is not a cell anyone could write a character into. */
+const MIN_PITCH = 5;
+/** Wider than this is a table column, not a comb cell. */
+const MAX_PITCH = 40;
+/** Four digits is the shortest numeric comb on the tax-year field in form 101. */
+const MIN_CELLS = 4;
+/** Checkbox size band, measured from the health declaration's 6.6pt and 7.6pt squares. */
+const CHECKBOX_MIN_SIZE = 4;
+const CHECKBOX_MAX_SIZE = 16;
+/** How far from square a checkbox may be, as a share of its longer side. */
+const CHECKBOX_SQUARENESS = 0.12;
+/** Two boxes closer than this are the same drawn box (a stroke and a fill of one outline). */
+const DUPLICATE_TOLERANCE = 0.5;
+/** A gap narrower than this many pitches between two runs is inside one field, not between two. */
+const MERGE_GAP_PITCHES = 1.2;
+/**
+ * A gap this narrow between two runs is the gap between two separately drawn boxes (the 3pt between
+ * a square's walls and the next square's), not the decimal point of one field, which is about half a
+ * pitch (ภ.ง.ด.90: 4.8pt of 9.5).
+ */
+const MERGE_MIN_GAP_PITCHES = 0.4;
+/**
+ * ...and, in absolute terms, within this many points of each other. Digits of one field are drawn
+ * within a couple of points of one another (ภ.ง.ด.90's worst is 1.9pt), whereas a neighbouring box
+ * that merely shares a wall is off by more (the redaction sample's postal code sits next to a 16pt
+ * cell at 20pt pitch: 4pt). A ratio cannot say this, since 7.7/9.5 and 16/20 are the same 0.8.
+ */
+const MERGE_PITCH_JITTER = 2.5;
+/** Two pieces of one field have pitches this close (smaller over larger is the lower bound). */
+const MERGE_PITCH_RATIO = [0.7, 1.4];
+/** How much of a run's width must be ruled for that edge to count as closed. */
+const CLOSED_EDGE_COVERAGE = 0.7;
+
+/**
+ * Comb runs never took a background-panel exclusion or a full rect's top/bottom as a rule - see
+ * `inkEdges.js`'s module doc comment for what each option means and who else wants it. `edges` and
+ * `rules` here are this file's local names for `verticalEdges(ink)`/`horizontalRules(ink)`'s
+ * defaults, used throughout `findCombRuns` and `findRunsFromWalls` below.
+ */
+
+/** Groups teeth into rows by the baseline their feet share. */
+function rowsByBaseline(teeth) {
+  const rows = [];
+  for (const tooth of [...teeth].sort((a, b) => a.y0 - b.y0)) {
+    const open = rows[rows.length - 1];
+    if (open && tooth.y0 - open.baseline <= BASELINE_TOLERANCE) {
+      open.teeth.push(tooth);
+      open.baseline = Math.max(open.baseline, tooth.y0);
+    } else {
+      rows.push({ baseline: tooth.y0, teeth: [tooth] });
+    }
+  }
+  return rows;
+}
+
+/** Distinct x positions, nearest-first, with anything within a point treated as one mark. */
+function distinctPositions(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const out = [];
+  for (const value of sorted) {
+    if (out.length === 0 || value - out[out.length - 1] > PITCH_TOLERANCE) out.push(value);
+  }
+  return out;
+}
+
+/** True when `edge` reaches the row's band, so it could be one of that row's walls. */
+function touchesRow(edge, row) {
+  return edge.y1 >= row.bottom - BASELINE_TOLERANCE && edge.y0 <= row.top + BASELINE_TOLERANCE;
+}
+
+/**
+ * Splits one row's teeth into maximal sequences at a single pitch.
+ *
+ * A run ends wherever the gap stops matching, and the separator it ended on
+ * starts the next one, so two fields ruled at the same pitch with a wall
+ * between them come out as two runs rather than one double-width target.
+ *
+ * **A doubled gap is a boundary here, not a tooth someone forgot to draw**,
+ * and that is a measurement rather than an assumption. MOBI-03 expected the
+ * opposite, from a probe that grouped teeth by their exact top *and* bottom
+ * and so dropped the taller group-separator ticks inside form 101's identity
+ * combs - which is the whole of the "pitch conformance 8 of 11" it reports.
+ * Grouping by the baseline the teeth actually hang from puts those ticks back
+ * and every one of those rows resolves to a clean 11.3pt pitch with no wider
+ * gap left in it. Of the doubled gaps that survive in either evidence form,
+ * every one is a field boundary: a table rule between form 101's two date
+ * fields, and the label cells (פקס = fax, נייד = mobile) sitting in the health
+ * declaration's phone strip. Bridging them merges a fax number with a postal
+ * code and invents a cell under the label. Splitting instead fails the safer
+ * way round: a field that splits can still be widened by hand, whereas a
+ * merged one hands the user a comb of the wrong pitch that looks deliberate.
+ */
+function runsFromTeeth(positions) {
+  const runs = [];
+  let start = 0;
+  while (start < positions.length - 1) {
+    const pitch = positions[start + 1] - positions[start];
+    if (pitch < MIN_PITCH || pitch > MAX_PITCH) {
+      start += 1;
+      continue;
+    }
+    let end = start + 1;
+    while (
+      end < positions.length - 1
+      && Math.abs(positions[end + 1] - positions[end] - pitch) <= PITCH_TOLERANCE
+    ) end += 1;
+    runs.push({ separators: positions.slice(start, end + 1), pitch });
+    // The separator a run ended on is the next run's first wall.
+    start = end;
+  }
+  return runs;
+}
+
+/**
+ * Joins runs of one row that sit end to end, so a field whose digits are not drawn at one exact
+ * pitch comes back as one comb (FORM-17).
+ *
+ * ภ.ง.ด.90's amount combs vary by a point or two cell to cell and put a narrow gap for the
+ * decimal point before the satang digits, so exact-pitch chaining (`runsFromTeeth`) cuts one field
+ * into a narrow lead piece, the long body and a two-cell tail, and the tail is too short to be a
+ * comb on its own. The test that keeps this from undoing `runsFromTeeth`'s own boundary reading is
+ * the gap size: a gap *inside* a field is narrower than a cell, whereas the boundary form 101 and
+ * the health declaration were measured to have between two fields is a doubled gap or wider
+ * (see `runsFromTeeth`). Only a gap under `MERGE_GAP_PITCHES` pitches is bridged, never a wider one.
+ * That doubled gap also shows up as a one-cell run at twice the pitch whose end separators are
+ * shared with both neighbours, so a gap of zero is not enough: the two pieces must also have pitches
+ * within `MERGE_PITCH_RATIO` of each other. Measured on the scored forms, the merges that are wrong
+ * (form 101's dates, the health declaration's phone strip and boxes) all join pieces at 1.9x to
+ * 2.9x one another's pitch; ภ.ง.ด.90's own are 0.8x. A piece shorter than a comb also has to be no
+ * wider than the run it joins (and within `MERGE_PITCH_JITTER` points of it): the health declaration's phone strip has a lone cell 1.1x wider than
+ * the runs either side, which is a label cell between two fields, and no pitch band separates it
+ * from ภ.ง.ด.90's irregular digits except that direction. Runs share their end separators, so
+ * adjacent runs have a gap of zero or more, never less.
+ */
+function mergeAdjacentRuns(runs) {
+  const merged = [];
+  for (const run of runs) {
+    const last = merged[merged.length - 1];
+    const gap = last ? run.separators[0] - last.separators[last.separators.length - 1] : Infinity;
+    const ratio = last ? run.pitch / last.rightPitch : 1;
+    // A short piece is part of the field only when it is no wider than the run it joins: a lone cell
+    // wider than its neighbours is a label or spacer between two fields (the health declaration's
+    // phone strip), whereas ภ.ง.ด.90's lead and tail pieces are narrower (0.8x).
+    const shorter = last && run.separators.length < last.separators.length ? run : last;
+    const widerThanOther = last && shorter && shorter.pitch > (shorter === run ? last.rightPitch : run.pitch) * 1.02;
+    const shortPiece = last && Math.min(run.separators.length, last.separators.length) - 1 < MIN_CELLS;
+    const minPitch = last ? Math.min(last.rightPitch, run.pitch) : 0;
+    const bridged = gap > PITCH_TOLERANCE;
+    if (last && gap < MERGE_GAP_PITCHES * minPitch && (!bridged || gap >= MERGE_MIN_GAP_PITCHES * minPitch)
+      && ratio >= MERGE_PITCH_RATIO[0] && ratio <= MERGE_PITCH_RATIO[1]
+      && Math.abs(run.pitch - last.rightPitch) <= MERGE_PITCH_JITTER
+      && !(shortPiece && widerThanOther)) {
+      const shared = gap <= PITCH_TOLERANCE ? 1 : 0;
+      last.separators = [...last.separators, ...run.separators.slice(shared)];
+      last.rightPitch = run.pitch;
+      last.pitch = Math.max(last.pitch, run.pitch);
+    } else {
+      merged.push({ ...run, leftPitch: run.pitch, rightPitch: run.pitch });
+    }
+  }
+  return merged;
+}
+
+/** Grows a run by one pitch at each end, but only onto ink the page really draws. */
+function extendToWalls(run, row, edges) {
+  const { separators, leftPitch = run.pitch, rightPitch = run.pitch } = run;
+  const wallAt = (predicted) => {
+    const candidates = edges
+      .filter((edge) => Math.abs(edge.x - predicted) <= PITCH_TOLERANCE && touchesRow(edge, row))
+      .sort((a, b) => Math.abs(a.x - predicted) - Math.abs(b.x - predicted));
+    return candidates[0]?.x;
+  };
+
+  const left = wallAt(separators[0] - leftPitch);
+  const right = wallAt(separators[separators.length - 1] + rightPitch);
+  return [
+    ...(left === undefined ? [] : [left]),
+    ...separators,
+    ...(right === undefined ? [] : [right]),
+  ];
+}
+
+/**
+ * Comb runs on one page, in PDF user space.
+ *
+ * Exported separately from the page-percent API so the geometry can be
+ * asserted in the units the form was measured in.
+ */
+function findRunsFromWalls(walls, rules, edges, { requireCompactBoxes = false } = {}) {
+  const found = [];
+  for (const grouped of rowsByBaseline(walls)) {
+    if (grouped.teeth.length < MIN_CELLS - 1) continue;
+    const row = {
+      bottom: Math.min(...grouped.teeth.map((tooth) => tooth.y0)),
+      top: Math.max(...grouped.teeth.map((tooth) => tooth.y1)),
+    };
+    const positions = distinctPositions(grouped.teeth.map((tooth) => tooth.x));
+
+    for (const run of mergeAdjacentRuns(runsFromTeeth(positions))) {
+      const separators = extendToWalls(run, row, edges);
+      const cells = separators.length - 1;
+      if (cells < MIN_CELLS || cells > MAX_COMB_CELLS) continue;
+      const left = separators[0];
+      const right = separators[separators.length - 1];
+      const boxed = ruledCoverage(rules, row.top, left, right, BASELINE_TOLERANCE) >= CLOSED_EDGE_COVERAGE
+        && ruledCoverage(rules, row.bottom, left, right, BASELINE_TOLERANCE) >= CLOSED_EDGE_COVERAGE;
+      // Short walls are the usual teeth hanging from a writing rule. Taller
+      // walls are only safe to treat as a comb when they close a compact row
+      // of boxes: that admits real, full-height digit cells without turning a
+      // tall table column into a text target.
+      const rowHeight = row.top - row.bottom;
+      if (requireCompactBoxes && (!boxed || rowHeight > run.pitch * 1.2)) continue;
+      found.push({
+        left,
+        right,
+        bottom: row.bottom,
+        top: row.top,
+        cells,
+        pitch: (right - left) / cells,
+        // Closed at the top as well as the bottom means the cells are boxes
+        // rather than teeth hanging from a writing line, and text goes in the
+        // middle of a box instead of sitting on a rule. The page says which:
+        // form 101 has no horizontal ink at all along its runs' tops, the
+        // health declaration has 96% of it. See placeCombOnRegion.
+        boxed,
+      });
+    }
+  }
+  return found;
+}
+
+export function findCombRuns(ink) {
+  const edges = verticalEdges(ink);
+  const rules = horizontalRules(ink);
+  const shortTeeth = edges.filter((edge) => {
+    const height = edge.y1 - edge.y0;
+    return height >= TOOTH_MIN_HEIGHT && height <= TOOTH_MAX_HEIGHT;
+  });
+  const tallBoxWalls = edges.filter((edge) => {
+    const height = edge.y1 - edge.y0;
+    return height > TOOTH_MAX_HEIGHT && height <= BOXED_COMB_MAX_HEIGHT;
+  });
+
+  // Keep the established short-tooth pass isolated: adding tall walls to it
+  // changes its baselines and loses fields in dense government forms. The
+  // second pass admits only compact, closed rows, which is the geometry of a
+  // roomy digit comb rather than a table column.
+  return [
+    ...findRunsFromWalls(shortTeeth, rules, edges),
+    ...findRunsFromWalls(tallBoxWalls, rules, edges, { requireCompactBoxes: true }),
+  ];
+}
+
+/** Painted cells of one comb are the same size to within this (PDF points). */
+const SQUARE_SIZE_TOLERANCE = 0.5;
+/** Least space between two separately painted cells; touching ones are the wall-based runs' job. */
+const MIN_CELL_GAP = 0.5;
+
+/**
+ * Comb runs drawn as separately painted cells, in PDF user space (FORM-18).
+ *
+ * Some forms (SA100's amount boxes) paint every cell as its own rectangle with a gap between,
+ * so there are no shared walls for `findCombRuns` to seed on. Equal cells on one baseline at a
+ * regular pitch are a comb whether or not they touch, so this reads them the same way. Cells are
+ * grouped by size, baseline and paint, which keeps a differently painted end cell (the unfilled
+ * '£' and pence cells around SA100's filled digit cells) out of the run: only the cells a person
+ * writes in remain. A column of the same squares has no shared baseline and stays checkboxes.
+ */
+export function findSquareCombRuns(ink) {
+  const cells = [];
+  for (const rect of ink.rects) {
+    if (rect.width < MIN_PITCH || rect.width > MAX_PITCH) continue;
+    if (rect.height < CHECKBOX_MIN_SIZE || rect.height > BOXED_COMB_MAX_HEIGHT) continue;
+    const duplicate = cells.some((c) => Math.abs(c.x - rect.x) <= DUPLICATE_TOLERANCE
+      && Math.abs(c.y - rect.y) <= DUPLICATE_TOLERANCE);
+    if (!duplicate) cells.push(rect);
+  }
+
+  const groups = [];
+  for (const cell of cells) {
+    const group = groups.find((g) => Math.abs(g.y - cell.y) <= BASELINE_TOLERANCE
+      && Math.abs(g.width - cell.width) <= SQUARE_SIZE_TOLERANCE
+      && Math.abs(g.height - cell.height) <= SQUARE_SIZE_TOLERANCE
+      && g.filled === cell.filled);
+    if (group) group.cells.push(cell);
+    else groups.push({ y: cell.y, width: cell.width, height: cell.height, filled: cell.filled, cells: [cell] });
+  }
+
+  const found = [];
+  for (const group of groups) {
+    if (group.cells.length < MIN_CELLS) continue;
+    const positions = distinctPositions(group.cells.map((cell) => cell.x));
+    for (const run of runsFromTeeth(positions)) {
+      const count = run.separators.length;
+      if (count < MIN_CELLS || count > MAX_COMB_CELLS) continue;
+      if (run.pitch - group.width < MIN_CELL_GAP) continue;
+      const left = run.separators[0];
+      const right = run.separators[count - 1] + group.width;
+      found.push({
+        left,
+        right,
+        bottom: group.y,
+        top: group.y + group.height,
+        cells: count,
+        pitch: (right - left) / count,
+        boxed: true,
+      });
+    }
+  }
+  return found;
+}
+
+/** Checkbox squares on one page, in PDF user space. */
+export function findCheckboxes(ink) {
+  const boxes = [];
+  for (const rect of ink.rects) {
+    const longest = Math.max(rect.width, rect.height);
+    if (longest < CHECKBOX_MIN_SIZE || longest > CHECKBOX_MAX_SIZE) continue;
+    if (Math.min(rect.width, rect.height) < CHECKBOX_MIN_SIZE) continue;
+    if (Math.abs(rect.width - rect.height) > CHECKBOX_SQUARENESS * longest) continue;
+    const duplicate = boxes.some(
+      (box) => Math.abs(box.x - rect.x) <= DUPLICATE_TOLERANCE
+        && Math.abs(box.y - rect.y) <= DUPLICATE_TOLERANCE,
+    );
+    if (!duplicate) boxes.push({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+  return boxes;
+}
+
+function uniqueCheckboxes(boxes) {
+  return boxes.filter((box, index) => !boxes.slice(0, index).some(
+    (other) => Math.abs(other.x - box.x) <= DUPLICATE_TOLERANCE
+      && Math.abs(other.y - box.y) <= DUPLICATE_TOLERANCE,
+  ));
+}
+
+/**
+ * Candidate fillable regions on one page, in the editor's page-percent model.
+ *
+ * @param {{verticals: Array, horizontals: Array, rects: Array}} ink
+ * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {number} pageIndex
+ */
+export function detectRegions(ink, geometry, pageIndex = 0, checkboxBoxes = findCheckboxes(ink)) {
+  const runs = [...findCombRuns(ink), ...findSquareCombRuns(ink)];
+  const inRun = (box) => runs.some((run) => box.x >= run.left - DUPLICATE_TOLERANCE
+    && box.x + box.width <= run.right + DUPLICATE_TOLERANCE
+    && box.y >= run.bottom - DUPLICATE_TOLERANCE
+    && box.y + box.height <= run.top + DUPLICATE_TOLERANCE);
+  const combs = runs.map((run) => ({
+    kind: 'comb',
+    pageIndex,
+    cells: run.cells,
+    pitchPoints: run.pitch,
+    boxed: run.boxed,
+    ...toPagePercentBox(geometry, {
+      x0: run.left, y0: run.bottom, x1: run.right, y1: run.top,
+    }),
+  }));
+
+  const checkboxes = uniqueCheckboxes(checkboxBoxes).filter((box) => !inRun(box)).map((box) => ({
+    kind: 'checkbox',
+    pageIndex,
+    ...toPagePercentBox(geometry, {
+      x0: box.x, y0: box.y, x1: box.x + box.width, y1: box.y + box.height,
+    }),
+  }));
+
+  return { combs, checkboxes };
+}
+
+/**
+ * Candidate fillable regions on a pdf-lib page. On-device and read-only: the
+ * page is walked, never modified.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {number} pageIndex
+ */
+export function detectPageRegions(page, pageIndex = 0) {
+  const geometry = createPageGeometry({
+    cropBox: pageCropBox(page),
+    rotation: page.getRotation().angle,
+  });
+  const ink = collectPageInk(page);
+  return detectRegions(ink, geometry, pageIndex, [
+    ...findCheckboxes(ink),
+    ...collectCheckboxGlyphs(page),
+    ...collectCheckboxWidgets(page),
+  ]);
+}
