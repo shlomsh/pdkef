@@ -1,3 +1,5 @@
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
+import { readFileSync } from 'node:fs';
 import { hydrate, render } from 'preact';
 import { act } from 'preact/test-utils';
 import { renderToString } from 'preact-render-to-string';
@@ -7,7 +9,7 @@ import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
 
-const FIXTURE = new TextEncoder().encode('%PDF-1.4\n%%EOF');
+const FIXTURE = readFileSync('src/lib/__fixtures__/num-2.pdf');
 const pdf = (name: string) => new File([FIXTURE], name, { type: 'application/pdf' });
 
 /* Files offered the moment the island hydrates, before the lazy draft module and
