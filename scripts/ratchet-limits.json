@@ -40,7 +40,7 @@
       "src/tools/merge/hooks/useMergeDraft.ts#useMergeDraft": 309,
       "src/tools/redact/PdfRedactTool.tsx#PdfRedactTool": 1204,
       "src/tools/redact/components/RedactToolbar.tsx#RedactToolbar": 315,
-      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 871,
+      "src/tools/scan/PdfScanTool.tsx#PdfScanTool": 870,
       "src/tools/security/PdfSecurityTool.tsx#PdfSecurityTool": 321,
       "src/tools/sign/PdfSignTool.tsx#PdfSignToolInner": 955,
       "src/tools/sign/components/DraggableWrapper.tsx#DraggableWrapper": 558,
