@@ -43,7 +43,7 @@ import {
   Languages,
 } from 'lucide-preact';
 
-export const landingPages = [
+const landingPages = [
   {
     href: '/sign-pdf-no-signup/',
     label: 'Signing without an account',

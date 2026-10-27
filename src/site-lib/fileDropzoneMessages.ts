@@ -60,7 +60,7 @@ export const englishFileDropzoneMessages: FileDropzoneMessages = {
 // LOC-09's launcher strings, drafted with src/content/localized-home/he.yaml and
 // reviewed with it: Shlomi's read-through of the rendered /he/ page, 2026-10-22
 // (LOC-18).
-export const hebrewFileDropzoneMessages: FileDropzoneMessages = {
+const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   handoffFailed: 'לא הצלחנו לשמור את הקובץ הזה במכשיר שלכם. נסו שוב.',
   recentFileUnavailable: 'הקובץ הזה כבר לא זמין בדפדפן הזה.',
   sampleLoadFailed: 'לא הצלחנו לטעון את קובץ הדוגמה. נסו שוב או בחרו קובץ PDF משלכם.',

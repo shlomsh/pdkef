@@ -25,7 +25,7 @@ export type AnalyticsTool = ToolId;
  * DEBT-61: pages that only count their own views, on `tool_page_viewed` and nothing else. Not tools:
  * ratings, hand-offs and `from` never take them.
  */
-export const VIEW_ONLY_PAGES = ['home'] as const;
+const VIEW_ONLY_PAGES = ['home'] as const;
 export type ViewOnlyPage = (typeof VIEW_ONLY_PAGES)[number];
 
 /**
@@ -67,6 +67,7 @@ export type NavigationType = (typeof NAVIGATION_TYPES)[number];
  *   pick / drop / paste - chosen here; replace - chosen over a loaded file;
  *   recent - a recent-file tile on the home page; handoff - another tool's done row;
  *   restore - the tool reopened the work it was on, with nobody asking.
+ * @testSeam
  */
 export const FILE_SOURCES = ['pick', 'drop', 'paste', 'replace', 'recent', 'handoff', 'restore'] as const;
 export type FileSource = (typeof FILE_SOURCES)[number];
@@ -75,6 +76,7 @@ export type FileSource = (typeof FILE_SOURCES)[number];
  * `visit` (DEBT-58): on `tool_page_viewed` only, whether this browser has opened a PDkef tool page
  * before and how long ago, decided on the device from a day it keeps for itself and never sends.
  * `new`, or returning: `today`, `week` (1-7 days), `month` (8-30), `older`. It links nothing.
+ * @testSeam
  */
 export const VISITS = ['new', 'today', 'week', 'month', 'older'] as const;
 export type Visit = (typeof VISITS)[number];

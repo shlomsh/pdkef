@@ -11,7 +11,7 @@ import { sanitizeOutputName } from './sanitizeOutputName.ts';
  * The strip modes are the old regexes, kept apart only where they gave different names for an odd
  * input (a bare ".pdf", "a.", ".hidden"); they collapse when a convention is picked.
  */
-export type StripMode =
+type StripMode =
   /** Drop a trailing ".pdf" (any case) and nothing else. */
   | 'pdf'
   /** Drop the last extension: a dot followed by at least one character. */
@@ -21,6 +21,7 @@ export type StripMode =
   /** Drop everything from the last dot, unless that dot starts the name (".hidden" stays). */
   | 'extension-keep-dotfile';
 
+/** @testSeam */
 export function stripExtension(name: string, mode: StripMode): string {
   switch (mode) {
     case 'pdf':
@@ -36,7 +37,7 @@ export function stripExtension(name: string, mode: StripMode): string {
   }
 }
 
-export interface OutputBaseOptions {
+interface OutputBaseOptions {
   strip?: StripMode;
   /** Typed-name rules (no path separators or "+", no control characters, capped length), for names that may be typed too. */
   sanitize?: boolean;
@@ -50,7 +51,7 @@ export function outputBase(sourceName: string, { strip = 'pdf', sanitize = false
   return (sanitize ? sanitizeOutputName(stripped) : stripped) || fallback;
 }
 
-export interface AffixOptions {
+interface AffixOptions {
   prefix?: string;
   suffix?: string;
   /** The file extension without the dot; 'pdf' by default, null for a title that has none yet. */

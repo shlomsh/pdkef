@@ -32,7 +32,7 @@ import { useRef } from 'preact/hooks';
 
 const NO_KEYS: readonly unknown[] = [];
 
-export interface RunTicket {
+interface RunTicket {
   /** False once this run has been superseded, invalidated, or had a key move. */
   isCurrent(): boolean;
   /**
@@ -42,6 +42,7 @@ export interface RunTicket {
   settle(): void;
 }
 
+/** @testSeam */
 export interface LatestRun {
   /** Capture what this run depends on. Call before the first `await`. */
   begin(): RunTicket;

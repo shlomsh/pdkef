@@ -14,11 +14,11 @@ import { createQuietPreparer, type QuietPolicy } from './quietPrepare.ts';
 export interface OutputPart { blob: Blob; filename: string; /** The 1-based source page an image came from. */ pageNumber?: number }
 
 /** A part of a ready output, with the object URL a download link points at. */
-export type PreparedPart = OutputPart & { url: string };
+type PreparedPart = OutputPart & { url: string };
 
 export type PreparedStatus = 'idle' | 'pending' | 'ready' | 'error';
 
-export interface PreparedOutputInput<M = unknown> {
+interface PreparedOutputInput<M = unknown> {
   /** Changes whenever the output would change; null puts the hook in `idle`
    * (nothing to build). */
   key: string | null;

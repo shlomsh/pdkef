@@ -8,8 +8,8 @@ import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 // destroyed like a box: a page carrying one is saved as one picture
 // (redact.js). Sign never creates or draws them.
 
-export const MIN_STROKE_SIZE_PT = 1;
-export const MAX_STROKE_SIZE_PT = 200;
+const MIN_STROKE_SIZE_PT = 1;
+const MAX_STROKE_SIZE_PT = 200;
 /** A pointer drag is thousands of points at most; a draft claiming more is corrupt. */
 const MAX_STROKE_POINTS = 20000;
 

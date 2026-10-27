@@ -5,6 +5,7 @@
 // Thrown for every invalid or out-of-range selector, so a caller can
 // distinguish "the person's input needs fixing" from any other failure
 // (a corrupt file, a render error) without matching on message text.
+/** @testSeam */
 export class PageSelectorError extends Error {
   // `code` and `params` let a localized caller rebuild the message from its
   // own catalogue; `message` stays the English text every other caller shows.

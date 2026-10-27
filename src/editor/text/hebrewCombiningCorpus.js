@@ -45,7 +45,7 @@ function codePointName(cp) {
 }
 
 /** Every base+mark(s) -> composed-character entry, as {base, marks, composed}. */
-export const COMPOSABLE_ENTRIES = Array.from(__internal.HEBREW_PRESENTATION_FORMS, ([decomposed, composed]) => ({
+const COMPOSABLE_ENTRIES = Array.from(__internal.HEBREW_PRESENTATION_FORMS, ([decomposed, composed]) => ({
   base: decomposed[0],
   marks: decomposed.slice(1),
   composed,

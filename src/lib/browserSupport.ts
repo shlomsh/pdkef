@@ -25,7 +25,7 @@ import { isIOSDevice, type NavigatorPlatformInfo } from './platform';
  */
 const MINIMUMS = { Chrome: 122, Edge: 122, Firefox: 131, Safari: 18.4, iOS: 18.4 } as const;
 
-export type SupportedBrowserName = keyof typeof MINIMUMS;
+type SupportedBrowserName = keyof typeof MINIMUMS;
 
 export interface UnsupportedBrowser {
   browser: SupportedBrowserName;

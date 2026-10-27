@@ -43,9 +43,15 @@ export function parseRatingEvent(value: unknown): RatingEvent | null {
   });
 }
 
-/** A comment is trimmed and kept at 1 to 500 characters (SEO-48). */
+/**
+ * A comment is trimmed and kept at 1 to 500 characters (SEO-48).
+ * @testSeam
+ */
 export const MAX_COMMENT_LENGTH = 500;
-/** The endpoint's body limit, MAX_REPORT_BYTES in errorReportSchema.ts (no import here; a test keeps them equal). */
+/**
+ * The endpoint's body limit, MAX_REPORT_BYTES in errorReportSchema.ts (no import here; a test keeps them equal).
+ * @testSeam
+ */
 export const REPORT_BYTE_LIMIT = 2048;
 
 export interface RatingCommentEvent {

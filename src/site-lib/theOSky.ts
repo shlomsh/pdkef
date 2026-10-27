@@ -2,7 +2,7 @@
 // sunrise and sunset) or night, from the visitor's own clock. Sunrise and
 // sunset come from a rough northern mid-latitude model in local clock time,
 // which is close enough to set a mood and is never shown as a fact.
-export type Sky = 'day' | 'golden' | 'night';
+type Sky = 'day' | 'golden' | 'night';
 
 const DAY_MS = 86_400_000;
 const JUNE_SOLSTICE = 172;
