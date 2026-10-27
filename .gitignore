@@ -30,3 +30,4 @@ public/pdfjs-dist-wasm/
 
 # Local env files: `vercel env pull` writes secrets here (the error-report store token).
 .env*.local
+playwright-json/
