@@ -1,15 +1,14 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeAll, beforeEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
 import { englishCompressMessages, hebrewCompressMessages } from './messages';
 import * as compressLib from './lib/compress.js';
-import * as analyzePdfLib from './lib/analyzePdf.js';
 import * as compressImageLib from './lib/compressImage.js';
 import * as imagesLib from './lib/compressImages.js';
-import * as thumbnailsLib from '../../lib/thumbnails.js';
-import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import styles from './PdfCompressTool.module.css';
 import sliderStyles from './components/CompareSlider.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -18,12 +17,22 @@ import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
 import { recentActions } from '../../lib/actionTrail.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
+import { ANALYSIS_SHAPES, buildAnalysisPdf } from '../../test/support/analysisPdfFixtures.ts';
 
 // Tests that are not about timing build 5ms after the last change instead of 1.5s.
 const FAST_QUIET = { baseMs: 5, stepMs: 0, maxMs: 5, burstWindowMs: 1 };
 
-function makePdfFile(name, size = 1000) {
-  const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+// Real PDFs, so the real analysis runs: a shape is built once (analysisPdfFixtures.ts) and every File of it
+// carries those bytes. `pictures` (the default) is three pages, 90% images, with text. The size a test
+// passes is the File's reported size, which is what the run's savings are measured against.
+const SHAPE_BYTES = {} as Record<string, Uint8Array>;
+beforeAll(async () => {
+  for (const [shape, spec] of Object.entries(ANALYSIS_SHAPES)) SHAPE_BYTES[shape] = await buildAnalysisPdf(spec);
+});
+const encryptedFixture = (name) => new Uint8Array(fs.readFileSync(path.resolve(__dirname, `../../lib/__fixtures__/encrypted/${name}.pdf`)));
+
+function makePdfFile(name, size = 1000, shape = 'pictures') {
+  const file = new File([typeof shape === 'string' ? SHAPE_BYTES[shape] : shape], name, { type: 'application/pdf' });
   Object.defineProperty(file, 'size', { value: size, writable: true });
   return file;
 }
@@ -52,18 +61,11 @@ function deferred() {
   return { promise, resolve };
 }
 
-// A PDF is probed for a password before its first run; none of these files has one.
-vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn(() => Promise.resolve('open')) }));
-
-vi.mock('./lib/compressImages.js', () => ({
-  IMAGE_LEVELS: {
-    high: { maxLongSidePx: 1000, quality: 0.4 },
-    medium: { maxLongSidePx: 1600, quality: 0.6 },
-    low: { maxLongSidePx: 2400, quality: 0.8 },
-  },
-  compressPdfImages: vi.fn(),
-  compressPdfImagesToTarget: vi.fn(),
-}));
+// The edge is the harness's, not this file's: the encryption probe and the preview (harness.pdfjs, a PDF is
+// probed for a password before its first run and none of these files has one), and the three compression
+// engines, which need a canvas, createImageBitmap and image codecs jsdom lacks (setup/compressEngines.ts: the
+// spies are imported below and each test builds the result shape it wants). The analysis of the picked PDF
+// runs for real, on the real PDFs of `makePdfFile` (analysisPdfFixtures.ts).
 
 function imagesResult(overrides = {}) {
   return {
@@ -76,42 +78,6 @@ function imagesResult(overrides = {}) {
   };
 }
 
-vi.mock('./lib/compress.js', () => {
-  return {
-    compressPdf: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 })),
-    compressPdfToTarget: vi.fn(() =>
-      Promise.resolve({
-        blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }),
-        metTarget: true,
-        rasterBytes: 500,
-      }),
-    ),
-  };
-});
-
-// analyzePdf statically imports pdf-lib; the island loads it dynamically.
-vi.mock('./lib/analyzePdf.js', () => ({
-  analyzePdf: vi.fn(() => ({ images: [{}], hasText: true, imageShare: 0.9 })),
-}));
-vi.mock('../../lib/pdfLib.js', () => ({
-  getPdfLib: vi.fn(() => Promise.resolve({ PDFDocument: { load: vi.fn(() => Promise.resolve({})) } })),
-}));
-
-// The interface this tool is built against (see compressImage.js's own
-// tests): mocked here so this suite never depends on its implementation,
-// only the shape it promises to return.
-vi.mock('./lib/compressImage.js', () => ({
-  compressImageToTarget: vi.fn(() => Promise.resolve(makeImageResult())),
-}));
-
-vi.mock('../../lib/thumbnails.js', () => {
-  return {
-    renderComparePreview: vi.fn((fileOrBlob) =>
-      Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
-    ),
-  };
-});
-
 describe('PdfCompressTool UI flow', () => {
   let container;
   let harness;
@@ -119,7 +85,6 @@ describe('PdfCompressTool UI flow', () => {
   beforeEach(() => {
     harness = installToolHarness();
     vi.clearAllMocks();
-    probeEncryption.mockImplementation(() => Promise.resolve('open'));
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
     imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult()));
     imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: true })));
@@ -130,10 +95,6 @@ describe('PdfCompressTool UI flow', () => {
     compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 }));
     compressLib.compressPdfToTarget.mockImplementation(() =>
       Promise.resolve({ blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }), metTarget: true, rasterBytes: 500 }),
-    );
-    analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
-    thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) =>
-      Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
     );
   });
 
@@ -185,9 +146,9 @@ describe('PdfCompressTool UI flow', () => {
     return file;
   };
 
-  const loadPdf = async (name = 'doc.pdf', size = 100000) => {
+  const loadPdf = async (name = 'doc.pdf', size = 100000, shape = 'pictures') => {
     mount();
-    return pick(makePdfFile(name, size));
+    return pick(makePdfFile(name, size, shape));
   };
 
   const radio = (name) =>
@@ -354,7 +315,7 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       radio('Smallest').click();
     });
-    probeEncryption.mockImplementation(() => Promise.resolve('needs-password'));
+    harness.pdfjs.probeAs('needs-password');
     await pick(makePdfFile('locked.pdf', 40000), () => container.querySelector('[data-needs-unlock]') !== null);
     await act(async () => {
       runA.resolve(imagesResult());
@@ -368,8 +329,7 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('a level change during the encryption probe does not compress, and exactly one run happens when the probe answers', async () => {
-    let release;
-    probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const probing = harness.pdfjs.holdNextProbe();
     mount();
     await pick(makePdfFile('probing.pdf', 100000), () => container.querySelector('[data-tool-shell]') !== null);
     await act(async () => {
@@ -380,7 +340,7 @@ describe('PdfCompressTool UI flow', () => {
     expect(status()).not.toBe('processing');
 
     await act(async () => {
-      release('open');
+      probing.release('open');
     });
     await settled();
     await wait(60);
@@ -458,7 +418,7 @@ describe('PdfCompressTool UI flow', () => {
   it('renders the comparison automatically, with a skeleton while the previews are pending that never blocks the download row, and no show or hide toggle', async () => {
     let resolveBefore;
     let resolveAfter;
-    thumbnailsLib.renderComparePreview.mockImplementation(
+    harness.pdfjs.thumbnails.renderComparePreview.mockImplementation(
       (fileOrBlob) =>
         new Promise((resolve) => {
           if (fileOrBlob instanceof File) resolveBefore = () => resolve('data:image/png;base64,before');
@@ -470,7 +430,7 @@ describe('PdfCompressTool UI flow', () => {
 
     // Open on its own as soon as the result lands; the skeleton is the visible
     // "still working" mark, and the download row already rendered.
-    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
+    expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
     expect(container.querySelector(`.${styles['compare-panel']}`)).not.toBeNull();
     expect(container.querySelector(`.${styles['compare-panel']} .${styles['compare-skeleton']}`)).not.toBeNull();
     expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(0);
@@ -484,7 +444,7 @@ describe('PdfCompressTool UI flow', () => {
 
     expect(container.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
     expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(2);
-    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
+    expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
     // Only the Full screen button is left; nothing hides or restores the slider.
     expect(findButton('Full screen')).toBeDefined();
   });
@@ -529,7 +489,7 @@ describe('PdfCompressTool UI flow', () => {
     let callIndex = 0;
     const beforeResolvers = [];
     const afterResolvers = [];
-    thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) => {
+    harness.pdfjs.thumbnails.renderComparePreview.mockImplementation((fileOrBlob) => {
       const isFile = fileOrBlob instanceof File;
       const index = callIndex++;
       return new Promise((resolve) => {
@@ -630,13 +590,13 @@ describe('PdfCompressTool UI flow', () => {
 
     it('keeps the skeleton until the original has rendered', async () => {
       const original = deferred();
-      thumbnailsLib.renderComparePreview.mockImplementation((f) =>
+      harness.pdfjs.thumbnails.renderComparePreview.mockImplementation((f) =>
         f instanceof File ? original.promise : Promise.resolve('data:image/png;base64,after'),
       );
       const run = deferred();
       imagesLib.compressPdfImages.mockImplementation(() => run.promise);
       mount();
-      await pick(makePdfFile('wait.pdf', 100000), ran(thumbnailsLib.renderComparePreview, 1));
+      await pick(makePdfFile('wait.pdf', 100000), ran(harness.pdfjs.thumbnails.renderComparePreview, 1));
       expect(result().querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
       expect(result().querySelector('img')).toBeNull();
       await act(async () => {
@@ -701,7 +661,7 @@ describe('PdfCompressTool UI flow', () => {
     it('renders the original once per file: one render at pick, one for the compressed page after the run', async () => {
       const file = await loadPdf('once.pdf', 100000);
       await wait(20);
-      const calls = thumbnailsLib.renderComparePreview.mock.calls;
+      const calls = harness.pdfjs.thumbnails.renderComparePreview.mock.calls;
       expect(calls).toHaveLength(2);
       expect(calls.filter(([f]) => f === file)).toHaveLength(1);
       expect(calls.filter(([f]) => f instanceof Blob && !(f instanceof File))).toHaveLength(1);
@@ -709,7 +669,7 @@ describe('PdfCompressTool UI flow', () => {
 
     it('a file replaced mid-render does not land the old original', async () => {
       const resolvers = [];
-      thumbnailsLib.renderComparePreview.mockImplementation((f) =>
+      harness.pdfjs.thumbnails.renderComparePreview.mockImplementation((f) =>
         f instanceof File
           ? new Promise((resolve) => resolvers.push(() => resolve(`data:image/png;base64,orig-${f.name}`)))
           : Promise.resolve('data:image/png;base64,after'),
@@ -717,7 +677,7 @@ describe('PdfCompressTool UI flow', () => {
       const run = deferred();
       imagesLib.compressPdfImages.mockImplementation(() => run.promise);
       mount();
-      await pick(makePdfFile('a.pdf', 100000), ran(thumbnailsLib.renderComparePreview, 1));
+      await pick(makePdfFile('a.pdf', 100000), ran(harness.pdfjs.thumbnails.renderComparePreview, 1));
       await pick(makePdfFile('b.pdf', 100000), () => resolvers.length === 2);
       await act(async () => {
         resolvers[1]();
@@ -796,15 +756,14 @@ describe('PdfCompressTool UI flow', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
     // The new file waits on its password check, so only the old change could start a build.
-    const probe = deferred();
-    probeEncryption.mockImplementationOnce(() => probe.promise);
+    const probe = harness.pdfjs.holdNextProbe();
     await act(async () => {
       setInputFiles(fileInput, [makePdfFile('second.pdf', 5_000_000)]);
     });
     await wait(150);
     expect(calls()).toBe(before);
     await act(async () => {
-      probe.resolve('open');
+      probe.release('open');
     });
     await settled();
     expect(calls()).toBe(before + 1);
@@ -864,7 +823,7 @@ describe('PdfCompressTool UI flow', () => {
 
     // Opens on its own, same as the PDF case - and with no rasterization,
     // just two object URLs.
-    expect(thumbnailsLib.renderComparePreview).not.toHaveBeenCalled();
+    expect(harness.pdfjs.thumbnails.renderComparePreview).not.toHaveBeenCalled();
     const panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
     const images = panel.querySelectorAll('img');
@@ -906,7 +865,7 @@ describe('PdfCompressTool UI flow', () => {
     HTMLDialogElement.prototype.close = close;
 
     await loadPdf('fullscreen.pdf', 200000);
-    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
+    expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
     expect(container.querySelector(`.${styles['compare-fullscreen']}`)).toBeNull();
 
     const fullScreen = findButton('Full screen');
@@ -922,8 +881,8 @@ describe('PdfCompressTool UI flow', () => {
     expect(showModal).toHaveBeenCalledTimes(1);
     expect(dialog.querySelector('[role="slider"]')).not.toBeNull();
     // Two inline renders plus two at the full screen width.
-    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(4);
-    expect(thumbnailsLib.renderComparePreview.mock.calls[2][1]).toBeGreaterThanOrEqual(900);
+    expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(4);
+    expect(harness.pdfjs.thumbnails.renderComparePreview.mock.calls[2][1]).toBeGreaterThanOrEqual(900);
 
     const closeButton = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Close');
     await act(async () => {
@@ -936,7 +895,7 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(4);
+    expect(harness.pdfjs.thumbnails.renderComparePreview).toHaveBeenCalledTimes(4);
     expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).not.toBeNull();
   });
 
@@ -1039,26 +998,22 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     it('a mostly-image PDF says the images are what gets smaller', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       await loadPdf('pics.pdf', 5000);
       expect(stripNote()).toBe('Images are 90% of this PDF, the part that gets smaller.');
     });
 
     it('a pure scan names its share the same way, without talking about text', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: false, imageShare: 1 }));
-      await loadPdf('scan.pdf', 5000);
+      await loadPdf('scan.pdf', 5000, 'scan');
       expect(stripNote()).toContain('Images are 100% of this PDF');
       expect(stripNote()).not.toContain('text');
     });
 
     it('a mostly-text PDF gets the quiet note', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.12 }));
-      await loadPdf('mixed.pdf', 5000);
+      await loadPdf('mixed.pdf', 5000, 'mixed');
       expect(stripNote()).toBe('Most of this PDF is text. Images are 12% of it.');
     });
 
     it('the pages-to-pictures switch hides the share note and unticking brings it back', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       await loadPdfAndFlatten('pics.pdf', 5000);
       expect(stripNote()).toBe('');
       await act(async () => {
@@ -1069,13 +1024,11 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     it('a PDF with no images says only that there is nothing here to shrink', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true, imageShare: 0 }));
-      await loadPdf('text_only.pdf', 5000);
+      await loadPdf('text_only.pdf', 5000, 'textOnly');
       expect(stripNote()).toBe(NOTE);
     });
 
     it('shows no nothing-to-shrink note when the PDF has an image', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       await loadPdf('photo.pdf', 5000);
       expect(stripNote()).not.toContain(NOTE);
     });
@@ -1086,42 +1039,43 @@ describe('PdfCompressTool UI flow', () => {
       expect(stripNote()).toBe('');
     });
 
+    // The switch's own hint is the visible trace of what the analysis saw: it says "Text stops being selectable"
+    // only for a PDF that has text. The images cannot be recompressed here, which is what brings the switch out.
+    const unsupportedImages = () => imagesLib.compressPdfImages.mockImplementationOnce((f) =>
+      Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'unsupported' })));
+    const flattenHint = () => flattenSwitch().closest('label').textContent;
+
     it('re-reads an encrypted PDF with an empty password so text detection sees plaintext', async () => {
-      const pdfLib = await import('../../lib/pdfLib.js');
-      const load = vi.fn()
-        .mockResolvedValueOnce({ isEncrypted: true, tag: 'cipher' })
-        .mockResolvedValueOnce({ isEncrypted: false, tag: 'plain' });
-      pdfLib.getPdfLib.mockImplementationOnce(() => Promise.resolve({ PDFDocument: { load } }));
-      await loadPdf('restricted.pdf', 5000);
-      expect(load).toHaveBeenCalledTimes(2);
-      expect(load.mock.calls[1][1]).toEqual({ password: '', updateMetadata: false });
-      expect(analyzePdfLib.analyzePdf.mock.calls.at(-1)[0]).toMatchObject({ tag: 'plain' });
+      // owner-only.pdf: AES-256, an empty user password, the text "hi 0". Read as it is, its page streams are
+      // ciphertext and show no text; only the empty-password re-read sees the text.
+      unsupportedImages();
+      await loadPdf('restricted.pdf', 11_000, encryptedFixture('owner-only'));
+      expect(stripNote()).toBe('Nothing here to shrink.');
+      expect(flattenHint()).toContain(englishCompressMessages.flattenHint);
     });
 
     it('keeps the first read when the empty-password re-read throws', async () => {
-      const pdfLib = await import('../../lib/pdfLib.js');
-      const load = vi.fn()
-        .mockResolvedValueOnce({ isEncrypted: true, tag: 'cipher' })
-        .mockRejectedValueOnce(new Error('password'));
-      pdfLib.getPdfLib.mockImplementationOnce(() => Promise.resolve({ PDFDocument: { load } }));
-      await loadPdf('locked.pdf', 5000);
-      expect(analyzePdfLib.analyzePdf.mock.calls.at(-1)[0]).toMatchObject({ tag: 'cipher' });
+      // needs-password.pdf wants the real password "u", so the empty one throws and the encrypted first read is analysed.
+      unsupportedImages();
+      await loadPdf('locked.pdf', 11_000, encryptedFixture('needs-password'));
+      expect(stripNote()).toBe('Nothing here to shrink.');
+      expect(flattenHint()).toContain(englishCompressMessages.flattenHintNoText);
     });
 
     it('drops an analysis that lands after a newer file was added', async () => {
-      let resolveA;
-      // B's analysis runs first (A's is held), so B takes the one-shot answer.
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true }));
-      const pdfLib = await import('../../lib/pdfLib.js');
-      pdfLib.getPdfLib.mockImplementationOnce(
-        () => new Promise((resolve) => { resolveA = resolve; }),
-      );
-      await loadPdf('a.pdf', 5000);
+      // A (no images) is held in its analysis: the probe reads its bytes first, the analysis second.
+      const a = makePdfFile('a.pdf', 5000, 'textOnly');
+      const read = a.arrayBuffer.bind(a);
+      let reads = 0;
+      let releaseA;
+      a.arrayBuffer = () => (++reads === 2 ? new Promise((resolve) => { releaseA = () => resolve(read()); }) : read());
+      mount();
+      await act(async () => { setInputFiles(fileInput, [a]); });
+      await waitFor(() => releaseA !== undefined);
       // A's analysis is still pending; B arrives and is analysed (images present).
-      analyzePdfLib.analyzePdf.mockImplementationOnce(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       await pick(makePdfFile('b.pdf', 5000));
       await act(async () => {
-        resolveA({ PDFDocument: { load: () => Promise.resolve({}) } });
+        releaseA();
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
 
@@ -1157,14 +1111,10 @@ describe('PdfCompressTool UI flow', () => {
 
     describe('result card honesty (COMP-02)', () => {
       const slightBlob = (bytes) => new Blob(['x'.repeat(bytes)], { type: 'application/pdf' });
-      const analysisOf = (extra = {}) => analyzePdfLib.analyzePdf.mockImplementation(
-        () => ({ images: [{}], hasText: true, imageShare: 0.9, pageCount: 3, ...extra }),
-      );
       const stats = () => result();
       const title = () => stats().querySelector(`.${styles['stats-title']}`).textContent;
 
       it('a 1% result at Balanced says only a little smaller, already compact, and points at Extreme', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0 })));
         await loadPdf();
         expect(title()).toBe('Only a little smaller');
@@ -1176,7 +1126,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('at the smallest level the same result has no Extreme hint', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0 })));
         await loadPdf();
         await choose('Smallest');
@@ -1186,7 +1135,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('when most image bytes were kept it says they could not be recompressed', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99900), afterBytes: 99900, keptBytes: 80000, imageBytes: 90000 })));
         await loadPdf();
         expect(stats().textContent).toContain("stored in a way I can't recompress, so it stayed as it was and this saved less than 1%");
@@ -1194,7 +1142,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('4% still gets the slight-gain title', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(96000), afterBytes: 96000 })));
         await loadPdf();
         expect(title()).toBe('Only a little smaller');
@@ -1202,7 +1149,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('5% and over has no title and shows no notice', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(94000), afterBytes: 94000 })));
         await loadPdf();
         expect(stats().querySelector(`.${styles['stats-title']}`)).toBeNull();
@@ -1211,7 +1157,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('an image re-encoded but not smaller reads as compact, not kept', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, keptBytes: 0, imageBytes: 90000 })));
         await loadPdf();
         expect(stats().textContent).toContain('already compact');
@@ -1219,14 +1164,12 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('exactly 5% has no slight-gain title', async () => {
-        analysisOf();
         imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(95000), afterBytes: 95000 })));
         await loadPdf();
         expect(stats().querySelector(`.${styles['stats-title']}`)).toBeNull();
       });
 
       it('the flatten path under 5% gets the title and keeps its rasterize notice', async () => {
-        analysisOf();
         compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: slightBlob(99000), rasterBytes: 99000 }));
         await loadPdfAndFlatten();
         expect(title()).toBe('Only a little smaller');
@@ -1235,7 +1178,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('Exact size met with a small gain has no title', async () => {
-        analysisOf();
         imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(99000), afterBytes: 99000, metTarget: true })));
         await loadPdf();
         await choose('Exact size');
@@ -1244,7 +1186,6 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('no result card text mentions links or drawings', async () => {
-        analysisOf();
         for (const bytes of [99000, 90000]) {
           // 99000 is a ~1% saving, so a notice is on the card.
           imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult({ blob: slightBlob(bytes), afterBytes: bytes })));
@@ -1257,13 +1198,11 @@ describe('PdfCompressTool UI flow', () => {
       });
 
       it('the compare caption names page 1 only for a multi-page PDF', async () => {
-        analysisOf({ pageCount: 1 });
-        await loadPdf();
+        await loadPdf('doc.pdf', 100000, 'single');
         expect(container.textContent).toContain('Drag to compare the original and the compressed page.');
         expect(container.textContent).not.toContain('rest of the document');
         container.remove();
         container = undefined;
-        analysisOf({ pageCount: 3 });
         await loadPdf();
         expect(container.textContent).toContain('Drag to compare page 1 with the original.');
         expect(container.textContent).not.toContain('rest of the document');
@@ -1512,11 +1451,10 @@ describe('PdfCompressTool UI flow', () => {
     };
 
     it('starts the first run at once once the encryption probe lets the file run, not after the quiet wait', async () => {
-      let release;
-      probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+      const probing = harness.pdfjs.holdNextProbe();
       await open();
       expect(calls()).toBe(0);
-      await act(async () => { release('open'); });
+      await act(async () => { probing.release('open'); });
       await advance(50);
       expect(calls()).toBe(1);
       expect(status()).toBe('done');

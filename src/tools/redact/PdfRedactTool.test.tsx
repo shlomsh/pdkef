@@ -4,7 +4,6 @@ import { describe, expect, it, vi, afterEach, beforeAll, beforeEach, type Mock }
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
-import * as pdfjsDist from 'pdfjs-dist';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -64,82 +63,12 @@ async function dragBlurSlider(value: number, steps: number[] = []): Promise<void
   await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 
-// EDGE 1 of 2: pdf.js cannot run its worker or paint in jsdom, so it is faked here and nowhere else.
-// Everything above it (redactPdf and its flatten/assemble, the page-text and saved-file-check hooks,
-// useDocumentDetails, removePlaces, draftStore, analytics, error reports, the gesture controller) runs
-// for real. The fake pages carry what a test puts in `pageItems` as their text, and read a document's
-// info (Title, Author, ...) back from the very bytes they were handed, as pdf.js would.
-const pdfjsEdge = vi.hoisted(() => {
-  /** Text items per page (0-based), as pdf.js's text stream would hand them out. */
-  const pageItems = new Map<number, object[]>();
-  const fakePage = (pageIndex: number) => ({
-    view: [0, 0, 612, 792],
-    rotate: 0,
-    getViewport: ({ scale = 1 }: { scale?: number } = {}) => ({ width: 612, height: 792, scale, viewBox: [0, 0, 612, 792] }),
-    render: () => ({ promise: Promise.resolve(), cancel: () => {} }),
-    streamTextContent: () => {
-      let sent = false;
-      return { getReader: () => ({ read: async () => (sent ? { done: true } : (sent = true, { done: false, value: { items: pageItems.get(pageIndex) ?? [] } })) }) };
-    },
-    getOperatorList: async () => ({ fnArray: [], argsArray: [] }),
-    getAnnotations: async () => [],
-    commonObjs: { get: () => { throw new Error('no font'); } },
-    cleanup: () => {},
-  });
-  const fakeDocument = (numPages: number, data?: BufferSource) => ({
-    numPages,
-    getPermissions: vi.fn(async () => null),
-    getPage: vi.fn((pageNumber: number) => Promise.resolve(fakePage(pageNumber - 1))),
-    getOutline: async () => null,
-    getAttachments: async () => null,
-    getMetadata: async () => {
-      if (!data) return { info: {}, metadata: null };
-      const { PDFDocument } = await import('@cantoo/pdf-lib');
-      const doc = await PDFDocument.load(data, { updateMetadata: false });
-      return { info: { Title: doc.getTitle(), Author: doc.getAuthor(), Subject: doc.getSubject(), Keywords: doc.getKeywords() }, metadata: null };
-    },
-    destroy: async () => {},
-  });
-  const load = (args?: { data?: BufferSource }) => ({ promise: Promise.resolve(fakeDocument(2, args?.data)), destroy: async () => {} });
-  return { pageItems, fakeDocument, load };
-});
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  OPS: {},
-  AnnotationMode: { DISABLE: 0 },
-  getDocument: vi.fn(pdfjsEdge.load),
-}));
-
-/** The next pdf.js document read (the tool's own load of the picked file) reports `numPages` pages. */
-function mockPageCount(numPages: number) {
-  vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(((args?: { data?: BufferSource }) => ({
-    promise: Promise.resolve(pdfjsEdge.fakeDocument(numPages, args?.data)),
-    destroy: async () => {},
-  })) as never);
-}
-
-/**
- * Holds the next pdf.js document read open until `release()`. Called just before a Download click, the
- * next read is the export's own, so the export stays in flight while the test acts on the editor.
- */
-function holdNextDocumentRead() {
-  let release: (() => void) | null = null;
-  let finished!: () => void;
-  const finishedRead = new Promise<void>((resolve) => { finished = resolve; });
-  vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(((args?: { data?: BufferSource }) => ({
-    promise: new Promise((resolve) => { release = () => resolve(pdfjsEdge.fakeDocument(2, args?.data)); }),
-    destroy: async () => { finished(); },
-  })) as never);
-  return {
-    reached: () => release !== null,
-    release: () => release!(),
-    /** Releases the read and lets the export run to its end, whatever the tool then does with the result. */
-    async runToEnd() {
-      release!();
-      await act(async () => { await finishedRead; await new Promise((resolve) => setTimeout(resolve, 100)); });
-    },
-  };
-}
+// EDGE 1 of 2: pdf.js cannot run its worker or paint in jsdom, so `pdfjs-dist` is faked by the harness
+// (src/test/harness/pdfjsEdges.ts, steered through `harness.pdfjs`) and nowhere else. Everything above it
+// (redactPdf and its flatten/assemble, the page-text and saved-file-check hooks, useDocumentDetails,
+// removePlaces, draftStore, analytics, error reports, the gesture controller) runs for real. The fake pages
+// carry what a test puts in `harness.pdfjs.pageItems` as their text, and read a document's info (Title,
+// Author, ...) back from the very bytes they were handed, as pdf.js would.
 
 // EDGE: jsdom has no canvas. The export paints a flattened page and encodes it with toDataURL; this
 // records what was painted and answers with a real (1x1) JPEG, so redactPdf and assemble run unchanged.
@@ -225,6 +154,19 @@ describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
 
   let harness: ToolHarness;
+
+  /** Holds the next pdf.js document read (see `harness.pdfjs.holdNextDocumentRead`); `runToEnd` lets the export finish. */
+  function holdNextDocumentRead() {
+    const held = harness.pdfjs.holdNextDocumentRead();
+    return {
+      ...held,
+      /** Releases the read and lets the export run to its end, whatever the tool then does with the result. */
+      async runToEnd() {
+        held.release();
+        await act(async () => { await held.finished; await new Promise((resolve) => setTimeout(resolve, 100)); });
+      },
+    };
+  }
   let restoreCanvas: (() => void) | undefined;
   // One entry per gesture the tool started: its commit callback, wrapped, so a gesture that commits
   // twice is seen (the action trail drops a repeat of its last name, so it cannot count commits).
@@ -244,7 +186,7 @@ describe('PdfRedactTool UI flow', () => {
     });
     canvasEdge.encoded = 0;
     canvasEdge.fills = [];
-    pdfjsEdge.pageItems.clear();
+    harness.pdfjs.pageItems.clear();
     // jsdom's default answers every media query "yes". The editor tests mean a desktop with a
     // mouse, so the one query that says "finger" (useCoarsePointer) answers no.
     window.matchMedia = ((q: string) => ({
@@ -551,7 +493,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Every page on an auto whiteout samples each copy on its own page', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       await drawWhiteoutAndSelect();
       const pageColors = [CREAM, BLUE, '#e0f0e0'];
       const canvases = Array.from(container.querySelectorAll<HTMLCanvasElement>('[data-editor-page-card] canvas'));
@@ -706,9 +648,9 @@ describe('PdfRedactTool UI flow', () => {
   it('DEBT-31: a file that fails to load still leaves add_files on the trail', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+      harness.pdfjs.getDocument.mockImplementationOnce(() => ({
         promise: Promise.reject(new Error('corrupt')),
-      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+      }) as never);
       container = document.createElement('div');
       document.body.appendChild(container);
       act(() => { render(<PdfRedactTool />, container); });
@@ -727,7 +669,7 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       // The export's own pdf.js read is where the stale chunk fails to load.
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce((() => ({
+      harness.pdfjs.getDocument.mockImplementationOnce((() => ({
         promise: Promise.reject(new TypeError('Failed to fetch dynamically imported module: https://pdkef.com/_astro/applyPageEdits.x.js')),
         destroy: async () => {},
       })) as never);
@@ -2599,7 +2541,7 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     it('adds a copy to every other page as one undo step, redoes as one step, and pressing it again adds nothing more', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
@@ -2646,7 +2588,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('shows no repeat trigger on a single-page document', async () => {
-      mockPageCount(1);
+      harness.pdfjs.pageCountOfNextRead(1);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
@@ -2655,7 +2597,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('resizing one linked copy resizes every copy as one undo step, and redo reapplies it', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       stubEveryDrawAreaRect();
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -2695,7 +2637,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it("unlinking a copy stops it following its former group's edits", async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       stubEveryDrawAreaRect();
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -2722,7 +2664,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Remove from the other pages removes the other copies in one undo step', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       stubEveryDrawAreaRect();
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -2745,7 +2687,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Clear page on a page with a repeated box asks, and "Keep the repeated boxes" clears only its own boxes', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
@@ -2778,7 +2720,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('Clear page on a page with no repeated box clears in one tap, as before', async () => {
-      mockPageCount(2);
+      harness.pdfjs.pageCountOfNextRead(2);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       const pageCard = query<HTMLElement>(container, '[data-editor-page-card]');
@@ -2786,7 +2728,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('trash on a linked box removes only this page when "This page" is picked; the rest stay linked', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
@@ -2802,7 +2744,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('trash on a linked box removes every copy in one undo step when "All pages" is picked', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
@@ -2825,7 +2767,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('duplicating a linked box gives a second set on every page; changing the duplicate leaves the original set unchanged', async () => {
-      mockPageCount(3);
+      harness.pdfjs.pageCountOfNextRead(3);
       const drawArea = await loadFileAndGetDrawArea();
       const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
         .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
@@ -2888,7 +2830,7 @@ describe('PdfRedactTool UI flow', () => {
     // "Redact all" always adds exactly 2 boxes. They arrive as the page's own text stream, read for real.
     beforeEach(() => {
       const item = (str: string, x: number, y: number) => ({ str, transform: [12, 0, 0, 12, x, y], width: str.length * 6, height: 12 });
-      pdfjsEdge.pageItems.set(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]);
+      harness.pdfjs.pageItems.set(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]);
     });
 
     async function openFindAndSearch(term: string): Promise<void> {
@@ -3573,9 +3515,9 @@ describe('PdfRedactTool UI flow', () => {
         // Hold the replacement's document open, so the assertions below land
         // in the window where the new file is still being read.
         let resolveReplacementDocument!: (document: unknown) => void;
-        vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        harness.pdfjs.getDocument.mockImplementationOnce(() => ({
           promise: new Promise<unknown>((resolve) => { resolveReplacementDocument = resolve; }),
-        }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+        }) as never);
 
         const input = query<HTMLInputElement>(container, 'input[type="file"]');
         await act(async () => {
@@ -3606,7 +3548,7 @@ describe('PdfRedactTool UI flow', () => {
 
         // The replacement finishes loading and gets a clean editor of its own.
         await act(async () => {
-          resolveReplacementDocument(pdfjsEdge.fakeDocument(2));
+          resolveReplacementDocument(harness.pdfjs.fakeDocument(2));
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
         expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
@@ -3672,12 +3614,12 @@ describe('PdfRedactTool UI flow', () => {
     const PROTECTED_TITLE = 'This PDF is protected';
 
     function mockProtection(kind: 'needs-password' | 'owner-restricted') {
-      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+      harness.pdfjs.getDocument.mockImplementationOnce(() => ({
         promise: kind === 'needs-password'
           ? Promise.reject(Object.assign(new Error('No password given'), { name: 'PasswordException' }))
           : Promise.resolve({ numPages: 1, getPermissions: vi.fn(async () => []), destroy: vi.fn() }),
         destroy: vi.fn(),
-      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+      }) as never);
     }
 
     async function pick(file: File) {
