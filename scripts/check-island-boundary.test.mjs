@@ -36,4 +36,21 @@ describe('check-island-boundary', () => {
     const files = { 'src/tools/x/Tool.tsx': 'export default withIslandBoundary(Tool);' };
     expect(check(files, page('<Tool client:load />', "import Tool from '../tools/x/Tool';"))).toEqual([]);
   });
+  it('finds islands whose attributes contain > inside braces', () => {
+    expect(islandsIn(page('<Tool onX={() => 1} client:load />'))).toEqual(['Tool']);
+    expect(islandsIn(page('<Tool a={x > 1} client:load />'))).toEqual(['Tool']);
+    expect(islandsIn(page('<Tool a="x > 1" client:load />'))).toEqual(['Tool']);
+  });
+  it('does not treat client without a colon, or a later tag, as the earlier tag island', () => {
+    expect(islandsIn(page('<Tool client />'))).toEqual([]);
+    expect(islandsIn(page('<A b={1} />\n<B client:load />'))).toEqual(['B']);
+  });
+  it('ignores a commented-out withIslandBoundary export', () => {
+    for (const src of [
+      '// export default withIslandBoundary(Tool);\nexport default Tool;',
+      '/* export default withIslandBoundary(Tool) */\nexport default Tool;',
+    ]) {
+      expect(check({ 'src/tools/x/Tool.tsx': src }, page('<Tool client:load />')).map((p) => p.island)).toEqual(['Tool']);
+    }
+  });
 });

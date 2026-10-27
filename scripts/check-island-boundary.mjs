@@ -14,10 +14,30 @@ const WRAPPED = /export\s+default\s+withIslandBoundary\s*\(/;
 const stripComments = (text) =>
   text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '');
 
+// Attribute text of the tag opening at `from` (just after `<Name`): up to the first `>` that is
+// outside `{...}` and quotes, so `onX={() => 1}` and `a={x > 1}` do not end the tag early.
+function tagAttributes(text, from) {
+  let depth = 0;
+  let quote = null;
+  for (let i = from; i < text.length; i++) {
+    const c = text[i];
+    if (quote) {
+      if (c === quote) quote = null;
+    } else if (c === '"' || c === "'" || c === '`') quote = c;
+    else if (c === '{') depth++;
+    else if (c === '}') depth = Math.max(0, depth - 1);
+    else if (c === '>' && depth === 0) return text.slice(from, i);
+  }
+  return text.slice(from);
+}
+
 // Component names that carry a client:* directive, in tag order.
 export function islandsIn(text) {
+  const source = stripComments(text);
   const names = [];
-  for (const m of stripComments(text).matchAll(/<([A-Z]\w*)\b[^>]*?\sclient:\w+/g)) names.push(m[1]);
+  for (const m of source.matchAll(/<([A-Z]\w*)\b/g)) {
+    if (/\sclient:\w+/.test(tagAttributes(source, m.index + m[0].length))) names.push(m[1]);
+  }
   return names;
 }
 
@@ -32,7 +52,7 @@ export function findUnwrappedIslands({ file, text, read }) {
     const base = spec?.startsWith('.') ? posix.join(posix.dirname(file), spec) : null;
     const source = base === null ? null : EXTENSIONS.map((ext) => read(base + ext)).find((s) => s !== null && s !== undefined) ?? null;
     if (source === null) problems.push({ file, island, reason: 'cannot resolve the island import' });
-    else if (!WRAPPED.test(source)) problems.push({ file, island, reason: 'default export is not withIslandBoundary(...)' });
+    else if (!WRAPPED.test(stripComments(source))) problems.push({ file, island, reason: 'default export is not withIslandBoundary(...)' });
   }
   return problems;
 }
