@@ -1,7 +1,7 @@
 ---
 id: "ARCH-68"
 title: "JavaScript sources are type-checked one folder at a time, and no new .js lands in typed layers"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"

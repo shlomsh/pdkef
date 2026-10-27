@@ -1,7 +1,7 @@
 ---
 id: "ARCH-45"
 title: "Every tool folder follows one template, checked in CI"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
