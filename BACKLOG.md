@@ -119,8 +119,8 @@ Every tool on one shell and one set of PDF primitives, and a change reaching onl
 | ARCH-82 | P3 | [ARCH-82](backlog/tasks/ARCH-82.md) · Behaviour tests find elements by role and label, not CSS Module class names | In progress |
 | ARCH-85 | P3 | [ARCH-85](backlog/tasks/ARCH-85.md) · Per-spec flake rates are recorded and read nightly | In progress |
 | ARCH-103 | P2 | [ARCH-103](backlog/tasks/ARCH-103.md) · No tool island function is over 300 lines | In progress |
-| QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e |  |
-| QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes |  |
+| QUAL-32 | P2 | [QUAL-32](backlog/tasks/QUAL-32.md) · CI skips Playwright when a push reaches no e2e | In progress |
+| QUAL-33 | P2 | [QUAL-33](backlog/tasks/QUAL-33.md) · A stalled apt install costs at most one retry, not ten minutes | In progress |
 
 ### Then, in order
 

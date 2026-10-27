@@ -1,7 +1,7 @@
 ---
 id: "QUAL-32"
 title: "CI skips Playwright when a push reaches no e2e"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"

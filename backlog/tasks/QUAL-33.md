@@ -1,7 +1,7 @@
 ---
 id: "QUAL-33"
 title: "A stalled apt install costs at most one retry, not ten minutes"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "now"
