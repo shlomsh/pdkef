@@ -1007,34 +1007,22 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
             <FillContext.Provider value={enabled ? fillContextValue : FILL_OFF}>
               <PdfWorkspace
                 status={status}
-                isPseudoFullscreen={isPseudoFullscreen}
-                workspaceRef={workspaceRef}
-                numPages={numPages}
-                pageSizes={pageSizes}
-                formRegions={formRegions}
-                pdfDocument={pdfDocument}
-                pageWrapperRefs={pageWrapperRefs}
-                setTempPlacement={setTempPlacement}
-                setDialogOpen={setDialogOpen}
-                logAction={logAction}
-                handleSavePdf={handleSavePdf}
-                handleDownloadPdf={handleDownloadPdf}
-                handleSharePdf={handleSharePdf}
-                setAnnouncement={setAnnouncement}
-                onUndo={undoLast}
-                onRedo={redoLast}
-                toggleFullscreen={toggleFullscreen}
-                isFullscreen={isFullscreen}
-                placeSignatureAt={placeSignatureAt}
-                canSharePdf={canSharePdf}
-                shareReady={shareReady}
-                handoffExport={handoffBusy || signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked })}
-                handoffBusy={handoffBusy}
-                handoffFailed={handoffFailed}
-                onHandoff={(tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ }}
                 errorDetail={errorDetail}
                 fieldNavigation={fieldNavigation}
                 messages={t}
+                document={{ numPages, pageSizes, formRegions, pdfDocument }}
+                refs={{ workspace: workspaceRef, pageWrappers: pageWrapperRefs }}
+                fullscreen={{ isPseudo: isPseudoFullscreen, active: isFullscreen, toggle: toggleFullscreen }}
+                history={{ log: logAction, undo: undoLast, redo: redoLast }}
+                output={{ save: handleSavePdf, download: handleDownloadPdf, share: handleSharePdf, canShare: canSharePdf, shareReady }}
+                handoff={{
+                  exportReady: handoffBusy || signExportReady({ status, elementCount: elements.length, blocked: exportReadiness.blocked }),
+                  busy: handoffBusy,
+                  failed: handoffFailed,
+                  onHandoff: (tool) => { void requestHandoff(tool); /* reason: requestHandoff catches its own failure and shows the hand-off error */ },
+                }}
+                signature={{ hold: setTempPlacement, showDialog: setDialogOpen, placeAt: placeSignatureAt }}
+                announce={setAnnouncement}
               />
             </FillContext.Provider>
           </SavedSignaturesContext.Provider>

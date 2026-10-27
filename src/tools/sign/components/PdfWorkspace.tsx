@@ -139,73 +139,19 @@ function editActionOf(fields: object): 'move_mark' | 'resize_mark' | 'edit_mark'
 
 export default function PdfWorkspace({
   status,
-  isPseudoFullscreen,
-  workspaceRef,
-  numPages,
-  pageSizes,
-  formRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
-  pdfDocument,
-  pageWrapperRefs,
-  setTempPlacement,
-  setDialogOpen,
-  logAction,
-  handleSavePdf,
-  handleDownloadPdf,
-  handleSharePdf,
-  setAnnouncement,
-  onUndo,
-  onRedo,
-  toggleFullscreen,
-  isFullscreen,
-  placeSignatureAt,
-  canSharePdf = false,
-  shareReady = false,
-  handoffExport = false,
-  handoffBusy = false,
-  handoffFailed = false,
-  onHandoff = NOOP_HANDOFF,
-  errorDetail = null,
-  fieldNavigation = NOOP_FIELD_NAVIGATION,
+  errorDetail: errorDetailProp,
+  fieldNavigation: fieldNavigationProp,
   messages,
+  document: documentProps,
+  refs,
+  fullscreen,
+  history,
+  output,
+  handoff,
+  signature,
+  announce: setAnnouncement,
 }: {
   status: SignStatus;
-  isPseudoFullscreen: boolean;
-  workspaceRef: { current: HTMLDivElement | null };
-  numPages: number;
-  pageSizes: PageGeometry[];
-  /** Printed grids recovered from the page's own content (MOBI-03); empty until detected. */
-  formRegions?: FormFieldRegions;
-  pdfDocument: PDFDocumentProxy | null;
-  pageWrapperRefs: { current: (HTMLDivElement | null)[] };
-  setTempPlacement: (placement: PendingSignaturePlacement) => void;
-  setDialogOpen: (open: boolean) => void;
-  logAction: HistoryLogger<EditorElement>;
-  handleSavePdf: () => void;
-  handleDownloadPdf: () => void;
-  handleSharePdf: () => void;
-  setAnnouncement: (msg: string) => void;
-  /** The tool's own single-step undo and redo, passed through to the toolbar.
-   * They come from PdfSignTool rather than straight from the reducer because
-   * each one also announces what it moved. `canRedo` is read from the context
-   * below, beside `actionHistory`. */
-  onUndo: () => void;
-  onRedo: () => void;
-  toggleFullscreen: () => void;
-  isFullscreen: boolean;
-  placeSignatureAt: (
-    dataUrl: string,
-    aspectRatio: number,
-    pageIndex: number,
-    leftPercent: number,
-    topPercent: number,
-  ) => void;
-  canSharePdf?: boolean;
-  shareReady?: boolean;
-  /** Whether a signed export of the document as it stands exists to carry on. */
-  handoffExport?: boolean;
-  handoffBusy?: boolean;
-  handoffFailed?: boolean;
-  onHandoff?: (tool: string) => void;
   /** Overrides the default error copy below with a specific, nameable reason. */
   errorDetail?: string | null;
   /** Next/Previous across detected fields (MOBI-06); PdfSignTool.tsx builds the
@@ -218,7 +164,83 @@ export default function PdfWorkspace({
    * never passes it) is unaffected. Also supplies EditorPageHeader's lang/dir
    * (bidi-isolation wrapper, 5a1af03) for each rendered page. */
   messages?: Partial<SignMessages>;
+  document: {
+    numPages: number;
+    pageSizes: PageGeometry[];
+    /** Printed grids recovered from the page's own content (MOBI-03); empty until detected. */
+    formRegions?: FormFieldRegions;
+    pdfDocument: PDFDocumentProxy | null;
+  };
+  refs: {
+    workspace: { current: HTMLDivElement | null };
+    pageWrappers: { current: (HTMLDivElement | null)[] };
+  };
+  fullscreen: {
+    isPseudo: boolean;
+    active: boolean;
+    toggle: () => void;
+  };
+  history: {
+    log: HistoryLogger<EditorElement>;
+    /** The tool's own single-step undo and redo, passed through to the toolbar.
+     * They come from PdfSignTool rather than straight from the reducer because
+     * each one also announces what it moved. `canRedo` is read from the context
+     * below, beside `actionHistory`. */
+    undo: () => void;
+    redo: () => void;
+  };
+  output: {
+    save: () => void;
+    download: () => void;
+    share: () => void;
+    canShare?: boolean;
+    shareReady?: boolean;
+  };
+  handoff?: {
+    /** Whether a signed export of the document as it stands exists to carry on. */
+    exportReady?: boolean;
+    busy?: boolean;
+    failed?: boolean;
+    onHandoff?: (tool: string) => void;
+  };
+  signature: {
+    hold: (placement: PendingSignaturePlacement) => void;
+    showDialog: (open: boolean) => void;
+    placeAt: (
+      dataUrl: string,
+      aspectRatio: number,
+      pageIndex: number,
+      leftPercent: number,
+      topPercent: number,
+    ) => void;
+  };
+  announce: (msg: string) => void;
 }) {
+  const errorDetail = errorDetailProp ?? null;
+  const fieldNavigation = fieldNavigationProp ?? NOOP_FIELD_NAVIGATION;
+  const {
+    numPages,
+    pageSizes,
+    formRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
+    pdfDocument,
+  } = documentProps;
+  const { workspace: workspaceRef, pageWrappers: pageWrapperRefs } = refs;
+  const { isPseudo: isPseudoFullscreen, active: isFullscreen, toggle: toggleFullscreen } = fullscreen;
+  const { log: logAction, undo: onUndo, redo: onRedo } = history;
+  const {
+    save: handleSavePdf,
+    download: handleDownloadPdf,
+    share: handleSharePdf,
+    canShare: canSharePdf = false,
+    shareReady = false,
+  } = output;
+  const {
+    exportReady: handoffExport = false,
+    busy: handoffBusy = false,
+    failed: handoffFailed = false,
+    onHandoff = NOOP_HANDOFF,
+  } = handoff ?? {};
+  const { hold: setTempPlacement, showDialog: setDialogOpen, placeAt: placeSignatureAt } = signature;
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
