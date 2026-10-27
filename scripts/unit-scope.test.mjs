@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { selectUnitTests, runUnitByImpact, WIDEN_RULES, ORACLE_FILES } from './unit-scope.mjs';
 const ORACLE_FILE = 'scripts/unit-scope.mjs';
@@ -23,6 +26,16 @@ describe('WIDEN_RULES', () => {
       expect(typeof rule.match).toBe('function');
       expect(rule.tests === 'all' || Array.isArray(rule.tests)).toBe(true);
     }
+  });
+
+  it('names only test files that exist (the exists filter drops a moved path silently)', () => {
+    const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+    const missing = WIDEN_RULES.flatMap((rule) =>
+      Array.isArray(rule.tests)
+        ? rule.tests.filter((t) => !/[*?[]/.test(t) && !existsSync(join(root, t))).map((t) => `${rule.id}: ${t}`)
+        : [],
+    );
+    expect(missing).toEqual([]);
   });
 
   it('has unique ids', () => {
