@@ -33,13 +33,13 @@ const pickers = [...routes.map((route) => ({ route, selector: EMPTY_PICKER, name
 for (const { route, selector, name } of pickers) {
   test(`${name} keeps a file chosen before the island hydrates`, async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.clear(); } catch { /* private mode */ } });
-    let releaseScripts;
-    const scriptsHeld = new Promise((resolve) => { releaseScripts = resolve; });
+    let release;
+    const chosen = new Promise((resolve) => { release = resolve; });
     await page.route('**/_astro/*.js', async (request) => {
-      await scriptsHeld;
+      await chosen;
       await request.continue();
     });
-    // 'commit', not 'domcontentloaded': a held module script holds DOMContentLoaded back too.
+    // Not 'domcontentloaded': module scripts hold that event, and they are held until the pick.
     await page.goto(route, { waitUntil: 'commit' });
     const input = page.locator(selector).first();
     await input.waitFor({ state: 'attached' });
@@ -50,7 +50,7 @@ for (const { route, selector, name } of pickers) {
       ? { name: 'early.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('early') }
       : { name: 'early.png', mimeType: 'image/png', buffer: PNG };
     await input.setInputFiles(file);
-    releaseScripts();
+    release();
 
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await expect(page.locator('[data-empty-state]')).toHaveCount(0, { timeout: 15_000 });
