@@ -31,7 +31,7 @@ const files = new Map([
   ['_astro/PdfSignTool.js', 'import{a}from"./shared.js";const load=()=>import("./pdf-lib.js");const w=`/_astro/pdfWorker.js`;const d=(i)=>i.map(i=>m.f[i]);m.f=["_astro/mapped.js","_astro/page.css"];'],
   ['_astro/pdf-lib.js', 'const wasm="/pdfjs-dist-wasm/";export default wasm;'],
   ['_astro/mapped.js', 'export const m=1;'],
-  ['_astro/pdfWorker.js', 'const u=new URL("./workerHelper.js",import.meta.url);'],
+  ['_astro/pdfWorker.js', 'const u=new URL("./workerHelper.js",import.meta.url);const w=["openjpeg","jbig2"];'],
   ['_astro/workerHelper.js', 'export const wh=1;'],
   ['_astro/PdfMergeTool.js', 'export const merge=1;'],
 ]);
@@ -39,7 +39,8 @@ const paths = [
   ...files.keys(),
   '_astro/never.js', 'images/photo.jpg', 'images/photo.webp', 'icons/favicon.png', 'manifest.webmanifest',
   'fonts/Arimo-Regular.ttf', 'fonts/Heebo-Bold.ttf', 'fonts/Alef-Regular.ttf',
-  'pdfjs-dist-wasm/openjpeg.wasm', 'pdfjs-dist-wasm/openjpeg_nowasm_fallback.js', 'sign/index.md',
+  'pdfjs-dist-wasm/openjpeg.wasm', 'pdfjs-dist-wasm/jbig2.wasm', 'pdfjs-dist-wasm/openjpeg_nowasm_fallback.js',
+  'pdfjs-dist-wasm/quickjs-eval.wasm', 'pdfjs-dist-wasm/quickjs-eval.js', 'sign/index.md',
 ];
 const view = { files, paths };
 const keep = (relative) => !relative.startsWith('fonts/') || relative === 'fonts/Arimo-Regular.ttf';
@@ -58,6 +59,13 @@ describe('pageClosure', () => {
     expect(sign).toContain('/_astro/hydrate.js');
     expect(sign).toContain('/_astro/reexport.js');
     expect(sign).toContain('/pdfjs-dist-wasm/openjpeg.wasm');
+  });
+
+  it('takes only the pdf.js wasm files a chunk in the closure names', () => {
+    expect(sign).toContain('/pdfjs-dist-wasm/openjpeg.wasm');
+    expect(sign).toContain('/pdfjs-dist-wasm/jbig2.wasm');
+    expect(sign).not.toContain('/pdfjs-dist-wasm/quickjs-eval.wasm');
+    expect(sign).not.toContain('/pdfjs-dist-wasm/quickjs-eval.js');
   });
 
   it('leaves out other pages, html-only rasters, ld+json strings, fallbacks and Markdown twins', () => {

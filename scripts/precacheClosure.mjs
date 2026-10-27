@@ -151,18 +151,36 @@ export function staticClosure(view, entryUrls) {
   return walk(view, entryUrls, (relative) => (relative.endsWith('.js') ? staticDeps(relative, view.files.get(relative) ?? '') : []));
 }
 
+/** The name a pdf.js wasm-directory file goes by inside a chunk: "openjpeg" for "openjpeg.wasm". */
+const wasmStem = (relative) => path.posix.basename(relative).split('.')[0];
+
+/**
+ * Files under /pdfjs-dist-wasm/ that the closure's JS actually names. The
+ * directory also holds pdf.js's scripting sandbox (quickjs), which we do not
+ * bundle, so naming the directory is not enough: a file's stem must appear
+ * in some JS file already in the closure.
+ */
+function namedWasmFiles(view, closure, paths) {
+  const sources = [...closure].filter((relative) => relative.endsWith('.js')).map((relative) => view.files.get(relative) ?? '');
+  if (!sources.some((source) => source.includes(WASM_DIR))) return [];
+  const dir = WASM_DIR.slice(1);
+  return [...paths].filter((candidate) => {
+    if (!candidate.startsWith(dir) || candidate.endsWith('_nowasm_fallback.js')) return false;
+    const stem = wasmStem(candidate);
+    return sources.some((source) => source.includes(stem));
+  });
+}
+
 /** Everything the entries could ever load: static and dynamic imports, preload lists, workers, wasm, CSS urls. */
 export function fullClosure(view, entryUrls) {
-  return walk(view, entryUrls, (relative, paths) => {
+  const closure = walk(view, entryUrls, (relative) => {
     const source = view.files.get(relative) ?? '';
     if (relative.endsWith('.css')) return cssUrls(source, `/${relative}`).map(toRelative).filter(Boolean);
     if (!relative.endsWith('.js')) return [];
-    const next = [...staticDeps(relative, source), ...dynamicDeps(relative, source)];
-    if (source.includes(WASM_DIR)) {
-      for (const candidate of paths) if (candidate.startsWith(WASM_DIR.slice(1))) next.push(candidate);
-    }
-    return next;
+    return [...staticDeps(relative, source), ...dynamicDeps(relative, source)];
   });
+  for (const file of namedWasmFiles(view, closure, pathSet(view))) closure.add(file);
+  return closure;
 }
 
 // Files no closure carries: the no-wasm fallbacks (only for browsers without
