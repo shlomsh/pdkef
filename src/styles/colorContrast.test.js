@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 const globalCss = readFileSync(resolve(process.cwd(), 'src/styles/global.css'), 'utf8');
 // LOC-09: the home page's Sea Glass color tokens moved from index.astro into
-// the shared HomePageLayout.astro (also rendered by
-// src/pages/[locale]/index.astro) along with the rest of its markup/CSS.
-const homePage = readFileSync(resolve(process.cwd(), 'src/layouts/HomePageLayout.astro'), 'utf8');
+// the shared home layout, and with ARCH-56 into its first-screen section,
+// src/components/home/HomeHero.astro, along with the hero's markup/CSS.
+const homePage = readFileSync(resolve(process.cwd(), 'src/components/home/HomeHero.astro'), 'utf8');
 
 function token(source, name) {
   const match = source.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i'));

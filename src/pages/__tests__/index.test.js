@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest';
 describe('Homepage Tooltips', () => {
   it('ensures app-tooltip has industry-standard margin and arrow styles', () => {
     // LOC-09: the home page's markup/CSS moved from index.astro into the
-    // shared HomePageLayout.astro (also rendered by src/pages/[locale]/index.astro),
-    // so the English page's own style block lives there now.
-    const astroPath = path.join(process.cwd(), 'src/layouts/HomePageLayout.astro');
+    // shared home layout, and with ARCH-56 into its first-screen section, HomeHero.astro,
+    // so the hero's own style block lives there now.
+    const astroPath = path.join(process.cwd(), 'src/components/home/HomeHero.astro');
     const content = fs.readFileSync(astroPath, 'utf8');
 
     // Extract the <style> block
@@ -24,7 +24,7 @@ describe('Homepage Tooltips', () => {
     expect(css).toMatch(/\.app-tooltip::after\s*{[^}]*border-color:\s*var\(--color-surface\)\s*transparent\s*transparent\s*transparent/);
   });
   describe('SITE-42 woken toolbar', () => {
-    const content = fs.readFileSync(path.join(process.cwd(), 'src/layouts/HomePageLayout.astro'), 'utf8');
+    const content = fs.readFileSync(path.join(process.cwd(), 'src/components/home/HomeHero.astro'), 'utf8');
     const css = content.match(/<style>([\s\S]*?)<\/style>/)[1];
 
     it('gives every dock link a data-tool attribute', () => {
