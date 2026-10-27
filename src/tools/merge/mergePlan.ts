@@ -19,7 +19,9 @@
 
 import { sanitizeOutputName } from '../../lib/sanitizeOutputName.ts';
 import { outputName, withAffixes } from '../../lib/outputName.ts';
-import { clampIndex, type PlanEntry } from '../../lib/pagePlan.ts';
+import { clampIndex, planForFile, type PlanEntry } from '../../lib/pagePlan.ts';
+import { sortEntries } from '../../lib/pageOrder.js';
+import type { FileEntry, Model, SortMode } from './mergeModel.ts';
 export interface MergeMapEntry {
   fileIndex: number;
   pageIndex: number;
@@ -199,3 +201,108 @@ export function mergedFileName(firstFileName: string): string {
 
 // The sanitiser moved to src/lib so the shared shell OutputName can use it too.
 export { sanitizeOutputName };
+
+/* ---- Island bookkeeping: pure functions from state to the next state ---- */
+
+/* Where a file's pages go in the plan once its page count arrives: before
+   the first plan entry of any file that comes later in the list, so a file
+   inserted between two others lands between their pages even when its
+   count resolves after theirs. */
+export function planInsertionIndex(plan: PlanEntry[], entries: FileEntry[], fileId: number): number {
+  const position = entries.findIndex((e) => e.id === fileId);
+  const laterIds = new Set(entries.slice(position + 1).map((e) => e.id));
+  const index = plan.findIndex((entry) => laterIds.has(entry.fileId));
+  return index === -1 ? plan.length : index;
+}
+
+export interface Inspection {
+  pageCount: number;
+  encrypted: boolean;
+  creationDate?: number | null;
+}
+
+/* What a finished inspection does to one snapshot of the document: the entry
+   gets its count, date and lock state, and (unless it is locked or already
+   has pages) its pages enter the plan at the recorded drop position, else
+   where its place in the list says. `recordedIndex` is the grid position the
+   file was dropped at, if any. Runs on every undo/redo snapshot, so it must
+   stay pure and idempotent per snapshot. */
+export function applyInspection(snapshot: Model, entryId: number, result: Inspection, recordedIndex: number | null | undefined): Model {
+  if (!snapshot.entries.some((e) => e.id === entryId)) return snapshot;
+  const nextEntries = snapshot.entries.map((e) =>
+    e.id === entryId
+      ? { ...e, pageCount: result.pageCount, pdfCreationDate: result.creationDate ?? null, error: result.encrypted ? ('encrypted' as const) : null }
+      : e,
+  );
+  if (result.encrypted || snapshot.plan.some((p) => p.fileId === entryId)) return { ...snapshot, entries: nextEntries };
+  const at = recordedIndex == null
+    ? planInsertionIndex(snapshot.plan, nextEntries, entryId)
+    : Math.min(recordedIndex, snapshot.plan.length);
+  return { ...snapshot, entries: nextEntries, plan: insertPages(snapshot.plan, planForFile(entryId, result.pageCount), at) };
+}
+
+/* Files dropped on the grid together record one plan index each (MERGE-10).
+   Returns the map with the settled file's record dropped and, when it placed
+   pages, every record at or past it moved past those pages. */
+export function settlePendingPlanIndexes(
+  pending: ReadonlyMap<number, number>,
+  entryId: number,
+  result: Pick<Inspection, 'pageCount' | 'encrypted'>,
+): Map<number, number> {
+  const next = new Map(pending);
+  const recorded = next.get(entryId);
+  if (recorded == null) return next;
+  next.delete(entryId);
+  if (!result.encrypted) {
+    for (const [id, index] of next) {
+      if (index >= recorded) next.set(id, index + result.pageCount);
+    }
+  }
+  return next;
+}
+
+/* Records the grid position every new entry was dropped at. */
+export function recordPendingPlanIndexes(pending: ReadonlyMap<number, number>, entryIds: number[], planIndex: number): Map<number, number> {
+  const next = new Map(pending);
+  for (const id of entryIds) next.set(id, planIndex);
+  return next;
+}
+
+/* The file-list position a grid drop at `planIndex` implies. At a file
+   boundary the file itself slots in between; inside another file's pages
+   (or past the end) the list appends it (-1) and the plan interleaves. */
+export function fileIndexForPlanDrop(plan: PlanEntry[], entries: FileEntry[], planIndex: number): number {
+  const owner = plan[planIndex];
+  const boundary = !owner || planIndex === 0 || plan[planIndex - 1].fileId !== owner.fileId;
+  return owner && boundary ? entries.findIndex((e) => e.id === owner.fileId) : -1;
+}
+
+/* New entries go at atIndex; an index outside the list appends. */
+export function insertEntriesAt(entries: FileEntry[], added: FileEntry[], atIndex: number): FileEntry[] {
+  const next = [...entries];
+  const index = atIndex < 0 || atIndex > next.length ? next.length : atIndex;
+  next.splice(index, 0, ...added);
+  return next;
+}
+
+/* One entry moved from oldIndex to newIndex. */
+export function moveEntryTo(entries: FileEntry[], oldIndex: number, newIndex: number): FileEntry[] {
+  const next = [...entries];
+  const [moved] = next.splice(oldIndex, 1);
+  next.splice(newIndex, 0, moved);
+  return next;
+}
+
+/* The file order a Sort menu choice produces. 'reversed' flips the current
+   order, 'added' restores the order files arrived in (their ids), the rest
+   sort by name or date. */
+export function sortFiles(entries: FileEntry[], mode: SortMode): FileEntry[] {
+  if (mode === 'reversed') return [...entries].reverse();
+  if (mode === 'added') return [...entries].sort((a, b) => a.id - b.id);
+  return sortEntries(entries, mode);
+}
+
+/* The Model after the files take a new order: the plan regroups around it. */
+export function withFileOrder(current: Model, files: FileEntry[], mode: SortMode): Model {
+  return { entries: files, plan: regroupPlan(current.plan, files.map((e) => e.id)), sortMode: mode };
+}
