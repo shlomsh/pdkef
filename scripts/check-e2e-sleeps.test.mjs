@@ -12,6 +12,15 @@ describe('countSleeps (ARCH-79)', () => {
     expect(countSleeps(src)).toBe(1);
   });
 
+  it('counts a promise-wrapped setTimeout sleep', () => {
+    const src = `await new Promise(resolve => setTimeout(resolve, 200));\nawait new Promise((r) => setTimeout(r, 5));\n`;
+    expect(countSleeps(src)).toBe(2);
+  });
+
+  it('does not count test.setTimeout', () => {
+    expect(countSleeps('test.setTimeout(90_000);')).toBe(0);
+  });
+
   it('ignores other waits', () => {
     expect(countSleeps('await page.waitForLoadState();\nawait page.waitForFunction(() => 1);')).toBe(0);
   });
