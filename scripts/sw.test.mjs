@@ -70,6 +70,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
         match: vi.fn(async (request) => entries.get(requestUrl(request))?.clone()),
         put: vi.fn(async (request, response) => entries.set(requestUrl(request), response.clone())),
         keys: vi.fn(async () => [...entries.keys()].map((url) => new Request(url))),
+        delete: vi.fn(async (request) => entries.delete(requestUrl(request))),
       });
     }
     return cacheObjects.get(key);
@@ -1482,5 +1483,211 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
       expect(await response.text()).toBe('unlisted page');
       expect(worker.entries.has('https://pdkef.test/unlisted/')).toBe(false);
     });
+  });
+});
+
+// MEM-24: the worker records why an install, or a retried precache, failed. It sends nothing.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('install failure record (%s)', (_label, source) => {
+  const MAINT = 'maint-sw-v1';
+  const KEY = 'https://pdkef.test/__maint/sw-install/__BUILD_ID__';
+  const recordOf = async (worker) => {
+    const stored = worker.entriesByCache.get(MAINT)?.get(KEY);
+    return stored ? JSON.parse(await stored.clone().text()) : undefined;
+  };
+  const manifestOf = (extra = {}) => ({ version: 2, build: '__BUILD_ID__', shell: ['/', '/sign/'], pages: {}, hashes: {}, ...extra });
+  const serving = (manifestResponse, perUrl = () => new Response('asset')) => vi.fn(async (request) => {
+    const url = requestUrl(request);
+    if (url.endsWith('/precache-manifest.json')) return typeof manifestResponse === 'function' ? manifestResponse() : manifestResponse;
+    return perUrl(new URL(url).pathname);
+  });
+  const build = (fetchImpl) => createWorker(fetchImpl, ['pdkef-previous'], createFakeIndexedDB(), source);
+  const flush = () => new Promise((resolveFlush) => setTimeout(resolveFlush, 0));
+
+  it('records other_build for a manifest from another build', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf({ build: 'another' })))));
+    await expect(dispatchInstall(worker)).rejects.toThrow('Precache manifest belongs to another build.');
+    expect(await recordOf(worker)).toEqual({ v: 1, build: '__BUILD_ID__', reason: 'other_build', missed: '0' });
+  });
+
+  it.each([
+    ['a status other than 404', () => new Response('no', { status: 500 })],
+    ['an invalid shape', () => new Response(JSON.stringify({ version: 1 }))],
+    ['a body that is not JSON', () => new Response('<html>')],
+    ['a network failure', () => { throw new TypeError('Failed to fetch'); }],
+  ])('records manifest_unreadable for %s', async (_name, manifest) => {
+    const worker = build(serving(manifest));
+    await expect(dispatchInstall(worker)).rejects.toThrow();
+    expect(await recordOf(worker)).toMatchObject({ reason: 'manifest_unreadable', missed: '0' });
+  });
+
+  it('records storage when the build cache refuses a write', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf()))));
+    worker.cache.put.mockRejectedValue(new Error('QuotaExceededError'));
+    await expect(dispatchInstall(worker)).rejects.toThrow('QuotaExceededError');
+    expect(await recordOf(worker)).toMatchObject({ reason: 'storage', missed: '0' });
+  });
+
+  it('still rejects with the original error, after the bound, when the record write never settles', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf({ build: 'another' })))));
+    const open = worker.caches.open.getMockImplementation();
+    worker.caches.open.mockImplementation(async (key) => {
+      if (key !== MAINT) return open(key);
+      const maint = await open(key);
+      maint.put.mockImplementation(() => new Promise(() => {}));
+      return maint;
+    });
+    vi.useFakeTimers();
+    try {
+      const settled = dispatchInstall(worker).then(() => 'resolved', (error) => error.message);
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(await settled).toBe('Precache manifest belongs to another build.');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('records storage when the last step, marking the precache complete, cannot write', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf()))));
+    const put = worker.cache.put.getMockImplementation();
+    worker.cache.put.mockImplementation(async (request, response) => {
+      if (requestUrl(request).endsWith('/__pdkef/precache-complete/')) throw new Error('QuotaExceededError');
+      return put(request, response);
+    });
+    await expect(dispatchInstall(worker)).rejects.toThrow('QuotaExceededError');
+    expect(await recordOf(worker)).toEqual({ v: 1, build: '__BUILD_ID__', reason: 'storage', missed: '0' });
+  });
+
+  it.each([
+    ['a non-ok answer', () => new Response('no', { status: 500 })],
+    ['a network failure', () => { throw new TypeError('Failed to fetch'); }],
+  ])('records root_unreachable for / with %s', async (_name, root) => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf())), (pathname) => (pathname === '/' ? root() : new Response('asset'))));
+    await expect(dispatchInstall(worker)).rejects.toThrow();
+    expect(await recordOf(worker)).toMatchObject({ reason: 'root_unreachable', missed: '0' });
+  });
+
+  it('records root_mismatch when / is not this build\'s file', async () => {
+    const hashes = { '/': pageHash('this build') };
+    const worker = build(serving(new Response(JSON.stringify(manifestOf({ hashes }))), () => new Response('rewritten by a proxy')));
+    await expect(dispatchInstall(worker)).rejects.toThrow(/is not this build's file/);
+    expect(await recordOf(worker)).toMatchObject({ reason: 'root_mismatch', missed: '0' });
+  });
+
+  it('writes no record for a successful install', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf()))));
+    await dispatchInstall(worker);
+    await flush();
+    expect(worker.entriesByCache.has(MAINT)).toBe(false);
+  });
+
+  it('writes no record for an install that only missed some files', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf())), (pathname) => (pathname === '/sign/' ? new Response('no', { status: 503 }) : new Response('asset'))));
+    await dispatchInstall(worker);
+    await flush();
+    expect(worker.entriesByCache.has(MAINT)).toBe(false);
+  });
+
+  it('writes no record for an orphaned worker, which still removes itself', async () => {
+    const worker = build(vi.fn(async () => new Response('not found', { status: 404 })));
+    await dispatchInstall(worker);
+    await flush();
+    expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
+    expect(worker.entriesByCache.has(MAINT)).toBe(false);
+  });
+
+  it('keeps failing the same way when the record cannot be written', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf({ build: 'another' })))));
+    const open = worker.caches.open.getMockImplementation();
+    worker.caches.open.mockImplementation(async (key) => {
+      if (key !== MAINT) return open(key);
+      const maint = await open(key);
+      maint.put.mockRejectedValue(new Error('no room'));
+      return maint;
+    });
+    await expect(dispatchInstall(worker)).rejects.toThrow('Precache manifest belongs to another build.');
+  });
+
+  it('keeps failing the same way when the record cache cannot be opened', async () => {
+    const worker = build(serving(new Response(JSON.stringify(manifestOf({ build: 'another' })))));
+    const open = worker.caches.open.getMockImplementation();
+    worker.caches.open.mockImplementation(async (key) => {
+      if (key === MAINT) throw new Error('storage is gone');
+      return open(key);
+    });
+    await expect(dispatchInstall(worker)).rejects.toThrow('Precache manifest belongs to another build.');
+  });
+
+  describe('files_missed from the retried precache', () => {
+    const retry = async (failing) => {
+      const { worker } = buildIncompleteWorker(source, [], failing);
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      await flush();
+      return worker;
+    };
+
+    it('records the bucket of what the retry still missed', async () => {
+      const fetchImpl = vi.fn(async (request) => {
+        const url = requestUrl(request);
+        if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify(manifestOf({ shell: ['/', '/a.js', '/b.js', '/c.js'] })));
+        return new Response('no', { status: 503 });
+      });
+      const worker = build(fetchImpl);
+      worker.entries.set('https://pdkef.test/', new Response('home'));
+      worker.self.clients.matchAll = vi.fn(async () => []);
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      await flush();
+      expect(await recordOf(worker)).toEqual({ v: 1, build: '__BUILD_ID__', reason: 'files_missed', missed: '2-5' });
+    });
+
+    it('leaves no record once a later retry completes', async () => {
+      const failing = ['/_astro/app.js'];
+      const { worker } = buildIncompleteWorker(source, [], failing);
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      await flush();
+      expect(await recordOf(worker)).toMatchObject({ reason: 'files_missed', missed: '1' });
+      failing.length = 0;
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      await flush();
+      expect(worker.entries.has(PRECACHE_MARKER)).toBe(true);
+      expect(await recordOf(worker)).toBeUndefined();
+    });
+
+    it('has the files_missed record written before the retry settles', async () => {
+      const { worker } = buildIncompleteWorker(source, [], ['/_astro/app.js']);
+      const put = worker.caches.open.getMockImplementation();
+      worker.caches.open.mockImplementation(async (key) => {
+        if (key !== MAINT) return put(key);
+        await new Promise((resolveSlow) => setTimeout(resolveSlow, 20));
+        return put(key);
+      });
+      await dispatchMessage(worker, { type: 'pdkef:skip-waiting' });
+      expect(await recordOf(worker)).toMatchObject({ reason: 'files_missed' });
+    });
+
+    it('writes nothing when the retry completes', async () => {
+      const worker = await retry([]);
+      expect(worker.entries.has(PRECACHE_MARKER)).toBe(true);
+      expect(worker.entriesByCache.has(MAINT)).toBe(false);
+    });
+  });
+
+  describe('cleanup leaves the record alone', () => {
+    it('activate never deletes it', async () => {
+      const worker = createWorker(vi.fn(), ['pdkef-previous', MAINT], createFakeIndexedDB(), source);
+      await dispatchActivate(worker);
+      expect(worker.caches.delete).toHaveBeenCalledWith('pdkef-previous');
+      expect(worker.caches.delete).not.toHaveBeenCalledWith(MAINT);
+    });
+
+    it('removeSelf never deletes it', async () => {
+      const worker = createWorker(vi.fn(async () => new Response('not found', { status: 404 })), ['pdkef-previous', MAINT], createFakeIndexedDB(), source);
+      await dispatchInstall(worker);
+      expect(worker.caches.delete).toHaveBeenCalledWith('pdkef-previous');
+      expect(worker.caches.delete).not.toHaveBeenCalledWith(MAINT);
+    });
+  });
+
+  it.each([[0, '0'], [1, '1'], [2, '2-5'], [5, '2-5'], [6, '6-20'], [20, '6-20'], [21, '21+']])('buckets %i missed files as %s', (count, bucket) => {
+    expect(createWorker(vi.fn(), [], createFakeIndexedDB(), source).context.missedBucket(count)).toBe(bucket);
   });
 });

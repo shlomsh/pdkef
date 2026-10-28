@@ -7,6 +7,12 @@ describe('UNOWNED_VERDICTS (QUAL-34)', () => {
     expect(unownedVerdictOf('middleware.ts').e2e).toBe('none');
   });
 
+  it('workflow files other than ci.yml run no e2e; ci.yml keeps all', () => {
+    expect(unownedVerdictOf('.github/workflows/dependency-advisories.yml')).toEqual({ e2e: 'none' });
+    expect(unownedVerdictOf('.github/workflows/new-thing.yaml')).toEqual({ e2e: 'none' });
+    expect(unownedVerdictOf('.github/workflows/ci.yml')).toEqual({ e2e: 'all' });
+  });
+
   it('filesForNx drops table files and keeps the rest', () => {
     expect(filesForNx(['middleware.ts', 'vercel.json', 'src/lib/a.ts', 'package.json', 'public/sw.js'])).toEqual(['src/lib/a.ts', 'package.json']);
   });

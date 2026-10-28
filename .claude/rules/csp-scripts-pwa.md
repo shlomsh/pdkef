@@ -81,6 +81,8 @@ There is no PWA build plugin (`vite-plugin-pwa` and `@vite-pwa/astro` were both 
 
 `/api/report` (DEBT-17) is a same-origin beacon POST, so `connect-src 'self'` is untouched. The service worker must not intercept it: `public/sw.js`'s fetch handler only handles GET plus the share-target POST (every other method returns before `respondWith`), so the beacon always goes straight to the network. Keep it that way.
 
+The MEM-24 install-failure record lives in the cache `maint-sw-v1`, which sits outside `CACHE_PREFIX`/`isOwnCache` on purpose, so cleanup and the critical-version checks never touch it. Keep it that way if the prefix changes.
+
 Icons referenced in the manifest are generated and live in `public/icons/` (`icon-192`, `icon-512`, `icon-512-maskable`, `apple-touch-icon`, plus `favicon-16`/`favicon-32`).
 
 

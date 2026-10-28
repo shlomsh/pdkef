@@ -77,3 +77,4 @@ The same 58 pushes (57 runs in `pairs.txt` plus the assessment's docs-only count
 - What still widens: `package.json` or the lockfile (9), a core project the import walk cannot narrow
   (7), the build pipeline (3), `ci.yml` (2), the CI oracle (2), `playwright.config.js`, `nx.json` and
   `vitest.config.js`, `.github/workflows/dependency-advisories.yml`.
+- Follow-up row: workflow files other than `ci.yml` run no e2e (`ci.yml` calls no reusable workflow); the one `dependency-advisories.yml` push in this replay would have run none.

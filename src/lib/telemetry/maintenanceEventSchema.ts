@@ -74,6 +74,33 @@ export type PageTreeShape = (typeof PAGE_TREE_SHAPES)[number];
 export const PAGE_TREE_ROOTS = ['none', 'one', 'several'] as const;
 export type PageTreeRoots = (typeof PAGE_TREE_ROOTS)[number];
 
+/**
+ * Why a service worker did not install or finish its precache (MEM-24). The
+ * worker records one of these in Cache Storage and the page reports it once per
+ * build, so a worker that fails silently becomes a count. A code and a bucket,
+ * nothing from the device, no URL.
+ * @testSeam
+ */
+export const SW_INSTALL_REASONS = [
+  'other_build',
+  'manifest_unreadable',
+  'storage',
+  'root_unreachable',
+  'root_mismatch',
+  'files_missed',
+] as const;
+type SwInstallReason = (typeof SW_INSTALL_REASONS)[number];
+
+/** How many precache files were missed: `0` for an install failure. @testSeam */
+export const SW_INSTALL_MISSED_BUCKETS = ['0', '1', '2-5', '6-20', '21+'] as const;
+type SwInstallMissedBucket = (typeof SW_INSTALL_MISSED_BUCKETS)[number];
+
+type SwInstallProperties = Readonly<{
+  outcome: 'failure';
+  reason: SwInstallReason;
+  missed: SwInstallMissedBucket;
+}>;
+
 type PdfPageTreeProperties = Readonly<{
   outcome: 'repaired' | 'failed';
   shape: PageTreeShape;
@@ -96,7 +123,8 @@ type FormDetectionProperties =
 export type MaintenanceEvent =
   | Readonly<{ name: 'sign_export'; properties: SignExportProperties }>
   | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>
-  | Readonly<{ name: 'pdf_page_tree'; properties: PdfPageTreeProperties }>;
+  | Readonly<{ name: 'pdf_page_tree'; properties: PdfPageTreeProperties }>
+  | Readonly<{ name: 'sw_install'; properties: SwInstallProperties }>;
 
 const has = (list: readonly string[], value: unknown): value is string =>
   typeof value === 'string' && list.includes(value);
@@ -154,6 +182,16 @@ function parsePageTree(p: Record<string, unknown>): PdfPageTreeProperties | null
   });
 }
 
+function parseSwInstall(p: Record<string, unknown>): SwInstallProperties | null {
+  if (!exactKeys(p, ['outcome', 'reason', 'missed']) || p.outcome !== 'failure') return null;
+  if (!has(SW_INSTALL_REASONS, p.reason) || !has(SW_INSTALL_MISSED_BUCKETS, p.missed)) return null;
+  return Object.freeze({
+    outcome: 'failure',
+    reason: p.reason as SwInstallReason,
+    missed: p.missed as SwInstallMissedBucket,
+  });
+}
+
 /**
  * Accepts exactly `{name, properties}` with the property set that name and
  * outcome allow, every value off its list, and nothing else. Run on both
@@ -175,17 +213,22 @@ export function parseMaintenanceEvent(value: unknown): MaintenanceEvent | null {
     const parsed = parsePageTree(properties);
     return parsed && Object.freeze({ name, properties: parsed });
   }
+  if (name === 'sw_install') {
+    const parsed = parseSwInstall(properties);
+    return parsed && Object.freeze({ name, properties: parsed });
+  }
   return null;
 }
 
 /**
  * The counter field an event is stored under, with the browser family the
  * endpoint derived: `sign_form_detection|failure|not_started|ios-17`,
- * `sign_export|success|under_5s|chromium-140`. Values in a fixed order, so one
+ * `sign_export|success|under_5s|chromium-140`,
+ * `sw_install|failure|storage|0|chromium-140`. Values in a fixed order, so one
  * outcome is always one field.
  */
 export function maintenanceEventField(event: MaintenanceEvent, engine: string): string {
   const p = event.properties as Record<string, string>;
-  const detail = [p.field_count_bucket, p.page_kind, p.shape, p.roots, p.duration_bucket, p.error_code].filter(Boolean);
+  const detail = [p.field_count_bucket, p.page_kind, p.shape, p.roots, p.duration_bucket, p.error_code, p.reason, p.missed].filter(Boolean);
   return [event.name, p.outcome, ...detail, engine].join('|');
 }
