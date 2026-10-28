@@ -1,7 +1,7 @@
 ---
 id: "ARCH-101"
 title: "src/lib groups its modules by domain, and a check holds the shape"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "unify-and-narrow"
 horizon: "next"
