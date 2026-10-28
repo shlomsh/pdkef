@@ -40,13 +40,13 @@ async function compress(page, fixture, levelTitle) {
   await (await chooser).setFiles({ name: fixture, mimeType: 'application/pdf', buffer: read(fixture) });
   await waitForDone(page);
   await chooseLevel(page, levelTitle);
-  await expect(page.locator('a[download], :text("Already as small as it gets")').first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('a[download]:not([data-quiet-download]), :text("Already as small as it gets")').first()).toBeVisible({ timeout: 60_000 });
 }
 
 async function compressAndDownload(page, fixture, levelTitle) {
   await compress(page, fixture, levelTitle);
   const downloadPromise = page.waitForEvent('download');
-  await page.locator('a[download]').first().click();
+  await page.locator('a[download]:not([data-quiet-download])').first().click();
   const file = await (await downloadPromise).path();
   const bytes = fs.readFileSync(file);
   const before = read(fixture).length;
@@ -85,7 +85,7 @@ test.describe('compress KPI (COMP-01)', () => {
       await waitForDone(page);
       await expect(page.locator('[data-tool-shell]').getByText('Nothing here to shrink.')).toBeVisible();
       await expect(page.getByText('Already as small as it gets', { exact: true })).toBeVisible({ timeout: 60_000 });
-      await expect(page.locator('a[download]')).toHaveCount(0);
+      await expect(page.locator('a[download]:not([data-quiet-download])')).toHaveCount(0);
     });
   }
 
