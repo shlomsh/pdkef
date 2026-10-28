@@ -16,7 +16,7 @@
 import { readFileSync, existsSync, globSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { repoFiles } from './repo-files.mjs';
+import { repoFiles, repoPathExists } from './repo-files.mjs';
 
 const ROOT_DIRS = ['src', 'scripts', 'docs', 'e2e', 'api', 'public', '.claude', '.github', 'patches', 'backlog'];
 const ROOT_FILES = ['CLAUDE.md', 'README.md', 'TODO.md', 'BACKLOG.md', 'package.json', 'vercel.json', 'middleware.ts', 'astro.config.mjs', 'playwright.config.js', 'vitest.config.js'];
@@ -61,8 +61,8 @@ export function findDeadPaths({ file, text, exists }) {
 const SOURCE = /\.(?:ts|tsx|js|mjs|astro)$/;
 
 export function scanRepo(root) {
-  const exists = (p) => existsSync(resolve(root, p));
-  const known = repoFiles(root); // gitignored local files are not ours to judge (DEBT-68)
+  const known = repoFiles(root); // gitignored local files are neither judged nor cited-as-existing (DEBT-68)
+  const exists = repoPathExists(known); // same answer locally as on CI, where those files are absent
   const files = [
     'CLAUDE.md',
     ...globSync('.claude/**/*.md', { cwd: root }),

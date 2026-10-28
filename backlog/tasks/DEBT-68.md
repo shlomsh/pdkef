@@ -37,3 +37,12 @@ passed while every local gate stopped at its first step. Landing SEO-49 needed a
   and an untracked, unignored file are still flagged.
 - `npm run check:guidance` in this worktree (impeccable files present) went from a wall of
   "cites ..., which does not exist" to "Guidance budget OK".
+
+## Follow-up 2026-10-28: the existence check had the same blind spot
+
+The first version filtered which files were scanned but still asked the filesystem whether a cited path
+exists. Two comments cited the gitignored plugin folder, so they passed locally and failed CI (run
+40734516378). `scanRepo` now answers "does it exist" from the same git-known set (`repoPathExists`: a
+file git knows, or a folder holding one). Red test first: a doc citing a path that exists only as a
+gitignored file is flagged, a tracked folder and file are not. The two comments no longer name the
+plugin's folder.
