@@ -412,6 +412,8 @@ the day.
    public/fonts/Sriracha-Regular.ttf       -> fonts=true
    e2e/sign/thai-font-parity.spec.js     -> fonts=true
    package-lock.json                        -> everything=true (unowned), fonts=true (unchanged, fail-open)
+   package.json, only off-path scripts     -> no e2e, no fonts (QUAL-43: any other field, a dependency, `imports`,
+                                              or a script on the build/preview/dev/test:e2e* path widens)
    ```
 
 2. **The two guards that actually run the export pipeline** (`export-render-guard.spec.js`, which
