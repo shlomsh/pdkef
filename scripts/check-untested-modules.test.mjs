@@ -49,6 +49,14 @@ describe('findUntestedModuleProblems (ARCH-81)', () => {
     expect(findUntestedModuleProblems(root, [])).toEqual([]);
   });
 
+  it('passes a module a test imports through an alias (ARCH-44)', () => {
+    const root = plant({
+      'src/lib/a.ts': 'export const a = 1;\n',
+      'src/test/cross/a.test.ts': "import { a } from '#lib/a.ts';\n",
+    });
+    expect(findUntestedModuleProblems(root, [])).toEqual([]);
+  });
+
   it('passes a module a scripts test imports', () => {
     const root = plant({
       'src/editor/a.js': 'export const a = 1;\n',

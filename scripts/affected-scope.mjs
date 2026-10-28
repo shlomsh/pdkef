@@ -106,6 +106,7 @@ import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { buildReachGraph, importSpecifiers } from './import-graph.mjs';
+import { aliasTarget } from './import-aliases.mjs';
 import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween } from './unowned-verdicts.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
@@ -150,7 +151,7 @@ export function buildPipelineFiles(packageJsonText, readFile) {
   const shaping = build.split('&&').filter((step) => !/(^|\s)--check(\s|$)/.test(step)).join('&&');
   const queue = [...shaping.matchAll(/\bnode\s+((?:\.\/)?[\w./-]+\.[cm]?[jt]s)\b/g)].map((m) => m[1].replace(/^\.\//, ''));
   const resolve = (from, spec) => {
-    const base = join(dirname(from), spec).split('\\').join('/');
+    const base = (aliasTarget(spec) ?? join(dirname(from), spec)).split('\\').join('/');
     const stem = base.replace(/\.[cm]?[jt]sx?$/, '');
     const candidates = [base, ...['.mjs', '.js', '.ts', '.tsx', '.jsx'].flatMap((e) => [stem + e, base + e, `${base}/index${e}`])];
     return candidates.find((c) => readFile(c) != null) ?? null;
@@ -162,7 +163,7 @@ export function buildPipelineFiles(packageJsonText, readFile) {
     if (source == null) continue;
     found.add(file);
     for (const spec of importSpecifiers(source, file)) {
-      if (!spec.startsWith('.')) continue;
+      if (!spec.startsWith('.') && !aliasTarget(spec)) continue;
       const target = resolve(file, spec);
       if (target) queue.push(target);
     }

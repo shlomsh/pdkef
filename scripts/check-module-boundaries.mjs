@@ -102,7 +102,7 @@ import { fileURLToPath } from 'node:url';
 // <script src> pass, the tool route map) lives in scripts/import-graph.mjs, shared with
 // scripts/affected-scope.mjs (ARCH-32); re-exported here so every existing importer keeps working.
 import {
-  collectSourceFiles, IMPORT_PATTERN, importSpecifiers, resolveRelativeImport, relOf,
+  collectSourceFiles, IMPORT_PATTERN, importSpecifiers, isLocalSpecifier, resolveRelativeImport, relOf,
   buildEdges, buildToolRouteMap, scriptSrcSpecifiers, astroScriptSrcEdges, reverseEdgeMap,
 } from './import-graph.mjs';
 // The Nx project-cycle check (ARCH-42) lives in scripts/project-cycles.mjs; re-exported for existing importers.
@@ -286,7 +286,7 @@ export function testImportViolations() {
     const from = relOf(file);
     const source = fs.readFileSync(file, 'utf8');
     for (const specifier of importSpecifiers(source, from)) {
-      if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
+      if (!isLocalSpecifier(specifier)) continue; // bare package, out of scope
       const resolved = resolveRelativeImport(file, specifier);
       if (!resolved) continue;
       const to = relOf(resolved);
@@ -548,7 +548,7 @@ export function scriptsImportViolations() {
       const from = relOf(file);
       const source = fs.readFileSync(file, 'utf8');
       for (const specifier of importSpecifiers(source, from)) {
-        if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
+        if (!isLocalSpecifier(specifier)) continue; // bare package, out of scope
         const resolved = resolveRelativeImport(file, specifier);
         if (!resolved) continue;
         const to = relOf(resolved);
