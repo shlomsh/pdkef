@@ -318,8 +318,12 @@
 
 /* The loaded-file strip, at every width (docs/ux-design-guidelines.md §18,
    rule 2): a 40x52 thumbnail, the name with the quiet actions on its line, the
-   meta line under it, and an optional note that always reserves two lines so
-   the strip never changes height as it changes. `.identity` and `.text` keep
+   meta line under it, and an optional note across the strip's whole width
+   (it starts below the thumbnail, so the room under it is free) that always
+   reserves its lines so the strip never changes height as it arrives or
+   changes: two below 1024px, one in the desktop rail, where Compress's
+   longest note (332px at 0.8rem) fits the 360px rail (2026-10-28).
+   `.identity` and `.text` keep
    their DOM places (tests and the editor variant rely on them) and drop out
    of the box tree, so the grid areas reach their children directly.
    `:not(.editor)`: Sign and Redact's sticky toolbar card is untouched. */
@@ -375,10 +379,17 @@
 
 .note {
   grid-area: note;
+  grid-column: 1 / -1;
   min-height: calc(2 * 1.4em);
   font-size: 0.8rem;
   line-height: 1.4;
   color: var(--color-muted);
+}
+
+@media (min-width: 1024px) {
+  .note {
+    min-height: 1.4em;
+  }
 }
 
 /* Replace / Add / Clear are quiet here: 36px tall, with a ::before that makes

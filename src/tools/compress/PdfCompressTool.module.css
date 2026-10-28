@@ -1,8 +1,10 @@
 /* The loaded state: the result is the centre (ux guideline 1), the strip,
    the controls and the primary controls are a rail beside it. DOM order is
-   strip, controls, result, sheet, which is also the phone's reading order.
-   The strip is the shell's ToolShell, rendered here (with BasePdfTool's
-   `hideIdentity`) so the rail can hold it on a desktop. */
+   strip, result, controls, notes, sheet, which is also the phone's reading
+   order: the image comes straight under the file it was made from, and the
+   settings that change it follow. The strip is the shell's ToolShell,
+   rendered here (with BasePdfTool's `hideIdentity`) so the rail can hold it
+   on a desktop. */
 .loaded-layout {
   composes: loaded-layout from '../../shell/loadedLayout.module.css';
 }
@@ -49,14 +51,55 @@
   margin-top: 0;
 }
 
+/* Below 1024px the image comes first, and its stage runs to the card's edges
+   like the sheet under it, so the image takes the screen's width: the card
+   pads 12px below 768px and 1.5rem up to 1023px. Notes about the file sit
+   with Download, after the controls, only while there is one. */
+@media (max-width: 1023px) {
+  .loaded-layout {
+    grid-template-areas:
+      'strip'
+      'result'
+      'controls'
+      'sheet';
+  }
+
+  .loaded-layout.has-notes {
+    grid-template-areas:
+      'strip'
+      'result'
+      'controls'
+      'notes'
+      'sheet';
+  }
+
+  .result {
+    margin-inline: -12px;
+    padding: 10px 8px;
+    border-radius: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .result {
+    margin-inline: -1.5rem;
+    padding-inline: 12px;
+  }
+}
+
 @media (min-width: 1024px) {
   .result-action {
     margin-top: 20px;
   }
 
+  /* The stage fills the loaded card to its foot, as every tool's first screen
+     does: the card's floor (PdfTool.module.css, --first-screen less the 5.5rem
+     condensed hero) less the card's own 1rem padding and 1px border on each
+     side. */
   .result {
+    --stage-h: calc(var(--first-screen) - 5.5rem - 2rem - 2px);
     padding: 20px;
-    min-height: 420px;
+    min-height: var(--stage-h);
     justify-content: center;
   }
 
@@ -64,30 +107,45 @@
     margin-bottom: 16px;
   }
 
-  /* As wide as the whole page can be while it still fits the first screen
-     under the hero, card and label row (about 210px at the top), at most
-     800px tall: the height left times the page's own width over height
-     (ResultSection's --preview-aspect), so a landscape photo takes the
-     column's width and a portrait page its height. Until an image has loaded
-     it assumes A4 portrait, 0.7. Every row of the column shares the width,
-     so the labels, the footer and the notes line up with the preview. */
+  /* A passthrough's column (its title, numbers, note and original) keeps a
+     portrait page's width beside the rail. */
   .result > * {
-    max-width: min(48rem, calc(min(100svh - 210px, 800px) * var(--preview-aspect, 0.7)));
+    max-width: min(48rem, calc((var(--stage-h) - 106px - 1.2rem) * var(--preview-aspect, 0.7)));
+  }
+
+  /* The comparison owns the stage: the panel is the stage's inner height, the
+     line under the image takes what it needs, and the image takes the rest
+     (.compare-fit), so nothing is budgeted by hand and the card never grows
+     past the window. e2e/compare-preview.spec.js holds Full screen and the
+     card's foot inside it. */
+  .result > .compare-panel {
+    max-width: none;
+    height: calc(var(--stage-h) - 40px);
+  }
+
+  .compare-fit {
+    flex: 1;
+    min-height: 0;
+    container-type: size;
+    justify-content: center;
+  }
+
+  /* As large as the space allows at the page's own width over height
+     (ResultSection's --preview-aspect; A4 portrait, 0.7, until an image has
+     loaded), less the slider's 1px border top and bottom and room for two
+     caption lines under it (2.8rem with the gap), so the image and its
+     caption centre together. */
+  .compare-fit > .compare-frame {
+    width: min(48rem, 100cqw, (100cqh - 2px - 2.8rem) * var(--preview-aspect, 0.7));
+  }
+
+  .compare-fit > .compare-skeleton {
+    width: min(48rem, 100cqw, 100cqh * 0.75);
   }
 }
 
-/* Notes about the downloaded file take a row of their own: beside Download,
-   under it, on a desktop; between the preview and the sheet on a phone. Only
-   while there is a note, so an empty row never adds a gap. */
-.loaded-layout.has-notes {
-  grid-template-areas:
-    'strip'
-    'controls'
-    'result'
-    'notes'
-    'sheet';
-}
-
+/* Notes about the downloaded file take a row of their own beside Download,
+   under it, on a desktop. */
 @media (min-width: 1024px) {
   .loaded-layout.has-notes {
     grid-template-areas:
@@ -168,12 +226,6 @@
   color: var(--color-success);
 }
 
-.dimension-line {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--color-muted);
-}
-
 /* What to know about the file that downloads: quiet text on the card with
    one info mark, no box, since it reads beside the button it explains. */
 .result-notes {
@@ -231,8 +283,8 @@
   width: 100%;
 }
 
-/* Full screen button (SEO-25, COMP-01): a secondary action with an icon, on
-   white so it reads against the mint, still lighter than Download. */
+/* Full screen's Close (COMP-01): a secondary action on white, lighter than
+   Download. */
 .compare-toggle-button {
   align-self: center;
   display: inline-flex;
@@ -269,25 +321,112 @@
   align-items: center;
 }
 
-/* Above the preview, ends lined up with the slider's edges. The sides are
-   physical (after on the left, before on the right, as the tags were), so the
-   row stays left-to-right in a right-to-left page; each label is a bdi. */
+.compare-fit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* The image and what names it: the labels on its top corners, Full screen on
+   its bottom corner, so the image is the only thing with a row of its own. */
+.compare-frame {
+  position: relative;
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* The sides' names and sizes. The sides are physical (compressed on the
+   left, where the slider reveals it), so the row stays left-to-right in a
+   right-to-left page; each label is a bdi. Presses fall through to the
+   slider underneath. */
 .compare-labels {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1;
   direction: ltr;
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  max-width: 48rem;
-  margin: 0 auto;
-  font-size: 0.8rem;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  pointer-events: none;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-muted);
+  line-height: 1.3;
 }
 
-/* The compressed side is the result: the darker of the two labels. */
-.compare-label-after {
+.compare-labels > span {
+  min-width: 0;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
   color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The compressed side is the result: it carries the primary colour. */
+.compare-labels > .compare-label-after {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+/* On a phone both pills would not fit on one line beside each other, so each
+   puts its size under its name rather than cutting it off. */
+@media (max-width: 599px) {
+  .compare-labels > span {
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+  }
+
+  .compare-label-sep {
+    display: none;
+  }
+}
+
+/* Full screen, on the image. 36px drawn, 44px to a finger (the ::before). */
+.compare-expand {
+  position: absolute;
+  bottom: 10px;
+  inset-inline-end: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.compare-expand::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
+.compare-expand:hover {
+  background: var(--color-primary-soft);
+}
+
+.compare-expand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* The original's page 1 in the box the slider takes, so nothing moves when
@@ -357,27 +496,21 @@
   margin: 0;
 }
 
-/* Caption and size beside Full screen, as wide as the slider above, so the
-   panel spends one row under the preview instead of three. */
+/* What to do, and a photo's size, in one centred line under the image. */
 .compare-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  width: 100%;
-  max-width: 48rem;
+  justify-content: center;
+  gap: 0.15rem 0.75rem;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+  text-align: center;
 }
 
-.compare-footer-text {
-  flex: 1 1 12rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.compare-footer .compare-caption {
-  text-align: start;
+.compare-dimensions {
+  font-variant-numeric: tabular-nums;
 }
 
 .flatten-switch {

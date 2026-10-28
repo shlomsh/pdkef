@@ -12,7 +12,6 @@ interface ResultSheetProps {
   t: CompressMessages;
   file: File;
   sheetRef: Ref<HTMLDivElement>;
-  kind: 'pdf' | 'image' | null;
   status: 'idle' | 'processing' | 'done' | 'error';
   hasSheet: boolean;
   tappedBusy: boolean;
@@ -32,9 +31,8 @@ interface ResultSheetProps {
 
 /** The action sheet: Try again, the compressing ring, or Download and Share, whichever the run is at. */
 export default function ResultSheet(props: ResultSheetProps) {
-  const { t, file, sheetRef, kind, status, hasSheet, tappedBusy, awaitingFirst, isDone, passthrough, downloadUrl, outputType,
+  const { t, file, sheetRef, status, hasSheet, tappedBusy, awaitingFirst, isDone, passthrough, downloadUrl, outputType,
     downloadDetail, progress, shareVisible, warmBuild, retry, onDownloadClick, onShare } = props;
-  const downloadLabel = kind === 'image' ? t.imageDownloadLabel : t.downloadLabel;
   return (
     <div
       ref={sheetRef}
@@ -60,11 +58,11 @@ export default function ResultSheet(props: ResultSheetProps) {
             autoFocus={false}
             href={downloadUrl}
             download={deriveDownloadName(file.name, outputType)}
-            label={downloadLabel}
+            label={t.downloadLabel}
             detail={downloadDetail}
             onClick={onDownloadClick}
           />
-          <PdfShareButton visible={shareVisible} onShare={onShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
+          <PdfShareButton visible={shareVisible} onShare={onShare} label={t.shareLabel} />
         </>
       ) : awaitingFirst ? (
         // No result yet: the ready look with the size it already knows. A tap here waits for the build.
@@ -72,7 +70,7 @@ export default function ResultSheet(props: ResultSheetProps) {
           autoFocus={false}
           href="#"
           download={deriveDownloadName(file.name, file.type)}
-          label={downloadLabel}
+          label={t.downloadLabel}
           detail={formatBytes(file.size)}
           onClick={onDownloadClick}
         />

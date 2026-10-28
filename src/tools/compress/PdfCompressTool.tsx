@@ -265,6 +265,24 @@ export default withIslandBoundary(function PdfCompressTool({
               <FileActions />
             </ToolShell>
           </div>
+          <ResultSection
+            t={t}
+            compare={compare}
+            file={file}
+            lastBlob={last?.blob ?? null}
+            status={status}
+            kind={kind}
+            arrow={arrow}
+            isDone={isDone}
+            showCompare={showCompare}
+            passthrough={passthrough}
+            unchanged={unchanged}
+            rasterBytes={rasterBytes}
+            dimensions={dimensions}
+            compressedSize={compressedSize}
+            compareCaption={compareCaption}
+            view={view}
+          />
           <div class={styles.controls} data-controls>
             {isImageMode ? (
               <TargetSizePanel
@@ -293,31 +311,11 @@ export default withIslandBoundary(function PdfCompressTool({
               </label>
             )}
           </div>
-
-          <ResultSection
-            t={t}
-            compare={compare}
-            file={file}
-            lastBlob={last?.blob ?? null}
-            status={status}
-            kind={kind}
-            arrow={arrow}
-            isDone={isDone}
-            showCompare={showCompare}
-            passthrough={passthrough}
-            unchanged={unchanged}
-            rasterBytes={rasterBytes}
-            dimensions={dimensions}
-            compressedSize={compressedSize}
-            compareCaption={compareCaption}
-            view={view}
-          />
           <ResultNotes view={view} isDone={isDone} passthrough={passthrough} />
           <ResultSheet
             t={t}
             file={file}
             sheetRef={sheetRef}
-            kind={kind}
             status={status}
             hasSheet={hasSheet}
             tappedBusy={tappedBusy}
