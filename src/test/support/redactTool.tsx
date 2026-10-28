@@ -126,6 +126,7 @@ export async function setSelectedBoxColor(color: string) {
 /** The slice of the tool harness the suite setup touches; the test file passes the real one in. */
 interface SuiteHarness {
   restore(): void;
+  settle(): Promise<void>;
   flush(): Promise<unknown>;
   usageEvents(name?: string): Array<{ name: string; properties: Record<string, unknown> }>;
   pdfjs: { pageItems: { clear(): void }; holdNextDocumentRead(): any };
@@ -198,6 +199,10 @@ export function useRedactSuite<H extends SuiteHarness>({ Tool, checking, gesture
       act(() => render(null, s.container));
       s.container.remove();
     }
+    // The draft restore a mount starts reads IndexedDB and carries on afterwards (it clears the hand-off
+    // marker on `document`). A short test ends before that read does; let it finish while jsdom is up,
+    // or it lands after teardown as an unhandled `document is not defined` that fails the whole shard.
+    await s.harness.settle();
     vi.restoreAllMocks();
     s.restoreCanvas?.();
     s.restoreCanvas = undefined;

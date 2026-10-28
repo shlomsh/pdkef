@@ -64,6 +64,39 @@ describe('installToolHarness', () => {
     expect(harness.blobForUrl('blob:unknown')).toBeUndefined();
   });
 
+  describe('settle', () => {
+    it('waits for IndexedDB work a test left running, so nothing lands after the test is torn down', async () => {
+      let finished = false;
+      // Not awaited: this is the draft restore a mounted island starts and a short test never waits for.
+      void harness.takeHandoff('sign').then(() => { finished = true; });
+      expect(finished).toBe(false);
+      await harness.settle();
+      expect(finished).toBe(true);
+    });
+
+    it('waits for a read that continues into a second transaction', async () => {
+      await saveHandoff('sign', { fileName: 'out.pdf', fileBytes: bytes('%PDF-1.4 out') });
+      let taken: string | undefined;
+      // takeHandoff reads the record, then deletes it in a later transaction.
+      void harness.takeHandoff('sign').then((record) => { taken = record?.fileName; });
+      await harness.settle();
+      expect(taken).toBe('out.pdf');
+      expect(await harness.takeHandoff('sign')).toBeNull();
+    });
+
+    it('keeps waiting while a connection stays open, however slow the work on it is', async () => {
+      let closed = false;
+      const request = indexedDB.open('slow-work');
+      request.onsuccess = () => { setTimeout(() => { request.result.close(); closed = true; }, 30); };
+      await harness.settle();
+      expect(closed).toBe(true);
+    });
+
+    it('returns at once when nothing is running', async () => {
+      await harness.settle();
+    });
+  });
+
   it('puts the global beacon back on restore', () => {
     const recording = navigator.sendBeacon;
     harness.restore();
