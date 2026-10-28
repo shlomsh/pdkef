@@ -41,7 +41,11 @@
 //   2. Any changed file that no Nx project owns (a root config file,
 //      patches/, package*.json, .github/, middleware.ts, anything outside a
 //      project root - DOCS_ONLY files excepted, since a docs-only change
-//      never reaches this script's jobs in CI) -> everything=true. "Owned" is
+//      never reaches this script's jobs in CI) -> everything=true, except the
+//      files UNOWNED_VERDICTS names (QUAL-34): each carries its own measured
+//      e2e verdict (none, a named spec dir, or every product spec with fonts
+//      off) and is also kept out of the `nx show projects --affected` query,
+//      since Nx marks most projects affected by middleware.ts or vercel.json. "Owned" is
 //      asked of Nx itself (each project's own `root`), never a second
 //      hand-written path list. ARCH-22 gave `scripts/` itself a project
 //      (`tooling`), so a `scripts/` file is no longer unowned by this rule -
@@ -272,6 +276,57 @@ export function publicOwnerOf(file) {
   return null;
 }
 
+// QUAL-34: verdicts for files no Nx project owns, each backed by what reads the file (the `why`).
+// `e2e` is 'none' (no spec or build step reads it), a list of spec dirs, or 'all' (every product
+// spec, fonts off unless something else turns them on). Anything not here widens as before.
+const rowOf = (test, e2e, why) => ({ test, verdict: { e2e }, why });
+export const UNOWNED_VERDICTS = [
+  rowOf((f) => f === 'middleware.ts' || f === 'vercel.json' || f.startsWith('api/'), 'none', 'astro preview runs no middleware, reads no vercel.json and serves no api/; test:csp and test:redirects cover them'),
+  rowOf(
+    (f) => /^(?:spikes|prototypes|security)\//.test(f) || f === '.gitignore' || f === '.github/dependabot.yml' || f.startsWith('.github/ISSUE_TEMPLATE/') || f === 'public/llms.txt' || f === 'public/agents.md',
+    'none',
+    'no spec or build step reads it',
+  ),
+  rowOf((f) => f === 'public/manifest.webmanifest', ['e2e/offline/'], 'only e2e/offline/twoBuildServer.js reads it'),
+  rowOf((f) => f === 'public/sw.js' || f.startsWith('public/images/'), 'all', 'every page registers the worker and tool specs open public/images/**; no font guard reads either'),
+  rowOf((f) => f === '.github/workflows/ci.yml', 'all', 'a workflow edit can break any job; font guards only when the font-guards job or a shared part changed'),
+];
+
+function unownedRowOf(file) {
+  return UNOWNED_VERDICTS.find((row) => row.test(file)) ?? null;
+}
+
+export function unownedVerdictOf(file) {
+  return unownedRowOf(file)?.verdict ?? null;
+}
+
+// The files Nx is asked about: table files are left out, or middleware.ts would mark most projects affected.
+export function filesForNx(files) {
+  return files.filter((f) => !unownedRowOf(f));
+}
+
+// QUAL-34: does a ci.yml change reach the `job`? `hunks` are new-side {start, count} ranges from
+// `git diff -U0`. Lines outside every job (on:, env:, jobs:) count as touching every job.
+export function ciChangeTouchesJob(ciText, hunks, job) {
+  const lines = ciText.split('\n');
+  const header = (line) => /^ {2}[\w-]+:/.test(line);
+  const jobsAt = lines.findIndex((l) => l === 'jobs:');
+  const jobStarts = [];
+  lines.forEach((l, i) => { if (jobsAt >= 0 && i > jobsAt && header(l)) jobStarts.push(i + 1); });
+  const first = jobStarts[0] ?? lines.length + 1;
+  const mine = jobStarts.indexOf(lines.findIndex((l) => l.startsWith(`  ${job}:`)) + 1);
+  const from = mine >= 0 ? jobStarts[mine] : -1;
+  const to = mine >= 0 ? (jobStarts[mine + 1] ?? lines.length + 1) - 1 : -1;
+  return hunks.some(({ start, count }) => {
+    const touched = count === 0 ? [start, start + 1] : Array.from({ length: count }, (_, k) => start + k);
+    return touched.some((n) => n < first || n === jobsAt + 1 || (n >= from && n <= to));
+  });
+}
+
+export function parseHunks(diffText) {
+  return [...diffText.matchAll(/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/gm)].map((m) => ({ start: Number(m[1]), count: m[2] === undefined ? 1 : Number(m[2]) }));
+}
+
 export function ownerOf(file, roots) {
   let owner = null;
   let ownerRootLength = -1;
@@ -419,10 +474,10 @@ export function narrowByReachability({
 // run. No `nx`/`git` call in here - scripts/affected-scope.test.mjs exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
-export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null }) {
+export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null, ciFontJobChanged = () => true }) {
   // An empty list means "none were found", never "no site-wide spec exists": use the old floor.
   const siteE2eProjects = projectList?.length ? projectList : null;
-  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f));
+  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f) && !unownedRowOf(f));
   if (unowned.length > 0) {
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
   }
@@ -437,6 +492,15 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     return wide(affected, `build pipeline: ${pipeline.join(', ')}`);
   }
 
+  // QUAL-34: table files the verdict says need every product spec. Fonts follow the font globs, and a
+  // ci.yml edit also turns them on when it touches the font-guards job or anything outside a job.
+  const tableRows = files.map((f) => [f, unownedRowOf(f)]).filter(([, row]) => row);
+  const allRows = tableRows.filter(([, row]) => row.verdict.e2e === 'all');
+  if (allRows.length > 0) {
+    const fonts = files.some(matchesFontsGlob) || (files.includes('.github/workflows/ci.yml') && ciFontJobChanged());
+    return wide(affected, `unowned files that reach every spec: ${allRows.map(([f, row]) => `${f} (${row.why})`).join('; ')}`, fonts);
+  }
+
   const affectedSet = new Set(affected);
   const wideCore = [...affectedSet].filter((p) => CORE_PROJECTS.has(p));
   if (wideCore.length > 0) {
@@ -449,7 +513,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     // ARCH-32: before going wide, ask the import graph which tools the changed files reach.
     const reached = reachFromCore({ files, loadReachGraph, siteE2ePaths });
     if (reached.wide) return wide(affected, `${coreReason} (${reached.wide})`, fonts);
-    return narrowResult({
+    const reachedScope = narrowResult({
       files,
       affected,
       toolProjects: reached.tools.map((t) => `tool-${t}`),
@@ -459,10 +523,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
       exportGuards: true, // same as wide(): two cheap specs whose own Nx edges are coarse on purpose
       reason: `${coreReason}, narrowed by import reachability to ${reached.tools.join(', ') || '(no tool; site-e2e only)'} - ${reached.why}`,
     });
+    return withTableSpecs(reachedScope, tableRows.map(([f, row]) => [f, row.verdict.e2e]));
   }
 
   const toolProjects = [...affectedSet].filter((p) => p.startsWith('tool-')).sort();
-  return narrowResult({
+  const narrowed = narrowResult({
     files,
     affected,
     toolProjects,
@@ -475,6 +540,15 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     exportGuards: affectedSet.has('export-guards'),
     reason: `narrowed to ${toolProjects.join(', ') || '(no tool project; site-e2e/fonts only)'}`,
   });
+  return withTableSpecs(narrowed, tableRows.map(([f, row]) => [f, row.verdict.e2e]));
+}
+
+// QUAL-34: a narrow result gains the spec dirs its table files name (deduped) and says so in the reason.
+function withTableSpecs(scope, tableVerdicts) {
+  if (scope.everything || tableVerdicts.length === 0) return scope;
+  const paths = scope.e2e_paths ? scope.e2e_paths.split(' ') : [];
+  for (const [, e2e] of tableVerdicts) if (Array.isArray(e2e)) for (const p of e2e) if (!paths.includes(p)) paths.push(p);
+  return { ...scope, e2e_paths: paths.join(' '), reason: `${scope.reason}; unowned files with their own verdict: ${tableVerdicts.map(([f]) => f).join(', ')}` };
 }
 
 function changedBuildFiles(buildFiles, files) {
@@ -555,6 +629,20 @@ function narrowResult({ files, affected, toolProjects, toolE2eExists, siteE2ePat
   };
 }
 
+// QUAL-34: did the ci.yml edit touch the font-guards job or anything outside a job? Any error answers
+// true (fail-open: the font guards run).
+const CI_FILE = '.github/workflows/ci.yml';
+function ciFontJobChangedBetween(base, head) {
+  try {
+    const git = (args) => execFileSync('git', args, { encoding: 'utf8', cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] });
+    const text = head ? git(['show', `${head}:${CI_FILE}`]) : readFileSync(join(ROOT, CI_FILE), 'utf8');
+    const diff = git(['diff', '-U0', base, ...(head ? [head] : []), '--', CI_FILE]);
+    return ciChangeTouchesJob(text, parseHunks(diff), 'font-guards');
+  } catch {
+    return true;
+  }
+}
+
 // Exported for scripts/check-push.mjs (ARCH-29): it computes the scope once,
 // the same way this file's own `main()` does, so the local pre-push command
 // and this file's own `--base`/`--run` CLI cannot resolve two different
@@ -576,8 +664,9 @@ export function resolveScope({ explicitBase, explicitHead }) {
   try {
     info = projectInfo();
     roots = new Map([...info].map(([name, node]) => [name, node.root]));
-    const affectedRaw = nx(['show', 'projects', '--affected', `--files=${files.join(',')}`, '--json']);
-    affected = JSON.parse(affectedRaw);
+    // QUAL-34: table files stay out of the query (Nx marks most projects affected by middleware.ts).
+    const nxFiles = filesForNx(files);
+    affected = nxFiles.length === 0 ? [] : JSON.parse(nx(['show', 'projects', '--affected', `--files=${nxFiles.join(',')}`, '--json']));
   } catch (err) {
     return wide([], `nx error: ${err.message}`);
   }
@@ -594,6 +683,7 @@ export function resolveScope({ explicitBase, explicitHead }) {
     toolE2eExists: (project) => existsSync(join(ROOT, `src/tools/${toolNameOf(project)}/e2e/`)),
     siteE2ePaths: siteE2eProjects.flatMap((p) => p.paths),
     siteE2eProjects,
+    ciFontJobChanged: files.includes(CI_FILE) ? () => ciFontJobChangedBetween(base, explicitHead) : undefined,
     // Scanned lazily: only a core-project verdict reads it, and then once.
     loadReachGraph: () => {
       const graph = buildReachGraph();
