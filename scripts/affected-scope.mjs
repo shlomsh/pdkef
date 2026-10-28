@@ -50,6 +50,8 @@
 //      hand-written path list. ARCH-22 gave `scripts/` itself a project
 //      (`tooling`), so a `scripts/` file is no longer unowned by this rule -
 //      see rule 3 for why the oracle files inside it still force everything.
+//      QUAL-43: package.json is the one unowned file read by its diff - when only `scripts` entries off the
+//      build, preview, dev and test:e2e* path changed (packageJsonReachesE2e), it carries verdict none.
 //   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script,
 //      change-scope.mjs, import-graph.mjs, script-closure.mjs, test-only-scope.mjs or unowned-verdicts.mjs) ->
 //      everything=true. Do not trust a narrowed run to validate the code that decided to narrow it - the same reasoning
@@ -112,7 +114,7 @@ import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 import { buildReachGraph } from './import-graph.mjs';
 import { scriptClosure } from './script-closure.mjs';
 import { narrowTestOnlyChange } from './test-only-scope.mjs';
-import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween } from './unowned-verdicts.mjs';
+import { unownedRowOf, filesForNx, CI_FILE, ciFontJobChangedBetween, packageJsonReachesE2eBetween } from './unowned-verdicts.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -410,10 +412,13 @@ export function narrowByReachability({
 // run. No `nx`/`git` call in here - scripts/affected-scope.test.mjs exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
-export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null, ciFontJobChanged = () => true }) {
+export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [], siteE2eProjects: projectList = null, loadReachGraph = null, buildFiles = null, ciFontJobChanged = () => true, packageJsonReachesE2e = () => true }) {
   // An empty list means "none were found", never "no site-wide spec exists": use the old floor.
   const siteE2eProjects = projectList?.length ? projectList : null;
-  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f) && !unownedRowOf(f));
+  // QUAL-43: a package.json diff that only touches scripts off the build and e2e path acts as a table file
+  // with verdict 'none' (it adds no spec and no font guard); anything else leaves it unowned and wide.
+  const packageOffPath = files.includes('package.json') && !packageJsonReachesE2e();
+  const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots) && !publicOwnerOf(f) && !unownedRowOf(f) && !(packageOffPath && f === 'package.json'));
   if (unowned.length > 0) {
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
   }
@@ -609,6 +614,7 @@ export function resolveScope({ explicitBase, explicitHead }) {
     siteE2ePaths: siteE2eProjects.flatMap((p) => p.paths),
     siteE2eProjects,
     ciFontJobChanged: files.includes(CI_FILE) ? () => ciFontJobChangedBetween(base, explicitHead) : undefined,
+    packageJsonReachesE2e: files.includes('package.json') ? () => packageJsonReachesE2eBetween(base, explicitHead) : undefined,
     // Scanned lazily: only a core-project verdict reads it, and then once.
     loadReachGraph: () => {
       const graph = buildReachGraph();
