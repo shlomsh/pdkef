@@ -19,7 +19,7 @@ interface CacheLike {
 }
 interface Deps {
   caches: { has(name: string): Promise<boolean>; open(name: string): Promise<CacheLike> };
-  send: (event: MaintenanceEvent) => void;
+  send: (event: MaintenanceEvent) => boolean;
 }
 
 const inList = (list: readonly string[], v: unknown): v is string => typeof v === 'string' && list.includes(v);
@@ -46,11 +46,13 @@ export async function reportSwInstallFailures({ caches, send }: Deps): Promise<v
       }
       builds.push(build);
       if (sent.has(build)) continue;
+      let went = false;
       try {
-        send({ name: 'sw_install', properties: { outcome: 'failure', reason: body.reason, missed: body.missed } } as MaintenanceEvent);
+        went = send({ name: 'sw_install', properties: { outcome: 'failure', reason: body.reason, missed: body.missed } } as MaintenanceEvent) === true;
       } catch {
-        // expected: a failed send must not stop the pass
+        // expected: a failed send must not stop the pass, and leaves no tombstone
       }
+      if (!went) continue;
       await cache.put(SENT + build, new Response('1'));
       sent.add(build);
     }
