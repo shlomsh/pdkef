@@ -187,24 +187,66 @@ export function repoOnlyProblems(distDir) {
   return findRepoOnlyFiles(distDir).map((f) => `${f}: repo config shipped in dist/ (an Nx project.json inside public/ is copied verbatim and served; run scripts/repoOnlyFiles.mjs or move it)`);
 }
 
-function brotli(buffer) {
-  return zlib.brotliCompressSync(buffer, {
-    params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
-  }).length;
+const BROTLI_PARAMS = { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 };
+const brotli = (buffer) => zlib.brotliCompressSync(buffer, { params: BROTLI_PARAMS }).length;
+
+// QUAL-37: /_astro/ files are content-hashed (the name changes with the bytes), so their brotli size is reused by
+// URL between runs. Anything else (pages, sw.js, fonts) is always compressed and never enters the cache. The cache is
+// { key, sizes }; a different key (brotli parameters or zlib version) discards it. `readBytes(url)` returns the file's
+// bytes or null. Returns the sizes and the cache to write back, pruned to this run's URLs.
+export function brotliSizes(urls, { readBytes, compress, cache, key }) {
+  const cached = cache && cache.key === key ? cache.sizes : {};
+  const sizes = {};
+  const kept = {};
+  for (const url of urls) {
+    if (url in sizes) continue;
+    const hashed = url.startsWith('/_astro/');
+    if (hashed && url in cached) {
+      sizes[url] = kept[url] = cached[url];
+      continue;
+    }
+    const bytes = readBytes(url);
+    if (bytes == null) continue;
+    sizes[url] = compress(bytes);
+    if (hashed) kept[url] = sizes[url];
+  }
+  return { sizes, cache: { key, sizes: kept } };
+}
+
+const CACHE_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', '.cache', 'pdkef', 'precache-brotli.json');
+const CACHE_KEY = `brotli:${JSON.stringify(BROTLI_PARAMS)};zlib:${process.versions.zlib}`;
+
+function readCache() {
+  try {
+    return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(cache) {
+  try {
+    fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
+  } catch {
+    // a cache that cannot be written is a cold next run, never a failure
+  }
 }
 
 function main() {
   const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
   const manifest = JSON.parse(fs.readFileSync(path.join(dist, 'precache-manifest.json'), 'utf8'));
   const fileOf = (url) => (url.endsWith('/') ? `${url}index.html` : url);
-  const sizes = {};
-  const sizeOf = (url) => {
-    if (!(url in sizes)) {
+  const { sizes, cache } = brotliSizes([...manifest.shell, ...Object.values(manifest.pages).flat()], {
+    readBytes: (url) => {
       const file = path.join(dist, fileOf(url));
-      if (fs.existsSync(file)) sizes[url] = brotli(fs.readFileSync(file));
-    }
-  };
-  [...manifest.shell, ...Object.values(manifest.pages).flat()].forEach(sizeOf);
+      return fs.existsSync(file) ? fs.readFileSync(file) : null;
+    },
+    compress: brotli,
+    cache: readCache(),
+    key: CACHE_KEY,
+  });
+  writeCache(cache);
 
   const astroDir = path.join(dist, '_astro');
   const astroFiles = fs.existsSync(astroDir) ? fs.readdirSync(astroDir).map((f) => `_astro/${f}`) : [];
