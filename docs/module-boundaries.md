@@ -143,6 +143,14 @@ that is not in the numbered list. The script enforces one edge for it, in `ruleV
 `test-support` file may not import a tool. It may import every core module and the site. This is
 what keeps a harness from reaching into one tool's internals; rule 6 covers the other test locations.
 
+**Import aliases** (ARCH-44). An import into `src/lib/`, `src/editor/`, `src/editor-ui/` or `src/shell/` from
+outside that folder is written `#lib/...`, `#editor/...`, `#editor-ui/...` or `#shell/...`, naming the file with its
+real extension (`#lib/pdf/openPdfDoc.ts`); TypeScript does not probe extensions behind an alias. An import inside a
+layer stays relative, and no non-test import climbs four or more folders. Exempt: specifiers with a `?` query,
+`new URL(..., import.meta.url)`, and `src/**/e2e/`. The aliases are declared once, in `package.json` "imports",
+which Node, Vite, Vitest (`vi.mock` included), TypeScript and Nx read natively; `scripts/import-aliases.mjs` is the
+one copy the import-resolving scripts map through. `npm run test:import-aliases` holds the rule.
+
 `scripts/check-module-boundaries.mjs` enforces exactly these eleven rules; its exported `RULES` list
 and this section are checked against each other by `scripts/check-module-boundaries.doc.test.mjs`
 (a rule renamed or added on one side fails the test); the classification table in the
