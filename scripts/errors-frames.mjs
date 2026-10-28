@@ -7,6 +7,8 @@ const BUILD = /^[0-9a-f]{7}$/;
 
 // Chunk file `<module>.<8 hash chars>.js`; the module itself may contain dots.
 const FRAME = /^([A-Za-z0-9_.-]+?)\.([A-Za-z0-9_-]{8})\.m?js:\d+:\d+$/;
+// A stable-named file (MEM-25) is `site/<entry>.js` or `shared/<chunk>.js`: no hash, the module is the file name.
+const STABLE_FRAME = /^(?:site|shared)\/([A-Za-z0-9_.-]+?)\.m?js:\d+:\d+$/;
 
 // Module name (chunk name without its hash) -> vendor label. Extend here.
 const VENDOR = new Map([
@@ -46,7 +48,7 @@ export function sourceMap(lsFilesOutput) {
 // (the lucide icon chunks, astro's `client`, the bundler runtime), whatever the vendor table says.
 export function frameLabel(frame, sources) {
   const raw = String(frame ?? '');
-  const m = FRAME.exec(raw.trim());
+  const m = STABLE_FRAME.exec(raw.trim()) ?? FRAME.exec(raw.trim());
   if (!m) return { module: null, vendor: false, label: raw };
   const module = m[1];
   const known = VENDOR.get(module) ?? (module.startsWith('preact') ? 'preact (vendor)' : null);

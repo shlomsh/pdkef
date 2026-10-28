@@ -197,3 +197,11 @@ describe('sampleLines', () => {
     expect(out).toContain('    all frames are vendor code');
   });
 });
+
+describe('frameLabel, stable names', () => {
+  it('labels a site/ entry by its module, with no hash to strip', () => {
+    expect(frameLabel('site/PdfSignTool.js:2:3')).toEqual({ module: 'PdfSignTool', vendor: false, label: 'PdfSignTool' });
+    expect(frameLabel('site/BaseLayout_astro_astro_type_script_index_1_lang.js:1:2').module).toBe('BaseLayout_astro_astro_type_script_index_1_lang');
+    expect(frameLabel('shared/openPdfDoc.js:1:2')).toEqual({ module: 'openPdfDoc', vendor: false, label: 'openPdfDoc' });
+  });
+});
