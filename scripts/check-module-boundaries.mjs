@@ -34,11 +34,12 @@
 //      that tool's island entry point, a `Pdf*Tool.tsx` directly under
 //      `src/tools/<name>/`, or its text, `src/tools/<name>/messages.ts`
 //      (ARCH-35).
-//   5. Retired (ARCH-48): everything under `src/components/` now classifies as
+//   5. This rule is retired (ARCH-48): everything under `src/components/` now classifies as
 //      `site`, so rules 1, 2 and 4 already cover it. The number stays so that
 //      rules 6-11 keep theirs.
-//   6. A test file (anything matching TEST_FILE, below) under `shell`,
-//      `editor-ui`, `editor` or `lib`, or under one tool's own
+//   6. A test file (anything matching TEST_FILE, below) may not launder a cross-tool
+//      import a real edge in the same location would be forbidden from making: a
+//      test under `shell`, `editor-ui`, `editor` or `lib`, or under one tool's own
 //      `src/tools/<name>/` folder, may not import another tool's files: a
 //      core test importing any tool, or a `tool:<a>` test importing
 //      `tool:<b>`. `src/test/` (including `src/test/cross-tool/`, built for
@@ -77,8 +78,10 @@
 //      allowlist entries (ARCH-46: files only tests/scripts read) are excepted;
 //      otherwise it holds at zero violations like rules 6 and 8, so a module that fails it moves into
 //      the tool that actually uses it, or is deleted if nothing does.
+//  10. `lib` is the bottom layer: it may not import `editor`, `editor-ui`, `shell`,
+//      `i18n` or `data` (ARCH-34).
 //  11. The site (pages, layouts, content, data, i18n, styles, `.astro` components,
-//      `src/site-lib/`) never imports `src/editor/` (ARCH-43). Data the editor and the
+//      `src/site-lib/`) never imports the editor core, `src/editor/` (ARCH-43). Data the editor and the
 //      site both read (the font manifest and license tables) lives in `src/lib/`.
 //
 // An `.astro` file's own `<script src="...">` tag is an edge the main scan
