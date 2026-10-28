@@ -1,5 +1,5 @@
 import { Expand } from 'lucide-preact';
-import type { JSX } from 'preact';
+import type { ComponentChildren, JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import styles from '../PdfCompressTool.module.css';
 import ErrorMessage from '#shell/ErrorMessage.tsx';
@@ -89,13 +89,37 @@ export default function ResultSection(props: ResultSectionProps) {
   // The page's width over height, once an image of it has loaded: the column sizes the preview to its real shape.
   const [aspect, setAspect] = useState<number | null>(null);
 
-  // One row above the preview: the compressed side on the left, the original
-  // on the right (where the tags sat), each with its size.
-  const labelRow = (afterText: string) => (
+  // The two sides' names and sizes, on the image's top corners: the compressed side on the left, the original
+  // on the right. Presses go through them to the slider.
+  const pill = (name: string, size: string | null, className?: string) => (
+    <span class={className}>
+      <bdi>{name}</bdi>
+      {size && <><span class={styles['compare-label-sep']}> · </span><bdi>{size}</bdi></>}
+    </span>
+  );
+  const labelRow = (afterName: string, afterSize: string | null) => (
     <p class={styles['compare-labels']} data-compare-labels>
-      <span class={styles['compare-label-after']}><bdi>{afterText}</bdi></span>
-      <span><bdi>{t.compareBeforeLabel} · {formatBytes(file.size)}</bdi></span>
+      {pill(afterName, afterSize, styles['compare-label-after'])}
+      {pill(t.compareBeforeLabel, formatBytes(file.size))}
     </p>
+  );
+  // The image as large as the stage allows, with what names it drawn on it, so nothing else takes a row; the
+  // caption stays right under it.
+  const frame = (image: ComponentChildren, labels: ComponentChildren, action?: ComponentChildren, caption?: ComponentChildren) => (
+    <div class={styles['compare-fit']}>
+      <div class={styles['compare-frame']}>
+        {image}
+        {labels}
+        {action}
+      </div>
+      {caption}
+    </div>
+  );
+  // A photo's size, said once when compressing kept it.
+  const dimensionText = kind === 'image' && dimensions && (
+    dimensions.width === dimensions.originalWidth && dimensions.height === dimensions.originalHeight
+      ? <bdi>{dimensions.width} × {dimensions.height}</bdi>
+      : <><bdi>{dimensions.originalWidth} × {dimensions.originalHeight}</bdi> {arrow} <bdi>{dimensions.width} × {dimensions.height}</bdi></>
   );
   const originalBox = compare.original && (
     <div key="original" class={styles['compare-original']}>
@@ -110,8 +134,7 @@ export default function ResultSection(props: ResultSectionProps) {
         // layout shift (0.116 at 1440x820, DEBT-56); replaced, the panel is new content.
         compare.original ? (
           <div key="panel" class={styles['compare-panel']} data-compare-panel>
-            {labelRow(t.compressing)}
-            {originalBox}
+            {frame(originalBox, labelRow(t.compressing, null))}
           </div>
         ) : (
           // Only the page's placeholder: the progress itself is the sheet's
@@ -133,39 +156,37 @@ export default function ResultSection(props: ResultSectionProps) {
           {compare.status === 'loading' && (
             <>
               {/* The visible "still working" placeholder in the slider's own shape; it never holds up Download. */}
-              <div class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />
+              <div class={styles['compare-fit']}>
+                <div class={styles['compare-skeleton']} data-compare-skeleton aria-hidden="true" />
+              </div>
               <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
             </>
           )}
           {compare.status === 'error' && <p class={styles['compare-status']}>{t.compareRenderFailed}</p>}
           {compare.previews && (
             <>
-              {labelRow(`${t.compareAfterLabel} · ${formatBytes(compressedSize ?? 0)}`)}
-              <CompareSlider
-                tags={false}
-                beforeSrc={compare.previews.before}
-                afterSrc={compare.previews.after}
-                beforeLabel={t.compareBeforeLabel}
-                afterLabel={t.compareAfterLabel}
-                pageAlt={t.comparePageAlt}
-                sliderLabel={t.compareSliderLabel}
-                onAspect={setAspect}
-              />
-              {/* One row under the slider: what to do and the image's size at the start, Full screen at the end. */}
-              <div class={styles['compare-footer']}>
-                <div class={styles['compare-footer-text']}>
-                  <p class={styles['compare-caption']}>{compareCaption}</p>
-                  {kind === 'image' && dimensions && (
-                    <p class={styles['dimension-line']}>
-                      <bdi>{dimensions.originalWidth} × {dimensions.originalHeight}</bdi> {arrow} <bdi>{dimensions.width} × {dimensions.height}</bdi>
-                    </p>
-                  )}
-                </div>
-                <button type="button" class={styles['compare-toggle-button']} onClick={() => { compare.openFullscreen(file, lastBlob).catch((err) => reportError('pdf_render', err, 'compare_open_fullscreen')); }}>
-                  <Expand size={18} aria-hidden="true" />
+              {frame(
+                <CompareSlider
+                  tags={false}
+                  beforeSrc={compare.previews.before}
+                  afterSrc={compare.previews.after}
+                  beforeLabel={t.compareBeforeLabel}
+                  afterLabel={t.compareAfterLabel}
+                  pageAlt={t.comparePageAlt}
+                  sliderLabel={t.compareSliderLabel}
+                  onAspect={setAspect}
+                />,
+                labelRow(t.compareAfterLabel, formatBytes(compressedSize ?? 0)),
+                // Beside the slider, not in it, so a press here never starts a drag.
+                <button type="button" class={styles['compare-expand']} onClick={() => { compare.openFullscreen(file, lastBlob).catch((err) => reportError('pdf_render', err, 'compare_open_fullscreen')); }}>
+                  <Expand size={16} aria-hidden="true" />
                   {t.compareFullscreenLabel}
-                </button>
-              </div>
+                </button>,
+                <p class={styles['compare-footer']}>
+                  <span>{compareCaption}</span>
+                  {dimensionText && <span class={styles['compare-dimensions']}>{dimensionText}</span>}
+                </p>,
+              )}
             </>
           )}
         </div>
