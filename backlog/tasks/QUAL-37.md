@@ -21,8 +21,8 @@ depends_on: []
 
 ## Outcome
 
-- Brotli sizes of content-hashed files are cached by filename between runs (unhashed files are always
-  measured), and the step takes under 5 s on a warm cache with the same verdicts.
+- Brotli sizes of content-hashed files are cached by filename between runs (files with no content hash, neither an
+  /_astro/ name nor a manifest hash, are always measured), and the step takes under 5 s on a warm cache with the same verdicts.
 
 ## Acceptance
 
@@ -39,16 +39,12 @@ Apple M2 Pro, after `npm run build`, `node scripts/check-precache-budget.mjs` (o
 | warm | 8.5 s |
 | warm again | 8.5 s |
 
-The warm run is not under 5 s. A CPU profile of a warm run puts 8.64 s of it in `zlib.brotliCompressSync` and
-about 0.05 s in everything else (reading files, sha hashing, the guards). That time is the 55 prerendered
-`index.html` pages (7.5 MB), which are unhashed and so always compressed at quality 11 by design. Reaching
-the 5 s bar needs a decision about them (for example keying their size by a content hash of the bytes,
-which the manifest's page hashes already provide), not more tuning of the hashed-file cache.
+The warm run was not under 5 s: 8.64 s of it was brotli on the 55 unhashed pages, which the second pass below addresses.
 
 ### Second pass: pages reused by the manifest's content hash
 
 Pages and other non-`/_astro/` URLs are now cached under `url#<manifest.hashes[url]>` (MEM-22 hash of the final
-bytes); a URL with no manifest hash is still always compressed and never cached. Same machine and build:
+bytes), cached only once the file's bytes match that hash; a URL with no manifest hash is still always compressed and never cached. Same machine and build:
 
 | run | time |
 | --- | --- |
