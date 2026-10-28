@@ -134,6 +134,13 @@
   -webkit-touch-callout: none;
 }
 
+/* AppBar.astro's h-14 (3.5rem) plus its border: a cell, or a button in it,
+   scrolled to its start clears the sticky bar (DEBT-67). */
+.page,
+.page :is(button, a) {
+  scroll-margin-top: calc(3.5rem + 1px);
+}
+
 /* The grab hand only where a tile can be dragged. */
 [data-reorderable] .page {
   cursor: grab;
