@@ -163,7 +163,7 @@ async function main() {
   if (outstanding.length) {
     console.error(`Untriaged high/critical dependency advisory finding(s):\n- ${outstanding.join('\n- ')}`);
     process.exitCode = 1;
-  } else {
+  } else if (!unmatched.length) {
     console.log('Dependency advisory policy passed: no untriaged high/critical findings.');
   }
 }
