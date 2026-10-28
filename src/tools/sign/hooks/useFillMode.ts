@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from 'preact/hooks';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
-import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
 import { isFillMode } from '../lib/fill/fillMode.ts';
 import { freeSlotKey } from '../lib/fill/fillSlots.ts';
 import type { PagePoint } from '../lib/fill/fillTypes.ts';

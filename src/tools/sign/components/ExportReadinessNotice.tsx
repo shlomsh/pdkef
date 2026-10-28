@@ -1,6 +1,6 @@
 import { englishSignMessages } from '../messages';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import styles from './ExportReadinessNotice.module.css';
 
 type ExportReadinessNoticeProps = {

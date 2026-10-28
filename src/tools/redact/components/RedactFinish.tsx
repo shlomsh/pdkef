@@ -1,10 +1,10 @@
 import type { ComponentChildren } from 'preact';
-import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
+import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
+import pdfToolStyles from '#shell/PdfTool.module.css';
 import styles from './RedactFinish.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
 import { DoneHandoffs, DoneResult } from './RedactDone.tsx';
-import type { RedactHandoffTarget } from '../../../lib/app/toolIds.ts';
+import type { RedactHandoffTarget } from '#lib/app/toolIds.ts';
 import { finishCountText, finishStatusText, type FinishFacts } from '../lib/finishState.ts';
 
 export interface RedactFinishProps {

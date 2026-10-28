@@ -3,7 +3,7 @@
  * Types and the entry factory only; every transformation of it is a pure
  * function in mergePlan.ts.
  */
-import type { PlanEntry } from '../../../lib/pages/pagePlan.ts';
+import type { PlanEntry } from '#lib/pages/pagePlan.ts';
 
 let nextId = 0;
 

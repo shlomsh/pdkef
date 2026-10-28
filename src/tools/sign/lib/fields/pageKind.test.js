@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { classifyPageKind, firstPageKind } from './pageKind.js';
-import * as pdfObjects from '../../../../editor/adapters/pdf/pdfObjects.js';
+import * as pdfObjects from '#editor/adapters/pdf/pdfObjects.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const forms = path.join(here, 'corpus', 'scoring', 'forms');

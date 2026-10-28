@@ -18,7 +18,7 @@ import {
   invertAffineTransform,
   type AffineTransform,
   type PageGeometry,
-} from '../../../editor/geometry/coords.ts';
+} from '#editor/geometry/coords.ts';
 import type { PageGlyph } from './pageGlyphs.ts';
 
 /** Page-percent box, top-left origin: what every Redact element stores. */

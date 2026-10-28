@@ -1,8 +1,8 @@
-import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../../lib/pages/pageOps.js';
-import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
-import { loadPdfWithPages } from '../../../lib/pdf/loadPdfPages.ts';
-import { throwIfAborted } from '../../../lib/output/abort.js';
-import { toBytes } from '../../../lib/output/toBytes.js';
+import { applyRotation, embedPageNumberFont, stampPageNumber } from '#lib/pages/pageOps.js';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { loadPdfWithPages } from '#lib/pdf/loadPdfPages.ts';
+import { throwIfAborted } from '#lib/output/abort.js';
+import { toBytes } from '#lib/output/toBytes.js';
 
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.

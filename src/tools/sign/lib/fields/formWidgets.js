@@ -1,8 +1,8 @@
 // @ts-check
-import { MAX_COMB_CELLS } from '../../../../editor/model/signGeometry.js';
-import { createPageGeometry, toPagePercentBox } from '../../../../editor/geometry/coords.ts';
+import { MAX_COMB_CELLS } from '#editor/model/signGeometry.js';
+import { createPageGeometry, toPagePercentBox } from '#editor/geometry/coords.ts';
 import { pageCropBox } from './pageInk.js';
-import { pageWidgets, widgetEntries } from '../../../../editor/adapters/pdf/pdfObjects.js';
+import { pageWidgets, widgetEntries } from '#editor/adapters/pdf/pdfObjects.js';
 
 /**
  * The fields a form states outright, from its own `/Tx` widget annotations.
@@ -41,7 +41,7 @@ const FIELD_COMB = 1 << 24;
  * What one widget annotation says about itself, as plain values - defined in
  * `pdfObjects.js` (editor), the module that actually produces this shape via
  * `widgetEntries()`; this file only interprets it (ARCH-24 step D).
- * @typedef {import('../../../../editor/adapters/pdf/pdfObjects.js').WidgetEntry} WidgetEntry
+ * @typedef {import('#editor/adapters/pdf/pdfObjects.js').WidgetEntry} WidgetEntry
  */
 
 /**
@@ -167,7 +167,7 @@ export function fillableTextField(entry) {
  * CTM, so both sources arrive comparable.
  *
  * @param {TextFieldWidget[]} fields
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @returns {{combs: Array<CombRegion & {kind: 'comb'}>, cells: DetectedCell[]}} in the editor's page percentages
  */
@@ -262,7 +262,7 @@ const MIN_WIRED_SHARE = 0.9;
  * has the form put a widget at all", which a dropdown or a signature field answers too.
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
- * @param {import('../../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {import('#editor/geometry/coords.ts').PageGeometry} geometry
  * @returns {Array<{left: number, top: number, width: number, height: number}>}
  */
 export function widgetFootprints(page, geometry) {

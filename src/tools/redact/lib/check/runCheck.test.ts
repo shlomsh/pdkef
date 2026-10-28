@@ -14,15 +14,15 @@ const mocks = vi.hoisted(() => ({
   destroy: vi.fn(),
 }));
 
-vi.mock('../../../../editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({ getDocument: mocks.getDocument }) }));
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({ getPdfjs: async () => ({ getDocument: mocks.getDocument }) }));
 vi.mock('../readGlyphs.js', () => ({ readGlyphs: mocks.readGlyphs }));
-vi.mock('../../../../lib/pdf/pdfTextItems.ts', () => ({ readTextItems: mocks.readTextItems }));
-vi.mock('../../../../editor/geometry/coords.ts', () => ({ pageGeometryFromPdfJsPage: () => ({ width: 100, height: 200 }) }));
+vi.mock('#lib/pdf/pdfTextItems.ts', () => ({ readTextItems: mocks.readTextItems }));
+vi.mock('#editor/geometry/coords.ts', () => ({ pageGeometryFromPdfJsPage: () => ({ width: 100, height: 200 }) }));
 vi.mock('../find/pageText.ts', () => ({ buildPageText: (pageIndex: number, items: unknown[]) => ({ pageIndex, items }) }));
 vi.mock('./readSavedFile.ts', () => ({ readSavedFile: mocks.readSavedFile }));
 vi.mock('./renderBoxes.ts', () => ({ checkBoxesOnPage: mocks.checkBoxesOnPage }));
 vi.mock('../documentTraces.js', () => ({ readDocumentTraces: mocks.readDocumentTraces }));
-vi.mock('../../../../lib/pdf/openPdfDoc', () => ({ openPdfDoc: mocks.openPdfDoc }));
+vi.mock('#lib/pdf/openPdfDoc.ts', () => ({ openPdfDoc: mocks.openPdfDoc }));
 vi.mock('./coveredTerms.ts', () => ({ coveredTerms: mocks.coveredTerms }));
 vi.mock('./checkSavedFile.ts', () => ({ checkSavedFile: mocks.checkSavedFile }));
 

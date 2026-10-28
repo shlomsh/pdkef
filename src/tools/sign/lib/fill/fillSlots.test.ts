@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { detectedSlots, freeSlot, placementForField, placementForFree, slotKey } from './fillSlots.ts';
 import { placeTextOnField, type CombRegion, type FieldRegion, type TypableField } from '../combPlacement.ts';
-import { DEFAULT_FONT_SIZE_PT } from '../../../../editor/model/signGeometry.js';
-import type { TextElement } from '../../../../editor/model/editorModel.ts';
+import { DEFAULT_FONT_SIZE_PT } from '#editor/model/signGeometry.js';
+import type { TextElement } from '#editor/model/editorModel.ts';
 import type { SlotPlacement } from './fillTypes.ts';
 
 // A4 in PDF points, matching combPlacement.test.ts and fieldOrder.test.ts, so

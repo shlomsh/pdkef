@@ -4,12 +4,12 @@ import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
-import { rememberRecentWhiteoutColor } from '../../../editor/workspace/preferenceStore.ts';
+import { rememberRecentWhiteoutColor } from '#editor/workspace/preferenceStore.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
 // Asserts the is-processing state class; the page overlay has no role or attribute, so it is found by class.
-import { createPageGeometry } from '../../../editor/geometry/coords.js';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
-import type { RectangleElement, SymbolElement, TextElement } from '../../../editor/model/editorModel.ts';
+import type { RectangleElement, SymbolElement, TextElement } from '#editor/model/editorModel.ts';
 import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';
 

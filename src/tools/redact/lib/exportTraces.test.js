@@ -8,7 +8,7 @@ import { deleteObjectsFromPdf } from './deleteObjects.js';
 import { assemble } from './redact.js';
 import { readDocumentTraces } from './documentTraces.js';
 import { attachmentDetailId } from './detailEdits.js';
-import { buildTracesFixture } from '../../../editor/adapters/pdf/tracesFixture.test-helper.js';
+import { buildTracesFixture } from '#editor/adapters/pdf/tracesFixture.test-helper.js';
 
 const JPEG = Uint8Array.from(Buffer.from(
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=',

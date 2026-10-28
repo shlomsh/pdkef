@@ -1,10 +1,10 @@
 import type { ComponentChildren, ComponentProps, ComponentType, RefObject } from 'preact';
 import type { Dispatch } from 'preact/hooks';
-import ToolShellBridge from '../../../shell/ToolShellBridge.tsx';
-import PageWorkspace from '../../../shell/pageWorkspace/PageWorkspace.tsx';
-import type { PageGridProps } from '../../../shell/pageGrid/PageGrid.tsx';
-import type { useDownloadFlow } from '../../../shell/pageWorkspace/useDownloadFlow.ts';
-import type { ShellMessages } from '../../../shell/shellMessages';
+import ToolShellBridge from '#shell/ToolShellBridge.tsx';
+import PageWorkspace from '#shell/pageWorkspace/PageWorkspace.tsx';
+import type { PageGridProps } from '#shell/pageGrid/PageGrid.tsx';
+import type { useDownloadFlow } from '#shell/pageWorkspace/useDownloadFlow.ts';
+import type { ShellMessages } from '#shell/shellMessages.ts';
 import type { FileEntry, SortMode } from '../lib/mergeModel.ts';
 import type { PreparedMerge } from '../hooks/usePreparedMerge.ts';
 import type { MergeMessages } from '../messages';

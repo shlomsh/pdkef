@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import type { RedactToolType } from '../../../editor/model/editorModel.ts';
+import type { RedactToolType } from '#editor/model/editorModel.ts';
 import type { RedactAction } from '../state/redactState.ts';
 import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import styles from '../PdfRedactTool.module.css';

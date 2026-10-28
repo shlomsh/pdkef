@@ -1,5 +1,5 @@
-import { sampleRingColor } from '../../../editor-ui/whiteout/pageSampling.ts';
-import type { PercentBox } from '../../../editor-ui/whiteout/pageColor.ts';
+import { sampleRingColor } from '#editor-ui/whiteout/pageSampling.ts';
+import type { PercentBox } from '#editor-ui/whiteout/pageColor.ts';
 
 /** The attribute PdfWorkspace puts on each page's wrapper: the page index as its value. */
 export const SIGN_PAGE_SURFACE = 'data-sign-page-surface';

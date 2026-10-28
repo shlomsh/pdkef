@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { appStylePatchFor, carriedPatchFor } from './carriedPatch.ts';
-import type { EditorElement, TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElement, TextDirection, TextElement } from '#editor/model/editorModel.ts';
 
 // SIGN-33: one case per DocumentStyle key, mirroring PdfWorkspace.tsx's
 // makeOnChange field by field.

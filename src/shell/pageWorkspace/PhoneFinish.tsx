@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import ExportHandoffs, { type ExportHandoffItem } from '../ExportHandoffs.tsx';
-import type { PreparedOutput } from '../../lib/output/usePreparedOutput.ts';
+import type { PreparedOutput } from '#lib/output/usePreparedOutput.ts';
 import DoneStrip from '../DoneStrip.tsx';
 import FileName from '../FileName.tsx';
 import pdfToolStyles from '../PdfTool.module.css';

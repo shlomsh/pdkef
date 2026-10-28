@@ -1,5 +1,5 @@
 import type { DeletablePdfObject } from '../components/DeletableObjectOverlay.tsx';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 import { englishRedactMessages } from '../messages.ts';
 import type { RedactMessages } from '../messages.ts';
 

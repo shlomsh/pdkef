@@ -1,6 +1,6 @@
-import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
-import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 export class SecurityError extends Error {
   constructor(message, options) {

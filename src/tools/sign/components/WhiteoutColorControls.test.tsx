@@ -3,12 +3,12 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const eyedropper = vi.hoisted(() => ({ calls: [] as any[][] }));
-vi.mock('../../../editor-ui/whiteout/pageSampling.ts', () => ({
+vi.mock('#editor-ui/whiteout/pageSampling.ts', () => ({
   useEyedropper: (...args: any[]) => { eyedropper.calls.push(args); },
 }));
 import { englishSignMessages } from '../messages';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
-import { getRecentWhiteoutColors } from '../../../editor/workspace/preferenceStore.ts';
+import { getRecentWhiteoutColors } from '#editor/workspace/preferenceStore.ts';
 
 let host: HTMLDivElement;
 beforeEach(() => { localStorage.clear(); eyedropper.calls = []; host = document.createElement('div'); document.body.appendChild(host); });

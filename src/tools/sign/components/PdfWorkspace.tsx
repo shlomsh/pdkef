@@ -1,57 +1,57 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
-import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
-import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
+import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '#editor/model/signGeometry.js';
+import PdfPageCanvas from '#editor-ui/PdfPageCanvas.tsx';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import EditorPageHeader from '#editor-ui/EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
-import { createElementRenderers } from '../../../editor/registry/renderers.ts';
+import { createElementRenderers } from '#editor/registry/renderers.ts';
 import TextNode from './nodes/TextNode.tsx';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
-import { autoColorChanges, followsPage } from '../../../editor-ui/whiteout/pageColor.ts';
+import { autoColorChanges, followsPage } from '#editor-ui/whiteout/pageColor.ts';
 import { samplePageColor } from '../lib/whiteoutPageColor.ts';
-import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
-import { createElementId } from '../../../editor/model/ids.ts';
+import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '#editor/model/editorModel.ts';
+import { createElementId } from '#editor/model/ids.ts';
 import { orderTypableFields } from '../lib/fieldOrder.ts';
 import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
 import { chooseStyle } from '../lib/chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
-import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
-import ExportHandoffs from '../../../shell/ExportHandoffs.tsx';
+import EditorExportActions from '#editor-ui/EditorExportActions.tsx';
+import ExportHandoffs from '#shell/ExportHandoffs.tsx';
 import { Eraser, Shrink } from 'lucide-preact';
 import FormFieldHints from './FormFieldHints.tsx';
 import { describeFormDetectionFailure } from '../lib/formDetectionDetail.ts';
 import type { FieldNavigation } from '../hooks/useFieldNavigation.ts';
 import useWorkspaceGestures from '../hooks/useWorkspaceGestures.ts';
-import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
+import { formatDate, isDateFormatId } from '#editor/text/dateFormat.ts';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import { useAutoFontProvisioning } from '../hooks/useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../lib/signExportReadiness.ts';
-import { createPageGeometry } from '../../../editor/geometry/coords.js';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
-} from '../../../editor/model/actionHistory.ts';
-import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
-import { uniqueId } from '../../../editor/model/ids.ts';
+} from '#editor/model/actionHistory.ts';
+import { createUpdateEntry } from '#editor/model/updateKind.ts';
+import { uniqueId } from '#editor/model/ids.ts';
 import { englishSignMessages } from '../messages';
-import { signElementTypeLabel, signUpdateDescription } from '../../../editor/registry/signLabels';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
-import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import { signElementTypeLabel, signUpdateDescription } from '#editor/registry/signLabels.ts';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import pdfToolStyles from '#shell/PdfTool.module.css';
+import workspaceStyles from '#editor-ui/Workspace.module.css';
 import formFieldHintStyles from './FormFieldHints.module.css';
 import {
   classifyTouchTap,
   isBlankAreaTarget,
   readTapSample,
   type TapGestureSample,
-} from '../../../lib/gestures/tapOutsideDeselect.ts';
+} from '#lib/gestures/tapOutsideDeselect.ts';
 import { useFill } from './fill/FillContext.tsx';
 import FillLayer from './fill/FillLayer.tsx';
 import FocusProxy from './fill/FocusProxy.tsx';

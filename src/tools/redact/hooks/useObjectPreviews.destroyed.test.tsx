@@ -9,8 +9,8 @@ import { fakePdfDocument } from '../../../test/support/fakePdfJs.ts';
 declare const process: { on(event: string, handler: (reason: unknown) => void): void; off(event: string, handler: (reason: unknown) => void): void };
 
 const reportError = vi.fn();
-vi.mock('../../../lib/telemetry/errorReport.ts', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
-vi.mock('../../../editor/adapters/pdf/pdfjsLoader.js', () => ({
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
+vi.mock('#editor/adapters/pdf/pdfjsLoader.js', () => ({
   getPdfjs: async () => ({ AnnotationMode: { DISABLE: 0 }, OPS: {} }),
 }));
 

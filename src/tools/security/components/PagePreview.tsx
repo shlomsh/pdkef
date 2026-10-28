@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { FileText, Lock } from 'lucide-preact';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 import styles from '../PdfSecurityTool.module.css';
 import type { planPreview } from '../lib/previewPlan.js';
 
@@ -23,7 +23,7 @@ function usePageImage(source: Blob | null, quiet: () => boolean): { image: strin
     let current = true;
     (async () => {
       try {
-        const { renderComparePreview } = await import('../../../lib/pdf/thumbnails.js');
+        const { renderComparePreview } = await import('#lib/pdf/thumbnails.js');
         const url = await renderComparePreview(source);
         if (current) { setImage(url); setSettled(source); }
       } catch (err) {

@@ -4,13 +4,13 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
-import { overlayHost } from '../../editor-ui/whiteout/overlayHost.ts';
+import { overlayHost } from '#editor-ui/whiteout/overlayHost.ts';
 import * as signModule from './lib/sign.js';
-import { resetMaintenanceEventsForTests } from '../../lib/telemetry/maintenanceTelemetry.ts';
+import { resetMaintenanceEventsForTests } from '#lib/telemetry/maintenanceTelemetry.ts';
 import { installToolHarness, type ToolHarness } from '../../test/harness/toolHarness.ts';
-import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
+import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '#editor/geometry/coords.ts';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions } from '#lib/telemetry/actionTrail.ts';
 
 declare const __dirname: string;
 

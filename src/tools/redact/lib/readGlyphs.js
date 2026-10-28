@@ -1,5 +1,5 @@
 import { readPageGlyphs } from './pageGlyphs.ts';
-import { reportError } from '../../../lib/telemetry/errorReport.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
 
 /**
  * Reads a pdf.js page's glyphs, or null when the page can't be read (a broken

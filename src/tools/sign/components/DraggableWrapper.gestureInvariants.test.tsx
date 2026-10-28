@@ -19,7 +19,7 @@ import type {
   SignatureElement,
   SymbolElement,
   TextElement,
-} from '../../../editor/model/editorModel.ts';
+} from '#editor/model/editorModel.ts';
 
 type ChangeHandler<T extends EditorElement> = (changes: EditorElementPatch<T>) => void;
 type MountOptions<T extends EditorElement> = {

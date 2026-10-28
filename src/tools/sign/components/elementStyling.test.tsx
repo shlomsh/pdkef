@@ -9,10 +9,10 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import TextNode from './nodes/TextNode.tsx';
 import FieldSlot from './fill/FieldSlot.tsx';
 import { TextFillContext } from './fill/FillContext.tsx';
-import elementStyles from '../../../editor-ui/EditorElement.module.css';
+import elementStyles from '#editor-ui/EditorElement.module.css';
 import styles from './fill/fill.module.css';
 import type { FillSlot, TextFillProps } from '../lib/fill/fillTypes.ts';
-import type { TextElement } from '../../../editor/model/editorModel.ts';
+import type { TextElement } from '#editor/model/editorModel.ts';
 
 vi.mock('@floating-ui/react', async () => {
   const actual = await vi.importActual('@floating-ui/react');

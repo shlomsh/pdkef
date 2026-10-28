@@ -1,14 +1,14 @@
 // Renders every page of a PDF to an image Blob (PNG or JPEG) using PDF.js.
 // Loaded lazily (dynamic import) so it never blocks the initial page paint.
 // The worker is a same-origin bundled asset, never fetched from a CDN (see loadPdfjs.js).
-import { PDFJS_WASM_URL } from '../../../lib/pdf/pdfjsWasm.js';
-import { parsePageSelector } from '../../../lib/pages/pageSelector.js';
-import { getPdfjs } from '../../../lib/pdf/loadPdfjs.js';
-import { renderPageToCanvas } from '../../../lib/pdf/renderPage.js';
-import { throwIfAborted } from '../../../lib/output/abort.js';
-import { toBytes } from '../../../lib/output/toBytes.js';
-import { clampScaleToCanvas } from '../../../lib/images/canvasLimits.js';
-import { outputBase, withAffixes } from '../../../lib/output/outputName.ts';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import { parsePageSelector } from '#lib/pages/pageSelector.js';
+import { getPdfjs } from '#lib/pdf/loadPdfjs.js';
+import { renderPageToCanvas } from '#lib/pdf/renderPage.js';
+import { throwIfAborted } from '#lib/output/abort.js';
+import { toBytes } from '#lib/output/toBytes.js';
+import { clampScaleToCanvas } from '#lib/images/canvasLimits.js';
+import { outputBase, withAffixes } from '#lib/output/outputName.ts';
 
 const EXTENSION_BY_FORMAT = { 'image/png': 'png', 'image/jpeg': 'jpg' };
 

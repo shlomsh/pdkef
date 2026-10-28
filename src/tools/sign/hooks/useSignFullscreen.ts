@@ -1,6 +1,6 @@
 import { useState, useRef } from 'preact/hooks';
-import { toggleWorkspaceFullscreen, useFullscreenChange } from '../../../editor-ui/hooks/workspaceFullscreen.ts';
-import useCurrentPage from '../../../editor-ui/hooks/useCurrentPage.js';
+import { toggleWorkspaceFullscreen, useFullscreenChange } from '#editor-ui/hooks/workspaceFullscreen.ts';
+import useCurrentPage from '#editor-ui/hooks/useCurrentPage.js';
 
 /** The workspace's DOM handles, its full-screen state and the page the viewer is on while full screen. */
 export function useSignFullscreen(numPages: number) {

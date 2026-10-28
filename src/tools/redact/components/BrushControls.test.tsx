@@ -7,8 +7,8 @@ import BrushControls, {
   brushStyleOf,
   resolveBrush,
 } from './BrushControls.tsx';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
-import { getAppStyle, rememberAppStyle } from '../../../editor/workspace/preferenceStore.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import { getAppStyle, rememberAppStyle } from '#editor/workspace/preferenceStore.ts';
 
 describe('brush settings', () => {
   it('a document follows its own choice, else the latest choice anywhere, else the default', () => {

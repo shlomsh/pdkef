@@ -1,5 +1,5 @@
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
-import { DEFAULT_BLUR_STRENGTH, resolveBlurStrength, type BlurStrength } from '../../../editor/model/blurStrength.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
+import { DEFAULT_BLUR_STRENGTH, resolveBlurStrength, type BlurStrength } from '#editor/model/blurStrength.ts';
 
 // RED-40: the whiteout colour and blur strength are per-document style, like
 // the brush. The order is the document's own choice, then the app-wide style a

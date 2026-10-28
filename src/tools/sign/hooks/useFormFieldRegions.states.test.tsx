@@ -140,7 +140,7 @@ describe('useFormFieldRegions detection state', () => {
     const reportError = vi.fn();
     const theError = new TypeError('p.findLast is not a function');
     vi.resetModules();
-    vi.doMock('../../../lib/telemetry/errorReport.ts', () => ({ reportError }));
+    vi.doMock('#lib/telemetry/errorReport.ts', () => ({ reportError }));
     vi.doMock('@cantoo/pdf-lib', () => ({
       PDFDocument: { load: async () => { throw theError; } },
     }));

@@ -1,6 +1,6 @@
 import { useCallback } from 'preact/hooks';
 import type { Dispatch } from 'preact/hooks';
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
 import { rememberOptions } from '../components/rememberedOptions.ts';
 import type { MergeAction, MergeState } from '../state/mergeState.ts';
 

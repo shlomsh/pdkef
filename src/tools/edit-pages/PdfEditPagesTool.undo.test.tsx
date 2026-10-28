@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { recentActions } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import Sortable from 'sortablejs';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import { healthy } from '../../test/support/pdfPageTreeFixtures.ts';

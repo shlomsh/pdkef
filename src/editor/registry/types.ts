@@ -4,7 +4,7 @@ import type { PageGeometry } from '../geometry/coords.ts';
 // DEBT-04: SignMessages is defined in this same folder now (messages.ts), so
 // this is an editor-internal import, not a dependency on the site's i18n.
 import type { SignMessages } from './messages';
-import type { EditorToolId } from '../../lib/app/toolIds.ts';
+import type { EditorToolId } from '#lib/app/toolIds.ts';
 
 /** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
 export type ElementForType<K extends ElementType> = Extract<EditorElement, { type: K }>;

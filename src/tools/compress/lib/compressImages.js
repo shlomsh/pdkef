@@ -1,8 +1,8 @@
 // Compress that keeps every page as it is: text, vectors, fonts and links are
 // untouched, and only the embedded images are recompressed in place (COMP-01).
-import { getPdfLib } from '../../../lib/pdf/pdfLib.js';
-import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
-import { canvasToBlob } from '../../../lib/images/canvasBlob.js';
+import { getPdfLib } from '#lib/pdf/pdfLib.js';
+import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
+import { canvasToBlob } from '#lib/images/canvasBlob.js';
 import { permissionsFromP, randomOwnerPassword } from './pdfPermissions.js';
 import { stripExif } from './jpegBytes.js';
 

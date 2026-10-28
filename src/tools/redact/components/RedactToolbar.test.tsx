@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RedactToolbar from './RedactToolbar.tsx';
-import { FILE_ACTIONS } from '../../../shell/ToolShell.tsx';
+import { FILE_ACTIONS } from '#shell/ToolShell.tsx';
 // Asserts the editor toolbar button base class, a styling contract.
 
 describe('RedactToolbar returning-work status', () => {

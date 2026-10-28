@@ -10,16 +10,16 @@
  * imports it directly.
  */
 import { buildPageText } from '../find/pageText.ts';
-import { readTextItems } from '../../../../lib/pdf/pdfTextItems.ts';
+import { readTextItems } from '#lib/pdf/pdfTextItems.ts';
 import type { TextItemLike } from '../find/types.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
-import { pageGeometryFromPdfJsPage } from '../../../../editor/geometry/coords.ts';
+import { pageGeometryFromPdfJsPage } from '#editor/geometry/coords.ts';
 import { fieldValueTexts, isNonBlank } from './placeText.ts';
 import { unusedPartsText } from './unusedParts.ts';
-import { openPdfDoc } from '../../../../lib/pdf/openPdfDoc';
-import { reportError } from '../../../../lib/telemetry/errorReport.ts';
-import type { PdfDocument, PdfjsModule } from '../../../../lib/pdf/pdfTypes.ts';
+import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
+import { reportError } from '#lib/telemetry/errorReport.ts';
+import type { PdfDocument, PdfjsModule } from '#lib/pdf/pdfTypes.ts';
 
 interface ReadSavedFileOptions {
   /** Pages already known to be pictures (from redaction), zero-based. */

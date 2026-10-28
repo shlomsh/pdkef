@@ -4,8 +4,8 @@ import {
   reportError,
   resetErrorReportingForTests,
   setReportingEnabledForTests,
-} from '../lib/telemetry/errorReport.ts';
-import { reportToolLifecycleEvent, resetUsageEventsForTests } from '../lib/telemetry/productAnalytics.ts';
+} from '#lib/telemetry/errorReport.ts';
+import { reportToolLifecycleEvent, resetUsageEventsForTests } from '#lib/telemetry/productAnalytics.ts';
 
 // DEBT-44: the browser's real output, through the real endpoint. Each side has its own tests against
 // the shared schemas; this one proves that what the browser sends is what the endpoint stores, so a

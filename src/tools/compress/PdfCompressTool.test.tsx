@@ -11,7 +11,7 @@ import * as compressImageLib from './lib/compressImage.js';
 import * as imagesLib from './lib/compressImages.js';
 import { mockNativeFileShare } from '../../test/support/mockFileShare.js';
 import { setInputFiles } from '../../test/support/setInputFiles.js';
-import { recentActions } from '../../lib/telemetry/actionTrail.ts';
+import { recentActions } from '#lib/telemetry/actionTrail.ts';
 import { installToolHarness } from '../../test/harness/toolHarness.ts';
 import { waitUntil } from '../../test/harness/waitUntil.ts';
 import { ANALYSIS_SHAPES, buildAnalysisPdf } from '../../test/support/analysisPdfFixtures.ts';

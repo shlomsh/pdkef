@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPageGeometry } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
 import { PRESET_FINDERS, termFinder } from '../find/finders.ts';
 import { buildPageText } from '../find/pageText.ts';
 import type { SearchablePage } from '../find/findMatches.ts';

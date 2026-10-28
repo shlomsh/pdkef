@@ -2,11 +2,11 @@ import { render, type ComponentChildren } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import FieldSlot from './FieldSlot.tsx';
-import { fieldTextInset, textElementLayout } from '../../../../editor/text/textLayout.js';
-import { combLayout } from '../../../../editor/text/comb.js';
+import { fieldTextInset, textElementLayout } from '#editor/text/textLayout.js';
+import { combLayout } from '#editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from '../../lib/fill/fillTypes.ts';
 import type { FillSlot } from '../../lib/fill/fillTypes.ts';
-import type { TextElement } from '../../../../editor/model/editorModel.ts';
+import type { TextElement } from '#editor/model/editorModel.ts';
 import { slotFrame } from '../../lib/fill/slotFrame.ts';
 
 function fillSlot(overrides: Partial<FillSlot> = {}): FillSlot {

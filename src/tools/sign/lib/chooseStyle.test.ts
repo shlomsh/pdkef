@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { TextElement } from '../../../editor/model/editorModel.ts';
+import type { TextElement } from '#editor/model/editorModel.ts';
 import { chooseStyle } from './chooseStyle.ts';
 
 const textElement = (overrides: Partial<TextElement> = {}): TextElement => ({

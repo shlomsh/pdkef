@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../lib/drafts/draftStore.ts', () => ({
+vi.mock('#lib/drafts/draftStore.ts', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
@@ -12,12 +12,12 @@ vi.mock('../../lib/drafts/draftStore.ts', () => ({
   cacheRecentFile: vi.fn(() => Promise.resolve(true)),
 }));
 
-vi.mock('../../lib/pdf/thumbnails.js', () => ({
+vi.mock('#lib/pdf/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null)),
 }));
 
-import { deleteDraft, loadDraft, takeHandoff } from '../../lib/drafts/draftStore.ts';
-import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../lib/handoff/fileArrival.ts';
+import { deleteDraft, loadDraft, takeHandoff } from '#lib/drafts/draftStore.ts';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 

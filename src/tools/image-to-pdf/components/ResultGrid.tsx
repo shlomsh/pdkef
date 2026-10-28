@@ -1,5 +1,5 @@
 import type { Ref } from 'preact';
-import OutputName from '../../../shell/OutputName.tsx';
+import OutputName from '#shell/OutputName.tsx';
 import type { ImageToPdfMessages } from '../messages';
 import styles from '../PdfImageToPdfTool.module.css';
 import AddImagesTile from './AddImagesTile.tsx';

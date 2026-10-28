@@ -1,13 +1,13 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { getPdfjs } from '../../../editor/adapters/pdf/pdfjsLoader.js';
-import { PDFJS_WASM_URL } from '../../../lib/pdf/pdfjsWasm.js';
-import { openPdfDoc } from '../../../lib/pdf/openPdfDoc.ts';
-import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { blurRadiusPx } from '../../../editor/model/blurStrength.ts';
+import { getPdfjs } from '#editor/adapters/pdf/pdfjsLoader.js';
+import { PDFJS_WASM_URL } from '#lib/pdf/pdfjsWasm.js';
+import { openPdfDoc } from '#lib/pdf/openPdfDoc.ts';
+import { getElementDefinition } from '#editor/registry/index.ts';
+import { blurRadiusPx } from '#editor/model/blurStrength.ts';
 import { dropUnreachable } from './reachability.js';
 import { applyDetailEdits, copyDocumentDetails } from './documentTraces.js';
-import { rasterizePageToJpeg, buildImageOnlyPage } from '../../../editor/adapters/pdf/rasterPage.js';
-import { strokeInPixels } from '../../../editor/model/strokeGeometry.ts';
+import { rasterizePageToJpeg, buildImageOnlyPage } from '#editor/adapters/pdf/rasterPage.js';
+import { strokeInPixels } from '#editor/model/strokeGeometry.ts';
 
 /** @typedef {import('./documentTraces.js').DetailEdits} DetailEdits */
 

@@ -8,7 +8,7 @@
  */
 import { tools, toolsBySlug } from '../data/tools.js';
 // The registry owns which islands have a catalogue (ARCH-38); this set is derived from it.
-import { LOCALIZED_ISLAND_SLUGS } from '../lib/app/toolIds.ts';
+import { LOCALIZED_ISLAND_SLUGS } from '#lib/app/toolIds.ts';
 import {
   getDocumentationLocale,
   documentationPath,

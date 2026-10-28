@@ -1,7 +1,7 @@
 import type { DocumentationLocaleId } from '../../i18n/documentationLocales';
-import type { PageGridMessages, DownloadMessages } from '../../shell/shellMessages';
-import type { PageToolMessages } from '../../shell/pageWorkspace/pageToolMessages.ts';
-import type { HistoryButtonsMessages } from '../../shell/HistoryButtons.tsx';
+import type { PageGridMessages, DownloadMessages } from '#shell/shellMessages.ts';
+import type { PageToolMessages } from '#shell/pageWorkspace/pageToolMessages.ts';
+import type { HistoryButtonsMessages } from '#shell/HistoryButtons.tsx';
 
 /**
  * The Split island's strings. English is the source of truth and is byte for

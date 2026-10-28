@@ -1,5 +1,5 @@
 import type { PageGlyph } from '../pageGlyphs.ts';
-import type { PageGeometry } from '../../../../editor/geometry/coords.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
 import { matchBoxes, type MatchBoxShape, type MeasureText } from './matchBoxes.ts';
 import type { FindMatch, Finder, PageText, PercentBox } from './types.ts';
 

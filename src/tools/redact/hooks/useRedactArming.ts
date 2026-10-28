@@ -1,10 +1,10 @@
-import { recordAction } from '../../../lib/telemetry/actionTrail.ts';
-import { useRecentWhiteoutColors } from '../../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
-import { rememberAppStyle } from '../../../editor/workspace/preferenceStore.ts';
+import { recordAction } from '#lib/telemetry/actionTrail.ts';
+import { useRecentWhiteoutColors } from '#editor-ui/whiteout/useRecentWhiteoutColors.ts';
+import { rememberAppStyle } from '#editor/workspace/preferenceStore.ts';
 import { brushStyleOf, type BrushSettings } from '../components/BrushControls.tsx';
 import { brushKindOf, type RedactAction, type RedactState } from '../state/redactState.ts';
-import type { RedactToolType } from '../../../editor/model/editorModel.ts';
-import type { BlurStrength } from '../../../editor/model/blurStrength.ts';
+import type { RedactToolType } from '#editor/model/editorModel.ts';
+import type { BlurStrength } from '#editor/model/blurStrength.ts';
 import usePeekAll from './usePeekAll.ts';
 
 /**

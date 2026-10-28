@@ -2,9 +2,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OpenWithChooser from './OpenWithChooser.tsx';
-import { sendHandoff } from '../lib/handoff/sendHandoff.ts';
+import { sendHandoff } from '#lib/handoff/sendHandoff.ts';
 
-vi.mock('../lib/handoff/sendHandoff.ts', () => ({ sendHandoff: vi.fn(() => Promise.resolve(true)) }));
+vi.mock('#lib/handoff/sendHandoff.ts', () => ({ sendHandoff: vi.fn(() => Promise.resolve(true)) }));
 
 type Consumer = (params: { files: { getFile: () => Promise<File> }[] }) => void | Promise<void>;
 const launchHost = window as Window & { launchQueue?: { setConsumer: (fn: Consumer) => void } };

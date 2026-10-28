@@ -1,6 +1,6 @@
 import styles from '../PdfRedactTool.module.css';
 import { englishRedactMessages as t } from '../messages.ts';
-import { formatMessage } from '../../../lib/text/formatMessage.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
 
 export interface DeletablePdfObject {
   id: string;

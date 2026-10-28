@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { EditorElementPatch, LineElement, TextElement } from '../../../editor/model/editorModel.ts';
+import type { EditorElementPatch, LineElement, TextElement } from '#editor/model/editorModel.ts';
 import type { ElementNodeChange, ElementNodeProps } from './nodeProps.ts';
 
 describe('SignTool node-prop contracts', () => {

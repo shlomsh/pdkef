@@ -10,14 +10,14 @@ import {
   MIN_FONT_SIZE_PT,
   TEXT_BOX_LINE_HEIGHT_EM,
   TEXT_BOX_PADDING_EM,
-} from '../../../editor/model/signGeometry.js';
+} from '#editor/model/signGeometry.js';
 import {
   FONT_VERTICAL_METRICS,
   baselineOffsetEmFromMetrics,
   figureCentreEm,
   resolveFontFamily,
   textBoxPaddingEm,
-} from '../../../editor/text/fonts.js';
+} from '#editor/text/fonts.js';
 
 /**
  * Turning a detected printed grid into a text element that fills it.

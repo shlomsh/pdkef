@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BLUR_STRENGTH } from '../../../editor/model/blurStrength.ts';
+import { DEFAULT_BLUR_STRENGTH } from '#editor/model/blurStrength.ts';
 import { resolveRedactBlurStrength, resolveWhiteoutColor } from './redactStyle.ts';
 
 describe('resolveWhiteoutColor (RED-40)', () => {

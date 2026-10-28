@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { englishSignMessages } from '../messages';
-import type { LatestRun } from '../../../lib/hooks/useLatestRun.ts';
+import type { LatestRun } from '#lib/hooks/useLatestRun.ts';
 import { describeSignFailure, runSignExport, type RunSignExportDeps } from './runSignExport.ts';
 
 const signPdf = vi.hoisted(() => vi.fn());
 vi.mock('./sign.js', () => ({ signPdf }));
-vi.mock('../../../lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
-vi.mock('../../../lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
-vi.mock('../../../lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
+vi.mock('#lib/telemetry/errorReport.ts', () => ({ reportError: vi.fn() }));
+vi.mock('#lib/telemetry/productAnalytics.ts', () => ({ reportToolLifecycleEvent: vi.fn() }));
+vi.mock('#lib/telemetry/actionTrail.ts', () => ({ recordAction: vi.fn() }));
 
 const t = englishSignMessages;
 

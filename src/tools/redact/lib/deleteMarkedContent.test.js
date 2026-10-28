@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, StandardFonts } from '@cantoo/pdf-lib';
-import { extractPageObjects, getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { extractPageObjects, getPageContentBytes } from '#editor/adapters/pdf/pdfObjects.js';
 import { deleteObjectsFromPdf } from './deleteObjects.js';
 
 const decode = (bytes) => new TextDecoder().decode(bytes);

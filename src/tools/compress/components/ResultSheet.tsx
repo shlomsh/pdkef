@@ -1,9 +1,9 @@
 import type { Ref } from 'preact';
 import styles from '../PdfCompressTool.module.css';
-import pdfToolStyles from '../../../shell/PdfTool.module.css';
-import PdfShareButton from '../../../shell/PdfShareButton.tsx';
-import ProgressRing from '../../../shell/ProgressRing.tsx';
-import DownloadButton from '../../../shell/DownloadButton.tsx';
+import pdfToolStyles from '#shell/PdfTool.module.css';
+import PdfShareButton from '#shell/PdfShareButton.tsx';
+import ProgressRing from '#shell/ProgressRing.tsx';
+import DownloadButton from '#shell/DownloadButton.tsx';
 import type { CompressMessages } from '../messages';
 import { compressedFileName as deriveDownloadName } from '../lib/outputName.ts';
 import { formatBytes } from '../lib/resultView.ts';

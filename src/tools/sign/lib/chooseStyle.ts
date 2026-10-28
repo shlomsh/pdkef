@@ -2,11 +2,11 @@
 // app-wide style a new document starts from - this is the one place that does
 // both, so PdfWorkspace's makeOnChange has one call instead of two.
 
-import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
+import type { DocumentStyle } from '#editor/model/documentStyle.ts';
 import { appStylePatchFor, carriedPatchFor } from './carriedPatch.ts';
-import { detectTextDirection } from '../../../editor/text/textDirection.js';
-import { rememberAppStyle } from '../../../editor/workspace/preferenceStore.ts';
+import { detectTextDirection } from '#editor/text/textDirection.js';
+import { rememberAppStyle } from '#editor/workspace/preferenceStore.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 
 export function chooseStyle(

@@ -1,21 +1,21 @@
 import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
-import { TrashIcon } from '../../../editor-ui/toolIcons.tsx';
-import ColorPickerMenu from '../../../editor-ui/ColorPickerMenu.tsx';
+import { TrashIcon } from '#editor-ui/toolIcons.tsx';
+import ColorPickerMenu from '#editor-ui/ColorPickerMenu.tsx';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import { getEffectiveTextDirection } from '../../../editor/text/textDirection.js';
-import { getTextAlign } from '../../../editor/text/textLayout.js';
-import { resolveTypography } from '../../../editor/text/fonts.js';
-import { combCellCount, isComb, textForCoverage } from '../../../editor/text/comb.js';
-import { MAX_COMB_CELLS } from '../../../editor/model/signGeometry.js';
-import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/text/dateFormat.ts';
-import type { EditorElement } from '../../../editor/model/editorModel.ts';
+import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
+import { getTextAlign } from '#editor/text/textLayout.js';
+import { resolveTypography } from '#editor/text/fonts.js';
+import { combCellCount, isComb, textForCoverage } from '#editor/text/comb.js';
+import { MAX_COMB_CELLS } from '#editor/model/signGeometry.js';
+import { formatDate, isDateFormatId, nextDateFormatId } from '#editor/text/dateFormat.ts';
+import type { EditorElement } from '#editor/model/editorModel.ts';
 import { englishSignMessages } from '../messages';
-import type { SignMessages } from '../../../editor/registry/messages';
-import { formatMessage } from '../../../lib/text/formatMessage';
-import styles from '../../../editor-ui/EditorControls.module.css';
+import type { SignMessages } from '#editor/registry/messages.ts';
+import { formatMessage } from '#lib/text/formatMessage.ts';
+import styles from '#editor-ui/EditorControls.module.css';
 
 export default function ElementToolbar({
   element,

@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import { withIslandBoundary } from '../../lib/telemetry/IslandErrorBoundary.tsx';
+import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import { SIGN_END, CROSSFADE_START, CROSSFADE_END } from './storySplit.ts';
 
 /**

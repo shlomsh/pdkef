@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPageGeometry } from '../../../../editor/geometry/coords.ts';
+import { createPageGeometry } from '#editor/geometry/coords.ts';
 import type { PageGlyph } from '../pageGlyphs.ts';
 import { checkBoxesFromElements } from './checkBoxes.ts';
 import { coveredTerms } from './coveredTerms.ts';

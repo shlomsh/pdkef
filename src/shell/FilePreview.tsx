@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { renderThumbnail } from '../lib/pdf/thumbnails.js';
+import { renderThumbnail } from '#lib/pdf/thumbnails.js';
 // Shared with PdfCompressTool.tsx's own kind dispatch: a strict `file.type`
 // check here once meant a File with an empty type (some drag sources hand
 // one over with no type at all) got no thumbnail even though Compress's own
 // extension fallback happily accepted the same file - the two checks had
 // drifted apart.
-import { deriveFileKind } from '../lib/handoff/fileKind.js';
+import { deriveFileKind } from '#lib/handoff/fileKind.js';
 import toolShellStyles from './ToolShell.module.css';
 import styles from './FilePreview.module.css';
 

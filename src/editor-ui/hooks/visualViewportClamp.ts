@@ -1,5 +1,5 @@
 import type { Middleware, Placement } from '@floating-ui/react';
-import { VISUAL_VIEWPORT_CLAMP_MARGIN_PX } from '../../editor/model/signGeometry.js';
+import { VISUAL_VIEWPORT_CLAMP_MARGIN_PX } from '#editor/model/signGeometry.js';
 import { currentScale } from './useVisualViewportScale.ts';
 
 /**

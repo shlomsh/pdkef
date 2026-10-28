@@ -1,18 +1,18 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
 import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react';
-import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
-import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
-import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { getEffectiveTextDirection } from '../../../editor/text/textDirection.js';
-import { textElementLayout } from '../../../editor/text/textLayout.js';
-import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../editor/model/signGeometry.js';
+import useDraggableElement from '#editor-ui/hooks/useDraggableElement.js';
+import useElementResize from '#editor-ui/hooks/useElementResize.js';
+import { getElementDefinition } from '#editor/registry/index.ts';
+import { getEffectiveTextDirection } from '#editor/text/textDirection.js';
+import { textElementLayout } from '#editor/text/textLayout.js';
+import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '#editor/model/signGeometry.js';
 import { topKeepingInkCentre } from '../lib/combPlacement.ts';
 import ElementToolbar from './ElementToolbar.tsx';
-import elementStyles from '../../../editor-ui/EditorElement.module.css';
-import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
-import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
-import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
-import controlStyles from '../../../editor-ui/EditorControls.module.css';
+import elementStyles from '#editor-ui/EditorElement.module.css';
+import useCoarsePointer from '#editor-ui/hooks/useCoarsePointer.ts';
+import useVisualViewportScale from '#editor-ui/hooks/useVisualViewportScale.ts';
+import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '#editor-ui/hooks/visualViewportClamp.ts';
+import controlStyles from '#editor-ui/EditorControls.module.css';
 import { revealFieldAfterKeyboard } from '../hooks/useFieldNavigation.ts';
 import { useFill, useTextFill } from './fill/FillContext.tsx';
 import { keepFillFocus } from '../lib/fill/fillDom.ts';
@@ -20,13 +20,13 @@ import compactBarFor from './compactBar.ts';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';
-import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
+import type { PageGeometry } from '#editor/geometry/coords.ts';
+import type { EditorElement, EditorElementPatch } from '#editor/model/editorModel.ts';
 import type { NodeResizeStart } from './nodeProps.ts';
 // Type-only import kept separate from the value import below for the same
 // non-cycle reasoning as nodeProps.ts's own.
 import { englishSignMessages } from '../messages';
-import type { SignMessages } from '../../../editor/registry/messages';
+import type { SignMessages } from '#editor/registry/messages.ts';
 
 // How far a coarse-pointer `.element-button`'s 44px hit area overhangs the
 // button itself: `::before { inset: -8px }` in EditorControls.module.css. Kept

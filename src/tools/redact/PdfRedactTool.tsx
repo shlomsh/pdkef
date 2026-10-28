@@ -1,17 +1,17 @@
 import { useReducer } from 'preact/hooks';
-import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { withIslandBoundary } from '../../lib/telemetry/IslandErrorBoundary.tsx';
+import BasePdfTool from '#shell/BasePdfTool.tsx';
+import { withIslandBoundary } from '#lib/telemetry/IslandErrorBoundary.tsx';
 import RedactVerb from './verb/RedactVerb.tsx';
-import { getAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, getEditorPreference } from '#editor/workspace/preferenceStore.ts';
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from './lib/redactStyle.ts';
 import { resolveBrush } from './components/BrushControls.tsx';
 import { initialRedactState, redactReducer } from './state/redactState.ts';
 import { redactedFileName } from './lib/redactFileName.ts';
-import { useHoldUpdate } from '../../lib/hooks/useHoldUpdate.ts';
-import ErrorMessage from '../../shell/ErrorMessage.tsx';
-import { FileActions } from '../../shell/ToolShell.tsx';
-import RatingPrompt from '../../shell/RatingPrompt.tsx';
-import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
+import { useHoldUpdate } from '#lib/hooks/useHoldUpdate.ts';
+import ErrorMessage from '#shell/ErrorMessage.tsx';
+import { FileActions } from '#shell/ToolShell.tsx';
+import RatingPrompt from '#shell/RatingPrompt.tsx';
+import NeedsUnlock from '#shell/NeedsUnlock.tsx';
 import { DetailsSheet } from './components/details/DetailsSheet.tsx';
 import RedactWorkspaceToolbar from './components/RedactWorkspaceToolbar.tsx';
 import RedactPages from './components/RedactPages.tsx';
@@ -24,8 +24,8 @@ import useRedactEditing from './hooks/useRedactEditing.ts';
 import useRedactFind from './hooks/useRedactFind.ts';
 import useRedactDetails from './hooks/useRedactDetails.ts';
 import useRedactFinish from './hooks/useRedactFinish.ts';
-import workspaceStyles from '../../editor-ui/Workspace.module.css';
-import { describeFile } from '../../lib/text/format.js';
+import workspaceStyles from '#editor-ui/Workspace.module.css';
+import { describeFile } from '#lib/text/format.js';
 import { englishRedactMessages as t } from './messages.ts';
 
 export default withIslandBoundary(function PdfRedactTool() {

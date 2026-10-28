@@ -29,10 +29,10 @@ import {
 import {
   loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
   setCurrentEntry, readCurrentEntryId,
-} from '../../../lib/drafts/draftStore.ts';
-import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '../../../lib/handoff/fileArrival.ts';
-import { planForFile } from '../../../lib/pages/pagePlan.ts';
-import { flushBeforeUpdateReload, isUpdateHeld } from '../../../lib/appUpdate/updateHolds.ts';
+} from '#lib/drafts/draftStore.ts';
+import { takeArrival, noteRecentOpen, resetFileArrivalForTests } from '#lib/handoff/fileArrival.ts';
+import { planForFile } from '#lib/pages/pagePlan.ts';
+import { flushBeforeUpdateReload, isUpdateHeld } from '#lib/appUpdate/updateHolds.ts';
 
 function Harness({ apiRef, options }) {
   apiRef.current = useMergeDraft(options);

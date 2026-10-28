@@ -16,10 +16,10 @@ import {
   createActionEntry,
   type ActionHistoryEntry,
   type ElementUpdate,
-} from '../../../editor/model/actionHistory.ts';
-import { reportEdit } from '../../../lib/telemetry/productAnalytics.ts';
+} from '#editor/model/actionHistory.ts';
+import { reportEdit } from '#lib/telemetry/productAnalytics.ts';
 import type { EditCommit } from '../state/redactState.ts';
-import { classifyElementUpdate, createUpdateEntry, type ElementUpdateKind } from '../../../editor/model/updateKind.ts';
+import { classifyElementUpdate, createUpdateEntry, type ElementUpdateKind } from '#editor/model/updateKind.ts';
 
 export interface RedactCommandDeps<T extends { id: string; pageIndex: number }> {
   elements: readonly T[];
