@@ -117,6 +117,66 @@ const FONT_PACK_MESSAGE = {
 // lost its manifest) and cannot verify anything it would serve from cache.
 class OrphanedWorkerError extends Error {}
 
+// MEM-24: an install that fails for any other reason carries one reason code, so
+// the record below never depends on matching message text. The codes are the
+// closed list the page reports: other_build, manifest_unreadable, storage,
+// root_unreachable, root_mismatch (files_missed comes from the retry, not here).
+class InstallFailure extends Error {
+  constructor(message, reason) {
+    super(message);
+    this.reason = reason;
+  }
+}
+
+// Re-tag whatever a step threw, keeping its message.
+function tagFailure(error, reason) {
+  return error instanceof InstallFailure ? error : new InstallFailure(error?.message, reason);
+}
+
+// A cache write that throws is a storage problem (quota, evicted origin).
+async function asStorage(work) {
+  try {
+    return await work();
+  } catch (error) {
+    throw tagFailure(error, 'storage');
+  }
+}
+
+// MEM-24: the worker only records why it failed; the page reads this cache and
+// reports. The name sits outside the app's cache prefix on purpose, so
+// isOwnCache and every cleanup (activate, removeSelf) ignore it.
+const MAINT_CACHE = 'maint-sw-v1';
+const MAINT_RECORD_BOUND_MS = 2000;
+
+function missedBucket(count) {
+  if (count <= 0) return '0';
+  if (count === 1) return '1';
+  if (count <= 5) return '2-5';
+  if (count <= 20) return '6-20';
+  return '21+';
+}
+
+// Never throws and sends nothing.
+async function recordInstallFailure(reason, bucket) {
+  try {
+    const cache = await caches.open(MAINT_CACHE);
+    await cache.put(
+      resolve(`/__maint/sw-install/${BUILD_ID}`),
+      new Response(JSON.stringify({ v: 1, build: BUILD_ID, reason, missed: bucket })),
+    );
+  } catch {
+    // Reporting is best effort; it must not change how the install ends.
+  }
+}
+
+// The install awaits the record, but never for long.
+async function recordBounded(reason, bucket) {
+  let timer;
+  const bound = new Promise((resolveBound) => { timer = setTimeout(resolveBound, MAINT_RECORD_BOUND_MS); });
+  await Promise.race([recordInstallFailure(reason, bucket), bound]);
+  clearTimeout(timer);
+}
+
 // A real ServiceWorkerGlobalScope resolves a bare '/path' Request against the
 // worker's own script URL implicitly, same as any Window/Worker context - but
 // nothing here should depend on an ambient base that only exists in a browser.
@@ -240,17 +300,27 @@ async function findInPrevious(previousCaches, url) {
 }
 
 async function loadManifest() {
-  const response = await fetchFresh(PRECACHE_MANIFEST_URL);
+  let response;
+  try {
+    response = await fetchFresh(PRECACHE_MANIFEST_URL);
+  } catch (error) {
+    throw tagFailure(error, 'manifest_unreadable');
+  }
   if (response.status === 404) {
     throw new OrphanedWorkerError('This origin serves no precache manifest.');
   }
   if (!response.ok) {
-    throw new Error(`Failed to load precache manifest: ${response.status}`);
+    throw new InstallFailure(`Failed to load precache manifest: ${response.status}`, 'manifest_unreadable');
   }
-  const manifest = validManifest(await response.json());
+  let manifest;
+  try {
+    manifest = validManifest(await response.json());
+  } catch (error) {
+    throw tagFailure(error, 'manifest_unreadable');
+  }
   // MEM-22: a manifest served by another build would fill this build's cache
   // with that build's files.
-  if (manifest.build !== BUILD_ID) throw new Error('Precache manifest belongs to another build.');
+  if (manifest.build !== BUILD_ID) throw new InstallFailure('Precache manifest belongs to another build.', 'other_build');
   return manifest;
 }
 
@@ -306,7 +376,7 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
       if (toCopy.has(url)) {
         const kept = await findInPrevious(previousCaches, url).catch(() => null);
         if (kept) {
-          await cache.put(url, kept);
+          await asStorage(() => cache.put(url, kept));
           return;
         }
       }
@@ -315,18 +385,18 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
         if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
         const expected = hashes[url];
         if (!expected) {
-          await cache.put(url, trackProgress(response, touch));
+          await asStorage(() => cache.put(url, trackProgress(response, touch)));
           return;
         }
         // MEM-22: an unhashed file is stored only with the bytes this build's
         // manifest names, so a deploy landing mid-install cannot mix builds.
         // Reading the body counts as progress for the stall timer.
         const bytes = await trackProgress(response, touch).arrayBuffer();
-        if (await hashBytes(bytes) !== expected) throw new Error(`Precache ${url} is not this build's file.`);
-        await cache.put(url, new Response(bytes, { status: response.status, statusText: response.statusText, headers: response.headers }));
+        if (await hashBytes(bytes) !== expected) throw new InstallFailure(`Precache ${url} is not this build's file.`, 'root_mismatch');
+        await asStorage(() => cache.put(url, new Response(bytes, { status: response.status, statusText: response.statusText, headers: response.headers })));
       });
     } catch (error) {
-      if (url === REQUIRED_URL) throw error;
+      if (url === REQUIRED_URL) throw tagFailure(error, 'root_unreachable');
       missed.push(url);
     }
   });
@@ -336,8 +406,8 @@ async function precacheUrls(cache, urls, previousCaches, { skipCached = false, h
 // MEM-15: the whole app (see appUrls). Resolves to the number of URLs missed.
 async function precacheAppShell({ skipCached = false } = {}) {
   const manifest = await loadManifest();
-  const cache = await caches.open(CACHE_VERSION);
-  await cache.put(resolve(MANIFEST_PATH), new Response(JSON.stringify(manifest)));
+  const cache = await asStorage(() => caches.open(CACHE_VERSION));
+  await asStorage(() => cache.put(resolve(MANIFEST_PATH), new Response(JSON.stringify(manifest))));
   let previousCaches = [];
   try {
     previousCaches = await previousCacheHandles();
@@ -376,7 +446,12 @@ let completingPrecache = null;
 function completePrecache() {
   if (!completingPrecache) {
     completingPrecache = precacheAppShell({ skipCached: true })
-      .then((missed) => (missed === 0 ? markPrecacheComplete() : undefined))
+      .then((missed) => {
+        if (missed === 0) return markPrecacheComplete();
+        // MEM-24: not awaited by anything; this retry is already off the install path.
+        recordInstallFailure('files_missed', missedBucket(missed));
+        return undefined;
+      })
       .catch(() => {})
       .finally(() => { completingPrecache = null; });
   }
@@ -661,6 +736,8 @@ self.addEventListener('install', (event) => {
       await removeSelf();
       return;
     }
+    // MEM-24: leave a reason for the page to report, then fail exactly as before.
+    await recordBounded(error instanceof InstallFailure ? error.reason : 'storage', '0');
     throw error;
   });
   event.waitUntil(installed);
