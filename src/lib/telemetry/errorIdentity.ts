@@ -2,7 +2,9 @@
 const SAFE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 /**
- * The top frame of the stack, as `chunk.hash.js:line:column`.
+ * The top frame of the stack, as `chunk.hash.js:line:column` for a hashed `/_astro/` chunk, or
+ * `site/entry.js:line:column` / `shared/chunk.js:line:column` for the stable-named entries
+ * (MEM-25) - the folder is kept so the frame names which file it is.
  *
  * This is worth more than the message and leaks less. A message is built out of
  * whatever the thrower was holding, so it needs the whole guard above; a frame
@@ -17,12 +19,13 @@ const SAFE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
  * A whole stack line that is one frame in our own built output, in either
  * engine's shape and with nothing else on the line, bounded like the schema's
  * FRAME so an oversized frame is skipped rather than sinking the report:
- * V8 `    at fn (https://host/_astro/c.js:1:2)` or `    at https://host/_astro/c.js:1:2`;
+ * V8 `    at fn (https://host/_astro/c.js:1:2)` or `    at https://host/site/c.js:1:2`;
+ * only `/_astro/`, `/site/` and `/shared/` count, any other folder is dropped;
  * JSC and Gecko `fn@https://host/_astro/c.js:1:2`, WebKit's async `async fn@...`,
  * Gecko's `async*fn@...`, `@https://...` or a bare URL.
  */
 const FRAME_LINE =
-  /^\s*(?:at\s+(?:[^()]*\()?|(?:async\s+)?[^\s@()]*@)?https?:\/\/[^/\s]+\/_astro\/([A-Za-z0-9_.-]{1,120}\.m?js):(\d{1,7}):(\d{1,7})\)?\s*$/;
+  /^\s*(?:at\s+(?:[^()]*\()?|(?:async\s+)?[^\s@()]*@)?https?:\/\/[^/\s]+\/(?:_astro|(site|shared))\/([A-Za-z0-9_.-]{1,120}\.m?js):(\d{1,7}):(\d{1,7})\)?\s*$/;
 
 /** V8 is the engine that opens its stack with the message. */
 const V8_FRAME = /\n\s+at /;
@@ -44,7 +47,7 @@ export function stackFrames(error: Error, max = 8): string[] {
   for (const line of stack.split('\n')) {
     if (frames.length >= max) break;
     const hit = FRAME_LINE.exec(line);
-    if (hit) frames.push(`${hit[1]}:${hit[2]}:${hit[3]}`);
+    if (hit) frames.push(`${hit[1] ? `${hit[1]}/` : ''}${hit[2]}:${hit[3]}:${hit[4]}`);
   }
   return frames;
 }

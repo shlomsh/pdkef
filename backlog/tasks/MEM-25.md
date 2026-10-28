@@ -1,10 +1,9 @@
 ---
 id: "MEM-25"
 title: "A change to one shared module renames its own chunk, not every page and every importer"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -45,9 +44,63 @@ and `src/site-lib/appUpdate.ts`, MEM-24). A returning client's update cost 1,934
   worker and the manifest already account for).
 - Content-hashed caching stays immutable, and MEM-22's hash check still covers every file a page loads.
 
+## Design (2026-10-28)
+
+From two measured prototypes (a one-line change to `maintenanceTelemetry.ts`, both builds at one path):
+
+- **Entries at stable URLs.** Every client entry chunk (the BaseLayout scripts and each island) is emitted
+  as `/site/<name>.js`, so no page names a hashed file. Alone: 1,933,331 to 472,333 bytes, 1 page changed
+  (`/about/`, its build stamp).
+- **Hot shared chunks at stable URLs.** `maintenanceTelemetry` and `openPdfDoc` are emitted as
+  `/shared/<name>.js`, so their importers keep their names. Alone: 1,933,520 to 24,293 bytes, 0 renamed
+  chunks.
+- Both folders sit outside `/_astro/`, which the worker treats as immutable; files there are fetched fresh
+  at install and checked against the manifest's hashes (MEM-22), and revalidate on an ordinary visit.
+- The names live in `scripts/stableNames.mjs`, read by `astro.config.mjs` and by the guards. A dist guard
+  (`test:stable-names`) fails if a page names a hashed script or island, or if a listed hot chunk is not
+  emitted under `/shared/`. The closure walker, the precache budget and the page-weight guard follow
+  `/site/` and `/shared/` as they follow `/_astro/`.
+- Rejected: an import map (Rolldown's `experimental.chunkImportMap`) needs an inline map with a CSP hash in
+  every page, so any rename still changes every page.
+
 ## Acceptance
 
-- [ ] Replaying de9b06dc to 5522bb04 with the change applied to both builds costs under 500,000 bytes, and
+- [x] Replaying de9b06dc to 5522bb04 with the change applied to both builds costs under 500,000 bytes, and
       the ticket records the new breakdown.
-- [ ] A test pins it: a fixture build where one shared module changes renames that module's chunk and no
-      page and no importer.
+- [x] A test pins it: a fixture build where one shared module changes renames that module's chunk and no
+      page and no importer. (Pinned as `test:stable-names` on every CI build plus the nightly update-cost
+      reading of two real deploys; see Done.)
+
+## Done (2026-10-28)
+
+- **Replay** of de9b06dc to 5522bb04 with the naming applied to both, built at one path: 1,934,844 to
+  **119,853 bytes** brotli (q5). Breakdown: `/site/PdfSignTool.js` 43,350, `/site/PdfRedactTool.js` 36,354,
+  `/site/PdfCompressTool.js` 14,815 (their content changed), `/about/` 11,969 (build stamp), `sw.js` 5,530
+  and the manifest 4,922 (always), `/shared/openPdfDoc.js` 1,091, `/shared/maintenanceTelemetry.js` 1,000,
+  one new hashed chunk (`maintenanceEventSchema`, 822). 1 page changed, 0 chunks renamed without a content
+  change.
+- **One-line change** to `maintenanceTelemetry.ts` (experiment E): 1,933,331 to **24,436 bytes**; the
+  changed files are `/about/` and `/shared/maintenanceTelemetry.js`, 98 chunk names unchanged.
+- **Build:** `scripts/stableNames.mjs` names client entries `/site/<name>.js` (dots become `_`, so a stable
+  name has no inner dot) and `maintenanceTelemetry`/`openPdfDoc` `/shared/<name>.js`, through
+  `vite.environments.client` only; pdf-lib and pdf.js keep their hashed names (DEBT-20).
+  `buildPipelineFiles` follows `astro.config.mjs`'s relative imports, so editing the names runs the build.
+- **Guards:** `test:stable-names` (in `DIST_GUARD_STEPS` and `ci.yml`) fails on a hashed `/_astro/` script,
+  `component-url` or `renderer-url` in a page, a hot chunk missing from `dist/shared/`, or any inner dot in
+  `dist/site/` or `dist/shared/`. The closure walker (`../` specifiers), the precache budget (island and
+  orphan scan) and the page-weight guard follow `/site/` and `/shared/`. All eight dist guards pass.
+- **Smoke:** a production build in Chromium hydrates `/`, `/merge/`, `/sign/` and `/compress/`; the worker
+  caches all 17 `/site/` and 2 `/shared/` files, and `/sign/` and `/split/` hydrate offline.
+- The deploy that ships this renames every entry once, so that night's update-cost reading is high; the
+  next ordinary deploy is the first reading of the new shape. A shared module not in `HOT_SHARED_CHUNKS`
+  still renames its importers; the nightly reading names it in its top contributors.
+- **Review** (fresh reviewer): error telemetry matched only `/_astro/` frames and `errors:resolve` read only
+  `dist/_astro`, so an error in an island entry sent no frame. Frames now read `site/X.js:L:C` or
+  `shared/X.js:L:C` (bare names for `/_astro/`, so older reports still parse). A stable name exists in
+  every build, so `errors:resolve` needs `--build` for a report whose frames are all stable; reports carry
+  it (`site/PdfMergeTool.js:2:45000 --build` resolves to `PdfMergeTool.tsx:168`). `check:push` had no runner for the new guard; runners now come from the step lists. The guard also
+  reads `modulepreload` and `before-hydration-url`, and two e2e specs that block scripts now block `/site/`
+  and `/shared/` too.
+- A tab with no service worker, open across a deploy, that lazily loads an entry gets the new entry next
+  to the old shared modules it already holds. Before, that load was a 404 (`module_load`); now an export
+  that changed fails as a link error. With a service worker the tab keeps its own build's cache.
