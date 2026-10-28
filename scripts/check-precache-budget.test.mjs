@@ -241,7 +241,7 @@ describe('brotliSizes', () => {
     expect(cache).toEqual({ key: 'k', sizes: { '/_astro/b.2.js': 7 } });
   });
 
-  it('never reads or writes the cache for an unhashed URL', () => {
+  it('never reads or writes the cache for a URL with no content hash', () => {
     const calls = [];
     const { sizes, cache } = brotliSizes(['/', '/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { '/': 99, '/merge/': 99 } }, key: 'k' });
     expect(sizes).toEqual({ '/': 7, '/merge/': 7 });
@@ -259,6 +259,29 @@ describe('brotliSizes', () => {
   it('prunes entries for URLs not in the run', () => {
     const { cache } = brotliSizes(['/_astro/a.1.js'], { readBytes, compress: compressWith([]), cache: { key: 'k', sizes: { '/_astro/a.1.js': 99, '/_astro/gone.js': 5 } }, key: 'k' });
     expect(cache.sizes).toEqual({ '/_astro/a.1.js': 99 });
+  });
+
+  it('reuses the cached size of a page whose manifest hash matches', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { '/merge/#h1': 99 } }, key: 'k', hashes: { '/merge/': 'h1' } });
+    expect(sizes['/merge/']).toBe(99);
+    expect(calls).toEqual([]);
+    expect(cache.sizes).toEqual({ '/merge/#h1': 99 });
+  });
+
+  it('recompresses a page whose manifest hash changed and drops the old entry', () => {
+    const calls = [];
+    const { sizes, cache } = brotliSizes(['/merge/'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { '/merge/#h1': 99 } }, key: 'k', hashes: { '/merge/': 'h2' } });
+    expect(sizes['/merge/']).toBe(7);
+    expect(calls).toEqual(['/merge/']);
+    expect(cache.sizes).toEqual({ '/merge/#h2': 7 });
+  });
+
+  it('always compresses a page with no manifest hash and never writes it', () => {
+    const calls = [];
+    const { cache } = brotliSizes(['/sw.js'], { readBytes, compress: compressWith(calls), cache: { key: 'k', sizes: { '/sw.js#h1': 99 } }, key: 'k', hashes: { '/merge/': 'h1' } });
+    expect(calls).toEqual(['/sw.js']);
+    expect(cache.sizes).toEqual({});
   });
 
   it('skips a URL with no file', () => {

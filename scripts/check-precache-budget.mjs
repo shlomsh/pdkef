@@ -191,24 +191,28 @@ const BROTLI_PARAMS = { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 };
 const brotli = (buffer) => zlib.brotliCompressSync(buffer, { params: BROTLI_PARAMS }).length;
 
 // QUAL-37: /_astro/ files are content-hashed (the name changes with the bytes), so their brotli size is reused by
-// URL between runs. Anything else (pages, sw.js, fonts) is always compressed and never enters the cache. The cache is
+// URL between runs, and any other URL by its manifest content hash (`hashes`); one with no hash is always compressed and never enters the cache. The cache is
 // { key, sizes }; a different key (brotli parameters or zlib version) discards it. `readBytes(url)` returns the file's
 // bytes or null. Returns the sizes and the cache to write back, pruned to this run's URLs.
-export function brotliSizes(urls, { readBytes, compress, cache, key }) {
+// A size depends only on the bytes and the brotli params, so a URL is cacheable when its content identity is known:
+// a content-hashed /_astro/ name, or a manifest hash (MEM-22) for the final bytes. Anything else is always measured.
+const cacheId = (url, hashes) => (url.startsWith('/_astro/') ? url : hashes[url] ? `${url}#${hashes[url]}` : null);
+
+export function brotliSizes(urls, { readBytes, compress, cache, key, hashes = {} }) {
   const cached = cache && cache.key === key ? cache.sizes : {};
   const sizes = {};
   const kept = {};
   for (const url of urls) {
     if (url in sizes) continue;
-    const hashed = url.startsWith('/_astro/');
-    if (hashed && url in cached) {
-      sizes[url] = kept[url] = cached[url];
+    const id = cacheId(url, hashes);
+    if (id && id in cached) {
+      sizes[url] = kept[id] = cached[id];
       continue;
     }
     const bytes = readBytes(url);
     if (bytes == null) continue;
     sizes[url] = compress(bytes);
-    if (hashed) kept[url] = sizes[url];
+    if (id) kept[id] = sizes[url];
   }
   return { sizes, cache: { key, sizes: kept } };
 }
@@ -245,6 +249,7 @@ function main() {
     compress: brotli,
     cache: readCache(),
     key: CACHE_KEY,
+    hashes: manifest.hashes ?? {},
   });
   writeCache(cache);
 
