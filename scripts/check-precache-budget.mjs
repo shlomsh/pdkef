@@ -47,7 +47,8 @@ const HOME_PAGE = /^\/(?:[a-z]{2}\/)?$/;
  */
 
 // Tool islands are the Pdf*Tool entry chunks Astro names in component-url.
-const TOOL_ISLAND = /^\/_astro\/Pdf\w+Tool\.[\w-]+\.js$/;
+// MEM-25: /site/Pdf<X>Tool.js is the stable name; a hashed /_astro/ name still counts.
+export const TOOL_ISLAND = /^\/(?:_astro|site)\/Pdf\w+Tool(?:\.[\w-]+)?\.js$/;
 
 // `sizes` holds only files that exist in dist/; a listed URL with no entry is reported by findMissingFiles.
 export function closureBytes(files, sizes) {
@@ -93,7 +94,7 @@ export function findOrphanedAssets({ astroFiles, shell, pages }) {
   const installed = new Set(installUrls({ shell, pages }));
   return astroFiles
     .filter((f) => CODE_EXTENSIONS.has(path.extname(f).toLowerCase()) && !installed.has(`/${f}`) && !(withoutHash(f) in KNOWN_ORPHANS))
-    .map((f) => `${f}: in dist/_astro/ but in no list of the install, so it is never cached for offline use (a closure walker gap; list it in KNOWN_ORPHANS with a reason only if nothing needs it)`);
+    .map((f) => `${f}: in dist/ (_astro, site or shared) but in no list of the install, so it is never cached for offline use (a closure walker gap; list it in KNOWN_ORPHANS with a reason only if nothing needs it)`);
 }
 
 // A tool page's own island entry chunk must be in its closure, or the tool cannot start offline.
@@ -253,8 +254,11 @@ function main() {
   });
   writeCache(cache);
 
-  const astroDir = path.join(dist, '_astro');
-  const astroFiles = fs.existsSync(astroDir) ? fs.readdirSync(astroDir).map((f) => `_astro/${f}`) : [];
+  // MEM-25: client code is emitted under _astro (hashed), site (entries) and shared (hot chunks).
+  const astroFiles = ['_astro', 'site', 'shared'].flatMap((dir) => {
+    const full = path.join(dist, dir);
+    return fs.existsSync(full) ? fs.readdirSync(full).map((f) => `${dir}/${f}`) : [];
+  });
 
   const islands = {};
   for (const page of Object.keys(manifest.pages)) {

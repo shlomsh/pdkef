@@ -1,5 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { citedPaths, findDeadPaths } from './check-cited-paths.mjs';
+import { citedPaths, findDeadPaths, scanRepo } from './check-cited-paths.mjs';
 
 const none = () => false;
 const dead = (file, text, exists = none) => findDeadPaths({ file, text, exists }).map((d) => d.path);
@@ -28,5 +32,38 @@ describe('check-cited-paths', () => {
   });
   it('strips line suffixes and trailing punctuation', () => {
     expect(citedPaths('(src/a.ts:5-9), then src/b.ts.')).toEqual(['src/a.ts', 'src/b.ts']);
+  });
+});
+
+// DEBT-68: the guard reads the filesystem, so a gitignored file a local tool drops into the worktree
+// (the impeccable plugin writes .claude/skills/impeccable/ and .claude/agents/impeccable-*) failed it
+// while CI, which never has those files, passed.
+describe('scanRepo only scans files git knows about', () => {
+  const git = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: 'pipe' });
+  const put = (root, file, text) => {
+    mkdirSync(dirname(join(root, file)), { recursive: true });
+    writeFileSync(join(root, file), text);
+  };
+  const makeRepo = () => {
+    const root = mkdtempSync(join(tmpdir(), 'cited-paths-'));
+    git(root, 'init', '-q');
+    put(root, '.gitignore', '.claude/*\n!.claude/agents/\n.claude/agents/impeccable-*\n');
+    put(root, '.claude/agents/implementer.md', 'cites `src/missing-tracked.ts`\n');
+    git(root, 'add', '.gitignore', '.claude/agents/implementer.md');
+    return root;
+  };
+  const deadIn = (root) => scanRepo(root).map((d) => d.file).sort();
+
+  it('flags a tracked file, skips a gitignored one, still flags an untracked unignored one', () => {
+    const root = makeRepo();
+    try {
+      put(root, '.claude/agents/impeccable-applier.md', 'cites `src/App.jsx`\n');
+      put(root, '.claude/skills/impeccable/reference/live.md', 'cites `src/page.html`\n');
+      expect(deadIn(root)).toEqual(['.claude/agents/implementer.md']);
+      put(root, 'docs/new-note.md', 'cites `src/missing-new.ts`\n');
+      expect(deadIn(root)).toEqual(['.claude/agents/implementer.md', 'docs/new-note.md']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
